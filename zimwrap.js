@@ -56,7 +56,7 @@ function zot(v) {
 function zop(e) {
 	// stop event propagation - must pass it e || window.event;
 	// stop keys from moving content - arrows, spacebar, pgup, pgdown, home, end
-	if (e.keyCode >= 32 && e.keyCode <= 40) e.preventDefault();
+	if (e.keyCode && (e.keyCode >= 32 && e.keyCode <= 40)) e.preventDefault();
 	if (e.stopImmediatePropagation) e.stopImmediatePropagation();
 	if (window.event) window.event.cancelBubble=true;	
 }

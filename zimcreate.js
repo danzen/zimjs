@@ -15,18 +15,20 @@ var zim = function(zim) {
 	if (zon) zog("ZIM CREATE Module");
 
 	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget) {
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns) {
 		
-		// adds drag to an object (rect, overCursor, dragCursor optional, currentTarget optional)
+		// adds drag to an object (rect, overCursor, dragCursor optional, currentTarget optional, mouseDowns optional)
 		// rect is a rectangle object for the bounds of dragging
 		// the two cursor properties are any css cursor value such as "pointer", etc.
 		// currentTarget defaults to false allowing you to drag things within a container
 		// eg. drag(container); will drag any object within a container
 		// setting currentTarget to true will then drag the whole container
-		// dragging takes into account scaled and rotated object containers 		
+		// dragging takes into account scaled and rotated object containers 	
+		// mouseDowns defaults to false which prevents a swipe from triggering when dragging	
 		
 		obj.cursor = (zot(overCursor))?"pointer":overCursor;
-		if (zot(currentTarget)) currentTarget = false;
+		if (zot(currentTarget)) currentTarget = false;		
+		if (zot(mouseDowns)) mouseDowns = false;
 		
 		var diffX; var diffY; var point;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
@@ -55,6 +57,7 @@ var zim = function(zim) {
 			diffY = point.y - e.target.y;	
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
+			if (!mouseDowns) e.stopImmediatePropagation();
 		}, true);
 		
 		obj.zimMove = obj.on("pressmove", function(e) {

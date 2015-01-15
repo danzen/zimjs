@@ -56,7 +56,7 @@ function zot(v) {
 function zop(e) {
 	// stop event propagation - must pass it e || window.event;
 	// stop keys from moving content - arrows, spacebar, pgup, pgdown, home, end
-	if (e.keyCode >= 32 && e.keyCode <= 40) e.preventDefault();
+	if (e.keyCode && (e.keyCode >= 32 && e.keyCode <= 40)) e.preventDefault();
 	if (e.stopImmediatePropagation) e.stopImmediatePropagation();
 	if (window.event) window.event.cancelBubble=true;	
 }
@@ -432,18 +432,20 @@ var zim = function(zim) {
 	if (zon) zog("ZIM CREATE Module");
 
 	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget) {
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns) {
 		
-		// adds drag to an object (rect, overCursor, dragCursor optional, currentTarget optional)
+		// adds drag to an object (rect, overCursor, dragCursor optional, currentTarget optional, mouseDowns optional)
 		// rect is a rectangle object for the bounds of dragging
 		// the two cursor properties are any css cursor value such as "pointer", etc.
 		// currentTarget defaults to false allowing you to drag things within a container
 		// eg. drag(container); will drag any object within a container
 		// setting currentTarget to true will then drag the whole container
-		// dragging takes into account scaled and rotated object containers 		
+		// dragging takes into account scaled and rotated object containers 	
+		// mouseDowns defaults to false which prevents a swipe from triggering when dragging	
 		
 		obj.cursor = (zot(overCursor))?"pointer":overCursor;
-		if (zot(currentTarget)) currentTarget = false;
+		if (zot(currentTarget)) currentTarget = false;		
+		if (zot(mouseDowns)) mouseDowns = false;
 		
 		var diffX; var diffY; var point;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
@@ -472,6 +474,7 @@ var zim = function(zim) {
 			diffY = point.y - e.target.y;	
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
+			if (!mouseDowns) e.stopImmediatePropagation();
 		}, true);
 		
 		obj.zimMove = obj.on("pressmove", function(e) {
@@ -2955,7 +2958,7 @@ var zim = function(zim) {
 			var margin4=(zot(lastMargin)) ? 0 : lastMargin;
 			var max1=0; var max2=0; var max3=0;	var min1=0; var min3=0;	
 			var align1; var align2; var align3;	var valign1; var valign2; var valign3;
-			var bg1; var bg2; var bg3;		
+			var bg1; var bg2; var bg3; var minAbs1; var minAbs3;	
 			var fit1={x:0,y:0,width:0,height:0,scale:0};
 			var fit2={x:0,y:0,width:0,height:0,scale:0};
 			var fit3={x:0,y:0,width:0,height:0,scale:0};
@@ -3257,7 +3260,10 @@ var zim = function(zim) {
 						eval('obj'+i+'=region'+i+'.object;');
 						eval('margin'+i+'=(region'+i+'.marginTop)?region'+i+'.marginTop:0;');
 						eval('max'+i+'=(region'+i+'.maxWidth)?region'+i+'.maxWidth:100;');
-						if (i!=2) eval('min'+i+'=(region'+i+'.minHeight)?region'+i+'.minHeight:0;');
+						if (i!=2) {
+							eval('min'+i+'=(region'+i+'.minHeight)?region'+i+'.minHeight:0;');
+							eval('minAbs'+i+'=(region'+i+'.height)?region'+i+'.height:0;');
+						}
 						eval('if (region'+i+'.align) align'+i+'=region'+i+'.align;');
 						eval('if (region'+i+'.valign) valign'+i+'=region'+i+'.valign;');
 						eval('bg'+i+'=(region'+i+'.backgroundColor)?region'+i+'.backgroundColor:"";');						
@@ -3267,7 +3273,10 @@ var zim = function(zim) {
 						eval('obj'+i+'=region'+i+'.object;');					
 						eval('margin'+i+'=(region'+i+'.marginLeft)?region'+i+'.marginLeft:0;');
 						eval('max'+i+'=(region'+i+'.maxHeight)?region'+i+'.maxHeight:100;');
-						if (i!=2) eval('min'+i+'=(region'+i+'.minWidth)?region'+i+'.minWidth:0;');
+						if (i!=2) {
+							eval('min'+i+'=(region'+i+'.minWidth)?region'+i+'.minWidth:0;');
+							eval('minAbs'+i+'=(region'+i+'.width)?region'+i+'.width:0;');
+						}
 						eval('if (region'+i+'.align) align'+i+'=region'+i+'.align;');
 						eval('if (region'+i+'.valign) valign'+i+'=region'+i+'.valign;');
 						eval('bg'+i+'=(region'+i+'.backgroundColor)?region'+i+'.backgroundColor:"";');
