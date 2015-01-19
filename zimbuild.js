@@ -4,33 +4,130 @@
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
 // available at http://createjs.com
-// (borrows zim.ProportionDamp from zimcode)
+// (borrows zim.ProportionDamp from ZIM code)
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.2.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.2.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.3.js"><\/script>');
 } else {
 
 var zim = function(zim) {
 	
 	if (zon) zog("ZIM BUILD Module");
 	
-	
-	// Triangle class
-	
-	// extends a createjs.Shape
-	// makes a triangle shape using three line lengths
-	// var tri = new zim.Triangle(parameters);
-	
-	// PARAMETERS
-	// a, b and c are the lengths of the sides
-	// a will run horizontally along the bottom
-	// b is upwards and c is back to the origin
-	// fill, stroke, strokeSize are optional
-	// center defaults to true and puts the registration point to the center
-	// the actual center is not really the weighted center 
-	// so can pass in an adjust which brings the center towards its vertical base
-	
+/*-- // borrowed from ZIM Code
+zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound)
+
+ProportionDamp Class
+
+converts an input value to an output value on a different scale with damping	
+works like Proportion Class but with a damping parameter
+var pd = new zim.ProportionDamp(parmeters);
+
+PARAMETERS
+put in desired damping with 1 being no damping and .1 being the default
+in your own interval or ticker event function call pd.convert(input)
+the object always starts by assuming baseMin as baseValue
+if you want to start or go to an immediate value without easing then
+call the pd.immediate(baseValue) method with your desired baseValue (not targetValue)	
+
+METHODS
+convert(input) - converts a base value to a target value
+immediate(input) - immediately sets the target value (no damping)
+
+PROPERTIES
+damp - can adjust this dynamically (usually just pass it in as a parameter to start)
+--*/
+	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
+		
+		if (zon) zog("zim code - ProportionDamp");
+		
+		// damp - can be changed via damp get/set method property	
+		// factor - set to 1 for increasing and -1 for decreasing
+		// round - true to round results to whole number 
+		// zot() is found in danzen.js (the z version of not)		
+		if (zot(targetMin)) targetMin = 0;
+		if (zot(targetMax)) targetMax = 1;
+		if (zot(damp)) damp = .1;
+		if (zot(factor)) factor = 1;
+		if (zot(targetRound)) targetRound = false;
+
+		this.damp = damp; // want to expose as a property we can change
+		var that = this;		
+							
+		// proportion
+		var baseAmount;
+		var proportion;
+		var targetDifference;	
+		var targetAmount;	
+		
+		// damping			
+		var differenceAmount;
+		var desiredAmount=0;
+		var lastAmount = 0;
+					
+		baseAmount = baseMin; // just start at the min otherwise call immediate(baseValue);
+		lastAmount = targetMin;					
+		
+		var interval = setInterval(calculate, 20);		
+				
+		function calculate() {	
+			if (isNaN(baseAmount)) {return;}
+							
+			baseAmount = Math.max(baseAmount, baseMin);
+			baseAmount = Math.min(baseAmount, baseMax);
+			
+			proportion = (baseAmount - baseMin) / (baseMax - baseMin);			
+			targetDifference = targetMax - targetMin;	
+			
+			if (factor > 0) {					
+				targetAmount = targetMin + targetDifference * proportion;						
+			} else {
+				targetAmount = targetMax - targetDifference * proportion;
+			}				
+			
+			desiredAmount = targetAmount;			
+			differenceAmount = desiredAmount - lastAmount;									
+			lastAmount += differenceAmount*that.damp;						
+			if (targetRound) {lastAmount = Math.round(lastAmount);}					
+		}		
+		
+		this.immediate = function(n) {
+			this.convert(n);
+			calculate();
+			lastAmount = targetAmount;
+			if (targetRound) {lastAmount = Math.round(lastAmount);}	
+		}
+		
+		this.convert = function(n) {
+			baseAmount = n;			
+			return lastAmount;
+		}
+		
+		this.dispose = function() {
+			clearInterval(interval);
+		}
+	}		
+
+
+/*--
+zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
+
+Triangle class
+
+extends a createjs.Shape
+makes a triangle shape using three line lengths
+var tri = new zim.Triangle(parameters);
+
+PARAMETERS
+a, b and c are the lengths of the sides
+a will run horizontally along the bottom
+b is upwards and c is back to the origin
+fill, stroke, strokeSize are optional
+center defaults to true and puts the registration point to the center
+the actual center is not really the weighted center 
+so can pass in an adjust which brings the center towards its vertical base
+--*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
 						
 		function makeTriangle() {
@@ -49,7 +146,7 @@ var zim = function(zim) {
 			cc = lines[2];
 			
 			if (aa > bb+cc) {
-				zog("zimbuild.js Triangle(): invalid triangle lengths");
+				zog("zim build - Triangle(): invalid triangle lengths");
 				return;
 			}		
 					
@@ -109,32 +206,36 @@ var zim = function(zim) {
 		
 	}	
 	
-	
-	// Label Class
-	
-	// extends a createjs.Container	
-	// makes a label - wraps the createjs Text object
-	// can use with Button, CheckBox, RadioButtons and Pane 
-	// var label = new zim.Label(parameters);	
-	// Text seems to come in different sizes so we do our best
-	// Have tended to find that left and alphabetic are most consistent across browsers
-	
-	// PARAMETERS
-	// see the defaults in the code below 
-	
-	// METHODS
-	// showRollColor(boolean) - true to show roll color (used internally)
-	// clone() - returns a copy of the label and its properties
-	// dispose() - to get rid of the button and listeners
-	
-	// PROPERTIES
-	// label - references the text object of the label
-	// text - references the text property of the text object
-	
-	// EVENTS
-	// dispatches no events 
 		
-			
+/*--
+zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur)
+
+Label Class
+
+extends a createjs.Container	
+makes a label - wraps the createjs Text object
+can use with Button, CheckBox, RadioButtons and Pane 
+var label = new zim.Label(parameters);	
+Text seems to come in different sizes so we do our best
+Have tended to find that left and alphabetic are most consistent across browsers
+
+PARAMETERS (see the defaults in the code)
+labelText, 
+fontSize, font, textColor, textRollColor, 
+shadowColor, shadowBlur
+
+METHODS
+showRollColor(boolean) - true to show roll color (used internally)
+clone() - returns a copy of the label and its properties
+dispose() - to get rid of the button and listeners
+
+PROPERTIES
+label - references the text object of the label
+text - references the text property of the text object
+
+EVENTS
+dispatches no events 
+--*/	
 	zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur) {
 	
 		function makeLabel() {	
@@ -205,45 +306,43 @@ var zim = function(zim) {
 		return new makeLabel();
 		
 	}
+	
 		
-		
-	
-	
-	// Button Class
-	
-	// extends a createjs.Container	
-	// makes a button with rollovers 
-	// var button = new zim.Button(parameters);
-	// you will need to stage.addChild(button); and position it
-	// you will need to add a click event button.on("click", function);
-	// the Button class handles the rollovers		
-	
-	// PARAMETERS
-	// see the defaults in the code below
-	// (label is a ZIM Label object or text for default label properties)
-	
-	// METHODS
-	// dispose() - to get rid of the button and listeners
-	
-	// PROPERTIES
-	// width and height - or use getBounds().width and getBounds().height
-	// text - references the text property of the Label object of the button
-	// label - gives access to the label including button.label.text
-	// backing - references the backing of the button
-	
-	// EVENTS
-	// dispatches no events - you make your own click event
-		
-			
-	zim.Button = function(
-		width, height, label, 
-		backingColor, backingRollColor, borderColor, borderThickness,
-		corner, shadowColor, shadowBlur
-	) {
+/*--
+zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur)
+
+Button Class
+
+extends a createjs.Container	
+makes a button with rollovers 
+var button = new zim.Button(parameters);
+you will need to stage.addChild(button); and position it
+you will need to add a click event button.on("click", function);
+the Button class handles the rollovers		
+
+PARAMETERS (all with defaults - see code)
+width, height, 
+label, // ZIM Label or plain text for default settings
+backingColor, backingRollColor, borderColor, borderThickness, 
+corner, shadowColor, shadowBlur
+
+METHODS
+dispose() - to get rid of the button and listeners
+
+PROPERTIES
+width and height - or use getBounds().width and getBounds().height
+text - references the text property of the Label object of the button
+label - gives access to the label including button.label.text
+backing - references the backing of the button
+
+EVENTS
+dispatches no events - you make your own click event
+--*/		
+	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur) {
 	
 		function makeButton() {
 			
-			// if (zon) zog("zimbuild.js: Button");
+			// if (zon) zog("zim build - Button");
 			
 			if (zot(width)) width=200;
 			if (zot(height)) height=60;
@@ -319,35 +418,38 @@ var zim = function(zim) {
 		
 	}
 	
-	// CheckBox Class
 	
-	// extends createjs.Container
-	// a checkbox that when clicked toggles the check and a checked property
-	// var checkBox = new zim.CheckBox(parameters)
-	
-	// PARAMETERS
-	// size - in pixels (always square)
-	// label - ZIM Label object - or just some text to make a default label
-	// startChecked - an initial parameter to set checked if true - default is false
-	// color - the stroke and check color (default black) - background is set to a .5 alpha white
-	// margin - is on outside of box so clicking or pressing is easier
-	
-	// METHODS
-	// setChecked(Boolean) - defaults to true to set button checked (or use checked property)
-	
-	// PROPERTIES
-	// label - gives access to the label including checkBox.label.text
-	// checked - gets or sets the check of the box
-	
-	// EVENTS
-	// dispatches a "change" event when clicked on (or use a click event)
-	
-	
+/*--
+zim.CheckBox = function(size, label, startChecked, color, margin)
+
+CheckBox Class
+
+extends createjs.Container
+a checkbox that when clicked toggles the check and a checked property
+var checkBox = new zim.CheckBox(parameters)
+
+PARAMETERS
+size - in pixels (always square)
+label - ZIM Label object - or just some text to make a default label
+startChecked - an initial parameter to set checked if true - default is false
+color - the stroke and check color (default black) - background is set to a .5 alpha white
+margin - is on outside of box so clicking or pressing is easier
+
+METHODS
+setChecked(Boolean) - defaults to true to set button checked (or use checked property)
+
+PROPERTIES
+label - gives access to the label including checkBox.label.text
+checked - gets or sets the check of the box
+
+EVENTS
+dispatches a "change" event when clicked on (or use a click event)
+--*/
 	zim.CheckBox = function(size, label, startChecked, color, margin) {
 	
 		function makeCheckBox() {
 			
-			// if (zon) zog("zimbuild.js: CheckBox");
+			// if (zon) zog("zim build - CheckBox");
 				
 			if (zot(size)) size = 60;
 			if (zot(label)) label = null;			
@@ -435,47 +537,50 @@ var zim = function(zim) {
 		
 	}	
 
-	
-	// RadioButtons Class
-	
-	// extends createjs.Container
-	// a radio button set that lets you pick from choices
-	// var radioButton = new zim.RadioButton(parameters)
-	
-	// PARAMETERS
-	// size - in pixels (always square)
-	// buttonData - an array of button data objects as follows:	
-	// [{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
-	// or just a list of labels for default labels ["hi", "bye", "what!"]
-	
-	// vertical - boolean that if true displays radio buttons vertically else horizontally
-	// color - the stroke and check color (default black) - background is set to a .5 alpha white
-	// spacing - the space between radio button objects
-	// margin - the space around the radio button itself
-	
-	// METHODS
-	// setSelected(num) - sets the selected index (or use selectedIndex) -1 is default (none)
-	
-	// PROPERTIES
-	// selected - gets the selected object - selected.label, selected.id, etc.
-	// selectedIndex - gets or sets the selected index of the buttons
-	// label - current selected label object
-	// text - current selected label text
-	// id - current selected id
-	// labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
-	
-	// EVENTS
-	// dispatches a "change" event when clicked on (or use a click event)
-	// then ask for the properties above for info
 
-	
+/*--
+zim.RadioButtons = function(size, buttonData, vertical, color, spacing, margin)
+
+RadioButtons Class
+
+extends createjs.Container
+a radio button set that lets you pick from choices
+var radioButton = new zim.RadioButton(parameters)
+
+PARAMETERS
+size - in pixels (always square)
+buttonData - an array of button data objects as follows:	
+[{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
+or just a list of labels for default labels ["hi", "bye", "what!"]
+
+vertical - boolean that if true displays radio buttons vertically else horizontally
+color - the stroke and check color (default black) - background is set to a .5 alpha white
+spacing - the space between radio button objects
+margin - the space around the radio button itself
+
+METHODS
+setSelected(num) - sets the selected index (or use selectedIndex) -1 is default (none)
+
+PROPERTIES
+selected - gets the selected object - selected.label, selected.id, etc.
+selectedIndex - gets or sets the selected index of the buttons
+label - current selected label object
+text - current selected label text
+id - current selected id
+labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
+
+EVENTS
+dispatches a "change" event when clicked on (or use a click event)
+then ask for the properties above for info
+--*/
 	zim.RadioButtons = function(size, buttonData, vertical, color, spacing, margin) {
 	
 		function makeRadioButtons() {
 			
-			// if (zon) zog("zimbuild.js: RadioButtons");
+			// if (zon) zog("zim build - RadioButtons");
 			
 			if (zot(size)) size = 60;
+			size = Math.max(5, size);
 			if (zot(buttonData)) return;
 			if (zot(vertical)) vertical = true;
 			if (zot(color)) color = "black";
@@ -577,7 +682,7 @@ var zim = function(zim) {
 								
 				return(but);
 			}
-			
+			if (!this.getBounds()) this.setBounds(0,0,size,size);
 			this.setBounds(0,0,this.getBounds().width+margin,this.getBounds().height+margin);
 			
 			// the main function that sets a button selected (after the initial makeButton)
@@ -651,51 +756,52 @@ var zim = function(zim) {
 	}
 	
 	
+/*--
+zim.Pane = function(stage, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur)
 
-	
-	// Pane Class
-	
-	// extends a createjs.Container
-	// adds a window for alerts, etc.
-	// var pane = new zim.Pane(parameters); 
-	// you need to call the pane.show() to show the pane and pane.hide() to hide it
-	// you do not need to add it to the stage - it adds itself centered
-	// you can change the x and y (with origin and registration point in middle)
+Pane Class
 
-	// PARAMETERS
-	// see the defaults in the code below
-	// pass in the stage and the width and height of the pane
-	// pass in an optional ZIM Label (or text for default label properties)
-	// pass in a boolean for if you want to drag the pane (default false)
-	// pass in whether a dragging pane should open at first start position (defaults false)
-	// for reset, by default, Pane takes the first position and will continue to use that
-	// modal defaults to true and means the pane will close when user clicks off the pane
-	// corner is the corner radius default 20
-	// the backingAlpha is the darkness of the background that fills the stage
-	// value for shadow blur - 0 for no shadow
-	
-	// METHODS
-	// show() - shows the pane
-	// hide() - hides the pane
-	
-	// PROPERTIES
-	// display - reference to the pane box
-	// label - gives access to the label including pane.label.text
-	// backing - reference to the backing	that covers the stage
-	// resetX - if reset is true you can dynamically adjust the position if needed
-	// resetY 
-	
-	// EVENTS
-	// dispatches a "close" event when closed by clicking on backing
-		
+extends a createjs.Container
+adds a window for alerts, etc.
+var pane = new zim.Pane(parameters); 
+you need to call the pane.show() to show the pane and pane.hide() to hide it
+you do not need to add it to the stage - it adds itself centered
+you can change the x and y (with origin and registration point in middle)
+
+PARAMETERS
+see the defaults in the code below
+pass in the stage and the width and height of the pane
+pass in an optional ZIM Label (or text for default label properties)
+pass in a boolean for if you want to drag the pane (default false)
+pass in whether a dragging pane should open at first start position (defaults false)
+for reset, by default, Pane takes the first position and will continue to use that
+modal defaults to true and means the pane will close when user clicks off the pane
+corner is the corner radius default 20
+the backingAlpha is the darkness of the background that fills the stage
+value for shadow blur - 0 for no shadow
+
+METHODS
+show() - shows the pane
+hide() - hides the pane
+
+PROPERTIES
+display - reference to the pane box
+label - gives access to the label including pane.label.text
+backing - reference to the backing	that covers the stage
+resetX - if reset is true you can dynamically adjust the position if needed
+resetY 
+
+EVENTS
+dispatches a "close" event when closed by clicking on backing
+--*/	
 	zim.Pane = function(stage, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
 		
 		function makePane() {
 			
-			// if (zon) zog("zimbuild.js: Pane");
+			// if (zon) zog("zim build - Pane");
 			
-			if (zot(stage)) {zog("zimbuild.js Pane(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
-			if (!stage.getBounds()) {zog("zimbuild.js Pane(): Please give the stage bounds using setBounds()");	return;}
+			if (zot(stage) || !stage.getBounds) {zog("zim build - Pane(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
+			if (!stage.getBounds()) {zog("zim build - Pane(): Please give the stage bounds using setBounds()");	return;}
 
 			if (zot(width)) width=200;
 			if (zot(height)) height=200;
@@ -744,8 +850,6 @@ var zim = function(zim) {
 				e.stopImmediatePropagation();
 			});
 			
-			
-			
 			this.resetX; this.resetY;
 			if (drag) {				
 				display.cursor = "pointer";
@@ -779,9 +883,7 @@ var zim = function(zim) {
 				this.label = label;
 				this.text = label.text;				
 			}
-															
-		
-					
+																
 			stage.update();			
 			
 			this.hide = function() {
@@ -819,132 +921,178 @@ var zim = function(zim) {
 		
 	}
 	
-	// ProportionDamp Class (borrowed from zimcode)
 	
-	// converts an input value to an output value on a different scale with damping	
-	// works like Proportion Class but with a damping parameter
-	// var pd = new zim.ProportionDamp(parmeters);
-	
-	// PARAMETERS
-	// put in desired damping with 1 being no damping and .1 being the default
-	// in your own interval or ticker event function call pd.convert(input)
-	// the object always starts by assuming baseMin as baseValue
-	// if you want to start or go to an immediate value without easing then
-	// call the pd.immediate(baseValue) method with your desired baseValue (not targetValue)	
-	
-	// METHODS
-	// convert(input) - converts a base value to a target value
-	// immediate(input) - immediately sets the target value (no damping)
-	
-	// PROPERTIES
-	// damp - can adjust this dynamically (usually just pass it in as a parameter to start)
+/*--
+zim.Waiter = function(stage, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
+
+Waiter Class
+
+extends a createjs.Container
+adds a little animated three dot wait widget
+var waiter = new zim.Waiter(parameters); 
+you need to call the waiter.show() to show the waiter and waiter.hide() to hide it
+you do not need to add it to the stage - it adds itself centered
+you can change the x and y (with origin and registration point in middle)
+
+PARAMETERS
+pass in the stage and speed in ms for the cycle time (default 600ms)
+pass in backing color and dot color
+corner is the corner radius default 14
+color and value for shadow blur - 0 for no shadow
+
+METHODS
+show() - shows the waiter
+hide() - hides the waiter
+
+PROPERTIES
+display - reference to the waiter backing graphic
+
+EVENTS
+dispatches a "close" event when closed by clicking on backing
+--*/	
+	zim.Waiter = function(stage, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
+		
+		function makeWaiter() {
 			
+			// if (zon) zog("zim build - Waiter");
+			
+			if (zot(stage) || !stage.getBounds) {zog("zim build - Waiter(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
+			if (!stage.getBounds()) {zog("zim build - Waiter(): Please give the stage bounds using setBounds()");	return;}
 
-
-	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
-		
-		if (zon) zog("zimbuild.js: ProportionDamp");
-		
-		// damp - can be changed via damp get/set method property	
-		// factor - set to 1 for increasing and -1 for decreasing
-		// round - true to round results to whole number 
-		// zot() is found in danzen.js (the z version of not)		
-		if (zot(targetMin)) targetMin = 0;
-		if (zot(targetMax)) targetMax = 1;
-		if (zot(damp)) damp = .1;
-		if (zot(factor)) factor = 1;
-		if (zot(targetRound)) targetRound = false;
-
-		this.damp = damp; // want to expose as a property we can change
-		var that = this;		
-							
-		// proportion
-		var baseAmount;
-		var proportion;
-		var targetDifference;	
-		var targetAmount;	
-		
-		// damping			
-		var differenceAmount;
-		var desiredAmount=0;
-		var lastAmount = 0;
+			if (zot(speed)) speed=600; // ms cycle time
+			if (zot(backingColor)) backingColor="orange";
+			if (zot(circleColor)) circleColor="white";
+			if (zot(corner)) corner=16;
+			if (zot(shadowColor)) shadowColor="#444";
+			if (zot(shadowBlur)) shadowBlur=14;		
+			
+			var height = 40;	
+			var numDots = 3;
+			var r = height*.6/2;
+			var s = (height-r*2)/2;			
+			var width = numDots*(r*2+s)+s;	
+						
+			this.setBounds(-width/2,-height/2, width, height);
+ 			
+			var that = this;
 					
-		baseAmount = baseMin; // just start at the min otherwise call immediate(baseValue);
-		lastAmount = targetMin;					
-		
-		var interval = setInterval(calculate, 20);		
+			var display = this.display = new createjs.Shape();
+			this.addChild(display);
+			display.setBounds(0, 0, width, height);
+			display.regX = width/2;
+			display.regY = height/2;
+			g = display.graphics;
+			g.beginFill(backingColor);
+			g.drawRoundRect(0, 0, width, height, corner);
+			if (shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+			display.on("click", function(e) {
+				// stops the click from going through the display to the background
+				e.stopImmediatePropagation();
+			});
+			
+			var circles = new createjs.Container();
+			this.addChild(circles);
+			
+			var dot; 
+			for (var i=0; i<numDots; i++) {
+				dot = new createjs.Shape();
+				dot.graphics.f(circleColor).dc(0,0,r);
+				dot.x = (i-(numDots-1)/2) * (r*2+s);
+				circles.addChild(dot);
+				dot.cache(-r,-r,r*2,r*2);
+				dot.alpha = 0;	
+			}
+															
+			stage.update();			
+			
+			this.hide = function() {
+				createjs.Tween.get(that,{override:true})											
+							.to({alpha:0}, 300).call(function() {
+								createjs.Ticker.off("tick", that.ticker);
+								stage.removeChild(that);
+								stage.update();	
+							});				
+			}			
+			this.show = function() {
+				var dot; var counter=0;
+				for (var i=0; i<circles.getNumChildren(); i++) {
+					that.alpha = 0;
+					createjs.Tween.get(that,{override:true})											
+							.to({alpha:1}, 300);					
+					setTimeout(function() {
+						dot = circles.getChildAt(counter);
+						createjs.Tween.get(dot,{loop:true})											
+							.to({alpha:1}, speed/numDots/2)
+							.wait(speed/numDots)
+							.to({alpha:0}, speed/numDots)
+							.wait(speed-speed/numDots-speed/numDots/2);
+						counter++;
+					}, i*speed/numDots);
+						
+				}
+				that.ticker = createjs.Ticker.on("tick", stage);
 				
-		function calculate() {	
-			if (isNaN(baseAmount)) {return;}
-							
-			baseAmount = Math.max(baseAmount, baseMin);
-			baseAmount = Math.min(baseAmount, baseMax);
-			
-			proportion = (baseAmount - baseMin) / (baseMax - baseMin);			
-			targetDifference = targetMax - targetMin;	
-			
-			if (factor > 0) {					
-				targetAmount = targetMin + targetDifference * proportion;						
-			} else {
-				targetAmount = targetMax - targetDifference * proportion;
+				that.x = (stage.getBounds().width) /2;
+				that.y = (stage.getBounds().height) /2;
+				stage.addChild(that);			
+				stage.update();	
 			}				
 			
-			desiredAmount = targetAmount;			
-			differenceAmount = desiredAmount - lastAmount;									
-			lastAmount += differenceAmount*that.damp;						
-			if (targetRound) {lastAmount = Math.round(lastAmount);}					
-		}		
-		
-		this.immediate = function(n) {
-			this.convert(n);
-			calculate();
-			lastAmount = targetAmount;
-			if (targetRound) {lastAmount = Math.round(lastAmount);}	
+			this.dispose = function() {
+				display.removeAllEventListeners();
+				that.removeChild(display);
+				that.removeChild(circles);
+				display = null;
+				circles = null;
+			}
 		}
 		
-		this.convert = function(n) {
-			baseAmount = n;			
-			return lastAmount;
-		}
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time		
+		makeWaiter.prototype = new createjs.Container();
+		makeWaiter.constructor = zim.Waiter;
+		return new makeWaiter();
 		
-		this.dispose = function() {
-			clearInterval(interval);
-		}
 	}	
-	
-	
-	// Parallax Class	
-	
-	// takes objects and moves them with a parallax effect based on mouse movement
-	// for proper parallax, the objects closer move more than the objects farther back
-	// make a new object: p = new zim.Parallax(parameters)
-	
-	// PARAMETERS
-	// pass in the stage from your code (uses stage.mouseX and stage.mouseY)
-	// pass in the damping value (.1 default)
-	// pass in an array of layer objects in the following format
-	// [[obj, distanceX, distanceY], [obj2, distanceX, distanceY], etc.]
-	// or you can add these one at a time with the p.addLayer(obj, distanceX, distanceY); method
-	// you must pass in a layer object - the distanceX and distanceY can be 0 for no motion on that axis
-	// the distance is the total distance you want the layer object to travel
-	// relative to the cursor position between 0 and stage width or height
-	// the Parallax class will apply half the distance on either side of the object's start point
-	// should work through nested clips...
-	
-	// METHODS 
-	// addLayer(obj, distanceX, distanceY) - to alternately add layers after the object is made
-	// dispose() - removes listeners
-	
-	// PROPERTIES
-	// damp - allows you to dynamically change the damping
-	
-		
+
+
+
+
+
+/*--
+zim.Parallax = function(stage, damp, layers)
+
+Parallax Class	
+
+takes objects and moves them with a parallax effect based on mouse movement
+for proper parallax, the objects closer move more than the objects farther back
+make a new object: p = new zim.Parallax(parameters)
+
+PARAMETERS
+pass in the stage from your code (uses stage.mouseX and stage.mouseY)
+pass in the damping value (.1 default)
+pass in an array of layer objects in the following format
+[[obj, distanceX, distanceY], [obj2, distanceX, distanceY], etc.]
+or you can add these one at a time with the p.addLayer(obj, distanceX, distanceY); method
+you must pass in a layer object - the distanceX and distanceY can be 0 for no motion on that axis
+the distance is the total distance you want the layer object to travel
+relative to the cursor position between 0 and stage width or height
+the Parallax class will apply half the distance on either side of the object's start point
+should work through nested clips...
+
+METHODS 
+addLayer(obj, distanceX, distanceY) - to alternately add layers after the object is made
+dispose() - removes listeners
+
+PROPERTIES
+damp - allows you to dynamically change the damping
+--*/	
 	zim.Parallax = function(stage, damp, layers) {
 						
-		if (zon) zog("zimbuild.js: Parallax");
+		if (zon) zog("zim build - Parallax");
 		
-		if (zot(stage)) {zog("zimbuild.js: Parallax(): please pass in the stage with bounds as first parameter"); return;}
-		if (!stage.getBounds()) {zog("zimbuild.js Pane(): Please give the stage bounds using setBounds()");	return;}
+		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
+		if (!stage.getBounds()) {zog("zim build - Pane(): Please give the stage bounds using setBounds()");	return;}
 
 		var stageW = stage.getBounds().width;
 		var stageH = stage.getBounds().height;
@@ -965,6 +1113,7 @@ var zim = function(zim) {
 		// finally, the layer object is added to the myLayers private property
 		// the timer then loops through these layers and handles things from there
 		this.addLayer = function(obj, distanceX, distanceY) {
+
 			if (zot(obj)) return;
 			obj.zimX = zot(distanceX)?0:distanceX;
 			obj.zimY = zot(distanceY)?0:distanceY;
@@ -984,7 +1133,6 @@ var zim = function(zim) {
 			createjs.Ticker.off("tick", ticker);
 		}
 		
-
 		// private properties
 		// here are any layers that come in from Parallax object parameters
 		layers = (zot(layers)) ? [] : layers;			
@@ -1022,37 +1170,39 @@ var zim = function(zim) {
 	}
 	
 	
-	
-	// Scroller Class
-	
-	// animates a backing either horizontally or vertically (not both)
-	// make a new zim.Scroller(parameters) object 
-	// the Scroller object will animate and swap the backgrounds when needed
-	
-	// PARAMETERS
-	// pass in two backgrounds (that look the same - clone them)	
-	// pass in the speed, direction and a boolean for horizontal (default true)
-	// setting horizontal to false will animate vertically
-	// you can adjust the speed and direction properties dynamically
-	// you cannot adjust the backings and horizontal dynamically
-	// to change your animation, dispose() of the Scroller object and make a new one
-	// disposing just removes the ticker - you have to remove the backings
-	// not sure what is causing a small gap to appear over time 
-	// but if your background can overlap a little you can pass in a gapFix of 10 pixels etc.
-	
-	// METHODS
-	// dispose() - get rid of the event listeners - you need to remove the backings 
-	
-	// PROPERTIES
-	// speed - how fast the animation is going in pixels per frame (ticker set at 60)
-	// direction - either left or right if horizontal or up or down if not horizontal
-	// gapFix - if spacing occurs over time you can set the gapFix dynamically
-	
-	
+/*--
+zim.Scroller = function(b1, b2, speed, direction, horizontal, gapFix)
+
+Scroller Class
+
+animates a backing either horizontally or vertically (not both)
+make a new zim.Scroller(parameters) object 
+the Scroller object will animate and swap the backgrounds when needed
+
+PARAMETERS
+pass in two backgrounds (that look the same - clone them)	
+pass in the speed, direction and a boolean for horizontal (default true)
+setting horizontal to false will animate vertically
+you can adjust the speed and direction properties dynamically
+you cannot adjust the backings and horizontal dynamically
+to change your animation, dispose() of the Scroller object and make a new one
+disposing just removes the ticker - you have to remove the backings
+not sure what is causing a small gap to appear over time 
+but if your background can overlap a little you can pass in a gapFix of 10 pixels etc.
+
+METHODS
+dispose() - get rid of the event listeners - you need to remove the backings 
+
+PROPERTIES
+speed - how fast the animation is going in pixels per frame (ticker set at 60)
+direction - either left or right if horizontal or up or down if not horizontal
+gapFix - if spacing occurs over time you can set the gapFix dynamically
+--*/
 	zim.Scroller = function(b1, b2, speed, direction, horizontal, gapFix) {
 		
-		if (zon) zog("zimbuild.js: Scroller");
-		
+		if (zon) zog("zim build - Scroller");
+		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
+		if (zot(horizontal)) horizontal = true;
 		var that = this; // we keep animate protected but want to access public properties
 		
 		// here are the public properties that can be changed
@@ -1061,11 +1211,11 @@ var zim = function(zim) {
 		this.gapFix = (zot(gapFix)) ? 0 : gapFix;
 		
 		if (!b1.getBounds() || !b2.getBounds()) {
-			zog("zimbuild.js: Scroller(): please setBounds() on backing objects");
+			zog("zim build - Scroller(): please setBounds() on backing objects");
 			return;
 		}	
 		if (!b1.getStage()) {
-			zog("zimbuild.js: Scroller(): please add backing objects to stage to start");
+			zog("zim build - Scroller(): please add backing objects to stage to start");
 			return;
 		}	
 			
@@ -1082,7 +1232,7 @@ var zim = function(zim) {
 		createjs.Ticker.setFPS(60);
 		function animate(e) {
 			if (!b1.getStage()) return;
-			if (!b1.getStage().getBounds()) {zog("zimbuild.js: Scroller(): please setBounds() on stage"); return;}
+			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
 			if (!stageW) {
 				stageW = b1.getStage().getBounds().width;
 				stageH = b1.getStage().getBounds().height;

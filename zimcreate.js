@@ -6,43 +6,52 @@
 // available at http://createjs.com
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.2.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.2.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.3.js"><\/script>');
 } else {
 
 var zim = function(zim) {
 	
 	if (zon) zog("ZIM CREATE Module");
 
-	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns) {
-		
-		// adds drag to an object (rect, overCursor, dragCursor optional, currentTarget optional, mouseDowns optional)
-		// rect is a rectangle object for the bounds of dragging
-		// the two cursor properties are any css cursor value such as "pointer", etc.
-		// currentTarget defaults to false allowing you to drag things within a container
-		// eg. drag(container); will drag any object within a container
-		// setting currentTarget to true will then drag the whole container
-		// dragging takes into account scaled and rotated object containers 	
-		// mouseDowns defaults to false which prevents a swipe from triggering when dragging	
-		
-		obj.cursor = (zot(overCursor))?"pointer":overCursor;
+/*--
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns, localBounds)
+adds drag and drop to an object 
+handles scaled, rotated nested objects
+rect is a rectangle object for the bounds of dragging
+this rectangle is relative to the stage (global)
+if a rectangle relative to the object's parent is desired then set the localBounds parameter to true
+after the rect comes two cursor properties which are any css cursor value such as "pointer", etc.
+currentTarget defaults to false allowing you to drag things within a container
+eg. drag(container); will drag any object within a container
+setting currentTarget to true will then drag the whole container	
+mouseDowns defaults to false which prevents a swipe from triggering when dragging
+localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame	
+returns obj for chaining
+--*/	
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns, localBounds) {
+		if (zot(obj) || !obj.on) return;
+		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
+		if (zot(rect)) localBounds = false;
 		if (zot(currentTarget)) currentTarget = false;		
 		if (zot(mouseDowns)) mouseDowns = false;
+		if (zot(localBounds)) localBounds = false;
 		
 		var diffX; var diffY; var point;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
-		if (obj.parent) {
-			initializeObject();
-		}
+		if (obj.parent) initializeObject();
 		
 		function initializeObject() {
 			// check position right away if there is a bounding box
 			// there is no mousedown so set the diffX and diffY to 0		
-			diffX = 0;diffY = 0;
+			diffX = 0; diffY = 0;
 			// positionObject() is used as well in the dragmove function	
 			// where it expects a global x and y
 			// so convert obj.x and obj.y positions inside its parent to global:
+			if (localBounds) {
+				// convert to global
+				rect = zim.boundsToGlobal(obj.parent, rect);
+			}
 			point = obj.parent.localToGlobal(obj.x, obj.y);
 			positionObject(obj, point.x, point.y);		
 		}
@@ -70,7 +79,8 @@ var zim = function(zim) {
 			// checkBounds returns the same values if there are no bounds
 			// and always returns values inside the bounds if there are bounds set
 			// firstly, convert the global x and y to a point relative to the object's parent
-			if (!obj.parent) return;
+			if (!o.parent) return;
+			if (!o.getStage()) return;
 			var point = o.parent.globalToLocal(x, y);
 			var checkedPoint = checkBounds(point.x-diffX, point.y-diffY);			
 			// now set the object's x and y to the resulting checked local point
@@ -82,9 +92,8 @@ var zim = function(zim) {
 		obj.zimUp = obj.on("pressup", function(e) { 
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
 		}, true);
-				
-				
-		function checkBounds(x,y) {							
+					
+		function checkBounds(x, y) {							
 		
 			if (rect) {					
 				// convert the desired drag position to a global point
@@ -105,44 +114,63 @@ var zim = function(zim) {
 			
 			return {x:x,y:y}				
 		}
+		
+		return obj;
 	}
 			
-
+/*--
+zim.noDrag = function(obj)
+removes drag function from an object
+this is not a stopDrag function (as in the drop of a drag and drop)
+that happens automatically with the drag() function
+this in a sense, turns off a drag function so it is no longer draggable
+returns obj for chaining
+--*/
 	zim.noDrag = function(obj) {
-		// removes drag function from an object
+		if (zot(obj) || !obj.on) return;	
 		obj.cursor = "default";
 		obj.off("added", obj.zimAdded);
 		obj.off("mousedown", obj.zimDown);
 		obj.off("pressmove", obj.zimMove);
-		obj.off("pressup", obj.zimUp);	
+		obj.off("pressup", obj.zimUp);
+		return obj;	
 	}
 
-	zim.hitTestPoint = function(obj,x,y) {
-		// see if shape (obj) is hitting the global point x and y on the stage
+/*--
+zim.hitTestPoint = function(obj, x, y)
+see if shape (obj) is hitting the global point x and y on the stage
+--*/
+	zim.hitTestPoint = function(obj, x, y) {
+		if (zot(obj) || !obj.globalToLocal) return;
 		var point = obj.globalToLocal(x,y);
 		return obj.hitTest(point.x, point.y);
 	}
-	
-	zim.hitTestReg = function(a,b) {	
-		// see if shape (a) is hitting the registration point of object b	
+
+/*--
+zim.hitTestReg = function(a, b)
+see if shape (a) is hitting the registration point of object (b)
+--*/	
+	zim.hitTestReg = function(a, b) {
+		if (zot(a) || zot(b) || !a.localToLocal || !b.localToLocal) return;	
 		var point = b.localToLocal(b.regX,b.regY,a);
 		return a.hitTest(point.x, point.y);
 	}
 
-
-	zim.hitTestRect = function(a,b,num) {
-		// see if a shape (a) is hitting points on a rectangle
-		// the rectangle is based on the position, registration and bounds of object b
-		// the four corners are the default with num=0;
-		// if num is 1 then it tests for one extra (mid) point on each side
-		// if num is 2 then it tests for two extra points on each side (1/3 and 2/3)
-		// etc.
-		
+/*--
+zim.hitTestRect = function(a, b, num)
+see if a shape (a) is hitting points on a rectangle
+the rectangle is based on the position, registration and bounds of object (b)
+the four corners are the default with num=0;
+if num is 1 then it tests for one extra (mid) point on each side
+if num is 2 then it tests for two extra points on each side (1/3 and 2/3)
+etc.
+--*/
+	zim.hitTestRect = function(a, b, num) {
+		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
 		if (zot(num)) num = 0;
-			
 		var bounds = b.getBounds();
 		if (!bounds) {
-			zog("zimcreate.js hitTestRect():\n please setBounds() on param b object");
+			zog("zim create - hitTestRect():\n please setBounds() on param b object");
 			return;
 		}
 		
@@ -166,17 +194,19 @@ var zim = function(zim) {
 			if (a.hitTest(point.x, point.y)) return true;
 		}
 	}
-	
-	zim.hitTestCircle = function(a,b,num) {
-		// see if a shape (a) is hitting points on a circle
-		// the circle is based on the position, registration and bounds of object b
-		// num is how many points around the circle we test - default is 8
-		
-		if (zot(num)) num = 8;
-		
+
+/*--
+zim.hitTestCircle = function(a, b, num)
+see if a shape (a) is hitting points on a circle
+the circle is based on the position, registration and bounds of object (b)
+num is how many points around the circle we test - default is 8
+--*/	
+	zim.hitTestCircle = function(a, b, num) {
+		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
+		if (zot(num)) num = 8;		
 		var bounds = b.getBounds();
 		if (!bounds) {
-			zog("zimcreate.js hitTestCircle():\n please setBounds() on param b object");
+			zog("zim create - hitTestCircle():\n please setBounds() on param b object");
 			return;
 		}
 		
@@ -193,18 +223,21 @@ var zim = function(zim) {
 		}
 		
 	}
-	
-	zim.hitTestBounds = function(a,b,boundsShape) {
-		// see if the a.getBounds() is hitting the b.getBounds()
-		// we draw bounds for demonstration if you pass in a boundsShape shape
-		
+
+/*--
+zim.hitTestBounds = function(a, b, boundsShape)
+see if the a.getBounds() is hitting the b.getBounds()
+we draw bounds for demonstration if you pass in a boundsShape shape
+--*/	
+	zim.hitTestBounds = function(a, b, boundsShape) {
+		if (zot(a) || zot(b) || !a.getBounds || !b.getBounds) return;
 		var boundsCheck = false;
 		if (boundsShape && boundsShape.graphics) boundsCheck=true;
 				
 		var aB = a.getBounds();
 		var bB = b.getBounds();
 		if (!aB || !bB) {
-			zog("zimcreate.js hitTestBounds():\n please setBounds() on both objects");
+			zog("zim create - hitTestBounds():\n please setBounds() on both objects");
 			return;
 		}
 		
@@ -233,20 +266,27 @@ var zim = function(zim) {
 		}
 	}
 
-
-	zim.boundsToGlobal = function(o) {
-		// returns a rectangle of the bounds projected onto the stage
-		// used by the hitTestBounds above so probably you will not use this directly		
-		var oB = o.getBounds();
-		if (!oB) {
-			zog("zimcreate.js boundsToGlobal():\n please setBounds() on both objects");
+/*--
+zim.boundsToGlobal = function(obj, rectangle)
+returns a rectangle of the bounds of object projected onto the stage
+if a rectangle is passed in then it converts this rectangle 
+from within the frame of the obj to a global rectangle
+used by the hitTestBounds above so probably you will not use this directly
+--*/
+	zim.boundsToGlobal = function(obj, rectangle) {
+		
+		if (zot(obj) || !obj.getBounds) return;
+		var oB = obj.getBounds();
+		if (!oB && zot(rectangle)) {
+			zog("zim create - boundsToGlobal():\n please setBounds() on object (or a rectangle)");
 			return;
 		}
+		if (rectangle) oB = rectangle;
 		
-		var pTL = o.localToGlobal(oB.x, oB.y);
-		var pTR = o.localToGlobal(oB.x+oB.width, oB.y);
-		var pBR = o.localToGlobal(oB.x+oB.width, oB.y+oB.height);		
-		var pBL = o.localToGlobal(oB.x, oB.y+oB.height);
+		var pTL = obj.localToGlobal(oB.x, oB.y);
+		var pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
+		var pBR = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height);		
+		var pBL = obj.localToGlobal(oB.x, oB.y+oB.height);
 		
 		// handle rotation
 		var newTLX = Math.min(pTL.x,pTR.x,pBR.x,pBL.x);
@@ -261,34 +301,72 @@ var zim = function(zim) {
 			newBRY-newTLY
 		);	
 	}
-	
-	zim.scale = function(o, s) {
-		// convenience function to do scaleX and scaleY in one call
-		// pass in the object to scale followed by the scale
-		if (zot(o)) return;	
-		if (zot(s)) s=1;
-		o.scaleX = o.scaleY = s;	
+
+/*--
+zim.scale = function(obj, scale)
+convenience function to do scaleX and scaleY in one call
+pass in the object to scale followed by the scale
+returns the object for chaining
+--*/	
+	zim.scale = function(obj, scale) {
+		if (zot(obj) || !obj.scaleX) return;	
+		if (zot(scale)) scale=1;
+		obj.scaleX = obj.scaleY = scale;
+		return obj; 
+	}
+
+/*--
+zim.scaleTo = function(obj, boundObj, maxPercentX, maxPercentY)
+scales object to a percentage of another object's bounds
+percentage is from 0 - 100 (not 0-1)
+for example, button is 10% the width of the stage
+if both x and y percents are added it will take the smallest scaling
+returns the object for chaining
+--*/	
+	zim.scaleTo = function(obj, boundObj, maxPercentX, maxPercentY) {
+		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim create - scaleTo(): please provide an object (with setBounds) to scale"); return;}
+		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim create - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return;}
+		if (zot(maxPercentX)) maxPercentX = 100;
+		if (zot(maxPercentY)) maxPercentY = 100;
+		var w = boundObj.getBounds().width * maxPercentX / 100;
+		var h = boundObj.getBounds().height * maxPercentY / 100;
+		var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
+		zim.scale(obj, scale);
+		return obj;
 	}
 	
-
-	zim.move = function(target, x, y, t, ease) {		
-		// convenience function (wraps createjs.Tween)
-		// to animate an object target to position x, y in t miliseconds
-		// with ease (optional)
+/*--
+zim.move = function(target, x, y, t, ease, callBack, params, wait)
+convenience function (wraps createjs.Tween)
+to animate an object target to position x, y in t milliseconds
+with optional ease and a callBack function and params (send an array, for instance)
+returns target for chaining
+--*/
+	zim.move = function(target, x, y, t, ease, callBack, params, wait) {		
+		if (zot(target)) return;
 		if (zot(ease)) ease = "quadInOut";
+		if (zot(wait)) wait = 0;
 		createjs.Tween.get(target, {override: true})
+			.wait(wait)
 			.to({x:x, y:y}, t, createjs.Ease[ease])				
 			.call(doneAnimating);
 		var listener = createjs.Ticker.on("tick", stage);	
 		function doneAnimating() {
+			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
 		}		
+		return target;
 	}		
-	
+
+/*--
+zim.animate = function(target, obj, t, ease, callBack, params, wait)
+convenience function (wraps createjs.Tween)
+to animate object o properties in t milliseconds
+with optional ease and a callBack function and params (send an array, for instance)
+returns target for chaining
+--*/	
 	zim.animate = function(target, obj, t, ease, callBack, params, wait) {		
-		// convenience function (wraps createjs.Tween)
-		// to animate object o properties in t miliseconds
-		// with optional ease and a callBack function and params (send an array, for instance)
+		if (zot(target) || !target.on || zot(obj)) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		createjs.Tween.get(target)
@@ -297,32 +375,37 @@ var zim = function(zim) {
 			.call(doneAnimating);
 		var listener = createjs.Ticker.on("tick", stage);	
 		function doneAnimating() {
-			if (callBack) {(callBack)(params);}
+			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
-		}		
+		}	
+		return target;	
 	}	
-	
+
+/*--
+zim.fit = function(obj, left, top, width, height, inside)
+scale an object to fit inside (or outside) a rectangle and center it
+actually scales and positions the object
+object must have bounds set (setBounds())
+if only the object is passed in then if fits to the stage
+the inside parameter defaults to true and fits the object inside the bounds
+if inside is false then it fits the object around the bounds
+in both cases the object is centered
+returns an object with the new and old details:
+{x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height}
+--*/	
 	zim.fit = function(obj, left, top, width, height, inside) {
-		// scale an object to fit inside (or outside) a rectangle and center it
-		// actually scales and positions the object
-		// object must have bounds set (setBounds())
-		// if only the object is passed in then if fits to the stage
-		// the inside parameter defaults to true and fits the object inside the bounds
-		// if inside is false then it fits the object around the bounds
-		// in both cases the object is centered
-		// returns an object with the new {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale}
-		if (zot(obj)) return;
+		if (zot(obj) || !obj.getBounds) return;
 		if (!obj.getBounds()) {
-			zog("zimcreate.js fit(): please setBounds() on object");
+			zog("zim create - fit(): please setBounds() on object");
 			return;
 		}				
 		if (zot(left)) {
 			if (!obj.getStage()) {
-				zog("zimcreate.js fit(): please add boundary dimensions or add obj to stage first");
+				zog("zim create - fit(): please add boundary dimensions or add obj to stage first");
 				return;
 			}	
 			if (!obj.getStage().getBounds()) {
-				zog("zimcreate.js fit(): please add boundary dimensions or add obj with bounds to stage first");
+				zog("zim create - fit(): please add boundary dimensions or add obj with bounds to stage first");
 				return;
 			}			
 			var stageW = obj.getStage().getBounds().width;
@@ -365,18 +448,24 @@ var zim = function(zim) {
 		// vertical center
 		obj.y = top + (h-newH)/2;	
 		
-		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale};	
+		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height};	
 							
 	}	
-	
+
+/*--
+zim.outline = function(obj, color, size)
+for testing purposes
+draws a rectangle around the bounds of obj (adds rectangle to the objects parent)
+draws a cross at the origin of the object (0,0) where content will be placed
+draws a circle at the registration point of the object (where it will be placed in its container)
+these three things could be in completely different places ;-)
+returns the shape if you want to remove it: obj.parent.removeChild(returnedShape);
+will not be resized - really just to use while building and then comment it out or delete it
+--*/	
 	zim.outline = function(obj, color, size) {
-		// draws a rectangle around the bounds of obj in the provided shape
-		// draws a cross at the origin of the object (0,0) where content will be placed
-		// draws a circle at the registration point of the object (where it will be placed in its container)
-		// these three things could be in completely different places ;-)
-		if (zot(obj)) {zog("zimcreate.js outline(): please provide object and shape"); return;}		
-		if (!obj.getBounds()) {zog("zimcreate.js outline(): please setBounds() on object");	return;}
-		if (!obj.parent) {zog("zimcreate.js outline(): object should be on stage first"); return;}
+		if (zot(obj) || !obj.getBounds) {zog("zim create - outline(): please provide object and shape"); return;}		
+		if (!obj.getBounds()) {zog("zim create - outline(): please setBounds() on object");	return;}
+		if (!obj.parent) {zog("zim create - outline(): object should be on stage first"); return;}
 		if (zot(color)) color = "brown";
 		if (zot(size)) size = 2;
 		var oB = obj.getBounds();
@@ -409,7 +498,8 @@ var zim = function(zim) {
 		g.s(color).ss(size).dc(obj.x,obj.y,s+6);
 		
 		obj.parent.addChild(shape);		
-		if (obj.getStage()) obj.getStage().update();		
+		if (obj.getStage()) obj.getStage().update();
+		return obj;		
 	}
 	
 
