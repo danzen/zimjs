@@ -757,7 +757,7 @@ then ask for the properties above for info
 	
 	
 /*--
-zim.Pane = function(stage, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur)
+zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur)
 
 Pane Class
 
@@ -770,7 +770,7 @@ you can change the x and y (with origin and registration point in middle)
 
 PARAMETERS
 see the defaults in the code below
-pass in the stage and the width and height of the pane
+pass in the container for the pane (usually the stage) and the width and height of the pane
 pass in an optional ZIM Label (or text for default label properties)
 pass in a boolean for if you want to drag the pane (default false)
 pass in whether a dragging pane should open at first start position (defaults false)
@@ -794,15 +794,16 @@ resetY
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
-	zim.Pane = function(stage, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
+	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
 		
 		function makePane() {
 			
 			// if (zon) zog("zim build - Pane");
 			
-			if (zot(stage) || !stage.getBounds) {zog("zim build - Pane(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
-			if (!stage.getBounds()) {zog("zim build - Pane(): Please give the stage bounds using setBounds()");	return;}
-
+			if (zot(container) || !container.getBounds) {zog("zim build - Pane(): Please pass in a reference to a container with bounds set as first parameter");	return;}
+			if (!container.getBounds()) {zog("zim build - Pane(): Please give the container bounds using setBounds()"); return;}
+			if (zot(container.getStage)) {zog("zim build - Pane(): Please give the container that has a stage property"); return;}
+			
 			if (zot(width)) width=200;
 			if (zot(height)) height=200;
 			if (zot(label)) label = null;			
@@ -866,7 +867,7 @@ dispatches a "close" event when closed by clicking on backing
 					var p = checkBounds(e.stageX-diffX, e.stageY-diffY); 
 					that.x = p.x;
 					that.y = p.y;
-					stage.update();
+					container.getStage().update();
 				});
 				
 				this.on("pressup", function(e) {				
@@ -883,26 +884,24 @@ dispatches a "close" event when closed by clicking on backing
 				this.label = label;
 				this.text = label.text;				
 			}
-																
-			stage.update();			
-			
+				
 			this.hide = function() {
-				stage.removeChild(that);			
-				stage.update();	
+				container.removeChild(that);			
+				container.getStage().update();	
 				if (resets) {
 					if (!isNaN(that.resetX)) that.x = that.resetX;					
 					if (!isNaN(that.resetY)) that.y = that.resetY;
 				}
 			}			
 			this.show = function() {
-				that.x = (stage.getBounds().width) /2;
-				that.y = (stage.getBounds().height) /2;
-				stage.addChild(that);			
-				stage.update();	
+				that.x = (container.getBounds().width) /2;
+				that.y = (container.getBounds().height) /2;
+				container.addChild(that);			
+				container.getStage().update();	
 			}			
 			function checkBounds(x,y) {		
-				x = Math.max(width/2, Math.min(stage.getBounds().width-width/2, x));
-				y = Math.max(height/2, Math.min(stage.getBounds().height-height/2, y));
+				x = Math.max(width/2, Math.min(container.getBounds().width-width/2, x));
+				y = Math.max(height/2, Math.min(container.getBounds().height-height/2, y));
 				return {x:x,y:y}				
 			}			
 			
@@ -923,7 +922,7 @@ dispatches a "close" event when closed by clicking on backing
 	
 	
 /*--
-zim.Waiter = function(stage, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
+zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
 
 Waiter Class
 
@@ -935,7 +934,8 @@ you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
 
 PARAMETERS
-pass in the stage and speed in ms for the cycle time (default 600ms)
+pass in the container for the waiter (usually the stage) 
+pass in the speed in ms for the cycle time (default 600ms)
 pass in backing color and dot color
 corner is the corner radius default 14
 color and value for shadow blur - 0 for no shadow
@@ -950,14 +950,15 @@ display - reference to the waiter backing graphic
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
-	zim.Waiter = function(stage, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
+	zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
 		
 		function makeWaiter() {
 			
 			// if (zon) zog("zim build - Waiter");
 			
-			if (zot(stage) || !stage.getBounds) {zog("zim build - Waiter(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
-			if (!stage.getBounds()) {zog("zim build - Waiter(): Please give the stage bounds using setBounds()");	return;}
+			if (zot(container) || !container.getBounds) {zog("zim build - Waiter(): Please pass in a reference to a container with bounds set as first parameter");	return;}
+			if (!container.getBounds()) {zog("zim build - Waiter(): Please give the container bounds using setBounds()"); return;}
+			if (zot(container.getStage)) {zog("zim build - Waiter(): Please give the container that has a stage property"); return;}
 
 			if (zot(speed)) speed=600; // ms cycle time
 			if (zot(backingColor)) backingColor="orange";
@@ -1003,14 +1004,14 @@ dispatches a "close" event when closed by clicking on backing
 				dot.alpha = 0;	
 			}
 															
-			stage.update();			
+			container.getStage().update();			
 			
 			this.hide = function() {
 				createjs.Tween.get(that,{override:true})											
 							.to({alpha:0}, 300).call(function() {
 								createjs.Ticker.off("tick", that.ticker);
-								stage.removeChild(that);
-								stage.update();	
+								container.removeChild(that);
+								container.getStage().update();	
 							});				
 			}			
 			this.show = function() {
@@ -1030,12 +1031,12 @@ dispatches a "close" event when closed by clicking on backing
 					}, i*speed/numDots);
 						
 				}
-				that.ticker = createjs.Ticker.on("tick", stage);
+				that.ticker = createjs.Ticker.on("tick", function() {container.getStage().update();});
 				
-				that.x = (stage.getBounds().width) /2;
-				that.y = (stage.getBounds().height) /2;
-				stage.addChild(that);			
-				stage.update();	
+				that.x = (container.getBounds().width) /2;
+				that.y = (container.getBounds().height) /2;
+				container.addChild(that);			
+				container.getStage().update();	
 			}				
 			
 			this.dispose = function() {
@@ -1054,10 +1055,7 @@ dispatches a "close" event when closed by clicking on backing
 		return new makeWaiter();
 		
 	}	
-
-
-
-
+	
 
 /*--
 zim.Parallax = function(stage, damp, layers)

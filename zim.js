@@ -828,60 +828,73 @@ returns the object for chaining
 	}
 
 /*--
-zim.scaleTo = function(obj, boundObj, maxPercentX, maxPercentY)
+zim.scaleTo = function(obj, boundObj, percentX, percentY, type)
 scales object to a percentage of another object's bounds
 percentage is from 0 - 100 (not 0-1)
-for example, button is 10% the width of the stage
-if both x and y percents are added it will take the smallest scaling
+for example, button (obj) is 10% the width of the stage (boundObj)
+type is "smallest" (default), "biggest", and "both"
+smallest: uses the smallest scaling (fit)
+biggest: uses the largest scaling (outside)
+both: keeps both x and y scales - may stretch object (stretch)
 returns the object for chaining
 --*/	
-	zim.scaleTo = function(obj, boundObj, maxPercentX, maxPercentY) {
+	zim.scaleTo = function(obj, boundObj, percentX, percentY, type) {
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim create - scaleTo(): please provide an object (with setBounds) to scale"); return;}
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim create - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return;}
-		if (zot(maxPercentX)) maxPercentX = 100;
-		if (zot(maxPercentY)) maxPercentY = 100;
-		var w = boundObj.getBounds().width * maxPercentX / 100;
-		var h = boundObj.getBounds().height * maxPercentY / 100;
-		var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
+		if (zot(percentX)) percentX = -1;
+		if (zot(percentY)) percentY = -1;
+		if (percentX == -1 && percentY == -1) return obj;
+		if (zot(type)) type = "smallest";
+		var w = boundObj.getBounds().width * percentX / 100;
+		var h = boundObj.getBounds().height * percentY / 100;
+		if ((percentX == -1 || percentY == -1) && type != "both" && type != "stretch") {
+			if (percentX == -1) {
+				zim.scale(obj, h/obj.getBounds().height);
+			} else {
+				zim.scale(obj, w/obj.getBounds().width);
+			}
+			return obj;
+		}
+		if (type == "both" || type == "stretch") {
+			obj.scaleX = (percentX != -1) ? w/obj.getBounds().width : obj.scaleX;
+			obj.scaleY = (percentY != -1) ? h/obj.getBounds().height : obj.scaleY;
+			return obj;
+		} else if (type == "biggest" || type == "largest" || type == "outside") {
+			var scale = Math.max(w/obj.getBounds().width, h/obj.getBounds().height);
+		} else { // smallest or fit
+			var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
+		}
 		zim.scale(obj, scale);
 		return obj;
 	}
 	
 /*--
-zim.move = function(target, x, y, t, ease, callBack, params, wait)
+zim.move = function(target, x, y, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
+and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, t, ease, callBack, params, wait) {		
-		if (zot(target)) return;
-		if (zot(ease)) ease = "quadInOut";
-		if (zot(wait)) wait = 0;
-		createjs.Tween.get(target, {override: true})
-			.wait(wait)
-			.to({x:x, y:y}, t, createjs.Ease[ease])				
-			.call(doneAnimating);
-		var listener = createjs.Ticker.on("tick", stage);	
-		function doneAnimating() {
-			if (callBack && typeof callBack === 'function') {(callBack)(params);}
-			createjs.Ticker.off("tick", listener);
-		}		
-		return target;
-	}		
+	zim.move = function(target, x, y, t, ease, callBack, params, wait, props) {
+		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props);
+	}
+	
 
 /*--
-zim.animate = function(target, obj, t, ease, callBack, params, wait)
+zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
+and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait) {		
+	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
 		if (zot(target) || !target.on || zot(obj)) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
-		createjs.Tween.get(target)
+		if (zot(props)) props = {override: true};
+		createjs.Tween.get(target, props)
 			.wait(wait)
 			.to(obj, t, createjs.Ease[ease])				
 			.call(doneAnimating);
@@ -1359,6 +1372,7 @@ margin - is on outside of box so clicking or pressing is easier
 METHODS
 setChecked(Boolean) - defaults to true to set button checked (or use checked property)
 
+
 PROPERTIES
 label - gives access to the label including checkBox.label.text
 checked - gets or sets the check of the box
@@ -1631,7 +1645,6 @@ then ask for the properties above for info
 					that.text = "";
 				} else {
 					but.addChild(but.check);
-
 					that.id = currentObject.id;
 					that.label = currentObject.label;				
 					if (that.label) that.text = that.label.text;
@@ -1679,7 +1692,7 @@ then ask for the properties above for info
 	
 	
 /*--
-zim.Pane = function(stage, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur)
+zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur)
 
 Pane Class
 
@@ -1692,7 +1705,7 @@ you can change the x and y (with origin and registration point in middle)
 
 PARAMETERS
 see the defaults in the code below
-pass in the stage and the width and height of the pane
+pass in the container for the pane (usually the stage) and the width and height of the pane
 pass in an optional ZIM Label (or text for default label properties)
 pass in a boolean for if you want to drag the pane (default false)
 pass in whether a dragging pane should open at first start position (defaults false)
@@ -1716,15 +1729,16 @@ resetY
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
-	zim.Pane = function(stage, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
+	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
 		
 		function makePane() {
 			
 			// if (zon) zog("zim build - Pane");
 			
-			if (zot(stage) || !stage.getBounds) {zog("zim build - Pane(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
-			if (!stage.getBounds()) {zog("zim build - Pane(): Please give the stage bounds using setBounds()");	return;}
-
+			if (zot(container) || !container.getBounds) {zog("zim build - Pane(): Please pass in a reference to a container with bounds set as first parameter");	return;}
+			if (!container.getBounds()) {zog("zim build - Pane(): Please give the container bounds using setBounds()"); return;}
+			if (zot(container.getStage)) {zog("zim build - Pane(): Please give the container that has a stage property"); return;}
+			
 			if (zot(width)) width=200;
 			if (zot(height)) height=200;
 			if (zot(label)) label = null;			
@@ -1788,7 +1802,7 @@ dispatches a "close" event when closed by clicking on backing
 					var p = checkBounds(e.stageX-diffX, e.stageY-diffY); 
 					that.x = p.x;
 					that.y = p.y;
-					stage.update();
+					container.getStage().update();
 				});
 				
 				this.on("pressup", function(e) {				
@@ -1805,26 +1819,24 @@ dispatches a "close" event when closed by clicking on backing
 				this.label = label;
 				this.text = label.text;				
 			}
-																
-			stage.update();			
-			
+				
 			this.hide = function() {
-				stage.removeChild(that);			
-				stage.update();	
+				container.removeChild(that);			
+				container.getStage().update();	
 				if (resets) {
 					if (!isNaN(that.resetX)) that.x = that.resetX;					
 					if (!isNaN(that.resetY)) that.y = that.resetY;
 				}
 			}			
 			this.show = function() {
-				that.x = (stage.getBounds().width) /2;
-				that.y = (stage.getBounds().height) /2;
-				stage.addChild(that);			
-				stage.update();	
+				that.x = (container.getBounds().width) /2;
+				that.y = (container.getBounds().height) /2;
+				container.addChild(that);			
+				container.getStage().update();	
 			}			
 			function checkBounds(x,y) {		
-				x = Math.max(width/2, Math.min(stage.getBounds().width-width/2, x));
-				y = Math.max(height/2, Math.min(stage.getBounds().height-height/2, y));
+				x = Math.max(width/2, Math.min(container.getBounds().width-width/2, x));
+				y = Math.max(height/2, Math.min(container.getBounds().height-height/2, y));
 				return {x:x,y:y}				
 			}			
 			
@@ -1845,7 +1857,7 @@ dispatches a "close" event when closed by clicking on backing
 	
 	
 /*--
-zim.Waiter = function(stage, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
+zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
 
 Waiter Class
 
@@ -1857,7 +1869,8 @@ you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
 
 PARAMETERS
-pass in the stage and speed in ms for the cycle time (default 600ms)
+pass in the container for the waiter (usually the stage) 
+pass in the speed in ms for the cycle time (default 600ms)
 pass in backing color and dot color
 corner is the corner radius default 14
 color and value for shadow blur - 0 for no shadow
@@ -1872,14 +1885,15 @@ display - reference to the waiter backing graphic
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
-	zim.Waiter = function(stage, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
+	zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
 		
 		function makeWaiter() {
 			
 			// if (zon) zog("zim build - Waiter");
 			
-			if (zot(stage) || !stage.getBounds) {zog("zim build - Waiter(): Please pass in a reference to the stage with bounds set as first parameter");	return;}
-			if (!stage.getBounds()) {zog("zim build - Waiter(): Please give the stage bounds using setBounds()");	return;}
+			if (zot(container) || !container.getBounds) {zog("zim build - Waiter(): Please pass in a reference to a container with bounds set as first parameter");	return;}
+			if (!container.getBounds()) {zog("zim build - Waiter(): Please give the container bounds using setBounds()"); return;}
+			if (zot(container.getStage)) {zog("zim build - Waiter(): Please give the container that has a stage property"); return;}
 
 			if (zot(speed)) speed=600; // ms cycle time
 			if (zot(backingColor)) backingColor="orange";
@@ -1925,14 +1939,14 @@ dispatches a "close" event when closed by clicking on backing
 				dot.alpha = 0;	
 			}
 															
-			stage.update();			
+			container.getStage().update();			
 			
 			this.hide = function() {
 				createjs.Tween.get(that,{override:true})											
 							.to({alpha:0}, 300).call(function() {
 								createjs.Ticker.off("tick", that.ticker);
-								stage.removeChild(that);
-								stage.update();	
+								container.removeChild(that);
+								container.getStage().update();	
 							});				
 			}			
 			this.show = function() {
@@ -1952,12 +1966,12 @@ dispatches a "close" event when closed by clicking on backing
 					}, i*speed/numDots);
 						
 				}
-				that.ticker = createjs.Ticker.on("tick", stage);
+				that.ticker = createjs.Ticker.on("tick", function() {container.getStage().update();});
 				
-				that.x = (stage.getBounds().width) /2;
-				that.y = (stage.getBounds().height) /2;
-				stage.addChild(that);			
-				stage.update();	
+				that.x = (container.getBounds().width) /2;
+				that.y = (container.getBounds().height) /2;
+				container.addChild(that);			
+				container.getStage().update();	
 			}				
 			
 			this.dispose = function() {
@@ -2232,10 +2246,13 @@ var s = zim.Swipe(parameters)
 
 PARAMETERS
 pass into the object the object you want to swipe on
-then an optional distance to activate swipe (100 pixel default)
-and an optional time to travel that distance (200 ms default)
+then an optional distance to activate swipe (50 pixel default)
+can pass in a percentage of the stage
+and an optional time to travel that distance (100 ms default)
 	
 PROPERTIES
+distance - the distance needed for swipe to activate
+duration - the time from mousedown a swipe is measured for distance
 direction - the direction of the last swipe (left, right, up, down or none)
 obj - the object that was last swiped
 active - Boolean true for dispatching swipes and false for not
@@ -2245,7 +2262,7 @@ enable() - set swipe to active (by default it is)
 disable() - set swipe to inactive (sets active to false and does not dispatch)
 
 EVENTS
-dispatches a "swipe"	event on every pressup (even if swipe failed and direction is none)
+dispatches a "swipe" event on every pressup (even if swipe failed and direction is none)
 when a swipe event triggers
 the Swipe object provides a direction property of "left", "right", "up", or "down"
 the Swipe object provides an obj property of what object was swiped on
@@ -2258,9 +2275,11 @@ this can be used to snap back to an original location
 	zim.Swipe = function(obj, distance, duration) {
 		function makeSwipe() {
 			if (zot(obj) || !obj.on) {zog("zim pages - Swipe():\nPlease pass in object"); return;}
-			if (zot(distance)) distance = 100; // pixels for swipe to count
-			if (zot(duration)) duration = 200; // ms to test pixels
+			if (zot(distance)) distance = 50; // pixels for swipe to count
+			if (zot(duration)) duration = 100; // ms to test pixels
 			
+			this.distance = distance;
+			this.duration = duration;
 			this.active = true;
 			
 			var startX;
@@ -2282,14 +2301,14 @@ this can be used to snap back to an original location
 					if (downCheck) {
 						// may as well use 45 degrees rather than figure for aspect ratio
 						if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-							if (mouseX - startX > distance) {that.direction="right"; that.dispatchEvent("swipe"); downCheck=false;}	
-							if (startX - mouseX > distance) {that.direction="left"; that.dispatchEvent("swipe"); downCheck=false;}
+							if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); downCheck=false;}	
+							if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); downCheck=false;}
 						} else {
-							if (mouseY - startY > distance) {that.direction="down"; that.dispatchEvent("swipe"); downCheck=false;}
-							if (startY - mouseY > distance) {that.direction="up"; that.dispatchEvent("swipe"); downCheck=false;}
+							if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); downCheck=false;}
+							if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); downCheck=false;}
 						}
 					}				
-				}, duration);
+				}, that.duration);
 				obj.on("pressmove", function(e) {
 					mouseX = e.stageX;
 					mouseY = e.stageY;
@@ -2365,6 +2384,7 @@ page - the current page object (read)
 lastPage - the last page before transition (read)
 direction - direction of transition (read)
 active - default true, boolean to have swipes active (good for layered Pages objects)
+swipe - the ZIM Swipe object used for pages (can tweak distance to percentage if rescaling)
 
 EVENTS
 for the data above, swiping the home page down automatically goes to the hide page
@@ -2403,6 +2423,7 @@ if you want pages within a smaller area - consider using two canvas tags
 			if (zot(speed)) speed = 200;			
 			if (zot(transitionTable)) transitionTable = [];
 			this.transitionTable = transitionTable;
+
 			this.speed = speed;	
 			this.active = true;		
 			var that = this;
@@ -2433,13 +2454,13 @@ if you want pages within a smaller area - consider using two canvas tags
 			}	
 			this.addChild(currentPage);
 			
-			var swipe = new zim.Swipe(holder);
+			this.swipe = new zim.Swipe(holder);
 
 			// handle giving swipe event time to trigger event and provide code intervention
 			var pauseInfo;
 			var paused = false;	
 				
-			var swipeEvent = swipe.on("swipe", function(e) {
+			var swipeEvent = this.swipe.on("swipe", function(e) {
 				if (!that.active) return;
 				var direction = e.currentTarget.direction
 				if (direction == "none") return;
@@ -2547,7 +2568,6 @@ if you want pages within a smaller area - consider using two canvas tags
 						that.removeChild(that.lastPage);
 						zim.animate(pages.unshift(), {alpha:0}, that.speed/2, null, transEnd, pages);
 					}				
-
 										
 					newPage.x = 0;
 					newPage.y = 0;
@@ -2645,7 +2665,7 @@ if you want pages within a smaller area - consider using two canvas tags
 			}
 			
 			this.dispose = function() {
-				swipe.off("swipe", swipeEvent);
+				that.swipe.off("swipe", swipeEvent);
 				that.removeAllChildren();
 				pages = null;
 			}
@@ -3247,6 +3267,9 @@ add Zim Guide objects and update or remove all guides at once
 guides are handy to use but perhaps annoying to update and remove if you have many
 GuideManager keeps track of the guides and lets you update or dispose of them on command
 
+PROPERTIES
+items - an array of all Guide objects added with add()
+
 METHODS 
 add(guide) - registers a guide with the GuideManager
 resize() - resizes all the guides in the GuideManager (ie. if stage changes)
@@ -3302,7 +3325,6 @@ dispose() - clears keyboard events and grid
 			if (zot(hideKey)) hideKey = "G";
 			if (zot(pixelKey)) pixelKey = "P";
 			
-
 			var that = this;
 			var stage; 			
 			var pixels = 10; // for grid			
@@ -3567,6 +3589,9 @@ GridManager class
 add Zim Grid objects and update or remove all grids at once
 grids are handy to use but perhaps annoying to update and remove if you have many
 GridManager keeps track of the grids and lets you update or dispose of them on command
+
+PROPERTIES
+items - an array of all Grid objects added with add()
 
 METHODS 
 add(grid) - registers a grid with the GridManager
@@ -4029,9 +4054,12 @@ LayoutManager class
 add Zim Layout objects and update them all at once
 also can remove all layout region bound shapes at once
 as well as remove the B key to show the region bound shapes
-for a final project, call the removeShapes()
+for a final project, call the dispose()
 this will remove all shapes and key events
 the layouts will remain in place to handle multiple screen sizes
+
+PROPERTIES
+items - an array of all Layout objects added with add()
 
 METHODS 
 add(layout) - registers a layout with the LayoutManager
@@ -4045,29 +4073,29 @@ note: to just hide bounds, you use the B key
 	zim.LayoutManager = function() {		
 		if (zon) zog("zim pages - LayoutManager");
 		var that = this;
-		this.layouts = [];
+		this.items = [];
 		this.add = function(layout) {
-			that.layouts.push(layout);
+			that.items.push(layout);
 		}
 		this.resize = function() {			
-			for (var i=0; i<that.layouts.length; i++) {
-				that.layouts[i].resize();	
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].resize();	
 			}	
 		}
 		this.disable = function() {			
-			for (var i=0; i<that.layouts.length; i++) {							
-				that.layouts[i].disable();	
+			for (var i=0; i<that.items.length; i++) {							
+				that.items[i].disable();	
 			}
 		}
 		this.enable = function() {
-			for (var i=0; i<that.layouts.length; i++) {
-				that.layouts[i].enable();	
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].enable();	
 			}
 		}
 		
 		this.dispose = function() {
-			for (var i=0; i<that.layouts.length; i++) {
-				that.layouts[i].removeShape(); // also removes key events
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].removeShape(); // also removes key events
 			}
 		}		
 	}	

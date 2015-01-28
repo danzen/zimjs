@@ -316,60 +316,73 @@ returns the object for chaining
 	}
 
 /*--
-zim.scaleTo = function(obj, boundObj, maxPercentX, maxPercentY)
+zim.scaleTo = function(obj, boundObj, percentX, percentY, type)
 scales object to a percentage of another object's bounds
 percentage is from 0 - 100 (not 0-1)
-for example, button is 10% the width of the stage
-if both x and y percents are added it will take the smallest scaling
+for example, button (obj) is 10% the width of the stage (boundObj)
+type is "smallest" (default), "biggest", and "both"
+smallest: uses the smallest scaling (fit)
+biggest: uses the largest scaling (outside)
+both: keeps both x and y scales - may stretch object (stretch)
 returns the object for chaining
 --*/	
-	zim.scaleTo = function(obj, boundObj, maxPercentX, maxPercentY) {
+	zim.scaleTo = function(obj, boundObj, percentX, percentY, type) {
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim create - scaleTo(): please provide an object (with setBounds) to scale"); return;}
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim create - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return;}
-		if (zot(maxPercentX)) maxPercentX = 100;
-		if (zot(maxPercentY)) maxPercentY = 100;
-		var w = boundObj.getBounds().width * maxPercentX / 100;
-		var h = boundObj.getBounds().height * maxPercentY / 100;
-		var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
+		if (zot(percentX)) percentX = -1;
+		if (zot(percentY)) percentY = -1;
+		if (percentX == -1 && percentY == -1) return obj;
+		if (zot(type)) type = "smallest";
+		var w = boundObj.getBounds().width * percentX / 100;
+		var h = boundObj.getBounds().height * percentY / 100;
+		if ((percentX == -1 || percentY == -1) && type != "both" && type != "stretch") {
+			if (percentX == -1) {
+				zim.scale(obj, h/obj.getBounds().height);
+			} else {
+				zim.scale(obj, w/obj.getBounds().width);
+			}
+			return obj;
+		}
+		if (type == "both" || type == "stretch") {
+			obj.scaleX = (percentX != -1) ? w/obj.getBounds().width : obj.scaleX;
+			obj.scaleY = (percentY != -1) ? h/obj.getBounds().height : obj.scaleY;
+			return obj;
+		} else if (type == "biggest" || type == "largest" || type == "outside") {
+			var scale = Math.max(w/obj.getBounds().width, h/obj.getBounds().height);
+		} else { // smallest or fit
+			var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
+		}
 		zim.scale(obj, scale);
 		return obj;
 	}
 	
 /*--
-zim.move = function(target, x, y, t, ease, callBack, params, wait)
+zim.move = function(target, x, y, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
+and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, t, ease, callBack, params, wait) {		
-		if (zot(target)) return;
-		if (zot(ease)) ease = "quadInOut";
-		if (zot(wait)) wait = 0;
-		createjs.Tween.get(target, {override: true})
-			.wait(wait)
-			.to({x:x, y:y}, t, createjs.Ease[ease])				
-			.call(doneAnimating);
-		var listener = createjs.Ticker.on("tick", stage);	
-		function doneAnimating() {
-			if (callBack && typeof callBack === 'function') {(callBack)(params);}
-			createjs.Ticker.off("tick", listener);
-		}		
-		return target;
-	}		
+	zim.move = function(target, x, y, t, ease, callBack, params, wait, props) {
+		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props);
+	}
+	
 
 /*--
-zim.animate = function(target, obj, t, ease, callBack, params, wait)
+zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
+and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait) {		
+	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
 		if (zot(target) || !target.on || zot(obj)) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
-		createjs.Tween.get(target)
+		if (zot(props)) props = {override: true};
+		createjs.Tween.get(target, props)
 			.wait(wait)
 			.to(obj, t, createjs.Ease[ease])				
 			.call(doneAnimating);

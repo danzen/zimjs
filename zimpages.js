@@ -147,10 +147,13 @@ var s = zim.Swipe(parameters)
 
 PARAMETERS
 pass into the object the object you want to swipe on
-then an optional distance to activate swipe (100 pixel default)
-and an optional time to travel that distance (200 ms default)
+then an optional distance to activate swipe (50 pixel default)
+can pass in a percentage of the stage
+and an optional time to travel that distance (100 ms default)
 	
 PROPERTIES
+distance - the distance needed for swipe to activate
+duration - the time from mousedown a swipe is measured for distance
 direction - the direction of the last swipe (left, right, up, down or none)
 obj - the object that was last swiped
 active - Boolean true for dispatching swipes and false for not
@@ -160,7 +163,7 @@ enable() - set swipe to active (by default it is)
 disable() - set swipe to inactive (sets active to false and does not dispatch)
 
 EVENTS
-dispatches a "swipe"	event on every pressup (even if swipe failed and direction is none)
+dispatches a "swipe" event on every pressup (even if swipe failed and direction is none)
 when a swipe event triggers
 the Swipe object provides a direction property of "left", "right", "up", or "down"
 the Swipe object provides an obj property of what object was swiped on
@@ -173,9 +176,11 @@ this can be used to snap back to an original location
 	zim.Swipe = function(obj, distance, duration) {
 		function makeSwipe() {
 			if (zot(obj) || !obj.on) {zog("zim pages - Swipe():\nPlease pass in object"); return;}
-			if (zot(distance)) distance = 100; // pixels for swipe to count
-			if (zot(duration)) duration = 200; // ms to test pixels
+			if (zot(distance)) distance = 50; // pixels for swipe to count
+			if (zot(duration)) duration = 100; // ms to test pixels
 			
+			this.distance = distance;
+			this.duration = duration;
 			this.active = true;
 			
 			var startX;
@@ -197,14 +202,14 @@ this can be used to snap back to an original location
 					if (downCheck) {
 						// may as well use 45 degrees rather than figure for aspect ratio
 						if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-							if (mouseX - startX > distance) {that.direction="right"; that.dispatchEvent("swipe"); downCheck=false;}	
-							if (startX - mouseX > distance) {that.direction="left"; that.dispatchEvent("swipe"); downCheck=false;}
+							if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); downCheck=false;}	
+							if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); downCheck=false;}
 						} else {
-							if (mouseY - startY > distance) {that.direction="down"; that.dispatchEvent("swipe"); downCheck=false;}
-							if (startY - mouseY > distance) {that.direction="up"; that.dispatchEvent("swipe"); downCheck=false;}
+							if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); downCheck=false;}
+							if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); downCheck=false;}
 						}
 					}				
-				}, duration);
+				}, that.duration);
 				obj.on("pressmove", function(e) {
 					mouseX = e.stageX;
 					mouseY = e.stageY;
@@ -280,6 +285,7 @@ page - the current page object (read)
 lastPage - the last page before transition (read)
 direction - direction of transition (read)
 active - default true, boolean to have swipes active (good for layered Pages objects)
+swipe - the ZIM Swipe object used for pages (can tweak distance to percentage if rescaling)
 
 EVENTS
 for the data above, swiping the home page down automatically goes to the hide page
@@ -318,6 +324,7 @@ if you want pages within a smaller area - consider using two canvas tags
 			if (zot(speed)) speed = 200;			
 			if (zot(transitionTable)) transitionTable = [];
 			this.transitionTable = transitionTable;
+
 			this.speed = speed;	
 			this.active = true;		
 			var that = this;
@@ -348,13 +355,13 @@ if you want pages within a smaller area - consider using two canvas tags
 			}	
 			this.addChild(currentPage);
 			
-			var swipe = new zim.Swipe(holder);
+			this.swipe = new zim.Swipe(holder);
 
 			// handle giving swipe event time to trigger event and provide code intervention
 			var pauseInfo;
 			var paused = false;	
 				
-			var swipeEvent = swipe.on("swipe", function(e) {
+			var swipeEvent = this.swipe.on("swipe", function(e) {
 				if (!that.active) return;
 				var direction = e.currentTarget.direction
 				if (direction == "none") return;
@@ -559,7 +566,7 @@ if you want pages within a smaller area - consider using two canvas tags
 			}
 			
 			this.dispose = function() {
-				swipe.off("swipe", swipeEvent);
+				that.swipe.off("swipe", swipeEvent);
 				that.removeAllChildren();
 				pages = null;
 			}
@@ -571,6 +578,7 @@ if you want pages within a smaller area - consider using two canvas tags
 		makePages.prototype.constructor = zim.Pages;
 		return new makePages();
 	}
+
 	
 
 /*--
@@ -1161,6 +1169,9 @@ add Zim Guide objects and update or remove all guides at once
 guides are handy to use but perhaps annoying to update and remove if you have many
 GuideManager keeps track of the guides and lets you update or dispose of them on command
 
+PROPERTIES
+items - an array of all Guide objects added with add()
+
 METHODS 
 add(guide) - registers a guide with the GuideManager
 resize() - resizes all the guides in the GuideManager (ie. if stage changes)
@@ -1480,6 +1491,9 @@ GridManager class
 add Zim Grid objects and update or remove all grids at once
 grids are handy to use but perhaps annoying to update and remove if you have many
 GridManager keeps track of the grids and lets you update or dispose of them on command
+
+PROPERTIES
+items - an array of all Grid objects added with add()
 
 METHODS 
 add(grid) - registers a grid with the GridManager
@@ -1943,9 +1957,12 @@ LayoutManager class
 add Zim Layout objects and update them all at once
 also can remove all layout region bound shapes at once
 as well as remove the B key to show the region bound shapes
-for a final project, call the removeShapes()
+for a final project, call the dispose()
 this will remove all shapes and key events
 the layouts will remain in place to handle multiple screen sizes
+
+PROPERTIES
+items - an array of all Layout objects added with add()
 
 METHODS 
 add(layout) - registers a layout with the LayoutManager
@@ -1959,29 +1976,29 @@ note: to just hide bounds, you use the B key
 	zim.LayoutManager = function() {		
 		if (zon) zog("zim pages - LayoutManager");
 		var that = this;
-		this.layouts = [];
+		this.items = [];
 		this.add = function(layout) {
-			that.layouts.push(layout);
+			that.items.push(layout);
 		}
 		this.resize = function() {			
-			for (var i=0; i<that.layouts.length; i++) {
-				that.layouts[i].resize();	
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].resize();	
 			}	
 		}
 		this.disable = function() {			
-			for (var i=0; i<that.layouts.length; i++) {							
-				that.layouts[i].disable();	
+			for (var i=0; i<that.items.length; i++) {							
+				that.items[i].disable();	
 			}
 		}
 		this.enable = function() {
-			for (var i=0; i<that.layouts.length; i++) {
-				that.layouts[i].enable();	
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].enable();	
 			}
 		}
 		
 		this.dispose = function() {
-			for (var i=0; i<that.layouts.length; i++) {
-				that.layouts[i].removeShape(); // also removes key events
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].removeShape(); // also removes key events
 			}
 		}		
 	}	
