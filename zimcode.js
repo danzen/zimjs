@@ -36,7 +36,8 @@ shuffle and loop to show random but unique elements from an array
 	
 /*--
 zim.rand = function(a, b, integer)
-returns a random number between and including a and b
+returns a random number between and including a and b if integer is true
+includes a and up to b but not b if integer is false
 b is optional and if left out will default to 0 (includes 0)
 integer is a boolean and defaults to true
 if a and b are 0 then just returns Math.random()
@@ -45,7 +46,7 @@ if a and b are 0 then just returns Math.random()
 		if (zot(integer)) integer = true;
 		if (zot(b)) b = 0;
 		if (zot(a)) a = 0;
-		if (a>b) {a++;} else if (b>a) {b++;}
+		if (integer) if (a>b) {a++;} else if (b>a) {b++;}
 		var r;
 		if (a == 0 && b == 0) {
 			return Math.random();
@@ -60,6 +61,7 @@ if a and b are 0 then just returns Math.random()
 			return r;
 		}
 	}
+	
 	
 /*--
 zim.copy = function(obj)

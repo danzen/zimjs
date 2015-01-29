@@ -136,7 +136,8 @@ shuffle and loop to show random but unique elements from an array
 	
 /*--
 zim.rand = function(a, b, integer)
-returns a random number between and including a and b
+returns a random number between and including a and b if integer is true
+includes a and up to b but not b if integer is false
 b is optional and if left out will default to 0 (includes 0)
 integer is a boolean and defaults to true
 if a and b are 0 then just returns Math.random()
@@ -145,7 +146,7 @@ if a and b are 0 then just returns Math.random()
 		if (zot(integer)) integer = true;
 		if (zot(b)) b = 0;
 		if (zot(a)) a = 0;
-		if (a>b) {a++;} else if (b>a) {b++;}
+		if (integer) if (a>b) {a++;} else if (b>a) {b++;}
 		var r;
 		if (a == 0 && b == 0) {
 			return Math.random();
@@ -1238,6 +1239,7 @@ dispatches no events
 		makeLabel.prototype = new createjs.Container();
 		makeLabel.constructor = zim.Label;
 		return new makeLabel();
+
 		
 	}
 	
@@ -2223,6 +2225,7 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 
 
 
+
 ////////////////  ZIM PAGES  //////////////
 
 // zimpages.js helps you layout and control flexive pages, click and swipe between pages and more
@@ -2410,6 +2413,7 @@ the first page object is the start page
 you can add pages with the addPage() method 
 it will not show until you swipe or go to it - unless it was the first page added
 once again - do not add the pages to the stage yourself - let Pages do it for you
+
 just add the pages object to the stage.  Pages is designed for full stage
 if you want pages within a smaller area - consider using two canvas tags
 --*/	
