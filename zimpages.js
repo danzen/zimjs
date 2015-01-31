@@ -173,7 +173,7 @@ then e.target is the Swipe object so use e.target.direction
 did not dispatch a custom event due to lack of support in early IE
 Swipe also dispatches a direction of "none" if the mouse movement is not a swipe
 this can be used to snap back to an original location	
-also dispatches a "swipeDown" event for convenience on a mousedown	
+also dispatches a "swipedown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		function makeSwipe() {
@@ -199,7 +199,7 @@ also dispatches a "swipeDown" event for convenience on a mousedown
 				mouseX = startX = e.stageX;
 				mouseY = startY = e.stageY;
 				downCheck = true;	
-				that.dispatchEvent("swipeDown");
+				that.dispatchEvent("swipedown");
 				clearTimeout(timer);			
 				timer = setTimeout(function() {
 					if (downCheck) {
