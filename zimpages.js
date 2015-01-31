@@ -147,9 +147,10 @@ var s = zim.Swipe(parameters)
 
 PARAMETERS
 pass into the object the object you want to swipe on
-then an optional distance to activate swipe (50 pixel default)
-can pass in a percentage of the stage
-and an optional time to travel that distance (100 ms default)
+then an optional distance to activate swipe (30 pixel default)
+might want to pass in a pixel distance based on percentage of stage
+and an optional time to travel that distance (80 ms default)
+try http://zimjs.com/code/swipe.html for testing distance and time (speed)
 	
 PROPERTIES
 distance - the distance needed for swipe to activate
@@ -171,13 +172,14 @@ for instance if e is the event object
 then e.target is the Swipe object so use e.target.direction
 did not dispatch a custom event due to lack of support in early IE
 Swipe also dispatches a direction of "none" if the mouse movement is not a swipe
-this can be used to snap back to an original location		
+this can be used to snap back to an original location	
+also dispatches a "swipeDown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		function makeSwipe() {
 			if (zot(obj) || !obj.on) {zog("zim pages - Swipe():\nPlease pass in object"); return;}
-			if (zot(distance)) distance = 50; // pixels for swipe to count
-			if (zot(duration)) duration = 100; // ms to test pixels
+			if (zot(distance)) distance = 30; // pixels for swipe to count
+			if (zot(duration)) duration = 80; // ms to test pixels
 			
 			this.distance = distance;
 			this.duration = duration;
@@ -194,20 +196,15 @@ this can be used to snap back to an original location
 			obj.on("mousedown", function(e) {
 				if (!that.active) return;
 				that.obj = e.target; 
-				startX = e.stageX;
-				startY = e.stageY;
+				mouseX = startX = e.stageX;
+				mouseY = startY = e.stageY;
 				downCheck = true;	
+				that.dispatchEvent("swipeDown");
 				clearTimeout(timer);			
 				timer = setTimeout(function() {
 					if (downCheck) {
-						// may as well use 45 degrees rather than figure for aspect ratio
-						if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-							if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); downCheck=false;}	
-							if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); downCheck=false;}
-						} else {
-							if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); downCheck=false;}
-							if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); downCheck=false;}
-						}
+						checkSwipe();
+						downCheck = false;							
 					}				
 				}, that.duration);
 				obj.on("pressmove", function(e) {
@@ -216,11 +213,26 @@ this can be used to snap back to an original location
 				});
 				obj.on("pressup", function(e) {
 					if (downCheck) {
+						checkSwipe();
+						downCheck = false;	
+						clearTimeout(timer);						
+					}	
+				});	
+				
+				function checkSwipe() {
+					var swipeCheck = false;
+					// may as well use 45 degrees rather than figure for aspect ratio
+					if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
+						if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); swipeCheck=true;}	
+						if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); swipeCheck=true;}
+					} else {
+						if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); swipeCheck=true;}
+					}
+					if (!swipeCheck) {
 						that.direction="none"; that.dispatchEvent("swipe");
 					}
-					downCheck = false;
-					clearTimeout(timer);	
-				});				
+				}
 			});		
 			
 			this.disable = function() {
@@ -1154,6 +1166,7 @@ dispose() - clears keyboard events and guide
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time	
+
 		makeGuide.prototype = new createjs.Container();
 		makeGuide.prototype.constructor = zim.Guide;	
 		return new makeGuide();			
@@ -1612,6 +1625,7 @@ will fill up the rest of the height until they reach their maximum widths
 			// if not given we try to maximize size and to adhere to min values
 			// as calculations progress we calculate given, maxGiven and marginGiven values
 			// these are temporary depending on the resizing and are always in the primary direction
+
 			// secondary direction is quite simple
 			// primary direction is quite complex involving a number of steps and even some recursion
 			

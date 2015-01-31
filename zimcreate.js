@@ -37,7 +37,7 @@ returns obj for chaining
 		if (zot(mouseDowns)) mouseDowns = false;
 		if (zot(localBounds)) localBounds = false;
 		
-		var diffX; var diffY; var point;		
+		var diffX; var diffY; var point; var r;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
 		if (obj.parent) initializeObject();
 		
@@ -49,8 +49,9 @@ returns obj for chaining
 			// where it expects a global x and y
 			// so convert obj.x and obj.y positions inside its parent to global:
 			if (localBounds) {
-				// convert to global
-				rect = zim.boundsToGlobal(obj.parent, rect);
+				r = zim.boundsToGlobal(obj.parent, rect);
+			} else {
+				r = rect;
 			}
 			point = obj.parent.localToGlobal(obj.x, obj.y);
 			positionObject(obj, point.x, point.y);		
@@ -64,6 +65,11 @@ returns obj for chaining
 			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY); 
 			diffX = point.x - e.target.x;
 			diffY = point.y - e.target.y;	
+			if (localBounds) {
+				r = zim.boundsToGlobal(obj.parent, rect);
+			} else {
+				r = rect;
+			}
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
 			if (!mouseDowns) e.stopImmediatePropagation();
@@ -95,16 +101,16 @@ returns obj for chaining
 					
 		function checkBounds(x, y) {							
 		
-			if (rect) {					
+			if (rect) {	
 				// convert the desired drag position to a global point
 				// note that we want the position of the object in its parent
 				// so we use the parent as the local frame
 				var point = obj.parent.localToGlobal(x,y);
-				
-				// check to see if we have a bounding rectangle to drag within
-				// and if so - the rect is on the global stage so use the transformed point		
-				x = Math.max(rect.x, Math.min(rect.x+rect.width, point.x));
-				y = Math.max(rect.y, Math.min(rect.y+rect.height, point.y));
+				// r is the bounds rectangle on the global stage 
+				// r is set during mousedown to allow for global scaling when in localBounds mode
+				// if you scale in localBounds==false mode, you will need to reset bounds with noDrag() drag()
+				x = Math.max(r.x, Math.min(r.x+r.width, point.x));
+				y = Math.max(r.y, Math.min(r.y+r.height, point.y));
 				// now that the point has been checked on the global scale
 				// convert the point back to the obj parent frame of reference
 				point = obj.parent.globalToLocal(x, y);

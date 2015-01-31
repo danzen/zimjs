@@ -136,8 +136,8 @@ shuffle and loop to show random but unique elements from an array
 	
 /*--
 zim.rand = function(a, b, integer)
-returns a random number between and including a and b if integer is true
-includes a and up to b but not b if integer is false
+returns a random integer between and including a and b if integer is true
+returns a random number (with decimals) including a and up to b but not b if integer is false
 b is optional and if left out will default to 0 (includes 0)
 integer is a boolean and defaults to true
 if a and b are 0 then just returns Math.random()
@@ -550,7 +550,7 @@ returns obj for chaining
 		if (zot(mouseDowns)) mouseDowns = false;
 		if (zot(localBounds)) localBounds = false;
 		
-		var diffX; var diffY; var point;		
+		var diffX; var diffY; var point; var r;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
 		if (obj.parent) initializeObject();
 		
@@ -562,8 +562,9 @@ returns obj for chaining
 			// where it expects a global x and y
 			// so convert obj.x and obj.y positions inside its parent to global:
 			if (localBounds) {
-				// convert to global
-				rect = zim.boundsToGlobal(obj.parent, rect);
+				r = zim.boundsToGlobal(obj.parent, rect);
+			} else {
+				r = rect;
 			}
 			point = obj.parent.localToGlobal(obj.x, obj.y);
 			positionObject(obj, point.x, point.y);		
@@ -577,6 +578,11 @@ returns obj for chaining
 			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY); 
 			diffX = point.x - e.target.x;
 			diffY = point.y - e.target.y;	
+			if (localBounds) {
+				r = zim.boundsToGlobal(obj.parent, rect);
+			} else {
+				r = rect;
+			}
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
 			if (!mouseDowns) e.stopImmediatePropagation();
@@ -608,16 +614,16 @@ returns obj for chaining
 					
 		function checkBounds(x, y) {							
 		
-			if (rect) {					
+			if (rect) {	
 				// convert the desired drag position to a global point
 				// note that we want the position of the object in its parent
 				// so we use the parent as the local frame
 				var point = obj.parent.localToGlobal(x,y);
-				
-				// check to see if we have a bounding rectangle to drag within
-				// and if so - the rect is on the global stage so use the transformed point		
-				x = Math.max(rect.x, Math.min(rect.x+rect.width, point.x));
-				y = Math.max(rect.y, Math.min(rect.y+rect.height, point.y));
+				// r is the bounds rectangle on the global stage 
+				// r is set during mousedown to allow for global scaling when in localBounds mode
+				// if you scale in localBounds==false mode, you will need to reset bounds with noDrag() drag()
+				x = Math.max(r.x, Math.min(r.x+r.width, point.x));
+				y = Math.max(r.y, Math.min(r.y+r.height, point.y));
 				// now that the point has been checked on the global scale
 				// convert the point back to the obj parent frame of reference
 				point = obj.parent.globalToLocal(x, y);
@@ -1239,7 +1245,6 @@ dispatches no events
 		makeLabel.prototype = new createjs.Container();
 		makeLabel.constructor = zim.Label;
 		return new makeLabel();
-
 		
 	}
 	
@@ -2225,7 +2230,6 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 
 
 
-
 ////////////////  ZIM PAGES  //////////////
 
 // zimpages.js helps you layout and control flexive pages, click and swipe between pages and more
@@ -2249,9 +2253,10 @@ var s = zim.Swipe(parameters)
 
 PARAMETERS
 pass into the object the object you want to swipe on
-then an optional distance to activate swipe (50 pixel default)
-can pass in a percentage of the stage
-and an optional time to travel that distance (100 ms default)
+then an optional distance to activate swipe (30 pixel default)
+might want to pass in a pixel distance based on percentage of stage
+and an optional time to travel that distance (80 ms default)
+try http://zimjs.com/code/swipe.html for testing distance and time (speed)
 	
 PROPERTIES
 distance - the distance needed for swipe to activate
@@ -2273,13 +2278,14 @@ for instance if e is the event object
 then e.target is the Swipe object so use e.target.direction
 did not dispatch a custom event due to lack of support in early IE
 Swipe also dispatches a direction of "none" if the mouse movement is not a swipe
-this can be used to snap back to an original location		
+this can be used to snap back to an original location	
+also dispatches a "swipeDown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		function makeSwipe() {
 			if (zot(obj) || !obj.on) {zog("zim pages - Swipe():\nPlease pass in object"); return;}
-			if (zot(distance)) distance = 50; // pixels for swipe to count
-			if (zot(duration)) duration = 100; // ms to test pixels
+			if (zot(distance)) distance = 30; // pixels for swipe to count
+			if (zot(duration)) duration = 80; // ms to test pixels
 			
 			this.distance = distance;
 			this.duration = duration;
@@ -2296,20 +2302,15 @@ this can be used to snap back to an original location
 			obj.on("mousedown", function(e) {
 				if (!that.active) return;
 				that.obj = e.target; 
-				startX = e.stageX;
-				startY = e.stageY;
+				mouseX = startX = e.stageX;
+				mouseY = startY = e.stageY;
 				downCheck = true;	
+				that.dispatchEvent("swipeDown");
 				clearTimeout(timer);			
 				timer = setTimeout(function() {
 					if (downCheck) {
-						// may as well use 45 degrees rather than figure for aspect ratio
-						if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-							if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); downCheck=false;}	
-							if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); downCheck=false;}
-						} else {
-							if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); downCheck=false;}
-							if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); downCheck=false;}
-						}
+						checkSwipe();
+						downCheck = false;							
 					}				
 				}, that.duration);
 				obj.on("pressmove", function(e) {
@@ -2318,11 +2319,26 @@ this can be used to snap back to an original location
 				});
 				obj.on("pressup", function(e) {
 					if (downCheck) {
+						checkSwipe();
+						downCheck = false;	
+						clearTimeout(timer);						
+					}	
+				});	
+				
+				function checkSwipe() {
+					var swipeCheck = false;
+					// may as well use 45 degrees rather than figure for aspect ratio
+					if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
+						if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); swipeCheck=true;}	
+						if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); swipeCheck=true;}
+					} else {
+						if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); swipeCheck=true;}
+					}
+					if (!swipeCheck) {
 						that.direction="none"; that.dispatchEvent("swipe");
 					}
-					downCheck = false;
-					clearTimeout(timer);	
-				});				
+				}
 			});		
 			
 			this.disable = function() {
@@ -2413,7 +2429,6 @@ the first page object is the start page
 you can add pages with the addPage() method 
 it will not show until you swipe or go to it - unless it was the first page added
 once again - do not add the pages to the stage yourself - let Pages do it for you
-
 just add the pages object to the stage.  Pages is designed for full stage
 if you want pages within a smaller area - consider using two canvas tags
 --*/	
@@ -2488,14 +2503,13 @@ if you want pages within a smaller area - consider using two canvas tags
 					if (!paused) {
 						that.go(page, direction, null, null, true); // true is from swipe	
 					}
-				}, 100);
+				}, 50);
 			});			
 			
 			this.addPage = function(page, swipeArray) {				
 				if (zot(swipeArray)) swipeArray = [];
 				var data = {page:page, swipe:swipeArray};
 				data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
-				// this.addChildAt(data.page,0);			
 				if (!currentPage) {
 					currentPage = that.page = data.page;
 					that.addChild(currentPage);	
@@ -2515,6 +2529,7 @@ if you want pages within a smaller area - consider using two canvas tags
 				var data = {page:page, swipe:swipeArray};
 				data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];				
 			}
+
 				
 			this.pause = function() {
 				paused = true;				
@@ -3259,6 +3274,7 @@ dispose() - clears keyboard events and guide
 		makeGuide.prototype = new createjs.Container();
 		makeGuide.prototype.constructor = zim.Guide;	
 		return new makeGuide();			
+
 	}
 		
 	
