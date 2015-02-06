@@ -1056,8 +1056,8 @@ zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
 
 Triangle class
 
-extends a createjs.Shape
-makes a triangle shape using three line lengths
+extends a createjs.Container
+makes a triangle shape inside a container using three line lengths
 var tri = new zim.Triangle(parameters);
 
 PARAMETERS
@@ -1068,6 +1068,11 @@ fill, stroke, strokeSize are optional
 center defaults to true and puts the registration point to the center
 the actual center is not really the weighted center 
 so can pass in an adjust which brings the center towards its vertical base
+
+PROPERTIES
+shape - gives access to the triangle shape
+width and height - as expected or use getBounds()
+
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
 						
@@ -1092,6 +1097,8 @@ so can pass in an adjust which brings the center towards its vertical base
 			}		
 					
 			var tri = new createjs.Shape();
+			this.addChild(tri);
+			
 			var g = tri.graphics;
 			g.f(fill);
 			if (!zot(stroke)) {
@@ -1124,24 +1131,25 @@ so can pass in an adjust which brings the center towards its vertical base
 			var backX = Math.cos(nextAngle * Math.PI / 180) * b;
 			var upY = Math.sin(nextAngle * Math.PI / 180) * b;
 			
-			tri.width = Math.max(a, a-backX);
-			tri.height = upY;
-			tri.setBounds(0,0,tri.width,-tri.height);			
+			this.width = Math.max(a, a-backX);
+			this.height = upY;
+			this.setBounds(0,0,this.width,this.height);	
+			
+			tri.y = this.height;
 						
 			g.lt(a-backX,0-upY);
 			g.lt(0,0);
 						
 			if (center) {
-				tri.regX = tri.width/2;
-				tri.regY = -tri.height/2+adjust;
+				this.regX = this.width/2;
+				this.regY = this.height/2+adjust;
 			}
-			
-			return tri;		
+				
 		}	
 			
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeTriangle.prototype = new createjs.Shape();
+		makeTriangle.prototype = new createjs.Container();
 		makeTriangle.constructor = zim.Triangle;
 		return new makeTriangle();
 		
@@ -2529,7 +2537,6 @@ if you want pages within a smaller area - consider using two canvas tags
 				var data = {page:page, swipe:swipeArray};
 				data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];				
 			}
-
 				
 			this.pause = function() {
 				paused = true;				
@@ -3274,7 +3281,6 @@ dispose() - clears keyboard events and guide
 		makeGuide.prototype = new createjs.Container();
 		makeGuide.prototype.constructor = zim.Guide;	
 		return new makeGuide();			
-
 	}
 		
 	

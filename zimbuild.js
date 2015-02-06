@@ -151,6 +151,8 @@ so can pass in an adjust which brings the center towards its vertical base
 			}		
 					
 			var tri = new createjs.Shape();
+			this.addChild(tri);
+			
 			var g = tri.graphics;
 			g.f(fill);
 			if (!zot(stroke)) {
@@ -183,29 +185,29 @@ so can pass in an adjust which brings the center towards its vertical base
 			var backX = Math.cos(nextAngle * Math.PI / 180) * b;
 			var upY = Math.sin(nextAngle * Math.PI / 180) * b;
 			
-			tri.width = Math.max(a, a-backX);
-			tri.height = upY;
-			tri.setBounds(0,0,tri.width,-tri.height);			
+			this.width = Math.max(a, a-backX);
+			this.height = upY;
+			this.setBounds(0,0,this.width,this.height);	
+			
+			tri.y = this.height;
 						
 			g.lt(a-backX,0-upY);
 			g.lt(0,0);
 						
 			if (center) {
-				tri.regX = tri.width/2;
-				tri.regY = -tri.height/2+adjust;
+				this.regX = this.width/2;
+				this.regY = this.height/2+adjust;
 			}
-			
-			return tri;		
+				
 		}	
 			
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeTriangle.prototype = new createjs.Shape();
+		makeTriangle.prototype = new createjs.Container();
 		makeTriangle.constructor = zim.Triangle;
 		return new makeTriangle();
 		
-	}	
-	
+	}		
 		
 /*--
 zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur)
