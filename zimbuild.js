@@ -198,6 +198,10 @@ so can pass in an adjust which brings the center towards its vertical base
 				this.regX = this.width/2;
 				this.regY = this.height/2+adjust;
 			}
+			
+			this.clone = function() {
+				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);	
+			}
 				
 		}	
 			
@@ -207,7 +211,8 @@ so can pass in an adjust which brings the center towards its vertical base
 		makeTriangle.constructor = zim.Triangle;
 		return new makeTriangle();
 		
-	}		
+	}	
+	
 		
 /*--
 zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur)

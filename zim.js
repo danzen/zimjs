@@ -1144,6 +1144,10 @@ width and height - as expected or use getBounds()
 				this.regX = this.width/2;
 				this.regY = this.height/2+adjust;
 			}
+			
+			this.clone = function() {
+				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);	
+			}
 				
 		}	
 			
