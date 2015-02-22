@@ -40,7 +40,7 @@ zgo(url, target, modal) ~ go
 short version of either window.location.href or window.open
 --*/
 function zgo(u,t,m) {
-	if (zot(t) && t != "" && t != "_self") {
+	if ((zot(t) && t != "") || t == "_self") {
 		window.location.href = u;
 	} else {
 		if (zot(m)) { // not modal
@@ -566,6 +566,7 @@ returns obj for chaining
 			} else {
 				r = rect;
 			}
+			
 			point = obj.parent.localToGlobal(obj.x, obj.y);
 			positionObject(obj, point.x, point.y);		
 		}
@@ -579,7 +580,7 @@ returns obj for chaining
 			diffX = point.x - e.target.x;
 			diffY = point.y - e.target.y;	
 			if (localBounds) {
-				r = zim.boundsToGlobal(obj.parent, rect);
+				r = zim.boundsToGlobal(e.target.parent, rect);
 			} else {
 				r = rect;
 			}
@@ -601,7 +602,7 @@ returns obj for chaining
 			if (!o.parent) return;
 			if (!o.getStage()) return;
 			var point = o.parent.globalToLocal(x, y);
-			var checkedPoint = checkBounds(point.x-diffX, point.y-diffY);			
+			var checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);			
 			// now set the object's x and y to the resulting checked local point
 			o.x = checkedPoint.x;
 			o.y = checkedPoint.y;
@@ -612,13 +613,13 @@ returns obj for chaining
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
 		}, true);
 					
-		function checkBounds(x, y) {							
+		function checkBounds(o, x, y) {							
 		
 			if (rect) {	
 				// convert the desired drag position to a global point
 				// note that we want the position of the object in its parent
 				// so we use the parent as the local frame
-				var point = obj.parent.localToGlobal(x,y);
+				var point = o.parent.localToGlobal(x,y);
 				// r is the bounds rectangle on the global stage 
 				// r is set during mousedown to allow for global scaling when in localBounds mode
 				// if you scale in localBounds==false mode, you will need to reset bounds with noDrag() drag()
@@ -626,7 +627,7 @@ returns obj for chaining
 				y = Math.max(r.y, Math.min(r.y+r.height, point.y));
 				// now that the point has been checked on the global scale
 				// convert the point back to the obj parent frame of reference
-				point = obj.parent.globalToLocal(x, y);
+				point = o.parent.globalToLocal(x, y);
 				x = point.x;
 				y = point.y;
 			} 
@@ -749,6 +750,7 @@ see if the a.getBounds() is hitting the b.getBounds()
 we draw bounds for demonstration if you pass in a boundsShape shape
 --*/	
 	zim.hitTestBounds = function(a, b, boundsShape) {
+
 		if (zot(a) || zot(b) || !a.getBounds || !b.getBounds) return;
 		var boundsCheck = false;
 		if (boundsShape && boundsShape.graphics) boundsCheck=true;
@@ -1154,7 +1156,7 @@ width and height - as expected or use getBounds()
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeTriangle.prototype = new createjs.Container();
-		makeTriangle.constructor = zim.Triangle;
+		makeTriangle.prototype.constructor = zim.Triangle;
 		return new makeTriangle();
 		
 	}	
@@ -1227,6 +1229,7 @@ dispatches no events
 				},
 				set: function(value) {
 					obj.text = value;
+					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
 				}
 			});
 			
@@ -1255,7 +1258,7 @@ dispatches no events
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeLabel.prototype = new createjs.Container();
-		makeLabel.constructor = zim.Label;
+		makeLabel.prototype.constructor = zim.Label;
 		return new makeLabel();
 		
 	}
@@ -1366,7 +1369,7 @@ dispatches no events - you make your own click event
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeButton.prototype = new createjs.Container();
-		makeButton.constructor = zim.Button;
+		makeButton.prototype.constructor = zim.Button;
 		return new makeButton();
 		
 	}
@@ -1486,7 +1489,7 @@ dispatches a "change" event when clicked on (or use a click event)
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeCheckBox.prototype = new createjs.Container();
-		makeCheckBox.constructor = zim.CheckBox;
+		makeCheckBox.prototype.constructor = zim.CheckBox;
 		return new makeCheckBox();
 		
 	}	
@@ -1704,7 +1707,7 @@ then ask for the properties above for info
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeRadioButtons.prototype = new createjs.Container();
-		makeRadioButtons.constructor = zim.RadioButtons;
+		makeRadioButtons.prototype.constructor = zim.RadioButtons;
 		return new makeRadioButtons();
 		
 	}
@@ -1732,7 +1735,9 @@ for reset, by default, Pane takes the first position and will continue to use th
 modal defaults to true and means the pane will close when user clicks off the pane
 corner is the corner radius default 20
 the backingAlpha is the darkness of the background that fills the stage
+shadowColor defaults to #333
 value for shadow blur - 0 for no shadow
+center - defaults to true and centers the label on the pane
 
 METHODS
 show() - shows the pane
@@ -1748,7 +1753,7 @@ resetY
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
-	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
+	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center) {
 		
 		function makePane() {
 			
@@ -1769,7 +1774,8 @@ dispatches a "close" event when closed by clicking on backing
 			if (zot(corner)) corner=20;
 			if (zot(backingAlpha)) backingAlpha=.14;
 			if (zot(shadowColor)) shadowColor="#333";
-			if (zot(shadowBlur)) shadowBlur=20;			
+			if (zot(shadowBlur)) shadowBlur=20;	
+			if (zot(center)) center=true;		
 								
 			var backing = this.backing = new createjs.Shape();				
 			// make a big backing that closes the pane when clicked
@@ -1832,8 +1838,10 @@ dispatches a "close" event when closed by clicking on backing
 			this.addChild(display);
 			
 			if (label) {
-				label.x = -label.getBounds().width/2;
-				label.y = -label.getBounds().height/2;
+				if (center) {
+					label.x = -label.getBounds().width/2;
+					label.y = -label.getBounds().height/2;
+				}
 				this.addChild(label);				
 				this.label = label;
 				this.text = label.text;				
@@ -1850,6 +1858,10 @@ dispatches a "close" event when closed by clicking on backing
 			this.show = function() {
 				that.x = (container.getBounds().width) /2;
 				that.y = (container.getBounds().height) /2;
+				if (center) {
+					label.x = -label.getBounds().width/2;
+					label.y = -label.getBounds().height/2;
+				}
 				container.addChild(that);			
 				container.getStage().update();	
 			}			
@@ -1869,7 +1881,7 @@ dispatches a "close" event when closed by clicking on backing
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time		
 		makePane.prototype = new createjs.Container();
-		makePane.constructor = zim.Pane;
+		makePane.prototype.constructor = zim.Pane;
 		return new makePane();
 		
 	}
@@ -1936,7 +1948,7 @@ dispatches a "close" event when closed by clicking on backing
 			display.setBounds(0, 0, width, height);
 			display.regX = width/2;
 			display.regY = height/2;
-			g = display.graphics;
+			var g = display.graphics;
 			g.beginFill(backingColor);
 			g.drawRoundRect(0, 0, width, height, corner);
 			if (shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
@@ -2005,11 +2017,224 @@ dispatches a "close" event when closed by clicking on backing
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time		
 		makeWaiter.prototype = new createjs.Container();
-		makeWaiter.constructor = zim.Waiter;
+		makeWaiter.prototype.constructor = zim.Waiter;
 		return new makeWaiter();
 		
 	}	
 
+
+/*--
+zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur)
+
+Stepper Class
+
+extends a createjs.Container
+lets you step through a list of strings or numbers with arrows or keyboard arrows
+var stepper = new zim.Stepper(parameters); 
+
+PARAMETERS
+pass in an array of strings or numbers to display one at a time - default 1-10
+width is the width of the text box - default 100 (you can scale the whole stepper if needed)
+a backingColor for the arrows and the text box - default white
+a strokeColor color for the box - default null - no stroke
+an optional label which can be used to define the text properties
+vertical if you want the numbers above and below - default false - left and right of text
+arrows - use keyboard arrows - default true (will always show graphical arrows)
+corner is the radius of the text box corners default 10
+shadowColor defaults to #444
+value for shadow blur (default 14) - 0 for no shadow
+
+PROPERTIES
+currentIndex - gets or sets the current index of the array and display
+currentValue - gets or sets the current value of the array and display
+stepperArray - gets or sets the stepArray - you should manually set the desired currentIndex if you change this
+arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
+textBox - access to the text box backing shape
+
+METHODS
+dispose() - removes listeners and deletes object
+
+EVENTS
+dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
+--*/	
+	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur) {
+		
+		function makeStepper() {
+			
+			// if (zon) zog("zim build - Stepper");
+			
+			if (zot(stepArray)) stepArray = [1,2,3,4,5,6,7,8,9,10];
+			if (zot(width)) width=200; 
+			if (zot(backingColor)) backingColor="white";
+			if (zot(strokeColor)) strokeColor=null;
+			if (zot(label)) label = "";			
+			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555");			
+			if (zot(vertical)) vertical=false;
+			if (zot(arrows)) arrows=true;
+			if (zot(corner)) corner=16;
+			if (zot(shadowColor)) shadowColor="#444";
+			if (zot(shadowBlur)) shadowBlur=14;		
+			
+			var that = this;
+			var index;
+			var height = 100;
+			var boxSpacing = height/4;
+					
+			//var prev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			//if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			//this.addChild(prev);
+			
+			
+			var prev = this.arrowPrev = new createjs.Container();
+			this.addChild(prev);
+			var prevBacking = new createjs.Shape();
+			prevBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
+			prevBacking.regX = height*1.5 / 2;
+			prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
+			prev.addChild(prevBacking);
+			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			prev.addChild(arrowPrev);
+			prev.cursor = "pointer";
+			prev.on("click", function(e) {step(-1);});
+			
+			if (vertical) {
+				prev.rotation = 0;
+				prev.x = width/2;
+				prev.y = prev.getBounds().height/2;
+			} else {
+				prev.rotation = -90;
+				prev.x = prev.getBounds().height/2;
+				prev.y = prev.getBounds().width/2;
+			}
+			
+			var box = this.textBox = new createjs.Shape();
+			this.addChild(box);
+			box.setBounds(0, 0, width, height);
+			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
+			box.graphics.f(backingColor).rr(0, 0, width, height, corner);
+			if (shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+
+			if (vertical) {
+				box.y = arrowPrev.height + boxSpacing;
+			} else {
+				box.x = arrowPrev.height + boxSpacing;
+			}
+			// label
+			
+			this.addChild(label);
+			if (stepArray.length > 0) {
+				index = Math.floor(stepArray.length/2)
+				label.text = stepArray[index];
+			}
+			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
+			label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+			//zim.outline(label);
+
+			var next = this.arrowNext = new createjs.Container();
+			this.addChild(next);
+			var nextBacking = new createjs.Shape();
+			nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
+			nextBacking.regX = height*1.5 / 2;
+			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
+			next.addChild(nextBacking);
+			var arrowNext = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			if (shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			next.addChild(arrowNext);
+			
+			next.cursor = "pointer";
+			next.on("click", function(e) {step(1);});
+			
+			if (vertical) {
+				next.rotation = 180;
+				next.x = width/2;
+				next.y = box.y + box.getBounds().height + next.getBounds().height/2 + boxSpacing;
+			} else {
+				next.rotation = 90;
+				next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
+				next.y = next.getBounds().width/2;
+			}
+			
+			function step(n) {
+				var nextIndex = index + n;
+				if (nextIndex > stepArray.length-1) return;
+				if (nextIndex < 0) return;
+				setLabel(nextIndex);				
+			}
+			
+			Object.defineProperty(this, 'currentIndex', {
+				get: function() {				
+					return index;
+				},
+				set: function(value) {					
+					index = Math.max(stepArray.length-1, Math.min(0, value));
+					setLabel(index);
+				}
+			});
+			
+			Object.defineProperty(this, 'currentValue', {
+				get: function() {				
+					return stepArray[index];
+				},
+				set: function(value) {					
+					if (stepArray.indexOf(value) > -1) {
+						index = stepArray.indexOf(value);	
+					}
+					setLabel(index);
+				}
+			});
+			
+			Object.defineProperty(this, 'stepperArray', {
+				get: function() {				
+					return stepArray;
+				},
+				set: function(value) {					
+					stepArray = value;
+				}
+			});
+			
+			function setLabel(n) {
+				index = n;
+				label.text = stepArray[index];
+				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
+				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+				if (label.getStage()) label.getStage().update();
+				that.dispatchEvent("change");
+			}
+			
+			if (arrows) {
+				this.keyDownEvent = function(e) {
+					if (!e) e = event;
+					if (e.keyCode >= 37 && e.keyCode <= 40) {
+						var nextIndex;
+						if (e.keyCode == 38 || e.keyCode == 39) {
+							nextIndex = index + 1;
+						} else if (e.keyCode == 37 || e.keyCode == 40) {
+							nextIndex = index - 1;
+						}
+						if (nextIndex > stepArray.length-1) return;
+						if (nextIndex < 0) return;
+						setLabel(nextIndex);
+					}
+				}
+				window.addEventListener("keydown", this.keyDownEvent); 
+				
+			}
+			
+			this.dispose = function() {
+				that.removeAllEventListeners();
+				
+			}
+		}
+		
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time		
+		makeStepper.prototype = new createjs.Container();
+		makeStepper.prototype.constructor = zim.Stepper;
+		return new makeStepper();
+		
+	}	
+	
 
 /*--
 zim.Parallax = function(stage, damp, layers)
@@ -3314,7 +3539,7 @@ disposing will remove the G, P key listener and the guide
 		zim.Manager.call(this, "GuideManager");		
 	}	
 	zim.GuideManager.prototype = new zim.Manager();
-	zim.GuideManager.constructor = zim.GuideManager;
+	zim.GuideManager.prototype.constructor = zim.GuideManager;
 		
 	
 /*--
@@ -3637,7 +3862,7 @@ disposing will remove the G key listener and the grid
 		zim.Manager.call(this, "GridManager");
 	}	
 	zim.GridManager.prototype = new zim.Manager();
-	zim.GridManager.constructor = zim.GridManager;	
+	zim.GridManager.prototype.constructor = zim.GridManager;	
 
 
 /*--
