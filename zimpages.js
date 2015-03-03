@@ -1466,6 +1466,7 @@ dispose() - clears keyboard events and grid
 			}		
 			
 			this.resize = function() {
+				if (!that) return false;
 				that.removeChild(cached);
 				cached = null;
 				if (stage) {					
@@ -1477,6 +1478,7 @@ dispose() - clears keyboard events and grid
 						drawGrid();
 					},200);
 				}
+				return true;
 			}
 			
 			this.dispose = function() {
@@ -1625,7 +1627,6 @@ will fill up the rest of the height until they reach their maximum widths
 			// if not given we try to maximize size and to adhere to min values
 			// as calculations progress we calculate given, maxGiven and marginGiven values
 			// these are temporary depending on the resizing and are always in the primary direction
-
 			// secondary direction is quite simple
 			// primary direction is quite complex involving a number of steps and even some recursion
 			

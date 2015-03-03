@@ -3806,6 +3806,7 @@ dispose() - clears keyboard events and grid
 			}		
 			
 			this.resize = function() {
+				if (!that) return false;
 				that.removeChild(cached);
 				cached = null;
 				if (stage) {					
@@ -3817,6 +3818,7 @@ dispose() - clears keyboard events and grid
 						drawGrid();
 					},200);
 				}
+				return true;
 			}
 			
 			this.dispose = function() {
