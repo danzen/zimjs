@@ -785,7 +785,9 @@ for reset, by default, Pane takes the first position and will continue to use th
 modal defaults to true and means the pane will close when user clicks off the pane
 corner is the corner radius default 20
 the backingAlpha is the darkness of the background that fills the stage
+shadowColor defaults to #333
 value for shadow blur - 0 for no shadow
+center - defaults to true and centers the label on the pane
 
 METHODS
 show() - shows the pane
@@ -801,7 +803,7 @@ resetY
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
-	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur) {
+	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center) {
 		
 		function makePane() {
 			
@@ -822,7 +824,8 @@ dispatches a "close" event when closed by clicking on backing
 			if (zot(corner)) corner=20;
 			if (zot(backingAlpha)) backingAlpha=.14;
 			if (zot(shadowColor)) shadowColor="#333";
-			if (zot(shadowBlur)) shadowBlur=20;			
+			if (zot(shadowBlur)) shadowBlur=20;	
+			if (zot(center)) center=true;		
 								
 			var backing = this.backing = new createjs.Shape();				
 			// make a big backing that closes the pane when clicked
@@ -885,8 +888,10 @@ dispatches a "close" event when closed by clicking on backing
 			this.addChild(display);
 			
 			if (label) {
-				label.x = -label.getBounds().width/2;
-				label.y = -label.getBounds().height/2;
+				if (center) {
+					label.x = -label.getBounds().width/2;
+					label.y = -label.getBounds().height/2;
+				}
 				this.addChild(label);				
 				this.label = label;
 				this.text = label.text;				
@@ -903,6 +908,10 @@ dispatches a "close" event when closed by clicking on backing
 			this.show = function() {
 				that.x = (container.getBounds().width) /2;
 				that.y = (container.getBounds().height) /2;
+				if (center && label) {
+					label.x = -label.getBounds().width/2;
+					label.y = -label.getBounds().height/2;
+				}
 				container.addChild(that);			
 				container.getStage().update();	
 			}			
@@ -922,7 +931,7 @@ dispatches a "close" event when closed by clicking on backing
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time		
 		makePane.prototype = new createjs.Container();
-		makePane.constructor = zim.Pane;
+		makePane.prototype.constructor = zim.Pane;
 		return new makePane();
 		
 	}

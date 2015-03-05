@@ -1858,7 +1858,7 @@ dispatches a "close" event when closed by clicking on backing
 			this.show = function() {
 				that.x = (container.getBounds().width) /2;
 				that.y = (container.getBounds().height) /2;
-				if (center) {
+				if (center && label) {
 					label.x = -label.getBounds().width/2;
 					label.y = -label.getBounds().height/2;
 				}
@@ -3229,11 +3229,11 @@ and in future perhaps OutlineManager
 		var that = this;
 		this.items = [];
 		this.add = function(a) {
-			that.items.push(a);
+			that.items.push(a);			
 		}
 		this.resize = function() {
 			if (!that) return;
-			for (var i=0; i<that.items.length; i++) {				
+			for (var i=0; i<that.items.length; i++) {	
 				if (!that.items[i].resize()) that.items.splice(i); // was disposed	
 			}	
 		}
@@ -3640,6 +3640,7 @@ dispose() - clears keyboard events and grid
 					if (obj && obj.getStage()) {
 						added();
 					}
+
 				}
 			},100);		
 						
