@@ -1,14 +1,13 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2014
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
 // http://zimjs.com  
 // zimcode.js adds some general code functionality along with Browser and DOM code 
 // some of these are common Web solutions over the years (sorry for lack of credit)
-// moved Damp, Proportion and ProportionDamp here as they can be used without CreateJS
 // free to use - donations welcome of course! http://zimjs.com/donate
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.3.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.4.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -36,8 +35,8 @@ shuffle and loop to show random but unique elements from an array
 	
 /*--
 zim.rand = function(a, b, integer)
-returns a random number between and including a and b if integer is true
-includes a and up to b but not b if integer is false
+returns a random integer between and including a and b if integer is true
+returns a random number (with decimals) including a and up to b but not b if integer is false
 b is optional and if left out will default to 0 (includes 0)
 integer is a boolean and defaults to true
 if a and b are 0 then just returns Math.random()
@@ -61,7 +60,6 @@ if a and b are 0 then just returns Math.random()
 			return r;
 		}
 	}
-	
 	
 /*--
 zim.copy = function(obj)
@@ -388,7 +386,6 @@ if no days, it will be a session cookie (while browser is open)
 			var expires = "";
 		}
 		document.cookie = name+"="+escape(value)+expires+"; path=/";
-
 	}
 	
 /*--

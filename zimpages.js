@@ -1,4 +1,4 @@
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2014
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
 // zimpages.js helps you layout and control flexive pages, click and swipe between pages and more http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
@@ -6,8 +6,8 @@
 // (borrows zim.arraysEqual (ZIM code), zim.animate and zim.fit (ZIM create))
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.3.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_1.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_1.4.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -40,28 +40,32 @@ strict defaults to true - if false, order in arrays does not matter
 		return true;
 	}	
 	
-	/*-- // borrowed from ZIM Create
-zim.animate = function(target, obj, t, ease, callBack, params, wait)
+	
+/*-- // borrowed from ZIM Create
+zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
+and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait) {		
-		if (zot(target) || !target.on || zot(obj)) return;
+	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
+		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
-		createjs.Tween.get(target)
+		if (zot(props)) props = {override: true};
+		createjs.Tween.get(target, props)
 			.wait(wait)
 			.to(obj, t, createjs.Ease[ease])				
 			.call(doneAnimating);
-		var listener = createjs.Ticker.on("tick", stage);	
+		var listener = createjs.Ticker.on("tick", target.getStage());	
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
 		}	
 		return target;	
 	}	
+
 
 /*-- // borrowed from ZIM Create
 zim.fit = function(obj, left, top, width, height, inside)
@@ -397,14 +401,13 @@ if you want pages within a smaller area - consider using two canvas tags
 					if (!paused) {
 						that.go(page, direction, null, null, true); // true is from swipe	
 					}
-				}, 100);
+				}, 50);
 			});			
 			
 			this.addPage = function(page, swipeArray) {				
 				if (zot(swipeArray)) swipeArray = [];
 				var data = {page:page, swipe:swipeArray};
 				data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
-				// this.addChildAt(data.page,0);			
 				if (!currentPage) {
 					currentPage = that.page = data.page;
 					that.addChild(currentPage);	
@@ -489,28 +492,28 @@ if you want pages within a smaller area - consider using two canvas tags
 					if (trans == "slide") {						
 						newPage.x = -(slides[dirIndex].x | 0);
 						newPage.y = -(slides[dirIndex].y | 0);						
-						newPage.cache(0,0,hW+1,hH+1);
-						currentPage.cache(0,0,hW+1,hH+1);												
+						newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
+						currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);												
 						that.addChild(newPage); 
 						that.addChild(currentPage);						
 						zim.animate(currentPage, slides[dirIndex], that.speed, null, transEnd, [currentPage, newPage]);
 						zim.animate(newPage, slides2[dirIndex], that.speed);												
 					} else if (trans == "reveal") {
-						newPage.cache(0,0,hW+1,hH+1);
-						currentPage.cache(0,0,hW+1,hH+1);
+						newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
+						currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);	
 						that.addChild(newPage); // put destination under current page
 						that.addChild(currentPage);
 						zim.animate(currentPage, reveals[dirIndex], that.speed, null, transEnd, [currentPage, newPage]);
 					} else if (trans == "fade") {
-						newPage.cache(0,0,hW+1,hH+1);
-						currentPage.cache(0,0,hW+1,hH+1);
+						newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
+						currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);	
 						newPage.alpha = 1;
 						that.addChild(newPage); 
 						that.addChild(currentPage);
 						zim.animate(currentPage, {alpha:0}, that.speed, null, transEnd, [currentPage, newPage]);																				
 					} else if (trans == "black") {
-						newPage.cache(0,0,hW+1,hH+1);
-						currentPage.cache(0,0,hW+1,hH+1);
+						newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
+						currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);	
 						newPage.alpha = 1;
 						that.addChild(newPage); 
 						that.addChild(currentPage);
@@ -518,8 +521,8 @@ if you want pages within a smaller area - consider using two canvas tags
 						that.addChild(black);						
 						zim.animate(black, {alpha:1}, that.speed/2, null, transEndHalf, [black, currentPage, newPage]);																				
 					} else if (trans == "white") {
-						newPage.cache(0,0,hW+1,hH+1);
-						currentPage.cache(0,0,hW+1,hH+1);
+						newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
+						currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);	
 						newPage.alpha = 1;
 						that.addChild(newPage); 
 						that.addChild(currentPage);
@@ -590,7 +593,6 @@ if you want pages within a smaller area - consider using two canvas tags
 		makePages.prototype.constructor = zim.Pages;
 		return new makePages();
 	}
-
 	
 
 /*--
@@ -1166,7 +1168,6 @@ dispose() - clears keyboard events and guide
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time	
-
 		makeGuide.prototype = new createjs.Container();
 		makeGuide.prototype.constructor = zim.Guide;	
 		return new makeGuide();			
@@ -1199,7 +1200,7 @@ disposing will remove the G, P key listener and the guide
 		zim.Manager.call(this, "GuideManager");		
 	}	
 	zim.GuideManager.prototype = new zim.Manager();
-	zim.GuideManager.constructor = zim.GuideManager;
+	zim.GuideManager.prototype.constructor = zim.GuideManager;
 		
 	
 /*--
@@ -1300,6 +1301,7 @@ dispose() - clears keyboard events and grid
 					if (obj && obj.getStage()) {
 						added();
 					}
+
 				}
 			},100);		
 						
@@ -1524,7 +1526,7 @@ disposing will remove the G key listener and the grid
 		zim.Manager.call(this, "GridManager");
 	}	
 	zim.GridManager.prototype = new zim.Manager();
-	zim.GridManager.constructor = zim.GridManager;	
+	zim.GridManager.prototype.constructor = zim.GridManager;	
 
 
 /*--
@@ -1585,7 +1587,6 @@ if you want to get rid of the objects then you need to do so in your app
 
 DESCRIPTION OF FLEXIVE DESIGN
 here described with vertical layout - horizontal is similar but rotated 90
-
 the content in the middle will try and expand against the top and bottom
 until it forces the top and bottom to their minimum percents
 if the content hits its maximum width percent first then the top and bottom
@@ -1716,6 +1717,7 @@ will fill up the rest of the height until they reach their maximum widths
 				for (var i=0; i<regions.length; i++) {
 					r = regions[i];
 					r.maxGiven = 0;	
+
 					r.marginGiven = 0;
 				}		
 				// all the primaries are applied 
@@ -1914,6 +1916,7 @@ will fill up the rest of the height until they reach their maximum widths
 						if (regionShape.getStage()) regionShape.getStage().update();
 					}
 				}
+
 			}
 			
 			this.disable = function() {						

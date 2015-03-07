@@ -1,13 +1,13 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2014
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
 // zimcreate.js adds functionality to CreateJS for digidos (Interactive Features) http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
-// functions in this module require createjs namespace to exist and in particular easel.js
+// functions in this module require createjs namespace to exist and in particular easel.js and tween.js
 // available at http://createjs.com
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.3.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.4.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -53,6 +53,7 @@ returns obj for chaining
 			} else {
 				r = rect;
 			}
+			
 			point = obj.parent.localToGlobal(obj.x, obj.y);
 			positionObject(obj, point.x, point.y);		
 		}
@@ -66,7 +67,7 @@ returns obj for chaining
 			diffX = point.x - e.target.x;
 			diffY = point.y - e.target.y;	
 			if (localBounds) {
-				r = zim.boundsToGlobal(obj.parent, rect);
+				r = zim.boundsToGlobal(e.target.parent, rect);
 			} else {
 				r = rect;
 			}
@@ -88,7 +89,7 @@ returns obj for chaining
 			if (!o.parent) return;
 			if (!o.getStage()) return;
 			var point = o.parent.globalToLocal(x, y);
-			var checkedPoint = checkBounds(point.x-diffX, point.y-diffY);			
+			var checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);			
 			// now set the object's x and y to the resulting checked local point
 			o.x = checkedPoint.x;
 			o.y = checkedPoint.y;
@@ -99,13 +100,13 @@ returns obj for chaining
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
 		}, true);
 					
-		function checkBounds(x, y) {							
+		function checkBounds(o, x, y) {							
 		
 			if (rect) {	
 				// convert the desired drag position to a global point
 				// note that we want the position of the object in its parent
 				// so we use the parent as the local frame
-				var point = obj.parent.localToGlobal(x,y);
+				var point = o.parent.localToGlobal(x,y);
 				// r is the bounds rectangle on the global stage 
 				// r is set during mousedown to allow for global scaling when in localBounds mode
 				// if you scale in localBounds==false mode, you will need to reset bounds with noDrag() drag()
@@ -113,7 +114,7 @@ returns obj for chaining
 				y = Math.max(r.y, Math.min(r.y+r.height, point.y));
 				// now that the point has been checked on the global scale
 				// convert the point back to the obj parent frame of reference
-				point = obj.parent.globalToLocal(x, y);
+				point = o.parent.globalToLocal(x, y);
 				x = point.x;
 				y = point.y;
 			} 
@@ -236,6 +237,7 @@ see if the a.getBounds() is hitting the b.getBounds()
 we draw bounds for demonstration if you pass in a boundsShape shape
 --*/	
 	zim.hitTestBounds = function(a, b, boundsShape) {
+
 		if (zot(a) || zot(b) || !a.getBounds || !b.getBounds) return;
 		var boundsCheck = false;
 		if (boundsShape && boundsShape.graphics) boundsCheck=true;
@@ -384,7 +386,7 @@ and props for TweenJS tween (see CreateJS documentation) defaults to override:tr
 returns target for chaining
 --*/	
 	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
-		if (zot(target) || !target.on || zot(obj)) return;
+		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
@@ -392,7 +394,7 @@ returns target for chaining
 			.wait(wait)
 			.to(obj, t, createjs.Ease[ease])				
 			.call(doneAnimating);
-		var listener = createjs.Ticker.on("tick", stage);	
+		var listener = createjs.Ticker.on("tick", target.getStage());	
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
@@ -521,6 +523,19 @@ will not be resized - really just to use while building and then comment it out 
 		return obj;		
 	}
 	
+	
+/*--
+zim.centerReg = function(obj)
+centers the registration point on the bounds - obj must have bounds set
+just a convenience function - returns obj for chaining
+--*/	
+	zim.centerReg = function(obj) {
+		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}		
+		var oB = obj.getBounds();
+		obj.regX = oB.width/2;
+		obj.regY = oB.height/2;
+		return obj;
+	}
 
 	return zim;
 } (zim || {});

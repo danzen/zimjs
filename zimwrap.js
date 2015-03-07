@@ -1,5 +1,5 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2014
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
 // zimwrap.js creates global wrapper functions for less typing http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 
@@ -40,7 +40,7 @@ zgo(url, target, modal) ~ go
 short version of either window.location.href or window.open
 --*/
 function zgo(u,t,m) {
-	if (zot(t) && t != "" && t != "_self") {
+	if ((zot(t) && t != "") || t == "_self") {
 		window.location.href = u;
 	} else {
 		if (zot(m)) { // not modal

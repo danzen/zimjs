@@ -1,5 +1,5 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2014
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
 // zimbuild.js adds common building functions for digidos (interactive media) http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
@@ -7,8 +7,8 @@
 // (borrows zim.ProportionDamp from ZIM code)
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.3.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.4.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -115,8 +115,8 @@ zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
 
 Triangle class
 
-extends a createjs.Shape
-makes a triangle shape using three line lengths
+extends a createjs.Container
+makes a triangle shape inside a container using three line lengths
 var tri = new zim.Triangle(parameters);
 
 PARAMETERS
@@ -127,6 +127,11 @@ fill, stroke, strokeSize are optional
 center defaults to true and puts the registration point to the center
 the actual center is not really the weighted center 
 so can pass in an adjust which brings the center towards its vertical base
+
+PROPERTIES
+shape - gives access to the triangle shape
+width and height - as expected or use getBounds()
+
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
 						
@@ -208,7 +213,7 @@ so can pass in an adjust which brings the center towards its vertical base
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeTriangle.prototype = new createjs.Container();
-		makeTriangle.constructor = zim.Triangle;
+		makeTriangle.prototype.constructor = zim.Triangle;
 		return new makeTriangle();
 		
 	}	
@@ -281,6 +286,7 @@ dispatches no events
 				},
 				set: function(value) {
 					obj.text = value;
+					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
 				}
 			});
 			
@@ -309,7 +315,7 @@ dispatches no events
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeLabel.prototype = new createjs.Container();
-		makeLabel.constructor = zim.Label;
+		makeLabel.prototype.constructor = zim.Label;
 		return new makeLabel();
 		
 	}
@@ -420,7 +426,7 @@ dispatches no events - you make your own click event
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeButton.prototype = new createjs.Container();
-		makeButton.constructor = zim.Button;
+		makeButton.prototype.constructor = zim.Button;
 		return new makeButton();
 		
 	}
@@ -444,6 +450,7 @@ margin - is on outside of box so clicking or pressing is easier
 
 METHODS
 setChecked(Boolean) - defaults to true to set button checked (or use checked property)
+
 
 PROPERTIES
 label - gives access to the label including checkBox.label.text
@@ -539,7 +546,7 @@ dispatches a "change" event when clicked on (or use a click event)
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeCheckBox.prototype = new createjs.Container();
-		makeCheckBox.constructor = zim.CheckBox;
+		makeCheckBox.prototype.constructor = zim.CheckBox;
 		return new makeCheckBox();
 		
 	}	
@@ -757,7 +764,7 @@ then ask for the properties above for info
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeRadioButtons.prototype = new createjs.Container();
-		makeRadioButtons.constructor = zim.RadioButtons;
+		makeRadioButtons.prototype.constructor = zim.RadioButtons;
 		return new makeRadioButtons();
 		
 	}
@@ -998,7 +1005,7 @@ dispatches a "close" event when closed by clicking on backing
 			display.setBounds(0, 0, width, height);
 			display.regX = width/2;
 			display.regY = height/2;
-			g = display.graphics;
+			var g = display.graphics;
 			g.beginFill(backingColor);
 			g.drawRoundRect(0, 0, width, height, corner);
 			if (shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
@@ -1067,8 +1074,221 @@ dispatches a "close" event when closed by clicking on backing
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time		
 		makeWaiter.prototype = new createjs.Container();
-		makeWaiter.constructor = zim.Waiter;
+		makeWaiter.prototype.constructor = zim.Waiter;
 		return new makeWaiter();
+		
+	}	
+
+
+/*--
+zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur)
+
+Stepper Class
+
+extends a createjs.Container
+lets you step through a list of strings or numbers with arrows or keyboard arrows
+var stepper = new zim.Stepper(parameters); 
+
+PARAMETERS
+pass in an array of strings or numbers to display one at a time - default 1-10
+width is the width of the text box - default 100 (you can scale the whole stepper if needed)
+a backingColor for the arrows and the text box - default white
+a strokeColor color for the box - default null - no stroke
+an optional label which can be used to define the text properties
+vertical if you want the numbers above and below - default false - left and right of text
+arrows - use keyboard arrows - default true (will always show graphical arrows)
+corner is the radius of the text box corners default 10
+shadowColor defaults to #444
+value for shadow blur (default 14) - 0 for no shadow
+
+PROPERTIES
+currentIndex - gets or sets the current index of the array and display
+currentValue - gets or sets the current value of the array and display
+stepperArray - gets or sets the stepArray - you should manually set the desired currentIndex if you change this
+arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
+textBox - access to the text box backing shape
+
+METHODS
+dispose() - removes listeners and deletes object
+
+EVENTS
+dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
+--*/	
+	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur) {
+		
+		function makeStepper() {
+			
+			// if (zon) zog("zim build - Stepper");
+			
+			if (zot(stepArray)) stepArray = [1,2,3,4,5,6,7,8,9,10];
+			if (zot(width)) width=200; 
+			if (zot(backingColor)) backingColor="white";
+			if (zot(strokeColor)) strokeColor=null;
+			if (zot(label)) label = "";			
+			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555");			
+			if (zot(vertical)) vertical=false;
+			if (zot(arrows)) arrows=true;
+			if (zot(corner)) corner=16;
+			if (zot(shadowColor)) shadowColor="#444";
+			if (zot(shadowBlur)) shadowBlur=14;		
+			
+			var that = this;
+			var index;
+			var height = 100;
+			var boxSpacing = height/4;
+					
+			//var prev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			//if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			//this.addChild(prev);
+			
+			
+			var prev = this.arrowPrev = new createjs.Container();
+			this.addChild(prev);
+			var prevBacking = new createjs.Shape();
+			prevBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
+			prevBacking.regX = height*1.5 / 2;
+			prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
+			prev.addChild(prevBacking);
+			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			prev.addChild(arrowPrev);
+			prev.cursor = "pointer";
+			prev.on("click", function(e) {step(-1);});
+			
+			if (vertical) {
+				prev.rotation = 0;
+				prev.x = width/2;
+				prev.y = prev.getBounds().height/2;
+			} else {
+				prev.rotation = -90;
+				prev.x = prev.getBounds().height/2;
+				prev.y = prev.getBounds().width/2;
+			}
+			
+			var box = this.textBox = new createjs.Shape();
+			this.addChild(box);
+			box.setBounds(0, 0, width, height);
+			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
+			box.graphics.f(backingColor).rr(0, 0, width, height, corner);
+			if (shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+
+			if (vertical) {
+				box.y = arrowPrev.height + boxSpacing;
+			} else {
+				box.x = arrowPrev.height + boxSpacing;
+			}
+			// label
+			
+			this.addChild(label);
+			if (stepArray.length > 0) {
+				index = Math.floor(stepArray.length/2)
+				label.text = stepArray[index];
+			}
+			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
+			label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+			//zim.outline(label);
+
+			var next = this.arrowNext = new createjs.Container();
+			this.addChild(next);
+			var nextBacking = new createjs.Shape();
+			nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
+			nextBacking.regX = height*1.5 / 2;
+			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
+			next.addChild(nextBacking);
+			var arrowNext = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			if (shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			next.addChild(arrowNext);
+			
+			next.cursor = "pointer";
+			next.on("click", function(e) {step(1);});
+			
+			if (vertical) {
+				next.rotation = 180;
+				next.x = width/2;
+				next.y = box.y + box.getBounds().height + next.getBounds().height/2 + boxSpacing;
+			} else {
+				next.rotation = 90;
+				next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
+				next.y = next.getBounds().width/2;
+			}
+			
+			function step(n) {
+				var nextIndex = index + n;
+				if (nextIndex > stepArray.length-1) return;
+				if (nextIndex < 0) return;
+				setLabel(nextIndex);				
+			}
+			
+			Object.defineProperty(this, 'currentIndex', {
+				get: function() {				
+					return index;
+				},
+				set: function(value) {					
+					index = Math.max(stepArray.length-1, Math.min(0, value));
+					setLabel(index);
+				}
+			});
+			
+			Object.defineProperty(this, 'currentValue', {
+				get: function() {				
+					return stepArray[index];
+				},
+				set: function(value) {					
+					if (stepArray.indexOf(value) > -1) {
+						index = stepArray.indexOf(value);	
+					}
+					setLabel(index);
+				}
+			});
+			
+			Object.defineProperty(this, 'stepperArray', {
+				get: function() {				
+					return stepArray;
+				},
+				set: function(value) {					
+					stepArray = value;
+				}
+			});
+			
+			function setLabel(n) {
+				index = n;
+				label.text = stepArray[index];
+				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
+				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+				if (label.getStage()) label.getStage().update();
+				that.dispatchEvent("change");
+			}
+			
+			if (arrows) {
+				this.keyDownEvent = function(e) {
+					if (!e) e = event;
+					if (e.keyCode >= 37 && e.keyCode <= 40) {
+						var nextIndex;
+						if (e.keyCode == 38 || e.keyCode == 39) {
+							nextIndex = index + 1;
+						} else if (e.keyCode == 37 || e.keyCode == 40) {
+							nextIndex = index - 1;
+						}
+						if (nextIndex > stepArray.length-1) return;
+						if (nextIndex < 0) return;
+						setLabel(nextIndex);
+					}
+				}
+				window.addEventListener("keydown", this.keyDownEvent); 
+				
+			}
+			
+			this.dispose = function() {
+				that.removeAllEventListeners();
+				
+			}
+		}
+		
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time		
+		makeStepper.prototype = new createjs.Container();
+		makeStepper.prototype.constructor = zim.Stepper;
+		return new makeStepper();
 		
 	}	
 	
@@ -1127,7 +1347,6 @@ damp - allows you to dynamically change the damping
 		// finally, the layer object is added to the myLayers private property
 		// the timer then loops through these layers and handles things from there
 		this.addLayer = function(obj, distanceX, distanceY) {
-
 			if (zot(obj)) return;
 			obj.zimX = zot(distanceX)?0:distanceX;
 			obj.zimY = zot(distanceY)?0:distanceY;
