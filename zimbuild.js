@@ -111,11 +111,171 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 
 
 /*--
+zim.Circle = function(radius, fill, stroke, strokeSize)
+
+Circle class
+
+extends a createjs.Container (allows for ZIM HotSpots)
+makes a circle shape inside a container
+var circle = new zim.Circle(parameters);
+the registration and origin will be the center
+
+PARAMETERS
+radius is the radius ;-)
+fill, stroke, strokeSize are optional
+
+METHODS
+setFill(color)
+setStroke(color)
+setStrokeSize(size) - number
+clone() - makes a copy
+
+PROPERTIES
+shape - gives access to the circle shape
+width and height - as expected or use getBounds()
+
+--*/		
+	zim.Circle = function(radius, fill, stroke, strokeSize) {
+						
+		function makeCircle() {
+		
+			if (zot(radius)) radius = 50;
+			if (zot(fill)) fill = "black";
+								
+			var circle = this.shape = new createjs.Shape();
+			this.addChild(circle);
+			
+			var g = circle.graphics;
+			var fillObj =g.beginFill(fill).command;
+			if (!zot(stroke)) {				
+				var strokeObj = g.beginStroke(stroke).command;
+				if (zot(strokeSize)) strokeSize=1; 	
+				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
+			}
+			g.dc(0,0,radius);
+			
+			this.width = radius*2;
+			this.height = radius*2;
+			this.setBounds(-radius,-radius,this.width,this.height);	
+			
+			this.setFill = function(color) {
+				fill = color;
+				fillObj.style = fill;
+			}			
+			this.setStroke = function(color) {
+				if (!strokeObj) {return;}
+				stroke = color;
+				strokeObj.style = stroke;
+			}			
+			this.setStrokeSize = function(size) {
+				if (!strokeSizeObj) {return;}
+				strokeSize = size;
+				strokeSizeObj.width = strokeSize;
+			}			
+			this.clone = function() {
+				return new zim.Circle(radius, fill, stroke, strokeSize);	
+			}	
+		}	
+			
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeCircle.prototype = new createjs.Container();
+		makeCircle.prototype.constructor = zim.Circle;
+		return new makeCircle();
+		
+	}	
+	
+	
+/*--
+zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner)
+
+Rectangle class
+
+extends a createjs.Container (allows for ZIM HotSpots)
+makes a circle shape inside a container
+var rectangle = new zim.Rectangle(parameters);
+the registration and origin will be top left
+
+PARAMETERS
+width, height
+fill, stroke, strokeSize are optional
+corner - round of corner default 0
+
+METHODS
+setFill(color)
+setStroke(color)
+setStrokeSize(size) - number
+clone() - makes a copy
+
+PROPERTIES
+shape - gives access to the circle shape
+width and height - as expected or use getBounds()
+
+--*/		
+	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
+						
+		function makeRectangle() {
+		
+			if (zot(width)) width = 100;
+			if (zot(height)) height = 100;
+			if (zot(fill)) fill = "black";
+			if (zot(corner)) corner = 0;
+								
+			var rectangle = this.shape = new createjs.Shape();
+			this.addChild(rectangle);
+			
+			var g = rectangle.graphics;
+			var fillObj =g.beginFill(fill).command;
+			if (!zot(stroke)) {				
+				var strokeObj = g.beginStroke(stroke).command;
+				if (zot(strokeSize)) strokeSize=1; 	
+				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
+			}
+			
+			if (corner > 0) {
+				g.rr(0,0,width,height,corner);
+			} else {
+				g.r(0,0,width,height);
+			}
+			
+			this.width = width;
+			this.height = height;
+			this.setBounds(0,0,this.width,this.height);	
+			
+			this.setFill = function(color) {
+				fill = color;
+				fillObj.style = fill;
+			}			
+			this.setStroke = function(color) {
+				if (!strokeObj) {return;}
+				stroke = color;
+				strokeObj.style = stroke;
+			}			
+			this.setStrokeSize = function(size) {
+				if (!strokeSizeObj) {return;}
+				strokeSize = size;
+				strokeSizeObj.width = strokeSize;
+			}			
+			this.clone = function() {
+				return new zim.Rectangle(width, height, fill, stroke, strokeSize, corner);	
+			}	
+		}	
+			
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeRectangle.prototype = new createjs.Container();
+		makeRectangle.prototype.constructor = zim.Rectangle;
+		return new makeRectangle();
+		
+	}	
+	
+
+/*--
 zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
 
 Triangle class
 
-extends a createjs.Container
+extends a createjs.Container (allows for ZIM HotSpots)
 makes a triangle shape inside a container using three line lengths
 var tri = new zim.Triangle(parameters);
 
@@ -155,19 +315,19 @@ width and height - as expected or use getBounds()
 				return;
 			}		
 					
-			var tri = new createjs.Shape();
+			var tri = this.shape = new createjs.Shape();
 			this.addChild(tri);
 			
 			var g = tri.graphics;
-			g.f(fill);
-			if (!zot(stroke)) {
-				g.s(stroke);
+			var fillObj =g.beginFill(fill).command;
+			if (!zot(stroke)) {				
+				var strokeObj = g.beginStroke(stroke).command;
 				if (zot(strokeSize)) strokeSize=1; 	
-				g.ss(strokeSize);
+				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
 			}
+			
 			g.mt(0,0);
-			g.lt(a,0);
-					
+			g.lt(a,0);	
 			
 			// find biggest angle with cosine rule		
 			var angle1 = Math.acos( (Math.pow(bb,2) + Math.pow(cc,2) - Math.pow(aa,2)) / (2 * bb * cc) ) * 180 / Math.PI;
@@ -197,13 +357,27 @@ width and height - as expected or use getBounds()
 			tri.y = this.height;
 						
 			g.lt(a-backX,0-upY);
-			g.lt(0,0);
+			g.cp();
 						
 			if (center) {
 				this.regX = this.width/2;
 				this.regY = this.height/2+adjust;
 			}
 			
+			this.setFill = function(color) {
+				fill = color;
+				fillObj.style = fill;
+			}			
+			this.setStroke = function(color) {
+				if (!strokeObj) {return;}
+				stroke = color;
+				strokeObj.style = stroke;
+			}			
+			this.setStrokeSize = function(size) {
+				if (!strokeSizeObj) {return;}
+				strokeSize = size;
+				strokeSizeObj.width = strokeSize;
+			}		
 			this.clone = function() {
 				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);	
 			}
@@ -218,7 +392,7 @@ width and height - as expected or use getBounds()
 		
 	}	
 	
-		
+
 /*--
 zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur)
 
