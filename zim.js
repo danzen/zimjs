@@ -3011,7 +3011,7 @@ if you want pages within a smaller area - consider using two canvas tags
 					
 					function transEndHalf(pages) {
 						that.removeChild(that.lastPage);
-						zim.animate(pages.unshift(), {alpha:0}, that.speed/2, null, transEnd, pages);
+						zim.animate(pages.shift(), {alpha:0}, that.speed/2, null, transEnd, pages);
 					}				
 										
 					newPage.x = 0;
@@ -4065,7 +4065,6 @@ zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, re
 Layout class
 
 extends a createjs.EventDispatcher so it can dispatch events
-
 arranges objects on the page by fitting them in regions
 make a layout object for each page if desired
 and even nest layout objects inside regions

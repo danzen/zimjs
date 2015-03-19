@@ -418,6 +418,7 @@ if you want pages within a smaller area - consider using two canvas tags
 				if (that.currentPage == page) {
 					that.removeChild(page);	
 					if (holder.getStage()) holder.getStage().update(); // works even if holder is stage
+
 				}
 				page.zimSwipeArray = null;								
 			}
@@ -482,7 +483,7 @@ if you want pages within a smaller area - consider using two canvas tags
 					
 					function transEndHalf(pages) {
 						that.removeChild(that.lastPage);
-						zim.animate(pages.unshift(), {alpha:0}, that.speed/2, null, transEnd, pages);
+						zim.animate(pages.shift(), {alpha:0}, that.speed/2, null, transEnd, pages);
 					}				
 										
 					newPage.x = 0;
