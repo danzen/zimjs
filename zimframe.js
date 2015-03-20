@@ -41,8 +41,8 @@ scrollTop - activates scrolling on older apple devices to hide the url bar and d
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
-stageW - read only reference to the stage width - to change run remakeCanvas()
-stageH - read only reference to the stage height - to change run remakeCanvas()
+width - read only reference to the stage width - to change run remakeCanvas()
+height - read only reference to the stage height - to change run remakeCanvas()
 zil - reference to zil events that stop canvas from shifting
 
 METHODS 
@@ -183,7 +183,7 @@ dispose() - only removes canvas, resize listener and stage
 				}
 			});
 			
-			Object.defineProperty(that, 'stageW', {
+			Object.defineProperty(that, 'stageW', { // depreciated (use width)
 				get: function() {			
 					return stageW;
 				},
@@ -192,12 +192,29 @@ dispose() - only removes canvas, resize listener and stage
 				}
 			});
 			
-			Object.defineProperty(that, 'stageH', {
+			Object.defineProperty(that, 'stageH', { // depreciated (use height)
 				get: function() {			
 					return stageH;
 				},
 				set: function(h) {
 					zog("zim.Frame(): stageH is read only - see remakeCanvas(), perhaps");
+				}
+			});
+			Object.defineProperty(that, 'width', {
+				get: function() {			
+					return stageW;
+				},
+				set: function(w) {
+					zog("zim.Frame(): width is read only - see remakeCanvas(), perhaps");
+				}
+			});
+			
+			Object.defineProperty(that, 'height', {
+				get: function() {			
+					return stageH;
+				},
+				set: function(h) {
+					zog("zim.Frame(): height is read only - see remakeCanvas(), perhaps");
 				}
 			});
 			

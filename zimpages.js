@@ -1551,8 +1551,8 @@ an array of region objects with specific properties for each
 example - with all dimensions as percents
 
 Example VERTICAL region objects
-[ {object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"}
-{object:content, marginTop:5, maxWidth:90} // note, middle gets no minHeight
+[ {object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"},
+{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
 {object:nav, marginTop:5, maxWidth:80, height:20, backgroundColor:"red"} ]
 note: no minHeight for middle regions - but heights on any region
 align defaults to middle for the regions
@@ -1560,8 +1560,8 @@ valign defaults to top and bottom for the top and bottom region and middle for t
 backgroundColor applies a backing color to the region
 
 Example HORIZONTAL region objects
-{object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"}
-{object:col2, marginLeft:5, maxHeight:90, align:"middle"} // note, middle gets no minWidth
+{object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"},
+{object:col2, marginLeft:5, maxHeight:90, align:"middle"}, // note, middle gets no minWidth
 {object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"}	
 align defaults to left and right for the outer regions and middle for the inside regions
 valign defaults to top for all the regions	
@@ -1718,7 +1718,6 @@ will fill up the rest of the height until they reach their maximum widths
 				for (var i=0; i<regions.length; i++) {
 					r = regions[i];
 					r.maxGiven = 0;	
-
 					r.marginGiven = 0;
 				}		
 				// all the primaries are applied 
@@ -1917,7 +1916,6 @@ will fill up the rest of the height until they reach their maximum widths
 						if (regionShape.getStage()) regionShape.getStage().update();
 					}
 				}
-
 			}
 			
 			this.disable = function() {						

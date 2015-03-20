@@ -2815,6 +2815,7 @@ removePage() - lets you remove a page (if on this page, call a go() first and re
 setSwipe() - lets you set the swipe array for a page
 go(newPage, direction, trans, ms) - lets you go to a page for events other than swipe events	
 trans and ms are optional and will override any previously set transitions (speed in ms)
+resize() - call to resize transitions - not the pages themselves (use layouts)
 pause() - pauses a transition before it starts (call from swipe event)
 unpause() - unpauses a paused transition (unless another go() command is called)
 puff(time) - adds all the pages behind the currentPage (time (ms) auto calls settle)
@@ -3378,6 +3379,7 @@ https://gist.github.com/diverted247/9216242 - Ted Patrick
 		zim.dashed = true;
 		createjs.Graphics.prototype.dashedLineTo = function(x1, y1, x2, y2, dashLen){
 			this.moveTo(x1, y1);
+
 			 
 			var dX = x2 - x1;
 			var dY = y2 - y1;
@@ -4062,6 +4064,7 @@ disposing will remove the G key listener and the grid
 /*--
 zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey) 
 
+
 Layout class
 
 extends a createjs.EventDispatcher so it can dispatch events
@@ -4080,8 +4083,8 @@ an array of region objects with specific properties for each
 example - with all dimensions as percents
 
 Example VERTICAL region objects
-[ {object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"}
-{object:content, marginTop:5, maxWidth:90} // note, middle gets no minHeight
+[ {object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"},
+{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
 {object:nav, marginTop:5, maxWidth:80, height:20, backgroundColor:"red"} ]
 note: no minHeight for middle regions - but heights on any region
 align defaults to middle for the regions
@@ -4089,9 +4092,9 @@ valign defaults to top and bottom for the top and bottom region and middle for t
 backgroundColor applies a backing color to the region
 
 Example HORIZONTAL region objects
-{object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"}
-{object:col2, marginLeft:5, maxHeight:90, align:"middle"} // note, middle gets no minWidth
-{object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"}	
+{object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"},
+{object:col2, marginLeft:5, maxHeight:90, align:"middle"}, // note, middle gets no minWidth
+{object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"},	
 align defaults to left and right for the outer regions and middle for the inside regions
 valign defaults to top for all the regions	
 
@@ -4589,8 +4592,8 @@ scrollTop - activates scrolling on older apple devices to hide the url bar and d
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
-stageW - read only reference to the stage width - to change run remakeCanvas()
-stageH - read only reference to the stage height - to change run remakeCanvas()
+width - read only reference to the stage width - to change run remakeCanvas()
+height - read only reference to the stage height - to change run remakeCanvas()
 zil - reference to zil events that stop canvas from shifting
 
 METHODS 
@@ -4731,7 +4734,7 @@ dispose() - only removes canvas, resize listener and stage
 				}
 			});
 			
-			Object.defineProperty(that, 'stageW', {
+			Object.defineProperty(that, 'stageW', { // depreciated (use width)
 				get: function() {			
 					return stageW;
 				},
@@ -4740,12 +4743,29 @@ dispose() - only removes canvas, resize listener and stage
 				}
 			});
 			
-			Object.defineProperty(that, 'stageH', {
+			Object.defineProperty(that, 'stageH', { // depreciated (use height)
 				get: function() {			
 					return stageH;
 				},
 				set: function(h) {
 					zog("zim.Frame(): stageH is read only - see remakeCanvas(), perhaps");
+				}
+			});
+			Object.defineProperty(that, 'width', {
+				get: function() {			
+					return stageW;
+				},
+				set: function(w) {
+					zog("zim.Frame(): width is read only - see remakeCanvas(), perhaps");
+				}
+			});
+			
+			Object.defineProperty(that, 'height', {
+				get: function() {			
+					return stageH;
+				},
+				set: function(h) {
+					zog("zim.Frame(): height is read only - see remakeCanvas(), perhaps");
 				}
 			});
 			
