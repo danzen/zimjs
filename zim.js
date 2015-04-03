@@ -208,6 +208,23 @@ strict defaults to true - if false, order in arrays does not matter
 	}		
 	
 /*--
+zim.merge = function(objects)
+merges any number of objects {} you pass in as parameters
+overwrites properties if they have the same name
+--*/	
+	zim.merge = function() {
+		var obj = {}; var i; var j;
+		for (i=0; i<arguments.length; i++) {
+			for (j in arguments[i]) {
+				if (arguments[i].hasOwnProperty(j)) {
+					obj[j] = arguments[i][j];
+				}
+			}
+		}
+		return obj;		
+	}
+	
+/*--
 zim.decimals = function(num, places)
 rounds number to the number of decimal places specified by places
 negative number places round to tens, hundreds, etc.
@@ -241,6 +258,7 @@ the damp value with 1 being no damping and 0 being no movement - default is .1
 
 METHODS
 convert() - converts a value into a damped value
+immediate() - immediately goes to value
 
 PROPERTIES
 damp - can dynamically change the damping (usually just pass it in as a parameter to start)
@@ -254,9 +272,10 @@ lastValue - setting this would go immediately to this value (would not normally 
 	zim.Damp.prototype.convert = function(desiredValue) {
 		return this.lastValue = this.lastValue + (desiredValue - this.lastValue) * this.damp;		
 	}
+	zim.Damp.prototype.immediate = function(desiredValue) {
+		this.lastValue = desiredValue;		
+	}	
 	
-	
-
 /*--
 zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound)
 
@@ -318,9 +337,6 @@ convert(input) - will return the output property (for instance, a volume)
 		
 	}		
 	
-		
-			
-
 /*--
 zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound)
 
@@ -361,6 +377,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		this.damp = damp; // want to expose as a property we can change
 		var that = this;		
 							
+
 		// proportion
 		var baseAmount;
 		var proportion;
@@ -399,7 +416,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		}		
 		
 		this.immediate = function(n) {
-			this.convert(n);
+			that.convert(n);
 			calculate();
 			lastAmount = targetAmount;
 			if (targetRound) {lastAmount = Math.round(lastAmount);}	
@@ -538,17 +555,19 @@ after the rect comes two cursor properties which are any css cursor value such a
 currentTarget defaults to false allowing you to drag things within a container
 eg. drag(container); will drag any object within a container
 setting currentTarget to true will then drag the whole container	
-mouseDowns defaults to false which prevents a swipe from triggering when dragging
+swipe defaults to false which prevents a swipe from triggering when dragging
 localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame	
 returns obj for chaining
 --*/	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns, localBounds) {
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds) {
 		if (zot(obj) || !obj.on) return;
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
 		if (zot(rect)) localBounds = false;
 		if (zot(currentTarget)) currentTarget = false;		
-		if (zot(mouseDowns)) mouseDowns = false;
+		if (zot(swipe)) swipe = false;
 		if (zot(localBounds)) localBounds = false;
+		
+		zim.setSwipe(obj, swipe);
 		
 		var diffX; var diffY; var point; var r;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
@@ -566,19 +585,20 @@ returns obj for chaining
 			} else {
 				r = rect;
 			}
-			
 			point = obj.parent.localToGlobal(obj.x, obj.y);
-			positionObject(obj, point.x, point.y);		
+			positionObject(obj, point.x, point.y);	
 		}
 	
 		obj.zimDown = obj.on("mousedown", function(e) {
 			// e.stageX and e.stageY are global
 			// e.target.x and e.target.y are relative to e.target's parent
 			// bring stageX and stageY into the parent's frame of reference
+			// could use e.localX and e.localY but might be dragging container or contents
 			var dragObject = (currentTarget)?e.currentTarget:e.target;
-			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY); 
-			diffX = point.x - e.target.x;
-			diffY = point.y - e.target.y;	
+
+			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY);
+			diffX = point.x - dragObject.x;
+			diffY = point.y - dragObject.y;	
 			if (localBounds) {
 				r = zim.boundsToGlobal(e.target.parent, rect);
 			} else {
@@ -586,7 +606,6 @@ returns obj for chaining
 			}
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
-			if (!mouseDowns) e.stopImmediatePropagation();
 		}, true);
 		
 		obj.zimMove = obj.on("pressmove", function(e) {
@@ -649,11 +668,36 @@ returns obj for chaining
 	zim.noDrag = function(obj) {
 		if (zot(obj) || !obj.on) return;	
 		obj.cursor = "default";
+		zim.setSwipe(obj, true);
 		obj.off("added", obj.zimAdded);
 		obj.off("mousedown", obj.zimDown);
 		obj.off("pressmove", obj.zimMove);
 		obj.off("pressup", obj.zimUp);
 		return obj;	
+	}
+	
+/*--
+zim.setSwipe = function(obj, swipeBoolean)
+sets a zimNoSwipe property on the object to true if not swiping
+sets the property to null if we want to swipe
+zim Swipe in the Pages module will not swipe if zimNoSwipe is true
+recursively sets children to same setting
+--*/
+	zim.setSwipe = function(obj, swipe) {
+		if (zot(obj) || !obj.on) return;
+		obj.zimNoSwipe = (swipe) ? null : true;
+		dig(obj);		
+		function dig(container) {
+			var num = container.getNumChildren();
+			var temp;
+			for (var i=0; i<num; i++) {
+				temp = container.getChildAt(i);
+				temp.zimNoSwipe = obj.zimNoSwipe;
+				if (temp instanceof createjs.Container) {
+					dig(temp);
+				}
+			}
+		}
 	}
 
 /*--
@@ -750,7 +794,6 @@ see if the a.getBounds() is hitting the b.getBounds()
 we draw bounds for demonstration if you pass in a boundsShape shape
 --*/	
 	zim.hitTestBounds = function(a, b, boundsShape) {
-
 
 		if (zot(a) || zot(b) || !a.getBounds || !b.getBounds) return;
 		var boundsCheck = false;
@@ -890,7 +933,6 @@ returns target for chaining
 		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props);
 	}
 	
-
 /*--
 zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
@@ -1037,7 +1079,6 @@ will not be resized - really just to use while building and then comment it out 
 		return obj;		
 	}
 	
-	
 /*--
 zim.centerReg = function(obj)
 centers the registration point on the bounds - obj must have bounds set
@@ -1090,6 +1131,9 @@ clone() - makes a copy
 PROPERTIES
 shape - gives access to the circle shape
 width and height - as expected or use getBounds()
+mouseChildren - set to false so  you do not drag the shape inside the circle 
+                if you nest things inside and want to drag them, will want to set to true
+
 
 --*/		
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
@@ -1098,6 +1142,8 @@ width and height - as expected or use getBounds()
 		
 			if (zot(radius)) radius = 50;
 			if (zot(fill)) fill = "black";
+			
+			this.mouseChildren = false;
 								
 			var circle = this.shape = new createjs.Shape();
 			this.addChild(circle);
@@ -1110,7 +1156,6 @@ width and height - as expected or use getBounds()
 				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
 			}
 			g.dc(0,0,radius);
-
 			
 			this.width = radius*2;
 			this.height = radius*2;
@@ -1168,6 +1213,9 @@ clone() - makes a copy
 PROPERTIES
 shape - gives access to the circle shape
 width and height - as expected or use getBounds()
+mouseChildren - set to false so  you do not drag the shape inside the rectangle 
+                if you nest things inside and want to drag them, will want to set to true
+
 
 --*/	
 	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
@@ -1178,6 +1226,8 @@ width and height - as expected or use getBounds()
 			if (zot(height)) height = 100;
 			if (zot(fill)) fill = "black";
 			if (zot(corner)) corner = 0;
+			
+			this.mouseChildren = false;
 								
 			var rectangle = this.shape = new createjs.Shape();
 			this.addChild(rectangle);
@@ -1249,6 +1299,8 @@ so can pass in an adjust which brings the center towards its vertical base
 PROPERTIES
 shape - gives access to the triangle shape
 width and height - as expected or use getBounds()
+mouseChildren - set to false so  you do not drag the shape inside the triangle 
+                if you nest things inside and want to drag them, will want to set to true
 
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
@@ -1261,6 +1313,8 @@ width and height - as expected or use getBounds()
 			if (zot(fill)) fill = "black";
 			if (zot(center)) center = true;
 			if (zot(adjust)) adjust = 0;
+			
+			this.mouseChildren = false;
 			
 			var lines = [a,b,c];
 			lines.sort(function(a, b){return b-a});
@@ -1517,7 +1571,6 @@ dispatches no events - you make your own click event
 			this.width = width;
 			this.height = height;
 			
-
 			label.x = (width-label.getBounds().width)/2+1;
 			label.y = (height-label.getBounds().height)/2+2;
 			this.addChild(label);
@@ -2727,7 +2780,8 @@ also dispatches a "swipedown" event for convenience on a mousedown
 			var that = this;	
 			
 			obj.on("mousedown", function(e) {
-				if (!that.active) return;
+				
+				if (!that.active || e.target.zimNoSwipe) return;
 				that.obj = e.target; 
 				mouseX = startX = e.stageX;
 				mouseY = startY = e.stageY;
@@ -3379,7 +3433,6 @@ https://gist.github.com/diverted247/9216242 - Ted Patrick
 		zim.dashed = true;
 		createjs.Graphics.prototype.dashedLineTo = function(x1, y1, x2, y2, dashLen){
 			this.moveTo(x1, y1);
-
 			 
 			var dX = x2 - x1;
 			var dY = y2 - y1;
@@ -3997,6 +4050,7 @@ dispose() - clears keyboard events and grid
 					cached = null;
 					that.pixels = !that.pixels;
 				}
+
 			}		
 			
 			this.resize = function() {
@@ -4063,7 +4117,6 @@ disposing will remove the G key listener and the grid
 
 /*--
 zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey) 
-
 
 Layout class
 
