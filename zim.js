@@ -686,7 +686,7 @@ recursively sets children to same setting
 	zim.setSwipe = function(obj, swipe) {
 		if (zot(obj) || !obj.on) return;
 		obj.zimNoSwipe = (swipe) ? null : true;
-		dig(obj);		
+		if (obj instanceof createjs.Container) dig(obj);		
 		function dig(container) {
 			var num = container.getNumChildren();
 			var temp;
@@ -1287,6 +1287,7 @@ PARAMETERS
 a, b and c are the lengths of the sides
 a will run horizontally along the bottom
 b is upwards and c is back to the origin
+if c is set to -1 will assume a 90 angle
 fill, stroke, strokeSize are optional
 center defaults to true and puts the registration point to the center
 the actual center is not really the weighted center 
@@ -1305,6 +1306,7 @@ if you nest things inside and want to drag them, will want to set to true
 			if (zot(a)) a = 100;
 			if (zot(b)) b = a;
 			if (zot(c)) c = a;
+			if (c==-1) c = Math.sqrt(Math.pow(a,2)+Math.pow(b,2));
 			if (zot(fill)) fill = "black";
 			if (zot(center)) center = true;
 			if (zot(adjust)) adjust = 0;
@@ -1398,8 +1400,8 @@ if you nest things inside and want to drag them, will want to set to true
 		return new makeTriangle();
 		
 	}	
-	
-			
+		
+						
 /*--
 zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur)
 

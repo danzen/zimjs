@@ -142,6 +142,31 @@ returns obj for chaining
 		obj.off("pressup", obj.zimUp);
 		return obj;	
 	}
+	
+	
+/*--
+zim.setSwipe = function(obj, swipeBoolean)
+sets a zimNoSwipe property on the object to true if not swiping
+sets the property to null if we want to swipe
+zim Swipe in the Pages module will not swipe if zimNoSwipe is true
+recursively sets children to same setting
+--*/
+	zim.setSwipe = function(obj, swipe) {
+		if (zot(obj) || !obj.on) return;
+		obj.zimNoSwipe = (swipe) ? null : true;
+		if (obj instanceof createjs.Container) dig(obj);		
+		function dig(container) {
+			var num = container.getNumChildren();
+			var temp;
+			for (var i=0; i<num; i++) {
+				temp = container.getChildAt(i);
+				temp.zimNoSwipe = obj.zimNoSwipe;
+				if (temp instanceof createjs.Container) {
+					dig(temp);
+				}
+			}
+		}
+	}
 
 /*--
 zim.hitTestPoint = function(obj, x, y)
