@@ -545,7 +545,7 @@ var zim = function(zim) {
 	if (zon) zog("ZIM CREATE Module");
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns, localBounds)
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds)
 adds drag and drop to an object 
 handles scaled, rotated nested objects
 rect is a rectangle object for the bounds of dragging
@@ -1132,9 +1132,7 @@ PROPERTIES
 shape - gives access to the circle shape
 width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the circle 
-                if you nest things inside and want to drag them, will want to set to true
-
-
+if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
 						
@@ -1214,9 +1212,7 @@ PROPERTIES
 shape - gives access to the circle shape
 width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the rectangle 
-                if you nest things inside and want to drag them, will want to set to true
-
-
+if you nest things inside and want to drag them, will want to set to true
 --*/	
 	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
 						
@@ -1300,8 +1296,7 @@ PROPERTIES
 shape - gives access to the triangle shape
 width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the triangle 
-                if you nest things inside and want to drag them, will want to set to true
-
+if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
 						
@@ -4050,7 +4045,6 @@ dispose() - clears keyboard events and grid
 					cached = null;
 					that.pixels = !that.pixels;
 				}
-
 			}		
 			
 			this.resize = function() {

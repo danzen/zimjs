@@ -64,8 +64,8 @@ returns obj for chaining
 			// bring stageX and stageY into the parent's frame of reference
 			var dragObject = (currentTarget)?e.currentTarget:e.target;
 			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY); 
-			diffX = point.x - e.target.x;
-			diffY = point.y - e.target.y;	
+			diffX = point.x - dragObject.x;
+			diffY = point.y - dragObject.y;
 			if (localBounds) {
 				r = zim.boundsToGlobal(e.target.parent, rect);
 			} else {
