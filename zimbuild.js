@@ -8,7 +8,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.4.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -133,7 +133,8 @@ clone() - makes a copy
 PROPERTIES
 shape - gives access to the circle shape
 width and height - as expected or use getBounds()
-
+mouseChildren - set to false so  you do not drag the shape inside the circle 
+if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
 						
@@ -141,6 +142,8 @@ width and height - as expected or use getBounds()
 		
 			if (zot(radius)) radius = 50;
 			if (zot(fill)) fill = "black";
+			
+			this.mouseChildren = false;
 								
 			var circle = this.shape = new createjs.Shape();
 			this.addChild(circle);
@@ -159,19 +162,20 @@ width and height - as expected or use getBounds()
 			this.setBounds(-radius,-radius,this.width,this.height);	
 			
 			this.setFill = function(color) {
+				if (zot(color)) return;
 				fill = color;
 				fillObj.style = fill;
 			}			
 			this.setStroke = function(color) {
-				if (!strokeObj) {return;}
+				if (!strokeObj || zot(color)) return;
 				stroke = color;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
-				if (!strokeSizeObj) {return;}
+				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}			
+			}		
 			this.clone = function() {
 				return new zim.Circle(radius, fill, stroke, strokeSize);	
 			}	
@@ -210,8 +214,9 @@ clone() - makes a copy
 PROPERTIES
 shape - gives access to the circle shape
 width and height - as expected or use getBounds()
-
---*/		
+mouseChildren - set to false so  you do not drag the shape inside the rectangle 
+if you nest things inside and want to drag them, will want to set to true
+--*/	
 	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
 						
 		function makeRectangle() {
@@ -220,6 +225,8 @@ width and height - as expected or use getBounds()
 			if (zot(height)) height = 100;
 			if (zot(fill)) fill = "black";
 			if (zot(corner)) corner = 0;
+			
+			this.mouseChildren = false;
 								
 			var rectangle = this.shape = new createjs.Shape();
 			this.addChild(rectangle);
@@ -243,16 +250,17 @@ width and height - as expected or use getBounds()
 			this.setBounds(0,0,this.width,this.height);	
 			
 			this.setFill = function(color) {
+				if (zot(color)) return;
 				fill = color;
 				fillObj.style = fill;
 			}			
 			this.setStroke = function(color) {
-				if (!strokeObj) {return;}
+				if (!strokeObj || zot(color)) return;
 				stroke = color;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
-				if (!strokeSizeObj) {return;}
+				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}			
@@ -268,7 +276,7 @@ width and height - as expected or use getBounds()
 		return new makeRectangle();
 		
 	}	
-	
+		
 
 /*--
 zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
@@ -283,6 +291,7 @@ PARAMETERS
 a, b and c are the lengths of the sides
 a will run horizontally along the bottom
 b is upwards and c is back to the origin
+if c is set to -1 will assume a 90 angle
 fill, stroke, strokeSize are optional
 center defaults to true and puts the registration point to the center
 the actual center is not really the weighted center 
@@ -291,7 +300,8 @@ so can pass in an adjust which brings the center towards its vertical base
 PROPERTIES
 shape - gives access to the triangle shape
 width and height - as expected or use getBounds()
-
+mouseChildren - set to false so  you do not drag the shape inside the triangle 
+if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
 						
@@ -300,9 +310,12 @@ width and height - as expected or use getBounds()
 			if (zot(a)) a = 100;
 			if (zot(b)) b = a;
 			if (zot(c)) c = a;
+			if (c==-1) c = Math.sqrt(Math.pow(a,2)+Math.pow(b,2));
 			if (zot(fill)) fill = "black";
 			if (zot(center)) center = true;
 			if (zot(adjust)) adjust = 0;
+			
+			this.mouseChildren = false;
 			
 			var lines = [a,b,c];
 			lines.sort(function(a, b){return b-a});
@@ -365,19 +378,20 @@ width and height - as expected or use getBounds()
 			}
 			
 			this.setFill = function(color) {
+				if (zot(color)) return;
 				fill = color;
 				fillObj.style = fill;
 			}			
 			this.setStroke = function(color) {
-				if (!strokeObj) {return;}
+				if (!strokeObj || zot(color)) return;
 				stroke = color;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
-				if (!strokeSizeObj) {return;}
+				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}		
+			}	
 			this.clone = function() {
 				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);	
 			}
@@ -1274,6 +1288,7 @@ arrows - use keyboard arrows - default true (will always show graphical arrows)
 corner is the radius of the text box corners default 10
 shadowColor defaults to #444
 value for shadow blur (default 14) - 0 for no shadow
+loopStepper - defaults to false so will not loop around or go back past 0 index (unless set to true)
 
 PROPERTIES
 currentIndex - gets or sets the current index of the array and display
@@ -1281,14 +1296,17 @@ currentValue - gets or sets the current value of the array and display
 stepperArray - gets or sets the stepArray - you should manually set the desired currentIndex if you change this
 arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
 textBox - access to the text box backing shape
+loop - does the stepper loop
 
 METHODS
+next() - goes to next
+prev() - goes to previous
 dispose() - removes listeners and deletes object
 
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 --*/	
-	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur) {
+	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper) {
 		
 		function makeStepper() {
 			
@@ -1303,8 +1321,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			if (zot(vertical)) vertical=false;
 			if (zot(arrows)) arrows=true;
 			if (zot(corner)) corner=16;
-			if (zot(shadowColor)) shadowColor="#444";
-			if (zot(shadowBlur)) shadowBlur=14;		
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
+			if (zot(shadowBlur)) shadowBlur=14;
+			if (zot(loopStepper)) loopStepper=false;		
 			
 			var that = this;
 			var index;
@@ -1355,7 +1374,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			this.addChild(label);
 			if (stepArray.length > 0) {
-				index = Math.floor(stepArray.length/2)
+				// index = Math.floor(stepArray.length/2)
+				index = 0;
 				label.text = stepArray[index];
 			}
 			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
@@ -1386,10 +1406,17 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				next.y = next.getBounds().width/2;
 			}
 			
+			setLabel(index);
+			
 			function step(n) {
 				var nextIndex = index + n;
-				if (nextIndex > stepArray.length-1) return;
-				if (nextIndex < 0) return;
+				if (!loopStepper) {
+					if (nextIndex > stepArray.length-1) return;
+					if (nextIndex < 0) return;
+				} else {
+					if (nextIndex > stepArray.length-1) nextIndex = 0;
+					if (nextIndex < 0) nextIndex = stepArray.length-1;
+				}
 				setLabel(nextIndex);				
 			}
 			
@@ -1398,7 +1425,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					return index;
 				},
 				set: function(value) {					
-					index = Math.max(stepArray.length-1, Math.min(0, value));
+					index = Math.min(stepArray.length-1, Math.max(0, value));
 					setLabel(index);
 				}
 			});
@@ -1411,6 +1438,16 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					if (stepArray.indexOf(value) > -1) {
 						index = stepArray.indexOf(value);	
 					}
+					setLabel(index);
+				}
+			});
+			
+			Object.defineProperty(this, 'loop', {
+				get: function() {				
+					return loopStepper;
+				},
+				set: function(value) {					
+					loopStepper = value;
 					setLabel(index);
 				}
 			});
@@ -1429,6 +1466,24 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				label.text = stepArray[index];
 				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
 				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+				prev.alpha = 1;
+				arrowPrev.setFill(backingColor);
+				prev.cursor = "pointer";
+				next.alpha = 1;
+				arrowNext.setFill(backingColor);
+				next.cursor = "pointer";
+				if (!loopStepper) {
+					if (index == 0) {
+						prev.alpha = .8;
+						arrowPrev.setFill("#aaa");
+						prev.cursor = "default";
+					} 
+					if (index == stepArray.length-1) {
+						next.alpha = .8;
+						arrowNext.setFill("#aaa");
+						next.cursor = "default";
+					}
+				}
 				if (label.getStage()) label.getStage().update();
 				that.dispatchEvent("change");
 			}
@@ -1450,6 +1505,14 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				}
 				window.addEventListener("keydown", this.keyDownEvent); 
 				
+			}
+			
+			this.next = function() {
+				step(1);
+			}
+			
+			this.prev = function() {
+				step(-1);
 			}
 			
 			this.dispose = function() {

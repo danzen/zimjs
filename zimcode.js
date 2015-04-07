@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.4.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -67,7 +67,7 @@ copies arrays and basic objects
 http://stackoverflow.com/users/35881/a-levy
 --*/	
 	zim.copy = function(obj) {
-		if (obj==null || typeof obj != 'object') return;
+		if (obj==null || typeof obj != 'object') return obj;
 		if (obj instanceof Array) {
 			return obj.slice(0);
 		}
@@ -107,6 +107,23 @@ strict defaults to true - if false, order in arrays does not matter
 	}		
 	
 /*--
+zim.merge = function(objects)
+merges any number of objects {} you pass in as parameters
+overwrites properties if they have the same name
+--*/	
+	zim.merge = function() {
+		var obj = {}; var i; var j;
+		for (i=0; i<arguments.length; i++) {
+			for (j in arguments[i]) {
+				if (arguments[i].hasOwnProperty(j)) {
+					obj[j] = arguments[i][j];
+				}
+			}
+		}
+		return obj;		
+	}
+	
+/*--
 zim.decimals = function(num, places)
 rounds number to the number of decimal places specified by places
 negative number places round to tens, hundreds, etc.
@@ -140,6 +157,7 @@ the damp value with 1 being no damping and 0 being no movement - default is .1
 
 METHODS
 convert() - converts a value into a damped value
+immediate() - immediately goes to value
 
 PROPERTIES
 damp - can dynamically change the damping (usually just pass it in as a parameter to start)
@@ -153,9 +171,10 @@ lastValue - setting this would go immediately to this value (would not normally 
 	zim.Damp.prototype.convert = function(desiredValue) {
 		return this.lastValue = this.lastValue + (desiredValue - this.lastValue) * this.damp;		
 	}
+	zim.Damp.prototype.immediate = function(desiredValue) {
+		this.lastValue = desiredValue;		
+	}	
 	
-	
-
 /*--
 zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound)
 
@@ -215,10 +234,7 @@ convert(input) - will return the output property (for instance, a volume)
 			return targetAmount;		
 		}						
 		
-	}		
-	
-		
-			
+	}			
 
 /*--
 zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound)
@@ -228,6 +244,7 @@ ProportionDamp Class
 converts an input value to an output value on a different scale with damping	
 works like Proportion Class but with a damping parameter
 var pd = new zim.ProportionDamp(parmeters);
+
 
 PARAMETERS
 put in desired damping with 1 being no damping and .1 being the default
@@ -313,7 +330,62 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 			clearInterval(interval);
 		}
 	}		
+	
+/*-- 
+zim.EventDispatcher = function(target)
+handles adding, removing and dispatching events
+--*/	
+	zim.EventDispatcher = function(target) {
+		this.listeners = {};
+		this.target = target;
+		that = this;
+		this.addEventListener = function (type, listener) {
+			if (!that.listeners[type]) {
+				that.listeners[type] = [];
+			}
+			that.listeners[type].push(listener);
+		}
+		this.removeEventListener = function (type, listener) {
+			var listenList = that.listeners[type];
+			for (var i=0; i<listenList.length; i++) {
+				if (listenList[i] === listener) {
+					listenList.splice(i, 1);
+				}
+			}
+		}
+		this.removeAllEventListeners= function() {
+			this.listeners = {};
+		}
+		this.dispatchEvent = function (type, params) {
+			type = new String(type);
+			type.target = that.target;			
+			for (var obj in params) {
+				if (params.hasOwnProperty(obj)) {
+					type[obj] = params[obj];
+				}
+			}			
+			var listenList = that.listeners[type];
+			var success = false;
+			if (listenList) {
+				for (var i=0; i<listenList.length; i++) {
+					try {
+						listenList[i].call(that, type);
+						success = true;
+					} catch (e) {
+						zog("ZIM DispatchEvent() error: " + type + " " + e);
+					}
+				}
+			}
+			return success;
+		}
+		this.on = this.addEventListener;
+		this.off = this.removeEventListener;
+		this.offAll = this.removeAllEventListeners;
+	}	
+	
 
+	// when extending use: zim.EventDispatcher.call(this, this); at start of class
+	
 
 	// DOM CODE	
 

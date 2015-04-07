@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.4.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -15,7 +15,7 @@ var zim = function(zim) {
 	if (zon) zog("ZIM CREATE Module");
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns, localBounds)
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds)
 adds drag and drop to an object 
 handles scaled, rotated nested objects
 rect is a rectangle object for the bounds of dragging
@@ -25,17 +25,19 @@ after the rect comes two cursor properties which are any css cursor value such a
 currentTarget defaults to false allowing you to drag things within a container
 eg. drag(container); will drag any object within a container
 setting currentTarget to true will then drag the whole container	
-mouseDowns defaults to false which prevents a swipe from triggering when dragging
+swipe defaults to false which prevents a swipe from triggering when dragging
 localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame	
 returns obj for chaining
 --*/	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, mouseDowns, localBounds) {
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds) {
 		if (zot(obj) || !obj.on) return;
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
 		if (zot(rect)) localBounds = false;
 		if (zot(currentTarget)) currentTarget = false;		
-		if (zot(mouseDowns)) mouseDowns = false;
+		if (zot(swipe)) swipe = false;
 		if (zot(localBounds)) localBounds = false;
+		
+		zim.setSwipe(obj, swipe);
 		
 		var diffX; var diffY; var point; var r;		
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
@@ -53,19 +55,20 @@ returns obj for chaining
 			} else {
 				r = rect;
 			}
-			
 			point = obj.parent.localToGlobal(obj.x, obj.y);
-			positionObject(obj, point.x, point.y);		
+			positionObject(obj, point.x, point.y);	
 		}
 	
 		obj.zimDown = obj.on("mousedown", function(e) {
 			// e.stageX and e.stageY are global
 			// e.target.x and e.target.y are relative to e.target's parent
 			// bring stageX and stageY into the parent's frame of reference
+			// could use e.localX and e.localY but might be dragging container or contents
 			var dragObject = (currentTarget)?e.currentTarget:e.target;
-			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY); 
+
+			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY);
 			diffX = point.x - dragObject.x;
-			diffY = point.y - dragObject.y;
+			diffY = point.y - dragObject.y;	
 			if (localBounds) {
 				r = zim.boundsToGlobal(e.target.parent, rect);
 			} else {
@@ -73,7 +76,6 @@ returns obj for chaining
 			}
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
-			if (!mouseDowns) e.stopImmediatePropagation();
 		}, true);
 		
 		obj.zimMove = obj.on("pressmove", function(e) {
@@ -136,13 +138,13 @@ returns obj for chaining
 	zim.noDrag = function(obj) {
 		if (zot(obj) || !obj.on) return;	
 		obj.cursor = "default";
+		zim.setSwipe(obj, true);
 		obj.off("added", obj.zimAdded);
 		obj.off("mousedown", obj.zimDown);
 		obj.off("pressmove", obj.zimMove);
 		obj.off("pressup", obj.zimUp);
 		return obj;	
 	}
-	
 	
 /*--
 zim.setSwipe = function(obj, swipeBoolean)
