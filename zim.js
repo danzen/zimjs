@@ -168,7 +168,7 @@ copies arrays and basic objects
 http://stackoverflow.com/users/35881/a-levy
 --*/	
 	zim.copy = function(obj) {
-		if (obj==null || typeof obj != 'object') return;
+		if (obj==null || typeof obj != 'object') return obj;
 		if (obj instanceof Array) {
 			return obj.slice(0);
 		}
@@ -377,7 +377,6 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		this.damp = damp; // want to expose as a property we can change
 		var that = this;		
 							
-
 		// proportion
 		var baseAmount;
 		var proportion;
@@ -922,15 +921,16 @@ returns the object for chaining
 	}
 	
 /*--
-zim.move = function(target, x, y, t, ease, callBack, params, wait, props)
+zim.move = function(target, x, y, t, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+can set frames per second as fps parameter
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, t, ease, callBack, params, wait, props) {
-		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props);
+	zim.move = function(target, x, y, t, ease, callBack, params, wait, props, fps) {
+		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props, fps);
 	}
 	
 /*--
@@ -939,18 +939,21 @@ convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+can set frames per second as fps parameter
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
+	zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps) {		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
+		if (zot(fps)) fps = 60;
 		createjs.Tween.get(target, props)
 			.wait(wait)
 			.to(obj, t, createjs.Ease[ease])				
 			.call(doneAnimating);
 		var listener = createjs.Ticker.on("tick", target.getStage());	
+		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
@@ -1160,19 +1163,20 @@ if you nest things inside and want to drag them, will want to set to true
 			this.setBounds(-radius,-radius,this.width,this.height);	
 			
 			this.setFill = function(color) {
+				if (zot(color)) return;
 				fill = color;
 				fillObj.style = fill;
 			}			
 			this.setStroke = function(color) {
-				if (!strokeObj) {return;}
+				if (!strokeObj || zot(color)) return;
 				stroke = color;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
-				if (!strokeSizeObj) {return;}
+				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}			
+			}		
 			this.clone = function() {
 				return new zim.Circle(radius, fill, stroke, strokeSize);	
 			}	
@@ -1247,16 +1251,17 @@ if you nest things inside and want to drag them, will want to set to true
 			this.setBounds(0,0,this.width,this.height);	
 			
 			this.setFill = function(color) {
+				if (zot(color)) return;
 				fill = color;
 				fillObj.style = fill;
 			}			
 			this.setStroke = function(color) {
-				if (!strokeObj) {return;}
+				if (!strokeObj || zot(color)) return;
 				stroke = color;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
-				if (!strokeSizeObj) {return;}
+				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}			
@@ -1374,19 +1379,20 @@ if you nest things inside and want to drag them, will want to set to true
 			}
 			
 			this.setFill = function(color) {
+				if (zot(color)) return;
 				fill = color;
 				fillObj.style = fill;
 			}			
 			this.setStroke = function(color) {
-				if (!strokeObj) {return;}
+				if (!strokeObj || zot(color)) return;
 				stroke = color;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
-				if (!strokeSizeObj) {return;}
+				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}		
+			}	
 			this.clone = function() {
 				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);	
 			}
@@ -2132,6 +2138,7 @@ zim.Waiter = function(container, speed, backingColor, circleColor, corner, shado
 
 Waiter Class
 
+
 extends a createjs.Container
 adds a little animated three dot wait widget
 var waiter = new zim.Waiter(parameters); 
@@ -2283,6 +2290,7 @@ arrows - use keyboard arrows - default true (will always show graphical arrows)
 corner is the radius of the text box corners default 10
 shadowColor defaults to #444
 value for shadow blur (default 14) - 0 for no shadow
+loopStepper - defaults to false so will not loop around or go back past 0 index (unless set to true)
 
 PROPERTIES
 currentIndex - gets or sets the current index of the array and display
@@ -2290,14 +2298,17 @@ currentValue - gets or sets the current value of the array and display
 stepperArray - gets or sets the stepArray - you should manually set the desired currentIndex if you change this
 arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
 textBox - access to the text box backing shape
+loop - does the stepper loop
 
 METHODS
+next() - goes to next
+prev() - goes to previous
 dispose() - removes listeners and deletes object
 
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 --*/	
-	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur) {
+	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper) {
 		
 		function makeStepper() {
 			
@@ -2312,8 +2323,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			if (zot(vertical)) vertical=false;
 			if (zot(arrows)) arrows=true;
 			if (zot(corner)) corner=16;
-			if (zot(shadowColor)) shadowColor="#444";
-			if (zot(shadowBlur)) shadowBlur=14;		
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
+			if (zot(shadowBlur)) shadowBlur=14;
+			if (zot(loopStepper)) loopStepper=false;		
 			
 			var that = this;
 			var index;
@@ -2364,7 +2376,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			this.addChild(label);
 			if (stepArray.length > 0) {
-				index = Math.floor(stepArray.length/2)
+				// index = Math.floor(stepArray.length/2)
+				index = 0;
 				label.text = stepArray[index];
 			}
 			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
@@ -2395,10 +2408,17 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				next.y = next.getBounds().width/2;
 			}
 			
+			setLabel(index);
+			
 			function step(n) {
 				var nextIndex = index + n;
-				if (nextIndex > stepArray.length-1) return;
-				if (nextIndex < 0) return;
+				if (!loopStepper) {
+					if (nextIndex > stepArray.length-1) return;
+					if (nextIndex < 0) return;
+				} else {
+					if (nextIndex > stepArray.length-1) nextIndex = 0;
+					if (nextIndex < 0) nextIndex = stepArray.length-1;
+				}
 				setLabel(nextIndex);				
 			}
 			
@@ -2407,7 +2427,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					return index;
 				},
 				set: function(value) {					
-					index = Math.max(stepArray.length-1, Math.min(0, value));
+					index = Math.min(stepArray.length-1, Math.max(0, value));
 					setLabel(index);
 				}
 			});
@@ -2420,6 +2440,16 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					if (stepArray.indexOf(value) > -1) {
 						index = stepArray.indexOf(value);	
 					}
+					setLabel(index);
+				}
+			});
+			
+			Object.defineProperty(this, 'loop', {
+				get: function() {				
+					return loopStepper;
+				},
+				set: function(value) {					
+					loopStepper = value;
 					setLabel(index);
 				}
 			});
@@ -2438,6 +2468,24 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				label.text = stepArray[index];
 				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
 				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+				prev.alpha = 1;
+				arrowPrev.setFill(backingColor);
+				prev.cursor = "pointer";
+				next.alpha = 1;
+				arrowNext.setFill(backingColor);
+				next.cursor = "pointer";
+				if (!loopStepper) {
+					if (index == 0) {
+						prev.alpha = .8;
+						arrowPrev.setFill("#aaa");
+						prev.cursor = "default";
+					} 
+					if (index == stepArray.length-1) {
+						next.alpha = .8;
+						arrowNext.setFill("#aaa");
+						next.cursor = "default";
+					}
+				}
 				if (label.getStage()) label.getStage().update();
 				that.dispatchEvent("change");
 			}
@@ -2459,6 +2507,14 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				}
 				window.addEventListener("keydown", this.keyDownEvent); 
 				
+			}
+			
+			this.next = function() {
+				step(1);
+			}
+			
+			this.prev = function() {
+				step(-1);
 			}
 			
 			this.dispose = function() {
