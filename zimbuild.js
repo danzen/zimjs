@@ -432,6 +432,7 @@ dispose() - to get rid of the button and listeners
 PROPERTIES
 label - references the text object of the label
 text - references the text property of the text object
+width and height (or use getBounds().width, getBounds().height)
 
 EVENTS
 dispatches no events 
@@ -462,7 +463,9 @@ dispatches no events
 			backing.graphics.f("rgba(0,255,255,.01)").r(0,0,this.getBounds().width,this.getBounds().height);
 			this.addChildAt(backing,0);
 			
-			this.setBounds(0,0,this.getBounds().width,this.getBounds().height);
+			this.width = this.getBounds().width;
+			this.height = this.getBounds().height;
+			this.setBounds(0,0,this.width,this.height);
 			
 			//obj.x = obj.getBounds().width / 2; 
 			obj.y = fontSize-fontSize/6; //obj.getBounds().height / 2;
@@ -473,6 +476,7 @@ dispatches no events
 					return t;
 				},
 				set: function(value) {
+					if (value == 0) {value = " ";}
 					obj.text = value;
 					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
 				}
