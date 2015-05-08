@@ -1136,6 +1136,7 @@ clone() - makes a copy
 
 PROPERTIES
 shape - gives access to the circle shape
+color - get and set the fill color
 width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the circle 
 if you nest things inside and want to drag them, will want to set to true
@@ -1147,6 +1148,7 @@ if you nest things inside and want to drag them, will want to set to true
 			if (zot(radius)) radius = 50;
 			if (zot(fill)) fill = "black";
 			
+			var that = this;
 			this.mouseChildren = false;
 								
 			var circle = this.shape = new createjs.Shape();
@@ -1165,14 +1167,22 @@ if you nest things inside and want to drag them, will want to set to true
 			this.height = radius*2;
 			this.setBounds(-radius,-radius,this.width,this.height);	
 			
-			this.setFill = function(color) {
-				if (zot(color)) return;
-				fill = color;
+			this.setFill = function(c) {
+				if (zot(c)) return;
+				fill = c;
 				fillObj.style = fill;
-			}			
-			this.setStroke = function(color) {
-				if (!strokeObj || zot(color)) return;
-				stroke = color;
+			}		
+			Object.defineProperty(that, 'color', {
+				get: function() {				
+					return fill;
+				},
+				set: function(value) {					
+					that.setFill(value);
+				}
+			});	
+			this.setStroke = function(c) {
+				if (!strokeObj || zot(c)) return;
+				stroke = c;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
@@ -1217,6 +1227,7 @@ clone() - makes a copy
 
 PROPERTIES
 shape - gives access to the circle shape
+color - get and set the fill color
 width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the rectangle 
 if you nest things inside and want to drag them, will want to set to true
@@ -1230,8 +1241,9 @@ if you nest things inside and want to drag them, will want to set to true
 			if (zot(fill)) fill = "black";
 			if (zot(corner)) corner = 0;
 			
+			var that = this;
 			this.mouseChildren = false;
-								
+							
 			var rectangle = this.shape = new createjs.Shape();
 			this.addChild(rectangle);
 			
@@ -1253,14 +1265,22 @@ if you nest things inside and want to drag them, will want to set to true
 			this.height = height;
 			this.setBounds(0,0,this.width,this.height);	
 			
-			this.setFill = function(color) {
-				if (zot(color)) return;
-				fill = color;
+			this.setFill = function(c) {
+				if (zot(c)) return;
+				fill = c;
 				fillObj.style = fill;
-			}			
-			this.setStroke = function(color) {
-				if (!strokeObj || zot(color)) return;
-				stroke = color;
+			}	
+			Object.defineProperty(that, 'color', {
+				get: function() {				
+					return fill;
+				},
+				set: function(value) {					
+					that.setFill(value);
+				}
+			});	
+			this.setStroke = function(c) {
+				if (!strokeObj || zot(c)) return;
+				stroke = c;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
@@ -1303,6 +1323,7 @@ so can pass in an adjust which brings the center towards its vertical base
 
 PROPERTIES
 shape - gives access to the triangle shape
+color - get and set the fill color
 width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the triangle 
 if you nest things inside and want to drag them, will want to set to true
@@ -1320,6 +1341,7 @@ if you nest things inside and want to drag them, will want to set to true
 			if (zot(adjust)) adjust = 0;
 			
 			this.mouseChildren = false;
+			var that = this;
 			
 			var lines = [a,b,c];
 			lines.sort(function(a, b){return b-a});
@@ -1381,14 +1403,22 @@ if you nest things inside and want to drag them, will want to set to true
 				this.regY = this.height/2+adjust;
 			}
 			
-			this.setFill = function(color) {
-				if (zot(color)) return;
-				fill = color;
+			this.setFill = function(c) {
+				if (zot(c)) return;
+				fill = c;
 				fillObj.style = fill;
-			}			
-			this.setStroke = function(color) {
-				if (!strokeObj || zot(color)) return;
-				stroke = color;
+			}		
+			Object.defineProperty(that, 'color', {
+				get: function() {				
+					return fill;
+				},
+				set: function(value) {					
+					that.setFill(value);
+				}
+			});	
+			this.setStroke = function(c) {
+				if (!strokeObj || zot(c)) return;
+				stroke = c;
 				strokeObj.style = stroke;
 			}			
 			this.setStrokeSize = function(size) {
@@ -1431,8 +1461,8 @@ shadowColor, shadowBlur
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
 clone() - returns a copy of the label and its properties
-dispose() - to get rid of the button and listeners
-
+dispose() - to get rid of the button and listeners	
+	
 PROPERTIES
 label - references the text object of the label
 text - references the text property of the text object
@@ -1533,7 +1563,7 @@ PARAMETERS (all with defaults - see code)
 width, height, 
 label, // ZIM Label or plain text for default settings
 backingColor, backingRollColor, borderColor, borderThickness, 
-corner, shadowColor, shadowBlur
+corner, shadowColor (set to -1 for no shadow), shadowBlur
 
 METHODS
 dispose() - to get rid of the button and listeners
@@ -1541,7 +1571,7 @@ dispose() - to get rid of the button and listeners
 PROPERTIES
 width and height - or use getBounds().width and getBounds().height
 text - references the text property of the Label object of the button
-label - gives access to the label including button.label.text
+label - gives access to the label
 backing - references the backing of the button
 
 EVENTS
@@ -1560,11 +1590,12 @@ dispatches no events - you make your own click event
 			if (zot(borderColor)) borderColor=null;
 			if (zot(borderThickness)) borderThickness=1;
 			if (zot(corner)) corner=20;
-			if (zot(shadowColor)) shadowColor="#666";
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=16;			
 			if (zot(label)) label = "PRESS";			
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");			
-						
+			
+			var that = this;		
 			this.mouseChildren = false; 
 			this.cursor = "pointer";
 				
@@ -1586,8 +1617,19 @@ dispatches no events - you make your own click event
 			this.addChild(label);
 			this.label = label;		
 			
+			Object.defineProperty(that, 'text', {
+				get: function() {
+					var t = (label.text == " ") ? "" : label.text;				
+					return t;
+				},
+				set: function(value) {
+					label.text = value;
+					label.x = (width-label.getBounds().width)/2+1;
+					label.y = (height-label.getBounds().height)/2+2;
+				}
+			});
+			
 			this.on("mouseover", buttonOn);
-			var that = this;
 			function buttonOn(e) {
 				that.on("mouseout", buttonOff);
 				var g = buttonBacking.graphics;
@@ -1998,7 +2040,8 @@ hide() - hides the pane
 
 PROPERTIES
 display - reference to the pane box
-label - gives access to the label including pane.label.text
+text - gives access to the label text
+label - gives access to the label
 backing - reference to the backing	that covers the stage
 resetX - if reset is true you can dynamically adjust the position if needed
 resetY 
@@ -2099,6 +2142,20 @@ dispatches a "close" event when closed by clicking on backing
 				this.label = label;
 				this.text = label.text;				
 			}
+			
+			Object.defineProperty(that, 'text', {
+				get: function() {
+					var t = (label.text == " ") ? "" : label.text;				
+					return t;
+				},
+				set: function(value) {
+					label.text = value;
+					if (center) {
+						label.x = -label.getBounds().width/2;
+						label.y = -label.getBounds().height/2;
+					}
+				}
+			});
 				
 			this.hide = function() {
 				container.removeChild(that);			
@@ -3861,6 +3918,7 @@ can use G key to toggle grid visibility
 can use P key to toggle percent and pixels
 
 make sure you remove the grid for your final version (dispose)
+
 
 PARAMETERS
 obj - to add grid to (stage is default)
