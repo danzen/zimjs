@@ -287,8 +287,11 @@ make a Proportion object
 var p = new zim.Proportion(parameters)	
 
 PARAMETERS
-put in min and max for the output scale (say volume)
 put in min and max for the input scale (say x values, 0 and 1 are the defaults)			
+put in min and max for the output scale (say volume)
+factor (default 1) is going the same direction and -1 is going in opposite directions
+round (default false) rounds the converted number if set to true
+
 in your own pressmove event function or whatever call p.convert(input)
 pass in your input property (say the mouseX)
 a proportional value will be returned - so use that for your volume (or whatever)
@@ -1433,6 +1436,7 @@ dispose() - to get rid of the button and listeners
 PROPERTIES
 label - references the text object of the label
 text - references the text property of the text object
+width and height (or use getBounds().width, getBounds().height)
 
 EVENTS
 dispatches no events 
@@ -1463,7 +1467,9 @@ dispatches no events
 			backing.graphics.f("rgba(0,255,255,.01)").r(0,0,this.getBounds().width,this.getBounds().height);
 			this.addChildAt(backing,0);
 			
-			this.setBounds(0,0,this.getBounds().width,this.getBounds().height);
+			this.width = this.getBounds().width;
+			this.height = this.getBounds().height;
+			this.setBounds(0,0,this.width,this.height);
 			
 			//obj.x = obj.getBounds().width / 2; 
 			obj.y = fontSize-fontSize/6; //obj.getBounds().height / 2;
@@ -1474,6 +1480,7 @@ dispatches no events
 					return t;
 				},
 				set: function(value) {
+					if (value == 0) {value = " ";}
 					obj.text = value;
 					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
 				}
@@ -2137,7 +2144,6 @@ dispatches a "close" event when closed by clicking on backing
 zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
 
 Waiter Class
-
 
 extends a createjs.Container
 adds a little animated three dot wait widget
