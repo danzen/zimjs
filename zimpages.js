@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_1.4.4_min.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -198,7 +198,8 @@ also dispatches a "swipedown" event for convenience on a mousedown
 			var that = this;	
 			
 			obj.on("mousedown", function(e) {
-				if (!that.active) return;
+				
+				if (!that.active || e.target.zimNoSwipe) return;
 				that.obj = e.target; 
 				mouseX = startX = e.stageX;
 				mouseY = startY = e.stageY;
@@ -286,6 +287,7 @@ removePage() - lets you remove a page (if on this page, call a go() first and re
 setSwipe() - lets you set the swipe array for a page
 go(newPage, direction, trans, ms) - lets you go to a page for events other than swipe events	
 trans and ms are optional and will override any previously set transitions (speed in ms)
+resize() - call to resize transitions - not the pages themselves (use layouts)
 pause() - pauses a transition before it starts (call from swipe event)
 unpause() - unpauses a paused transition (unless another go() command is called)
 puff(time) - adds all the pages behind the currentPage (time (ms) auto calls settle)
@@ -409,7 +411,7 @@ if you want pages within a smaller area - consider using two canvas tags
 				var data = {page:page, swipe:swipeArray};
 				data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
 				if (!currentPage) {
-					currentPage = that.page = data.page;
+					currentPage = that.page = data.page;					
 					that.addChild(currentPage);	
 				}
 			}
@@ -418,7 +420,6 @@ if you want pages within a smaller area - consider using two canvas tags
 				if (that.currentPage == page) {
 					that.removeChild(page);	
 					if (holder.getStage()) holder.getStage().update(); // works even if holder is stage
-
 				}
 				page.zimSwipeArray = null;								
 			}
@@ -550,7 +551,8 @@ if you want pages within a smaller area - consider using two canvas tags
 				hW = holder.getBounds().width;
 				hH = holder.getBounds().height;
 				if (transition!="none" || transitionTable!=[]) makeTransitionAssets();
-			}		
+			}					
+					
 			
 			this.puff = function(milliseconds) {
 				// add all pages to the holder behind current page
@@ -633,7 +635,7 @@ removeHotSpots(page,id) - id is optional - so can remove all spots on a page
 dispose() - removes listeners
 
 note, the class does actually add rectangle shapes to your page
-these have an alpha of .01
+the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 this could have been done with "math" alone but rollover cursor would be a pain
 the class creates zim.HotSpot objects - see the class underneath this one
 --*/
@@ -771,7 +773,7 @@ adds an invisible button to a container object (often think of this as the page)
 var hs = new zim.HotSpot();
 if you want multiple spots it is more efficient to use the HotSpots class above
 which manages multiple HotSpot objects (otherwise you end up with multiple event functions)
-the spot actually keeps an alpha of .01
+the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 the spot will get a cursor of "pointer"
 
 PARAMETERS
@@ -798,30 +800,39 @@ eg. hs.spot
 			if (zot(local)) local = true;			
 			var that = this; 
 			
-			var but = new createjs.Shape();			
-			this.spot = but;			
+			var backing = new createjs.Shape();
+			var but = new createjs.Shape();
+				
 			if (!local) {			
 				var point = obj.globalToLocal(x,y);
 				var point2 = obj.globalToLocal(x+w,y+h);
 				var newW = point2.x-point.x;
 				var newH = point2.y-point.y;
-				but.graphics.f("#999999").dr(point.x,point.y,newW,newH);
+				backing.graphics.f("#999999").dr(point.x,point.y,newW,newH);
+				but.graphics.f("#999999").dr(point.x,point.y,1,1);	 // small point
 			} else {
-				but.graphics.f("#999999").dr(x,y,w,h);
+				backing.graphics.f("#999999").dr(x,y,w,h);
+				but.graphics.f("#999999").dr(x,y,1,1);	 
 			}
+
+			backing.alpha = .4;
+			backing.mouseEnabled = false;
 			but.alpha = .01;
-			but.cursor = "pointer";			
+			but.cursor = "pointer";		
+			this.spot = but;
+						
 			var butEvent = but.on("click",function() {				
 				if (typeof(call) == "function") {
 					call();
 				}
 			});
 			obj.addChild(but);
+			but.hitArea = backing;
 			this.show = function() {
-				but.alpha = .5;	
+				obj.addChild(backing);	
 			}
 			this.hide = function() {
-				but.alpha = .01;	
+				obj.removeChild(backing);
 			}
 			this.dispose = function() {
 				but.off("click", butEvent);
@@ -1132,6 +1143,7 @@ dispose() - clears keyboard events and guide
 			window.addEventListener("keydown", keyEvent);
 			
 			function keyEvent(e) {				
+
 				if (!e) e=event; 
 				if (!stage) return;					
 				if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // G
@@ -1562,7 +1574,7 @@ backgroundColor applies a backing color to the region
 Example HORIZONTAL region objects
 {object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"},
 {object:col2, marginLeft:5, maxHeight:90, align:"middle"}, // note, middle gets no minWidth
-{object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"}	
+{object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"},	
 align defaults to left and right for the outer regions and middle for the inside regions
 valign defaults to top for all the regions	
 

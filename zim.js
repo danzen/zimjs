@@ -1209,10 +1209,12 @@ zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner)
 
 Rectangle class
 
-extends a createjs.Container (allows for ZIM HotSpots)
-makes a circle shape inside a container
+extends a createjs.Container 
+makes a rectangle shape inside a container
 var rectangle = new zim.Rectangle(parameters);
 the registration and origin will be top left
+mouseChildren is set to false so clicks return expected target (instead of shape in container)
+to use ZIM HotSpots inside rectangle then set rectangle's mouseChildren = true
 
 PARAMETERS
 width, height
@@ -1377,6 +1379,7 @@ if you nest things inside and want to drag them, will want to set to true
 			// find last angle
 			var angle3 = 180 - angle1 - angle2;
 			
+
 			// the next line is b the angle will be relative to the length of c
 			// if c is the longest, then the angle is angle1
 			// if c is the second longest, then the angle is angle2, etc.
@@ -1495,7 +1498,9 @@ dispatches no events
 
 			var backing = new createjs.Shape();
 			backing.graphics.f("rgba(0,255,255,.01)").r(0,0,this.getBounds().width,this.getBounds().height);
-			this.addChildAt(backing,0);
+			// this.addChildAt(backing,0); 
+			// could always slightly see .01 transparency so use hitArea instead
+			this.hitArea = backing;
 			
 			this.width = this.getBounds().width;
 			this.height = this.getBounds().height;
@@ -1713,26 +1718,33 @@ dispatches a "change" event when clicked on (or use a click event)
 					
 			var that = this;
 			this.cursor = "pointer";
-			
+		
 			var box = new createjs.Shape();
 			var g = box.graphics;
-			g.f("rgba(0,0,0,.01)").r(
-				this.getBounds().x,
-				this.getBounds().y,
-				this.getBounds().width,
-				this.getBounds().height
-			);
 			g.f("rgba(255,255,255,.5)").r(0,0,size,size);						
 			g.s(color).ss(size/10).r(size/7, size/7, size-size/7*2, size-size/7*2);
-						
-			this.addChild(box);			
+			this.addChild(box);
+			
+			var fullWidth = size;		
 			
 			if (label) {
 				this.addChild(label);
-				label.x = this.getBounds().width;
+				label.x = size*1.3; //this.getBounds().width;				
 				label.y = size/8; 
 				this.label = label;
+				fullWidth = label.x + label.width;
 			}
+			
+			var backing = new createjs.Shape();
+			g = backing.graphics;				
+			g.f("rgba(0,0,0,.01)").r(
+				this.getBounds().x,
+				this.getBounds().y,
+				fullWidth+(margin*2),
+				this.getBounds().height
+			);
+			this.hitArea = backing;	
+			// hitArea will stop rollovers on labels but oh well		
 				
 			var check = new createjs.Shape();
 			var g2 = check.graphics;		
@@ -1747,7 +1759,6 @@ dispatches a "change" event when clicked on (or use a click event)
 			check.y = size/2;
 			
 			if (myChecked) this.addChild(check);					
-			
 			this.on("click", toggleCheck);
 			
 			Object.defineProperty(that, 'checked', {
@@ -1907,12 +1918,6 @@ then ask for the properties above for info
 									
 				var box = new createjs.Shape();
 				var g = box.graphics;
-				g.f("rgba(0,0,0,.01)").r(
-					but.getBounds().x,
-					but.getBounds().y,
-					but.getBounds().width,
-					but.getBounds().height
-				);
 				g.f("rgba(255,255,255,.5)").dc(size/2,size/2,size/1.85);						
 				g.s(color).ss(size/9).dc(size/2, size/2, size/2-size/2/5);
 				but.addChild(box);
@@ -1923,14 +1928,28 @@ then ask for the properties above for info
 				var g2 = check.graphics;		
 				g2.f(color).dc(size/2,size/2,size/5.2);	
 				
+				var fullWidth = size;	
+				
 				if (label) {
 					but.addChild(label);
 					label.x = but.getBounds().width;
 					label.y = size/8; 
 					that.label = label;
 					but.setBounds(-margin, -margin, size+margin*2+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
+					fullWidth = label.x + label.width;
 				}
 				if (mySelected) but.addChild(check);
+								
+				var backing = new createjs.Shape();
+				g = backing.graphics;				
+				g.f("rgba(0,0,0,.01)").r(
+					but.getBounds().x,
+					but.getBounds().y,
+					fullWidth+(margin*2),
+					but.getBounds().height
+				);
+				but.hitArea = backing;	
+				// hitArea will stop rollovers on labels but oh well
 								
 				return(but);
 			}
@@ -2403,10 +2422,12 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			var prev = this.arrowPrev = new createjs.Container();
 			this.addChild(prev);
 			var prevBacking = new createjs.Shape();
-			prevBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
+			prevBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
 			prevBacking.regX = height*1.5 / 2;
 			prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
-			prev.addChild(prevBacking);
+			//prev.addChild(prevBacking);
+			prev.hitArea = prevBacking;
+			
 			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
 			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
@@ -2453,7 +2474,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
 			nextBacking.regX = height*1.5 / 2;
 			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
-			next.addChild(nextBacking);
+			// next.addChild(nextBacking);
+			next.hitArea = nextBacking;
+			
 			var arrowNext = new zim.Triangle(height, height*.8, height*.8, backingColor);
 			if (shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			next.addChild(arrowNext);
@@ -3333,7 +3356,7 @@ removeHotSpots(page,id) - id is optional - so can remove all spots on a page
 dispose() - removes listeners
 
 note, the class does actually add rectangle shapes to your page
-these have an alpha of .01
+the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 this could have been done with "math" alone but rollover cursor would be a pain
 the class creates zim.HotSpot objects - see the class underneath this one
 --*/
@@ -3471,7 +3494,7 @@ adds an invisible button to a container object (often think of this as the page)
 var hs = new zim.HotSpot();
 if you want multiple spots it is more efficient to use the HotSpots class above
 which manages multiple HotSpot objects (otherwise you end up with multiple event functions)
-the spot actually keeps an alpha of .01
+the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 the spot will get a cursor of "pointer"
 
 PARAMETERS
@@ -3498,30 +3521,39 @@ eg. hs.spot
 			if (zot(local)) local = true;			
 			var that = this; 
 			
-			var but = new createjs.Shape();			
-			this.spot = but;			
+			var backing = new createjs.Shape();
+			var but = new createjs.Shape();
+				
 			if (!local) {			
 				var point = obj.globalToLocal(x,y);
 				var point2 = obj.globalToLocal(x+w,y+h);
 				var newW = point2.x-point.x;
 				var newH = point2.y-point.y;
-				but.graphics.f("#999999").dr(point.x,point.y,newW,newH);
+				backing.graphics.f("#999999").dr(point.x,point.y,newW,newH);
+				but.graphics.f("#999999").dr(point.x,point.y,1,1);	 // small point
 			} else {
-				but.graphics.f("#999999").dr(x,y,w,h);
+				backing.graphics.f("#999999").dr(x,y,w,h);
+				but.graphics.f("#999999").dr(x,y,1,1);	 
 			}
+
+			backing.alpha = .4;
+			backing.mouseEnabled = false;
 			but.alpha = .01;
-			but.cursor = "pointer";			
+			but.cursor = "pointer";		
+			this.spot = but;
+						
 			var butEvent = but.on("click",function() {				
 				if (typeof(call) == "function") {
 					call();
 				}
 			});
 			obj.addChild(but);
+			but.hitArea = backing;
 			this.show = function() {
-				but.alpha = .5;	
+				obj.addChild(backing);	
 			}
 			this.hide = function() {
-				but.alpha = .01;	
+				obj.removeChild(backing);
 			}
 			this.dispose = function() {
 				but.off("click", butEvent);
@@ -3918,7 +3950,6 @@ can use G key to toggle grid visibility
 can use P key to toggle percent and pixels
 
 make sure you remove the grid for your final version (dispose)
-
 
 PARAMETERS
 obj - to add grid to (stage is default)

@@ -8,7 +8,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.4.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.4.4_min.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -205,10 +205,12 @@ zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner)
 
 Rectangle class
 
-extends a createjs.Container (allows for ZIM HotSpots)
-makes a circle shape inside a container
+extends a createjs.Container 
+makes a rectangle shape inside a container
 var rectangle = new zim.Rectangle(parameters);
 the registration and origin will be top left
+mouseChildren is set to false so clicks return expected target (instead of shape in container)
+to use ZIM HotSpots inside rectangle then set rectangle's mouseChildren = true
 
 PARAMETERS
 width, height
@@ -272,7 +274,6 @@ if you nest things inside and want to drag them, will want to set to true
 				},
 				set: function(value) {					
 					that.setFill(value);
-
 				}
 			});	
 			this.setStroke = function(c) {
@@ -492,7 +493,9 @@ dispatches no events
 
 			var backing = new createjs.Shape();
 			backing.graphics.f("rgba(0,255,255,.01)").r(0,0,this.getBounds().width,this.getBounds().height);
-			this.addChildAt(backing,0);
+			// this.addChildAt(backing,0); 
+			// could always slightly see .01 transparency so use hitArea instead
+			this.hitArea = backing;
 			
 			this.width = this.getBounds().width;
 			this.height = this.getBounds().height;
@@ -710,26 +713,33 @@ dispatches a "change" event when clicked on (or use a click event)
 					
 			var that = this;
 			this.cursor = "pointer";
-			
+		
 			var box = new createjs.Shape();
 			var g = box.graphics;
-			g.f("rgba(0,0,0,.01)").r(
-				this.getBounds().x,
-				this.getBounds().y,
-				this.getBounds().width,
-				this.getBounds().height
-			);
 			g.f("rgba(255,255,255,.5)").r(0,0,size,size);						
 			g.s(color).ss(size/10).r(size/7, size/7, size-size/7*2, size-size/7*2);
-						
-			this.addChild(box);			
+			this.addChild(box);
+			
+			var fullWidth = size;		
 			
 			if (label) {
 				this.addChild(label);
-				label.x = this.getBounds().width;
+				label.x = size*1.3; //this.getBounds().width;				
 				label.y = size/8; 
 				this.label = label;
+				fullWidth = label.x + label.width;
 			}
+			
+			var backing = new createjs.Shape();
+			g = backing.graphics;				
+			g.f("rgba(0,0,0,.01)").r(
+				this.getBounds().x,
+				this.getBounds().y,
+				fullWidth+(margin*2),
+				this.getBounds().height
+			);
+			this.hitArea = backing;	
+			// hitArea will stop rollovers on labels but oh well		
 				
 			var check = new createjs.Shape();
 			var g2 = check.graphics;		
@@ -744,7 +754,6 @@ dispatches a "change" event when clicked on (or use a click event)
 			check.y = size/2;
 			
 			if (myChecked) this.addChild(check);					
-			
 			this.on("click", toggleCheck);
 			
 			Object.defineProperty(that, 'checked', {
@@ -780,6 +789,7 @@ dispatches a "change" event when clicked on (or use a click event)
 	
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
+
 		makeCheckBox.prototype = new createjs.Container();
 		makeCheckBox.prototype.constructor = zim.CheckBox;
 		return new makeCheckBox();
@@ -904,12 +914,6 @@ then ask for the properties above for info
 									
 				var box = new createjs.Shape();
 				var g = box.graphics;
-				g.f("rgba(0,0,0,.01)").r(
-					but.getBounds().x,
-					but.getBounds().y,
-					but.getBounds().width,
-					but.getBounds().height
-				);
 				g.f("rgba(255,255,255,.5)").dc(size/2,size/2,size/1.85);						
 				g.s(color).ss(size/9).dc(size/2, size/2, size/2-size/2/5);
 				but.addChild(box);
@@ -920,14 +924,28 @@ then ask for the properties above for info
 				var g2 = check.graphics;		
 				g2.f(color).dc(size/2,size/2,size/5.2);	
 				
+				var fullWidth = size;	
+				
 				if (label) {
 					but.addChild(label);
 					label.x = but.getBounds().width;
 					label.y = size/8; 
 					that.label = label;
 					but.setBounds(-margin, -margin, size+margin*2+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
+					fullWidth = label.x + label.width;
 				}
 				if (mySelected) but.addChild(check);
+								
+				var backing = new createjs.Shape();
+				g = backing.graphics;				
+				g.f("rgba(0,0,0,.01)").r(
+					but.getBounds().x,
+					but.getBounds().y,
+					fullWidth+(margin*2),
+					but.getBounds().height
+				);
+				but.hitArea = backing;	
+				// hitArea will stop rollovers on labels but oh well
 								
 				return(but);
 			}
@@ -1022,6 +1040,7 @@ see the defaults in the code below
 pass in the container for the pane (usually the stage) and the width and height of the pane
 pass in an optional ZIM Label (or text for default label properties)
 pass in a boolean for if you want to drag the pane (default false)
+
 pass in whether a dragging pane should open at first start position (defaults false)
 for reset, by default, Pane takes the first position and will continue to use that
 modal defaults to true and means the pane will close when user clicks off the pane
@@ -1170,7 +1189,6 @@ dispatches a "close" event when closed by clicking on backing
 					label.y = -label.getBounds().height/2;
 				}
 				container.addChild(that);			
-
 				container.getStage().update();	
 			}			
 			function checkBounds(x,y) {		
@@ -1401,10 +1419,12 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			var prev = this.arrowPrev = new createjs.Container();
 			this.addChild(prev);
 			var prevBacking = new createjs.Shape();
-			prevBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
+			prevBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
 			prevBacking.regX = height*1.5 / 2;
 			prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
-			prev.addChild(prevBacking);
+			//prev.addChild(prevBacking);
+			prev.hitArea = prevBacking;
+			
 			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
 			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
@@ -1451,7 +1471,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
 			nextBacking.regX = height*1.5 / 2;
 			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
-			next.addChild(nextBacking);
+			// next.addChild(nextBacking);
+			next.hitArea = nextBacking;
+			
 			var arrowNext = new zim.Triangle(height, height*.8, height*.8, backingColor);
 			if (shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			next.addChild(arrowNext);
@@ -1484,6 +1506,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			}
 			
 			Object.defineProperty(this, 'currentIndex', {
+
 				get: function() {				
 					return index;
 				},
