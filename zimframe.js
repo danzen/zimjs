@@ -6,12 +6,30 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_1.4.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_1.5.js"><\/script>');
 } else {
 
 var zim = function(zim) {
 	
 	if (zon) zog("ZIM FRAME Module");
+
+/*-- // borrowed windoWidth and windowHeight from ZIM Code
+zim.windowWidth = function()
+returns the width of a window
+window.clientWidth or window.innerWidth
+--*/	
+	zim.windowWidth = function() {
+		return isNaN(window.innerWidth) ? window.clientWidth : window.innerWidth;
+	}
+
+/*--
+zim.windowHeight = function()
+returns the height of a window
+window.clientHeight or window.innerHeight
+--*/	
+	zim.windowHeight = function() {
+		return isNaN(window.innerHeight) ? window.clientHeight : window.innerHeight;
+	}
 	
 /*--
 zim.Frame = function(scaling, width, height, rollover, touch, scrollTop)

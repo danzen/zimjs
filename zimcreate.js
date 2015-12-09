@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.4.2.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.5.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -392,36 +392,39 @@ returns the object for chaining
 	}
 	
 /*--
-zim.move = function(target, x, y, t, ease, callBack, params, wait, props)
+zim.move = function(target, x, y, t, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+can set frames per second as fps parameter
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, t, ease, callBack, params, wait, props) {
-		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props);
+	zim.move = function(target, x, y, t, ease, callBack, params, wait, props, fps) {
+		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props, fps);
 	}
 	
-
 /*--
 zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+can set frames per second as fps parameter
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
+	zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps) {		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
+		if (zot(fps)) fps = 60;
 		createjs.Tween.get(target, props)
 			.wait(wait)
 			.to(obj, t, createjs.Ease[ease])				
 			.call(doneAnimating);
 		var listener = createjs.Ticker.on("tick", target.getStage());	
+		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
@@ -550,14 +553,23 @@ will not be resized - really just to use while building and then comment it out 
 		return obj;		
 	}
 	
-	
 /*--
-zim.centerReg = function(obj)
+zim.centerReg = function(obj, container)
 centers the registration point on the bounds - obj must have bounds set
+if container is specified then sets obj x and y to half the width and height of container
 just a convenience function - returns obj for chaining
 --*/	
-	zim.centerReg = function(obj) {
-		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}		
+	zim.centerReg = function(obj, container) {
+		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}	
+		if (!zot(container)) {
+			if (!container.getBounds) {
+				zog("zim create - centerReg(): please provide context with bounds set"); 
+				return;
+			} else {
+				obj.x = container.getBounds().width/2;
+				obj.y = container.getBounds().height/2;
+			}
+		}
 		var oB = obj.getBounds();
 		obj.regX = oB.width/2;
 		obj.regY = oB.height/2;

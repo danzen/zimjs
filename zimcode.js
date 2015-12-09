@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.4.2.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.5.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -153,6 +153,7 @@ and two convert calls (you can do both in one interval or ticker)
 
 PARAMETERS
 a startValue if you want the object to start directly somewhere
+
 the damp value with 1 being no damping and 0 being no movement - default is .1
 
 METHODS
@@ -186,8 +187,11 @@ make a Proportion object
 var p = new zim.Proportion(parameters)	
 
 PARAMETERS
-put in min and max for the output scale (say volume)
 put in min and max for the input scale (say x values, 0 and 1 are the defaults)			
+put in min and max for the output scale (say volume)
+factor (default 1) is going the same direction and -1 is going in opposite directions
+round (default false) rounds the converted number if set to true
+
 in your own pressmove event function or whatever call p.convert(input)
 pass in your input property (say the mouseX)
 a proportional value will be returned - so use that for your volume (or whatever)
@@ -234,8 +238,8 @@ convert(input) - will return the output property (for instance, a volume)
 			return targetAmount;		
 		}						
 		
-	}			
-
+	}		
+	
 /*--
 zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound)
 
@@ -244,7 +248,6 @@ ProportionDamp Class
 converts an input value to an output value on a different scale with damping	
 works like Proportion Class but with a damping parameter
 var pd = new zim.ProportionDamp(parmeters);
-
 
 PARAMETERS
 put in desired damping with 1 being no damping and .1 being the default
@@ -256,6 +259,7 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 METHODS
 convert(input) - converts a base value to a target value
 immediate(input) - immediately sets the target value (no damping)
+dispose() - clears interval
 
 PROPERTIES
 damp - can adjust this dynamically (usually just pass it in as a parameter to start)
@@ -310,101 +314,90 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 			
 			desiredAmount = targetAmount;			
 			differenceAmount = desiredAmount - lastAmount;									
-			lastAmount += differenceAmount*that.damp;						
-			if (targetRound) {lastAmount = Math.round(lastAmount);}					
+			lastAmount += differenceAmount*that.damp;							
 		}		
 		
 		this.immediate = function(n) {
-			this.convert(n);
+			that.convert(n);
 			calculate();
 			lastAmount = targetAmount;
 			if (targetRound) {lastAmount = Math.round(lastAmount);}	
 		}
 		
 		this.convert = function(n) {
-			baseAmount = n;			
-			return lastAmount;
+			baseAmount = n;	
+			if (targetRound) {
+				return Math.round(lastAmount);
+			} else {			
+				return lastAmount;
+			}
 		}
 		
 		this.dispose = function() {
 			clearInterval(interval);
 		}
 	}		
-	
-/*-- 
-zim.EventDispatcher = function(target)
-handles adding, removing and dispatching events
---*/	
-	zim.EventDispatcher = function(target) {
-		this.listeners = {};
-		this.target = target;
-		that = this;
-		this.addEventListener = function (type, listener) {
-			if (!that.listeners[type]) {
-				that.listeners[type] = [];
-			}
-			that.listeners[type].push(listener);
-		}
-		this.removeEventListener = function (type, listener) {
-			var listenList = that.listeners[type];
-			for (var i=0; i<listenList.length; i++) {
-				if (listenList[i] === listener) {
-					listenList.splice(i, 1);
-				}
-			}
-		}
-		this.removeAllEventListeners= function() {
-			this.listeners = {};
-		}
-		this.dispatchEvent = function (type, params) {
-			type = new String(type);
-			type.target = that.target;			
-			for (var obj in params) {
-				if (params.hasOwnProperty(obj)) {
-					type[obj] = params[obj];
-				}
-			}			
-			var listenList = that.listeners[type];
-			var success = false;
-			if (listenList) {
-				for (var i=0; i<listenList.length; i++) {
-					try {
-						listenList[i].call(that, type);
-						success = true;
-					} catch (e) {
-						zog("ZIM DispatchEvent() error: " + type + " " + e);
-					}
-				}
-			}
-			return success;
-		}
-		this.on = this.addEventListener;
-		this.off = this.removeEventListener;
-		this.offAll = this.removeAllEventListeners;
-	}	
-	
 
-	// when extending use: zim.EventDispatcher.call(this, this); at start of class
-	
 
 	// DOM CODE	
+	
+/*--
+zim.scrollX = function(num, time)
+num and time are optional
+if not provided, this gets how many pixels from the left the browser window has been scrolled
+if only num is provided it scrolls the window to this x position
+if num and time are provided it animates the window to the x position in time milliseconds
+--*/
+	zim.scrollX = function(num, time) {	
+		return zim.abstractScroll("X", "Left", num, time);
+	}
+	
 
 /*--
-zim.scrollY = function()
-how many pixels down from the top the browser window has been scrolled
+zim.scrollY = function(num, time)
+num and time are optional
+if not provided, this gets how many pixels from the top the browser window has been scrolled
+if only num is provided it scrolls the window to this y position
+if num and time are provided it animates the window to the y position in time milliseconds
 --*/
-	zim.scrollY = function() {		
-		var safari = 0;
-		var browser=navigator.appName;
-		var navindex=navigator.userAgent.indexOf('Safari');
-		if (navindex != -1 || browser=='Safari') {
-			var safari = 1;
-		}
-		if (!safari && document.compatMode == 'CSS1Compat') {				
-			return document.documentElement.scrollTop;
+	zim.scrollY = function(num, time) {	
+		return zim.abstractScroll("Y", "Top", num, time);
+	}
+	
+	zim.abstractScroll = function(dir, side, num, time) {
+		var perpend = (dir == "X") ? "Y" : "X"; // perpendicular direction
+		if (zot(num)) {	
+			var safari = 0;
+			var browser=navigator.appName;
+			var navindex=navigator.userAgent.indexOf('Safari');
+			if (navindex != -1 || browser=='Safari') {
+				var safari = 1;
+			}
+			if (!safari && document.compatMode == 'CSS1Compat') {				
+				return document.documentElement["scroll"+side];
+			} else {
+				return document.body["scroll"+side];
+			}
+		} else if (zot(time)) {
+			window.scrollTo(zim["scroll"+perpend](), num);
 		} else {
-			return document.body.scrollTop;
-		}			
+			var interval = 50;
+			if (time < interval) time = interval;
+			var steps = time/interval;
+			var current = zim["scroll"+dir]();
+			var amount = num - current;
+			var diff = amount/steps;
+			var count = 0;
+			var scrollInterval = setInterval(function() {
+				count++;
+				current+=diff;
+				window.scrollTo(zim["scroll"+perpend](), current);
+				if (count >= steps) {
+					window.scrollTo(zim["scroll"+perpend](), num);
+					clearInterval(scrollInterval);
+				}				
+			}, interval);			
+		}
 	}
 	
 /*--
