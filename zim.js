@@ -974,6 +974,13 @@ convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+note, this is where you can set loop:true to loop animation
+added to props as a convenience are:
+rewind:true - rewinds (reverses) animation
+rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
+rewindCall:function - calls function at middle of rewind animation
+rewindParams:obj - parameters to send rewind function
+
 can set frames per second as fps parameter
 returns target for chaining
 --*/
@@ -982,11 +989,16 @@ returns target for chaining
 	}
 	
 /*--
-zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
+zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+note, this is where you can set loop:true to loop animation
+added to props as a convenience are:
+rewind:true - rewinds (reverses) animation
+rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
+rewindCall:function - calls function at middle of rewind animation
 can set frames per second as fps parameter
 returns target for chaining
 --*/	
@@ -996,15 +1008,51 @@ returns target for chaining
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(fps)) fps = 60;
-		createjs.Tween.get(target, props)
-			.wait(wait)
-			.to(obj, t, createjs.Ease[ease])				
-			.call(doneAnimating);
+		if (props.rewind) {
+			var obj2 = {}; var wait2 = 0;
+			for (var i in obj) {
+				obj2[i] = target[i];
+			}
+			delete props.rewind;
+			if (props.rewindWait) {
+				wait2 = props.rewindWait;
+				delete props.rewindWait;
+			}
+			if (props.rewindCall) {
+				var callBack2 = props.rewindCall;
+				var params2 = props.rewindParams;
+				delete props.rewindCall;
+				zog(callBack2);
+				delete props.rewindParams;
+				createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.call(rewindCall)
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease])				
+					.call(doneAnimating);
+			} else {
+				createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease])				
+					.call(doneAnimating);
+			}
+		} else {
+			createjs.Tween.get(target, props)
+				.wait(wait)
+				.to(obj, t, createjs.Ease[ease])				
+				.call(doneAnimating);
+		}
 		var listener = createjs.Ticker.on("tick", target.getStage());	
 		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
+		}	
+		function rewindCall() {
+			if (callBack2 && typeof callBack2 === 'function') {(callBack2)(params2);}
 		}	
 		return target;	
 	}	
@@ -1140,7 +1188,7 @@ just a convenience function - returns obj for chaining
 		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}	
 		if (!zot(container)) {
 			if (!container.getBounds) {
-				zog("zim create - centerReg(): please provide context with bounds set"); 
+				zog("zim create - centerReg(): please provide container with bounds set"); 
 				return;
 			} else {
 				obj.x = container.getBounds().width/2;
@@ -1148,8 +1196,8 @@ just a convenience function - returns obj for chaining
 			}
 		}
 		var oB = obj.getBounds();
-		obj.regX = oB.width/2;
-		obj.regY = oB.height/2;
+		obj.regX = oB.x + oB.width/2;
+		obj.regY = oB.y + oB.height/2;
 		return obj;
 	}
 
@@ -1377,6 +1425,12 @@ fill, stroke, strokeSize are optional
 center defaults to true and puts the registration point to the center
 the actual center is not really the weighted center 
 so can pass in an adjust which brings the center towards its vertical base
+
+METHODS
+setFill(color)
+setStroke(color)
+setStrokeSize(size) - number
+clone() - makes a copy
 
 PROPERTIES
 shape - gives access to the triangle shape
@@ -2097,6 +2151,7 @@ PARAMETERS
 see the defaults in the code below
 pass in the container for the pane (usually the stage) and the width and height of the pane
 pass in an optional ZIM Label (or text for default label properties)
+
 pass in a boolean for if you want to drag the pane (default false)
 pass in whether a dragging pane should open at first start position (defaults false)
 for reset, by default, Pane takes the first position and will continue to use that
@@ -2693,19 +2748,24 @@ pass in a reference to the stage as the first parameter
 pass in the damping value (.1 default)
 pass in an array of layer objects in the following format:
 
-[{obj:obj, prop:"x", propChange:100, input:"mouseX", inMin:100, inMax:300, factor:1, integer:false}, etc.]
+[{obj:obj, prop:"x", propChange:200, input:"scrolly", inMin:100, inMax:300, factor:1, integer:false}, etc.]
+this would move the obj 200 px in the x as the window scrolls from 100 to 300 px in the y
 
 the first three properties are required
 object is the object whose property is being changed
 prop is the property that is being changed
 propChange is how much you want the property to change
-
 input defaults to mouseX but can also be mouseY, scrollX, scrollY 
 the inMin defaults to 0, inMax to stageW (for x prop) stageH (for y prop)
 the factor defaults to 1 which means change is in same direction
 set factor to -1 to change in the opposite direction
 integer rounds the value to an integer 
 note, if frame is the property, the gotoAndStop() accepts decimals
+
+For instance,
+[{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
+would do traditional mouse move parallax for one object
+you would probably have more objects to follow
 
 or you can add these one at a time with the p.addLayer({layer object properties});
 the auto parameter defaults to true and uses the specified input
@@ -4208,6 +4268,7 @@ dispose() - clears keyboard events and grid
 				maxX = objW-boxW*2/3;
 				maxY = objH-boxH - boxH;					
 				
+
 				cached = new createjs.Container();
 				that.addChild(cached);
 				var grid = new createjs.Shape();
