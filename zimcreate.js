@@ -397,6 +397,13 @@ convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+note, this is where you can set loop:true to loop animation
+added to props as a convenience are:
+rewind:true - rewinds (reverses) animation
+rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
+rewindCall:function - calls function at middle of rewind animation
+rewindParams:obj - parameters to send rewind function
+
 can set frames per second as fps parameter
 returns target for chaining
 --*/
@@ -405,11 +412,16 @@ returns target for chaining
 	}
 	
 /*--
-zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
+zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+note, this is where you can set loop:true to loop animation
+added to props as a convenience are:
+rewind:true - rewinds (reverses) animation
+rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
+rewindCall:function - calls function at middle of rewind animation
 can set frames per second as fps parameter
 returns target for chaining
 --*/	
@@ -419,15 +431,51 @@ returns target for chaining
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(fps)) fps = 60;
-		createjs.Tween.get(target, props)
-			.wait(wait)
-			.to(obj, t, createjs.Ease[ease])				
-			.call(doneAnimating);
+		if (props.rewind) {
+			var obj2 = {}; var wait2 = 0;
+			for (var i in obj) {
+				obj2[i] = target[i];
+			}
+			delete props.rewind;
+			if (props.rewindWait) {
+				wait2 = props.rewindWait;
+				delete props.rewindWait;
+			}
+			if (props.rewindCall) {
+				var callBack2 = props.rewindCall;
+				var params2 = props.rewindParams;
+				delete props.rewindCall;
+				zog(callBack2);
+				delete props.rewindParams;
+				createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.call(rewindCall)
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease])				
+					.call(doneAnimating);
+			} else {
+				createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease])				
+					.call(doneAnimating);
+			}
+		} else {
+			createjs.Tween.get(target, props)
+				.wait(wait)
+				.to(obj, t, createjs.Ease[ease])				
+				.call(doneAnimating);
+		}
 		var listener = createjs.Ticker.on("tick", target.getStage());	
 		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
 			createjs.Ticker.off("tick", listener);
+		}	
+		function rewindCall() {
+			if (callBack2 && typeof callBack2 === 'function') {(callBack2)(params2);}
 		}	
 		return target;	
 	}	
@@ -563,7 +611,7 @@ just a convenience function - returns obj for chaining
 		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}	
 		if (!zot(container)) {
 			if (!container.getBounds) {
-				zog("zim create - centerReg(): please provide context with bounds set"); 
+				zog("zim create - centerReg(): please provide container with bounds set"); 
 				return;
 			} else {
 				obj.x = container.getBounds().width/2;
@@ -571,8 +619,8 @@ just a convenience function - returns obj for chaining
 			}
 		}
 		var oB = obj.getBounds();
-		obj.regX = oB.width/2;
-		obj.regY = oB.height/2;
+		obj.regX = oB.x + oB.width/2;
+		obj.regY = oB.y + oB.height/2;
 		return obj;
 	}
 
