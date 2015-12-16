@@ -415,6 +415,7 @@ returns target for chaining
 zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
+added convinience property of scale that does both scaleX and scaleY
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
@@ -431,7 +432,23 @@ returns target for chaining
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(fps)) fps = 60;
+		if (!zot(obj.scale)) {
+			obj.scaleX = obj.scaleY = obj.scale;
+			delete obj.scale;
+		}
 		if (props.rewind) {
+			// flip second ease
+			if (ease) {
+				// backIn backOut backInOut
+				var ease2 = ease;
+				if (ease2.indexOf("InOut") == -1) {
+					if (ease2.indexOf("Out") != -1) {
+						ease2 = ease2.replace("Out", "In"); 	
+					} else if (ease2.indexOf("In") != -1) {
+						ease2 = ease2.replace("In", "Out"); 	
+					}
+				}
+			}
 			var obj2 = {}; var wait2 = 0;
 			for (var i in obj) {
 				obj2[i] = target[i];
@@ -445,21 +462,20 @@ returns target for chaining
 				var callBack2 = props.rewindCall;
 				var params2 = props.rewindParams;
 				delete props.rewindCall;
-				zog(callBack2);
 				delete props.rewindParams;
 				createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.call(rewindCall)
 					.wait(wait2)
-					.to(obj2, t, createjs.Ease[ease])				
+					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
 			} else {
 				createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
-					.to(obj2, t, createjs.Ease[ease])				
+					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
 			}
 		} else {
@@ -600,7 +616,7 @@ will not be resized - really just to use while building and then comment it out 
 		if (obj.getStage()) obj.getStage().update();
 		return obj;		
 	}
-	
+
 /*--
 zim.centerReg = function(obj, container)
 centers the registration point on the bounds - obj must have bounds set
@@ -621,6 +637,22 @@ just a convenience function - returns obj for chaining
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
+		return obj;
+	}
+
+/*--
+zim.expand = function(obj, padding)
+adds a createjs hitArea to an object with an extra padding of padding (default 20)
+good for making mobile interaction better on labels, buttons, etc.
+returns object for chaining
+--*/	
+	zim.expand = function(obj, padding) {
+		if (zot(obj) || !obj.getBounds) {zog("zim create - expand(): please provide object with bounds set"); return;}	
+		if (zot(padding)) padding = 20;
+		var oB = obj.getBounds();
+		var rect = new createjs.Shape();
+		rect.graphics.f("0").r(oB.x-padding,oB.y-padding,oB.width+2*padding,oB.height+2*padding);
+		obj.hitArea = rect;
 		return obj;
 	}
 

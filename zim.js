@@ -992,6 +992,7 @@ returns target for chaining
 zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate object o properties in t milliseconds
+added convinience property of scale that does both scaleX and scaleY
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
@@ -1008,7 +1009,23 @@ returns target for chaining
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(fps)) fps = 60;
+		if (!zot(obj.scale)) {
+			obj.scaleX = obj.scaleY = obj.scale;
+			delete obj.scale;
+		}
 		if (props.rewind) {
+			// flip second ease
+			if (ease) {
+				// backIn backOut backInOut
+				var ease2 = ease;
+				if (ease2.indexOf("InOut") == -1) {
+					if (ease2.indexOf("Out") != -1) {
+						ease2 = ease2.replace("Out", "In"); 	
+					} else if (ease2.indexOf("In") != -1) {
+						ease2 = ease2.replace("In", "Out"); 	
+					}
+				}
+			}
 			var obj2 = {}; var wait2 = 0;
 			for (var i in obj) {
 				obj2[i] = target[i];
@@ -1022,21 +1039,20 @@ returns target for chaining
 				var callBack2 = props.rewindCall;
 				var params2 = props.rewindParams;
 				delete props.rewindCall;
-				zog(callBack2);
 				delete props.rewindParams;
 				createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.call(rewindCall)
 					.wait(wait2)
-					.to(obj2, t, createjs.Ease[ease])				
+					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
 			} else {
 				createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
-					.to(obj2, t, createjs.Ease[ease])				
+					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
 			}
 		} else {
@@ -1177,7 +1193,7 @@ will not be resized - really just to use while building and then comment it out 
 		if (obj.getStage()) obj.getStage().update();
 		return obj;		
 	}
-	
+
 /*--
 zim.centerReg = function(obj, container)
 centers the registration point on the bounds - obj must have bounds set
@@ -1204,7 +1220,22 @@ just a convenience function - returns obj for chaining
 	return zim;
 } (zim || {});
 
-
+/*--
+zim.expand = function(obj, padding)
+adds a createjs hitArea to an object with an extra padding of padding (default 20)
+good for making mobile interaction better on labels, buttons, etc.
+returns object for chaining
+--*/	
+	zim.expand = function(obj, padding) {
+		if (zot(obj) || !obj.getBounds) {zog("zim create - expand(): please provide object with bounds set"); return;}	
+		if (zot(padding)) padding = 20;
+		var oB = obj.getBounds();
+		var rect = new createjs.Shape();
+		rect.graphics.f("0").r(oB.x-padding,oB.y-padding,oB.width+2*padding,oB.height+2*padding);
+		obj.hitArea = rect;
+		return obj;
+	}
+	
 
 ////////////////  ZIM BUILD  //////////////
 
@@ -1623,7 +1654,7 @@ dispatches no events
 					return t;
 				},
 				set: function(value) {
-					if (value == 0) {value = " ";}
+					if (zot(value)) {value = " ";}
 					obj.text = value;
 					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
 				}
@@ -1661,7 +1692,7 @@ dispatches no events
 	
 		
 /*--
-zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur)
+zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, buttonPadding)
 
 Button Class
 
@@ -1677,6 +1708,7 @@ width, height,
 label, // ZIM Label or plain text for default settings
 backingColor, backingRollColor, borderColor, borderThickness, 
 corner, shadowColor (set to -1 for no shadow), shadowBlur
+buttonPadding (default 0) adds extra hit area to the button for mobile
 
 METHODS
 dispose() - to get rid of the button and listeners
@@ -1690,7 +1722,7 @@ backing - references the backing of the button
 EVENTS
 dispatches no events - you make your own click event
 --*/		
-	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur) {
+	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, buttonPadding) {
 	
 		function makeButton() {
 			
@@ -1704,7 +1736,8 @@ dispatches no events - you make your own click event
 			if (zot(borderThickness)) borderThickness=1;
 			if (zot(corner)) corner=20;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=16;			
+			if (zot(shadowBlur)) shadowBlur=16;		
+			if (zot(buttonPadding)) buttonPadding=0;			
 			if (zot(label)) label = "PRESS";			
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");			
 			
@@ -1719,6 +1752,12 @@ dispatches no events - you make your own click event
 			g.rr(0, 0, width, height, corner);
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
+			
+			if (buttonPadding > 0) {
+				var rect = new createjs.Shape();
+				rect.graphics.f("#000").r(-buttonPadding,-buttonPadding,width+buttonPadding*2,height+buttonPadding*2);
+				this.hitArea = rect;
+			}
 								
 			if (shadowBlur > 0) buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.setBounds(0,0,width,height);
@@ -1983,6 +2022,7 @@ then ask for the properties above for info
 					if (data.selected && data.selected === true) {
 						if (!selectedCheck) {
 							selectedCheck = true; // first item marked selected
+							that.id = data.id;
 						} else {
 							data.selected = "false"; // turn off selected
 						}
@@ -2042,11 +2082,14 @@ then ask for the properties above for info
 					but.addChild(label);
 					label.x = but.getBounds().width;
 					label.y = size/8; 
-					that.label = label;
 					but.setBounds(-margin, -margin, size+margin*2+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
 					fullWidth = label.x + label.width;
 				}
-				if (mySelected) but.addChild(check);
+				if (mySelected) {
+					but.addChild(check);					
+					that.label = label;				
+					if (that.label) that.text = label.text;
+				}
 								
 				var backing = new createjs.Shape();
 				g = backing.graphics;				
@@ -2151,7 +2194,6 @@ PARAMETERS
 see the defaults in the code below
 pass in the container for the pane (usually the stage) and the width and height of the pane
 pass in an optional ZIM Label (or text for default label properties)
-
 pass in a boolean for if you want to drag the pane (default false)
 pass in whether a dragging pane should open at first start position (defaults false)
 for reset, by default, Pane takes the first position and will continue to use that
@@ -2351,9 +2393,8 @@ hide() - hides the waiter
 PROPERTIES
 display - reference to the waiter backing graphic
 
-EVENTS
-dispatches a "close" event when closed by clicking on backing
 --*/	
+
 	zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
 		
 		function makeWaiter() {
@@ -2462,7 +2503,7 @@ dispatches a "close" event when closed by clicking on backing
 
 
 /*--
-zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur)
+zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper)
 
 Stepper Class
 
@@ -2505,7 +2546,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			// if (zon) zog("zim build - Stepper");
 			
-			if (zot(stepArray)) stepArray = [1,2,3,4,5,6,7,8,9,10];
+			if (zot(stepArray)) stepArray = [0,1,2,3,4,5,6,7,8,9];
 			if (zot(width)) width=200; 
 			if (zot(backingColor)) backingColor="white";
 			if (zot(strokeColor)) strokeColor=null;
@@ -2527,6 +2568,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			//if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			//this.addChild(prev);
 			
+			label.mouseChildren = false;
+			label.mouseEnabled = false;
 			
 			var prev = this.arrowPrev = new createjs.Container();
 			this.addChild(prev);
@@ -2554,6 +2597,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			}
 			
 			var box = this.textBox = new createjs.Shape();
+			box.cursor = "pointer";
 			this.addChild(box);
 			box.setBounds(0, 0, width, height);
 			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
@@ -2575,7 +2619,6 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			}
 			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
 			label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
-			//zim.outline(label);
 
 			var next = this.arrowNext = new createjs.Container();
 			this.addChild(next);
@@ -2583,7 +2626,6 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
 			nextBacking.regX = height*1.5 / 2;
 			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
-			// next.addChild(nextBacking);
 			next.hitArea = nextBacking;
 			
 			var arrowNext = new zim.Triangle(height, height*.8, height*.8, backingColor);
@@ -2592,6 +2634,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			next.cursor = "pointer";
 			next.on("click", function(e) {step(1);});
+			box.on("click", function(e) {step(1);});
 			
 			if (vertical) {
 				next.rotation = 180;
@@ -2608,7 +2651,12 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			function step(n) {
 				var nextIndex = index + n;
 				if (!loopStepper) {
-					if (nextIndex > stepArray.length-1) return;
+					if (nextIndex > stepArray.length-1) {
+						box.cursor = "default";
+						return;
+					} else {
+						box.cursor = "pointer";
+					}
 					if (nextIndex < 0) return;
 				} else {
 					if (nextIndex > stepArray.length-1) nextIndex = 0;
@@ -2691,17 +2739,13 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					if (e.keyCode >= 37 && e.keyCode <= 40) {
 						var nextIndex;
 						if (e.keyCode == 38 || e.keyCode == 39) {
-							nextIndex = index + 1;
+							step(1);
 						} else if (e.keyCode == 37 || e.keyCode == 40) {
-							nextIndex = index - 1;
+							step(-1);
 						}
-						if (nextIndex > stepArray.length-1) return;
-						if (nextIndex < 0) return;
-						setLabel(nextIndex);
 					}
 				}
 				window.addEventListener("keydown", this.keyDownEvent); 
-				
 			}
 			
 			this.next = function() {
@@ -2726,7 +2770,220 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 		
 	}	
 	
+	
+/*--
+zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks)
 
+Slider Class
+
+extends a createjs.Container
+a traditional slider - will give values back based on min and max and position of button (knob)
+var slider = new zim.Slider(parameters); 
+slider.on("change", function() {zog(slider.currentValue);}); 
+
+PARAMETERS
+pass in min and max amounts for slider (default 0, 10)
+step for the slider (default 0 - for continuous decimal number)
+a zim.Button (default small button with no label)
+barLength (default 300), barWidth (default 3), varColor (default #666)
+vertical (default false) for horizontal or vertical slider
+useTicks (default false) set to true to show small ticks for each step (step > 0)
+
+PROPERTIES
+currentValue - gets or sets the current value of the slider
+min, max, step - the assigned values (read only)
+bar - gives access to the bar zim.Rectangle
+button - gives access to the zim.Button
+ticks - gives access to the ticks (to position these for example)
+
+METHODS
+disable() - stops slider from working
+enable() - starts slider working if it was disabled
+dispose() - removes listeners and deletes object
+
+EVENTS
+dispatches a "change" event when button is slid on slider
+--*/	
+	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks) {
+		
+		function makeSlider() {
+			
+			// if (zon) zog("zim build - Slider");
+			
+			if (zot(min)) min = 0;
+			if (zot(max)) max = 10; 
+			if (max-min == 0) {zog("ZIM Slider range must not be 0"); return;}
+			if (zot(step)) step = 0;
+			if (zot(barLength)) barLength = 300; 
+			if (zot(barWidth)) barWidth = 3;
+			if (zot(barColor)) barColor = "#666";
+			if (zot(vertical)) vertical = false;
+			if (zot(useTicks)) useTicks = false;
+			
+			if (zot(button)) {
+				var w = 30; var h = 40;
+				if (vertical) {w = 50; h = 40;}
+				button = new zim.Button(w,h,"","#fff","#ddd","#666",1,0,null,null,30);
+			}
+			
+			var that = this;			
+			var myValue = min;
+			this.button = button;
+			
+			var bar, rect, bounds, ticks, g;
+			
+			if (useTicks && step != 0) {
+				ticks = this.ticks = new createjs.Shape();
+				this.addChild(ticks);
+				g = ticks.graphics;
+				g.ss(1).s(barColor);
+				var stepsTotal = (max - min) / step;
+				var spacing = barLength / stepsTotal;
+			}
+
+			if (vertical) {
+				if (useTicks && step != 0) {
+					for (var i=0; i<=stepsTotal; i++) {
+						g.mt(0, spacing*i).lt(20, spacing*i);
+					}
+					ticks.x = 10;					
+				}
+				bar = this.bar = new zim.Rectangle(barWidth, barLength, barColor);
+				this.addChild(bar);
+				zim.centerReg(button);
+				this.addChild(button);
+				bounds = bar.getBounds();
+				rect = new createjs.Rectangle(bounds.width/2, bounds.y, 0, bounds.height);
+			} else {
+				if (useTicks && step != 0) {
+					for (var i=0; i<=stepsTotal; i++) {
+						g.mt(spacing*i,0).lt(spacing*i,-20);
+					}
+					ticks.y = -10;					
+				}
+				bar = this.bar = new zim.Rectangle(barLength, barWidth, barColor);
+				this.addChild(bar);
+				zim.centerReg(button);
+				this.addChild(button);
+				bounds = bar.getBounds();
+				rect = new createjs.Rectangle(bounds.x, bounds.height/2, bounds.width, 0);
+			}
+			button.x = rect.x;
+			button.y = rect.y;
+			
+			function snap(v) {
+				if (step == 0) return v;
+				return Math.round(v/step)*step;	
+			}
+
+			var diffX, diffY;
+			var lastValue = 0;
+			button.on("mousedown", function(e) {
+				var point = that.globalToLocal(e.stageX, e.stageY);
+				diffX = point.x - button.x;
+				diffY = point.y - button.y;
+			});
+							
+			button.on("pressmove", function(e) {	
+				var point = that.globalToLocal(e.stageX, e.stageY);				
+				var p = checkBounds(point.x-diffX, point.y-diffY, rect); 
+				if (vertical) {
+					button.x = p.x;
+					myValue = snap(p.y / barLength * (max - min));
+					button.y = myValue * barLength / (max - min);
+					myValue += min;
+					if (button.y != lastValue) {
+						that.dispatchEvent("change");						
+					}
+					lastValue = button.y;
+				} else {
+					myValue = snap(p.x / barLength * (max - min));
+					button.x = myValue * barLength / (max - min);
+					myValue += min;
+					button.y = p.y;
+					if (button.x != lastValue) {
+						that.dispatchEvent("change");						
+					}
+					lastValue = button.x;
+				}
+				that.getStage().update();
+			});
+
+			function checkBounds(x,y,rect) {		
+				x = Math.max(rect.x, Math.min(rect.width, x));
+				y = Math.max(rect.y, Math.min(rect.height, y));
+				return {x:x,y:y}				
+			}	
+
+			Object.defineProperty(this, 'currentValue', {
+				get: function() {
+					return myValue;
+				},
+				set: function(value) {		
+					if (value < min) value = min;			
+					if (value > max) value = max;
+					value = snap(value);
+					if (vertical) {
+						button.y = (value - min) / (max - min) * barLength;
+						lastValue = button.y;
+					} else {
+						button.x = (value - min) / (max - min) * barLength;
+						lastValue = button.x;
+					}
+					if (that.getStage()) that.getStage().update(); 
+				}
+			});
+			
+			Object.defineProperty(this, 'min', {
+				get: function() {				
+					return min;
+				},
+				set: function(value) {					
+					if (zon) zog("min is read only");
+				}
+			});
+			
+			Object.defineProperty(this, 'max', {
+				get: function() {				
+					return max;
+				},
+				set: function(value) {					
+					if (zon) zog("max is read only");
+				}
+			});
+			
+			Object.defineProperty(this, 'step', {
+				get: function() {				
+					return step;
+				},
+				set: function(value) {					
+					if (zon) zog("step is read only");
+				}
+			});
+			
+			this.disable = function() {
+				that.mouseChildren = false;
+				that.mouseEnabled = false;
+			}
+			
+			this.enable = function() {
+				that.mouseChildren = true;
+				that.mouseEnabled = true;
+			}
+			
+			this.dispose = function() {
+				button.removeAllEventListeners();
+			}
+		}
+		
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time		
+		makeSlider.prototype = new createjs.Container();
+		makeSlider.prototype.constructor = zim.Slider;
+		return new makeSlider();
+		
+	}	
+	
 /*--
 zim.Parallax = function(stage, damp, layers, auto)
 
@@ -4015,6 +4272,8 @@ dispose() - clears keyboard events and guide
 					g.c().s("rgba(255,0,255,.1)").ss(20).mt(0,0).lt(objW,0);
 					g.f().s("white").ss(2).mt(0,0).lt(objW, 0);
 					g.s("#d61fa0").ss(2).dashedLineTo(0,0,objW,0,20);
+
+
 					line.cache(0,-10,objW,20);
 				}	
 				
@@ -4151,6 +4410,8 @@ dispose() - clears keyboard events and grid
 			var stage; 			
 			var pixels = 10; // for grid			
 			var stageEvent;			
+
+
 			this.mouseChildren = false;
 			this.mouseEnabled = false;			
 			
@@ -4268,7 +4529,6 @@ dispose() - clears keyboard events and grid
 				maxX = objW-boxW*2/3;
 				maxY = objH-boxH - boxH;					
 				
-
 				cached = new createjs.Container();
 				that.addChild(cached);
 				var grid = new createjs.Shape();
