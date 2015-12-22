@@ -980,7 +980,7 @@ rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
-
+count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/
@@ -1000,6 +1000,8 @@ added to props as a convenience are:
 rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
+rewindParams:obj - parameters to send rewind function
+count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/	
@@ -1008,10 +1010,19 @@ returns target for chaining
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
+		if (zot(params)) params = target;
 		if (zot(fps)) fps = 60;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
+		}
+		var tween;
+		if (props.loop) {
+			if (!zot(props.count)) {
+				var count = props.count;
+				delete props.count;
+				var currentCount = 1;
+			}
 		}
 		if (props.rewind) {
 			// flip second ease
@@ -1025,6 +1036,7 @@ returns target for chaining
 						ease2 = ease2.replace("In", "Out"); 	
 					}
 				}
+				zog(ease, ease2);
 			}
 			var obj2 = {}; var wait2 = 0;
 			for (var i in obj) {
@@ -1038,9 +1050,10 @@ returns target for chaining
 			if (props.rewindCall) {
 				var callBack2 = props.rewindCall;
 				var params2 = props.rewindParams;
+				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
 				delete props.rewindParams;
-				createjs.Tween.get(target, props)
+				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.call(rewindCall)
@@ -1048,7 +1061,7 @@ returns target for chaining
 					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
 			} else {
-				createjs.Tween.get(target, props)
+				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
@@ -1056,7 +1069,7 @@ returns target for chaining
 					.call(doneAnimating);
 			}
 		} else {
-			createjs.Tween.get(target, props)
+			tween = createjs.Tween.get(target, props)
 				.wait(wait)
 				.to(obj, t, createjs.Ease[ease])				
 				.call(doneAnimating);
@@ -1065,6 +1078,17 @@ returns target for chaining
 		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
+			if (props.loop) {
+				if (count > 0) {
+					if (currentCount < count) {
+						currentCount++;
+						return;
+					}
+				} else {
+					return;
+				}
+			}
+			tween.setPaused(true);
 			createjs.Ticker.off("tick", listener);
 		}	
 		function rewindCall() {
@@ -2179,7 +2203,7 @@ then ask for the properties above for info
 	
 	
 /*--
-zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur)
+zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center)
 
 Pane Class
 
@@ -2196,13 +2220,15 @@ pass in the container for the pane (usually the stage) and the width and height 
 pass in an optional ZIM Label (or text for default label properties)
 pass in a boolean for if you want to drag the pane (default false)
 pass in whether a dragging pane should open at first start position (defaults false)
-for reset, by default, Pane takes the first position and will continue to use that
+for reset, default true, Pane takes the first position and will continue to use that on opening
 modal defaults to true and means the pane will close when user clicks off the pane
 corner is the corner radius default 20
 the backingAlpha is the darkness of the background that fills the stage
 shadowColor defaults to #333
 value for shadow blur - 0 for no shadow
-center - defaults to true and centers the label on the pane
+center - defaults to true and centers the pane and the label on the pane
+if center is false you will have to set x and y for the pane and the label
+note, the origin inside the pane is in the center
 
 METHODS
 show() - shows the pane
@@ -2235,14 +2261,13 @@ dispatches a "close" event when closed by clicking on backing
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 40, "arial", "black");
 			if (zot(color)) color="white";
 			if (zot(drag)) drag=false;
-			if (zot(resets)) resets=false;
+			if (zot(resets)) resets=true;
 			if (zot(modal)) modal=true;
 			if (zot(corner)) corner=20;
 			if (zot(backingAlpha)) backingAlpha=.14;
-			if (zot(shadowColor)) shadowColor="#333";
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=20;	
-			if (zot(center)) center=true;		
-								
+			if (zot(center)) center=true;
 			var backing = this.backing = new createjs.Shape();				
 			// make a big backing that closes the pane when clicked
 			// could also provide a close button
@@ -2336,11 +2361,15 @@ dispatches a "close" event when closed by clicking on backing
 				}
 			}			
 			this.show = function() {
-				that.x = (container.getBounds().width) /2;
-				that.y = (container.getBounds().height) /2;
-				if (center && label) {
-					label.x = -label.getBounds().width/2;
-					label.y = -label.getBounds().height/2;
+				if (center) {
+					if (isNaN(that.resetX)) {
+						that.x = (container.getBounds().width) /2;
+						that.y = (container.getBounds().height) /2;
+					}
+					if (label) {
+						label.x = -label.getBounds().width/2;
+						label.y = -label.getBounds().height/2;
+					}
 				}
 				container.addChild(that);			
 				container.getStage().update();	
@@ -2360,6 +2389,7 @@ dispatches a "close" event when closed by clicking on backing
 		
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time		
+
 		makePane.prototype = new createjs.Container();
 		makePane.prototype.constructor = zim.Pane;
 		return new makePane();

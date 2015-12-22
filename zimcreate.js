@@ -403,7 +403,7 @@ rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
-
+count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/
@@ -423,6 +423,7 @@ added to props as a convenience are:
 rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
+count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/	
@@ -431,10 +432,18 @@ returns target for chaining
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
+		if (zot(params)) params = target;
 		if (zot(fps)) fps = 60;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
+		}
+		if (props.loop) {
+			if (!zot(props.count)) {
+				var count = props.count;
+				delete props.count;
+				var currentCount = 1;
+			}
 		}
 		if (props.rewind) {
 			// flip second ease
@@ -448,6 +457,7 @@ returns target for chaining
 						ease2 = ease2.replace("In", "Out"); 	
 					}
 				}
+				zog(ease, ease2);
 			}
 			var obj2 = {}; var wait2 = 0;
 			for (var i in obj) {
@@ -461,6 +471,7 @@ returns target for chaining
 			if (props.rewindCall) {
 				var callBack2 = props.rewindCall;
 				var params2 = props.rewindParams;
+				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
 				delete props.rewindParams;
 				createjs.Tween.get(target, props)
@@ -488,6 +499,16 @@ returns target for chaining
 		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
+			if (props.loop) {
+				if (count > 0) {
+					if (currentCount < count) {
+						currentCount++;
+						return;
+					}
+				} else {
+					return;
+				}
+			}
 			createjs.Ticker.off("tick", listener);
 		}	
 		function rewindCall() {
