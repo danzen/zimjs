@@ -1,13 +1,13 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // http://zimjs.com  
 // zimcode.js adds some general code functionality along with Browser and DOM code 
 // some of these are common Web solutions over the years (sorry for lack of credit)
 // free to use - donations welcome of course! http://zimjs.com/donate
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_1.5.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_2.0.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -151,9 +151,8 @@ you would then apply that desired value to a property such as x or y or scale
 if you want to do both x and y then you need two Damp objects 
 and two convert calls (you can do both in one interval or ticker)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 a startValue if you want the object to start directly somewhere
-
 the damp value with 1 being no damping and 0 being no movement - default is .1
 
 METHODS
@@ -165,6 +164,8 @@ damp - can dynamically change the damping (usually just pass it in as a paramete
 lastValue - setting this would go immediately to this value (would not normally use)
 --*/	
 	zim.Damp = function(startValue, damp) {
+		var sig = "startValue, damp";
+		var duo; if (duo = zob(zim.Damp, arguments, sig)) return duo;
 		if (zon) zog("zim code - Damp");
 		this.lastValue = (zot(startValue)) ? 0 : startValue;
 		this.damp = (zot(damp)) ? .1 : damp;
@@ -186,7 +187,7 @@ for instance like a slider controlling the scale of an object or sound volume
 make a Proportion object
 var p = new zim.Proportion(parameters)	
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 put in min and max for the input scale (say x values, 0 and 1 are the defaults)			
 put in min and max for the output scale (say volume)
 factor (default 1) is going the same direction and -1 is going in opposite directions
@@ -206,8 +207,9 @@ convert(input) - will return the output property (for instance, a volume)
 --*/
 	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound) {
 		
-		if (zon) zog("zim code - Proportion");
-
+		var sig = "baseMin, baseMax, targetMin, targetMax, factor, targetRound";
+		var duo; if (duo = zob(zim.Proportion, arguments, sig)) return duo;
+		
 		// factor - set to 1 for increasing and -1 for decreasing
 		// round - true to round results to whole number 
 		
@@ -249,7 +251,7 @@ converts an input value to an output value on a different scale with damping
 works like Proportion Class but with a damping parameter
 var pd = new zim.ProportionDamp(parmeters);
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 put in desired damping with 1 being no damping and .1 being the default
 in your own interval or ticker event function call pd.convert(input)
 the object always starts by assuming baseMin as baseValue
@@ -266,7 +268,8 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 --*/
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 		
-		if (zon) zog("zim code - ProportionDamp");
+		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
+		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig)) return duo;
 		
 		// damp - can be changed via damp get/set method property	
 		// factor - set to 1 for increasing and -1 for decreasing

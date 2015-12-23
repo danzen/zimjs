@@ -1,5 +1,5 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // zimparallax.js comes from the ZIM Build module at http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
@@ -7,8 +7,8 @@
 // (borrows zim.ProportionDamp from ZIM code)
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimparallax_1.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimparallax_2.0.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -24,7 +24,7 @@ converts an input value to an output value on a different scale with damping
 works like Proportion Class but with a damping parameter
 var pd = new zim.ProportionDamp(parmeters);
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 put in desired damping with 1 being no damping and .1 being the default
 in your own interval or ticker event function call pd.convert(input)
 the object always starts by assuming baseMin as baseValue
@@ -41,7 +41,8 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 --*/
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 		
-		if (zon) zog("zim parallax - ProportionDamp");
+		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
+		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig)) return duo;
 		
 		// damp - can be changed via damp get/set method property	
 		// factor - set to 1 for increasing and -1 for decreasing
@@ -111,7 +112,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		this.dispose = function() {
 			clearInterval(interval);
 		}
-	}	
+	}		
 	
 
 /*-- // borrowed from ZIM Build
@@ -130,24 +131,29 @@ Parallax really just manages multiple ProportionDamp objects
 for proper parallax, the objects closer move more than the objects farther back
 make a new object: p = new zim.Parallax(parameters)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in a reference to the stage as the first parameter
 pass in the damping value (.1 default)
 pass in an array of layer objects in the following format:
 
-[{obj:obj, prop:"x", propChange:100, input:"mouseX", inMin:100, inMax:300, factor:1, integer:false}, etc.]
+[{obj:obj, prop:"x", propChange:200, input:"scrolly", inMin:100, inMax:300, factor:1, integer:false}, etc.]
+this would move the obj 200 px in the x as the window scrolls from 100 to 300 px in the y
 
 the first three properties are required
 object is the object whose property is being changed
 prop is the property that is being changed
 propChange is how much you want the property to change
-
 input defaults to mouseX but can also be mouseY, scrollX, scrollY 
 the inMin defaults to 0, inMax to stageW (for x prop) stageH (for y prop)
 the factor defaults to 1 which means change is in same direction
 set factor to -1 to change in the opposite direction
 integer rounds the value to an integer 
 note, if frame is the property, the gotoAndStop() accepts decimals
+
+For instance,
+[{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
+would do traditional mouse move parallax for one object
+you would probably have more objects to follow
 
 or you can add these one at a time with the p.addLayer({layer object properties});
 the auto parameter defaults to true and uses the specified input
@@ -164,11 +170,14 @@ PROPERTIES
 damp - allows you to dynamically change the damping
 --*/	
 	zim.Parallax = function(stage, damp, layers, auto) {
-						
-		if (zon) zog("zim parallax - Parallax");
 		
-		if (zot(stage) || !stage.getBounds) {zog("zim parallax - Parallax(): please pass in the stage with bounds as first parameter"); return;}
-		if (!stage.getBounds()) {zog("zim parallax - Parallax(): Please give the stage bounds using setBounds()");	return;}
+		var sig = "stage, damp, layers, auto";
+		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
+						
+		if (zon) zog("zim build - Parallax");
+		
+		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
+		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
 		if (zot(auto)) {auto = true;}
 		
 		var stageW = stage.getBounds().width;
@@ -280,7 +289,7 @@ damp - allows you to dynamically change the damping
 			}			
 			stage.update();
 		}
-	}	
+	}
 	
 	return zim;
 } (zim || {});

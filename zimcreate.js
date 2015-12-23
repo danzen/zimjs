@@ -1,13 +1,13 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // zimcreate.js adds functionality to CreateJS for digidos (Interactive Features) http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 // functions in this module require createjs namespace to exist and in particular easel.js and tween.js
 // available at http://createjs.com
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_1.5.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.0.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -15,9 +15,11 @@ var zim = function(zim) {
 	if (zon) zog("ZIM CREATE Module");
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds)
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, top)
 adds drag and drop to an object 
 handles scaled, rotated nested objects
+supports DUO - parameters or single object
+obj is the object to drag
 rect is a rectangle object for the bounds of dragging
 this rectangle is relative to the stage (global)
 if a rectangle relative to the object's parent is desired then set the localBounds parameter to true
@@ -29,13 +31,18 @@ swipe defaults to false which prevents a swipe from triggering when dragging
 localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame	
 returns obj for chaining
 --*/	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds) {
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop) {
+		
+		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop";
+		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
+		
 		if (zot(obj) || !obj.on) return;
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
 		if (zot(rect)) localBounds = false;
 		if (zot(currentTarget)) currentTarget = false;		
 		if (zot(swipe)) swipe = false;
 		if (zot(localBounds)) localBounds = false;
+		if (zot(onTop)) onTop = true;
 		
 		zim.setSwipe(obj, swipe);
 		
@@ -65,6 +72,10 @@ returns obj for chaining
 			// bring stageX and stageY into the parent's frame of reference
 			// could use e.localX and e.localY but might be dragging container or contents
 			var dragObject = (currentTarget)?e.currentTarget:e.target;
+			if (onTop) {
+				dragObject.parent.setChildIndex(dragObject,dragObject.parent.numChildren-1);
+				dragObject.getStage().update();
+			}
 
 			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY);
 			diffX = point.x - dragObject.x;
@@ -147,7 +158,7 @@ returns obj for chaining
 	}
 	
 /*--
-zim.setSwipe = function(obj, swipeBoolean)
+zim.setSwipe = function(obj, swipe)
 sets a zimNoSwipe property on the object to true if not swiping
 sets the property to null if we want to swipe
 zim Swipe in the Pages module will not swipe if zimNoSwipe is true
@@ -221,6 +232,7 @@ etc.
 			point = b.localToLocal(bounds.x+shiftX, bounds.y, a);
 			if (a.hitTest(point.x, point.y)) return true;		
 			point = b.localToLocal(bounds.x+bounds.width, bounds.y+shiftY, a);
+
 			if (a.hitTest(point.x, point.y)) return true;		
 			point = b.localToLocal(bounds.x+bounds.width-shiftX, bounds.y+bounds.height, a);
 			if (a.hitTest(point.x, point.y)) return true;		
@@ -355,6 +367,7 @@ zim.scaleTo = function(obj, boundObj, percentX, percentY, type)
 scales object to a percentage of another object's bounds
 percentage is from 0 - 100 (not 0-1)
 for example, button (obj) is 10% the width of the stage (boundObj)
+supports DUO - parameters or single object
 type is "smallest" (default), "biggest", and "both"
 smallest: uses the smallest scaling (fit)
 biggest: uses the largest scaling (outside)
@@ -362,6 +375,10 @@ both: keeps both x and y scales - may stretch object (stretch)
 returns the object for chaining
 --*/	
 	zim.scaleTo = function(obj, boundObj, percentX, percentY, type) {
+		
+		var sig = "obj, boundObj, percentX, percentY, type";
+		var duo; if (duo = zob(zim.scaleTo, arguments, sig)) return duo;
+		
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim create - scaleTo(): please provide an object (with setBounds) to scale"); return;}
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim create - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return;}
 		if (zot(percentX)) percentX = -1;
@@ -392,9 +409,10 @@ returns the object for chaining
 	}
 	
 /*--
-zim.move = function(target, x, y, t, ease, callBack, params, wait, props, fps)
+zim.move = function(target, x, y, time, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
-to animate an object target to position x, y in t milliseconds
+to animate an object target to position x, y in time milliseconds
+supports DUO - parameters or single object
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
@@ -407,14 +425,19 @@ count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, t, ease, callBack, params, wait, props, fps) {
-		return zim.animate(target, {x:x, y:y}, t, ease, callBack, params, wait, props, fps);
+	zim.move = function(target, x, y, time, ease, callBack, params, wait, props, fps) {
+		
+		var sig = "target, x, y, time, ease, callBack, params, wait, props, fps";
+		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
+		
+		return zim.animate(target, {x:x, y:y}, time, ease, callBack, params, wait, props, fps);
 	}
 	
 /*--
-zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps)
+zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
-to animate object o properties in t milliseconds
+to animate object obj properties in ttime milliseconds
+supports DUO - parameters or single object
 added convinience property of scale that does both scaleX and scaleY
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
@@ -423,12 +446,19 @@ added to props as a convenience are:
 rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
+rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait, props, fps) {		
+	zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps) {	
+		
+		var sig = "target, obj, time, ease, callBack, params, wait, props, fps";
+		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
+		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
+		var t = time;
+		if (zot(t)) t = 1000;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
@@ -438,6 +468,7 @@ returns target for chaining
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
 		}
+		var tween;
 		if (props.loop) {
 			if (!zot(props.count)) {
 				var count = props.count;
@@ -457,7 +488,6 @@ returns target for chaining
 						ease2 = ease2.replace("In", "Out"); 	
 					}
 				}
-				zog(ease, ease2);
 			}
 			var obj2 = {}; var wait2 = 0;
 			for (var i in obj) {
@@ -474,7 +504,7 @@ returns target for chaining
 				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
 				delete props.rewindParams;
-				createjs.Tween.get(target, props)
+				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.call(rewindCall)
@@ -482,7 +512,7 @@ returns target for chaining
 					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
 			} else {
-				createjs.Tween.get(target, props)
+				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
@@ -490,7 +520,7 @@ returns target for chaining
 					.call(doneAnimating);
 			}
 		} else {
-			createjs.Tween.get(target, props)
+			tween = createjs.Tween.get(target, props)
 				.wait(wait)
 				.to(obj, t, createjs.Ease[ease])				
 				.call(doneAnimating);
@@ -509,6 +539,7 @@ returns target for chaining
 					return;
 				}
 			}
+			tween.setPaused(true);
 			createjs.Ticker.off("tick", listener);
 		}	
 		function rewindCall() {
@@ -522,6 +553,7 @@ zim.fit = function(obj, left, top, width, height, inside)
 scale an object to fit inside (or outside) a rectangle and center it
 actually scales and positions the object
 object must have bounds set (setBounds())
+supports DUO - parameters or single object
 if only the object is passed in then if fits to the stage
 the inside parameter defaults to true and fits the object inside the bounds
 if inside is false then it fits the object around the bounds
@@ -530,6 +562,10 @@ returns an object with the new and old details:
 {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height}
 --*/	
 	zim.fit = function(obj, left, top, width, height, inside) {
+		
+		var sig = "obj, left, top, width, height, inside";
+		var duo; if (duo = zob(zim.fit, arguments, sig)) return duo;
+		
 		if (zot(obj) || !obj.getBounds) return;
 		if (!obj.getBounds()) {
 			zog("zim create - fit(): please setBounds() on object");
@@ -595,10 +631,15 @@ draws a rectangle around the bounds of obj (adds rectangle to the objects parent
 draws a cross at the origin of the object (0,0) where content will be placed
 draws a circle at the registration point of the object (where it will be placed in its container)
 these three things could be in completely different places ;-)
+supports DUO - parameters or single object
 returns the shape if you want to remove it: obj.parent.removeChild(returnedShape);
 will not be resized - really just to use while building and then comment it out or delete it
 --*/	
 	zim.outline = function(obj, color, size) {
+		
+		var sig = "obj, color, size";
+		var duo; if (duo = zob(zim.outline, arguments, sig)) return duo;
+		
 		if (zot(obj) || !obj.getBounds) {zog("zim create - outline(): please provide object and shape"); return;}		
 		if (!obj.getBounds()) {zog("zim create - outline(): please setBounds() on object");	return;}
 		if (!obj.parent) {zog("zim create - outline(): object should be on stage first"); return;}
@@ -641,10 +682,15 @@ will not be resized - really just to use while building and then comment it out 
 /*--
 zim.centerReg = function(obj, container)
 centers the registration point on the bounds - obj must have bounds set
+supports DUO - parameters or single object
 if container is specified then sets obj x and y to half the width and height of container
 just a convenience function - returns obj for chaining
 --*/	
 	zim.centerReg = function(obj, container) {
+		
+		var sig = "obj, container";
+		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
+		
 		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}	
 		if (!zot(container)) {
 			if (!container.getBounds) {

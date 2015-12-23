@@ -1,5 +1,5 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // zimwrap.js creates global wrapper functions for less typing http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 
@@ -15,7 +15,7 @@ zog(item1, item2, etc.) ~ log
 a wrapper for console.log()
 --*/
 var zog = console.log.bind(console);
-if (zon) zog("ZIM WRAP - zog zid zss zgo zum zot zop zil");
+if (zon) zog("ZIM WRAP zog zid zss zgo zum zot zop zil zob");
 
 /*--
 zid(string)             ~ id
@@ -100,4 +100,32 @@ function zil() {
 	window.addEventListener("mousewheel", b);
 	window.addEventListener("DOMMouseScroll", c);
 	return [a, b, c];	
+}
+
+/*--
+zob()                   ~ object
+pass in a function and the function's arguments
+and use the following as the first line of your function
+replace yourFunction with a reference to your function but keep arguments as is
+var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
+this will allow either individual arguments to be passed
+or a single object (with property names of the arguments) to be passed
+for example: function test(a,b,c){}; test(1,null,3); test({a:1,c:3});
+many of the ZIM functions and classes use this "DUO" technique
+NOTE: if you are minifying the file then you need to do an extra step
+add a string version of the signature of your function above the duo call
+for example: var sig = "a,b,c";
+then pass the signature in as the last parameter to zob()
+var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
+works also with JS6 default parameter values
+--*/
+function zob(f, arguments, signature) {
+	if (arguments.length == 1 && arguments[0].constructor === {}.constructor) {
+		var zp = arguments[0];
+		var za = (zot(signature))?f.toString().split(/\n/,1)[0].match(/\((.*)\)/)[1].replace(/\s+/g,"").split(","):signature.replace(/\s+/g,"").split(",");
+		var zv = []; var zi; var zt;			
+		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
+		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(f,"bad argument "+zi);}};
+		return f.apply(null,zv);
+	}
 }

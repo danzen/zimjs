@@ -1,4 +1,4 @@
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // zimpages.js helps you layout and control flexive pages, click and swipe between pages and more http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
@@ -6,8 +6,8 @@
 // (borrows zim.arraysEqual (ZIM code), zim.animate and zim.fit (ZIM create))
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_1.4.4_min.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_2.0.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -42,26 +42,116 @@ strict defaults to true - if false, order in arrays does not matter
 	
 	
 /*-- // borrowed from ZIM Create
-zim.animate = function(target, obj, t, ease, callBack, params, wait, props)
+zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
-to animate object o properties in t milliseconds
+to animate object obj properties in ttime milliseconds
+supports DUO - parameters or single object
+added convinience property of scale that does both scaleX and scaleY
 with optional ease and a callBack function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
+note, this is where you can set loop:true to loop animation
+added to props as a convenience are:
+rewind:true - rewinds (reverses) animation
+rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
+rewindCall:function - calls function at middle of rewind animation
+rewindParams:obj - parameters to send rewind function
+count:Integer - if loop is true how many times it will loop - default 0 forever
+can set frames per second as fps parameter
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, t, ease, callBack, params, wait, props) {		
+	zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps) {	
+		
+		var sig = "target, obj, time, ease, callBack, params, wait, props, fps";
+		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
+		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
+		var t = time;
+		if (zot(t)) t = 1000;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
-		createjs.Tween.get(target, props)
-			.wait(wait)
-			.to(obj, t, createjs.Ease[ease])				
-			.call(doneAnimating);
+		if (zot(params)) params = target;
+		if (zot(fps)) fps = 60;
+		if (!zot(obj.scale)) {
+			obj.scaleX = obj.scaleY = obj.scale;
+			delete obj.scale;
+		}
+		var tween;
+		if (props.loop) {
+			if (!zot(props.count)) {
+				var count = props.count;
+				delete props.count;
+				var currentCount = 1;
+			}
+		}
+		if (props.rewind) {
+			// flip second ease
+			if (ease) {
+				// backIn backOut backInOut
+				var ease2 = ease;
+				if (ease2.indexOf("InOut") == -1) {
+					if (ease2.indexOf("Out") != -1) {
+						ease2 = ease2.replace("Out", "In"); 	
+					} else if (ease2.indexOf("In") != -1) {
+						ease2 = ease2.replace("In", "Out"); 	
+					}
+				}
+			}
+			var obj2 = {}; var wait2 = 0;
+			for (var i in obj) {
+				obj2[i] = target[i];
+			}
+			delete props.rewind;
+			if (props.rewindWait) {
+				wait2 = props.rewindWait;
+				delete props.rewindWait;
+			}
+			if (props.rewindCall) {
+				var callBack2 = props.rewindCall;
+				var params2 = props.rewindParams;
+				if (zot(params2)) params2 = target;
+				delete props.rewindCall;
+				delete props.rewindParams;
+				tween = createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.call(rewindCall)
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease2])				
+					.call(doneAnimating);
+			} else {
+				tween = createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease2])				
+					.call(doneAnimating);
+			}
+		} else {
+			tween = createjs.Tween.get(target, props)
+				.wait(wait)
+				.to(obj, t, createjs.Ease[ease])				
+				.call(doneAnimating);
+		}
 		var listener = createjs.Ticker.on("tick", target.getStage());	
+		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
 			if (callBack && typeof callBack === 'function') {(callBack)(params);}
+			if (props.loop) {
+				if (count > 0) {
+					if (currentCount < count) {
+						currentCount++;
+						return;
+					}
+				} else {
+					return;
+				}
+			}
+			tween.setPaused(true);
 			createjs.Ticker.off("tick", listener);
+		}	
+		function rewindCall() {
+			if (callBack2 && typeof callBack2 === 'function') {(callBack2)(params2);}
 		}	
 		return target;	
 	}	
@@ -72,6 +162,7 @@ zim.fit = function(obj, left, top, width, height, inside)
 scale an object to fit inside (or outside) a rectangle and center it
 actually scales and positions the object
 object must have bounds set (setBounds())
+supports DUO - parameters or single object
 if only the object is passed in then if fits to the stage
 the inside parameter defaults to true and fits the object inside the bounds
 if inside is false then it fits the object around the bounds
@@ -80,6 +171,10 @@ returns an object with the new and old details:
 {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height}
 --*/	
 	zim.fit = function(obj, left, top, width, height, inside) {
+		
+		var sig = "obj, left, top, width, height, inside";
+		var duo; if (duo = zob(zim.fit, arguments, sig)) return duo;
+		
 		if (zot(obj) || !obj.getBounds) return;
 		if (!obj.getBounds()) {
 			zog("zim create - fit(): please setBounds() on object");
@@ -149,7 +244,7 @@ sets up capturing swipes on objects
 dispatches a "swipe" event on swipe left, right, up, down
 var s = zim.Swipe(parameters) 	
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass into the object the object you want to swipe on
 then an optional distance to activate swipe (30 pixel default)
 might want to pass in a pixel distance based on percentage of stage
@@ -180,6 +275,10 @@ this can be used to snap back to an original location
 also dispatches a "swipedown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
+		
+		var sig = "obj, distance, duration";
+		var duo; if (duo = zob(zim.Swipe, arguments, sig)) return duo;
+		
 		function makeSwipe() {
 			if (zot(obj) || !obj.on) {zog("zim pages - Swipe():\nPlease pass in object"); return;}
 			if (zot(distance)) distance = 30; // pixels for swipe to count
@@ -244,6 +343,8 @@ also dispatches a "swipedown" event for convenience on a mousedown
 				that.active = false;
 			}
 			
+
+
 			this.enable = function() {
 				that.active = true;
 			}	
@@ -269,7 +370,7 @@ Pages allows you to set the destination pages for swipe events
 other events like buttons can call the go(page, direction) method
 consider using zim.HotSpots() to efficiently handle multiple buttons
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in the holder object (ie. stage) so we can set various transition animation parameters
 pass in an array of page objects - for example:	
 [{page:home, swipe:[null,"info",hide,find]},{page:hide, swipe:[null,null,null,home]}]
@@ -333,6 +434,9 @@ just add the pages object to the stage.  Pages is designed for full stage
 if you want pages within a smaller area - consider using two canvas tags
 --*/	
 	zim.Pages = function(holder, pages, transition, speed, transitionTable) {
+		
+		var sig = "holder, pages, transition, speed, transitionTable";
+		var duo; if (duo = zob(zim.Pages, arguments, sig)) return duo;
 		
 		function makePages() {
 		
@@ -608,7 +712,7 @@ puts an invisible click area (hotSpot) on pages
 or specify an object and it will turn that into a hotspot
 var hs = new zim.HotSpots();
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 you pass in an array of hotspot data objects:
 [{page:home, rect:[190,50,260,260], call:someFunction}, 
 {page:home, rect:[70,405,500,150], call:someOtherFunction}]
@@ -640,6 +744,10 @@ this could have been done with "math" alone but rollover cursor would be a pain
 the class creates zim.HotSpot objects - see the class underneath this one
 --*/
 	zim.HotSpots = function(spots, local, mouseDowns) {
+		
+		var sig = "spots, local, mouseDowns";
+		var duo; if (duo = zob(zim.HotSpots, arguments, sig)) return duo;
+		
 		function makeHotSpots() {
 			if (zot(spots) || !Array.isArray(spots)) {zog("zim pages - HotSpots():\nplease provide an array of HotSpot data"); return;}
 			if (zot(local)) local = true;
@@ -765,7 +873,7 @@ the class creates zim.HotSpot objects - see the class underneath this one
 	
 	
 /*--
-zim.HotSpot = function(obj, x, y, w, h, call, local)
+zim.HotSpot = function(obj, x, y, width, height, call, local)
 
 HotSpot Class
 
@@ -776,7 +884,7 @@ which manages multiple HotSpot objects (otherwise you end up with multiple event
 the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 the spot will get a cursor of "pointer"
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 the container object in which to place the hotspot
 the x, y, width and height of the hotspot relative to the stage
 call is the function to call when the spot is clicked
@@ -793,11 +901,16 @@ PROPERTIES
 spot - the actual hotSpot object that gets added to the container can be accessed with the spot property
 eg. hs.spot
 --*/	
-	zim.HotSpot = function(obj, x, y, w, h, call, local) {		
+	zim.HotSpot = function(obj, x, y, width, height, call, local) {	
+	
+		var sig = "obj, x, y, width, height, call, local";
+		var duo; if (duo = zob(zim.HotSpot, arguments, sig)) return duo;
+			
 		function makeHotSpot() {			
 			if (zot(obj) || !obj.addChild) {zog("zim pages - HotSpot():\nPlease pass in container object for obj"); return;}
 			if (obj instanceof createjs.Container == false) zog("zim build - HotSpot():\nObjects passed in should be Containers");
-			if (zot(local)) local = true;			
+			if (zot(local)) local = true;	
+			var w = width; var h = height;		
 			var that = this; 
 			
 			var backing = new createjs.Shape();
@@ -937,7 +1050,7 @@ can use P key to toggle percent and pixels
 
 make sure you remove the guide for your final version (dispose)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 obj - to add guide to (stage is default)
 vertical - defaults to true, set to false for horizontal guide
 percent - defaults to true to show percent - false to show pixels
@@ -950,7 +1063,11 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 METHODS
 dispose() - clears keyboard events and guide
 --*/	
-	zim.Guide = function(obj, vertical, percent, hideKey, pixelKey) {		
+	zim.Guide = function(obj, vertical, percent, hideKey, pixelKey) {	
+	
+		var sig = "obj, vertical, percent, hideKey, pixelKey";
+		var duo; if (duo = zob(zim.Guide, arguments, sig)) return duo;
+			
 		function makeGuide() {					
 				
 			if (zot(obj)) obj = "stage";
@@ -1121,6 +1238,8 @@ dispose() - clears keyboard events and guide
 					g.c().s("rgba(255,0,255,.1)").ss(20).mt(0,0).lt(objW,0);
 					g.f().s("white").ss(2).mt(0,0).lt(objW, 0);
 					g.s("#d61fa0").ss(2).dashedLineTo(0,0,objW,0,20);
+
+
 					line.cache(0,-10,objW,20);
 				}	
 				
@@ -1143,7 +1262,6 @@ dispose() - clears keyboard events and guide
 			window.addEventListener("keydown", keyEvent);
 			
 			function keyEvent(e) {				
-
 				if (!e) e=event; 
 				if (!stage) return;					
 				if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // G
@@ -1231,7 +1349,7 @@ can use P key to toggle percent and pixels
 
 make sure you remove the grid for your final version (dispose)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 obj - to add grid to (stage is default)
 color - defaults to black
 percent - defaults to true to show percent - false to show pixels
@@ -1244,7 +1362,11 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 METHODS
 dispose() - clears keyboard events and grid
 --*/
-	zim.Grid = function(obj, color, percent, hideKey, pixelKey) {		
+	zim.Grid = function(obj, color, percent, hideKey, pixelKey) {	
+	
+		var sig = "obj, color, percent, hideKey, pixelKey";
+		var duo; if (duo = zob(zim.Grid, arguments, sig)) return duo;
+			
 		function makeGrid() {					
 				
 			if (zot(obj)) obj = "stage";
@@ -1258,6 +1380,8 @@ dispose() - clears keyboard events and grid
 			var stage; 			
 			var pixels = 10; // for grid			
 			var stageEvent;			
+
+
 			this.mouseChildren = false;
 			this.mouseEnabled = false;			
 			
@@ -1556,7 +1680,7 @@ good for flexive design where you anchor titles and navigation
 handles any number of regions vertically or horizontally	
 var layout = zim.Layout(parameters) 	
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 the holder object (stage, container, etc) that must have bounds set
 the bounds will constrain the layout
 an array of region objects with specific properties for each
@@ -1606,6 +1730,10 @@ if the content hits its maximum width percent first then the top and bottom
 will fill up the rest of the height until they reach their maximum widths	
 --*/	
 	zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey) {
+		
+		var sig = "holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey";
+		var duo; if (duo = zob(zim.Layout, arguments, sig)) return duo;
+		
 		function makeLayout() {
 			// if (zon) zog ("zim pages - Layout()");						
 			if (zot(holder) || !holder.getBounds) {zog ("zim pages - Layout(): please provide an object with bounds set that holds the objects being laid out"); return;}			
@@ -2030,7 +2158,7 @@ note: to just hide bounds, you use the B key
 				that.items[i].removeShape(); // also removes key events
 			}
 		}		
-	}	
+	}		
 	
 	return zim;
 } (zim || {});

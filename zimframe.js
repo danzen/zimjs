@@ -1,12 +1,12 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // http://zimjs.com  
 // zimframe.js provides code to help you set up your coding environment
 // free to use - donations welcome of course! http://zimjs.com/donate
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_1.5.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.0.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -43,7 +43,7 @@ Frame lets you decide how you want your stage to scale
 It also provides events for resizing and orientation change
 as well as a way to remake the canvas if necessary
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 scaling can have values as follows with full being the default
 "none"		sets canvas and stage to dimensions and does not scale if window changes
 "fit"		sets canvas and stage to dimensions and scales to fit inside window size
@@ -70,6 +70,10 @@ dispose() - only removes canvas, resize listener and stage
 
 --*/	
 	zim.Frame = function(scaling, width, height, rollover, touch, scrollTop) {
+		
+		var sig = "scaling, width, height, rollover, touch, scrollTop";
+		var duo; if (duo = zob(zim.Frame, arguments, sig)) return duo;
+		
 		function makeFrame() {
 		
 			if (zot(scaling)) scaling = "full";

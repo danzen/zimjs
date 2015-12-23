@@ -11,14 +11,14 @@
 if (typeof zon === "undefined") zon = false; // comments from zim scripts
 
 /*--
-zog(item1, item2, etc.) ~ log
+zog(item1, item2, etc.)         ~ log
 a wrapper for console.log()
 --*/
 var zog = console.log.bind(console);
 if (zon) zog("ZIM WRAP zog zid zss zgo zum zot zop zil zob");
 
 /*--
-zid(string)             ~ id
+zid(string)                     ~ id
 short version of document.getElementById(s)
 --*/
 function zid(s) {
@@ -26,7 +26,7 @@ function zid(s) {
 }
 
 /*--
-zss(string)             ~ css
+zss(string)                     ~ css
 short version of document.getElementById(s).style
 so you can do zss("logo").top = "10px"; // for instance
 --*/
@@ -36,7 +36,7 @@ function zss(s) {
 }
 
 /*--
-zgo(url, target, modal) ~ go
+zgo(url, target, modal)         ~ go
 short version of either window.location.href or window.open
 --*/
 function zgo(u,t,m) {
@@ -52,7 +52,7 @@ function zgo(u,t,m) {
 }
 
 /*--
-zum(string)             ~ num
+zum(string)                     ~ num
 converts "10px string from styles to number 10, for instance
 if there is no value then this will return 0
 --*/
@@ -62,7 +62,7 @@ function zum(s) {
 }
 
 /*--
-zot(value)              ~ not
+zot(value)                      ~ not
 test to see if value has no value (value must exist as var or parameter)
 or if value has been set to null
 good for setting function defaults: if (zot(speed)) speed=1;
@@ -73,7 +73,7 @@ function zot(v) {
 }
 
 /*--
-zop(e)                  ~ stop
+zop(e)                          ~ stop
 stop event propagation - just easier to remember than below
 must pass it e || window.event from your event function
 --*/
@@ -84,7 +84,7 @@ function zop(e) {
 }
 
 /*--
-zil()                   ~ still
+zil()                           ~ still
 stop keys from moving content - arrows, spacebar, pgup, pgdown, home, end
 stop scroll wheel from moving content - scrolling the canvas for instance
 do once at start - usually in the template for full scale mode
@@ -103,11 +103,11 @@ function zil() {
 }
 
 /*--
-zob()                   ~ object
+zob(f, arguments, signature)    ~ object
 pass in a function and the function's arguments
 and use the following as the first line of your function
 replace yourFunction with a reference to your function but keep arguments as is
-var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
+var duo; if (duo = zob(yourFunction, arguments)) return duo;
 this will allow either individual arguments to be passed
 or a single object (with property names of the arguments) to be passed
 for example: function test(a,b,c){}; test(1,null,3); test({a:1,c:3});
@@ -129,6 +129,7 @@ function zob(f, arguments, signature) {
 		return f.apply(null,zv);
 	}
 }
+
 
 
 ////////////////  ZIM CODE  //////////////
@@ -293,8 +294,7 @@ damp - can dynamically change the damping (usually just pass it in as a paramete
 lastValue - setting this would go immediately to this value (would not normally use)
 --*/	
 	zim.Damp = function(startValue, damp) {
-		var sig = "startValue, damp";
-		var duo; if (duo = zob(zim.Damp, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Damp, arguments)) return duo;
 		if (zon) zog("zim code - Damp");
 		this.lastValue = (zot(startValue)) ? 0 : startValue;
 		this.damp = (zot(damp)) ? .1 : damp;
@@ -336,8 +336,7 @@ convert(input) - will return the output property (for instance, a volume)
 --*/
 	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound) {
 		
-		var sig = "baseMin, baseMax, targetMin, targetMax, factor, targetRound";
-		var duo; if (duo = zob(zim.Proportion, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Proportion, arguments)) return duo;
 		
 		// factor - set to 1 for increasing and -1 for decreasing
 		// round - true to round results to whole number 
@@ -397,8 +396,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 --*/
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 		
-		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
-		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.ProportionDamp, arguments)) return duo;
 		
 		// damp - can be changed via damp get/set method property	
 		// factor - set to 1 for increasing and -1 for decreasing
@@ -624,7 +622,7 @@ var zim = function(zim) {
 	if (zon) zog("ZIM CREATE Module");
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, top)
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop)
 adds drag and drop to an object 
 handles scaled, rotated nested objects
 supports DUO - parameters or single object
@@ -641,9 +639,8 @@ localBounds defaults to false which means the rect is global - set to true for a
 returns obj for chaining
 --*/	
 	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop) {
-		
-		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop";
-		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
+
+		var duo; if (duo = zob(zim.drag, arguments)) return duo;
 		
 		if (zot(obj) || !obj.on) return;
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
@@ -984,8 +981,7 @@ returns the object for chaining
 --*/	
 	zim.scaleTo = function(obj, boundObj, percentX, percentY, type) {
 		
-		var sig = "obj, boundObj, percentX, percentY, type";
-		var duo; if (duo = zob(zim.scaleTo, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.scaleTo, arguments)) return duo;
 		
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim create - scaleTo(): please provide an object (with setBounds) to scale"); return;}
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim create - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return;}
@@ -1035,8 +1031,7 @@ returns target for chaining
 --*/
 	zim.move = function(target, x, y, time, ease, callBack, params, wait, props, fps) {
 		
-		var sig = "target, x, y, time, ease, callBack, params, wait, props, fps";
-		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.move, arguments)) return duo;
 		
 		return zim.animate(target, {x:x, y:y}, time, ease, callBack, params, wait, props, fps);
 	}
@@ -1061,8 +1056,7 @@ returns target for chaining
 --*/	
 	zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps) {	
 		
-		var sig = "target, obj, time, ease, callBack, params, wait, props, fps";
-		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.animate, arguments)) return duo;
 		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
 		var t = time;
@@ -1154,7 +1148,7 @@ returns target for chaining
 			if (callBack2 && typeof callBack2 === 'function') {(callBack2)(params2);}
 		}	
 		return target;	
-	}	
+	}
 
 /*--
 zim.fit = function(obj, left, top, width, height, inside)
@@ -1171,8 +1165,7 @@ returns an object with the new and old details:
 --*/	
 	zim.fit = function(obj, left, top, width, height, inside) {
 		
-		var sig = "obj, left, top, width, height, inside";
-		var duo; if (duo = zob(zim.fit, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.fit, arguments)) return duo;
 		
 		if (zot(obj) || !obj.getBounds) return;
 		if (!obj.getBounds()) {
@@ -1245,8 +1238,7 @@ will not be resized - really just to use while building and then comment it out 
 --*/	
 	zim.outline = function(obj, color, size) {
 		
-		var sig = "obj, color, size";
-		var duo; if (duo = zob(zim.outline, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.outline, arguments)) return duo;
 		
 		if (zot(obj) || !obj.getBounds) {zog("zim create - outline(): please provide object and shape"); return;}		
 		if (!obj.getBounds()) {zog("zim create - outline(): please setBounds() on object");	return;}
@@ -1296,8 +1288,7 @@ just a convenience function - returns obj for chaining
 --*/	
 	zim.centerReg = function(obj, container) {
 		
-		var sig = "obj, container";
-		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.centerReg, arguments)) return duo;
 		
 		if (zot(obj) || !obj.getBounds) {zog("zim create - centerReg(): please provide object with bounds set"); return;}	
 		if (!zot(container)) {
@@ -1315,6 +1306,9 @@ just a convenience function - returns obj for chaining
 		return obj;
 	}
 
+	return zim;
+} (zim || {});
+
 /*--
 zim.expand = function(obj, padding)
 adds a createjs hitArea to an object with an extra padding of padding (default 20)
@@ -1330,10 +1324,6 @@ returns object for chaining
 		obj.hitArea = rect;
 		return obj;
 	}
-
-	return zim;
-} (zim || {});
-
 	
 
 ////////////////  ZIM BUILD  //////////////
@@ -1376,8 +1366,7 @@ if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
 		
-		var sig = "radius, fill, stroke, strokeSize";
-		var duo; if (duo = zob(zim.Circle, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Circle, arguments)) return duo;
 					
 		function makeCircle() {
 		
@@ -1472,8 +1461,7 @@ if you nest things inside and want to drag them, will want to set to true
 --*/	
 	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
 		
-		var sig = "width, height, fill, stroke, strokeSize, corner";
-		var duo; if (duo = zob(zim.Rectangle, arguments, sig)) return duo;	
+		var duo; if (duo = zob(zim.Rectangle, arguments)) return duo;	
 					
 		function makeRectangle() {
 		
@@ -1577,8 +1565,7 @@ if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
 		
-		var sig = "a, b, c, fill, stroke, strokeSize, center, adjust";
-		var duo; if (duo = zob(zim.Triangle, arguments, sig)) return duo;	
+		var duo; if (duo = zob(zim.Triangle, arguments)) return duo;	
 				
 		function makeTriangle() {
 		
@@ -1723,8 +1710,7 @@ dispatches no events
 --*/	
 	zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur) {
 		
-		var sig = "labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur";
-		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Label, arguments)) return duo;
 		
 		function makeLabel() {	
 			
@@ -1835,8 +1821,7 @@ dispatches no events - you make your own click event
 --*/		
 	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
 	
-		var sig = "width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding";
-		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Button, arguments)) return duo;
 	
 		function makeButton() {
 			
@@ -1965,8 +1950,7 @@ dispatches a "change" event when clicked on (or use a click event)
 --*/
 	zim.CheckBox = function(size, label, startChecked, color, margin) {
 		
-		var sig = "size, label, startChecked, color, margin";
-		var duo; if (duo = zob(zim.CheckBox, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.CheckBox, arguments)) return duo;
 		
 		function makeCheckBox() {
 			
@@ -2000,6 +1984,7 @@ dispatches a "change" event when clicked on (or use a click event)
 			}
 			
 			var backing = new createjs.Shape();
+
 			g = backing.graphics;				
 			g.f("rgba(0,0,0,.01)").r(
 				this.getBounds().x,
@@ -2102,8 +2087,7 @@ then ask for the properties above for info
 --*/
 	zim.RadioButtons = function(size, buttonData, vertical, color, spacing, margin) {
 		
-		var sig = "size, buttonData, vertical, color, spacing, margin";
-		var duo; if (duo = zob(zim.RadioButtons, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.RadioButtons, arguments)) return duo;
 		
 		function makeRadioButtons() {
 			
@@ -2343,8 +2327,7 @@ dispatches a "close" event when closed by clicking on backing
 --*/	
 	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center) {
 		
-		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center";
-		var duo; if (duo = zob(zim.Pane, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Pane, arguments)) return duo;
 		
 		function makePane() {
 			
@@ -2524,8 +2507,7 @@ display - reference to the waiter backing graphic
 --*/	
 	zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
 		
-		var sig = "container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur";
-		var duo; if (duo = zob(zim.Waiter, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Waiter, arguments)) return duo;
 		
 		function makeWaiter() {
 			
@@ -2672,8 +2654,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 --*/	
 	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper) {
 		
-		var sig = "stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper";
-		var duo; if (duo = zob(zim.Stepper, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Stepper, arguments)) return duo;
 		
 		function makeStepper() {
 			
@@ -2939,8 +2920,7 @@ dispatches a "change" event when button is slid on slider
 --*/	
 	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks) {
 		
-		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks";
-		var duo; if (duo = zob(zim.Slider, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Slider, arguments)) return duo;
 		
 		function makeSlider() {
 			
@@ -3176,8 +3156,7 @@ damp - allows you to dynamically change the damping
 --*/	
 	zim.Parallax = function(stage, damp, layers, auto) {
 		
-		var sig = "stage, damp, layers, auto";
-		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Parallax, arguments)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
 		
@@ -3327,9 +3306,9 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 --*/
 	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix) {
 		
-		var sig = "backing1, backing2, speed, direction, horizontal, gapFix";
-		var duo; if (duo = zob(zim.Scroller, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Scroller, arguments)) return duo;
 		
+		if (zon) zog("zim build - Scroller");
 		var b1 = backing1; var b2 = backing2;
 		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
 		if (zot(horizontal)) horizontal = true;
@@ -3474,8 +3453,7 @@ also dispatches a "swipedown" event for convenience on a mousedown
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		
-		var sig = "obj, distance, duration";
-		var duo; if (duo = zob(zim.Swipe, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Swipe, arguments)) return duo;
 		
 		function makeSwipe() {
 			if (zot(obj) || !obj.on) {zog("zim pages - Swipe():\nPlease pass in object"); return;}
@@ -3541,8 +3519,6 @@ also dispatches a "swipedown" event for convenience on a mousedown
 				that.active = false;
 			}
 			
-
-
 			this.enable = function() {
 				that.active = true;
 			}	
@@ -3633,8 +3609,7 @@ if you want pages within a smaller area - consider using two canvas tags
 --*/	
 	zim.Pages = function(holder, pages, transition, speed, transitionTable) {
 		
-		var sig = "holder, pages, transition, speed, transitionTable";
-		var duo; if (duo = zob(zim.Pages, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Pages, arguments)) return duo;
 		
 		function makePages() {
 		
@@ -3943,8 +3918,7 @@ the class creates zim.HotSpot objects - see the class underneath this one
 --*/
 	zim.HotSpots = function(spots, local, mouseDowns) {
 		
-		var sig = "spots, local, mouseDowns";
-		var duo; if (duo = zob(zim.HotSpots, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.HotSpots, arguments)) return duo;
 		
 		function makeHotSpots() {
 			if (zot(spots) || !Array.isArray(spots)) {zog("zim pages - HotSpots():\nplease provide an array of HotSpot data"); return;}
@@ -4101,8 +4075,7 @@ eg. hs.spot
 --*/	
 	zim.HotSpot = function(obj, x, y, width, height, call, local) {	
 	
-		var sig = "obj, x, y, width, height, call, local";
-		var duo; if (duo = zob(zim.HotSpot, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.HotSpot, arguments)) return duo;
 			
 		function makeHotSpot() {			
 			if (zot(obj) || !obj.addChild) {zog("zim pages - HotSpot():\nPlease pass in container object for obj"); return;}
@@ -4263,8 +4236,7 @@ dispose() - clears keyboard events and guide
 --*/	
 	zim.Guide = function(obj, vertical, percent, hideKey, pixelKey) {	
 	
-		var sig = "obj, vertical, percent, hideKey, pixelKey";
-		var duo; if (duo = zob(zim.Guide, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Guide, arguments)) return duo;
 			
 		function makeGuide() {					
 				
@@ -4562,8 +4534,7 @@ dispose() - clears keyboard events and grid
 --*/
 	zim.Grid = function(obj, color, percent, hideKey, pixelKey) {	
 	
-		var sig = "obj, color, percent, hideKey, pixelKey";
-		var duo; if (duo = zob(zim.Grid, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Grid, arguments)) return duo;
 			
 		function makeGrid() {					
 				
@@ -4929,8 +4900,7 @@ will fill up the rest of the height until they reach their maximum widths
 --*/	
 	zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey) {
 		
-		var sig = "holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey";
-		var duo; if (duo = zob(zim.Layout, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Layout, arguments)) return duo;
 		
 		function makeLayout() {
 			// if (zon) zog ("zim pages - Layout()");						
@@ -5410,8 +5380,7 @@ dispose() - only removes canvas, resize listener and stage
 --*/	
 	zim.Frame = function(scaling, width, height, rollover, touch, scrollTop) {
 		
-		var sig = "scaling, width, height, rollover, touch, scrollTop";
-		var duo; if (duo = zob(zim.Frame, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Frame, arguments)) return duo;
 		
 		function makeFrame() {
 		

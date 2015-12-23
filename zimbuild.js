@@ -1,5 +1,5 @@
 
-// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2015
+// ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // zimbuild.js adds common building functions for digidos (interactive media) http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
@@ -7,8 +7,8 @@
 // (borrows zim.ProportionDamp from ZIM code)
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_1.4.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_1.5.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.0.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -24,7 +24,7 @@ converts an input value to an output value on a different scale with damping
 works like Proportion Class but with a damping parameter
 var pd = new zim.ProportionDamp(parmeters);
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 put in desired damping with 1 being no damping and .1 being the default
 in your own interval or ticker event function call pd.convert(input)
 the object always starts by assuming baseMin as baseValue
@@ -41,7 +41,8 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 --*/
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 		
-		if (zon) zog("zim code - ProportionDamp");
+		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
+		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig)) return duo;
 		
 		// damp - can be changed via damp get/set method property	
 		// factor - set to 1 for increasing and -1 for decreasing
@@ -111,8 +112,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		this.dispose = function() {
 			clearInterval(interval);
 		}
-	}	
-
+	}		
 
 /*--
 zim.Circle = function(radius, fill, stroke, strokeSize)
@@ -124,7 +124,7 @@ makes a circle shape inside a container
 var circle = new zim.Circle(parameters);
 the registration and origin will be the center
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 radius is the radius ;-)
 fill, stroke, strokeSize are optional
 
@@ -142,7 +142,10 @@ mouseChildren - set to false so  you do not drag the shape inside the circle
 if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
-						
+		
+		var sig = "radius, fill, stroke, strokeSize";
+		var duo; if (duo = zob(zim.Circle, arguments, sig)) return duo;
+					
 		function makeCircle() {
 		
 			if (zot(radius)) radius = 50;
@@ -216,7 +219,7 @@ the registration and origin will be top left
 mouseChildren is set to false so clicks return expected target (instead of shape in container)
 to use ZIM HotSpots inside rectangle then set rectangle's mouseChildren = true
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 width, height
 fill, stroke, strokeSize are optional
 corner - round of corner default 0
@@ -235,7 +238,10 @@ mouseChildren - set to false so  you do not drag the shape inside the rectangle
 if you nest things inside and want to drag them, will want to set to true
 --*/	
 	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
-						
+		
+		var sig = "width, height, fill, stroke, strokeSize, corner";
+		var duo; if (duo = zob(zim.Rectangle, arguments, sig)) return duo;	
+					
 		function makeRectangle() {
 		
 			if (zot(width)) width = 100;
@@ -313,7 +319,7 @@ extends a createjs.Container (allows for ZIM HotSpots)
 makes a triangle shape inside a container using three line lengths
 var tri = new zim.Triangle(parameters);
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 a, b and c are the lengths of the sides
 a will run horizontally along the bottom
 b is upwards and c is back to the origin
@@ -337,7 +343,10 @@ mouseChildren - set to false so  you do not drag the shape inside the triangle
 if you nest things inside and want to drag them, will want to set to true
 --*/		
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
-						
+		
+		var sig = "a, b, c, fill, stroke, strokeSize, center, adjust";
+		var duo; if (duo = zob(zim.Triangle, arguments, sig)) return duo;	
+				
 		function makeTriangle() {
 		
 			if (zot(a)) a = 100;
@@ -461,7 +470,7 @@ var label = new zim.Label(parameters);
 Text seems to come in different sizes so we do our best
 Have tended to find that left and alphabetic are most consistent across browsers
 
-PARAMETERS (see the defaults in the code)
+PARAMETERS (see the defaults in the code) supports DUO - parameters or single object
 labelText, 
 fontSize, font, textColor, textRollColor, 
 shadowColor, shadowBlur
@@ -480,7 +489,10 @@ EVENTS
 dispatches no events 
 --*/	
 	zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur) {
-	
+		
+		var sig = "labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur";
+		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
+		
 		function makeLabel() {	
 			
 			if (zot(labelText)) labelText="LABEL";
@@ -558,7 +570,7 @@ dispatches no events
 	
 		
 /*--
-zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, buttonPadding)
+zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding)
 
 Button Class
 
@@ -569,12 +581,12 @@ you will need to stage.addChild(button); and position it
 you will need to add a click event button.on("click", function);
 the Button class handles the rollovers		
 
-PARAMETERS (all with defaults - see code)
+PARAMETERS (all with defaults - see code) supports DUO - parameters or single object
 width, height, 
 label, // ZIM Label or plain text for default settings
 backingColor, backingRollColor, borderColor, borderThickness, 
 corner, shadowColor (set to -1 for no shadow), shadowBlur
-buttonPadding (default 0) adds extra hit area to the button for mobile
+hitPadding (default 0) adds extra hit area to the button for mobile
 
 METHODS
 dispose() - to get rid of the button and listeners
@@ -588,7 +600,10 @@ backing - references the backing of the button
 EVENTS
 dispatches no events - you make your own click event
 --*/		
-	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, buttonPadding) {
+	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
+	
+		var sig = "width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding";
+		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
 	
 		function makeButton() {
 			
@@ -603,7 +618,7 @@ dispatches no events - you make your own click event
 			if (zot(corner)) corner=20;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=16;		
-			if (zot(buttonPadding)) buttonPadding=0;			
+			if (zot(hitPadding)) hitPadding=0;			
 			if (zot(label)) label = "PRESS";			
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");			
 			
@@ -619,9 +634,10 @@ dispatches no events - you make your own click event
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
 			
-			if (buttonPadding > 0) {
+			if (hitPadding > 0) {
 				var rect = new createjs.Shape();
-				rect.graphics.f("#000").r(-buttonPadding,-buttonPadding,width+buttonPadding*2,height+buttonPadding*2);
+
+				rect.graphics.f("#000").r(-hitPadding,-hitPadding,width+hitPadding*2,height+hitPadding*2);
 				this.hitArea = rect;
 			}
 								
@@ -697,7 +713,7 @@ extends createjs.Container
 a checkbox that when clicked toggles the check and a checked property
 var checkBox = new zim.CheckBox(parameters)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 size - in pixels (always square)
 label - ZIM Label object - or just some text to make a default label
 startChecked - an initial parameter to set checked if true - default is false
@@ -716,7 +732,10 @@ EVENTS
 dispatches a "change" event when clicked on (or use a click event)
 --*/
 	zim.CheckBox = function(size, label, startChecked, color, margin) {
-	
+		
+		var sig = "size, label, startChecked, color, margin";
+		var duo; if (duo = zob(zim.CheckBox, arguments, sig)) return duo;
+		
 		function makeCheckBox() {
 			
 			// if (zon) zog("zim build - CheckBox");
@@ -823,7 +842,7 @@ extends createjs.Container
 a radio button set that lets you pick from choices
 var radioButton = new zim.RadioButton(parameters)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 size - in pixels (always square)
 buttonData - an array of button data objects as follows:	
 [{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
@@ -850,7 +869,10 @@ dispatches a "change" event when clicked on (or use a click event)
 then ask for the properties above for info
 --*/
 	zim.RadioButtons = function(size, buttonData, vertical, color, spacing, margin) {
-	
+		
+		var sig = "size, buttonData, vertical, color, spacing, margin";
+		var duo; if (duo = zob(zim.RadioButtons, arguments, sig)) return duo;
+		
 		function makeRadioButtons() {
 			
 			// if (zon) zog("zim build - RadioButtons");
@@ -1056,7 +1078,7 @@ you need to call the pane.show() to show the pane and pane.hide() to hide it
 you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 see the defaults in the code below
 pass in the container for the pane (usually the stage) and the width and height of the pane
 pass in an optional ZIM Label (or text for default label properties)
@@ -1088,6 +1110,9 @@ EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*/	
 	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center) {
+		
+		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center";
+		var duo; if (duo = zob(zim.Pane, arguments, sig)) return duo;
 		
 		function makePane() {
 			
@@ -1250,7 +1275,7 @@ you need to call the waiter.show() to show the waiter and waiter.hide() to hide 
 you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in the container for the waiter (usually the stage) 
 pass in the speed in ms for the cycle time (default 600ms)
 pass in backing color and dot color
@@ -1265,8 +1290,10 @@ PROPERTIES
 display - reference to the waiter backing graphic
 
 --*/	
-
 	zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
+		
+		var sig = "container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur";
+		var duo; if (duo = zob(zim.Waiter, arguments, sig)) return duo;
 		
 		function makeWaiter() {
 			
@@ -1382,7 +1409,7 @@ extends a createjs.Container
 lets you step through a list of strings or numbers with arrows or keyboard arrows
 var stepper = new zim.Stepper(parameters); 
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in an array of strings or numbers to display one at a time - default 1-10
 width is the width of the text box - default 100 (you can scale the whole stepper if needed)
 a backingColor for the arrows and the text box - default white
@@ -1412,6 +1439,9 @@ EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 --*/	
 	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper) {
+		
+		var sig = "stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper";
+		var duo; if (duo = zob(zim.Stepper, arguments, sig)) return duo;
 		
 		function makeStepper() {
 			
@@ -1512,9 +1542,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				next.x = width/2;
 				next.y = box.y + box.getBounds().height + next.getBounds().height/2 + boxSpacing;
 			} else {
-
 				next.rotation = 90;
-
 				next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
 				next.y = next.getBounds().width/2;
 			}
@@ -1654,7 +1682,7 @@ a traditional slider - will give values back based on min and max and position o
 var slider = new zim.Slider(parameters); 
 slider.on("change", function() {zog(slider.currentValue);}); 
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in min and max amounts for slider (default 0, 10)
 step for the slider (default 0 - for continuous decimal number)
 a zim.Button (default small button with no label)
@@ -1678,6 +1706,9 @@ EVENTS
 dispatches a "change" event when button is slid on slider
 --*/	
 	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks) {
+		
+		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks";
+		var duo; if (duo = zob(zim.Slider, arguments, sig)) return duo;
 		
 		function makeSlider() {
 			
@@ -1873,7 +1904,7 @@ Parallax really just manages multiple ProportionDamp objects
 for proper parallax, the objects closer move more than the objects farther back
 make a new object: p = new zim.Parallax(parameters)
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in a reference to the stage as the first parameter
 pass in the damping value (.1 default)
 pass in an array of layer objects in the following format:
@@ -1912,6 +1943,9 @@ PROPERTIES
 damp - allows you to dynamically change the damping
 --*/	
 	zim.Parallax = function(stage, damp, layers, auto) {
+		
+		var sig = "stage, damp, layers, auto";
+		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
 		
@@ -2032,7 +2066,7 @@ damp - allows you to dynamically change the damping
 	
 	
 /*--
-zim.Scroller = function(b1, b2, speed, direction, horizontal, gapFix)
+zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix)
 
 Scroller Class
 
@@ -2040,7 +2074,7 @@ animates a backing either horizontally or vertically (not both)
 make a new zim.Scroller(parameters) object 
 the Scroller object will animate and swap the backgrounds when needed
 
-PARAMETERS
+PARAMETERS: supports DUO - parameters or single object
 pass in two backgrounds (that look the same - clone them)	
 pass in the speed, direction and a boolean for horizontal (default true)
 setting horizontal to false will animate vertically
@@ -2059,9 +2093,12 @@ speed - how fast the animation is going in pixels per frame (ticker set at 60)
 direction - either left or right if horizontal or up or down if not horizontal
 gapFix - if spacing occurs over time you can set the gapFix dynamically
 --*/
-	zim.Scroller = function(b1, b2, speed, direction, horizontal, gapFix) {
+	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix) {
 		
-		if (zon) zog("zim build - Scroller");
+		var sig = "backing1, backing2, speed, direction, horizontal, gapFix";
+		var duo; if (duo = zob(zim.Scroller, arguments, sig)) return duo;
+		
+		var b1 = backing1; var b2 = backing2;
 		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
 		if (zot(horizontal)) horizontal = true;
 		var that = this; // we keep animate protected but want to access public properties
