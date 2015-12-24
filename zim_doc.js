@@ -1679,7 +1679,7 @@ if you nest things inside and want to drag them, will want to set to true
 		
 						
 /*--
-zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur)
 
 Label Class
 
@@ -1708,42 +1708,39 @@ width and height (or use getBounds().width, getBounds().height)
 EVENTS
 dispatches no events 
 --*/	
-	zim.Label = function(labelText, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur) {
 		
 		var duo; if (duo = zob(zim.Label, arguments)) return duo;
 		
 		function makeLabel() {	
 			
-			if (zot(labelText)) labelText="LABEL";
-			if (labelText == "") labelText = " ";
-			if (zot(fontSize)) fontSize=36;
+			if (zot(text)) text="LABEL";
+			if (text == "") text = " ";
+			if (zot(size)) size=36;
 			if (zot(font)) font="arial";
-			if (zot(textColor)) textColor="black";
-			if (zot(textRollColor)) textRollColor=textColor;
+			if (zot(color)) color="black";
+			if (zot(rollColor)) rollColor=color;
 			if (zot(shadowColor)) shadowColor=null;
 			if (zot(shadowBlur)) shadowBlur=16;
 		
 			var that = this;
 			this.mouseChildren = false;
 			
-			var obj = this.label = new createjs.Text(String(labelText), fontSize + "px " + font, textColor); 
+			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color); 
 			obj.textBaseline = "alphabetic";
 			obj.textAlign = "left";			 
 			if (shadowColor && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.addChild(obj);
 
 			var backing = new createjs.Shape();
-			backing.graphics.f("rgba(0,255,255,.01)").r(0,0,this.getBounds().width,this.getBounds().height);
-			// this.addChildAt(backing,0); 
-			// could always slightly see .01 transparency so use hitArea instead
+			backing.graphics.f("black").r(0,0,this.getBounds().width,this.getBounds().height);
 			this.hitArea = backing;
 			
 			this.width = this.getBounds().width;
 			this.height = this.getBounds().height;
 			this.setBounds(0,0,this.width,this.height);
 			
-			//obj.x = obj.getBounds().width / 2; 
-			obj.y = fontSize-fontSize/6; //obj.getBounds().height / 2;
+			obj.y = size-size/6; 
 				
 			Object.defineProperty(that, 'text', {
 				get: function() {
@@ -1760,9 +1757,9 @@ dispatches no events
 			this.showRollColor = function(yes) {
 				if (zot(yes)) yes = true;
 				if (yes) {
-					obj.color = textRollColor;
+					obj.color = rollColor;
 				} else {
-					obj.color = textColor;
+					obj.color = color;
 				}
 				if (that.getStage()) that.getStage().update();
 			}
@@ -1771,7 +1768,7 @@ dispatches no events
 			this.on("mouseout", function(e) {that.showRollColor(false);});
 			
 			this.clone = function() {
-				return new zim.Label(that.text, fontSize, font, textColor, textRollColor, shadowColor, shadowBlur);	
+				return new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur);	
 			}
 		
 			this.dispose = function() {
@@ -1789,7 +1786,7 @@ dispatches no events
 	
 		
 /*--
-zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding)
+zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding)
 
 Button Class
 
@@ -1803,7 +1800,7 @@ the Button class handles the rollovers
 PARAMETERS (all with defaults - see code) supports DUO - parameters or single object
 width, height, 
 label, // ZIM Label or plain text for default settings
-backingColor, backingRollColor, borderColor, borderThickness, 
+color (backing), rollColor (backing), borderColor, borderThickness, 
 corner, shadowColor (set to -1 for no shadow), shadowBlur
 hitPadding (default 0) adds extra hit area to the button for mobile
 
@@ -1819,7 +1816,7 @@ backing - references the backing of the button
 EVENTS
 dispatches no events - you make your own click event
 --*/		
-	zim.Button = function(width, height, label, backingColor, backingRollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
+	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
 	
 		var duo; if (duo = zob(zim.Button, arguments)) return duo;
 	
@@ -1829,8 +1826,8 @@ dispatches no events - you make your own click event
 			
 			if (zot(width)) width=200;
 			if (zot(height)) height=60;
-			if (zot(backingColor)) backingColor="#C60";
-			if (zot(backingRollColor)) backingRollColor="#F93";
+			if (zot(color)) color="#C60";
+			if (zot(rollColor)) rollColor="#F93";
 			if (zot(borderColor)) borderColor=null;
 			if (zot(borderThickness)) borderThickness=1;
 			if (zot(corner)) corner=20;
@@ -1846,7 +1843,7 @@ dispatches no events - you make your own click event
 				
 			var buttonBacking = new createjs.Shape();		
 			var g = buttonBacking.graphics;		
-			g.f(backingColor);
+			g.f(color);
 			if (borderColor) g.s(borderColor).ss(borderThickness);
 			g.rr(0, 0, width, height, corner);
 			this.addChild(buttonBacking);
@@ -1885,7 +1882,7 @@ dispatches no events - you make your own click event
 				that.on("mouseout", buttonOff);
 				var g = buttonBacking.graphics;
 				g.clear();
-				g.f(backingRollColor);
+				g.f(rollColor);
 				if (borderColor) g.s(borderColor).ss(borderThickness);
 				g.rr(0, 0, width, height, corner);
 				that.label.showRollColor();
@@ -1896,7 +1893,7 @@ dispatches no events - you make your own click event
 				that.off("mouseout", buttonOff); 
 				var g =buttonBacking.graphics;
 				g.clear();
-				g.f(backingColor);
+				g.f(color);
 				if (borderColor) g.s(borderColor).ss(borderThickness);
 				g.rr(0, 0, width, height, corner);
 				that.label.showRollColor(false);
@@ -1984,7 +1981,6 @@ dispatches a "change" event when clicked on (or use a click event)
 			}
 			
 			var backing = new createjs.Shape();
-
 			g = backing.graphics;				
 			g.f("rgba(0,0,0,.01)").r(
 				this.getBounds().x,
@@ -2051,7 +2047,7 @@ dispatches a "change" event when clicked on (or use a click event)
 
 
 /*--
-zim.RadioButtons = function(size, buttonData, vertical, color, spacing, margin)
+zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin)
 
 RadioButtons Class
 
@@ -2061,12 +2057,12 @@ var radioButton = new zim.RadioButton(parameters)
 
 PARAMETERS: supports DUO - parameters or single object
 size - in pixels (always square)
-buttonData - an array of button data objects as follows:	
+buttons - an array of button data objects as follows:	
 [{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
 or just a list of labels for default labels ["hi", "bye", "what!"]
 
 vertical - boolean that if true displays radio buttons vertically else horizontally
-color - the stroke and check color (default black) - background is set to a .5 alpha white
+color - the stroke and font color (default #111) - background is set to a .5 alpha white
 spacing - the space between radio button objects
 margin - the space around the radio button itself
 
@@ -2080,12 +2076,13 @@ label - current selected label object
 text - current selected label text
 id - current selected id
 labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
+dots - an array of the zim Shape dot objects. dots[0].color = "yellow";
 
 EVENTS
 dispatches a "change" event when clicked on (or use a click event)
 then ask for the properties above for info
 --*/
-	zim.RadioButtons = function(size, buttonData, vertical, color, spacing, margin) {
+	zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin) {
 		
 		var duo; if (duo = zob(zim.RadioButtons, arguments)) return duo;
 		
@@ -2095,34 +2092,34 @@ then ask for the properties above for info
 			
 			if (zot(size)) size = 60;
 			size = Math.max(5, size);
-			if (zot(buttonData)) return;
+			if (zot(buttons)) return;
 			if (zot(vertical)) vertical = true;
-			if (zot(color)) color = "black";
+			if (zot(color)) color = "#111";
 			if (zot(spacing)) spacing = (vertical) ? size*.2 : size;
 			if (zot(margin)) margin =  size/5;			
 			
 			var that = this;
 			this.cursor = "pointer";
 			this.labels = [];
+			this.dots = [];
 			var currentObject; // reference to the current data object
 			
-			var buttons = this.buttons = new createjs.Container();
-			this.addChild(buttons);
-			buttons.on("click", pressBut);
+			var buttonContainer = new createjs.Container();
+			this.addChild(buttonContainer);
+			buttonContainer.on("click", pressBut);
 			function pressBut(e) {
-				that.setSelected(buttons.getChildIndex(e.target));				
+				that.setSelected(buttonContainer.getChildIndex(e.target));				
 				that.dispatchEvent("change");
 			}	
-			
-			
+				
 			// loop through data and call makeButton() each time
 			makeButtons();
 			var lastBut;
 			function makeButtons() {
 				// test for duplicate selected true properties (leave last selected)
 				var data; var selectedCheck = false;
-				for (var i=buttonData.length-1; i>=0; i--) {
-					data = buttonData[i];
+				for (var i=buttons.length-1; i>=0; i--) {
+					data = buttons[i];
 					if (data.selected && data.selected === true) {
 						if (!selectedCheck) {
 							selectedCheck = true; // first item marked selected
@@ -2132,10 +2129,10 @@ then ask for the properties above for info
 						}
 					}					
 				}				
-				buttons.removeAllChildren();
+				buttonContainer.removeAllChildren();
 				var but; var currentLocation = 0;
-				for (var i=0; i<buttonData.length; i++) {
-					data = buttonData[i];
+				for (var i=0; i<buttons.length; i++) {
+					data = buttons[i];
 					
 					if (typeof data === "string" || typeof data === "number") {						
 						var d = {selected:false, label:new zim.Label(data, size*5/6, "arial", color)};
@@ -2150,7 +2147,7 @@ then ask for the properties above for info
 					but.obj = data;	
 					if (data.selected) currentObject = but.obj;
 								
-					buttons.addChild(but);
+					buttonContainer.addChild(but);
 		
 					if (vertical) {											
 						but.y = currentLocation;
@@ -2174,11 +2171,11 @@ then ask for the properties above for info
 				g.s(color).ss(size/9).dc(size/2, size/2, size/2-size/2/5);
 				but.addChild(box);
 					
-				var check = but.check = new createjs.Shape();
+				var check = but.check = new zim.Circle(size/5.2);
+				that.dots.push(check);
 				check.mouseEnabled = false;
 				check.alpha = .95;
-				var g2 = check.graphics;		
-				g2.f(color).dc(size/2,size/2,size/5.2);	
+				check.regX = check.regY = -size/2;	
 				
 				var fullWidth = size;	
 				
@@ -2216,15 +2213,15 @@ then ask for the properties above for info
 			this.setSelected = function(value) {
 				
 				if (zot(value)) value = -1;
-				if (value != -1 && !buttons.getChildAt(value)) return;
+				if (value != -1 && !buttonContainer.getChildAt(value)) return;
 				
 				var but;
-				for (var i=0; i<buttons.getNumChildren(); i++) {
-					but = buttons.getChildAt(i);					
+				for (var i=0; i<buttonContainer.getNumChildren(); i++) {
+					but = buttonContainer.getChildAt(i);					
 					but.removeChild(but.check);
 				}	
 				if (value >= 0) {
-					but = buttons.getChildAt(value);
+					but = buttonContainer.getChildAt(value);
 					var lastIndex = -2;
 					if (currentObject) lastIndex = currentObject.index;				
 					currentObject = but.obj;
@@ -2479,7 +2476,7 @@ dispatches a "close" event when closed by clicking on backing
 	
 	
 /*--
-zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur)
+zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur)
 
 Waiter Class
 
@@ -2505,7 +2502,7 @@ PROPERTIES
 display - reference to the waiter backing graphic
 
 --*/	
-	zim.Waiter = function(container, speed, backingColor, circleColor, corner, shadowColor, shadowBlur) {
+	zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur) {
 		
 		var duo; if (duo = zob(zim.Waiter, arguments)) return duo;
 		
@@ -2518,7 +2515,7 @@ display - reference to the waiter backing graphic
 			if (zot(container.getStage)) {zog("zim build - Waiter(): Please give the container that has a stage property"); return;}
 
 			if (zot(speed)) speed=600; // ms cycle time
-			if (zot(backingColor)) backingColor="orange";
+			if (zot(color)) color="orange";
 			if (zot(circleColor)) circleColor="white";
 			if (zot(corner)) corner=16;
 			if (zot(shadowColor)) shadowColor="#444";
@@ -2540,8 +2537,8 @@ display - reference to the waiter backing graphic
 			display.regX = width/2;
 			display.regY = height/2;
 			var g = display.graphics;
-			g.beginFill(backingColor);
-			g.drawRoundRect(0, 0, width, height, corner);
+			g.f(color);
+			g.rr(0, 0, width, height, corner);
 			if (shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
 			display.on("click", function(e) {
 				// stops the click from going through the display to the background
@@ -2615,7 +2612,7 @@ display - reference to the waiter backing graphic
 
 
 /*--
-zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper)
+zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop)
 
 Stepper Class
 
@@ -2624,9 +2621,9 @@ lets you step through a list of strings or numbers with arrows or keyboard arrow
 var stepper = new zim.Stepper(parameters); 
 
 PARAMETERS: supports DUO - parameters or single object
-pass in an array of strings or numbers to display one at a time - default 1-10
+list - pass in an array of strings or numbers to display one at a time - default 1-10
 width is the width of the text box - default 100 (you can scale the whole stepper if needed)
-a backingColor for the arrows and the text box - default white
+a color for the arrows and the text box - default white
 a strokeColor color for the box - default null - no stroke
 an optional label which can be used to define the text properties
 vertical if you want the numbers above and below - default false - left and right of text
@@ -2634,12 +2631,12 @@ arrows - use keyboard arrows - default true (will always show graphical arrows)
 corner is the radius of the text box corners default 10
 shadowColor defaults to #444
 value for shadow blur (default 14) - 0 for no shadow
-loopStepper - defaults to false so will not loop around or go back past 0 index (unless set to true)
+loop - defaults to false so will not loop around or go back past 0 index (unless set to true)
 
 PROPERTIES
 currentIndex - gets or sets the current index of the array and display
 currentValue - gets or sets the current value of the array and display
-stepperArray - gets or sets the stepArray - you should manually set the desired currentIndex if you change this
+stepperArray - gets or sets the list - you should manually set the desired currentIndex if you change this
 arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
 textBox - access to the text box backing shape
 loop - does the stepper loop
@@ -2652,7 +2649,7 @@ dispose() - removes listeners and deletes object
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 --*/	
-	zim.Stepper = function(stepArray, width, backingColor, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loopStepper) {
+	zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop) {
 		
 		var duo; if (duo = zob(zim.Stepper, arguments)) return duo;
 		
@@ -2660,9 +2657,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			// if (zon) zog("zim build - Stepper");
 			
-			if (zot(stepArray)) stepArray = [0,1,2,3,4,5,6,7,8,9];
+			if (zot(list)) list = [0,1,2,3,4,5,6,7,8,9];
 			if (zot(width)) width=200; 
-			if (zot(backingColor)) backingColor="white";
+			if (zot(color)) color="white";
 			if (zot(strokeColor)) strokeColor=null;
 			if (zot(label)) label = "";			
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555");			
@@ -2671,16 +2668,12 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			if (zot(corner)) corner=16;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=14;
-			if (zot(loopStepper)) loopStepper=false;		
+			if (zot(loop)) loop=false;		
 			
 			var that = this;
 			var index;
 			var height = 100;
 			var boxSpacing = height/4;
-					
-			//var prev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
-			//if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
-			//this.addChild(prev);
 			
 			label.mouseChildren = false;
 			label.mouseEnabled = false;
@@ -2694,7 +2687,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			//prev.addChild(prevBacking);
 			prev.hitArea = prevBacking;
 			
-			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
 			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
 			prev.cursor = "pointer";
@@ -2715,7 +2708,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			this.addChild(box);
 			box.setBounds(0, 0, width, height);
 			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
-			box.graphics.f(backingColor).rr(0, 0, width, height, corner);
+			box.graphics.f(color).rr(0, 0, width, height, corner);
 			if (shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
 
 			if (vertical) {
@@ -2726,10 +2719,10 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			// label
 			
 			this.addChild(label);
-			if (stepArray.length > 0) {
-				// index = Math.floor(stepArray.length/2)
+			if (list.length > 0) {
+				// index = Math.floor(list.length/2)
 				index = 0;
-				label.text = stepArray[index];
+				label.text = list[index];
 			}
 			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
 			label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
@@ -2742,7 +2735,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
 			next.hitArea = nextBacking;
 			
-			var arrowNext = new zim.Triangle(height, height*.8, height*.8, backingColor);
+			var arrowNext = new zim.Triangle(height, height*.8, height*.8, color);
 			if (shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			next.addChild(arrowNext);
 			
@@ -2764,8 +2757,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			function step(n) {
 				var nextIndex = index + n;
-				if (!loopStepper) {
-					if (nextIndex > stepArray.length-1) {
+				if (!loop) {
+					if (nextIndex > list.length-1) {
 						box.cursor = "default";
 						return;
 					} else {
@@ -2773,8 +2766,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					}
 					if (nextIndex < 0) return;
 				} else {
-					if (nextIndex > stepArray.length-1) nextIndex = 0;
-					if (nextIndex < 0) nextIndex = stepArray.length-1;
+					if (nextIndex > list.length-1) nextIndex = 0;
+					if (nextIndex < 0) nextIndex = list.length-1;
 				}
 				setLabel(nextIndex);				
 			}
@@ -2784,18 +2777,18 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					return index;
 				},
 				set: function(value) {					
-					index = Math.min(stepArray.length-1, Math.max(0, value));
+					index = Math.min(list.length-1, Math.max(0, value));
 					setLabel(index);
 				}
 			});
 			
 			Object.defineProperty(this, 'currentValue', {
 				get: function() {				
-					return stepArray[index];
+					return list[index];
 				},
 				set: function(value) {					
-					if (stepArray.indexOf(value) > -1) {
-						index = stepArray.indexOf(value);	
+					if (list.indexOf(value) > -1) {
+						index = list.indexOf(value);	
 					}
 					setLabel(index);
 				}
@@ -2803,41 +2796,41 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			Object.defineProperty(this, 'loop', {
 				get: function() {				
-					return loopStepper;
+					return loop;
 				},
 				set: function(value) {					
-					loopStepper = value;
+					loop = value;
 					setLabel(index);
 				}
 			});
 			
 			Object.defineProperty(this, 'stepperArray', {
 				get: function() {				
-					return stepArray;
+					return list;
 				},
 				set: function(value) {					
-					stepArray = value;
+					list = value;
 				}
 			});
 			
 			function setLabel(n) {
 				index = n;
-				label.text = stepArray[index];
+				label.text = list[index];
 				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
 				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
 				prev.alpha = 1;
-				arrowPrev.setFill(backingColor);
+				arrowPrev.setFill(color);
 				prev.cursor = "pointer";
 				next.alpha = 1;
-				arrowNext.setFill(backingColor);
+				arrowNext.setFill(color);
 				next.cursor = "pointer";
-				if (!loopStepper) {
+				if (!loop) {
 					if (index == 0) {
 						prev.alpha = .8;
 						arrowPrev.setFill("#aaa");
 						prev.cursor = "default";
 					} 
-					if (index == stepArray.length-1) {
+					if (index == list.length-1) {
 						next.alpha = .8;
 						arrowNext.setFill("#aaa");
 						next.cursor = "default";
@@ -3308,7 +3301,6 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		
 		var duo; if (duo = zob(zim.Scroller, arguments)) return duo;
 		
-		if (zon) zog("zim build - Scroller");
 		var b1 = backing1; var b2 = backing2;
 		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
 		if (zot(horizontal)) horizontal = true;
