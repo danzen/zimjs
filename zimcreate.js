@@ -409,11 +409,11 @@ returns the object for chaining
 	}
 	
 /*--
-zim.move = function(target, x, y, time, ease, callBack, params, wait, props, fps)
+zim.move = function(target, x, y, time, ease, call, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in time milliseconds
 supports DUO - parameters or single object
-with optional ease and a callBack function and params (send an array, for instance)
+with optional ease, call back function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
 added to props as a convenience are:
@@ -425,21 +425,21 @@ count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, time, ease, callBack, params, wait, props, fps) {
+	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps) {
 		
-		var sig = "target, x, y, time, ease, callBack, params, wait, props, fps";
+		var sig = "target, x, y, time, ease, call, params, wait, props, fps";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		
-		return zim.animate(target, {x:x, y:y}, time, ease, callBack, params, wait, props, fps);
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, fps);
 	}
 	
 /*--
-zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps)
+zim.animate = function(target, obj, time, ease, call, params, wait, props, fps)
 convenience function (wraps createjs.Tween)
 to animate object obj properties in ttime milliseconds
 supports DUO - parameters or single object
 added convinience property of scale that does both scaleX and scaleY
-with optional ease and a callBack function and params (send an array, for instance)
+with optional ease, call back function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
 added to props as a convenience are:
@@ -451,9 +451,9 @@ count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps) {	
+	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps) {	
 		
-		var sig = "target, obj, time, ease, callBack, params, wait, props, fps";
+		var sig = "target, obj, time, ease, call, params, wait, props, fps";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
@@ -499,7 +499,7 @@ returns target for chaining
 				delete props.rewindWait;
 			}
 			if (props.rewindCall) {
-				var callBack2 = props.rewindCall;
+				var call2 = props.rewindCall;
 				var params2 = props.rewindParams;
 				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
@@ -515,6 +515,7 @@ returns target for chaining
 				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
+
 					.wait(wait2)
 					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
@@ -528,7 +529,7 @@ returns target for chaining
 		var listener = createjs.Ticker.on("tick", target.getStage());	
 		createjs.Ticker.setFPS(fps);
 		function doneAnimating() {
-			if (callBack && typeof callBack === 'function') {(callBack)(params);}
+			if (call && typeof call === 'function') {(call)(params);}
 			if (props.loop) {
 				if (count > 0) {
 					if (currentCount < count) {
@@ -543,7 +544,7 @@ returns target for chaining
 			createjs.Ticker.off("tick", listener);
 		}	
 		function rewindCall() {
-			if (callBack2 && typeof callBack2 === 'function') {(callBack2)(params2);}
+			if (call2 && typeof call2 === 'function') {(call2)(params2);}
 		}	
 		return target;	
 	}	
