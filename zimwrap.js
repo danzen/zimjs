@@ -126,6 +126,6 @@ function zob(f, arguments, signature) {
 		var zv = []; var zi; var zt;			
 		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
 		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(f,"bad argument "+zi);}};
-		return f.apply(null,zv);
+		var zr; if (zr=f.apply(null,zv)) {return zr;} else {return true;}
 	}
 }

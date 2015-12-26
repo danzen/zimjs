@@ -126,7 +126,7 @@ function zob(f, arguments, signature) {
 		var zv = []; var zi; var zt;			
 		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
 		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(f,"bad argument "+zi);}};
-		return f.apply(null,zv);
+		var zr; if (zr=f.apply(null,zv)) {return zr;} else {return true;}
 	}
 }
 
@@ -4079,7 +4079,6 @@ the spot will get a cursor of "pointer"
 PARAMETERS: supports DUO - parameters or single object
 the container object in which to place the hotspot
 the x, y, width and height of the hotspot relative to the stage
-
 call is the function to call when the spot is clicked
 local defaults to true and should be used when the element scale independently from the stage
 in local mode you must add coordinates of the hotSpot inside its container

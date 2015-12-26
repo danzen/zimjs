@@ -126,7 +126,7 @@ function zob(f, arguments, signature) {
 		var zv = []; var zi; var zt;			
 		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
 		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(f,"bad argument "+zi);}};
-		return f.apply(null,zv);
+		var zr; if (zr=f.apply(null,zv)) {return zr;} else {return true;}
 	}
 }
 
@@ -3129,7 +3129,6 @@ set factor to -1 to change in the opposite direction
 integer rounds the value to an integer 
 note, if frame is the property, the gotoAndStop() accepts decimals
 
-
 For instance,
 [{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
 would do traditional mouse move parallax for one object
@@ -3191,6 +3190,7 @@ damp - allows you to dynamically change the damping
 				
 			// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound
 			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], that.damp, factor, integer);				
+			obj["p_"+obj.prop].immediate(layer.obj[layer.prop]);
 			if (obj.prop == "scale") {
 				obj["s_"+obj.prop] = obj.obj.scaleX; // helper to allow scale to be property
 			} else if (obj.prop == "frame") {
