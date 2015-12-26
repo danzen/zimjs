@@ -3032,7 +3032,7 @@ dispatches a "change" event when button is slid on slider
 				set: function(value) {		
 					if (value < min) value = min;			
 					if (value > max) value = max;
-					value = snap(value);
+					myValue = value = snap(value);
 					if (vertical) {
 						button.y = (value - min) / (max - min) * barLength;
 						lastValue = button.y;
@@ -3128,6 +3128,7 @@ the factor defaults to 1 which means change is in same direction
 set factor to -1 to change in the opposite direction
 integer rounds the value to an integer 
 note, if frame is the property, the gotoAndStop() accepts decimals
+
 
 For instance,
 [{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]

@@ -3052,7 +3052,7 @@ dispatches a "change" event when button is slid on slider
 				set: function(value) {		
 					if (value < min) value = min;			
 					if (value > max) value = max;
-					value = snap(value);
+					myValue = value = snap(value);
 					if (vertical) {
 						button.y = (value - min) / (max - min) * barLength;
 						lastValue = button.y;
@@ -4079,6 +4079,7 @@ the spot will get a cursor of "pointer"
 PARAMETERS: supports DUO - parameters or single object
 the container object in which to place the hotspot
 the x, y, width and height of the hotspot relative to the stage
+
 call is the function to call when the spot is clicked
 local defaults to true and should be used when the element scale independently from the stage
 in local mode you must add coordinates of the hotSpot inside its container
@@ -4344,6 +4345,7 @@ dispose() - clears keyboard events and guide
 				if (vertical) {						
 					box.y = objH/2;				
 					box.label.text = "y:" + ((that.pixels) ? Math.round(objW*70/100) : "70%");	
+
 
 				} else {					
 					box.x = objW/2;	
@@ -5243,6 +5245,7 @@ will fill up the rest of the height until they reach their maximum widths
 			window.addEventListener("keydown", keyEvent);			
 			function keyEvent(e) {				
 				if (!e) e=event; 								
+
 				if (regionShape) {					
 					if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // B
 						regionShape.visible = !regionShape.visible;	

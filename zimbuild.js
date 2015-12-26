@@ -1826,7 +1826,7 @@ dispatches a "change" event when button is slid on slider
 				set: function(value) {		
 					if (value < min) value = min;			
 					if (value > max) value = max;
-					value = snap(value);
+					myValue = value = snap(value);
 					if (vertical) {
 						button.y = (value - min) / (max - min) * barLength;
 						lastValue = button.y;
