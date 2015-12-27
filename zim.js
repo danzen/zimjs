@@ -103,7 +103,7 @@ function zil() {
 }
 
 /*--
-zob()                   ~ object
+zob(func, args, sig, scope)     ~ object
 pass in a function and the function's arguments
 and use the following as the first line of your function
 replace yourFunction with a reference to your function but keep arguments as is
@@ -123,16 +123,17 @@ then you need to pass in this (keyword) as the last parameter (sig can be null)
 var duo; if (duo = zob(yourFunction, arguments, sig, this)) return duo;
 this allows zob() to test to see if we need to rerun the function as a constructor
 --*/
-function zob(f, arguments, signature, scope) {
-	if (arguments.length == 1 && arguments[0].constructor === {}.constructor) {
-		var zp = arguments[0];
-		var za = (zot(signature))?f.toString().split(/\n/,1)[0].match(/\((.*)\)/)[1].replace(/\s+/g,"").split(","):signature.replace(/\s+/g,"").split(",");
+function zob(func, args, sig, scope) {
+	if (args.length == 1 && args[0].constructor === {}.constructor) {
+		var zp = args[0];
+		var za = (zot(sig))?func.toString().split(/\n/,1)[0].match(/\((.*)\)/)[1].replace(/\s+/g,"").split(","):sig.replace(/\s+/g,"").split(",");
 		var zv = []; var zi; var zt;			
 		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
-		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(f,"bad argument "+zi);}};
-		var zr; if (zr=(f.prototype.isPrototypeOf(scope))?new (f.bind.apply(f,[null].concat(zv)))():f.apply(null,zv)) {return zr;} else {return true;}
+		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(func,"bad argument "+zi);}};
+		var zr; if (zr=(func.prototype.isPrototypeOf(scope))?new (func.bind.apply(func,[null].concat(zv)))():func.apply(null,zv)) {return zr;} else {return true;}
 	}
 }
+
 
 
 ////////////////  ZIM CODE  //////////////
@@ -843,6 +844,7 @@ etc.
 			shiftY = bounds.height * (i+1)/(num+1);
 			point = b.localToLocal(bounds.x+shiftX, bounds.y, a);
 			if (a.hitTest(point.x, point.y)) return true;		
+
 			point = b.localToLocal(bounds.x+bounds.width, bounds.y+shiftY, a);
 			if (a.hitTest(point.x, point.y)) return true;		
 			point = b.localToLocal(bounds.x+bounds.width-shiftX, bounds.y+bounds.height, a);
@@ -3440,6 +3442,7 @@ dispatches a "swipe" event on swipe left, right, up, down
 var s = zim.Swipe(parameters) 	
 
 PARAMETERS: supports DUO - parameters or single object
+
 pass into the object the object you want to swipe on
 then an optional distance to activate swipe (30 pixel default)
 might want to pass in a pixel distance based on percentage of stage
