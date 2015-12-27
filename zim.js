@@ -107,7 +107,7 @@ zob()                   ~ object
 pass in a function and the function's arguments
 and use the following as the first line of your function
 replace yourFunction with a reference to your function but keep arguments as is
-var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
+var duo; if (duo = zob(yourFunction, arguments)) return duo;
 this will allow either individual arguments to be passed
 or a single object (with property names of the arguments) to be passed
 for example: function test(a,b,c){}; test(1,null,3); test({a:1,c:3});
@@ -115,18 +115,22 @@ many of the ZIM functions and classes use this "DUO" technique
 NOTE: if you are minifying the file then you need to do an extra step
 add a string version of the signature of your function above the duo call
 for example: var sig = "a,b,c";
-then pass the signature in as the last parameter to zob()
+then pass the signature in as a parameter to zob()
 var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
 works also with JS6 default parameter values
+NOTE: if you are running the function as a constructor with the new keyword
+then you need to pass in this (keyword) as the last parameter (sig can be null)
+var duo; if (duo = zob(yourFunction, arguments, sig, this)) return duo;
+this allows zob() to test to see if we need to rerun the function as a constructor
 --*/
-function zob(f, arguments, signature) {
+function zob(f, arguments, signature, scope) {
 	if (arguments.length == 1 && arguments[0].constructor === {}.constructor) {
 		var zp = arguments[0];
 		var za = (zot(signature))?f.toString().split(/\n/,1)[0].match(/\((.*)\)/)[1].replace(/\s+/g,"").split(","):signature.replace(/\s+/g,"").split(",");
 		var zv = []; var zi; var zt;			
 		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
 		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zog(f,"bad argument "+zi);}};
-		var zr; if (zr=f.apply(null,zv)) {return zr;} else {return true;}
+		var zr; if (zr=(f.prototype.isPrototypeOf(scope))?new (f.bind.apply(f,[null].concat(zv)))():f.apply(null,zv)) {return zr;} else {return true;}
 	}
 }
 
@@ -136,7 +140,6 @@ function zob(f, arguments, signature) {
 // zimcode.js adds some general code functionality along with Browser and DOM code  
 // some of these are common Web solutions over the years (sorry for lack of credit)
 // moved Damp, Proportion and ProportionDamp here as they can be used without CreateJS
-
 
 
 var zim = function(zim) {
