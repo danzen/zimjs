@@ -844,7 +844,6 @@ etc.
 			shiftY = bounds.height * (i+1)/(num+1);
 			point = b.localToLocal(bounds.x+shiftX, bounds.y, a);
 			if (a.hitTest(point.x, point.y)) return true;		
-
 			point = b.localToLocal(bounds.x+bounds.width, bounds.y+shiftY, a);
 			if (a.hitTest(point.x, point.y)) return true;		
 			point = b.localToLocal(bounds.x+bounds.width-shiftX, bounds.y+bounds.height, a);
@@ -1722,6 +1721,7 @@ PROPERTIES
 label - references the text object of the label
 text - references the text property of the text object
 width and height (or use getBounds().width, getBounds().height)
+enabled - default is true - set to false to disable
 
 EVENTS
 dispatches no events 
@@ -1770,6 +1770,16 @@ dispatches no events
 					if (zot(value)) {value = " ";}
 					obj.text = value;
 					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
+				}
+			});
+			
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
+				set: function(value) {
+					zenable(that, value);
 				}
 			});
 			
@@ -1831,6 +1841,7 @@ width and height - or use getBounds().width and getBounds().height
 text - references the text property of the Label object of the button
 label - gives access to the label
 backing - references the backing of the button
+enabled - default is true - set to false to disable
 
 EVENTS
 dispatches no events - you make your own click event
@@ -1897,6 +1908,16 @@ dispatches no events - you make your own click event
 				}
 			});
 			
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
+				set: function(value) {
+					zenable(that, value);
+				}
+			});
+			
 			this.on("mouseover", buttonOn);
 			function buttonOn(e) {
 				that.on("mouseout", buttonOff);
@@ -1951,16 +1972,17 @@ PARAMETERS: supports DUO - parameters or single object
 size - in pixels (always square)
 label - ZIM Label object - or just some text to make a default label
 startChecked - an initial parameter to set checked if true - default is false
-color - the stroke and check color (default black) - background is set to a .5 alpha white
+color - the stroke and text color (default black) - background is set to a .5 alpha white
 margin - is on outside of box so clicking or pressing is easier
 
 METHODS
 setChecked(Boolean) - defaults to true to set button checked (or use checked property)
 
-
 PROPERTIES
 label - gives access to the label including checkBox.label.text
 checked - gets or sets the check of the box
+check - gives access to the check mark ie. check.color = "blue";
+enabled - default is true - set to false to disable
 
 EVENTS
 dispatches a "change" event when clicked on (or use a click event)
@@ -1992,12 +2014,13 @@ dispatches a "change" event when clicked on (or use a click event)
 			this.addChild(box);
 			
 			var fullWidth = size;		
-			
+				
 			if (label) {
 				this.addChild(label);
-				label.x = size*1.3; //this.getBounds().width;				
+				label.x = size*1.3 + margin; //this.getBounds().width;				
 				label.y = size/8; 
 				this.label = label;
+				this.setBounds(-margin, -margin, size+margin*3+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
 				fullWidth = label.x + label.width;
 			}
 			
@@ -2013,14 +2036,16 @@ dispatches a "change" event when clicked on (or use a click event)
 			// hitArea will stop rollovers on labels but oh well		
 				
 			var check = new createjs.Shape();
-			var g2 = check.graphics;		
-			g2.f(color).p("AnQAdICBiaIEEDZIF8nfICfB4In/KPg"); // width about 90 reg in middle
-						
+			var g2 = check.graphics;
+			var checkColor = "#000";	
+			g2.f(checkColor).p("AnQAdICBiaIEEDZIF8nfICfB4In/KPg"); // width about 90 reg in middle
+
 			var cW = 95
 			check.setBounds(-cW/2, -cW/2, cW, cW);			
 			var scale = size/(cW+66);		
 			
 			check.scaleX = check.scaleY = scale;
+			check.alpha = .9;
 			check.x = size/2;
 			check.y = size/2;
 			
@@ -2031,8 +2056,47 @@ dispatches a "change" event when clicked on (or use a click event)
 				get: function() {				
 					return myChecked;
 				},
-				set: function(value) {					
+				set: function(value) {	
+					if (that.checked != value) that.dispatchEvent("change");			
 					that.setChecked(value);
+				}
+			});
+			
+			Object.defineProperty(check, 'color', {
+				get: function() {				
+					return checkColor;
+				},
+				set: function(value) {
+					if (myChecked) {that.removeChild(check);}					
+					check = new createjs.Shape();
+					g2 = check.graphics;	
+					checkColor = value;	
+					g2.f(checkColor).p("AnQAdICBiaIEEDZIF8nfICfB4In/KPg");
+					check.scaleX = check.scaleY = scale;
+					check.alpha = .9;
+					check.x = size/2;
+					check.y = size/2;
+					if (myChecked) that.addChild(check);
+					if (that.getStage()) that.getStage().update();
+				}
+			});
+			
+			Object.defineProperty(that, 'check', {
+				get: function() {				
+					return check;
+				},
+				set: function(value) {					
+					zog("ZIM CheckBox - check is read only");
+				}
+			});
+			
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
+				set: function(value) {
+					zenable(that, value);
 				}
 			});
 			
@@ -2068,7 +2132,7 @@ dispatches a "change" event when clicked on (or use a click event)
 
 
 /*--
-zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin)
+zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin, always)
 
 RadioButtons Class
 
@@ -2086,6 +2150,7 @@ vertical - boolean that if true displays radio buttons vertically else horizonta
 color - the stroke and font color (default #111) - background is set to a .5 alpha white
 spacing - the space between radio button objects
 margin - the space around the radio button itself
+always - defaults to false - if set true, cannot click on selection to unselect it
 
 METHODS
 setSelected(num) - sets the selected index (or use selectedIndex) -1 is default (none)
@@ -2098,14 +2163,15 @@ text - current selected label text
 id - current selected id
 labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
 dots - an array of the zim Shape dot objects. dots[0].color = "yellow";
+enabled - default is true - set to false to disable
 
 EVENTS
-dispatches a "change" event when clicked on (or use a click event)
+dispatches a "change" event when clicked or selectedIndex is set(or use a click event)
 then ask for the properties above for info
 --*/
-	zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin) {
+	zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin, always) {
 		
-		var sig = "size, buttons, vertical, color, spacing, margin";
+		var sig = "size, buttons, vertical, color, spacing, margin, always";
 		var duo; if (duo = zob(zim.RadioButtons, arguments, sig)) return duo;
 		
 		function makeRadioButtons() {
@@ -2130,7 +2196,9 @@ then ask for the properties above for info
 			this.addChild(buttonContainer);
 			buttonContainer.on("click", pressBut);
 			function pressBut(e) {
-				that.setSelected(buttonContainer.getChildIndex(e.target));				
+				var index = buttonContainer.getChildIndex(e.target);
+				if (always) {if (that.selectedIndex == index) return;}
+				that.setSelected(index);				
 				that.dispatchEvent("change");
 			}	
 				
@@ -2228,7 +2296,7 @@ then ask for the properties above for info
 				return(but);
 			}
 			if (!this.getBounds()) this.setBounds(0,0,size,size);
-			this.setBounds(0,0,this.getBounds().width+margin,this.getBounds().height+margin);
+			this.setBounds(-margin,-margin,this.getBounds().width+margin,this.getBounds().height+margin);
 			
 			// the main function that sets a button selected (after the initial makeButton)
 			// this gets called by the setter methods below and the click event up top
@@ -2261,10 +2329,6 @@ then ask for the properties above for info
 				}
 				if (that.getStage()) that.getStage().update();
 				
-				function makeNull() {
-					
-				}
-				
 			}
 			
 			// getter setter methods
@@ -2274,7 +2338,7 @@ then ask for the properties above for info
 					return currentObject;
 				},
 				set: function(value) {
-					selectedIndex = value; // just in case
+					zog("ZIM RadioButton - selected is read only");
 				}
 			});
 			
@@ -2282,8 +2346,21 @@ then ask for the properties above for info
 				get: function() {			
 					return (currentObject) ? currentObject.index : -1;
 				},
+				set: function(value) {					
+					var index = value;
+					if (always) {if (that.selectedIndex == index) return;}
+					that.setSelected(index);				
+					that.dispatchEvent("change");
+				}
+			});
+			
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
 				set: function(value) {
-					this.setSelected(value); // just in case
+					zenable(that, value);
 				}
 			});
 			
@@ -2664,6 +2741,7 @@ stepperArray - gets or sets the list - you should manually set the desired curre
 arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
 textBox - access to the text box backing shape
 loop - does the stepper loop
+enabled - default is true - set to false to disable
 
 METHODS
 next() - goes to next
@@ -2709,7 +2787,6 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			prevBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
 			prevBacking.regX = height*1.5 / 2;
 			prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
-			//prev.addChild(prevBacking);
 			prev.hitArea = prevBacking;
 			
 			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
@@ -2794,7 +2871,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					if (nextIndex > list.length-1) nextIndex = 0;
 					if (nextIndex < 0) nextIndex = list.length-1;
 				}
-				setLabel(nextIndex);				
+				setLabel(nextIndex);	
+				that.dispatchEvent("change");			
 			}
 			
 			Object.defineProperty(this, 'currentIndex', {
@@ -2803,7 +2881,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				},
 				set: function(value) {					
 					index = Math.min(list.length-1, Math.max(0, value));
+					if (index == that.currentIndex) return;
 					setLabel(index);
+					that.dispatchEvent("change");
 				}
 			});
 			
@@ -2815,7 +2895,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					if (list.indexOf(value) > -1) {
 						index = list.indexOf(value);	
 					}
+					if (index == that.currentIndex) return;
 					setLabel(index);
+					that.dispatchEvent("change");
 				}
 			});
 			
@@ -2835,6 +2917,27 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				},
 				set: function(value) {					
 					list = value;
+				}
+			});
+			
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
+				set: function(value) {
+					zenable(that, value);
+					if (value) {
+						setLabel(that.currentIndex);
+					} else {
+						prev.alpha = .8;
+						arrowPrev.setFill("#aaa");
+						prev.cursor = "default";
+						next.alpha = .8;
+						arrowNext.setFill("#aaa");
+						next.cursor = "default";						
+					}
+					if (label.getStage()) label.getStage().update();
 				}
 			});
 			
@@ -2862,7 +2965,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					}
 				}
 				if (label.getStage()) label.getStage().update();
-				that.dispatchEvent("change");
+				
 			}
 			
 			if (arrows) {
@@ -2927,10 +3030,9 @@ min, max, step - the assigned values (read only)
 bar - gives access to the bar zim.Rectangle
 button - gives access to the zim.Button
 ticks - gives access to the ticks (to position these for example)
+enabled - default is true - set to false to disable
 
 METHODS
-disable() - stops slider from working
-enable() - starts slider working if it was disabled
 dispose() - removes listeners and deletes object
 
 EVENTS
@@ -3096,15 +3198,15 @@ dispatches a "change" event when button is slid on slider
 				}
 			});
 			
-			this.disable = function() {
-				that.mouseChildren = false;
-				that.mouseEnabled = false;
-			}
-			
-			this.enable = function() {
-				that.mouseChildren = true;
-				that.mouseEnabled = true;
-			}
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
+				set: function(value) {
+					zenable(that, value);
+				}
+			});
 			
 			this.dispose = function() {
 				button.removeAllEventListeners();
@@ -3414,6 +3516,19 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		
 	}	
 	
+	// function to set enabled of components
+	function zenable(t,v) {
+		if (v) {
+			t.mouseChildren = true;
+			t.mouseEnabled = true;
+			t._enabled = true;
+		} else {
+			t.mouseChildren = false;
+			t.mouseEnabled = false;
+			t._enabled = false;
+		}
+	}
+	
 	
 	return zim;
 } (zim || {});
@@ -3442,7 +3557,6 @@ dispatches a "swipe" event on swipe left, right, up, down
 var s = zim.Swipe(parameters) 	
 
 PARAMETERS: supports DUO - parameters or single object
-
 pass into the object the object you want to swipe on
 then an optional distance to activate swipe (30 pixel default)
 might want to pass in a pixel distance based on percentage of stage
