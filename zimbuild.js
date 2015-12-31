@@ -8,7 +8,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.1.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -1985,7 +1985,7 @@ dispatches a "change" event when button is slid on slider
 	}	
 	
 /*--
-zim.Parallax = function(stage, damp, layers, auto)
+zim.Parallax = function(stage, damp, layers, auto, fps, ticker)
 
 Parallax Class	
 
@@ -2027,6 +2027,9 @@ you would probably have more objects to follow
 or you can add these one at a time with the p.addLayer({layer object properties});
 the auto parameter defaults to true and uses the specified input
 if auto is set to false, you must make your own Ticker and use the step(input) method
+can set frames per second as fps parameter default 30 (works better on mobile)
+ticker sets a ticker and defaults to true - should only use one ticker for mobile
+
 
 METHODS 
 addLayer({layer object properties}) - adds a layer
@@ -2038,16 +2041,18 @@ dispose() - removes listeners
 PROPERTIES
 damp - allows you to dynamically change the damping
 --*/	
-	zim.Parallax = function(stage, damp, layers, auto) {
+	zim.Parallax = function(stage, damp, layers, auto, fps, ticker) {
 		
-		var sig = "stage, damp, layers, auto";
+		var sig = "stage, damp, layers, auto, fps, ticker";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
 		
 		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
 		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
-		if (zot(auto)) {auto = true;}
+		if (zot(auto)) auto = true;
+		if (zot(fps)) fps = 30;
+		if (zot(ticker)) ticker = true;
 		
 		var stageW = stage.getBounds().width;
 		var stageH = stage.getBounds().height;
@@ -2109,7 +2114,7 @@ damp - allows you to dynamically change the damping
 		
 		this.dispose = function() {
 			myLayers = null;
-			if (auto) createjs.Ticker.off("tick", ticker);
+			if (auto && ticker) createjs.Ticker.off("tick", cjsTicker);
 		}
 		
 		// private properties
@@ -2123,9 +2128,9 @@ damp - allows you to dynamically change the damping
 			this.addLayer(layers[i]);
 		}
 		
-		if (auto) {			
-			var ticker = createjs.Ticker.on("tick", animate);	
-			createjs.Ticker.setFPS(60);
+		if (auto && ticker) {			
+			var cjsTicker = createjs.Ticker.on("tick", animate);	
+			createjs.Ticker.setFPS(fps);
 		}		
 
 		// loop though our layers and apply the converted proportion damping
@@ -2162,7 +2167,7 @@ damp - allows you to dynamically change the damping
 	
 	
 /*--
-zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix)
+zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker)
 
 Scroller Class
 
@@ -2180,6 +2185,8 @@ to change your animation, dispose() of the Scroller object and make a new one
 disposing just removes the ticker - you have to remove the backings
 not sure what is causing a small gap to appear over time 
 but if your background can overlap a little you can pass in a gapFix of 10 pixels etc.
+can set frames per second as fps parameter default 30 (works better on mobile)
+ticker sets a ticker and defaults to true - should only use one ticker for mobile
 
 METHODS
 dispose() - get rid of the event listeners - you need to remove the backings 
@@ -2189,15 +2196,17 @@ speed - how fast the animation is going in pixels per frame (ticker set at 60)
 direction - either left or right if horizontal or up or down if not horizontal
 gapFix - if spacing occurs over time you can set the gapFix dynamically
 --*/
-	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix) {
+	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker) {
 		
-		var sig = "backing1, backing2, speed, direction, horizontal, gapFix";
+		var sig = "backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker";
 		var duo; if (duo = zob(zim.Scroller, arguments, sig)) return duo;
 		
 		var b1 = backing1; var b2 = backing2;
 		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
 		if (zot(horizontal)) horizontal = true;
 		var that = this; // we keep animate protected but want to access public properties
+		if (zot(fps)) fps = 30;
+		if (zot(ticker)) ticker = true;
 		
 		// here are the public properties that can be changed
 		this.speed = (zot(speed)) ? 1 : speed;
@@ -2221,9 +2230,11 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		} else {
 			b2.y = b1.getBounds().height;
 		}
-						
-		var ticker = createjs.Ticker.on("tick", animate);	
-		createjs.Ticker.setFPS(60);
+		
+		if (ticker) {	
+			var cjsTicker = createjs.Ticker.on("tick", animate);	
+			createjs.Ticker.setFPS(fps);
+		}
 		function animate(e) {
 			if (!b1.getStage()) return;
 			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
@@ -2274,7 +2285,9 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		
 		this.dispose = function() {
 			if (zon) zog("bye from Scroller");
-			createjs.Ticker.off("tick", ticker);
+			if (ticker) {
+				createjs.Ticker.off("tick", cjsTicker);
+			}
 		}
 		
 	}	

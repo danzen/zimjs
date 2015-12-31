@@ -8,7 +8,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimparallax_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimparallax_2.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -116,7 +116,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 	
 
 /*-- // borrowed from ZIM Build
-zim.Parallax = function(stage, damp, layers, auto)
+zim.Parallax = function(stage, damp, layers, auto, fps, ticker)
 
 Parallax Class	
 
@@ -158,6 +158,9 @@ you would probably have more objects to follow
 or you can add these one at a time with the p.addLayer({layer object properties});
 the auto parameter defaults to true and uses the specified input
 if auto is set to false, you must make your own Ticker and use the step(input) method
+can set frames per second as fps parameter default 30 (works better on mobile)
+ticker sets a ticker and defaults to true - should only use one ticker for mobile
+
 
 METHODS 
 addLayer({layer object properties}) - adds a layer
@@ -169,16 +172,18 @@ dispose() - removes listeners
 PROPERTIES
 damp - allows you to dynamically change the damping
 --*/	
-	zim.Parallax = function(stage, damp, layers, auto) {
+	zim.Parallax = function(stage, damp, layers, auto, fps, ticker) {
 		
-		var sig = "stage, damp, layers, auto";
+		var sig = "stage, damp, layers, auto, fps, ticker";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
 		
 		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
 		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
-		if (zot(auto)) {auto = true;}
+		if (zot(auto)) auto = true;
+		if (zot(fps)) fps = 30;
+		if (zot(ticker)) ticker = true;
 		
 		var stageW = stage.getBounds().width;
 		var stageH = stage.getBounds().height;
@@ -240,7 +245,7 @@ damp - allows you to dynamically change the damping
 		
 		this.dispose = function() {
 			myLayers = null;
-			if (auto) createjs.Ticker.off("tick", ticker);
+			if (auto && ticker) createjs.Ticker.off("tick", cjsTicker);
 		}
 		
 		// private properties
@@ -254,9 +259,9 @@ damp - allows you to dynamically change the damping
 			this.addLayer(layers[i]);
 		}
 		
-		if (auto) {			
-			var ticker = createjs.Ticker.on("tick", animate);	
-			createjs.Ticker.setFPS(60);
+		if (auto && ticker) {			
+			var cjsTicker = createjs.Ticker.on("tick", animate);	
+			createjs.Ticker.setFPS(fps);
 		}		
 
 		// loop though our layers and apply the converted proportion damping

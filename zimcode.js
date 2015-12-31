@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcode_2.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -478,6 +478,19 @@ deletes an HTML cookie
 	zim.deleteCookie = function(name) {
 		zim.setCookie(name,"",-1);
 	}	
+	
+/*--
+zim.mobile = function()
+detects if on a mobile device (note windows phone would get detected by phone or mobile)
+orientation defaults to true and mobile() may return true for desktop and laptop screens
+if set to false, does not check orientation of device - but then may miss non-mainstream devices
+--*/	
+	zim.mobile = function(orientation) {
+		if (zot(orientation)) orientation = true;
+		if (/ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i.test(navigator.userAgent)) return true;
+		if (orientation && window.orientation !== undefined) return true; 
+		return false;
+	}
 	
 
 	return zim;

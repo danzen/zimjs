@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.2.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -409,7 +409,7 @@ returns the object for chaining
 	}
 	
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, props, fps)
+zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, ticker)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in time milliseconds
 supports DUO - parameters or single object
@@ -422,19 +422,20 @@ rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
-can set frames per second as fps parameter
+can set frames per second as fps parameter default 30 (works better on mobile)
+ticker sets a ticker and defaults to true - should only use one ticker for mobile
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps) {
+	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, ticker) {
 		
-		var sig = "target, x, y, time, ease, call, params, wait, props, fps";
+		var sig = "target, x, y, time, ease, call, params, wait, props, fps, ticker";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		
-		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, fps);
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, fps, ticker);
 	}
 	
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, props, fps)
+zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, ticker)
 convenience function (wraps createjs.Tween)
 to animate object obj properties in ttime milliseconds
 supports DUO - parameters or single object
@@ -448,12 +449,13 @@ rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
-can set frames per second as fps parameter
+can set frames per second as fps parameter default 30 (works better on mobile)
+ticker sets a ticker and defaults to true - should only use one ticker for mobile
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps) {	
+	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, ticker) {	
 		
-		var sig = "target, obj, time, ease, call, params, wait, props, fps";
+		var sig = "target, obj, time, ease, call, params, wait, props, fps, ticker";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
@@ -463,7 +465,8 @@ returns target for chaining
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(params)) params = target;
-		if (zot(fps)) fps = 60;
+		if (zot(fps)) fps = 30;
+		if (zot(ticker)) ticker = true;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
@@ -515,7 +518,6 @@ returns target for chaining
 				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
-
 					.wait(wait2)
 					.to(obj2, t, createjs.Ease[ease2])				
 					.call(doneAnimating);
@@ -526,8 +528,10 @@ returns target for chaining
 				.to(obj, t, createjs.Ease[ease])				
 				.call(doneAnimating);
 		}
-		var listener = createjs.Ticker.on("tick", target.getStage());	
-		createjs.Ticker.setFPS(fps);
+		if (ticker) {
+			var cjsTicker = createjs.Ticker.on("tick", target.getStage());	
+			createjs.Ticker.setFPS(fps);
+		}
 		function doneAnimating() {
 			if (call && typeof call === 'function') {(call)(params);}
 			if (props.loop) {
@@ -541,7 +545,7 @@ returns target for chaining
 				}
 			}
 			tween.setPaused(true);
-			createjs.Ticker.off("tick", listener);
+			if (ticker) createjs.Ticker.off("tick", cjsTicker);
 		}	
 		function rewindCall() {
 			if (call2 && typeof call2 === 'function') {(call2)(params2);}
