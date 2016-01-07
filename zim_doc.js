@@ -609,10 +609,15 @@ deletes an HTML cookie
 	}	
 	
 /*--
-zim.mobile = function()
-detects if on a mobile device (note windows phone would get detected by phone or mobile)
-orientation defaults to true and mobile() may return true for desktop and laptop screens
-if set to false, does not check orientation of device - but then may miss non-mainstream devices
+zim.mobile = function(orientation)
+detects if app is on a mobile device 
+orientation defaults to true and if there is window.orientation then it assumes mobile 
+BUT this may return true for some desktop and laptop touch screens  
+so you can turn the orientation check off by setting orientation to false 
+the check also looks at the navigator.userAgent for the following regular expression
+/ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
+microsoft mobile gets detected by mobile or phone 
+so if orientation is set to false the check may miss non-mainstream devices
 --*/	
 	zim.mobile = function(orientation) {
 		if (zot(orientation)) orientation = true;
@@ -968,7 +973,55 @@ used by the hitTestBounds above so probably you will not use this directly
 			newBRY-newTLY
 		);	
 	}
-
+	
+/*--
+zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+converts an x and y point to an index in a grid
+if you have a grid of rectangles for instance and you want to find out which is beneath the cursor
+this technique will work faster than any of the other hit tests
+obj is the object that contains the grid
+width and height are the overall dimensions 
+cols and rows are how many of each (note it is cols and then rows)
+x and y would be your stage.mouseX and stage.mouseY most likely
+these get automatically converted to the object's cooridinates unless local is set to true (default is false)
+offsetX and offsetY are the distances the grid starts from the origin of the obj - default is 0
+spacingX and spacingY default to 0 - null will be returned if x and y within spacing
+spacing is only between the cells and is to be included in the width and height (but not outside the grid)
+type defaults to index which means the hitTestGrid returns the index of the cell beneath the x and y point  
+starting at 0 for top left corner and counting columns along the row and then to the next row, etc.
+type set to "col" will return the column and "row" will return the row "array" will return all three [index, col, row]
+--*/
+	zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
+		if (!zot(obj) && !local) {
+			var point = obj.globalToLocal(x,y);
+			x=point.x; y=point.y;
+		}
+		if (zot(offsetX)) offsetX = 0;
+		if (zot(offsetY)) offsetY = 0;
+		if (zot(spacingX)) spacingX = 0;
+		if (zot(spacingY)) spacingY = 0;
+		
+		// assume spacing is to the right and bottom of a cell
+		// turning this into an object would avoid the size calculations
+		// but hopefully it will not be noticed - and then hitTests are all functions
+		var sizeX = width / cols; 
+		var sizeY = height / rows;
+		
+		// calculate col and row
+		var col = Math.min(cols-1,Math.max(0,Math.floor((x-offsetX)/sizeX)));
+		var row = Math.min(rows-1,Math.max(0,Math.floor((y-offsetY)/sizeY)));
+		
+		// check if within cell
+		if ((x-offsetX)>sizeX*(col+1)-spacingX) return;
+		if ((y-offsetY)>sizeY*(row+1)-spacingY) return;
+		
+		var index = row*cols + col;		
+		if (zot(type) || type=="index") return index
+		if (type == "col") return col;
+		if (type == "row") return row;
+		if (type == "array") return [index, col, row];
+	}
+	
 /*--
 zim.scale = function(obj, scale)
 convenience function to do scaleX and scaleY in one call
@@ -1330,17 +1383,19 @@ just a convenience function - returns obj for chaining
 } (zim || {});
 
 /*--
-zim.expand = function(obj, padding)
+zim.expand = function(obj, padding, paddingVertical)
 adds a createjs hitArea to an object with an extra padding of padding (default 20)
+or if padding vertical is supplied then the padding parameter is for horizontal padding
 good for making mobile interaction better on labels, buttons, etc.
 returns object for chaining
 --*/	
-	zim.expand = function(obj, padding) {
+	zim.expand = function(obj, padding, paddingVertical) {
 		if (zot(obj) || !obj.getBounds) {zog("zim create - expand(): please provide object with bounds set"); return;}	
 		if (zot(padding)) padding = 20;
+		if (zot(paddingVertical)) paddingVertical = padding;
 		var oB = obj.getBounds();
 		var rect = new createjs.Shape();
-		rect.graphics.f("0").r(oB.x-padding,oB.y-padding,oB.width+2*padding,oB.height+2*padding);
+		rect.graphics.f("0").r(oB.x-padding,oB.y-paddingVertical,oB.width+2*padding,oB.height+2*paddingVertical);
 		obj.hitArea = rect;
 		return obj;
 	}
@@ -1356,6 +1411,48 @@ var zim = function(zim) {
 	
 	if (zon) zog("ZIM BUILD Module");
 	
+
+/*--
+zim.OPTIMIZE
+
+a constant that relates to how stage.update() is used by the components
+default is false which means some components will update the stage automatically
+for instance, the Slider will update the stage so that you can see the knob slide
+also, the CheckBox and RadioButtons when checked will update the stage
+the Tabs change button colors and then update the stage
+closing of a Pane will update the stage
+the Stepper also updates as does changing color of a button, label, etc.
+
+however, concurrent stage.update() calls can slow down mobile performance
+so if you are making content for mobile you should set zim.OPTIMIZE = true;
+then you will have to stage.update() in the change event handlers
+but you were probably doing things in these events and updating anyway!
+just be careful - you might be testing a checkbox and it won't check... 
+so it takes some getting used to running in optimized mode
+
+Components affected by OPTIMIZE:
+Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
+
+For mobile, you should set the mouseover parameter of zim.Frame to false
+and, as mentioned, set zim.OPTIMIZE = true at the top of your script
+*/
+
+zim.OPTIMIZE = false;
+
+
+/*--
+zim.ACTIONEVENT
+
+a constant that specifies the event type to trigger many of the components
+default is "mousedown" which is more responsive on mobile
+setting the constant to anything else, will cause the components to use "click"
+
+for instance, with the default settings, the following components will act on mousedown
+Button, CheckBox, RadioButtons, Pane, Stepper and Tabs
+*/
+
+zim.ACTIONEVENT = "mousedown";
+
 
 /*--
 zim.Circle = function(radius, fill, stroke, strokeSize)
@@ -1718,13 +1815,19 @@ shadowColor, shadowBlur
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
 clone() - returns a copy of the label and its properties
-dispose() - to get rid of the button and listeners	
+dispose() - to get rid of the button and listeners
 	
 PROPERTIES
 label - references the text object of the label
+color - gets or sets the label text color
+rollColor - gets or sets the label rollover color
 text - references the text property of the text object
 width and height (or use getBounds().width, getBounds().height)
 enabled - default is true - set to false to disable
+
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
 
 EVENTS
 dispatches no events 
@@ -1775,6 +1878,26 @@ dispatches no events
 				}
 			});
 			
+			Object.defineProperty(that, 'color', {
+				get: function() {									
+					return color;
+				},
+				set: function(value) {
+					color = value;
+					obj.color = color;
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				}
+			});
+			
+			Object.defineProperty(that, 'rollColor', {
+				get: function() {								
+					return rollColor;
+				},
+				set: function(value) {
+					rollColor = value;
+				}
+			});
+			
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
 				get: function() {								
@@ -1782,6 +1905,9 @@ dispatches no events
 				},
 				set: function(value) {
 					zenable(that, value);
+					obj.color = color;
+					that.mouseChildren = false;
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
 			
@@ -1825,7 +1951,7 @@ extends a createjs.Container
 makes a button with rollovers 
 var button = new zim.Button(parameters);
 you will need to stage.addChild(button); and position it
-you will need to add a click event button.on("click", function);
+you will need to add a click event button.on("click", function); (or mousedown for mobile)
 the Button class handles the rollovers		
 
 PARAMETERS (all with defaults - see code) supports DUO - parameters or single object
@@ -1842,11 +1968,17 @@ PROPERTIES
 width and height - or use getBounds().width and getBounds().height
 text - references the text property of the Label object of the button
 label - gives access to the label
-backing - references the backing of the button
+backing - references the backing (zim.Rectangle) of the button
 enabled - default is true - set to false to disable
+color - get or set non-rolled on backing color
+rollColor - get or set rolled on backing color
+
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
 
 EVENTS
-dispatches no events - you make your own click event
+dispatches no events - you make your own click event (or mousedown for mobile)
 --*/		
 	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
 	
@@ -1868,16 +2000,12 @@ dispatches no events - you make your own click event
 			if (zot(hitPadding)) hitPadding=0;			
 			if (zot(label)) label = "PRESS";			
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");			
-			
+
 			var that = this;		
 			this.mouseChildren = false; 
 			this.cursor = "pointer";
-				
-			var buttonBacking = new createjs.Shape();		
-			var g = buttonBacking.graphics;		
-			g.f(color);
-			if (borderColor) g.s(borderColor).ss(borderThickness);
-			g.rr(0, 0, width, height, corner);
+			
+			var buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner);
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
 			
@@ -1909,6 +2037,26 @@ dispatches no events - you make your own click event
 				}
 			});
 			
+			Object.defineProperty(that, 'color', {
+				get: function() {								
+					return color;
+				},
+				set: function(value) {
+					color = value;
+					buttonBacking.color = color;
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				}
+			});
+			
+			Object.defineProperty(that, 'rollColor', {
+				get: function() {								
+					return rollColor;
+				},
+				set: function(value) {
+					rollColor = value;
+				}
+			});
+			
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
 				get: function() {								
@@ -1916,28 +2064,23 @@ dispatches no events - you make your own click event
 				},
 				set: function(value) {
 					zenable(that, value);
+					that.mouseChildren = false;
+					label.color = label.color;
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
 			
 			this.on("mouseover", buttonOn);
 			function buttonOn(e) {
 				that.on("mouseout", buttonOff);
-				var g = buttonBacking.graphics;
-				g.clear();
-				g.f(rollColor);
-				if (borderColor) g.s(borderColor).ss(borderThickness);
-				g.rr(0, 0, width, height, corner);
+				buttonBacking.color = rollColor;
 				that.label.showRollColor();
 				if (that.getStage()) that.getStage().update();
 			}
 		
 			function buttonOff(e) {
 				that.off("mouseout", buttonOff); 
-				var g =buttonBacking.graphics;
-				g.clear();
-				g.f(color);
-				if (borderColor) g.s(borderColor).ss(borderThickness);
-				g.rr(0, 0, width, height, corner);
+				buttonBacking.color = color;
 				that.label.showRollColor(false);
 				if (that.getStage()) that.getStage().update();
 			}			
@@ -1966,7 +2109,7 @@ zim.CheckBox = function(size, label, startChecked, color, margin)
 CheckBox Class
 
 extends createjs.Container
-a checkbox that when clicked toggles the check and a checked property
+a checkbox that when pressed toggles the check and a checked property
 var checkBox = new zim.CheckBox(parameters)
 
 PARAMETERS: supports DUO - parameters or single object
@@ -1983,10 +2126,19 @@ PROPERTIES
 label - gives access to the label including checkBox.label.text
 checked - gets or sets the check of the box
 check - gives access to the check mark ie. check.color = "blue";
+color - gets or sets the color of the check
 enabled - default is true - set to false to disable
 
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
 EVENTS
-dispatches a "change" event when clicked on (or use a click event)
+dispatches a "change" event when pressed on
 --*/
 	zim.CheckBox = function(size, label, startChecked, color, margin) {
 		
@@ -2001,7 +2153,7 @@ dispatches a "change" event when clicked on (or use a click event)
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, size*5/6, "arial", color);
 			var myChecked = (zot(startChecked)) ? false : startChecked;
 			if (zot(color)) color = "black";
-			if (zot(margin)) margin = 10; //20;			
+			if (zot(margin)) margin = 10; //20; 	
 			this.setBounds(-margin, -margin, size+margin*2, size+margin*2);	
 					
 			var that = this;
@@ -2050,7 +2202,7 @@ dispatches a "change" event when clicked on (or use a click event)
 			check.y = size/2;
 			
 			if (myChecked) this.addChild(check);					
-			this.on("click", toggleCheck);
+			this.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", toggleCheck);
 			
 			Object.defineProperty(that, 'checked', {
 				get: function() {				
@@ -2077,7 +2229,7 @@ dispatches a "change" event when clicked on (or use a click event)
 					check.x = size/2;
 					check.y = size/2;
 					if (myChecked) that.addChild(check);
-					if (that.getStage()) that.getStage().update();
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
 			
@@ -2113,8 +2265,8 @@ dispatches a "change" event when clicked on (or use a click event)
 					that.addChild(check);
 				} else {
 					that.removeChild(check);
-				}
-				if (that.getStage()) that.getStage().update();
+				}	
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();			
 			}
 			
 			this.dispose = function() {
@@ -2165,8 +2317,17 @@ labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y 
 dots - an array of the zim Shape dot objects. dots[0].color = "yellow";
 enabled - default is true - set to false to disable
 
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+and stage.update() in change event to see component change its graphics
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
 EVENTS
-dispatches a "change" event when clicked or selectedIndex is set(or use a click event)
+dispatches a "change" event when pressed or selectedIndex is set
 then ask for the properties above for info
 --*/
 	zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin, always) {
@@ -2183,8 +2344,8 @@ then ask for the properties above for info
 			if (zot(vertical)) vertical = true;
 			if (zot(color)) color = "#111";
 			if (zot(spacing)) spacing = (vertical) ? size*.2 : size;
-			if (zot(margin)) margin =  size/5;			
-			
+			if (zot(margin)) margin =  size/5;	
+
 			var that = this;
 			this.cursor = "pointer";
 			this.labels = [];
@@ -2193,7 +2354,7 @@ then ask for the properties above for info
 			
 			var buttonContainer = new createjs.Container();
 			this.addChild(buttonContainer);
-			buttonContainer.on("click", pressBut);
+			buttonContainer.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", pressBut);
 			function pressBut(e) {
 				var index = buttonContainer.getChildIndex(e.target);
 				if (always) {if (that.selectedIndex == index) return;}
@@ -2300,10 +2461,8 @@ then ask for the properties above for info
 			// the main function that sets a button selected (after the initial makeButton)
 			// this gets called by the setter methods below and the click event up top
 			this.setSelected = function(value) {
-				
 				if (zot(value)) value = -1;
 				if (value != -1 && !buttonContainer.getChildAt(value)) return;
-				
 				var but;
 				for (var i=0; i<buttonContainer.getNumChildren(); i++) {
 					but = buttonContainer.getChildAt(i);					
@@ -2325,9 +2484,8 @@ then ask for the properties above for info
 					that.id = currentObject.id;
 					that.label = currentObject.label;				
 					if (that.label) that.text = that.label.text;
-				}
-				if (that.getStage()) that.getStage().update();
-				
+				}	
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			}
 			
 			// getter setter methods
@@ -2413,9 +2571,18 @@ PROPERTIES
 display - reference to the pane box
 text - gives access to the label text
 label - gives access to the label
-backing - reference to the backing	that covers the stage
+backing - reference to the backing that covers the stage
 resetX - if reset is true you can dynamically adjust the position if needed
 resetY 
+
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+and stage.update() in change event to see component change its graphics
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
 dispatches a "close" event when closed by clicking on backing
@@ -2445,6 +2612,7 @@ dispatches a "close" event when closed by clicking on backing
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=20;	
 			if (zot(center)) center=true;
+			
 			var backing = this.backing = new createjs.Shape();				
 			// make a big backing that closes the pane when clicked
 			// could also provide a close button
@@ -2456,8 +2624,9 @@ dispatches a "close" event when closed by clicking on backing
 			
 			backing.alpha = backingAlpha; 			
 			var that = this;
-			backing.on("click", function(e) {
-				that.hide();
+			backing.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
+				removePane();	
+				container.getStage().update();
 				that.dispatchEvent("close");
 				e.stopImmediatePropagation();
 			});
@@ -2500,6 +2669,7 @@ dispatches a "close" event when closed by clicking on backing
 				
 				this.on("pressup", function(e) {				
 					display.cursor = "pointer";
+					container.getStage().update();
 				});
 			}
 			
@@ -2530,26 +2700,27 @@ dispatches a "close" event when closed by clicking on backing
 			});
 				
 			this.hide = function() {
-				container.removeChild(that);			
-				container.getStage().update();	
+				removePane();	
+				if (!zim.OPTIMIZE) container.getStage().update();	
+			}	
+			
+			function removePane() {
+				container.removeChild(that);
 				if (resets) {
 					if (!isNaN(that.resetX)) that.x = that.resetX;					
 					if (!isNaN(that.resetY)) that.y = that.resetY;
 				}
-			}			
+			}
+					
 			this.show = function() {
 				if (center) {
 					if (isNaN(that.resetX)) {
 						that.x = (container.getBounds().width) /2;
 						that.y = (container.getBounds().height) /2;
-					}
-					if (label) {
-						label.x = -label.getBounds().width/2;
-						label.y = -label.getBounds().height/2;
-					}
+					}					
 				}
 				container.addChild(that);			
-				container.getStage().update();	
+				if (container.getStage()) container.getStage().update();
 			}			
 			function checkBounds(x,y) {		
 				x = Math.max(width/2, Math.min(container.getBounds().width-width/2, x));
@@ -2740,6 +2911,15 @@ textBox - access to the text box backing shape
 loop - does the stepper loop
 enabled - default is true - set to false to disable
 
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+and stage.update() in change event to see component change its graphics
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
 METHODS
 next() - goes to next
 prev() - goes to previous
@@ -2767,8 +2947,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			if (zot(corner)) corner=16;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=14;
-			if (zot(loop)) loop=false;		
-			
+			if (zot(loop)) loop=false;	
+			var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
+
 			var that = this;
 			var index;
 			var height = 100;
@@ -2789,7 +2970,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
 			prev.cursor = "pointer";
-			prev.on("click", function(e) {step(-1);});
+			prev.on(eventType, function(e) {step(-1);});
 			
 			if (vertical) {
 				prev.rotation = 0;
@@ -2838,8 +3019,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			next.addChild(arrowNext);
 			
 			next.cursor = "pointer";
-			next.on("click", function(e) {step(1);});
-			box.on("click", function(e) {step(1);});
+			next.on(eventType, function(e) {step(1);});
+			box.on(eventType, function(e) {step(1);});
 			
 			if (vertical) {
 				next.rotation = 180;
@@ -2931,9 +3112,11 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						prev.cursor = "default";
 						next.alpha = .8;
 						arrowNext.setFill("#aaa");
-						next.cursor = "default";						
+						next.cursor = "default";	
+						label.mouseChildren = false;
+						label.mouseEnabled = false;					
 					}
-					if (label.getStage()) label.getStage().update();
+					if (!zim.OPTIMIZE && label.getStage()) label.getStage().update();
 				}
 			});
 			
@@ -2960,8 +3143,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						next.cursor = "default";
 					}
 				}
-				if (label.getStage()) label.getStage().update();
-				
+				if (!zim.OPTIMIZE && label.getStage()) label.getStage().update();				
 			}
 			
 			if (arrows) {
@@ -2988,8 +3170,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			}
 			
 			this.dispose = function() {
-				that.removeAllEventListeners();
-				
+				that.removeAllEventListeners();	
 			}
 		}
 		
@@ -3000,7 +3181,6 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 		return new makeStepper();
 		
 	}	
-	
 	
 /*--
 zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks)
@@ -3030,6 +3210,11 @@ enabled - default is true - set to false to disable
 
 METHODS
 dispose() - removes listeners and deletes object
+
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+and stage.update() in change event to see component change its graphics
 
 EVENTS
 dispatches a "change" event when button is slid on slider
@@ -3138,7 +3323,7 @@ dispatches a "change" event when button is slid on slider
 					}
 					lastValue = button.x;
 				}
-				that.getStage().update();
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			});
 
 			function checkBounds(x,y,rect) {		
@@ -3162,7 +3347,7 @@ dispatches a "change" event when button is slid on slider
 						button.x = (value - min) / (max - min) * barLength;
 						lastValue = button.x;
 					}
-					if (that.getStage()) that.getStage().update(); 
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update(); 
 				}
 			});
 			
@@ -3215,6 +3400,308 @@ dispatches a "change" event when button is slid on slider
 		return new makeSlider();
 		
 	}	
+		
+/*--
+zim.Tabs = function(width, height, tabs, color, rollColor, offColor, auto, spacing, corner, labelAdjust, keyEnabled)
+
+Tabs Class
+
+extends a createjs.Container
+a traditional slider - will give values back based on min and max and position of button (knob)
+var tabs = new zim.Tabs(parameters); 
+tabs.on("change", function() {zog(tabs.selectedIndex);}); 
+
+PARAMETERS: supports DUO - parameters or single object
+pass in an overall width and height for the tab set
+zim will automatically divide the width for each tab taking into account spacing
+tabs is an array of tab objects with the following properties available
+any tab specific properties will override the default values from other parameters
+[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
+the label can be a String or a zim.Label object - default text color is white 
+color is the color of the selected tab - default #333 
+rollColor is the rollover color (selected tabs do not roll over) - default #555
+offColor is the color of a deselected tab when not rolled over - default #777
+note - if auto is false, the color applies to all buttons
+spacing is the pixels between buttons - default 1 pixel
+auto defaults to true and means the selected tab button will be disabled
+corner is the corner radius - default 0 
+labelAdjust defaults to 0 and can be negative or positive to move the labels up or down
+Then you can set the corner to some value, give a bigger height, move the labels up
+and hide the bottom of the buttons to give a curved top effect
+keyEnabled defaults to true so tab key cycles through tabs, shift tab backwards
+
+
+PROPERTIES
+width, height - actual width and provided height
+selectedIndex - gets or sets the selected index of the tabs
+selected - gets the selected button - selected.enabled = true, etc.
+tabs - gets or sets tabs object (will have to manually change buttons as well as adjust props)
+color - gets or sets default selected tab color
+rollColor - gets or sets default rolled over color
+offColor - gets or sets default unselected tab color
+text - gets or sets current selected label text
+label - gets current selected label object
+buttons - an array of the ZIM Button objects. buttons[0].enabled = false;
+labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
+keyEnabled - gets or sets whether the tab key and shift tab key cycles through tabs
+enabled - default is true - set to false to disable
+
+METHODS
+dispose() - removes listeners and deletes object
+
+OPTIMIZED
+This component is affected by the general zim.OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+and stage.update() in change event to see component change its graphics
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
+EVENTS
+dispatches a "change" event when a tab changes
+--*/	
+	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, auto, corner, labelAdjust, keyEnabled) {
+
+		var duo; if (duo = zob(zim.Tabs, arguments)) return duo;
+		
+		function makeTabs() {
+			
+			if (zot(width)) width = 240;
+			if (zot(height)) height = 60; 
+			if (zot(tabs) || tabs.length<=0) tabs = [{label:1},{label:2},{label:3},{label:4}]; 
+			if (zot(color)) color = "#333";
+			if (zot(rollColor)) rollColor = "#555"; 
+			if (zot(offColor)) offColor = "#777"; 
+			if (zot(auto)) auto = true;
+			if (zot(spacing)) spacing = 1;
+			if (zot(corner)) corner = 0;
+			if (zot(labelAdjust)) labelAdjust = 0;
+			if (zot(keyEnabled)) keyEnabled = true;
+
+			var that = this;
+			this.width = width;	
+			this.height = height;
+			this.keyEnabled = keyEnabled;
+			
+			var myIndex = 0; // local value for this.currentIndex
+			var labels = []
+			var buttons = [];
+			var button; var t;
+			var num = tabs.length;
+			var tabW = (width - spacing*(num-1))/num;
+			// calculate widths
+			var total = 0; var t; 
+			var newTabW; var nonSpecifiedCount = 0;
+			for (var i=0; i<tabs.length; i++) {
+				t = tabs[i];
+				if (zot(t.width)) nonSpecifiedCount++;
+				total += (zot(t.width))?tabW:t.width;
+			}			
+			
+			if (total > width - spacing*(num-1)) {
+				// go back and assign proportional widths
+				for (i=0; i<tabs.length; i++) {
+					t = tabs[i];
+					t.width = (width - spacing*(num-1)) / total * ((zot(t.width))?tabW:t.width); 
+				}					
+			} else if (total < width - spacing*(num-1)) {
+				// go back and readjust the average of non specified widths
+				if (nonSpecifiedCount > 0) {
+					newTabW = (total-nonSpecifiedCount*tabW)/nonSpecifiedCount;
+					for (i=0; i<tabs.length; i++) {
+						t = tabs[i];
+						t.width = ((zot(t.width))?newTabW:t.width); 
+					}						
+				} else {
+					if (zon) zog("ZIM Tabs - total less than width");	
+					this.width = total + spacing*(num-1);	
+				}
+			} 
+
+			var lastX = 0; var tColor; 
+			for (i=0; i<tabs.length; i++) {
+				t = tabs[i];
+				if (zot(t.label)) t.label = " ";
+				tColor = (i==0 || !auto)?((zot(t.color))?color:t.color):((zot(t.offColor))?offColor:t.offColor);
+				if (typeof t.label === "string" || typeof t.label === "number") {
+					t.label = new zim.Label(t.label, 36, "arial", "white");
+				}
+				button = new zim.Button(
+					(zot(t.width))?tabW:t.width, 
+					height, t.label, tColor,
+					(zot(t.rollColor))?rollColor:t.rollColor,
+					null, null, corner, -1
+				)
+				button.num = i;
+				t.label.num = i;
+				t.label.y += labelAdjust;
+				labels.push(t.label);
+				buttons.push(button);
+				this.addChild(button);
+				button.x = lastX;
+				lastX = button.x + button.width + spacing;		
+				if (i==0 && auto) button.enabled = false;					
+			};
+			
+			this.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
+				change(e.target.num);				
+			});
+			
+			function change(num) {
+				var t = tabs[myIndex];
+				if (auto) {
+					buttons[myIndex].color = (zot(t.offColor))?offColor:t.offColor;
+					buttons[myIndex].enabled = true;
+				}
+				myIndex = num;
+				t = tabs[myIndex];
+				buttons[myIndex].color = (zot(t.color))?color:t.color;;
+				if (auto) buttons[myIndex].enabled = false;
+				that.dispatchEvent("change");
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			}
+	
+			window.addEventListener("keydown", function(e) {
+				if (!that.keyEnabled) return; 
+				if (e.keyCode == 9) {
+					var next = myIndex; // note that change updates the index
+					if (e.shiftKey) {
+						change((--next<0)?tabs.length-1:next);
+					} else {
+						change((++next>tabs.length-1)?0:next);
+					}
+					e.preventDefault();	
+				}
+			});
+		
+			Object.defineProperty(this, 'selected', {
+				get: function() {
+					return buttons[myIndex];
+				},
+				set: function(value) {					
+					if (zon) zog("selected is read only - try selectedIndex");
+				}
+			});
+			
+			Object.defineProperty(this, 'selectedIndex', {
+				get: function() {
+					return myIndex;
+				},
+				set: function(value) {		
+					change(Math.min(Math.max(value, 0), tabs.length-1));					
+				}
+			});
+			
+			Object.defineProperty(this, 'tabs', {
+				get: function() {
+					return myIndex;
+				},
+				set: function(value) {		
+					change(Math.min(Math.max(value, 0), tabs.length-1));					
+				}
+			});
+			
+			Object.defineProperty(this, 'color', {
+				get: function() {
+					return color;
+				},
+				set: function(value) {		
+					color = value;
+					if (zot(tabs[myIndex].color)) {
+						buttons[myIndex].color = color;
+						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					}
+				}
+			});
+			
+			Object.defineProperty(this, 'rollColor', {
+				get: function() {
+					return rollColor;
+				},
+				set: function(value) {		
+					rollColor = value;	
+					for (var i=0; i<tabs.length; i++) {
+						if (zot(tabs[myIndex].rollColor)) {
+							buttons[i].rollColor = rollColor;
+						}
+					}
+				}
+			});
+			
+			Object.defineProperty(this, 'offColor', {
+				get: function() {
+					return offColor;
+				},
+				set: function(value) {		
+					offColor = value;
+					for (var i=0; i<tabs.length; i++) {
+						if (zot(tabs[myIndex].offColor)) {
+							buttons[i].color = offColor;
+						}
+					}	
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update(); 		
+				}
+			});
+			
+			Object.defineProperty(this, 'label', {
+				get: function() {
+					return labels[myIndex];
+				},
+				set: function(value) {					
+					if (zon) zog("selected is read only - try selectedIndex");
+				}
+			});
+			
+			Object.defineProperty(this, 'text', {
+				get: function() {
+					return labels[myIndex].text;
+				},
+				set: function(value) {					
+					if (zon) zog("selected is read only - try selectedIndex");
+				}
+			});
+			
+			Object.defineProperty(this, 'buttons', {
+				get: function() {
+					return buttons;
+				},
+				set: function(value) {					
+					if (zon) zog("buttons is read only");
+				}
+			});
+			
+			Object.defineProperty(this, 'labels', {
+				get: function() {
+					return labels;
+				},
+				set: function(value) {					
+					if (zon) zog("labels is read only");
+				}
+			});
+			
+			this._enabled = true;
+			Object.defineProperty(that, 'enabled', {
+				get: function() {								
+					return that._enabled;
+				},
+				set: function(value) {
+					zenable(that, value);
+				}
+			});
+			
+			this.dispose = function() {
+				button.removeAllEventListeners();
+			}
+		}
+		
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time		
+		makeTabs.prototype = new createjs.Container();
+		makeTabs.prototype.constructor = zim.Tabs;
+		return new makeTabs();
+		
+	}	
 	
 /*--
 zim.Parallax = function(stage, damp, layers, auto, fps, ticker)
@@ -3262,7 +3749,6 @@ if auto is set to false, you must make your own Ticker and use the step(input) m
 can set frames per second as fps parameter default 30 (works better on mobile)
 ticker sets a ticker and defaults to true - should only use one ticker for mobile
 
-
 METHODS 
 addLayer({layer object properties}) - adds a layer
 removeLayer(index) - removes a layer based on order added
@@ -3274,7 +3760,7 @@ PROPERTIES
 damp - allows you to dynamically change the damping
 --*/	
 	zim.Parallax = function(stage, damp, layers, auto, fps, ticker) {
-		
+
 		var duo; if (duo = zob(zim.Parallax, arguments)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
@@ -3428,7 +3914,7 @@ direction - either left or right if horizontal or up or down if not horizontal
 gapFix - if spacing occurs over time you can set the gapFix dynamically
 --*/
 	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker) {
-		
+
 		var duo; if (duo = zob(zim.Scroller, arguments)) return duo;
 		
 		var b1 = backing1; var b2 = backing2;
@@ -3732,7 +4218,7 @@ so you probably will not use the swipe event unless handling data between pages
 Pages dispatches a "page" event when you pass in a page object in the swipe array
 myPages.on("page",function(e){...})
 with myPages.page being set to the new page (e.target.page)
-and myPages.oldPage being set to the old page (e.target.page)
+and myPages.lastPage being set to the old page (e.target.lastPage)
 myPages.direction gets the direction of the transition (e.target.direction)
 if there is a string in the swipe array like "info"
 then the zim.Pages() object dispatches an event equivalent to the string
@@ -4052,11 +4538,18 @@ addHotSpot(page,rect,call) - can dynamically add hotSpots
 removeHotSpots(page,id) - id is optional - so can remove all spots on a page
 dispose() - removes listeners
 
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
 note, the class does actually add rectangle shapes to your page
 the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 this could have been done with "math" alone but rollover cursor would be a pain
 the class creates zim.HotSpot objects - see the class underneath this one
 --*/
+
+	if (zot(zim.ACTIONEVENT)) zim.ACTIONEVENT = "mousedown";
+	
 	zim.HotSpots = function(spots, local, mouseDowns) {
 		
 		var duo; if (duo = zob(zim.HotSpots, arguments)) return duo;
@@ -4065,6 +4558,7 @@ the class creates zim.HotSpot objects - see the class underneath this one
 			if (zot(spots) || !Array.isArray(spots)) {zog("zim pages - HotSpots():\nplease provide an array of HotSpot data"); return;}
 			if (zot(local)) local = true;
 			if (zot(mouseDowns)) mouseDowns = false;
+			var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
 			
 			var that = this;
 	
@@ -4096,15 +4590,15 @@ the class creates zim.HotSpot objects - see the class underneath this one
 				hs.zimHSpage = data.page;	
 				hs.button = button;
 				hotSpots.push(hs);
-				hs.on("click", hsEvent);
+				hs.on(eventType, hsEvent);
 				if (button) {					
 					// stop hotSpot from taking away rollovers on button
 					hs.spot.mouseEnabled = false;
 					hs.spot.mouseChildren = false;
 					// but now need to add click to button as hotSpot will not work
 					button.zimHScall = data.call;
-					button.zimHSEvent = button.on("click", hsEvent);
-					if (!mouseDowns) {	
+					button.zimHSEvent = button.on(eventType, hsEvent);
+					if (!mouseDowns) {
 						button.zimHSMDEvent = button.on("mousedown",function(e) {	
 							e.stopImmediatePropagation();		
 						});
@@ -4114,8 +4608,10 @@ the class creates zim.HotSpot objects - see the class underneath this one
 			}
 			
 			function hsEvent(e) {
+				if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+				if (window.event) window.event.cancelBubble=true;
 				if (typeof(e.currentTarget.zimHScall) == "function") {
-					e.currentTarget.zimHScall();
+					e.currentTarget.zimHScall(e);
 				}
 			}	
 						
@@ -4154,10 +4650,14 @@ the class creates zim.HotSpot objects - see the class underneath this one
 						// remove hotSpot from data and hotSpots list				
 						spots.splice(i,1);
 						if (hs.button) {
-							hs.button.off("click", hs.button.zimHSEvent);	
-							hs.button.zimHSEvent = null;	
+							hs.button.off(eventType, hs.button.zimHSEvent);	
+							hs.button.zimHSEvent = null;
+							if (!mouseDowns) {
+								hs.button.off("mousedown", hs.button.zimHSMDEvent);
+								hs.button.zimHSMDEvent = null;
+							}	
 						}
-						hs.off("click", hsEvent);
+						hs.off(eventType, hsEvent);
 						hs.dispose();						
 						hotSpots.splice(i,1);
 					}
@@ -4168,11 +4668,15 @@ the class creates zim.HotSpot objects - see the class underneath this one
 				for (var i=0; i<hotSpots.length; i++) {
 					hs = hotSpots[i];
 					if (hs.button) {						
-						hs.button.off("click", hs.button.zimHSEvent);	
+						hs.button.off(eventType, hs.button.zimHSEvent);	
 						hs.button.zimHSCall = null;
-						hs.button.zimHSEvent = null;					
+						hs.button.zimHSEvent = null;
+						if (!mouseDowns) {
+							hs.button.off("mousedown", hs.button.zimHSMDEvent);
+							hs.button.zimHSMDEvent = null;
+						}						
 					}
-					hs.off("click", hsEvent);	
+					hs.off(eventType, hsEvent);	
 					hs.dispose();
 				}				
 			}					
@@ -4200,10 +4704,14 @@ the spot will get a cursor of "pointer"
 PARAMETERS: supports DUO - parameters or single object
 the container object in which to place the hotspot
 the x, y, width and height of the hotspot relative to the stage
-call is the function to call when the spot is clicked
+call is the function to call when the spot is pressed
 local defaults to true and should be used when the element scale independently from the stage
 in local mode you must add coordinates of the hotSpot inside its container
 if set to false then you pass in global coordinates and hotSpot will convert them
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
 
 METHODS	
 show() - helps when creating the spot to see where it is
@@ -4222,6 +4730,8 @@ eg. hs.spot
 			if (zot(obj) || !obj.addChild) {zog("zim pages - HotSpot():\nPlease pass in container object for obj"); return;}
 			if (obj instanceof createjs.Container == false) zog("zim build - HotSpot():\nObjects passed in should be Containers");
 			if (zot(local)) local = true;	
+			eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
+			
 			var w = width; var h = height;		
 			var that = this; 
 			
@@ -4246,7 +4756,7 @@ eg. hs.spot
 			but.cursor = "pointer";		
 			this.spot = but;
 						
-			var butEvent = but.on("click",function() {				
+			var butEvent = but.on(eventType,function(e) {
 				if (typeof(call) == "function") {
 					call();
 				}
@@ -4260,7 +4770,7 @@ eg. hs.spot
 				obj.removeChild(backing);
 			}
 			this.dispose = function() {
-				but.off("click", butEvent);
+				but.off(eventType, butEvent);
 				obj.removeChild(but);
 				delete but;	
 			}
@@ -5023,6 +5533,9 @@ setting a scalingTarget will also set the bounds of the holder to the scalingTar
 it does not scale the holder - only scales the region objects inside
 hideKey is the hot key for hiding and showing the bounds - default B
 
+PROPERTIES
+regions - the regions object - if changed will have to call resize() manually
+
 METHODS
 resize() - resize based on new bounds of the holder (or scalingObject)
 dispose() - removes the B key listener (otherwise, nothing to dispose)
@@ -5080,6 +5593,8 @@ will fill up the rest of the height until they reach their maximum widths
 			// these are temporary depending on the resizing and are always in the primary direction
 			// secondary direction is quite simple
 			// primary direction is quite complex involving a number of steps and even some recursion
+			
+			this.regions = regions; // expose the regions object for dynamic adjustments then manual resize
 			
 			var r; // used to hold a region in a loop
 			var totalAbsolute = 0;
@@ -5359,6 +5874,7 @@ will fill up the rest of the height until they reach their maximum widths
 			window.addEventListener("keydown", keyEvent);			
 			function keyEvent(e) {				
 				if (!e) e=event; 								
+
 				if (regionShape) {					
 					if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // B
 						regionShape.visible = !regionShape.visible;	
@@ -5503,7 +6019,7 @@ width and height - will set both the exact canvas and stage size when scaling is
 they will set the stage width and height when set to fit or outside (the canvas is then scaled)
 this is handy because all your dimensions are set to start
 width and height are ignored when scaling is set to full as these are set to the window width and height
-rollover - activates rollovers and is set to true by default
+rollover - activates rollovers and is set to false if mobile is detected otherwise true by default
 touch - activates touch on mobile and is set to true by default
 scrollTop - activates scrolling on older apple devices to hide the url bar and defaults to true
 
@@ -5528,7 +6044,7 @@ dispose() - only removes canvas, resize listener and stage
 			if (zot(scaling)) scaling = "full";
 			if (zot(width)) width = 500;
 			if (zot(height)) height = 500;
-			if (zot(rollover)) rollover = true;
+			if (zot(rollover)) rollover = !zim.mobile();
 			if (zot(touch)) touch = true;
 			if (zot(scrollTop)) scrollTop = true;
 			

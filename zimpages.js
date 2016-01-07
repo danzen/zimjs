@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_2.3.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -417,7 +417,7 @@ so you probably will not use the swipe event unless handling data between pages
 Pages dispatches a "page" event when you pass in a page object in the swipe array
 myPages.on("page",function(e){...})
 with myPages.page being set to the new page (e.target.page)
-and myPages.oldPage being set to the old page (e.target.page)
+and myPages.lastPage being set to the old page (e.target.lastPage)
 myPages.direction gets the direction of the transition (e.target.direction)
 if there is a string in the swipe array like "info"
 then the zim.Pages() object dispatches an event equivalent to the string
@@ -738,11 +738,18 @@ addHotSpot(page,rect,call) - can dynamically add hotSpots
 removeHotSpots(page,id) - id is optional - so can remove all spots on a page
 dispose() - removes listeners
 
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
 note, the class does actually add rectangle shapes to your page
 the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 this could have been done with "math" alone but rollover cursor would be a pain
 the class creates zim.HotSpot objects - see the class underneath this one
 --*/
+
+	if (zot(zim.ACTIONEVENT)) zim.ACTIONEVENT = "mousedown";
+	
 	zim.HotSpots = function(spots, local, mouseDowns) {
 		
 		var sig = "spots, local, mouseDowns";
@@ -752,6 +759,7 @@ the class creates zim.HotSpot objects - see the class underneath this one
 			if (zot(spots) || !Array.isArray(spots)) {zog("zim pages - HotSpots():\nplease provide an array of HotSpot data"); return;}
 			if (zot(local)) local = true;
 			if (zot(mouseDowns)) mouseDowns = false;
+			var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
 			
 			var that = this;
 	
@@ -783,15 +791,15 @@ the class creates zim.HotSpot objects - see the class underneath this one
 				hs.zimHSpage = data.page;	
 				hs.button = button;
 				hotSpots.push(hs);
-				hs.on("click", hsEvent);
+				hs.on(eventType, hsEvent);
 				if (button) {					
 					// stop hotSpot from taking away rollovers on button
 					hs.spot.mouseEnabled = false;
 					hs.spot.mouseChildren = false;
 					// but now need to add click to button as hotSpot will not work
 					button.zimHScall = data.call;
-					button.zimHSEvent = button.on("click", hsEvent);
-					if (!mouseDowns) {	
+					button.zimHSEvent = button.on(eventType, hsEvent);
+					if (!mouseDowns) {
 						button.zimHSMDEvent = button.on("mousedown",function(e) {	
 							e.stopImmediatePropagation();		
 						});
@@ -801,8 +809,10 @@ the class creates zim.HotSpot objects - see the class underneath this one
 			}
 			
 			function hsEvent(e) {
+				if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+				if (window.event) window.event.cancelBubble=true;
 				if (typeof(e.currentTarget.zimHScall) == "function") {
-					e.currentTarget.zimHScall();
+					e.currentTarget.zimHScall(e);
 				}
 			}	
 						
@@ -841,10 +851,14 @@ the class creates zim.HotSpot objects - see the class underneath this one
 						// remove hotSpot from data and hotSpots list				
 						spots.splice(i,1);
 						if (hs.button) {
-							hs.button.off("click", hs.button.zimHSEvent);	
-							hs.button.zimHSEvent = null;	
+							hs.button.off(eventType, hs.button.zimHSEvent);	
+							hs.button.zimHSEvent = null;
+							if (!mouseDowns) {
+								hs.button.off("mousedown", hs.button.zimHSMDEvent);
+								hs.button.zimHSMDEvent = null;
+							}	
 						}
-						hs.off("click", hsEvent);
+						hs.off(eventType, hsEvent);
 						hs.dispose();						
 						hotSpots.splice(i,1);
 					}
@@ -855,11 +869,15 @@ the class creates zim.HotSpot objects - see the class underneath this one
 				for (var i=0; i<hotSpots.length; i++) {
 					hs = hotSpots[i];
 					if (hs.button) {						
-						hs.button.off("click", hs.button.zimHSEvent);	
+						hs.button.off(eventType, hs.button.zimHSEvent);	
 						hs.button.zimHSCall = null;
-						hs.button.zimHSEvent = null;					
+						hs.button.zimHSEvent = null;
+						if (!mouseDowns) {
+							hs.button.off("mousedown", hs.button.zimHSMDEvent);
+							hs.button.zimHSMDEvent = null;
+						}						
 					}
-					hs.off("click", hsEvent);	
+					hs.off(eventType, hsEvent);	
 					hs.dispose();
 				}				
 			}					
@@ -887,10 +905,14 @@ the spot will get a cursor of "pointer"
 PARAMETERS: supports DUO - parameters or single object
 the container object in which to place the hotspot
 the x, y, width and height of the hotspot relative to the stage
-call is the function to call when the spot is clicked
+call is the function to call when the spot is pressed
 local defaults to true and should be used when the element scale independently from the stage
 in local mode you must add coordinates of the hotSpot inside its container
 if set to false then you pass in global coordinates and hotSpot will convert them
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
 
 METHODS	
 show() - helps when creating the spot to see where it is
@@ -910,6 +932,8 @@ eg. hs.spot
 			if (zot(obj) || !obj.addChild) {zog("zim pages - HotSpot():\nPlease pass in container object for obj"); return;}
 			if (obj instanceof createjs.Container == false) zog("zim build - HotSpot():\nObjects passed in should be Containers");
 			if (zot(local)) local = true;	
+			eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
+			
 			var w = width; var h = height;		
 			var that = this; 
 			
@@ -934,7 +958,7 @@ eg. hs.spot
 			but.cursor = "pointer";		
 			this.spot = but;
 						
-			var butEvent = but.on("click",function() {				
+			var butEvent = but.on(eventType,function(e) {
 				if (typeof(call) == "function") {
 					call();
 				}
@@ -948,7 +972,7 @@ eg. hs.spot
 				obj.removeChild(backing);
 			}
 			this.dispose = function() {
-				but.off("click", butEvent);
+				but.off(eventType, butEvent);
 				obj.removeChild(but);
 				delete but;	
 			}
@@ -1713,6 +1737,9 @@ setting a scalingTarget will also set the bounds of the holder to the scalingTar
 it does not scale the holder - only scales the region objects inside
 hideKey is the hot key for hiding and showing the bounds - default B
 
+PROPERTIES
+regions - the regions object - if changed will have to call resize() manually
+
 METHODS
 resize() - resize based on new bounds of the holder (or scalingObject)
 dispose() - removes the B key listener (otherwise, nothing to dispose)
@@ -1771,6 +1798,8 @@ will fill up the rest of the height until they reach their maximum widths
 			// these are temporary depending on the resizing and are always in the primary direction
 			// secondary direction is quite simple
 			// primary direction is quite complex involving a number of steps and even some recursion
+			
+			this.regions = regions; // expose the regions object for dynamic adjustments then manual resize
 			
 			var r; // used to hold a region in a loop
 			var totalAbsolute = 0;
@@ -2050,6 +2079,7 @@ will fill up the rest of the height until they reach their maximum widths
 			window.addEventListener("keydown", keyEvent);			
 			function keyEvent(e) {				
 				if (!e) e=event; 								
+
 				if (regionShape) {					
 					if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // B
 						regionShape.visible = !regionShape.visible;	

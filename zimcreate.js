@@ -7,7 +7,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.2.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.3.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -348,7 +348,55 @@ used by the hitTestBounds above so probably you will not use this directly
 			newBRY-newTLY
 		);	
 	}
-
+	
+/*--
+zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+converts an x and y point to an index in a grid
+if you have a grid of rectangles for instance and you want to find out which is beneath the cursor
+this technique will work faster than any of the other hit tests
+obj is the object that contains the grid
+width and height are the overall dimensions 
+cols and rows are how many of each (note it is cols and then rows)
+x and y would be your stage.mouseX and stage.mouseY most likely
+these get automatically converted to the object's cooridinates unless local is set to true (default is false)
+offsetX and offsetY are the distances the grid starts from the origin of the obj - default is 0
+spacingX and spacingY default to 0 - null will be returned if x and y within spacing
+spacing is only between the cells and is to be included in the width and height (but not outside the grid)
+type defaults to index which means the hitTestGrid returns the index of the cell beneath the x and y point  
+starting at 0 for top left corner and counting columns along the row and then to the next row, etc.
+type set to "col" will return the column and "row" will return the row "array" will return all three [index, col, row]
+--*/
+	zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
+		if (!zot(obj) && !local) {
+			var point = obj.globalToLocal(x,y);
+			x=point.x; y=point.y;
+		}
+		if (zot(offsetX)) offsetX = 0;
+		if (zot(offsetY)) offsetY = 0;
+		if (zot(spacingX)) spacingX = 0;
+		if (zot(spacingY)) spacingY = 0;
+		
+		// assume spacing is to the right and bottom of a cell
+		// turning this into an object would avoid the size calculations
+		// but hopefully it will not be noticed - and then hitTests are all functions
+		var sizeX = width / cols; 
+		var sizeY = height / rows;
+		
+		// calculate col and row
+		var col = Math.min(cols-1,Math.max(0,Math.floor((x-offsetX)/sizeX)));
+		var row = Math.min(rows-1,Math.max(0,Math.floor((y-offsetY)/sizeY)));
+		
+		// check if within cell
+		if ((x-offsetX)>sizeX*(col+1)-spacingX) return;
+		if ((y-offsetY)>sizeY*(row+1)-spacingY) return;
+		
+		var index = row*cols + col;		
+		if (zot(type) || type=="index") return index
+		if (type == "col") return col;
+		if (type == "row") return row;
+		if (type == "array") return [index, col, row];
+	}
+	
 /*--
 zim.scale = function(obj, scale)
 convenience function to do scaleX and scaleY in one call
@@ -713,17 +761,19 @@ just a convenience function - returns obj for chaining
 	}
 
 /*--
-zim.expand = function(obj, padding)
+zim.expand = function(obj, padding, paddingVertical)
 adds a createjs hitArea to an object with an extra padding of padding (default 20)
+or if padding vertical is supplied then the padding parameter is for horizontal padding
 good for making mobile interaction better on labels, buttons, etc.
 returns object for chaining
 --*/	
-	zim.expand = function(obj, padding) {
+	zim.expand = function(obj, padding, paddingVertical) {
 		if (zot(obj) || !obj.getBounds) {zog("zim create - expand(): please provide object with bounds set"); return;}	
 		if (zot(padding)) padding = 20;
+		if (zot(paddingVertical)) paddingVertical = padding;
 		var oB = obj.getBounds();
 		var rect = new createjs.Shape();
-		rect.graphics.f("0").r(oB.x-padding,oB.y-padding,oB.width+2*padding,oB.height+2*padding);
+		rect.graphics.f("0").r(oB.x-padding,oB.y-paddingVertical,oB.width+2*padding,oB.height+2*paddingVertical);
 		obj.hitArea = rect;
 		return obj;
 	}

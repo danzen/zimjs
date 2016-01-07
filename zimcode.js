@@ -480,10 +480,15 @@ deletes an HTML cookie
 	}	
 	
 /*--
-zim.mobile = function()
-detects if on a mobile device (note windows phone would get detected by phone or mobile)
-orientation defaults to true and mobile() may return true for desktop and laptop screens
-if set to false, does not check orientation of device - but then may miss non-mainstream devices
+zim.mobile = function(orientation)
+detects if app is on a mobile device 
+orientation defaults to true and if there is window.orientation then it assumes mobile 
+BUT this may return true for some desktop and laptop touch screens  
+so you can turn the orientation check off by setting orientation to false 
+the check also looks at the navigator.userAgent for the following regular expression
+/ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
+microsoft mobile gets detected by mobile or phone 
+so if orientation is set to false the check may miss non-mainstream devices
 --*/	
 	zim.mobile = function(orientation) {
 		if (zot(orientation)) orientation = true;
