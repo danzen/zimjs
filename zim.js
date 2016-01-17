@@ -44,9 +44,9 @@ function zgo(u,t,m) {
 		window.location.href = u;
 	} else {
 		if (zot(m)) { // not modal
-			window.open(u,"_blank");
+			window.open(u,t);
 		} else {
-			window.open(u,"_blank","modal=yes,alwaysRaised=yes");			
+			window.open(u,t,"modal=yes,alwaysRaised=yes");			
 		}			
 	}
 }
@@ -1016,10 +1016,11 @@ type set to "col" will return the column and "row" will return the row "array" w
 		var col = Math.min(cols-1,Math.max(0,Math.floor((x-offsetX)/sizeX)));
 		var row = Math.min(rows-1,Math.max(0,Math.floor((y-offsetY)/sizeY)));
 		
+		zog(row);
 		// check if within cell
-		if ((x-offsetX)>sizeX*(col+1)-spacingX) return;
-		if ((y-offsetY)>sizeY*(row+1)-spacingY) return;
-		
+		if ((x-offsetX)>sizeX*(col+1)-spacingX || (x-offsetX)<sizeX*(col)) return;
+		if ((y-offsetY)>sizeY*(row+1)-spacingY || (y-offsetY)<sizeY*(row)) return;
+
 		var index = row*cols + col;		
 		if (zot(type) || type=="index") return index
 		if (type == "col") return col;
@@ -1428,7 +1429,7 @@ var zim = function(zim) {
 /*--
 zim.OPTIMIZE
 
-a constant that relates to how stage.update() is used by the components
+a setting that relates to how stage.update() is used by the components
 default is false which means some components will update the stage automatically
 for instance, the Slider will update the stage so that you can see the knob slide
 also, the CheckBox and RadioButtons when checked will update the stage
@@ -1456,7 +1457,7 @@ zim.OPTIMIZE = false;
 /*--
 zim.ACTIONEVENT
 
-a constant that specifies the event type to trigger many of the components
+a setting that specifies the event type to trigger many of the components
 default is "mousedown" which is more responsive on mobile
 setting the constant to anything else, will cause the components to use "click"
 

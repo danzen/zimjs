@@ -118,7 +118,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 /*--
 zim.OPTIMIZE
 
-a constant that relates to how stage.update() is used by the components
+a setting that relates to how stage.update() is used by the components
 default is false which means some components will update the stage automatically
 for instance, the Slider will update the stage so that you can see the knob slide
 also, the CheckBox and RadioButtons when checked will update the stage
@@ -146,7 +146,7 @@ zim.OPTIMIZE = false;
 /*--
 zim.ACTIONEVENT
 
-a constant that specifies the event type to trigger many of the components
+a setting that specifies the event type to trigger many of the components
 default is "mousedown" which is more responsive on mobile
 setting the constant to anything else, will cause the components to use "click"
 

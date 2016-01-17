@@ -387,8 +387,8 @@ type set to "col" will return the column and "row" will return the row "array" w
 		var row = Math.min(rows-1,Math.max(0,Math.floor((y-offsetY)/sizeY)));
 		
 		// check if within cell
-		if ((x-offsetX)>sizeX*(col+1)-spacingX) return;
-		if ((y-offsetY)>sizeY*(row+1)-spacingY) return;
+		if ((x-offsetX)>sizeX*(col+1)-spacingX || (x-offsetX)<sizeX*(col)) return;
+		if ((y-offsetY)>sizeY*(row+1)-spacingY || (y-offsetY)<sizeY*(row)) return;
 		
 		var index = row*cols + col;		
 		if (zot(type) || type=="index") return index
