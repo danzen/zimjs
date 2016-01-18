@@ -8,7 +8,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.4.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -516,7 +516,8 @@ Have tended to find that left and alphabetic are most consistent across browsers
 PARAMETERS (see the defaults in the code) supports DUO - parameters or single object
 labelText, 
 fontSize, font, textColor, textRollColor, 
-shadowColor, shadowBlur
+shadowColor defaults to -1 for no shadow
+value for shadow blur (default 14)
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
@@ -551,8 +552,8 @@ dispatches no events
 			if (zot(font)) font="arial";
 			if (zot(color)) color="black";
 			if (zot(rollColor)) rollColor=color;
-			if (zot(shadowColor)) shadowColor=null;
-			if (zot(shadowBlur)) shadowBlur=16;
+			if (zot(shadowColor)) shadowColor=-1;
+			if (zot(shadowBlur)) shadowBlur=14;
 		
 			var that = this;
 			this.mouseChildren = false;
@@ -560,7 +561,7 @@ dispatches no events
 			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color); 
 			obj.textBaseline = "alphabetic";
 			obj.textAlign = "left";			 
-			if (shadowColor && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.addChild(obj);
 
 			var backing = new createjs.Shape();
@@ -662,10 +663,12 @@ you will need to add a click event button.on("click", function); (or mousedown f
 the Button class handles the rollovers		
 
 PARAMETERS (all with defaults - see code) supports DUO - parameters or single object
-width, height, 
+width (default 200), height (default 60), 
 label, // ZIM Label or plain text for default settings
 color (backing), rollColor (backing), borderColor, borderThickness, 
-corner, shadowColor (set to -1 for no shadow), shadowBlur
+corner default 20 
+shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
+value for shadow blur (default 14)
 hitPadding (default 0) adds extra hit area to the button for mobile
 
 METHODS
@@ -704,7 +707,7 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			if (zot(borderThickness)) borderThickness=1;
 			if (zot(corner)) corner=20;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=16;		
+			if (zot(shadowBlur)) shadowBlur=14;		
 			if (zot(hitPadding)) hitPadding=0;			
 			if (zot(label)) label = "PRESS";			
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");			
@@ -723,7 +726,7 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				this.hitArea = rect;
 			}
 								
-			if (shadowBlur > 0) buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			if (shadowColor != -1 && shadowBlur > 0) buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.setBounds(0,0,width,height);
 			this.width = width;
 			this.height = height;
@@ -1267,8 +1270,8 @@ for reset, default true, Pane takes the first position and will continue to use 
 modal defaults to true and means the pane will close when user clicks off the pane
 corner is the corner radius default 20
 the backingAlpha is the darkness of the background that fills the stage
-shadowColor defaults to #333
-value for shadow blur - 0 for no shadow
+shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
+value for shadow blur (default 20)
 center - defaults to true and centers the pane and the label on the pane
 if center is false you will have to set x and y for the pane and the label
 note, the origin inside the pane is in the center
@@ -1353,7 +1356,7 @@ dispatches a "close" event when closed by clicking on backing
 			g = display.graphics;
 			g.beginFill(color);
 			g.drawRoundRect(0, 0, width, height, corner);
-			if (shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);		
+			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);		
 			display.on("click", function(e) {
 				// stops the click from going through the display to the background
 				e.stopImmediatePropagation();
@@ -1472,7 +1475,8 @@ pass in the container for the waiter (usually the stage)
 pass in the speed in ms for the cycle time (default 600ms)
 pass in backing color and dot color
 corner is the corner radius default 14
-color and value for shadow blur - 0 for no shadow
+shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
+value for shadow blur (default 14)
 
 METHODS
 show() - shows the waiter
@@ -1499,7 +1503,7 @@ display - reference to the waiter backing graphic
 			if (zot(color)) color="orange";
 			if (zot(circleColor)) circleColor="white";
 			if (zot(corner)) corner=16;
-			if (zot(shadowColor)) shadowColor="#444";
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=14;		
 			
 			var height = 40;	
@@ -1520,7 +1524,7 @@ display - reference to the waiter backing graphic
 			var g = display.graphics;
 			g.f(color);
 			g.rr(0, 0, width, height, corner);
-			if (shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
 			display.on("click", function(e) {
 				// stops the click from going through the display to the background
 				e.stopImmediatePropagation();
@@ -1610,8 +1614,8 @@ an optional label which can be used to define the text properties
 vertical if you want the numbers above and below - default false - left and right of text
 arrows - use keyboard arrows - default true (will always show graphical arrows)
 corner is the radius of the text box corners default 10
-shadowColor defaults to #444
-value for shadow blur (default 14) - 0 for no shadow
+shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
+value for shadow blur (default 14) 
 loop - defaults to false so will not loop around or go back past 0 index (unless set to true)
 
 PROPERTIES
@@ -1680,7 +1684,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			prev.hitArea = prevBacking;
 			
 			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
-			if (shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			if (shadowColor != -1 && shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
 			prev.cursor = "pointer";
 			prev.on(eventType, function(e) {step(-1);});
@@ -1701,7 +1705,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			box.setBounds(0, 0, width, height);
 			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
 			box.graphics.f(color).rr(0, 0, width, height, corner);
-			if (shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+			if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
 
 			if (vertical) {
 				box.y = arrowPrev.height + boxSpacing;
@@ -1728,7 +1732,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			next.hitArea = nextBacking;
 			
 			var arrowNext = new zim.Triangle(height, height*.8, height*.8, color);
-			if (shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			if (shadowColor != -1 && shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			next.addChild(arrowNext);
 			
 			next.cursor = "pointer";
@@ -1915,6 +1919,7 @@ useTicks (default false) set to true to show small ticks for each step (step > 0
 
 PROPERTIES
 currentValue - gets or sets the current value of the slider
+width, height - gives width and height including button
 min, max, step - the assigned values (read only)
 bar - gives access to the bar zim.Rectangle
 button - gives access to the zim.Button
@@ -1955,6 +1960,15 @@ dispatches a "change" event when button is slid on slider
 				var w = 30; var h = 40;
 				if (vertical) {w = 50; h = 40;}
 				button = new zim.Button(w,h,"","#fff","#ddd","#666",1,0,null,null,30);
+			}
+			if (vertical) {
+				this.width = button.width;
+				this.height = barLength + button.height;
+				this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+			} else {
+				this.width = barLength+button.width;
+				this.height = button.height;
+				this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
 			}
 			
 			var that = this;			
@@ -2417,6 +2431,385 @@ dispatches a "change" event when a tab changes
 		return new makeTabs();
 		
 	}	
+
+/*--
+zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur)
+
+ColorPicker Class
+
+extends a createjs.Container
+a color picker which shows 256 Web colors by default or custom colors
+additionally can show 16 greys and / or an alpha slider
+picking on a color sets the swatch color and the selectedColor property
+OK dispatches a change event if the color changed or a close event if not
+The X dispatches a close event
+var cp = new zim.ColorPicker(parameters); 
+cp.on("change", function() {zog(cp.selectedColor, cp.selectedAlpha);}); 
+
+PARAMETERS: supports DUO - parameters or single object
+pass in a width (default 500) for the color picker
+colors is an optional list of colors ["red", "#CCC", etc.] - default 256 Web colors
+cols is how many columns to use if you pass in custom colors - default 10
+spacing is the space between the color squares - default 2
+greyPicker defaults to true and shows an extra 16 greys (set to false to hide these)
+(for the default colors it also includes 2 starting colors that record last picked colors)
+alphaPicker defaults to true and shows an alpha slider (set to false to hide this)
+(the swatch has a black, grey and white backing underneath to show multiple alpha effects)
+startColor is a starting color and defaults to the last color in the colors array
+drag defaults to true and is whether you can drag the component - set to false to not drag
+(a small grip under the color text shows if draggable)
+shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
+value for shadow blur (default 14)
+
+PROPERTIES
+selectedColor - gets or sets the selected color swatch
+selectedAlpha - gets or sets the selected alpha (set does not work if alphaPicker is false)
+width, height - gets width and height of component
+
+swatch - gets the zim.Rectangle that is the color swatch
+swatchBacking - gets the createjs.Shape that is under the swatch (seen if alpha set low)
+swatchText - gets the zim.Label that shows the color text
+grip - gets the createjs.Shape for the grip if the panel is dragable
+backing - gets the zim.Rectangle that is the backing (cp.backing.color = "white")
+okBut - references the OK zim.Button
+closeBut - references the X zim.Button
+
+if alphaPicker is true:
+alpaBacking - gets reference to the zim.Rectangle that makes the backing for the alpha slider
+alphaBut - the zim.Button on the alpha slider
+alphaSlider - the zim.Slider for the alpha
+alphaText - the zim.Label for the alpha
+
+METHODS
+dispose() - removes listeners and deletes object
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting 
+The default is "mousedown" - if set to something else the component will act on click (press)
+
+EVENTS
+dispatches a "change" event when the OK button is activated and the color is different than before
+dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
+--*/	
+	
+	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur) {
+			
+		var sig = "width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur";
+		var duo; if (duo = zob(zim.ColorPicker, arguments, sig)) return duo;
+		
+		function makeColorPicker() {
+		
+			if (zot(width)) width = 500;
+			if (zot(colors)) standard = true;
+			if (zot(cols)) cols = 10;
+			if (zot(spacing)) spacing = 2;
+			if (zot(alphaPicker)) alphaPicker = true;
+			if (zot(greyPicker)) greyPicker = true;
+			if (zot(drag)) drag = true;
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
+			if (zot(shadowBlur)) shadowBlur=14;	
+			
+			var that = this;
+			
+			var secondLastColor = "#e472c4"; // only used on standard colors
+			var thirdLastColor = "#50c4b7";
+			var lastAlpha = 1;
+			var myAlpha = 1;
+			
+			var box = new createjs.Shape(); // shape that holds all colors and greys
+			this.addChild(box);
+			box.x += spacing;
+			box.y += spacing;
+						
+			var standard = false;
+			var colorsTemp; var w;
+			var greys = [];
+			if (zot(colors)) {
+				standard = true;
+				var num = 6; // six sets 0,3,6,9,C,F - for Web colors
+				var tot = num*num*num;
+				num = Math.ceil(Math.pow(tot,1/2));
+				w = (width - spacing)/18-spacing;
+				var f = Math.floor(Math.pow(num*num, 1/3));
+				colorsTemp = [];	
+				for (var i=0; i<6; i++) {
+					for (var j=0; j<6; j++) {
+						for (var k=0; k<6; k++) {
+							colorsTemp.push("#" + con(i*3) + con(j*3) + con(k*3));				
+						}				
+					}			
+				}
+				colors = []; // flip every six by six sideways and put on two lines
+				var c, r, nC, nR;
+				for (i=0; i<colorsTemp.length; i++) {
+					c = Math.floor(i/6);
+					r = i%6;
+					if (c >= 6*3) {f = 1;} else {f = 0;}
+					nC = c-f*6*3;
+					nR = r+f*6;
+					colors[nR*18+nC] = colorsTemp[i];
+				}
+				cols = 18;
+				greys = [thirdLastColor, secondLastColor];
+			} else {
+				w = (width - spacing) / cols - spacing;	
+			}
+			var rows = Math.ceil(colors.length/cols);
+			
+			var myColor = String(colors[colors.length-1]);
+			if (!zot(startColor)) myColor = String(startColor);
+			var lastColor = thirdLastColor;
+			
+			function con(n) {
+				n = Math.floor(n).toString(16);	
+				return n + "" + n;
+			}
+	
+			var g = box.graphics; var f=0; var color, r, c, rX , rY;
+			for (i=0; i<colors.length; i++) {
+				c = i%cols;
+				r = Math.floor(i/cols);
+				rX = c*(w+spacing);
+				rY = r*(w+spacing);
+				g.f(colors[i]).r(rX,rY,w,w);
+			}
+			
+			var lastHeight = rY + w + spacing;
+	
+			var greyHeight = lastHeight;
+			if (greyPicker) {	
+				for (i=0; i<16; i++) {
+					greys.push("#"+con(i)+con(i)+con(i));
+				}
+				for (i=0; i<greys.length; i++) {
+					c = Math.floor(i/cols);
+					r = i%cols;
+					rX = r*(w+spacing);
+					rY = c*(w+spacing)+lastHeight;
+					g.f(greys[i]).r(rX,rY,w,w);
+				}
+				lastHeight = rY + w + spacing;
+				var greyCols = cols;
+				var greyRows = Math.ceil(greys.length/cols);			
+			}
+			
+			var margin = 10;
+			
+			if (alphaPicker) {
+				var alpha = new createjs.Container();
+				alpha.setBounds(0,0,600,70);
+				alpha.width = 600;
+				alpha.height = 70;			
+				this.addChild(alpha);
+				alpha.x = 0;
+				alpha.y = lastHeight;
+				
+				var alphaBacking = this.alphaBacking = new zim.Rectangle(600-margin*2, 50, "#222", null, null, 0);
+				alpha.addChild(alphaBacking);
+				zim.centerReg(alphaBacking, alpha);
+				 
+				var sliderBut = this.alphaBut = new zim.Button({width:20,height:30,label:"",corner:0,hitPadding:20});
+				var slider = this.alphaSlider = new zim.Slider(0,1,.05,sliderBut,600*.55);
+				slider.currentValue = 1;
+				alpha.addChild(slider);
+				slider.x = 40;
+				slider.y = alpha.height/2;
+				
+				var alphaText = this.alphaText = new zim.Label("Alpha: 1", 30, null, "orange");
+				alpha.addChild(alphaText);
+				alphaText.x = slider.x + slider.bar.width + 40;
+				alphaText.y = alpha.height/2 - alphaText.height/2;
+				
+				alpha.scaleX = alpha.scaleY = width / 600;
+				
+				slider.on("change", function() {
+					alphaText.text = "Alpha: " + decimals(slider.currentValue);
+					swatch.alpha = myAlpha = slider.currentValue;
+					if (that.getStage()) that.getStage().update();
+				});
+				
+				lastHeight += (alpha.height-margin)*alpha.scaleX;
+			}
+			
+			var nav = new createjs.Container();
+			nav.setBounds(0,0,600,100);
+			nav.width = 600;
+			nav.height = 100;			
+			this.addChild(nav);
+			nav.x = 0;
+			nav.y = lastHeight+margin;
+			
+			var swatchText = this.swatchText = new zim.Label(myColor.toUpperCase().substr(0,7), 30, null, "orange");
+			nav.addChild(swatchText);
+			zim.centerReg(swatchText);
+			swatchText.x = 200/2-10;
+			swatchText.y = 50-2;
+			
+			if (drag) {
+				var grip = this.grip = new createjs.Shape();
+				nav.addChild(grip);
+				grip.graphics.f("rgba(256,256,256,.25)").r(0,0,5,20).r(10,0,5,20).r(20,0,5,20).r(30,0,5,20);
+				grip.x = 70; grip.y = 65;
+				swatchText.y = 50-10;
+			}
+				
+			var closeBut = this.closeBut = new zim.Button(90, 90, "X", "#222", "#444", null,null,0);
+			nav.addChild(closeBut);
+			closeBut.x = 600 - closeBut.width - margin;
+			closeBut.y = 0;
+			closeBut.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(){that.dispatchEvent("close");});
+	
+			var button = this.okBut = new zim.Button(150, 90, "OK", "#222", "#444", null,null,0);
+			nav.addChild(button);
+			button.x = closeBut.x - button.width - margin;
+			button.y = 0;
+			button.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
+			
+			var swatchBacking = this.swatchBacking = new createjs.Shape();
+			nav.addChild(swatchBacking);
+			var g = swatchBacking.graphics;
+			g.f("black").r(0.5,0.5,50,89).f("#666").r(50,0.5,50,89).f("white").r(100,0.5,49.5,89);
+			swatchBacking.x = button.x - 150 - margin;
+			swatchBacking.y = 0;
+			
+			var swatch = this.swatch = new zim.Rectangle(150, 90, myColor);
+			nav.addChild(swatch);
+			swatch.x = swatchBacking.x;
+			swatch.y = 0;
+			swatch.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
+			swatch.cursor = "pointer";
+			
+			nav.scaleX = nav.scaleY = width / 600;
+			lastHeight += nav.height * nav.scaleX;
+	
+			this.width = width; 
+			this.height = lastHeight + margin;
+			this.setBounds(0,0,this.width,this.height);
+			
+			var backing = this.backing = new zim.Rectangle(this.width,this.height,"black");
+			this.addChildAt(backing,0);
+			if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);		
+
+			function doChange(){
+				if (myColor != lastColor || myAlpha != lastAlpha) {
+					if (standard && greyPicker) {
+						thirdLastColor = secondLastColor;
+						secondLastColor = lastColor;
+						var lastColors = [thirdLastColor, secondLastColor]
+						for (i=0; i<2; i++) {
+							var g = box.graphics;
+							c = Math.floor(i/cols);
+							r = i%cols;
+							rX = r*(w+spacing);
+							rY = c*(w+spacing)+greyHeight;
+							greys[i] = lastColors[i];
+							g.f(backing.color).r(rX-1,rY-1,w+2,w+2).f(lastColors[i]).r(rX,rY,w,w);
+						}
+						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					}				
+					lastColor = myColor;
+					lastAlpha = myAlpha
+					that.dispatchEvent("change");
+				} else {
+					that.dispatchEvent("close");
+				}
+			}
+	
+			if (drag) {	
+				var diffX, diffY;	
+				backing.on("mousedown", function(e) {
+					diffX = e.stageX - that.x;
+					diffY = e.stageY - that.y;
+					backing.cursor = "move";
+				});						
+				backing.on("pressmove", function(e) {
+					that.x = e.stageX-diffX;
+					that.y = e.stageY-diffY;
+					if (that.getStage()) that.getStage().update();
+				});				
+				backing.on("pressup", function(e) {				
+					backing.cursor = "default";
+					if (that.getStage()) that.getStage().update();
+				});				
+			}
+			
+			var gridW = cols*(w+spacing);
+			var gridH = rows*(w+spacing);
+			if (greyPicker) {
+				var greyW = greyCols*(w+spacing);
+				var greyH = greyRows*(w+spacing);
+			}
+			box.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {
+				var index = zim.hitTestGrid(box, gridW, gridH, cols, rows, that.getStage().mouseX, that.getStage().mouseY, 0, 0, spacing, spacing);
+				if (!zot(index)) {
+					swatch.color = myColor = colors[index];
+					swatchText.text = String(colors[index]).toUpperCase().substr(0,7);
+					zim.centerReg(swatchText);
+					if (that.getStage()) that.getStage().update();
+				}				
+				if (greyPicker) {
+					// note greyW not gridW
+					index = null;
+					index = zim.hitTestGrid(box, greyW, greyH, greyCols, greyRows, that.getStage().mouseX, that.getStage().mouseY, 0, gridH, spacing, spacing);
+					
+					if (!zot(index)) {
+						swatch.color = myColor = greys[index];
+						swatchText.text = greys[index].toUpperCase();
+						zim.centerReg(swatchText);
+						if (that.getStage()) that.getStage().update();
+					}
+				}				
+			});
+			
+			Object.defineProperty(this, 'selectedColor', {
+				get: function() {				
+					return myColor;
+				},
+				set: function(value) {
+					swatch.color = myColor = value;
+					swatchText.text = colors[index];
+					zim.centerReg(swatchText);
+					if (that.getStage()) that.getStage().update();
+				}
+			});
+			
+			Object.defineProperty(this, 'selectedAlpha', {
+				get: function() {	
+					if (alphaPicker) {			
+						return decimals(slider.currentValue);
+					} else {
+						return 1;
+					}
+				},
+				set: function(value) {
+					if (alphaPicker) {			
+						swatch.alpha = slider.currentValue = value;
+						alphaText.text = "Alpha: " + decimals(slider.currentValue);
+						if (that.getStage()) that.getStage().update();
+					} 
+				}
+			});
+			
+			function decimals(n) {
+				return Math.round(n*Math.pow(10, 2))/Math.pow(10, 2);
+			}
+			
+			this.dispose = function() {
+				slider.dispose();
+				box.removeAllEventListeners();
+				backing.removeAllEventListeners();
+				closeBut.removeAllEventListeners();
+				swatch.removeAllEventListeners();
+				button.removeAllEventListeners();
+			}			
+		}
+	
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time		
+		makeColorPicker.prototype = new createjs.Container();
+		makeColorPicker.prototype.constructor = zim.ColorPicker;
+		return new makeColorPicker();	
+	}
 	
 /*--
 zim.Parallax = function(stage, damp, layers, auto, fps, ticker)
