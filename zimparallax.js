@@ -175,7 +175,7 @@ damp - allows you to dynamically change the damping
 	zim.Parallax = function(stage, damp, layers, auto, fps, ticker) {
 		
 		var sig = "stage, damp, layers, auto, fps, ticker";
-		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
 		
@@ -289,7 +289,7 @@ damp - allows you to dynamically change the damping
 				} else {
 					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);	
 					// for x on mouseX we split the destination range in two for a centered parallax
-					if (o.input == "mouseX") o.obj[o.prop] -= o[o.prop] / 2;
+					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
 				}
 			}			
 			stage.update();

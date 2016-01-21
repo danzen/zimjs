@@ -298,7 +298,7 @@ lastValue - setting this would go immediately to this value (would not normally 
 --*/	
 	zim.Damp = function(startValue, damp) {
 		var sig = "startValue, damp";
-		var duo; if (duo = zob(zim.Damp, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Damp, arguments, sig, this)) return duo;
 		if (zon) zog("zim code - Damp");
 		this.lastValue = (zot(startValue)) ? 0 : startValue;
 		this.damp = (zot(damp)) ? .1 : damp;
@@ -341,7 +341,7 @@ convert(input) - will return the output property (for instance, a volume)
 	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound) {
 		
 		var sig = "baseMin, baseMax, targetMin, targetMax, factor, targetRound";
-		var duo; if (duo = zob(zim.Proportion, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Proportion, arguments, sig, this)) return duo;
 		
 		// factor - set to 1 for increasing and -1 for decreasing
 		// round - true to round results to whole number 
@@ -402,7 +402,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 		
 		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
-		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig, this)) return duo;
 		
 		// damp - can be changed via damp get/set method property	
 		// factor - set to 1 for increasing and -1 for decreasing
@@ -4180,7 +4180,7 @@ damp - allows you to dynamically change the damping
 	zim.Parallax = function(stage, damp, layers, auto, fps, ticker) {
 		
 		var sig = "stage, damp, layers, auto, fps, ticker";
-		var duo; if (duo = zob(zim.Parallax, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
 		
@@ -4294,7 +4294,7 @@ damp - allows you to dynamically change the damping
 				} else {
 					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);	
 					// for x on mouseX we split the destination range in two for a centered parallax
-					if (o.input == "mouseX") o.obj[o.prop] -= o[o.prop] / 2;
+					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
 				}
 			}			
 			stage.update();
@@ -4335,7 +4335,7 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker) {
 		
 		var sig = "backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker";
-		var duo; if (duo = zob(zim.Scroller, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
 		
 		var b1 = backing1; var b2 = backing2;
 		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;

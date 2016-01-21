@@ -165,7 +165,7 @@ lastValue - setting this would go immediately to this value (would not normally 
 --*/	
 	zim.Damp = function(startValue, damp) {
 		var sig = "startValue, damp";
-		var duo; if (duo = zob(zim.Damp, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Damp, arguments, sig, this)) return duo;
 		if (zon) zog("zim code - Damp");
 		this.lastValue = (zot(startValue)) ? 0 : startValue;
 		this.damp = (zot(damp)) ? .1 : damp;
@@ -208,7 +208,7 @@ convert(input) - will return the output property (for instance, a volume)
 	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound) {
 		
 		var sig = "baseMin, baseMax, targetMin, targetMax, factor, targetRound";
-		var duo; if (duo = zob(zim.Proportion, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.Proportion, arguments, sig, this)) return duo;
 		
 		// factor - set to 1 for increasing and -1 for decreasing
 		// round - true to round results to whole number 
@@ -269,7 +269,7 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 		
 		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
-		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig, this)) return duo;
 		
 		// damp - can be changed via damp get/set method property	
 		// factor - set to 1 for increasing and -1 for decreasing
