@@ -11,14 +11,14 @@
 if (typeof zon === "undefined") zon = false; // comments from zim scripts
 
 /*--
-zog(item1, item2, etc.) ~ log
+zog(item1, item2, etc.)         ~ log
 a wrapper for console.log()
 --*/
 var zog = console.log.bind(console);
 if (zon) zog("ZIM WRAP zog zid zss zgo zum zot zop zil zob");
 
 /*--
-zid(string)             ~ id
+zid(string)                     ~ id
 short version of document.getElementById(s)
 --*/
 function zid(s) {
@@ -26,7 +26,7 @@ function zid(s) {
 }
 
 /*--
-zss(string)             ~ css
+zss(string)                     ~ css
 short version of document.getElementById(s).style
 so you can do zss("logo").top = "10px"; // for instance
 --*/
@@ -36,7 +36,7 @@ function zss(s) {
 }
 
 /*--
-zgo(url, target, modal) ~ go
+zgo(url, target, modal)         ~ go
 short version of either window.location.href or window.open
 --*/
 function zgo(u,t,m) {
@@ -44,15 +44,15 @@ function zgo(u,t,m) {
 		window.location.href = u;
 	} else {
 		if (zot(m)) { // not modal
-			window.open(u,"_blank");
+			window.open(u,t);
 		} else {
-			window.open(u,"_blank","modal=yes,alwaysRaised=yes");			
+			window.open(u,t,"modal=yes,alwaysRaised=yes");			
 		}			
 	}
 }
 
 /*--
-zum(string)             ~ num
+zum(string)                     ~ num
 converts "10px string from styles to number 10, for instance
 if there is no value then this will return 0
 --*/
@@ -62,18 +62,17 @@ function zum(s) {
 }
 
 /*--
-zot(value)              ~ not
+zot(value)                      ~ not
 test to see if value has no value (value must exist as var or parameter)
 or if value has been set to null
 good for setting function defaults: if (zot(speed)) speed=1;
 --*/
 function zot(v) {
-	if (v === null) return true;
-	return typeof v === "undefined";
+	return v==null; // both null and undefined match but not false or 0
 }
 
 /*--
-zop(e)                  ~ stop
+zop(e)                          ~ stop
 stop event propagation - just easier to remember than below
 must pass it e || window.event from your event function
 --*/
@@ -84,7 +83,7 @@ function zop(e) {
 }
 
 /*--
-zil()                   ~ still
+zil()                           ~ still
 stop keys from moving content - arrows, spacebar, pgup, pgdown, home, end
 stop scroll wheel from moving content - scrolling the canvas for instance
 do once at start - usually in the template for full scale mode

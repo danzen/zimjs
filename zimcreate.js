@@ -13,14 +13,186 @@ if (typeof zog === "undefined") { // bootstrap zimwrap.js
 var zim = function(zim) {
 	
 	if (zon) zog("ZIM CREATE Module");
+	
+/*-- // borrowed from ZIM Code
+zim.copy = function(obj)
+copies arrays and basic objects
+http://stackoverflow.com/users/35881/a-levy
+--*/	
+	zim.copy = function(obj) {
+		if (obj==null || typeof obj != 'object') return obj;
+		if (obj instanceof Array) {
+			return obj.slice(0);
+		}
+		if (obj instanceof Object) {
+			copy = {};
+			for (var attr in obj) {
+				if (obj.hasOwnProperty(attr)) copy[attr] = zim.copy(obj[attr]);
+			}
+			return copy;
+		}
+	} 	
+	
+/*-- // borrowed from ZIM Build
+zim.OPTIMIZE
+
+a setting that relates to how stage.update() is used by the components
+default is false which means some components will update the stage automatically
+for instance, the Slider will update the stage so that you can see the knob slide
+also, the CheckBox and RadioButtons when checked will update the stage
+the Tabs change button colors and then update the stage
+closing of a Pane will update the stage
+the Stepper also updates as does changing color of a button, label, etc.
+
+however, concurrent stage.update() calls can slow down mobile performance
+so if you are making content for mobile you should set zim.OPTIMIZE = true;
+then you will have to stage.update() in the change event handlers
+but you were probably doing things in these events and updating anyway!
+just be careful - you might be testing a checkbox and it won't check... 
+so it takes some getting used to running in optimized mode
+
+Components affected by OPTIMIZE:
+Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
+
+OPTIMIZE set to true also affects the zim Ticker 
+for functions like move, animate, drag, Scroller, Parallax
+See zim.Ticker as you may have to set zim.Ticker.update = true;
+
+For mobile, you should set the mouseover parameter of zim.Frame to false
+and, as mentioned, set zim.OPTIMIZE = true at the top of your script
+--*/
+
+zim.OPTIMIZE = false;
+
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, top)
+zim.Ticker = {}
+a static class to let ZIM use one createjs Ticker
+if a function has been added to the Ticker queue then it will run in the order added
+along with a single stage update after all functions in queue have run
+if zim.OPTIMIZE is true then the Ticker will not update the stage (it will still run functions)
+however, OPTIMIZE can be overridden as follows (or with the always() method):
+
+PROPERTIES (static)
+zim.Ticker.update = true - overrides zim.OPTIMIZE and forces an update if a function is in the queue  
+zim.Ticker.update = false - forces no update regardless of zim.OPTIMIZE
+zim.Ticker.update = null (default) - only updates if there is a function in queue and zim.OPTIMIZE is false
+zim.Ticker.stage - the stage reference (the Ticker will still run functions with its stage property set to null)
+zim.Ticker.list - an Array with the functions in the Ticker queue
+
+METHODS (static)
+zim.Ticker.always(stage) - overrides zim.OPTIMIZE and always runs an update even with no function in queue
+zim.Ticker.add(function, [stage]) - adds the function to the Ticker queue and returns the function that was added
+zim.Ticker.remove(function) - removes the function from the Ticker queue
+zim.Ticker.removeAll() - removes all functions from the Ticker queue (keeps stage update - see below)
+zim.Ticker.setFPS(30, 60) - (mobile, pc) default 30 frames per second mobile, 60 frames per second non mobile
+zim.Ticker.dispose() - removes all functions from the queue removes the createjs Ticker and updates
+
+the Ticker is used internally by zim functions like move(), animate(), drag(), Scroller(), Parallax()
+you are welcome to add functions to it as well but unless zim has already been using it,
+make sure to set the stage property or pass the stage in as a second parameter to the add() method
+
+USES:
+1. if you have your own ticker going, just set zim.OPTIMIZE = true and don't worry about a thing
+2. if you do not have your own ticker going but still want OPTIMIZE true to avoid components updating automatically,
+then set zim.OPTIMIZE = true and set zim.Ticker.update = true
+this will run a single update only when needed in zim Ticker for any zim functions
+3. if you want a ticker with a single update going all the time (with OPTIMIZE true or false) then
+run zim.Ticker.always(stage); 
+4. if for some reason (can't think of any) you want no ticker updates for zim but want component updates
+then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
+--*/
+
+		
+		zim.Ticker = {
+			stage:null,
+			myUpdate: null,
+			myAlways:false,
+			list:[],			
+			setFPS: function(m, d) {
+				if (zot(m)) m = 30;
+				if (zot(d)) d = 60;
+				createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+			},
+			add: function(f, s) {
+				var t = zim.Ticker;
+				if (s && s.update) t.stage = s;
+				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only add functions"); return;}
+				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+				t.list.push(f);
+				return f;
+			},
+			call: function() {
+				var t = zim.Ticker;
+				for (var i=0; i<t.list.length; i++) {
+					t.list[i]();	
+				}
+				if (t.myAlways && zim.Ticker.stage) {
+					t.stage.update();
+					return;
+				}				
+				if (zot(t.update) && !zim.OPTIMIZE && t.stage) {
+					t.stage.update();
+				} else if (t.update && t.stage) {
+					t.stage.update();
+				} 
+			},
+			always: function(s) {
+				var t = zim.Ticker;
+				if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
+				t.myAlways = true;
+				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+			},
+			remove: function(f) {
+				var t = zim.Ticker;
+				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only remove functions"); return;}
+				var i = t.list.indexOf(f);
+				if (i > -1) t.list.splice(i,1);
+				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			},
+			removeAll: function() {
+				var t = zim.Ticker;
+				t.list = [];
+				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			},
+			dispose: function() {
+				var t = zim.Ticker;
+				t.removeAll();
+				createjs.Ticker.off("tick", t.ticker);
+				t.update = null;
+				return true;
+			}
+		}		
+		
+		Object.defineProperty(zim.Ticker, 'update', {
+			get: function() {				
+				return zim.Ticker.myUpdate;
+			},
+			set: function(value) {
+				var t =  zim.Ticker;
+				if (typeof value != "boolean") value = null;
+				t.myUpdate = value;
+				if (t.myUpdate === false) {
+					 createjs.Ticker.off("tick", t.ticker); 
+					 // note, this overrides always()
+					 // but running always() will override update = false
+					 t.myAlways = false;
+					 return;
+				} 
+				if (t.myAlways) return;
+				if (!t.myUpdate && t.list.length == 0) createjs.Ticker.off("tick", t.ticker);				
+			}
+		});		
+
+
+/*--
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg)
 adds drag and drop to an object 
 handles scaled, rotated nested objects
 supports DUO - parameters or single object
 obj is the object to drag
 rect is a rectangle object for the bounds of dragging
+if surround is true then it will make sure the obj surrounds the rect rather than stays within it
 this rectangle is relative to the stage (global)
 if a rectangle relative to the object's parent is desired then set the localBounds parameter to true
 after the rect comes two cursor properties which are any css cursor value such as "pointer", etc.
@@ -29,11 +201,18 @@ eg. drag(container); will drag any object within a container
 setting currentTarget to true will then drag the whole container	
 swipe defaults to false which prevents a swipe from triggering when dragging
 localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame	
+onTop (default true) brings the dragged object to the top of the container
+surround (default false) is for dragging a big object that always surrounds the rect
+slide (default false) will let you throw the object and it will damp with slideDamp value (default .3)
+slidSnap (default true) will let the object go outside and snap back to bounds
+reg (default false) when set to true will snap the registration of the object to the mouse position
+note: will not drag if zim.OPTIMIZE is set to true 
+unless zim.Ticker.update is set to true or you run zim.Ticker.always(stage) see zim.Ticker
 returns obj for chaining
 --*/	
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop) {
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg) {
 		
-		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop";
+		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg";
 		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
 		
 		if (zot(obj) || !obj.on) return;
@@ -43,11 +222,19 @@ returns obj for chaining
 		if (zot(swipe)) swipe = false;
 		if (zot(localBounds)) localBounds = false;
 		if (zot(onTop)) onTop = true;
-		
+		if (zot(surround)) surround = false;
+		if (zot(slide)) slide = false;		
+		if (zot(slideDamp)) slideDamp = .3;
+		if (zot(slideSnap)) slideSnap = true;
+		if (zot(reg)) reg = false;
+				
 		zim.setSwipe(obj, swipe);
+		obj.zimDragRect = rect;
+		var downCheck = false;
 		
-		var diffX; var diffY; var point; var r;		
+		var diffX; var diffY; var point; var r;	var rLocal;	
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
+		obj.zimRemoved = obj.on("removed", unInitializeObject, null, true);
 		if (obj.parent) initializeObject();
 		
 		function initializeObject() {
@@ -58,83 +245,265 @@ returns obj for chaining
 			// where it expects a global x and y
 			// so convert obj.x and obj.y positions inside its parent to global:
 			if (localBounds) {
-				r = zim.boundsToGlobal(obj.parent, rect);
+				r = zim.boundsToGlobal(obj.parent, obj.zimDragRect);
+				if (surround) rLocal = obj.zimDragRect;
 			} else {
-				r = rect;
+				r = obj.zimDragRect;
+				if (surround) rLocal = zim.boundsToGlobal(obj.parent, obj.zimDragRect, true); // flips to global to local
 			}
 			point = obj.parent.localToGlobal(obj.x, obj.y);
 			positionObject(obj, point.x, point.y);	
+			zim.Ticker.stage = obj.getStage();
+			if (slide) {
+				setUpSlide();
+			} else {
+				obj.zimDragTicker = zim.Ticker.add(function(){}); // ensures drag is in Ticker queue
+			}
 		}
+		
+		function unInitializeObject() {			
+			zim.Ticker.remove(obj.zimDragTicker);			
+		}
+		
+		// set up damping for slide and variables used to predict future locations
+		if (slide) {
+			var dampX = new zim.Damp(obj.x, slideDamp);
+			var dampY = new zim.Damp(obj.y, slideDamp);
+			var back = 3; // how many ticks ago to estimate trajectory
+			var lastCount = 0;
+			var backX = [];
+			var backY = [];
+			var upX = obj.x; // mouse up translated to local
+			var upY = obj.y;
+			var objUpX = obj.x; // drag object x when mouse up
+			var objUpY = obj.y;
+			var lastBackX = obj.x; // used to calculate trajectory
+			var lastBackY = obj.y;
+			var lastX = -10000; // used to see if sliding object is still moving
+			var lastY = -10000;
+			obj.zimDragMoving = false; // needs to be set by zim.dragRect as well
+		}
+		
+		var dragObject;		
 	
 		obj.zimDown = obj.on("mousedown", function(e) {
 			// e.stageX and e.stageY are global
 			// e.target.x and e.target.y are relative to e.target's parent
 			// bring stageX and stageY into the parent's frame of reference
 			// could use e.localX and e.localY but might be dragging container or contents
-			var dragObject = (currentTarget)?e.currentTarget:e.target;
+			dragObject = (currentTarget)?e.currentTarget:e.target;
+			if (obj.zimDragRect && !dragObject.getBounds()) {zog("zim.drag() - drag object needs bounds set"); return;}
 			if (onTop) {
 				dragObject.parent.setChildIndex(dragObject,dragObject.parent.numChildren-1);
 				dragObject.getStage().update();
 			}
+			downCheck = true;
 
 			var point = dragObject.parent.globalToLocal(e.stageX, e.stageY);
+			if (reg) {
+				dragObject.x = point.x;
+				dragObject.y = point.y;
+				dragObject.getStage().update();
+			}
 			diffX = point.x - dragObject.x;
 			diffY = point.y - dragObject.y;	
+			
 			if (localBounds) {
-				r = zim.boundsToGlobal(e.target.parent, rect);
+				r = zim.boundsToGlobal(dragObject.parent, obj.zimDragRect);
+				if (surround) rLocal = obj.zimDragRect;
 			} else {
-				r = rect;
+				r = obj.zimDragRect;
+				if (surround) {
+					rLocal = zim.boundsToGlobal(dragObject.parent, obj.zimDragRect, true); // true flips to global to local
+				}
 			}
 			// just a quick way to set a default cursor or use the cursor sent in		
 			obj.cursor = (zot(dragCursor))?"move":dragCursor;
+			
+			// extra slide settings to project where the object will slide to
+			if (slide) {
+				lastCount = 0;				
+				backX = [point.x];
+				backY = [point.y];	
+				lastX = -10000; // reset
+				lastY = -10000;
+				obj.zimDragMoving = true;
+			}			
+			
 		}, true);
 		
-		obj.zimMove = obj.on("pressmove", function(e) {
-			var dragObject = (currentTarget)?e.currentTarget:e.target;
+		obj.zimMove = obj.on("pressmove", function(e) {	
+			if (!downCheck) return;		
 			positionObject(dragObject, e.stageX, e.stageY);				
 		}, true);
 		
 		function positionObject(o, x, y) {
+			
+			if (zot(o)) o = (dragObject) ? dragObject : obj; // so zim.dragRect can use this	
+
 			// x and y are the desired global positions for the object o			
 			// checkBounds returns the same values if there are no bounds
-			// and always returns values inside the bounds if there are bounds set
+			// and returns values inside the bounds if there are bounds set
+			// or returns a position so that object o surrounds the bounds if surround is true
 			// firstly, convert the global x and y to a point relative to the object's parent
 			if (!o.parent) return;
 			if (!o.getStage()) return;
+			
+			if (zot(x) || zot(y)) { 
+				// so zim.dragRect can use this to position on rect change	
+				// it may be we are resizing before we even drag at all
+				// so we need to establish variables that would have been made on drag events
+				var p = o.parent.localToGlobal(o.x, o.y);
+				diffX = diffY = 0;
+				if (localBounds) {
+					r = zim.boundsToGlobal(o.parent, obj.zimDragRect);
+					if (surround) rLocal = o.zimDragRect;
+				} else {
+					r = obj.zimDragRect;
+					if (surround) rLocal = zim.boundsToGlobal(o.parent, obj.zimDragRect, true); // flips to global to local
+				}
+				x = p.x;
+				y = p.y;
+				if (slide) {
+					objUpX = o.x;
+					objUpY = o.y;
+					dragObject = o;
+					dampX.immediate(objUpX);
+					dampY.immediate(objUpY);
+				}
+			}
+			
 			var point = o.parent.globalToLocal(x, y);
-			var checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);			
-			// now set the object's x and y to the resulting checked local point
-			o.x = checkedPoint.x;
-			o.y = checkedPoint.y;
-			o.getStage().update();			
+			if (slide && slideSnap) {
+				o.x = point.x-diffX;
+				o.y = point.y-diffY;
+			} else { 
+				var checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);			
+				// now set the object's x and y to the resulting checked local point
+				o.x = checkedPoint.x;
+				o.y = checkedPoint.y;
+			}
 		}
+		obj.zimPosition = positionObject;
 		
 		obj.zimUp = obj.on("pressup", function(e) { 
+			if (!downCheck) return;
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
+			if (slide) {
+				var point = dragObject.parent.globalToLocal(e.stageX, e.stageY);
+				downCheck = false;	
+				upX = point.x;
+				upY = point.y;
+				objUpX = dragObject.x;
+				objUpY = dragObject.y;
+				dampX.immediate(dragObject.x);
+				dampY.immediate(dragObject.y);
+			}
 		}, true);
-					
-		function checkBounds(o, x, y) {							
-		
-			if (rect) {	
-				// convert the desired drag position to a global point
-				// note that we want the position of the object in its parent
-				// so we use the parent as the local frame
-				var point = o.parent.localToGlobal(x,y);
-				// r is the bounds rectangle on the global stage 
-				// r is set during mousedown to allow for global scaling when in localBounds mode
-				// if you scale in localBounds==false mode, you will need to reset bounds with noDrag() drag()
-				x = Math.max(r.x, Math.min(r.x+r.width, point.x));
-				y = Math.max(r.y, Math.min(r.y+r.height, point.y));
-				// now that the point has been checked on the global scale
-				// convert the point back to the obj parent frame of reference
-				point = o.parent.globalToLocal(x, y);
-				x = point.x;
-				y = point.y;
+				
+		// the bounds check for registration inside the bounds
+		// or if surround is set for the whole object staying outside the bounds	
+		function checkBounds(o, x, y) {						
+			if (r) {	
+				if (surround) {
+					var w = o.getBounds().width;
+					var h = o.getBounds().height;
+					if (w < rLocal.width) {
+						// put half way between					
+						x = rLocal.x + (rLocal.width - w) / 2 + o.regX;						
+					} else {
+						if (x - o.regX > rLocal.x) {
+							x = rLocal.x + o.regX;					
+						}
+						if (x - o.regX + w < rLocal.x + rLocal.width) {
+							x = rLocal.x + rLocal.width + o.regX - w;
+						}
+					}
+					if (o.height < rLocal.height) {
+						// put half way between
+						y = rLocal.y + (rLocal.height - h) / 2 + o.regY;
+					} else {
+						if (y - o.regY > rLocal.y) {
+							y = rLocal.y + o.regY;					
+						}
+						if (y - o.regY + h < rLocal.y + rLocal.height) {
+							y = rLocal.y + rLocal.height + o.regY - h;
+						}
+					}
+				} else {
+					// convert the desired drag position to a global point
+					// note that we want the position of the object in its parent
+					// so we use the parent as the local frame
+					var point = o.parent.localToGlobal(x,y);
+					// r is the bounds rectangle on the global stage 
+					// r is set during mousedown to allow for global scaling when in localBounds mode
+					// if you scale in localBounds==false mode, you will need to reset bounds with dragRect()
+					x = Math.max(r.x, Math.min(r.x+r.width, point.x));
+					y = Math.max(r.y, Math.min(r.y+r.height, point.y));
+					// now that the point has been checked on the global scale
+					// convert the point back to the obj parent frame of reference
+					point = o.parent.globalToLocal(x, y);
+					x = point.x;
+					y = point.y;
+				}
 			} 
-			
 			return {x:x,y:y}				
 		}
 		
+		// we store where the object was a few ticks ago and project it forward
+		// then damp until it stops - although the ticker keeps running and updating
+		// if it snaps then the object is allowed to go past the bounds and damp back
+		// if it is not snapping then the object stops at the bounds when it is slid
+		function setUpSlide() {
+			var stage = obj.getStage();			
+			obj.zimDragTicker = function() {
+				if (!dragObject) dragObject = obj; // could be risky if intending to drag children
+				if (downCheck) {
+					var point = dragObject.parent.globalToLocal(stage.mouseX, stage.mouseY);
+					lastCount++;
+					backX.push(point.x);
+					backY.push(point.y);
+					if (lastCount >= back) {
+						lastBackX = backX.shift();
+						lastBackY = backY.shift();
+					} else {
+						lastBackX = backX[0];
+						lastBackY = backY[0];
+					}
+				} else {	
+					if (!obj.zimDragMoving) return;
+					var desiredX = objUpX + upX-lastBackX;
+					var desiredY = objUpY + upY-lastBackY;
+					if (r) {
+						var checkedPoint = checkBounds(dragObject, desiredX, desiredY);			
+						desiredX = checkedPoint.x;
+						desiredY = checkedPoint.y;							
+					}					
+					if (!slideSnap) {
+						var checkedPoint = checkBounds(dragObject, dampX.convert(desiredX), dampY.convert(desiredY));			
+						dragObject.x = checkedPoint.x;
+						dragObject.y = checkedPoint.y;
+						testMove(dragObject,dragObject.x,dragObject.y,dragObject.x,dragObject.y);
+					} else {
+						dragObject.x = dampX.convert(desiredX);
+						dragObject.y = dampY.convert(desiredY);
+						testMove(dragObject,dragObject.x,dragObject.y,desiredX,desiredY);
+					}					
+				}						
+			}
+			function testMove(o,x,y,desiredX,desiredY) {
+				if (Math.abs(o.x-lastX) < .1 && Math.abs(o.y-lastY) < .1) {
+					obj.zimDragMoving = false;
+					o.x = desiredX; // snap to final resting place
+					o.y = desiredY;
+					o.dispatchEvent("slidestop");
+				} else {
+					lastX = x;
+					lastY = y;
+				}
+			}
+			zim.Ticker.add(obj.zimDragTicker);
+		}
 		return obj;
 	}
 			
@@ -151,9 +520,27 @@ returns obj for chaining
 		obj.cursor = "default";
 		zim.setSwipe(obj, true);
 		obj.off("added", obj.zimAdded);
+		obj.off("removed", obj.zimRemoved);
 		obj.off("mousedown", obj.zimDown);
 		obj.off("pressmove", obj.zimMove);
 		obj.off("pressup", obj.zimUp);
+		if (zim.Ticker && obj.zimDragSlide) zim.Ticker.remove(obj.zimDragSlide);
+		obj.zimDragMoving=obj.zimAdded=obj.zimRemoved=obj.zimDown=obj.zimMove=obj.zimUp=obj.zimDragRect=obj.zimDragSlide=null;
+		return obj;	
+	}
+	
+/*--
+zim.dragRect = function(obj, rect)
+dynamically changes or adds a bounds rectangle to the object being dragged with zim.drag()
+obj is an object that currently has its zim.drag() set
+rect is a createjs Rectangle for the bounds - the local / global does not change from the original drag
+--*/
+	zim.dragRect = function(obj, rect) {
+		if (zot(obj) || !obj.on) return;
+		if (zot(rect)) return;
+		obj.zimDragRect = rect;
+		obj.zimDragMoving = true;
+		if (obj.zimPosition) obj.zimPosition();
 		return obj;	
 	}
 	
@@ -232,7 +619,6 @@ etc.
 			point = b.localToLocal(bounds.x+shiftX, bounds.y, a);
 			if (a.hitTest(point.x, point.y)) return true;		
 			point = b.localToLocal(bounds.x+bounds.width, bounds.y+shiftY, a);
-
 			if (a.hitTest(point.x, point.y)) return true;		
 			point = b.localToLocal(bounds.x+bounds.width-shiftX, bounds.y+bounds.height, a);
 			if (a.hitTest(point.x, point.y)) return true;		
@@ -314,26 +700,35 @@ we draw bounds for demonstration if you pass in a boundsShape shape
 	}
 
 /*--
-zim.boundsToGlobal = function(obj, rectangle)
-returns a rectangle of the bounds of object projected onto the stage
-if a rectangle is passed in then it converts this rectangle 
+zim.boundsToGlobal = function(obj, rect)
+returns a createjs Rectangle of the bounds of object projected onto the stage
+if a createjs rectangle is passed in then it converts this rectangle 
 from within the frame of the obj to a global rectangle
-used by the hitTestBounds above so probably you will not use this directly
+if flip (default false) is set to true it goes from local rect to global rect
+used by drag() and hitTestBounds() above so probably you will not use this directly
 --*/
-	zim.boundsToGlobal = function(obj, rectangle) {
+	zim.boundsToGlobal = function(obj, rect, flip) {
 		
 		if (zot(obj) || !obj.getBounds) return;
+		if (zot(flip)) flip = false;
 		var oB = obj.getBounds();
-		if (!oB && zot(rectangle)) {
+		if (!oB && zot(rect)) {
 			zog("zim create - boundsToGlobal():\n please setBounds() on object (or a rectangle)");
 			return;
 		}
-		if (rectangle) oB = rectangle;
+		if (rect) oB = rect;
 		
-		var pTL = obj.localToGlobal(oB.x, oB.y);
-		var pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
-		var pBR = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height);		
-		var pBL = obj.localToGlobal(oB.x, oB.y+oB.height);
+		if (flip) {
+			var pTL = obj.globalToLocal(oB.x, oB.y);
+			var pTR = obj.globalToLocal(oB.x+oB.width, oB.y);
+			var pBR = obj.globalToLocal(oB.x+oB.width, oB.y+oB.height);		
+			var pBL = obj.globalToLocal(oB.x, oB.y+oB.height);
+		} else {
+			var pTL = obj.localToGlobal(oB.x, oB.y);
+			var pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
+			var pBR = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height);		
+			var pBL = obj.localToGlobal(oB.x, oB.y+oB.height);
+		}
 		
 		// handle rotation
 		var newTLX = Math.min(pTL.x,pTR.x,pBR.x,pBL.x);
@@ -389,14 +784,14 @@ type set to "col" will return the column and "row" will return the row "array" w
 		// check if within cell
 		if ((x-offsetX)>sizeX*(col+1)-spacingX || (x-offsetX)<sizeX*(col)) return;
 		if ((y-offsetY)>sizeY*(row+1)-spacingY || (y-offsetY)<sizeY*(row)) return;
-		
+
 		var index = row*cols + col;		
 		if (zot(type) || type=="index") return index
 		if (type == "col") return col;
 		if (type == "row") return row;
 		if (type == "array") return [index, col, row];
 	}
-	
+
 /*--
 zim.scale = function(obj, scale)
 convenience function to do scaleX and scaleY in one call
@@ -457,7 +852,7 @@ returns the object for chaining
 	}
 	
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, ticker)
+zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, sequence)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in time milliseconds
 supports DUO - parameters or single object
@@ -465,60 +860,85 @@ with optional ease, call back function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
 added to props as a convenience are:
+loopWait:ms - how many ms to wait before looping (post animation wait)
 rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter default 30 (works better on mobile)
-ticker sets a ticker and defaults to true - should only use one ticker for mobile
+sequence defaults to 0 ms - set it to the delay time (ms) to run an array of targets
+for example, target = [a,b,c] and sequence = 1000 
+would run the animation on a and then 1 second later, run the animation on b, etc.
+note - the ticker parameter has been removed - see zim.Ticker
 returns target for chaining
 --*/
-	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, ticker) {
+	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, sequence) {
 		
-		var sig = "target, x, y, time, ease, call, params, wait, props, fps, ticker";
+		var sig = "target, x, y, time, ease, call, params, wait, props, fps, sequence";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
-		
-		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, fps, ticker);
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, fps, sequence);
 	}
 	
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, ticker)
+zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence)
 convenience function (wraps createjs.Tween)
-to animate object obj properties in ttime milliseconds
+to animate object obj properties in time milliseconds
 supports DUO - parameters or single object
 added convinience property of scale that does both scaleX and scaleY
 with optional ease, call back function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
 added to props as a convenience are:
+loopWait:ms - how many ms to wait before looping (post animation wait)
 rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
 can set frames per second as fps parameter default 30 (works better on mobile)
-ticker sets a ticker and defaults to true - should only use one ticker for mobile
+sequence defaults to 0 ms - set it to the delay time (ms) to run an array of targets
+for example, target = [a,b,c] and sequence = 1000 
+would run the animation on a and then 1 second later, run the animation on b, etc.
+note - the ticker parameter has been removed - see zim.Ticker
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, ticker) {	
-		
-		var sig = "target, obj, time, ease, call, params, wait, props, fps, ticker";
+	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence) {	
+				
+		var sig = "target, obj, time, ease, call, params, wait, props, fps, sequence";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		
+		// handle multiple targets first if there is an array
+		// this just recalls the animate function for each element delayed by the sequence parameter
+		if (zot(sequence)) sequence = 0;
+		if (target instanceof Array) {
+			var currentTarget = 0;
+			for (var i=0; i<target.length; i++) {
+				setTimeout(function() {
+					var t =	target[currentTarget];
+					currentTarget++;
+					zim.animate(t, obj, time, ease, call, params, wait, zim.copy(props), fps);
+				}, sequence*i);				
+			}
+			return;		
+		}
+		
+		// original animate functionality
+		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
+		
 		var t = time;
 		if (zot(t)) t = 1000;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(params)) params = target;
-		if (zot(fps)) fps = 30;
-		if (zot(ticker)) ticker = true;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
 		}
+		zim.Ticker.stage = target.getStage();
+				
 		var tween;
 		if (props.loop) {
 			if (!zot(props.count)) {
@@ -526,6 +946,11 @@ returns target for chaining
 				delete props.count;
 				var currentCount = 1;
 			}
+		}
+		var wait3 = 0;
+		if (props.loopWait) {
+			wait3 = props.loopWait;
+			delete props.loopWait;
 		}
 		if (props.rewind) {
 			// flip second ease
@@ -547,7 +972,7 @@ returns target for chaining
 			delete props.rewind;
 			if (props.rewindWait) {
 				wait2 = props.rewindWait;
-				delete props.rewindWait;
+				delete props.rewindWait; // not a createjs prop so delete
 			}
 			if (props.rewindCall) {
 				var call2 = props.rewindCall;
@@ -561,27 +986,30 @@ returns target for chaining
 					.call(rewindCall)
 					.wait(wait2)
 					.to(obj2, t, createjs.Ease[ease2])				
-					.call(doneAnimating);
+					.call(doneAnimating)
+					.wait(wait3);
 			} else {
 				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
 					.to(obj2, t, createjs.Ease[ease2])				
-					.call(doneAnimating);
+					.call(doneAnimating)
+					.wait(wait3);
 			}
 		} else {
 			tween = createjs.Tween.get(target, props)
 				.wait(wait)
 				.to(obj, t, createjs.Ease[ease])				
-				.call(doneAnimating);
+				.call(doneAnimating)
+				.wait(wait3);
 		}
-		if (ticker) {
-			var cjsTicker = createjs.Ticker.on("tick", target.getStage());	
-			createjs.Ticker.setFPS(fps);
-		}
+		
+		var zimTicker = zim.Ticker.add(function(){});
+		if (!zot(fps)) createjs.Ticker.setFPS(fps);
+		
 		function doneAnimating() {
-			if (call && typeof call === 'function') {(call)(params);}
+			if (call && typeof call == 'function') {(call)(params);}
 			if (props.loop) {
 				if (count > 0) {
 					if (currentCount < count) {
@@ -593,10 +1021,10 @@ returns target for chaining
 				}
 			}
 			tween.setPaused(true);
-			if (ticker) createjs.Ticker.off("tick", cjsTicker);
+			zim.Ticker.remove(zimTicker);
 		}	
 		function rewindCall() {
-			if (call2 && typeof call2 === 'function') {(call2)(params2);}
+			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}	
 		return target;	
 	}	
@@ -668,10 +1096,10 @@ returns an object with the new and old details:
 		var newH = objH * scale;
 		
 		// horizontal center
-		obj.x = left + (w-newW)/2;
+		obj.x = obj.regX*scale + left + (w-newW)/2;
 		
 		// vertical center
-		obj.y = top + (h-newH)/2;	
+		obj.y = obj.regY*scale + top + (h-newH)/2;	
 		
 		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height};	
 							
@@ -758,6 +1186,20 @@ just a convenience function - returns obj for chaining
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
 		return obj;
+	}
+	
+/*--
+zim.place = function(obj)
+sets the object to drag and logs to the console the x and y 
+this is for when building you can move an object around to position it
+and then once positioned just set the reported x and y and delete the place call
+--*/	
+	zim.place = function(obj) {
+		if (zot(obj)) return;
+		function report() {zog("zim.place(): x = " + Math.round(obj.x) +  " y = " + Math.round(obj.y));} 
+		zim.drag({obj:obj, currentTarget:true, dragCursor:"crosshair", reg:true});
+		report();
+		obj.on("click", report);
 	}
 
 /*--

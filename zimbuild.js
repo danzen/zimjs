@@ -112,7 +112,128 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		this.dispose = function() {
 			clearInterval(interval);
 		}
-	}		
+	}	
+	
+	
+/*-- // borrowed from ZIM Create
+zim.Ticker = {}
+a static class to let ZIM use one createjs Ticker
+if a function has been added to the Ticker queue then it will run in the order added
+along with a single stage update after all functions in queue have run
+if zim.OPTIMIZE is true then the Ticker will not update the stage (it will still run functions)
+however, OPTIMIZE can be overridden as follows (or with the always() method):
+
+PROPERTIES (static)
+zim.Ticker.update = true - overrides zim.OPTIMIZE and forces an update if a function is in the queue  
+zim.Ticker.update = false - forces no update regardless of zim.OPTIMIZE
+zim.Ticker.update = null (default) - only updates if there is a function in queue and zim.OPTIMIZE is false
+zim.Ticker.stage - the stage reference (the Ticker will still run functions with its stage property set to null)
+zim.Ticker.list - an Array with the functions in the Ticker queue
+
+METHODS (static)
+zim.Ticker.always(stage) - overrides zim.OPTIMIZE and always runs an update even with no function in queue
+zim.Ticker.add(function, [stage]) - adds the function to the Ticker queue and returns the function that was added
+zim.Ticker.remove(function) - removes the function from the Ticker queue
+zim.Ticker.removeAll() - removes all functions from the Ticker queue (keeps stage update - see below)
+zim.Ticker.setFPS(30, 60) - (mobile, pc) default 30 frames per second mobile, 60 frames per second non mobile
+zim.Ticker.dispose() - removes all functions from the queue removes the createjs Ticker and updates
+
+the Ticker is used internally by zim functions like move(), animate(), drag(), Scroller(), Parallax()
+you are welcome to add functions to it as well but unless zim has already been using it,
+make sure to set the stage property or pass the stage in as a second parameter to the add() method
+
+USES:
+1. if you have your own ticker going, just set zim.OPTIMIZE = true and don't worry about a thing
+2. if you do not have your own ticker going but still want OPTIMIZE true to avoid components updating automatically,
+then set zim.OPTIMIZE = true and set zim.Ticker.update = true
+this will run a single update only when needed in zim Ticker for any zim functions
+3. if you want a ticker with a single update going all the time (with OPTIMIZE true or false) then
+run zim.Ticker.always(stage); 
+4. if for some reason (can't think of any) you want no ticker updates for zim but want component updates
+then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
+--*/
+
+		
+		zim.Ticker = {
+			stage:null,
+			myUpdate: null,
+			myAlways:false,
+			list:[],			
+			setFPS: function(m, d) {
+				if (zot(m)) m = 30;
+				if (zot(d)) d = 60;
+				createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+			},
+			add: function(f, s) {
+				var t = zim.Ticker;
+				if (s && s.update) t.stage = s;
+				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only add functions"); return;}
+				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+				t.list.push(f);
+				return f;
+			},
+			call: function() {
+				var t = zim.Ticker;
+				for (var i=0; i<t.list.length; i++) {
+					t.list[i]();	
+				}
+				if (t.myAlways && zim.Ticker.stage) {
+					t.stage.update();
+					return;
+				}				
+				if (zot(t.update) && !zim.OPTIMIZE && t.stage) {
+					t.stage.update();
+				} else if (t.update && t.stage) {
+					t.stage.update();
+				} 
+			},
+			always: function(s) {
+				var t = zim.Ticker;
+				if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
+				t.myAlways = true;
+				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+			},
+			remove: function(f) {
+				var t = zim.Ticker;
+				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only remove functions"); return;}
+				var i = t.list.indexOf(f);
+				if (i > -1) t.list.splice(i,1);
+				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			},
+			removeAll: function() {
+				var t = zim.Ticker;
+				t.list = [];
+				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			},
+			dispose: function() {
+				var t = zim.Ticker;
+				t.removeAll();
+				createjs.Ticker.off("tick", t.ticker);
+				t.update = null;
+				return true;
+			}
+		}		
+		
+		Object.defineProperty(zim.Ticker, 'update', {
+			get: function() {				
+				return zim.Ticker.myUpdate;
+			},
+			set: function(value) {
+				var t =  zim.Ticker;
+				if (typeof value != "boolean") value = null;
+				t.myUpdate = value;
+				if (t.myUpdate === false) {
+					 createjs.Ticker.off("tick", t.ticker); 
+					 // note, this overrides always()
+					 // but running always() will override update = false
+					 t.myAlways = false;
+					 return;
+				} 
+				if (t.myAlways) return;
+				if (!t.myUpdate && t.list.length == 0) createjs.Ticker.off("tick", t.ticker);				
+			}
+		});		
+	
 
 	
 /*--
@@ -136,9 +257,13 @@ so it takes some getting used to running in optimized mode
 Components affected by OPTIMIZE:
 Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
 
+OPTIMIZE set to true also affects the zim Ticker 
+for functions like move, animate, drag, Scroller, Parallax
+See zim.Ticker as you may have to set zim.Ticker.update = true;
+
 For mobile, you should set the mouseover parameter of zim.Frame to false
 and, as mentioned, set zim.OPTIMIZE = true at the top of your script
-*/
+--*/
 
 zim.OPTIMIZE = false;
 
@@ -502,7 +627,7 @@ if you nest things inside and want to drag them, will want to set to true
 		
 						
 /*--
-zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align)
 
 Label Class
 
@@ -518,6 +643,7 @@ labelText,
 fontSize, font, textColor, textRollColor, 
 shadowColor defaults to -1 for no shadow
 value for shadow blur (default 14)
+align - defaults to "left" also there is "center" and "right"
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
@@ -539,9 +665,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events 
 --*/	
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align) {
 		
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur";
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align";
 		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
 		
 		function makeLabel() {	
@@ -554,13 +680,14 @@ dispatches no events
 			if (zot(rollColor)) rollColor=color;
 			if (zot(shadowColor)) shadowColor=-1;
 			if (zot(shadowBlur)) shadowBlur=14;
+			if (zot(align)) align="left";
 		
 			var that = this;
 			this.mouseChildren = false;
 			
 			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color); 
 			obj.textBaseline = "alphabetic";
-			obj.textAlign = "left";			 
+			obj.textAlign = align;
 			if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.addChild(obj);
 
@@ -570,8 +697,14 @@ dispatches no events
 			
 			this.width = this.getBounds().width;
 			this.height = this.getBounds().height;
-			this.setBounds(0,0,this.width,this.height);
-			
+			if (align == "center") {
+				this.setBounds(-this.width/2,0,this.width,this.height);
+			} else if (align == "right") {
+				this.setBounds(-this.width,0,this.width,this.height);
+			} else {
+				this.setBounds(0,0,this.width,this.height);		
+			}
+
 			obj.y = size-size/6; 
 				
 			Object.defineProperty(that, 'text', {
@@ -581,8 +714,16 @@ dispatches no events
 				},
 				set: function(value) {
 					if (zot(value)) {value = " ";}
-					obj.text = value;
-					that.setBounds(0,0,obj.getBounds().width,obj.getBounds().height);
+					obj.text = String(value);
+					that.width = that.getBounds().width;
+					that.height = that.getBounds().height;;
+					if (align == "center") {
+						that.setBounds(-that.width/2,0,that.width,that.height);
+					} else if (align == "right") {
+						that.setBounds(-that.width,0,that.width,that.height);
+					} else {
+						that.setBounds(0,0,that.width,that.height);		
+					}
 				}
 			});
 			
@@ -638,6 +779,7 @@ dispatches no events
 		
 			this.dispose = function() {
 				that.removeAllEventListeners();
+				return true;
 			}
 		}
 	
@@ -802,6 +944,7 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				that.removeChild(buttonLabel);
 				buttonBacking = null;
 				buttonLabel = null;
+				return true;
 			}
 		}
 	
@@ -834,7 +977,8 @@ METHODS
 setChecked(Boolean) - defaults to true to set button checked (or use checked property)
 
 PROPERTIES
-label - gives access to the label including checkBox.label.text
+label - gives access to the label 
+text - the text of the label
 checked - gets or sets the check of the box
 check - gives access to the check mark ie. check.color = "blue";
 color - gets or sets the color of the check
@@ -923,6 +1067,19 @@ dispatches a "change" event when pressed on
 				set: function(value) {	
 					if (that.checked != value) that.dispatchEvent("change");			
 					that.setChecked(value);
+
+				}
+			});
+			
+			Object.defineProperty(that, 'text', {
+				get: function() {				
+					if (label) return label.text;
+				},
+				set: function(value) {	
+					if (label) {
+						label.text = value;	
+						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();	
+					};
 				}
 			});
 			
@@ -982,7 +1139,8 @@ dispatches a "change" event when pressed on
 			}
 			
 			this.dispose = function() {
-				that.removeAllEventListeners();				
+				that.removeAllEventListeners();	
+				return true;			
 			}
 		}
 	
@@ -1235,7 +1393,8 @@ then ask for the properties above for info
 			});
 			
 			this.dispose = function() {
-				that.removeAllEventListeners();				
+				that.removeAllEventListeners();
+				return true;				
 			}
 		}
 	
@@ -1272,7 +1431,7 @@ corner is the corner radius default 20
 the backingAlpha is the darkness of the background that fills the stage
 shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
 value for shadow blur (default 20)
-center - defaults to true and centers the pane and the label on the pane
+align - defaults to true and centers the pane and the label on the pane
 if center is false you will have to set x and y for the pane and the label
 note, the origin inside the pane is in the center
 
@@ -1391,8 +1550,8 @@ dispatches a "close" event when closed by clicking on backing
 			
 			if (label) {
 				if (center) {
-					label.x = -label.getBounds().width/2;
-					label.y = -label.getBounds().height/2;
+					label.x =  -label.getBounds().width/2 - label.getBounds().x;
+					label.y =  -label.getBounds().height/2 - label.getBounds().y;
 				}
 				this.addChild(label);				
 				this.label = label;
@@ -1446,6 +1605,7 @@ dispatches a "close" event when closed by clicking on backing
 				display.removeAllEventListeners();
 				that.removeChild(display);
 				display = null;
+				return true;
 			}
 		}
 		
@@ -1584,6 +1744,7 @@ display - reference to the waiter backing graphic
 				that.removeChild(circles);
 				display = null;
 				circles = null;
+				return true;
 			}
 		}
 		
@@ -1597,7 +1758,7 @@ display - reference to the waiter backing graphic
 
 
 /*--
-zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop)
+zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display)
 
 Stepper Class
 
@@ -1617,6 +1778,7 @@ corner is the radius of the text box corners default 10
 shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
 value for shadow blur (default 14) 
 loop - defaults to false so will not loop around or go back past 0 index (unless set to true)
+display - defaults to true to show the value - set to false just to show the arrows
 
 PROPERTIES
 currentIndex - gets or sets the current index of the array and display
@@ -1644,9 +1806,9 @@ dispose() - removes listeners and deletes object
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 --*/	
-	zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop) {
+	zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display) {
 		
-		var sig = "list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop";
+		var sig = "list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display";
 		var duo; if (duo = zob(zim.Stepper, arguments, sig)) return duo;
 		
 		function makeStepper() {
@@ -1664,7 +1826,8 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			if (zot(corner)) corner=16;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=14;
-			if (zot(loop)) loop=false;	
+			if (zot(loop)) loop=false;
+			if (zot(display)) display=true;	
 			var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
 
 			var that = this;
@@ -1690,38 +1853,49 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			prev.on(eventType, function(e) {step(-1);});
 			
 			if (vertical) {
-				prev.rotation = 0;
+				prev.rotation = 180;
 				prev.x = width/2;
-				prev.y = prev.getBounds().height/2;
+				if (display) {
+					prev.y = prev.getBounds().height + boxSpacing + height + prev.getBounds().height/2 + boxSpacing;
+				} else {
+					prev.y = prev.getBounds().height * 2;
+				}
+				
 			} else {
 				prev.rotation = -90;
 				prev.x = prev.getBounds().height/2;
 				prev.y = prev.getBounds().width/2;
 			}
 			
-			var box = this.textBox = new createjs.Shape();
-			box.cursor = "pointer";
-			this.addChild(box);
-			box.setBounds(0, 0, width, height);
-			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
-			box.graphics.f(color).rr(0, 0, width, height, corner);
-			if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
-
-			if (vertical) {
-				box.y = arrowPrev.height + boxSpacing;
+			if (display) {
+				var box = this.textBox = new createjs.Shape();
+				box.cursor = "pointer";
+				this.addChild(box);
+				box.setBounds(0, 0, width, height);
+				if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
+				box.graphics.f(color).rr(0, 0, width, height, corner);
+				if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+	
+				if (vertical) {
+					box.y = arrowPrev.height + boxSpacing;
+				} else {
+					box.x = arrowPrev.height + boxSpacing;
+				}
+				// label
+				
+				this.addChild(label);
+				if (list.length > 0) {
+					// index = Math.floor(list.length/2)
+					index = 0;
+					label.text = list[index];
+				}
+				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
+				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
 			} else {
-				box.x = arrowPrev.height + boxSpacing;
+				if (list.length > 0) {
+					index = 0;
+				}
 			}
-			// label
-			
-			this.addChild(label);
-			if (list.length > 0) {
-				// index = Math.floor(list.length/2)
-				index = 0;
-				label.text = list[index];
-			}
-			label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
-			label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
 
 			var next = this.arrowNext = new createjs.Container();
 			this.addChild(next);
@@ -1737,15 +1911,19 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			next.cursor = "pointer";
 			next.on(eventType, function(e) {step(1);});
-			box.on(eventType, function(e) {step(1);});
+			if (display) box.on(eventType, function(e) {step(1);});
 			
 			if (vertical) {
-				next.rotation = 180;
-				next.x = width/2;
-				next.y = box.y + box.getBounds().height + next.getBounds().height/2 + boxSpacing;
+				next.rotation = 0;
+				next.x = width/2;				
+				next.y = next.getBounds().height/2;				
 			} else {
 				next.rotation = 90;
-				next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
+				if (display) {
+					next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
+				} else {
+					next.x = prev.x + prev.getBounds().width;
+				}
 				next.y = next.getBounds().width/2;
 			}
 			
@@ -1755,10 +1933,10 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				var nextIndex = index + n;
 				if (!loop) {
 					if (nextIndex > list.length-1) {
-						box.cursor = "default";
+						if (display) box.cursor = "default";
 						return;
 					} else {
-						box.cursor = "pointer";
+						if (display) box.cursor = "pointer";
 					}
 					if (nextIndex < 0) return;
 				} else {
@@ -1774,9 +1952,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					return index;
 				},
 				set: function(value) {					
-					index = Math.min(list.length-1, Math.max(0, value));
-					if (index == that.currentIndex) return;
-					setLabel(index);
+					value = Math.min(list.length-1, Math.max(0, value));
+					if (value == that.currentIndex) return;
+					setLabel(index=value);
 					that.dispatchEvent("change");
 				}
 			});
@@ -1787,10 +1965,10 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				},
 				set: function(value) {					
 					if (list.indexOf(value) > -1) {
-						index = list.indexOf(value);	
+						value = list.indexOf(value);	
 					}
-					if (index == that.currentIndex) return;
-					setLabel(index);
+					if (value == that.currentIndex) return;
+					setLabel(index=value);
 					that.dispatchEvent("change");
 				}
 			});
@@ -1830,18 +2008,20 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						next.alpha = .8;
 						arrowNext.setFill("#aaa");
 						next.cursor = "default";	
-						label.mouseChildren = false;
-						label.mouseEnabled = false;					
+						if (display) label.mouseChildren = false;
+						if (display) label.mouseEnabled = false;					
 					}
-					if (!zim.OPTIMIZE && label.getStage()) label.getStage().update();
+					if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();
 				}
 			});
 			
 			function setLabel(n) {
 				index = n;
-				label.text = list[index];
-				label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
-				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+				if (display) {
+					label.text = list[index];
+					label.x = box.x+(box.getBounds().width-label.getBounds().width)/2;
+					label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+				}
 				prev.alpha = 1;
 				arrowPrev.setFill(color);
 				prev.cursor = "pointer";
@@ -1860,7 +2040,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						next.cursor = "default";
 					}
 				}
-				if (!zim.OPTIMIZE && label.getStage()) label.getStage().update();				
+				if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();				
 			}
 			
 			if (arrows) {
@@ -1888,6 +2068,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			
 			this.dispose = function() {
 				that.removeAllEventListeners();	
+				return true;
 			}
 		}
 		
@@ -2118,6 +2299,7 @@ dispatches a "change" event when button is slid on slider
 			
 			this.dispose = function() {
 				button.removeAllEventListeners();
+				return true;
 			}
 		}
 		
@@ -2421,6 +2603,7 @@ dispatches a "change" event when a tab changes
 			
 			this.dispose = function() {
 				button.removeAllEventListeners();
+				return true;
 			}
 		}
 		
@@ -2801,6 +2984,7 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				closeBut.removeAllEventListeners();
 				swatch.removeAllEventListeners();
 				button.removeAllEventListeners();
+				return true;
 			}			
 		}
 	
@@ -2812,7 +2996,7 @@ dispatches a "close" event if the OK button is activated and the color has not c
 	}
 	
 /*--
-zim.Parallax = function(stage, damp, layers, auto, fps, ticker)
+zim.Parallax = function(stage, damp, layers, auto, fps)
 
 Parallax Class	
 
@@ -2855,7 +3039,7 @@ or you can add these one at a time with the p.addLayer({layer object properties}
 the auto parameter defaults to true and uses the specified input
 if auto is set to false, you must make your own Ticker and use the step(input) method
 can set frames per second as fps parameter default 30 (works better on mobile)
-ticker sets a ticker and defaults to true - should only use one ticker for mobile
+note: the ticker parameter has been removed - see zim.Ticker
 
 METHODS 
 addLayer({layer object properties}) - adds a layer
@@ -2867,9 +3051,9 @@ dispose() - removes listeners
 PROPERTIES
 damp - allows you to dynamically change the damping
 --*/	
-	zim.Parallax = function(stage, damp, layers, auto, fps, ticker) {
+	zim.Parallax = function(stage, damp, layers, auto, fps) {
 		
-		var sig = "stage, damp, layers, auto, fps, ticker";
+		var sig = "stage, damp, layers, auto, fps";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
 						
 		if (zon) zog("zim build - Parallax");
@@ -2877,8 +3061,6 @@ damp - allows you to dynamically change the damping
 		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
 		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
 		if (zot(auto)) auto = true;
-		if (zot(fps)) fps = 30;
-		if (zot(ticker)) ticker = true;
 		
 		var stageW = stage.getBounds().width;
 		var stageH = stage.getBounds().height;
@@ -2940,7 +3122,8 @@ damp - allows you to dynamically change the damping
 		
 		this.dispose = function() {
 			myLayers = null;
-			if (auto && ticker) createjs.Ticker.off("tick", cjsTicker);
+			if (auto) zim.Ticker.remove(zimTicker); 
+			return true;
 		}
 		
 		// private properties
@@ -2954,9 +3137,10 @@ damp - allows you to dynamically change the damping
 			this.addLayer(layers[i]);
 		}
 		
-		if (auto && ticker) {			
-			var cjsTicker = createjs.Ticker.on("tick", animate);	
-			createjs.Ticker.setFPS(fps);
+		if (auto) {			
+			zim.Ticker.stage = stage;
+			var zimTicker = zim.Ticker.add(animate);
+			if (!zot(fps)) createjs.Ticker.setFPS(fps);
 		}		
 
 		// loop though our layers and apply the converted proportion damping
@@ -2986,14 +3170,13 @@ damp - allows you to dynamically change the damping
 					// for x on mouseX we split the destination range in two for a centered parallax
 					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
 				}
-			}			
-			stage.update();
+			}	
 		}
 	}
 	
 	
 /*--
-zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker)
+zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps)
 
 Scroller Class
 
@@ -3012,7 +3195,7 @@ disposing just removes the ticker - you have to remove the backings
 not sure what is causing a small gap to appear over time 
 but if your background can overlap a little you can pass in a gapFix of 10 pixels etc.
 can set frames per second as fps parameter default 30 (works better on mobile)
-ticker sets a ticker and defaults to true - should only use one ticker for mobile
+note: the ticker parameter has been removed - see zim.Ticker
 
 METHODS
 dispose() - get rid of the event listeners - you need to remove the backings 
@@ -3022,9 +3205,9 @@ speed - how fast the animation is going in pixels per frame (ticker set at 60)
 direction - either left or right if horizontal or up or down if not horizontal
 gapFix - if spacing occurs over time you can set the gapFix dynamically
 --*/
-	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker) {
+	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps) {
 		
-		var sig = "backing1, backing2, speed, direction, horizontal, gapFix, fps, ticker";
+		var sig = "backing1, backing2, speed, direction, horizontal, gapFix, fps";
 		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
 		
 		var b1 = backing1; var b2 = backing2;
@@ -3032,7 +3215,6 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		if (zot(horizontal)) horizontal = true;
 		var that = this; // we keep animate protected but want to access public properties
 		if (zot(fps)) fps = 30;
-		if (zot(ticker)) ticker = true;
 		
 		// here are the public properties that can be changed
 		this.speed = (zot(speed)) ? 1 : speed;
@@ -3056,11 +3238,11 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		} else {
 			b2.y = b1.getBounds().height;
 		}
+
+		zim.Ticker.stage = b1.getStage();
+		var zimTicker = zim.Ticker.add(animate);
+		if (!zot(fps)) createjs.Ticker.setFPS(fps);
 		
-		if (ticker) {	
-			var cjsTicker = createjs.Ticker.on("tick", animate);	
-			createjs.Ticker.setFPS(fps);
-		}
 		function animate(e) {
 			if (!b1.getStage()) return;
 			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
@@ -3111,9 +3293,8 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		
 		this.dispose = function() {
 			if (zon) zog("bye from Scroller");
-			if (ticker) {
-				createjs.Ticker.off("tick", cjsTicker);
-			}
+			zim.Ticker.remove(zimTicker);
+			return true;			
 		}
 		
 	}
@@ -3129,8 +3310,7 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 			t.mouseEnabled = false;
 			t._enabled = false;
 		}
-	}
-	
+	}	
 	
 	return zim;
 } (zim || {});

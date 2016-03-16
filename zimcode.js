@@ -166,7 +166,6 @@ lastValue - setting this would go immediately to this value (would not normally 
 	zim.Damp = function(startValue, damp) {
 		var sig = "startValue, damp";
 		var duo; if (duo = zob(zim.Damp, arguments, sig, this)) return duo;
-		if (zon) zog("zim code - Damp");
 		this.lastValue = (zot(startValue)) ? 0 : startValue;
 		this.damp = (zot(damp)) ? .1 : damp;
 	}	
@@ -212,8 +211,6 @@ convert(input) - will return the output property (for instance, a volume)
 		
 		// factor - set to 1 for increasing and -1 for decreasing
 		// round - true to round results to whole number 
-		
-		// zot() is found in danzen.js (the z version of not)
 		if (zot(targetMin)) targetMin = 0;
 		if (zot(targetMax)) targetMax = 1;
 		if (zot(factor)) factor = 1;
@@ -338,8 +335,76 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 		
 		this.dispose = function() {
 			clearInterval(interval);
+			return true;
 		}
-	}		
+	}	
+	
+
+/*--
+zim.Dictionary = function()
+
+Dictionary Class
+
+A object that uses objects as keys to give values
+Similar to an object with properties except the property names are objects instead of strings
+JavaScript currently does not have a dictionary, but other languages do
+var o = {test:"test"}
+var f = function(w) {zog(w)};
+var c = new zim.Circle();
+var d = new zim.Dictionary();
+d.add(o, 1); d.add(f, 2); d.add(c, f);
+zog(d.at(o)); // 1
+zog(d.at(f)); // 2
+d.at(c)("hello"); // hello
+d.remove(o); // to clear o
+zog(d.length); // 2 
+
+METHODS
+add(object, value) - adds a value that can be retrieved by an object reference
+at(object) - retrieves the value stored at the object (or returns null if not there)
+remove(object) - removes the object and its value from the Dictionary
+dispose() - deletes object
+
+PROPERTIES
+length - the number of items in the Dictionary
+--*/
+	zim.Dictionary = function() {
+			
+		this.length = 0;
+		var objects = []; // store objects and values in synched arrays
+		var values = [];
+		
+		this.add = function(o,v) {
+			if (zot(o)) return;
+			objects.push(o);
+			values.push(v);
+			this.length++;
+		}
+		
+		this.at = function(o) {
+			if (zot(o)) return;
+			var i = objects.indexOf(o);
+			if (i > -1) return values[i];
+			return null;
+		}
+		
+		this.remove = function(o) {
+			if (zot(o)) return;
+			var i = objects.indexOf(o);
+			if (i > -1) {
+				objects.splice(i,1);
+				values.splice(i,1);
+				this.length--
+			}
+		}
+		
+		this.dispose = function() {
+			objects = null;
+			values = null;
+			this.length = null;
+			return true;
+		}
+	}
 
 
 	// DOM CODE	
@@ -478,21 +543,26 @@ deletes an HTML cookie
 	zim.deleteCookie = function(name) {
 		zim.setCookie(name,"",-1);
 	}	
-	
+
 /*--
 zim.mobile = function(orientation)
-detects if app is on a mobile device 
+detects if app is on a mobile device - if so, returns the mobile device type 
+android, ios, blackberry, windows, other (all which evaluate to true) else returns false
 orientation defaults to true and if there is window.orientation then it assumes mobile 
 BUT this may return true for some desktop and laptop touch screens  
 so you can turn the orientation check off by setting orientation to false 
-the check also looks at the navigator.userAgent for the following regular expression
+the check looks at the navigator.userAgent for the following regular expression
 /ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
-microsoft mobile gets detected by mobile or phone 
+microsoft mobile gets detected by nokia, mobile or phone 
 so if orientation is set to false the check may miss non-mainstream devices
 --*/	
 	zim.mobile = function(orientation) {
 		if (zot(orientation)) orientation = true;
-		if (/ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i.test(navigator.userAgent)) return true;
+		if (/ip(hone|od|ad)/i.test(navigator.userAgent)) return "ios";
+		if (/android|nexus/i.test(navigator.userAgent)) return "android";
+		if (/blackberry/i.test(navigator.userAgent)) return "blackberry";
+		if (/nokia|phone|mobile/i.test(navigator.userAgent)) return "windows";
+		if (/opera mini|webos/i.test(navigator.userAgent)) return "other";
 		if (orientation && window.orientation !== undefined) return true; 
 		return false;
 	}

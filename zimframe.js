@@ -6,12 +6,36 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.0.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.3.js"><\/script>');
 } else {
 
 var zim = function(zim) {
 	
 	if (zon) zog("ZIM FRAME Module");
+	
+	
+/*-- // borrowed zim.mobile from ZIM Code
+zim.mobile = function(orientation)
+detects if app is on a mobile device - if so, returns the mobile device type 
+android, ios, blackberry, windows, other (all which evaluate to true) else returns false
+orientation defaults to true and if there is window.orientation then it assumes mobile 
+BUT this may return true for some desktop and laptop touch screens  
+so you can turn the orientation check off by setting orientation to false 
+the check looks at the navigator.userAgent for the following regular expression
+/ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
+microsoft mobile gets detected by nokia, mobile or phone 
+so if orientation is set to false the check may miss non-mainstream devices
+--*/	
+	zim.mobile = function(orientation) {
+		if (zot(orientation)) orientation = true;
+		if (/ip(hone|od|ad)/i.test(navigator.userAgent)) return "ios";
+		if (/android|nexus/i.test(navigator.userAgent)) return "android";
+		if (/blackberry/i.test(navigator.userAgent)) return "blackberry";
+		if (/nokia|phone|mobile/i.test(navigator.userAgent)) return "windows";
+		if (/opera mini|webos/i.test(navigator.userAgent)) return "other";
+		if (orientation && window.orientation !== undefined) return true; 
+		return false;
+	}
 
 /*-- // borrowed windoWidth and windowHeight from ZIM Code
 zim.windowWidth = function()
@@ -76,10 +100,11 @@ dispose() - only removes canvas, resize listener and stage
 		
 		function makeFrame() {
 		
+			var mobile = zim.mobile();
 			if (zot(scaling)) scaling = "full";
 			if (zot(width)) width = 500;
 			if (zot(height)) height = 500;
-			if (zot(rollover)) rollover = true;
+			if (zot(rollover)) rollover = !mobile;
 			if (zot(touch)) touch = true;
 			if (zot(scrollTop)) scrollTop = true;
 			
@@ -92,8 +117,20 @@ dispose() - only removes canvas, resize listener and stage
 			var stage;
 			var appReady = false; // check variable - set true when ready ;-) (watch - "ready" is reserved)
 			
-			window.addEventListener('load', init);
-			if (scaling != "none") window.addEventListener('resize', sizeCanvas);
+			window.addEventListener('load', function() {
+				if (mobile == "android") {
+					setTimeout(function() {init();}, 500); // to catch delayed screen sizes
+				} else {
+					init();
+				}
+			});
+			
+			if (scaling != "none") window.addEventListener('resize', function() {
+				sizeCanvas();
+				if (mobile == "android") setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
+			});
+			
+			
 			
 			function init() {
 				
@@ -108,6 +145,7 @@ dispose() - only removes canvas, resize listener and stage
 				if (scaling=="full") {
 					appReady = true;
 					fullResize();
+					if (mobile == "android") setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
 				} 
 			}
 			
@@ -122,10 +160,11 @@ dispose() - only removes canvas, resize listener and stage
 			
 			function fullResize() { 			
 				if (!appReady) return;				
-				that.dispatchEvent("resize");			
+				that.dispatchEvent("resize");
 			}
 			
 			function sizeCanvas() {
+								
 				var can = zid("myCanvas");
 				var w = zim.windowWidth();
 				var h = zim.windowHeight();
@@ -186,6 +225,8 @@ dispose() - only removes canvas, resize listener and stage
 				largest = Math.max(window.innerWidth, screen.width, window.innerHeight, screen.height);
 				// does not work on iOS6 in full screen if loading from icon unless keep canvas at device size
 				// thank you apple for this and many other days of hell
+
+				if (mobile != "ios") largest *= 3;
 				if (scaling == "full") {
 					canvas.setAttribute("width", largest);
 					canvas.setAttribute("height", largest);
@@ -258,6 +299,7 @@ dispose() - only removes canvas, resize listener and stage
 				if (zid("myCanvas")) zid("myCanvas").parentNode.removeChild(zid("myCanvas"));
 				stage = null;
 				that = null;
+				return true;
 			}
 
 		}
