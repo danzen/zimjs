@@ -3,11 +3,11 @@
 // free to use - donations welcome of course! http://zimjs.com/donate
 // classes in this module require createjs namespace to exist and in particular easel.js
 // available at http://createjs.com
-// (borrows zim.arraysEqual (ZIM code), zim.animate and zim.fit (ZIM create))
+// (borrows zim.arraysEqual (ZIM code), zim.animate, zim.Ticker and zim.fit (ZIM create), zim.OPTIMIZE (ZIM Build))
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.0.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_2.3.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.5.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimpages_2.5.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -40,42 +40,217 @@ strict defaults to true - if false, order in arrays does not matter
 		return true;
 	}	
 	
+/*-- // borrowed from ZIM Build
+zim.OPTIMIZE
+
+a setting that relates to how stage.update() is used by the components
+default is false which means some components will update the stage automatically
+for instance, the Slider will update the stage so that you can see the knob slide
+also, the CheckBox and RadioButtons when checked will update the stage
+the Tabs change button colors and then update the stage
+closing of a Pane will update the stage
+the Stepper also updates as does changing color of a button, label, etc.
+
+however, concurrent stage.update() calls can slow down mobile performance
+so if you are making content for mobile you should set zim.OPTIMIZE = true;
+then you will have to stage.update() in the change event handlers
+but you were probably doing things in these events and updating anyway!
+just be careful - you might be testing a checkbox and it won't check... 
+so it takes some getting used to running in optimized mode
+
+Components affected by OPTIMIZE:
+Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
+
+OPTIMIZE set to true also affects the zim Ticker 
+for functions like move, animate, drag, Scroller, Parallax
+See zim.Ticker as you may have to set zim.Ticker.update = true;
+
+For mobile, you should set the mouseover parameter of zim.Frame to false
+and, as mentioned, set zim.OPTIMIZE = true at the top of your script
+--*/
+
+zim.OPTIMIZE = false;
+
+
+/*-- // borrowed from ZIM Create
+zim.Ticker = {}
+a static class to let ZIM use one createjs Ticker
+if a function has been added to the Ticker queue then it will run in the order added
+along with a single stage update after all functions in queue have run
+if zim.OPTIMIZE is true then the Ticker will not update the stage (it will still run functions)
+however, OPTIMIZE can be overridden as follows (or with the always() method):
+
+PROPERTIES (static)
+zim.Ticker.update = true - overrides zim.OPTIMIZE and forces an update if a function is in the queue  
+zim.Ticker.update = false - forces no update regardless of zim.OPTIMIZE
+zim.Ticker.update = null (default) - only updates if there is a function in queue and zim.OPTIMIZE is false
+zim.Ticker.stage - the stage reference (the Ticker will still run functions with its stage property set to null)
+zim.Ticker.list - an Array with the functions in the Ticker queue
+
+METHODS (static)
+zim.Ticker.always(stage) - overrides zim.OPTIMIZE and always runs an update even with no function in queue
+zim.Ticker.add(function, [stage]) - adds the function to the Ticker queue and returns the function that was added
+zim.Ticker.remove(function) - removes the function from the Ticker queue
+zim.Ticker.removeAll() - removes all functions from the Ticker queue (keeps stage update - see below)
+zim.Ticker.setFPS(30, 60) - (mobile, pc) default 30 frames per second mobile, 60 frames per second non mobile
+zim.Ticker.dispose() - removes all functions from the queue removes the createjs Ticker and updates
+
+the Ticker is used internally by zim functions like move(), animate(), drag(), Scroller(), Parallax()
+you are welcome to add functions to it as well but unless zim has already been using it,
+make sure to set the stage property or pass the stage in as a second parameter to the add() method
+
+USES:
+1. if you have your own ticker going, just set zim.OPTIMIZE = true and don't worry about a thing
+2. if you do not have your own ticker going but still want OPTIMIZE true to avoid components updating automatically,
+then set zim.OPTIMIZE = true and set zim.Ticker.update = true
+this will run a single update only when needed in zim Ticker for any zim functions
+3. if you want a ticker with a single update going all the time (with OPTIMIZE true or false) then
+run zim.Ticker.always(stage); 
+4. if for some reason (can't think of any) you want no ticker updates for zim but want component updates
+then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
+--*/
+
+		
+		zim.Ticker = {
+			stage:null,
+			myUpdate: null,
+			myAlways:false,
+			list:[],			
+			setFPS: function(m, d) {
+				if (zot(m)) m = 30;
+				if (zot(d)) d = 60;
+				createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+			},
+			add: function(f, s) {
+				var t = zim.Ticker;
+				if (s && s.update) t.stage = s;
+				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only add functions"); return;}
+				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+				t.list.push(f);
+				return f;
+			},
+			call: function() {
+				var t = zim.Ticker;
+				for (var i=0; i<t.list.length; i++) {
+					t.list[i]();	
+				}
+				if (t.myAlways && zim.Ticker.stage) {
+					t.stage.update();
+					return;
+				}				
+				if (zot(t.update) && !zim.OPTIMIZE && t.stage) {
+					t.stage.update();
+				} else if (t.update && t.stage) {
+					t.stage.update();
+				} 
+			},
+			always: function(s) {
+				var t = zim.Ticker;
+				if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
+				t.myAlways = true;
+				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+			},
+			remove: function(f) {
+				var t = zim.Ticker;
+				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only remove functions"); return;}
+				var i = t.list.indexOf(f);
+				if (i > -1) t.list.splice(i,1);
+				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			},
+			removeAll: function() {
+				var t = zim.Ticker;
+				t.list = [];
+				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			},
+			dispose: function() {
+				var t = zim.Ticker;
+				t.removeAll();
+				createjs.Ticker.off("tick", t.ticker);
+				t.update = null;
+				return true;
+			}
+		}		
+		
+		Object.defineProperty(zim.Ticker, 'update', {
+			get: function() {				
+				return zim.Ticker.myUpdate;
+			},
+			set: function(value) {
+				var t =  zim.Ticker;
+				if (typeof value != "boolean") value = null;
+				t.myUpdate = value;
+				if (t.myUpdate === false) {
+					 createjs.Ticker.off("tick", t.ticker); 
+					 // note, this overrides always()
+					 // but running always() will override update = false
+					 t.myAlways = false;
+					 return;
+				} 
+				if (t.myAlways) return;
+				if (!t.myUpdate && t.list.length == 0) createjs.Ticker.off("tick", t.ticker);				
+			}
+		});	
+	
 	
 /*-- // borrowed from ZIM Create
-zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps)
+zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence)
 convenience function (wraps createjs.Tween)
-to animate object obj properties in ttime milliseconds
+to animate object obj properties in time milliseconds
 supports DUO - parameters or single object
 added convinience property of scale that does both scaleX and scaleY
-with optional ease and a callBack function and params (send an array, for instance)
+with optional ease, call back function and params (send an array, for instance)
 and props for TweenJS tween (see CreateJS documentation) defaults to override:true
 note, this is where you can set loop:true to loop animation
 added to props as a convenience are:
+loopWait:ms - how many ms to wait before looping (post animation wait)
 rewind:true - rewinds (reverses) animation
 rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
-can set frames per second as fps parameter
+can set frames per second as fps parameter default 30 (works better on mobile)
+sequence defaults to 0 ms - set it to the delay time (ms) to run an array of targets
+for example, target = [a,b,c] and sequence = 1000 
+would run the animation on a and then 1 second later, run the animation on b, etc.
+note - the ticker parameter has been removed - see zim.Ticker
 returns target for chaining
 --*/	
-	zim.animate = function(target, obj, time, ease, callBack, params, wait, props, fps) {	
-		
-		var sig = "target, obj, time, ease, callBack, params, wait, props, fps";
+	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence) {	
+				
+		var sig = "target, obj, time, ease, call, params, wait, props, fps, sequence";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		
+		// handle multiple targets first if there is an array
+		// this just recalls the animate function for each element delayed by the sequence parameter
+		if (zot(sequence)) sequence = 0;
+		if (target instanceof Array) {
+			var currentTarget = 0;
+			for (var i=0; i<target.length; i++) {
+				setTimeout(function() {
+					var t =	target[currentTarget];
+					currentTarget++;
+					zim.animate(t, obj, time, ease, call, params, wait, zim.copy(props), fps);
+				}, sequence*i);				
+			}
+			return;		
+		}
+		
+		// original animate functionality
+		
 		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
+		
 		var t = time;
 		if (zot(t)) t = 1000;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
 		if (zot(props)) props = {override: true};
 		if (zot(params)) params = target;
-		if (zot(fps)) fps = 60;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
 		}
+		zim.Ticker.stage = target.getStage();
+				
 		var tween;
 		if (props.loop) {
 			if (!zot(props.count)) {
@@ -83,6 +258,11 @@ returns target for chaining
 				delete props.count;
 				var currentCount = 1;
 			}
+		}
+		var wait3 = 0;
+		if (props.loopWait) {
+			wait3 = props.loopWait;
+			delete props.loopWait;
 		}
 		if (props.rewind) {
 			// flip second ease
@@ -104,10 +284,10 @@ returns target for chaining
 			delete props.rewind;
 			if (props.rewindWait) {
 				wait2 = props.rewindWait;
-				delete props.rewindWait;
+				delete props.rewindWait; // not a createjs prop so delete
 			}
 			if (props.rewindCall) {
-				var callBack2 = props.rewindCall;
+				var call2 = props.rewindCall;
 				var params2 = props.rewindParams;
 				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
@@ -118,25 +298,30 @@ returns target for chaining
 					.call(rewindCall)
 					.wait(wait2)
 					.to(obj2, t, createjs.Ease[ease2])				
-					.call(doneAnimating);
+					.call(doneAnimating)
+					.wait(wait3);
 			} else {
 				tween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
 					.to(obj2, t, createjs.Ease[ease2])				
-					.call(doneAnimating);
+					.call(doneAnimating)
+					.wait(wait3);
 			}
 		} else {
 			tween = createjs.Tween.get(target, props)
 				.wait(wait)
 				.to(obj, t, createjs.Ease[ease])				
-				.call(doneAnimating);
+				.call(doneAnimating)
+				.wait(wait3);
 		}
-		var listener = createjs.Ticker.on("tick", target.getStage());	
-		createjs.Ticker.setFPS(fps);
+		
+		var zimTicker = zim.Ticker.add(function(){});
+		if (!zot(fps)) createjs.Ticker.setFPS(fps);
+		
 		function doneAnimating() {
-			if (callBack && typeof callBack === 'function') {(callBack)(params);}
+			if (call && typeof call == 'function') {(call)(params);}
 			if (props.loop) {
 				if (count > 0) {
 					if (currentCount < count) {
@@ -148,14 +333,13 @@ returns target for chaining
 				}
 			}
 			tween.setPaused(true);
-			createjs.Ticker.off("tick", listener);
+			zim.Ticker.remove(zimTicker);
 		}	
 		function rewindCall() {
-			if (callBack2 && typeof callBack2 === 'function') {(callBack2)(params2);}
+			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}	
 		return target;	
 	}	
-
 
 /*-- // borrowed from ZIM Create
 zim.fit = function(obj, left, top, width, height, inside)
@@ -224,10 +408,10 @@ returns an object with the new and old details:
 		var newH = objH * scale;
 		
 		// horizontal center
-		obj.x = left + (w-newW)/2;
+		obj.x = obj.regX*scale + left + (w-newW)/2;
 		
 		// vertical center
-		obj.y = top + (h-newH)/2;	
+		obj.y = obj.regY*scale + top + (h-newH)/2;	
 		
 		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height};	
 							
@@ -265,6 +449,11 @@ disable() - set swipe to inactive (sets active to false and does not dispatch)
 EVENTS
 dispatches a "swipe" event on every pressup (even if swipe failed and direction is none)
 when a swipe event triggers
+the Swipe event object has a swipeX and swipeY property that is -1,0, or 1
+for left, none, or right OR up, none, down
+the event object has an obj property as well for what object was swiped
+also dispatches a "swipedown" event for convenience on a mousedown	
+LEGACY
 the Swipe object provides a direction property of "left", "right", "up", or "down"
 the Swipe object provides an obj property of what object was swiped on
 for instance if e is the event object
@@ -272,7 +461,6 @@ then e.target is the Swipe object so use e.target.direction
 did not dispatch a custom event due to lack of support in early IE
 Swipe also dispatches a direction of "none" if the mouse movement is not a swipe
 this can be used to snap back to an original location	
-also dispatches a "swipedown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		
@@ -325,17 +513,19 @@ also dispatches a "swipedown" event for convenience on a mousedown
 				
 				function checkSwipe() {
 					var swipeCheck = false;
+					var e = new createjs.Event("swipe");
+					e.obj = that.obj;
+					e.swipeX = e.swipeY = 0; 
+					that.direction = "none";
 					// may as well use 45 degrees rather than figure for aspect ratio
 					if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-						if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); swipeCheck=true;}	
-						if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (mouseX - startX > that.distance) {e.swipeX = 1;  that.direction="right";}	
+						if (startX - mouseX > that.distance) {e.swipeX = -1; that.direction="left";}
 					} else {
-						if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); swipeCheck=true;}
-						if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (mouseY - startY > that.distance) {e.swipeY = 1;  that.direction="down";}
+						if (startY - mouseY > that.distance) {e.swipeY = -1; that.direction="up";}
 					}
-					if (!swipeCheck) {
-						that.direction="none"; that.dispatchEvent("swipe");
-					}
+					that.dispatchEvent(e);
 				}
 			});		
 			

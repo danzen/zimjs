@@ -19,7 +19,7 @@ if (zon) zog("ZIM WRAP zog zid zss zgo zum zot zop zil zob");
 
 /*--
 zid(string)                     ~ id
-short version of document.getElementById(s)
+short version of document.getElementById(string)
 --*/
 function zid(s) {
 	return document.getElementById(s);	
@@ -27,7 +27,7 @@ function zid(s) {
 
 /*--
 zss(string)                     ~ css
-short version of document.getElementById(s).style
+short version of document.getElementById(string).style
 so you can do zss("logo").top = "10px"; // for instance
 --*/
 function zss(s) {
@@ -618,21 +618,21 @@ window.clientHeight or window.innerHeight
 	}
 		
 /*--
-zim.urlEncode = function(str)
+zim.urlEncode = function(string)
 matches PHP urlencode and urldecode functions
 --*/
-	zim.urlEncode = function(str) {
-		var str = (str + '').toString();
-		return encodeURIComponent(str).replace(/!/g, '%21').replace(/'/g, '%27').replace(/\(/g, '%28').
+	zim.urlEncode = function(s) {
+		var s = (s + '').toString();
+		return encodeURIComponent(s).replace(/!/g, '%21').replace(/'/g, '%27').replace(/\(/g, '%28').
 		replace(/\)/g, '%29').replace(/\*/g, '%2A').replace(/%20/g, '+');
 	}
 	
 /*--
-zim.urlDecode = function(str)
+zim.urlDecode = function(string)
 matches PHP urlencode and urldecode functions
 --*/		
-	zim.urlDecode = function(str) {
-		 return decodeURIComponent((str + '').replace(/\+/g, '%20'));
+	zim.urlDecode = function(s) {
+		 return decodeURIComponent((s + '').replace(/\+/g, '%20'));
 	}
 	
 	
@@ -5006,6 +5006,11 @@ disable() - set swipe to inactive (sets active to false and does not dispatch)
 EVENTS
 dispatches a "swipe" event on every pressup (even if swipe failed and direction is none)
 when a swipe event triggers
+the Swipe event object has a swipeX and swipeY property that is -1,0, or 1
+for left, none, or right OR up, none, down
+the event object has an obj property as well for what object was swiped
+also dispatches a "swipedown" event for convenience on a mousedown	
+LEGACY
 the Swipe object provides a direction property of "left", "right", "up", or "down"
 the Swipe object provides an obj property of what object was swiped on
 for instance if e is the event object
@@ -5013,7 +5018,6 @@ then e.target is the Swipe object so use e.target.direction
 did not dispatch a custom event due to lack of support in early IE
 Swipe also dispatches a direction of "none" if the mouse movement is not a swipe
 this can be used to snap back to an original location	
-also dispatches a "swipedown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		
@@ -5066,17 +5070,19 @@ also dispatches a "swipedown" event for convenience on a mousedown
 				
 				function checkSwipe() {
 					var swipeCheck = false;
+					var e = new createjs.Event("swipe");
+					e.obj = that.obj;
+					e.swipeX = e.swipeY = 0; 
+					that.direction = "none";
 					// may as well use 45 degrees rather than figure for aspect ratio
 					if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-						if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); swipeCheck=true;}	
-						if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (mouseX - startX > that.distance) {e.swipeX = 1;  that.direction="right";}	
+						if (startX - mouseX > that.distance) {e.swipeX = -1; that.direction="left";}
 					} else {
-						if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); swipeCheck=true;}
-						if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (mouseY - startY > that.distance) {e.swipeY = 1;  that.direction="down";}
+						if (startY - mouseY > that.distance) {e.swipeY = -1; that.direction="up";}
 					}
-					if (!swipeCheck) {
-						that.direction="none"; that.dispatchEvent("swipe");
-					}
+					that.dispatchEvent(e);
 				}
 			});		
 			
