@@ -1,4 +1,3 @@
-
 // ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
 // zim.js includes all the basic zim coding modules http://zimjs.com
 // free to use - donations welcome of course! http://zimjs.com/donate
@@ -6941,6 +6940,7 @@ note: to just hide bounds, you use the B key
 	return zim;
 } (zim || {});
 
+
 ////////////////  ZIM FRAME  //////////////
 
 // zimframe.js provides code to help you set up your coding environment
@@ -6985,6 +6985,37 @@ METHODS
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
 will have to set your local stage, stageW and stageH variables again
 dispose() - only removes canvas, resize listener and stage
+loadAssets([file, file], path) - pass in an array of images or sounds then an optional path to directory
+asset(file) - access a loaded asset based on asset file string (not including path) 
+these two wrap PreloadJS. For example:
+var frame = new zim.Frame("fit", 300, 300);
+frame.on("ready", function() {
+	// stage is ready now get assets
+	frame.loadAssets(["zim_promo.jpg", "welcome.mp3"], "content/");
+	frame.on("progress", function(e) {
+		zog(e.progress); // decimal from 0-1 representing overall progress
+	}
+	frame.on("assetload", function(e) {
+		if (e.asset.type == "sound") { // or "image"
+			e.asset.play(); // returns createjs sound instance
+		} else {
+			frame.stage.addChild(e.asset);	// e.asset is a createjs Bitmap
+		}
+	}
+	frame.on("complete", function() {
+		var image = frame.asset("zim_promo.jpg"); // returns createjs Bitmap
+		var sound = frame.asset("welcome.mp3");
+		var welcome = sound.play(); // returns createjs sound instance
+		welcome.volume = .5;
+	}
+}
+
+EVENTS
+"ready" - fired when the stage is made
+"progress" - fires constantly as assets are loaded with loadAssets() to represent overall load progress
+"assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object)
+"complete" - fired when all assets loaded with loadAssets() are loaded (then use frame.assets())
+"error" - fired when there is a problem loading an asset with loadAssets()
 
 --*/	
 	zim.Frame = function(scaling, width, height, rollover, touch, scrollTop) {
@@ -7130,6 +7161,51 @@ dispose() - only removes canvas, resize listener and stage
 				}
 				document.body.appendChild(canvas);
 			}
+			
+			this.assets = {}; // store asset Bitmap or play function for sound
+			this.loadAssets = function(arr, path, xhr) {
+				if (zot(arr)) return;
+				if (zot(xhr)) xhr = false;
+				if (!Array.isArray(arr)) arr = [arr];
+				var soundCheck = false;
+				var manifest = [];
+				var a; var ext; var i; var j;
+				var re = /\.([^.]+)$/i; // get extension
+				for (i=0; i<arr.length; i++) {
+					a = arr[i];						
+					ext = a.match(re);
+					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;	
+					manifest.push({src:a});						
+				}
+				that.preload = new createjs.LoadQueue(xhr, path); 
+				if (soundCheck) that.preload.installPlugin(createjs.Sound);
+				that.preload.on("progress", function(e) {that.dispatchEvent(e);}); 
+				that.preload.on("error", function(e) {that.dispatchEvent(e);});
+				that.preload.on("fileload", function(e) {
+					var item = e.item;
+					var ext = item.id.match(re);
+					var asset;
+					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) {
+						asset = that.assets[item.id] = {type:"sound", play:function(){
+							return createjs.Sound.play(item.id);							
+						}};
+					} else {
+						asset = that.assets[item.id] = new createjs.Bitmap(e.result);
+						asset.type = "image";
+					}
+					var ev = new createjs.Event("assetload");
+					ev.item = item; // createjs preload item
+					ev.asset = asset;
+					that.dispatchEvent(ev);
+				}); 
+				that.preloadEvent = that.preload.on("complete", function(e) {that.dispatchEvent(e);}); 
+				that.preload.loadManifest(manifest);					
+			}
+			
+			this.asset = function(n) {
+				if (zot(n)) return;
+				return that.assets[n];				
+			}
 
 			Object.defineProperty(that, 'stage', {
 				get: function() {			
@@ -7195,7 +7271,7 @@ dispose() - only removes canvas, resize listener and stage
 				that = null;
 				return true;
 			}
-
+		
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time

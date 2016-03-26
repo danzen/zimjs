@@ -19,7 +19,7 @@ if (zon) zog("ZIM WRAP zog zid zss zgo zum zot zop zil zob");
 
 /*--
 zid(string)                     ~ id
-short version of document.getElementById(s)
+short version of document.getElementById(string)
 --*/
 function zid(s) {
 	return document.getElementById(s);	
@@ -27,7 +27,7 @@ function zid(s) {
 
 /*--
 zss(string)                     ~ css
-short version of document.getElementById(s).style
+short version of document.getElementById(string).style
 so you can do zss("logo").top = "10px"; // for instance
 --*/
 function zss(s) {
@@ -615,21 +615,21 @@ window.clientHeight or window.innerHeight
 	}
 		
 /*--
-zim.urlEncode = function(str)
+zim.urlEncode = function(string)
 matches PHP urlencode and urldecode functions
 --*/
-	zim.urlEncode = function(str) {
-		var str = (str + '').toString();
-		return encodeURIComponent(str).replace(/!/g, '%21').replace(/'/g, '%27').replace(/\(/g, '%28').
+	zim.urlEncode = function(s) {
+		var str = (s + '').toString();
+		return encodeURIComponent(s).replace(/!/g, '%21').replace(/'/g, '%27').replace(/\(/g, '%28').
 		replace(/\)/g, '%29').replace(/\*/g, '%2A').replace(/%20/g, '+');
 	}
 	
 /*--
-zim.urlDecode = function(str)
+zim.urlDecode = function(string)
 matches PHP urlencode and urldecode functions
 --*/		
-	zim.urlDecode = function(str) {
-		 return decodeURIComponent((str + '').replace(/\+/g, '%20'));
+	zim.urlDecode = function(s) {
+		 return decodeURIComponent((s + '').replace(/\+/g, '%20'));
 	}
 	
 	
@@ -4982,6 +4982,11 @@ disable() - set swipe to inactive (sets active to false and does not dispatch)
 EVENTS
 dispatches a "swipe" event on every pressup (even if swipe failed and direction is none)
 when a swipe event triggers
+the Swipe event object has a swipeX and swipeY property that is -1,0, or 1
+for left, none, or right OR up, none, down
+the event object has an obj property as well for what object was swiped
+also dispatches a "swipedown" event for convenience on a mousedown	
+LEGACY
 the Swipe object provides a direction property of "left", "right", "up", or "down"
 the Swipe object provides an obj property of what object was swiped on
 for instance if e is the event object
@@ -4989,7 +4994,6 @@ then e.target is the Swipe object so use e.target.direction
 did not dispatch a custom event due to lack of support in early IE
 Swipe also dispatches a direction of "none" if the mouse movement is not a swipe
 this can be used to snap back to an original location	
-also dispatches a "swipedown" event for convenience on a mousedown	
 --*/	
 	zim.Swipe = function(obj, distance, duration) {
 		
@@ -5041,17 +5045,19 @@ also dispatches a "swipedown" event for convenience on a mousedown
 				
 				function checkSwipe() {
 					var swipeCheck = false;
+					var e = new createjs.Event("swipe");
+					e.obj = that.obj;
+					e.swipeX = e.swipeY = 0; 
+					that.direction = "none";
 					// may as well use 45 degrees rather than figure for aspect ratio
 					if (Math.abs(mouseX - startX) > Math.abs(mouseY - startY)) {
-						if (mouseX - startX > that.distance) {that.direction="right"; that.dispatchEvent("swipe"); swipeCheck=true;}	
-						if (startX - mouseX > that.distance) {that.direction="left"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (mouseX - startX > that.distance) {e.swipeX = 1;  that.direction="right";}	
+						if (startX - mouseX > that.distance) {e.swipeX = -1; that.direction="left";}
 					} else {
-						if (mouseY - startY > that.distance) {that.direction="down"; that.dispatchEvent("swipe"); swipeCheck=true;}
-						if (startY - mouseY > that.distance) {that.direction="up"; that.dispatchEvent("swipe"); swipeCheck=true;}
+						if (mouseY - startY > that.distance) {e.swipeY = 1;  that.direction="down";}
+						if (startY - mouseY > that.distance) {e.swipeY = -1; that.direction="up";}
 					}
-					if (!swipeCheck) {
-						that.direction="none"; that.dispatchEvent("swipe");
-					}
+					that.dispatchEvent(e);
 				}
 			});		
 			
@@ -6450,6 +6456,7 @@ hideKey is the hot key for hiding and showing the bounds - default B
 PROPERTIES
 regions - the regions object - if changed will have to call resize() manually
 
+
 METHODS
 resize() - resize based on new bounds of the holder (or scalingObject)
 dispose() - removes the B key listener (otherwise, nothing to dispose)
@@ -6948,6 +6955,37 @@ METHODS
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
 will have to set your local stage, stageW and stageH variables again
 dispose() - only removes canvas, resize listener and stage
+loadAssets([file, file], path) - pass in an array of images or sounds then an optional path to directory
+asset(file) - access a loaded asset based on asset file string (not including path) 
+these two wrap PreloadJS. For example:
+var frame = new zim.Frame("fit", 300, 300);
+frame.on("ready", function() {
+	// stage is ready now get assets
+	frame.loadAssets(["zim_promo.jpg", "welcome.mp3"], "content/");
+	frame.on("progress", function(e) {
+		zog(e.progress); // decimal from 0-1 representing overall progress
+	}
+	frame.on("assetload", function(e) {
+		if (e.asset.type == "sound") { // or "image"
+			e.asset.play(); // returns createjs sound instance
+		} else {
+			frame.stage.addChild(e.asset);	// e.asset is a createjs Bitmap
+		}
+	}
+	frame.on("complete", function() {
+		var image = frame.asset("zim_promo.jpg"); // returns createjs Bitmap
+		var sound = frame.asset("welcome.mp3");
+		var welcome = sound.play(); // returns createjs sound instance
+		welcome.volume = .5;
+	}
+}
+
+EVENTS
+"ready" - fired when the stage is made
+"progress" - fires constantly as assets are loaded with loadAssets() to represent overall load progress
+"assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object)
+"complete" - fired when all assets loaded with loadAssets() are loaded (then use frame.assets())
+"error" - fired when there is a problem loading an asset with loadAssets()
 
 --*/	
 	zim.Frame = function(scaling, width, height, rollover, touch, scrollTop) {
@@ -7092,6 +7130,51 @@ dispose() - only removes canvas, resize listener and stage
 				}
 				document.body.appendChild(canvas);
 			}
+			
+			this.assets = {}; // store asset Bitmap or play function for sound
+			this.loadAssets = function(arr, path, xhr) {
+				if (zot(arr)) return;
+				if (zot(xhr)) xhr = false;
+				if (!Array.isArray(arr)) arr = [arr];
+				var soundCheck = false;
+				var manifest = [];
+				var a; var ext; var i; var j;
+				var re = /\.([^.]+)$/i; // get extension
+				for (i=0; i<arr.length; i++) {
+					a = arr[i];						
+					ext = a.match(re);
+					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;	
+					manifest.push({src:a});						
+				}
+				that.preload = new createjs.LoadQueue(xhr, path); 
+				if (soundCheck) that.preload.installPlugin(createjs.Sound);
+				that.preload.on("progress", function(e) {that.dispatchEvent(e);}); 
+				that.preload.on("error", function(e) {that.dispatchEvent(e);});
+				that.preload.on("fileload", function(e) {
+					var item = e.item;
+					var ext = item.id.match(re);
+					var asset;
+					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) {
+						asset = that.assets[item.id] = {type:"sound", play:function(){
+							return createjs.Sound.play(item.id);							
+						}};
+					} else {
+						asset = that.assets[item.id] = new createjs.Bitmap(e.result);
+						asset.type = "image";
+					}
+					var ev = new createjs.Event("assetload");
+					ev.item = item; // createjs preload item
+					ev.asset = asset;
+					that.dispatchEvent(ev);
+				}); 
+				that.preloadEvent = that.preload.on("complete", function(e) {that.dispatchEvent(e);}); 
+				that.preload.loadManifest(manifest);					
+			}
+			
+			this.asset = function(n) {
+				if (zot(n)) return;
+				return that.assets[n];				
+			}
 
 			Object.defineProperty(that, 'stage', {
 				get: function() {			
@@ -7157,7 +7240,7 @@ dispose() - only removes canvas, resize listener and stage
 				that = null;
 				return true;
 			}
-
+		
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
@@ -7168,4 +7251,3 @@ dispose() - only removes canvas, resize listener and stage
 
 	return zim;
 } (zim || {});
-
