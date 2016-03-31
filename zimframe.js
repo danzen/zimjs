@@ -6,7 +6,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.5.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.5.2.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.6.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -62,7 +62,7 @@ Frame class
 
 extends a createjs EventDispatcher
 var frame = new zim.Frame(parameters);
-creates your canvas and stage 
+creates your canvas and stage
 Frame lets you decide how you want your stage to scale
 It also provides events for resizing and orientation change
 as well as a way to remake the canvas if necessary
@@ -83,54 +83,37 @@ scrollTop - activates scrolling on older apple devices to hide the url bar and d
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
-width - read only reference to the stage width - to change run remakeCanvas()
-height - read only reference to the stage height - to change run remakeCanvas()
+ead only reference to the stage width - to change run remakeCanvas()
+height - rwidth - read only reference to the stage height - to change run remakeCanvas()
+orientation - "vertical" or "horizontal" (updated live with orientation change)
 zil - reference to zil events that stop canvas from shifting
+colors: orange, green, pink, blue, brown, silver, grey, lighter, light, dark, darker
 
-METHODS 
+METHODS
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
 will have to set your local stage, stageW and stageH variables again
-dispose() - only removes canvas, resize listener and stage
 loadAssets([file, file], path) - pass in an array of images or sounds then an optional path to directory
-asset(file) - access a loaded asset based on asset file string (not including path) 
-these two wrap PreloadJS. For example:
-var frame = new zim.Frame("fit", 300, 300);
-frame.on("ready", function() {
-	// stage is ready now get assets
-	frame.loadAssets(["zim_promo.jpg", "welcome.mp3"], "content/");
-	frame.on("progress", function(e) {
-		zog(e.progress); // decimal from 0-1 representing overall progress
-	}
-	frame.on("assetload", function(e) {
-		if (e.asset.type == "sound") { // or "image"
-			e.asset.play(); // returns createjs sound instance
-		} else {
-			frame.stage.addChild(e.asset);	// e.asset is a createjs Bitmap
-		}
-	}
-	frame.on("complete", function() {
-		var image = frame.asset("zim_promo.jpg"); // returns createjs Bitmap
-		var sound = frame.asset("welcome.mp3");
-		var welcome = sound.play(); // returns createjs sound instance
-		welcome.volume = .5;
-	}
-}
+asset(file) - access a loaded asset based on file string (not including path)
+if the asset is a sound then use asset(file).play(); // returns createjs sound instance
+dispose() - only removes canvas, resize listener and stage
 
 EVENTS
 "ready" - fired when the stage is made
 "progress" - fires constantly as assets are loaded with loadAssets() to represent overall load progress
 "assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object)
-"complete" - fired when all assets loaded with loadAssets() are loaded (then use frame.assets())
+"complete" - fired when all assets loaded with loadAssets() are loaded (then use frame.asset())
 "error" - fired when there is a problem loading an asset with loadAssets()
+"resize" - fired on resize of screen
+"orientation" - fired on orientation change
 
---*/	
+--*/
 	zim.Frame = function(scaling, width, height, rollover, touch, scrollTop) {
-		
+
 		var sig = "scaling, width, height, rollover, touch, scrollTop";
 		var duo; if (duo = zob(zim.Frame, arguments, sig)) return duo;
-		
+
 		function makeFrame() {
-		
+
 			var mobile = zim.mobile();
 			if (zot(scaling)) scaling = "full";
 			if (zot(width)) width = 500;
@@ -138,7 +121,7 @@ EVENTS
 			if (zot(rollover)) rollover = !mobile;
 			if (zot(touch)) touch = true;
 			if (zot(scrollTop)) scrollTop = true;
-			
+
 			var that = this;
 			var stageW = width; // ignored if scaling is full
 			var stageH = height;
@@ -147,7 +130,7 @@ EVENTS
 			var lastOrientation; // used to detect orientation change
 			var stage;
 			var appReady = false; // check variable - set true when ready ;-) (watch - "ready" is reserved)
-			
+
 			window.addEventListener('load', function() {
 				if (mobile == "android") {
 					setTimeout(function() {init();}, 500); // to catch delayed screen sizes
@@ -155,31 +138,31 @@ EVENTS
 					init();
 				}
 			});
-			
+
 			if (scaling != "none") window.addEventListener('resize', function() {
 				sizeCanvas();
 				if (mobile == "android") setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
 			});
-			
-			
-			
+
+
+
 			function init() {
-				
+
 				makeCanvas();
 				makeStage();
-	
+
 				// for older mobile - pan hides the location bar
 				if (scrollTop) {setTimeout(function() {window.scrollTo(0, 0);}, 100);}
-	
+
 				that.dispatchEvent("ready");
-			
+
 				if (scaling=="full") {
 					appReady = true;
 					fullResize();
 					if (mobile == "android") setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
-				} 
+				}
 			}
-			
+
 			function makeStage() {
 				if (scaling != "none") sizeCanvas();
 				if (scaling == "full") {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.)
@@ -188,26 +171,26 @@ EVENTS
 				if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
 				if (touch) createjs.Touch.enable(stage,true); // added for mobile
 			}
-			
-			function fullResize() { 			
-				if (!appReady) return;				
+
+			function fullResize() {
+				if (!appReady) return;
 				that.dispatchEvent("resize");
 			}
-			
+
 			function sizeCanvas() {
-								
+
 				var can = zid("myCanvas");
 				var w = zim.windowWidth();
 				var h = zim.windowHeight();
 				var newW; var newH;
-			
-				appOrientation = that.orientation = (w > h) ? "horizontal" : "vertical";				
+
+				appOrientation = that.orientation = (w > h) ? "horizontal" : "vertical";
 				if (appOrientation != lastOrientation) { // new orientation
 					lastOrientation = appOrientation;
 					that.dispatchEvent("orientation");
 				}
 				if (!can) return;
-				
+
 				if (scaling == "fit") {
 					// scales canvas to fit dimensions inside screen
 					if (w/h >= stageW/stageH) {
@@ -237,11 +220,11 @@ EVENTS
 					fullResize();
 					return;
 				}
-			
+
 				can.style.width = newW + "px";
-				can.style.height = newH + "px";			
+				can.style.height = newH + "px";
 				// horizontal center
-				can.style.left = ((w-newW)/2) + "px";			
+				can.style.left = ((w-newW)/2) + "px";
 				// vertical center
 				can.style.top = ((h-newH)/2) + "px";
 			}
@@ -250,7 +233,7 @@ EVENTS
 				// note the width and height of a canvas
 				// are separate from from the width and height styles
 				// so beware of unintentionally stretching the canvas with styles
-			
+
 				var canvas = document.createElement("canvas");
 				canvas.setAttribute("id", "myCanvas");
 				largest = Math.max(window.innerWidth, screen.width, window.innerHeight, screen.height);
@@ -267,7 +250,7 @@ EVENTS
 				}
 				document.body.appendChild(canvas);
 			}
-			
+
 			this.assets = {}; // store asset Bitmap or play function for sound
 			this.loadAssets = function(arr, path, xhr) {
 				if (zot(arr)) return;
@@ -278,14 +261,14 @@ EVENTS
 				var a; var ext; var i; var j;
 				var re = /\.([^.]+)$/i; // get extension
 				for (i=0; i<arr.length; i++) {
-					a = arr[i];						
+					a = arr[i];
 					ext = a.match(re);
-					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;	
-					manifest.push({src:a});						
+					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
+					manifest.push({src:a});
 				}
-				that.preload = new createjs.LoadQueue(xhr, path); 
+				that.preload = new createjs.LoadQueue(xhr, path);
 				if (soundCheck) that.preload.installPlugin(createjs.Sound);
-				that.preload.on("progress", function(e) {that.dispatchEvent(e);}); 
+				that.preload.on("progress", function(e) {that.dispatchEvent(e);});
 				that.preload.on("error", function(e) {that.dispatchEvent(e);});
 				that.preload.on("fileload", function(e) {
 					var item = e.item;
@@ -293,7 +276,7 @@ EVENTS
 					var asset;
 					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) {
 						asset = that.assets[item.id] = {type:"sound", play:function(){
-							return createjs.Sound.play(item.id);							
+							return createjs.Sound.play(item.id);
 						}};
 					} else {
 						asset = that.assets[item.id] = new createjs.Bitmap(e.result);
@@ -303,36 +286,36 @@ EVENTS
 					ev.item = item; // createjs preload item
 					ev.asset = asset;
 					that.dispatchEvent(ev);
-				}); 
-				that.preloadEvent = that.preload.on("complete", function(e) {that.dispatchEvent(e);}); 
-				that.preload.loadManifest(manifest);					
+				});
+				that.preloadEvent = that.preload.on("complete", function(e) {that.dispatchEvent(e);});
+				that.preload.loadManifest(manifest);
 			}
-			
+
 			this.asset = function(n) {
 				if (zot(n)) return;
-				return that.assets[n];				
+				return that.assets[n];
 			}
 
 			Object.defineProperty(that, 'stage', {
-				get: function() {			
+				get: function() {
 					return stage;
 				},
 				set: function(s) {
 					zog("zim.Frame(): stage is read only - see remakeCanvas(), perhaps");
 				}
 			});
-			
+
 			Object.defineProperty(that, 'stageW', { // depreciated (use width)
-				get: function() {			
+				get: function() {
 					return stageW;
 				},
 				set: function(w) {
 					zog("zim.Frame(): stageW is read only - see remakeCanvas(), perhaps");
 				}
 			});
-			
+
 			Object.defineProperty(that, 'stageH', { // depreciated (use height)
-				get: function() {			
+				get: function() {
 					return stageH;
 				},
 				set: function(h) {
@@ -340,36 +323,36 @@ EVENTS
 				}
 			});
 			Object.defineProperty(that, 'width', {
-				get: function() {			
+				get: function() {
 					return stageW;
 				},
 				set: function(w) {
 					zog("zim.Frame(): width is read only - see remakeCanvas(), perhaps");
 				}
 			});
-			
+
 			Object.defineProperty(that, 'height', {
-				get: function() {			
+				get: function() {
 					return stageH;
 				},
 				set: function(h) {
 					zog("zim.Frame(): height is read only - see remakeCanvas(), perhaps");
 				}
 			});
-			
+
 			this.remakeCanvas = function(width, height) {
 				if (scaling == "full") return;
-				if (zot(width)) width = stageW; 
-				if (zot(height)) height = stageH;					
+				if (zot(width)) width = stageW;
+				if (zot(height)) height = stageH;
 				if (zid("myCanvas")) zid("myCanvas").parentNode.removeChild(zid("myCanvas"));
 				stageW = width;
 				stageH = height;
 				makeCanvas();
 				makeStage();
 			}
-			
-			this.dispose = function() {		
-				window.removeEventListener('resize', sizeCanvas);		
+
+			this.dispose = function() {
+				window.removeEventListener('resize', sizeCanvas);
 				stage.removeAllChildren();
 				stage.removeAllEventListeners();
 				if (zid("myCanvas")) zid("myCanvas").parentNode.removeChild(zid("myCanvas"));
@@ -377,13 +360,26 @@ EVENTS
 				that = null;
 				return true;
 			}
-		
+
+			// zim colors
+			this.orange		= this.wrap 	= "#f58e25";
+			this.green  	= this.code 	= "#acd241";
+			this.pink  		= this.create 	= "#e472c4";
+			this.blue   	= this.build 	= "#50c4b7";
+			this.brown  	= this.pages 	= "#d1a170";
+			this.silver		= this.frame 	= "#999999";
+			this.grey   	= this.cdn  	= "#555555";
+			this.lighter 	= this.template = "#eeeee";
+			this.light 		= this.docs 	= "#cccccc";
+			this.dark 		= this.bits 	= "#333333";
+			this.darker 	= this.zim 		= "#111111";
+
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeFrame.prototype = new createjs.EventDispatcher();
 		makeFrame.prototype.constructor = zim.Frame;
-		return new makeFrame();		
+		return new makeFrame();
 	}
 
 	return zim;

@@ -8,7 +8,7 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.5.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.5.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimbuild_2.6.js"><\/script>');
 } else {
 
 var zim = function(zim) {
@@ -251,13 +251,13 @@ however, concurrent stage.update() calls can slow down mobile performance
 so if you are making content for mobile you should set zim.OPTIMIZE = true;
 then you will have to stage.update() in the change event handlers
 but you were probably doing things in these events and updating anyway!
-just be careful - you might be testing a checkbox and it won't check... 
+just be careful - you might be testing a checkbox and it won't check...
 so it takes some getting used to running in optimized mode
 
 Components affected by OPTIMIZE:
 Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
 
-OPTIMIZE set to true also affects the zim Ticker 
+OPTIMIZE set to true also affects the zim Ticker
 for functions like move, animate, drag, Scroller, Parallax
 See zim.Ticker as you may have to set zim.Ticker.update = true;
 
@@ -277,7 +277,7 @@ setting the constant to anything else, will cause the components to use "click"
 
 for instance, with the default settings, the following components will act on mousedown
 Button, CheckBox, RadioButtons, Pane, Stepper and Tabs
-*/
+--*/
 
 zim.ACTIONEVENT = "mousedown";
 
@@ -306,81 +306,81 @@ PROPERTIES
 shape - gives access to the circle shape
 color - get and set the fill color
 width and height - as expected or use getBounds()
-mouseChildren - set to false so  you do not drag the shape inside the circle 
+mouseChildren - set to false so  you do not drag the shape inside the circle
 if you nest things inside and want to drag them, will want to set to true
---*/		
+--*/
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
-		
+
 		var sig = "radius, fill, stroke, strokeSize";
 		var duo; if (duo = zob(zim.Circle, arguments, sig)) return duo;
-					
+
 		function makeCircle() {
-		
+
 			if (zot(radius)) radius = 50;
 			if (zot(fill)) fill = "black";
-			
+
 			var that = this;
 			this.mouseChildren = false;
-								
+
 			var circle = this.shape = new createjs.Shape();
 			this.addChild(circle);
-			
+
 			var g = circle.graphics;
 			var fillObj =g.beginFill(fill).command;
-			if (!zot(stroke)) {				
+			if (!zot(stroke)) {
 				var strokeObj = g.beginStroke(stroke).command;
-				if (zot(strokeSize)) strokeSize=1; 	
+				if (zot(strokeSize)) strokeSize=1;
 				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
 			}
 			g.dc(0,0,radius);
-			
+
 			this.width = radius*2;
 			this.height = radius*2;
-			this.setBounds(-radius,-radius,this.width,this.height);	
-			
+			this.setBounds(-radius,-radius,this.width,this.height);
+
 			this.setFill = function(c) {
 				if (zot(c)) return;
 				fill = c;
 				fillObj.style = fill;
-			}		
+			}
 			Object.defineProperty(that, 'color', {
-				get: function() {				
+				get: function() {
 					return fill;
 				},
-				set: function(value) {					
+				set: function(value) {
 					that.setFill(value);
 				}
-			});	
+			});
 			this.setStroke = function(c) {
 				if (!strokeObj || zot(c)) return;
 				stroke = c;
 				strokeObj.style = stroke;
-			}			
+			}
 			this.setStrokeSize = function(size) {
 				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}		
+			}
 			this.clone = function() {
-				return new zim.Circle(radius, fill, stroke, strokeSize);	
-			}	
-		}	
-			
+				return new zim.Circle(radius, fill, stroke, strokeSize);
+			}
+		}
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeCircle.prototype = new createjs.Container();
 		makeCircle.prototype.constructor = zim.Circle;
 		return new makeCircle();
-		
-	}	
-	
-	
+
+	}
+
+
 /*--
 zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner)
 
 Rectangle class
 
-extends a createjs.Container 
+extends a createjs.Container
 makes a rectangle shape inside a container
 var rectangle = new zim.Rectangle(parameters);
 the registration and origin will be top left
@@ -402,81 +402,81 @@ PROPERTIES
 shape - gives access to the circle shape
 color - get and set the fill color
 width and height - as expected or use getBounds()
-mouseChildren - set to false so  you do not drag the shape inside the rectangle 
+mouseChildren - set to false so  you do not drag the shape inside the rectangle
 if you nest things inside and want to drag them, will want to set to true
---*/	
+--*/
 	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
-		
+
 		var sig = "width, height, fill, stroke, strokeSize, corner";
-		var duo; if (duo = zob(zim.Rectangle, arguments, sig)) return duo;	
-					
+		var duo; if (duo = zob(zim.Rectangle, arguments, sig)) return duo;
+
 		function makeRectangle() {
-		
+
 			if (zot(width)) width = 100;
 			if (zot(height)) height = 100;
 			if (zot(fill)) fill = "black";
 			if (zot(corner)) corner = 0;
-			
+
 			var that = this;
 			this.mouseChildren = false;
-							
+
 			var rectangle = this.shape = new createjs.Shape();
 			this.addChild(rectangle);
-			
+
 			var g = rectangle.graphics;
 			var fillObj =g.beginFill(fill).command;
-			if (!zot(stroke)) {				
+			if (!zot(stroke)) {
 				var strokeObj = g.beginStroke(stroke).command;
-				if (zot(strokeSize)) strokeSize=1; 	
+				if (zot(strokeSize)) strokeSize=1;
 				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
 			}
-			
+
 			if (corner > 0) {
 				g.rr(0,0,width,height,corner);
 			} else {
 				g.r(0,0,width,height);
 			}
-			
+
 			this.width = width;
 			this.height = height;
-			this.setBounds(0,0,this.width,this.height);	
-			
+			this.setBounds(0,0,this.width,this.height);
+
 			this.setFill = function(c) {
 				if (zot(c)) return;
 				fill = c;
 				fillObj.style = fill;
-			}	
+			}
 			Object.defineProperty(that, 'color', {
-				get: function() {				
+				get: function() {
 					return fill;
 				},
-				set: function(value) {					
+				set: function(value) {
 					that.setFill(value);
 				}
-			});	
+			});
 			this.setStroke = function(c) {
 				if (!strokeObj || zot(c)) return;
 				stroke = c;
 				strokeObj.style = stroke;
-			}			
+			}
 			this.setStrokeSize = function(size) {
 				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}			
+			}
 			this.clone = function() {
-				return new zim.Rectangle(width, height, fill, stroke, strokeSize, corner);	
-			}	
-		}	
-			
+				return new zim.Rectangle(width, height, fill, stroke, strokeSize, corner);
+			}
+		}
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeRectangle.prototype = new createjs.Container();
 		makeRectangle.prototype.constructor = zim.Rectangle;
 		return new makeRectangle();
-		
-	}	
-		
+
+	}
+
 
 /*--
 zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
@@ -494,7 +494,7 @@ b is upwards and c is back to the origin
 if c is set to -1 will assume a 90 angle
 fill, stroke, strokeSize are optional
 center defaults to true and puts the registration point to the center
-the actual center is not really the weighted center 
+the actual center is not really the weighted center
 so can pass in an adjust which brings the center towards its vertical base
 
 METHODS
@@ -507,16 +507,16 @@ PROPERTIES
 shape - gives access to the triangle shape
 color - get and set the fill color
 width and height - as expected or use getBounds()
-mouseChildren - set to false so  you do not drag the shape inside the triangle 
+mouseChildren - set to false so  you do not drag the shape inside the triangle
 if you nest things inside and want to drag them, will want to set to true
---*/		
+--*/
 	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
-		
+
 		var sig = "a, b, c, fill, stroke, strokeSize, center, adjust";
-		var duo; if (duo = zob(zim.Triangle, arguments, sig)) return duo;	
-				
+		var duo; if (duo = zob(zim.Triangle, arguments, sig)) return duo;
+
 		function makeTriangle() {
-		
+
 			if (zot(a)) a = 100;
 			if (zot(b)) b = a;
 			if (zot(c)) c = a;
@@ -524,123 +524,123 @@ if you nest things inside and want to drag them, will want to set to true
 			if (zot(fill)) fill = "black";
 			if (zot(center)) center = true;
 			if (zot(adjust)) adjust = 0;
-			
+
 			this.mouseChildren = false;
 			var that = this;
-			
+
 			var lines = [a,b,c];
 			lines.sort(function(a, b){return b-a});
 			aa = lines[0];
 			bb = lines[1];
 			cc = lines[2];
-			
+
 			if (aa > bb+cc) {
 				zog("zim build - Triangle(): invalid triangle lengths");
 				return;
-			}		
-					
+			}
+
 			var tri = this.shape = new createjs.Shape();
 			this.addChild(tri);
-			
+
 			var g = tri.graphics;
 			var fillObj =g.beginFill(fill).command;
-			if (!zot(stroke)) {				
+			if (!zot(stroke)) {
 				var strokeObj = g.beginStroke(stroke).command;
-				if (zot(strokeSize)) strokeSize=1; 	
+				if (zot(strokeSize)) strokeSize=1;
 				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
 			}
-			
+
 			g.mt(0,0);
-			g.lt(a,0);	
-			
-			// find biggest angle with cosine rule		
+			g.lt(a,0);
+
+			// find biggest angle with cosine rule
 			var angle1 = Math.acos( (Math.pow(bb,2) + Math.pow(cc,2) - Math.pow(aa,2)) / (2 * bb * cc) ) * 180 / Math.PI;
-			
+
 			// use the sine rule for next biggest angle
 			var angle2 = Math.asin( bb * Math.sin(angle1 * Math.PI / 180) / aa ) * 180 / Math.PI;
-			
+
 			// find last angle
 			var angle3 = 180 - angle1 - angle2;
-			
+
 			// the next line is b the angle will be relative to the length of c
 			// if c is the longest, then the angle is angle1
 			// if c is the second longest, then the angle is angle2, etc.
-			
+
 			var nextAngle;
 			if (c == aa) {nextAngle = angle1}
 			else if (c == bb) {nextAngle = angle2}
 			else {nextAngle = angle3}
-					
+
 			var backX = Math.cos(nextAngle * Math.PI / 180) * b;
 			var upY = Math.sin(nextAngle * Math.PI / 180) * b;
-			
+
 			this.width = Math.max(a, a-backX);
 			this.height = upY;
-			this.setBounds(0,0,this.width,this.height);	
-			
+			this.setBounds(0,0,this.width,this.height);
+
 			tri.y = this.height;
-						
+
 			g.lt(a-backX,0-upY);
 			g.cp();
-						
+
 			if (center) {
 				this.regX = this.width/2;
 				this.regY = this.height/2+adjust;
 			}
-			
+
 			this.setFill = function(c) {
 				if (zot(c)) return;
 				fill = c;
 				fillObj.style = fill;
-			}		
+			}
 			Object.defineProperty(that, 'color', {
-				get: function() {				
+				get: function() {
 					return fill;
 				},
-				set: function(value) {					
+				set: function(value) {
 					that.setFill(value);
 				}
-			});	
+			});
 			this.setStroke = function(c) {
 				if (!strokeObj || zot(c)) return;
 				stroke = c;
 				strokeObj.style = stroke;
-			}			
+			}
 			this.setStrokeSize = function(size) {
 				if (!strokeSizeObj || zot(size)) return;
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
-			}	
-			this.clone = function() {
-				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);	
 			}
-				
-		}	
-			
+			this.clone = function() {
+				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);
+			}
+
+		}
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeTriangle.prototype = new createjs.Container();
 		makeTriangle.prototype.constructor = zim.Triangle;
 		return new makeTriangle();
-		
-	}	
-		
-						
+
+	}
+
+
 /*--
 zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align)
 
 Label Class
 
-extends a createjs.Container	
+extends a createjs.Container
 makes a label - wraps the createjs Text object
-can use with Button, CheckBox, RadioButtons and Pane 
-var label = new zim.Label(parameters);	
+can use with Button, CheckBox, RadioButtons and Pane
+var label = new zim.Label(parameters);
 Text seems to come in different sizes so we do our best
 Have tended to find that left and alphabetic are most consistent across browsers
 
 PARAMETERS (see the defaults in the code) supports DUO - parameters or single object
-labelText, 
-fontSize, font, textColor, textRollColor, 
+labelText,
+fontSize, font, textColor, textRollColor,
 shadowColor defaults to -1 for no shadow
 value for shadow blur (default 14)
 align - defaults to "left" also there is "center" and "right"
@@ -649,7 +649,7 @@ METHODS
 showRollColor(boolean) - true to show roll color (used internally)
 clone() - returns a copy of the label and its properties
 dispose() - to get rid of the button and listeners
-	
+
 PROPERTIES
 label - references the text object of the label
 color - gets or sets the label text color
@@ -663,17 +663,17 @@ This component is affected by the general zim.OPTIMIZE setting (default is false
 if set to true, you will have to stage.update() after setting certain properties
 
 EVENTS
-dispatches no events 
---*/	
+dispatches no events
+--*/
 	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align) {
-		
+
 		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align";
 		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
-		
-		function makeLabel() {	
-			
+
+		function makeLabel() {
+
 			if (zot(text)) text="LABEL";
-			if (text == "") text = " ";
+			if (text === "") text = " ";
 			if (zot(size)) size=36;
 			if (zot(font)) font="arial";
 			if (zot(color)) color="black";
@@ -681,11 +681,11 @@ dispatches no events
 			if (zot(shadowColor)) shadowColor=-1;
 			if (zot(shadowBlur)) shadowBlur=14;
 			if (zot(align)) align="left";
-		
+
 			var that = this;
 			this.mouseChildren = false;
-			
-			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color); 
+
+			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color);
 			obj.textBaseline = "alphabetic";
 			obj.textAlign = align;
 			if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
@@ -694,7 +694,7 @@ dispatches no events
 			var backing = new createjs.Shape();
 			backing.graphics.f("black").r(0,0,this.getBounds().width,this.getBounds().height);
 			this.hitArea = backing;
-			
+
 			this.width = this.getBounds().width;
 			this.height = this.getBounds().height;
 			if (align == "center") {
@@ -702,14 +702,14 @@ dispatches no events
 			} else if (align == "right") {
 				this.setBounds(-this.width,0,this.width,this.height);
 			} else {
-				this.setBounds(0,0,this.width,this.height);		
+				this.setBounds(0,0,this.width,this.height);
 			}
 
-			obj.y = size-size/6; 
-				
+			obj.y = size-size/6;
+
 			Object.defineProperty(that, 'text', {
 				get: function() {
-					var t = (obj.text == " ") ? "" : obj.text;				
+					var t = (obj.text == " ") ? "" : obj.text;
 					return t;
 				},
 				set: function(value) {
@@ -722,13 +722,13 @@ dispatches no events
 					} else if (align == "right") {
 						that.setBounds(-that.width,0,that.width,that.height);
 					} else {
-						that.setBounds(0,0,that.width,that.height);		
+						that.setBounds(0,0,that.width,that.height);
 					}
 				}
 			});
-			
+
 			Object.defineProperty(that, 'color', {
-				get: function() {									
+				get: function() {
 					return color;
 				},
 				set: function(value) {
@@ -737,19 +737,19 @@ dispatches no events
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(that, 'rollColor', {
-				get: function() {								
+				get: function() {
 					return rollColor;
 				},
 				set: function(value) {
 					rollColor = value;
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
@@ -759,7 +759,7 @@ dispatches no events
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			this.showRollColor = function(yes) {
 				if (zot(yes)) yes = true;
 				if (yes) {
@@ -769,46 +769,46 @@ dispatches no events
 				}
 				if (that.getStage()) that.getStage().update();
 			}
-				
+
 			this.on("mouseover", function(e) {that.showRollColor();});
 			this.on("mouseout", function(e) {that.showRollColor(false);});
-			
+
 			this.clone = function() {
-				return new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur);	
+				return new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur);
 			}
-		
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				return true;
 			}
 		}
-	
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeLabel.prototype = new createjs.Container();
 		makeLabel.prototype.constructor = zim.Label;
 		return new makeLabel();
-		
+
 	}
-	
-		
+
+
 /*--
 zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding)
 
 Button Class
 
-extends a createjs.Container	
-makes a button with rollovers 
+extends a createjs.Container
+makes a button with rollovers
 var button = new zim.Button(parameters);
 you will need to stage.addChild(button); and position it
 you will need to add a click event button.on("click", function); (or mousedown for mobile)
-the Button class handles the rollovers		
+the Button class handles the rollovers
 
 PARAMETERS (all with defaults - see code) supports DUO - parameters or single object
-width (default 200), height (default 60), 
+width (default 200), height (default 60),
 label, // ZIM Label or plain text for default settings
-color (backing), rollColor (backing), borderColor, borderThickness, 
-corner default 20 
+color (backing), rollColor (backing), borderColor, borderThickness,
+corner default 20
 shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
 value for shadow blur (default 14)
 hitPadding (default 0) adds extra hit area to the button for mobile
@@ -831,16 +831,16 @@ if set to true, you will have to stage.update() after setting certain properties
 
 EVENTS
 dispatches no events - you make your own click event (or mousedown for mobile)
---*/		
+--*/
 	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
-	
+
 		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding";
 		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
-	
+
 		function makeButton() {
-			
+
 			// if (zon) zog("zim build - Button");
-			
+
 			if (zot(width)) width=200;
 			if (zot(height)) height=60;
 			if (zot(color)) color="#C60";
@@ -849,38 +849,38 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			if (zot(borderThickness)) borderThickness=1;
 			if (zot(corner)) corner=20;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=14;		
-			if (zot(hitPadding)) hitPadding=0;			
-			if (zot(label)) label = "PRESS";			
-			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");			
+			if (zot(shadowBlur)) shadowBlur=14;
+			if (zot(hitPadding)) hitPadding=0;
+			if (zot(label)) label = "PRESS";
+			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");
 
-			var that = this;		
-			this.mouseChildren = false; 
+			var that = this;
+			this.mouseChildren = false;
 			this.cursor = "pointer";
-			
+
 			var buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner);
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
-			
+
 			if (hitPadding > 0) {
 				var rect = new createjs.Shape();
 				rect.graphics.f("#000").r(-hitPadding,-hitPadding,width+hitPadding*2,height+hitPadding*2);
 				this.hitArea = rect;
 			}
-								
+
 			if (shadowColor != -1 && shadowBlur > 0) buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.setBounds(0,0,width,height);
 			this.width = width;
 			this.height = height;
-			
+
 			label.x = (width-label.getBounds().width)/2+1;
 			label.y = (height-label.getBounds().height)/2+2;
 			this.addChild(label);
-			this.label = label;		
-			
+			this.label = label;
+
 			Object.defineProperty(that, 'text', {
 				get: function() {
-					var t = (label.text == " ") ? "" : label.text;				
+					var t = (label.text == " ") ? "" : label.text;
 					return t;
 				},
 				set: function(value) {
@@ -889,9 +889,9 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 					label.y = (height-label.getBounds().height)/2+2;
 				}
 			});
-			
+
 			Object.defineProperty(that, 'color', {
-				get: function() {								
+				get: function() {
 					return color;
 				},
 				set: function(value) {
@@ -900,19 +900,19 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(that, 'rollColor', {
-				get: function() {								
+				get: function() {
 					return rollColor;
 				},
 				set: function(value) {
 					rollColor = value;
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
@@ -922,7 +922,7 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			this.on("mouseover", buttonOn);
 			function buttonOn(e) {
 				that.on("mouseout", buttonOff);
@@ -930,33 +930,34 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				that.label.showRollColor();
 				if (that.getStage()) that.getStage().update();
 			}
-		
+
 			function buttonOff(e) {
-				that.off("mouseout", buttonOff); 
+				that.off("mouseout", buttonOff);
 				buttonBacking.color = color;
 				that.label.showRollColor(false);
 				if (that.getStage()) that.getStage().update();
-			}			
-			
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				that.removeChild(buttonBacking);
-				that.removeChild(buttonLabel);
+				that.removeChild(that.label);
+				that.label.dispose();
 				buttonBacking = null;
-				buttonLabel = null;
+				that.label = null;
 				return true;
 			}
 		}
-	
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeButton.prototype = new createjs.Container();
 		makeButton.prototype.constructor = zim.Button;
 		return new makeButton();
-		
+
 	}
-	
-	
+
+
 /*--
 zim.CheckBox = function(size, label, startChecked, color, margin)
 
@@ -977,7 +978,7 @@ METHODS
 setChecked(Boolean) - defaults to true to set button checked (or use checked property)
 
 PROPERTIES
-label - gives access to the label 
+label - gives access to the label
 text - the text of the label
 checked - gets or sets the check of the box
 check - gives access to the check mark ie. check.color = "blue";
@@ -989,109 +990,108 @@ This component is affected by the general zim.OPTIMIZE setting (default is false
 if set to true, you will have to stage.update() after setting certain properties
 
 ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting 
+This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
 dispatches a "change" event when pressed on
 --*/
 	zim.CheckBox = function(size, label, startChecked, color, margin) {
-		
+
 		var sig = "size, label, startChecked, color, margin";
 		var duo; if (duo = zob(zim.CheckBox, arguments, sig)) return duo;
-		
+
 		function makeCheckBox() {
-			
+
 			// if (zon) zog("zim build - CheckBox");
-				
+
 			if (zot(size)) size = 60;
-			if (zot(label)) label = null;			
+			if (zot(label)) label = null;
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, size*5/6, "arial", color);
 			var myChecked = (zot(startChecked)) ? false : startChecked;
 			if (zot(color)) color = "black";
-			if (zot(margin)) margin = 10; //20; 	
-			this.setBounds(-margin, -margin, size+margin*2, size+margin*2);	
-					
+			if (zot(margin)) margin = 10; //20;
+			this.setBounds(-margin, -margin, size+margin*2, size+margin*2);
+
 			var that = this;
 			this.cursor = "pointer";
-		
+
 			var box = new createjs.Shape();
 			var g = box.graphics;
-			g.f("rgba(255,255,255,.5)").r(0,0,size,size);						
+			g.f("rgba(255,255,255,.5)").r(0,0,size,size);
 			g.s(color).ss(size/10).r(size/7, size/7, size-size/7*2, size-size/7*2);
 			this.addChild(box);
-			
-			var fullWidth = size;		
-				
+
+			var fullWidth = size;
+
 			if (label) {
 				this.addChild(label);
-				label.x = size*1.3 + margin; //this.getBounds().width;				
-				label.y = size/8; 
+				label.x = size*1.3 + margin; //this.getBounds().width;
+				label.y = size/8;
 				this.label = label;
 				this.setBounds(-margin, -margin, size+margin*3+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
 				fullWidth = label.x + label.width;
 			}
-			
+
 			var backing = new createjs.Shape();
-			g = backing.graphics;				
+			g = backing.graphics;
 			g.f("rgba(0,0,0,.01)").r(
 				this.getBounds().x,
 				this.getBounds().y,
 				fullWidth+(margin*2),
 				this.getBounds().height
 			);
-			this.hitArea = backing;	
-			// hitArea will stop rollovers on labels but oh well		
-				
+			this.hitArea = backing;
+			// hitArea will stop rollovers on labels but oh well
+
 			var check = new createjs.Shape();
 			var g2 = check.graphics;
-			var checkColor = "#000";	
+			var checkColor = "#000";
 			g2.f(checkColor).p("AnQAdICBiaIEEDZIF8nfICfB4In/KPg"); // width about 90 reg in middle
 
 			var cW = 95
-			check.setBounds(-cW/2, -cW/2, cW, cW);			
-			var scale = size/(cW+66);		
-			
+			check.setBounds(-cW/2, -cW/2, cW, cW);
+			var scale = size/(cW+66);
+
 			check.scaleX = check.scaleY = scale;
 			check.alpha = .9;
 			check.x = size/2;
 			check.y = size/2;
-			
-			if (myChecked) this.addChild(check);					
+
+			if (myChecked) this.addChild(check);
 			this.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", toggleCheck);
-			
+
 			Object.defineProperty(that, 'checked', {
-				get: function() {				
+				get: function() {
 					return myChecked;
 				},
-				set: function(value) {	
-					if (that.checked != value) that.dispatchEvent("change");			
+				set: function(value) {
+					if (that.checked != value) that.dispatchEvent("change");
 					that.setChecked(value);
-
 				}
 			});
-			
+
 			Object.defineProperty(that, 'text', {
-				get: function() {				
+				get: function() {
 					if (label) return label.text;
 				},
-				set: function(value) {	
+				set: function(value) {
 					if (label) {
-						label.text = value;	
-						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();	
+						label.text = value;
+						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 					};
 				}
 			});
-			
+
 			Object.defineProperty(check, 'color', {
-				get: function() {				
+				get: function() {
 					return checkColor;
 				},
 				set: function(value) {
-					if (myChecked) {that.removeChild(check);}					
+					if (myChecked) {that.removeChild(check);}
 					check = new createjs.Shape();
-					g2 = check.graphics;	
-					checkColor = value;	
+					g2 = check.graphics;
+					checkColor = value;
 					g2.f(checkColor).p("AnQAdICBiaIEEDZIF8nfICfB4In/KPg");
 					check.scaleX = check.scaleY = scale;
 					check.alpha = .9;
@@ -1101,32 +1101,32 @@ dispatches a "change" event when pressed on
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(that, 'check', {
-				get: function() {				
+				get: function() {
 					return check;
 				},
-				set: function(value) {					
+				set: function(value) {
 					zog("ZIM CheckBox - check is read only");
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
 					zenable(that, value);
 				}
 			});
-			
-			function toggleCheck(e) {			
+
+			function toggleCheck(e) {
 				myChecked = !myChecked;
 				that.setChecked(myChecked);
 				that.dispatchEvent("change");
 			}
-			
+
 			this.setChecked = function(value) {
 				if (zot(value)) value = true;
 				myChecked = value;
@@ -1134,23 +1134,23 @@ dispatches a "change" event when pressed on
 					that.addChild(check);
 				} else {
 					that.removeChild(check);
-				}	
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();			
+				}
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			}
-			
+
 			this.dispose = function() {
-				that.removeAllEventListeners();	
-				return true;			
+				that.removeAllEventListeners();
+				return true;
 			}
 		}
-	
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeCheckBox.prototype = new createjs.Container();
 		makeCheckBox.prototype.constructor = zim.CheckBox;
 		return new makeCheckBox();
-		
-	}	
+
+	}
 
 
 /*--
@@ -1164,7 +1164,7 @@ var radioButton = new zim.RadioButton(parameters)
 
 PARAMETERS: supports DUO - parameters or single object
 size - in pixels (always square)
-buttons - an array of button data objects as follows:	
+buttons - an array of button data objects as follows:
 [{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
 or just a list of labels for default labels ["hi", "bye", "what!"]
 
@@ -1193,7 +1193,7 @@ if set to true, you will have to stage.update() after setting certain properties
 and stage.update() in change event to see component change its graphics
 
 ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting 
+This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
@@ -1201,38 +1201,38 @@ dispatches a "change" event when pressed or selectedIndex is set
 then ask for the properties above for info
 --*/
 	zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin, always) {
-		
+
 		var sig = "size, buttons, vertical, color, spacing, margin, always";
 		var duo; if (duo = zob(zim.RadioButtons, arguments, sig)) return duo;
-		
+
 		function makeRadioButtons() {
-			
+
 			// if (zon) zog("zim build - RadioButtons");
-			
+
 			if (zot(size)) size = 60;
 			size = Math.max(5, size);
 			if (zot(buttons)) return;
 			if (zot(vertical)) vertical = true;
 			if (zot(color)) color = "#111";
 			if (zot(spacing)) spacing = (vertical) ? size*.2 : size;
-			if (zot(margin)) margin =  size/5;	
+			if (zot(margin)) margin =  size/5;
 
 			var that = this;
 			this.cursor = "pointer";
 			this.labels = [];
 			this.dots = [];
 			var currentObject; // reference to the current data object
-			
+
 			var buttonContainer = new createjs.Container();
 			this.addChild(buttonContainer);
 			buttonContainer.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", pressBut);
 			function pressBut(e) {
 				var index = buttonContainer.getChildIndex(e.target);
 				if (always) {if (that.selectedIndex == index) return;}
-				that.setSelected(index);				
+				that.setSelected(index);
 				that.dispatchEvent("change");
-			}	
-				
+			}
+
 			// loop through data and call makeButton() each time
 			makeButtons();
 			var lastBut;
@@ -1248,87 +1248,87 @@ then ask for the properties above for info
 						} else {
 							data.selected = "false"; // turn off selected
 						}
-					}					
-				}				
+					}
+				}
 				buttonContainer.removeAllChildren();
 				var but; var currentLocation = 0;
 				for (var i=0; i<buttons.length; i++) {
 					data = buttons[i];
-					
-					if (typeof data === "string" || typeof data === "number") {						
+
+					if (typeof data === "string" || typeof data === "number") {
 						var d = {selected:false, label:new zim.Label(data, size*5/6, "arial", color)};
-						data = d;	
-					}	
+						data = d;
+					}
 					if (data.label && typeof data.label === "string" || typeof data.label === "number") {
 						data.label = new zim.Label(data.label, size*5/6, "arial", color);
 					}
 					that.labels.push(data.label);
-					data.index = i;										
-					but = makeButton(data.selected, data.label);					
-					but.obj = data;	
+					data.index = i;
+					but = makeButton(data.selected, data.label);
+					but.obj = data;
 					if (data.selected) currentObject = but.obj;
-								
+
 					buttonContainer.addChild(but);
-		
-					if (vertical) {											
+
+					if (vertical) {
 						but.y = currentLocation;
 						currentLocation += but.getBounds().height + spacing;
 					} else {
 						but.x = currentLocation;
 						currentLocation += but.getBounds().width + spacing;
 					}
-				}				
-			}					
-			
+				}
+			}
+
 			// making a single button - similar to CheckBox class
-			function makeButton(mySelected, label) {			
+			function makeButton(mySelected, label) {
 				var but = new createjs.Container();
 				but.mouseChildren = false;
-				but.setBounds(-margin, -margin, size+margin*2, size+margin*2);	
-									
+				but.setBounds(-margin, -margin, size+margin*2, size+margin*2);
+
 				var box = new createjs.Shape();
 				var g = box.graphics;
-				g.f("rgba(255,255,255,.5)").dc(size/2,size/2,size/1.85);						
+				g.f("rgba(255,255,255,.5)").dc(size/2,size/2,size/1.85);
 				g.s(color).ss(size/9).dc(size/2, size/2, size/2-size/2/5);
 				but.addChild(box);
-					
+
 				var check = but.check = new zim.Circle(size/5.2);
 				that.dots.push(check);
 				check.mouseEnabled = false;
 				check.alpha = .95;
-				check.regX = check.regY = -size/2;	
-				
-				var fullWidth = size;	
-				
+				check.regX = check.regY = -size/2;
+
+				var fullWidth = size;
+
 				if (label) {
 					but.addChild(label);
 					label.x = but.getBounds().width;
-					label.y = size/8; 
+					label.y = size/8;
 					but.setBounds(-margin, -margin, size+margin*2+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
 					fullWidth = label.x + label.width;
 				}
 				if (mySelected) {
-					but.addChild(check);					
-					that.label = label;				
+					but.addChild(check);
+					that.label = label;
 					if (that.label) that.text = label.text;
 				}
-								
+
 				var backing = new createjs.Shape();
-				g = backing.graphics;				
+				g = backing.graphics;
 				g.f("rgba(0,0,0,.01)").r(
 					but.getBounds().x,
 					but.getBounds().y,
 					fullWidth+(margin*2),
 					but.getBounds().height
 				);
-				but.hitArea = backing;	
+				but.hitArea = backing;
 				// hitArea will stop rollovers on labels but oh well
-								
+
 				return(but);
 			}
 			if (!this.getBounds()) this.setBounds(0,0,size,size);
 			this.setBounds(-margin,-margin,this.getBounds().width+margin,this.getBounds().height+margin);
-			
+
 			// the main function that sets a button selected (after the initial makeButton)
 			// this gets called by the setter methods below and the click event up top
 			this.setSelected = function(value) {
@@ -1336,13 +1336,13 @@ then ask for the properties above for info
 				if (value != -1 && !buttonContainer.getChildAt(value)) return;
 				var but;
 				for (var i=0; i<buttonContainer.getNumChildren(); i++) {
-					but = buttonContainer.getChildAt(i);					
+					but = buttonContainer.getChildAt(i);
 					but.removeChild(but.check);
-				}	
+				}
 				if (value >= 0) {
 					but = buttonContainer.getChildAt(value);
 					var lastIndex = -2;
-					if (currentObject) lastIndex = currentObject.index;				
+					if (currentObject) lastIndex = currentObject.index;
 					currentObject = but.obj;
 				}
 				if (value == -1 || lastIndex == currentObject.index) {
@@ -1353,60 +1353,60 @@ then ask for the properties above for info
 				} else {
 					but.addChild(but.check);
 					that.id = currentObject.id;
-					that.label = currentObject.label;				
+					that.label = currentObject.label;
 					if (that.label) that.text = that.label.text;
-				}	
+				}
 				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			}
-			
+
 			// getter setter methods
-			
+
 			Object.defineProperty(that, 'selected', {
-				get: function() {				
+				get: function() {
 					return currentObject;
 				},
 				set: function(value) {
 					zog("ZIM RadioButton - selected is read only");
 				}
 			});
-			
+
 			Object.defineProperty(that, 'selectedIndex', {
-				get: function() {			
+				get: function() {
 					return (currentObject) ? currentObject.index : -1;
 				},
-				set: function(value) {					
+				set: function(value) {
 					var index = value;
 					if (always) {if (that.selectedIndex == index) return;}
-					that.setSelected(index);				
+					that.setSelected(index);
 					that.dispatchEvent("change");
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
 					zenable(that, value);
 				}
 			});
-			
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
-				return true;				
+				return true;
 			}
 		}
-	
+
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
 		makeRadioButtons.prototype = new createjs.Container();
 		makeRadioButtons.prototype.constructor = zim.RadioButtons;
 		return new makeRadioButtons();
-		
+
 	}
-	
-	
+
+
 /*--
 zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center)
 
@@ -1414,7 +1414,7 @@ Pane Class
 
 extends a createjs.Container
 adds a window for alerts, etc.
-var pane = new zim.Pane(parameters); 
+var pane = new zim.Pane(parameters);
 you need to call the pane.show() to show the pane and pane.hide() to hide it
 you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
@@ -1445,7 +1445,7 @@ text - gives access to the label text
 label - gives access to the label
 backing - reference to the backing that covers the stage
 resetX - if reset is true you can dynamically adjust the position if needed
-resetY 
+resetY
 
 OPTIMIZED
 This component is affected by the general zim.OPTIMIZE setting (default is false)
@@ -1453,28 +1453,28 @@ if set to true, you will have to stage.update() after setting certain properties
 and stage.update() in change event to see component change its graphics
 
 ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting 
+This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
 dispatches a "close" event when closed by clicking on backing
---*/	
+--*/
 	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center) {
-		
+
 		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center";
 		var duo; if (duo = zob(zim.Pane, arguments, sig)) return duo;
-		
+
 		function makePane() {
-			
+
 			// if (zon) zog("zim build - Pane");
-			
+
 			if (zot(container) || !container.getBounds) {zog("zim build - Pane(): Please pass in a reference to a container with bounds set as first parameter");	return;}
 			if (!container.getBounds()) {zog("zim build - Pane(): Please give the container bounds using setBounds()"); return;}
 			if (zot(container.getStage)) {zog("zim build - Pane(): Please give the container that has a stage property"); return;}
-			
+
 			if (zot(width)) width=200;
 			if (zot(height)) height=200;
-			if (zot(label)) label = null;			
+			if (zot(label)) label = null;
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 40, "arial", "black");
 			if (zot(color)) color="white";
 			if (zot(drag)) drag=false;
@@ -1483,10 +1483,10 @@ dispatches a "close" event when closed by clicking on backing
 			if (zot(corner)) corner=20;
 			if (zot(backingAlpha)) backingAlpha=.14;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=20;	
+			if (zot(shadowBlur)) shadowBlur=20;
 			if (zot(center)) center=true;
-			
-			var backing = this.backing = new createjs.Shape();				
+
+			var backing = this.backing = new createjs.Shape();
 			// make a big backing that closes the pane when clicked
 			// could also provide a close button
 			var g = backing.graphics;
@@ -1494,11 +1494,11 @@ dispatches a "close" event when closed by clicking on backing
 			g.drawRect(-5000,-5000,10000,10000);
 			// makes it seem like the pane has the dimensions of the display
 			this.setBounds(-width/2,-height/2, width, height);
-			
-			backing.alpha = backingAlpha; 			
+
+			backing.alpha = backingAlpha;
 			var that = this;
 			backing.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
-				removePane();	
+				removePane();
 				container.getStage().update();
 				that.dispatchEvent("close");
 				e.stopImmediatePropagation();
@@ -1507,7 +1507,7 @@ dispatches a "close" event when closed by clicking on backing
 				e.stopImmediatePropagation();
 			});
 			if (modal) this.addChild(backing);
-			
+
 			var display = this.display = new createjs.Shape();
 			display.setBounds(0, 0, width, height);
 			display.regX = width/2;
@@ -1515,16 +1515,16 @@ dispatches a "close" event when closed by clicking on backing
 			g = display.graphics;
 			g.beginFill(color);
 			g.drawRoundRect(0, 0, width, height, corner);
-			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);		
+			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
 			display.on("click", function(e) {
 				// stops the click from going through the display to the background
 				e.stopImmediatePropagation();
 			});
-			
+
 			this.resetX; this.resetY;
-			if (drag) {				
+			if (drag) {
 				display.cursor = "pointer";
-				var diffX, diffY;	
+				var diffX, diffY;
 				display.on("mousedown", function(e) {
 					if (isNaN(that.resetX)) that.resetX = that.x;
 					if (isNaN(that.resetY)) that.resetY = that.y;
@@ -1532,35 +1532,35 @@ dispatches a "close" event when closed by clicking on backing
 					diffY = e.stageY - that.y;
 					display.cursor = "move";
 				});
-								
-				display.on("pressmove", function(e) {					
-					var p = checkBounds(e.stageX-diffX, e.stageY-diffY); 
+
+				display.on("pressmove", function(e) {
+					var p = checkBounds(e.stageX-diffX, e.stageY-diffY);
 					that.x = p.x;
 					that.y = p.y;
 					container.getStage().update();
 				});
-				
-				this.on("pressup", function(e) {				
+
+				this.on("pressup", function(e) {
 					display.cursor = "pointer";
 					container.getStage().update();
 				});
 			}
-			
+
 			this.addChild(display);
-			
+
 			if (label) {
 				if (center) {
 					label.x =  -label.getBounds().width/2 - label.getBounds().x;
 					label.y =  -label.getBounds().height/2 - label.getBounds().y;
 				}
-				this.addChild(label);				
+				this.addChild(label);
 				this.label = label;
-				this.text = label.text;				
+				this.text = label.text;
 			}
-			
+
 			Object.defineProperty(that, 'text', {
 				get: function() {
-					var t = (label.text == " ") ? "" : label.text;				
+					var t = (label.text == " ") ? "" : label.text;
 					return t;
 				},
 				set: function(value) {
@@ -1571,36 +1571,36 @@ dispatches a "close" event when closed by clicking on backing
 					}
 				}
 			});
-				
+
 			this.hide = function() {
-				removePane();	
-				if (!zim.OPTIMIZE) container.getStage().update();	
-			}	
-			
+				removePane();
+				if (!zim.OPTIMIZE) container.getStage().update();
+			}
+
 			function removePane() {
 				container.removeChild(that);
 				if (resets) {
-					if (!isNaN(that.resetX)) that.x = that.resetX;					
+					if (!isNaN(that.resetX)) that.x = that.resetX;
 					if (!isNaN(that.resetY)) that.y = that.resetY;
 				}
 			}
-					
+
 			this.show = function() {
 				if (center) {
 					if (isNaN(that.resetX)) {
 						that.x = (container.getBounds().width) /2;
 						that.y = (container.getBounds().height) /2;
-					}					
+					}
 				}
-				container.addChild(that);			
+				container.addChild(that);
 				if (container.getStage()) container.getStage().update();
-			}			
-			function checkBounds(x,y) {		
+			}
+			function checkBounds(x,y) {
 				x = Math.max(width/2, Math.min(container.getBounds().width-width/2, x));
 				y = Math.max(height/2, Math.min(container.getBounds().height-height/2, y));
-				return {x:x,y:y}				
-			}			
-			
+				return {x:x,y:y}
+			}
+
 			this.dispose = function() {
 				display.removeAllEventListeners();
 				that.removeChild(display);
@@ -1608,16 +1608,16 @@ dispatches a "close" event when closed by clicking on backing
 				return true;
 			}
 		}
-		
+
 		// note the actual class is wrapped in a function
-		// because createjs might not have existed at load time		
+		// because createjs might not have existed at load time
 		makePane.prototype = new createjs.Container();
 		makePane.prototype.constructor = zim.Pane;
 		return new makePane();
-		
+
 	}
-	
-	
+
+
 /*--
 zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur)
 
@@ -1625,13 +1625,13 @@ Waiter Class
 
 extends a createjs.Container
 adds a little animated three dot wait widget
-var waiter = new zim.Waiter(parameters); 
+var waiter = new zim.Waiter(parameters);
 you need to call the waiter.show() to show the waiter and waiter.hide() to hide it
 you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
 
 PARAMETERS: supports DUO - parameters or single object
-pass in the container for the waiter (usually the stage) 
+pass in the container for the waiter (usually the stage)
 pass in the speed in ms for the cycle time (default 600ms)
 pass in backing color and dot color
 corner is the corner radius default 14
@@ -1645,16 +1645,14 @@ hide() - hides the waiter
 PROPERTIES
 display - reference to the waiter backing graphic
 
---*/	
+--*/
 	zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur) {
-		
+
 		var sig = "container, speed, color, circleColor, corner, shadowColor, shadowBlur";
 		var duo; if (duo = zob(zim.Waiter, arguments, sig)) return duo;
-		
+
 		function makeWaiter() {
-			
-			// if (zon) zog("zim build - Waiter");
-			
+
 			if (zot(container) || !container.getBounds) {zog("zim build - Waiter(): Please pass in a reference to a container with bounds set as first parameter");	return;}
 			if (!container.getBounds()) {zog("zim build - Waiter(): Please give the container bounds using setBounds()"); return;}
 			if (zot(container.getStage)) {zog("zim build - Waiter(): Please give the container that has a stage property"); return;}
@@ -1664,18 +1662,18 @@ display - reference to the waiter backing graphic
 			if (zot(circleColor)) circleColor="white";
 			if (zot(corner)) corner=16;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=14;		
-			
-			var height = 40;	
+			if (zot(shadowBlur)) shadowBlur=14;
+
+			var height = 40;
 			var numDots = 3;
 			var r = height*.6/2;
-			var s = (height-r*2)/2;			
-			var width = numDots*(r*2+s)+s;	
-						
+			var s = (height-r*2)/2;
+			var width = numDots*(r*2+s)+s;
+
 			this.setBounds(-width/2,-height/2, width, height);
- 			
+
 			var that = this;
-					
+
 			var display = this.display = new createjs.Shape();
 			this.addChild(display);
 			display.setBounds(0, 0, width, height);
@@ -1684,60 +1682,60 @@ display - reference to the waiter backing graphic
 			var g = display.graphics;
 			g.f(color);
 			g.rr(0, 0, width, height, corner);
-			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
+			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			display.on("click", function(e) {
 				// stops the click from going through the display to the background
 				e.stopImmediatePropagation();
 			});
-			
+
 			var circles = new createjs.Container();
 			this.addChild(circles);
-			
-			var dot; 
+
+			var dot;
 			for (var i=0; i<numDots; i++) {
 				dot = new createjs.Shape();
 				dot.graphics.f(circleColor).dc(0,0,r);
 				dot.x = (i-(numDots-1)/2) * (r*2+s);
 				circles.addChild(dot);
 				dot.cache(-r,-r,r*2,r*2);
-				dot.alpha = 0;	
+				dot.alpha = 0;
 			}
-															
-			container.getStage().update();			
-			
+
+			container.getStage().update();
+
 			this.hide = function() {
-				createjs.Tween.get(that,{override:true})											
+				createjs.Tween.get(that,{override:true})
 							.to({alpha:0}, 300).call(function() {
 								createjs.Ticker.off("tick", that.ticker);
 								container.removeChild(that);
-								container.getStage().update();	
-							});				
-			}			
+								container.getStage().update();
+							});
+			}
 			this.show = function() {
 				var dot; var counter=0;
 				for (var i=0; i<circles.getNumChildren(); i++) {
 					that.alpha = 0;
-					createjs.Tween.get(that,{override:true})											
-							.to({alpha:1}, 300);					
+					createjs.Tween.get(that,{override:true})
+							.to({alpha:1}, 300);
 					setTimeout(function() {
 						dot = circles.getChildAt(counter);
-						createjs.Tween.get(dot,{loop:true})											
+						createjs.Tween.get(dot,{loop:true})
 							.to({alpha:1}, speed/numDots/2)
 							.wait(speed/numDots)
 							.to({alpha:0}, speed/numDots)
 							.wait(speed-speed/numDots-speed/numDots/2);
 						counter++;
 					}, i*speed/numDots);
-						
+
 				}
 				that.ticker = createjs.Ticker.on("tick", function() {container.getStage().update();});
-				
+
 				that.x = (container.getBounds().width) /2;
 				that.y = (container.getBounds().height) /2;
-				container.addChild(that);			
-				container.getStage().update();	
-			}				
-			
+				container.addChild(that);
+				container.getStage().update();
+			}
+
 			this.dispose = function() {
 				display.removeAllEventListeners();
 				that.removeChild(display);
@@ -1747,14 +1745,169 @@ display - reference to the waiter backing graphic
 				return true;
 			}
 		}
-		
+
 		// note the actual class is wrapped in a function
-		// because createjs might not have existed at load time		
+		// because createjs might not have existed at load time
 		makeWaiter.prototype = new createjs.Container();
 		makeWaiter.prototype.constructor = zim.Waiter;
 		return new makeWaiter();
-		
-	}	
+
+	}
+
+/*--
+zim.Indicator = function(width, height, num, color, offColor, borderColor, backingColor, type, fill, scale, lightScale, press, shadowColor, shadowBlur)
+
+Indicator Class
+
+extends a createjs.Container
+a row of dots or squares (or just one) that can be used to indicate a step, page, level, score, etc.
+var Indicator = new zim.Indicator(parameters);
+the indicator can be used as an input as well but often these are small so may not be best to rely on
+
+PARAMETERS: supports DUO - parameters or single object
+pass in the width (100), height (50), number of lights (6), the color of the active light (orange) and inactive lights (grey)
+pass in the borderColor (-1 for no border - default), backingColor (-1 for no backing - default),
+type defaults to "dot" or "circle" - can also set "box" or "square"
+fill defaults to false - set to true to fill in lights to the left of the selectedIndex
+scale (1) is for all the lights including spacing
+lightScale (1) is for each light keeping the spacing unchanged
+press defaults to false - set to true to make lights clickable
+shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
+value for shadow blur (default 5)
+
+METHODS
+dispose() - removes any listeners
+
+PROPERTIES
+selectedIndex - gets or sets the current index of the indicator
+width, height - gives width and height (read only)
+min, max, step - the assigned values (read only)
+backing - gives access to the backing if there is one zim.Rectangle
+lights - gives access to the lights createjs.Container with its zim.Circle or zim.Rectangle children
+
+--*/
+	zim.Indicator = function(width, height, num, color, offColor, borderColor, backingColor, type, fill, scale, lightScale, press, shadowColor, shadowBlur) {
+
+		var sig = "width, height, num, color, offColor, borderColor, backingColor, type, fill, scale, lightScale, press, shadowColor, shadowBlur";
+		var duo; if (duo = zob(zim.Indicator, arguments, sig)) return duo;
+
+		function makeIndicator() {
+
+			if (zot(width)) width = 300;
+			if (zot(height)) height = 50;
+			if (zot(num)) num = 6;
+			if (zot(color)) color = "#f58e25";
+			if (zot(offColor)) offColor = "#666";
+			if (offColor < 0) offColor = "rgba(0,0,0,.01)";
+			if (borderColor < 0) borderColor = null;
+			if (zot(backingColor)) backingColor = -1;
+			if (zot(type)) type = "dot";
+			if (zot(fill)) fill = false;
+			if (zot(scale)) scale = 1;
+			if (zot(lightScale)) lightScale = 1;
+			if (zot(press)) press = false;
+			if (zot(shadowColor)) shadowColor = "rgba(0,0,0,.3)";
+			if (zot(shadowBlur)) shadowBlur = 5;
+
+			var that = this;
+
+			this.width = width; // read only
+			this.height = height;
+
+			var myValue;
+			var indicator = new createjs.Container();
+			if (backingColor != -1) {
+				var backing = new zim.Rectangle(width, height, backingColor);
+				this.addChild(backing);
+				this.backing = backing;
+			}
+			var lights = this.lights = new createjs.Container();
+			this.addChild(lights);
+			var hitArea = new createjs.Shape();
+			hitArea.graphics.f("black").dr(-height/2,-height/2,height,height);
+			var light;
+			var size;
+			var space = width / (num+1);
+			for (var i=0; i<num; i++) {
+				if (type == "square" || type == "box") {
+					var size = height * .5;
+					light = new zim.Rectangle(size, size, offColor, borderColor);
+					light.regX = light.width/2;
+					light.regY = light.height/2;
+				} else {
+					var size = height * .5;
+					light = new zim.Circle(size/2, offColor, borderColor);
+				}
+				light.num = i;
+				light.hitArea = hitArea;
+				light.scaleX = light.scaleY = lightScale;
+				light.x = space + space * i;
+				light.y = height / 2;
+				lights.addChild(light);
+			}
+			lights.setBounds(0,0,width,height);
+			lights.regX = lights.x = width / 2;
+			lights.regY = lights.y = height / 2;
+			this.addChild(lights);
+			if (shadowColor != -1 && shadowBlur > 0) lights.shadow = new createjs.Shadow(shadowColor, 2, 2, shadowBlur);
+
+			if (press) {
+				lights.cursor = "pointer";
+				var lightsEvent = lights.on("mousedown", function(e) {
+					myValue = e.target.num;
+					setLights(myValue);
+				});
+			}
+			lights.scaleX = lights.scaleY = scale;
+
+			function setLights(v) {
+				if (v >= num) v = -1; // out of range - don't let it fill up
+				var c;
+				for (var i=0; i<num; i++) {
+					if (fill) {
+						if (i < v) c = color;
+						else c = offColor;
+					} else {
+						c = offColor;
+					}
+					if (i == v) c = color;
+					lights.getChildAt(i).color = c;
+				}
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			}
+
+			Object.defineProperty(this, 'selectedIndex', {
+				get: function() {
+					return myValue;
+				},
+				set: function(value) {
+					myValue = Math.floor(value);
+					setLights(myValue);
+				}
+			});
+
+			Object.defineProperty(this, 'num', {
+				get: function() {
+					return num;
+				},
+				set: function(value) {
+					if (zon) zog("num is read only");
+				}
+			});
+
+			this.dispose = function() {
+				that.removeAllEventListeners();
+				return true;
+			}
+		}
+
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeIndicator.prototype = new createjs.Container();
+		makeIndicator.prototype.constructor = zim.Indicator;
+		return new makeIndicator();
+
+	}
 
 
 /*--
@@ -1764,7 +1917,7 @@ Stepper Class
 
 extends a createjs.Container
 lets you step through a list of strings or numbers with arrows or keyboard arrows
-var stepper = new zim.Stepper(parameters); 
+var stepper = new zim.Stepper(parameters);
 
 PARAMETERS: supports DUO - parameters or single object
 list - pass in an array of strings or numbers to display one at a time - default 1-10
@@ -1776,7 +1929,7 @@ vertical if you want the numbers above and below - default false - left and righ
 arrows - use keyboard arrows - default true (will always show graphical arrows)
 corner is the radius of the text box corners default 10
 shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 14) 
+value for shadow blur (default 14)
 loop - defaults to false so will not loop around or go back past 0 index (unless set to true)
 display - defaults to true to show the value - set to false just to show the arrows
 
@@ -1795,7 +1948,7 @@ if set to true, you will have to stage.update() after setting certain properties
 and stage.update() in change event to see component change its graphics
 
 ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting 
+This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 METHODS
@@ -1805,39 +1958,39 @@ dispose() - removes listeners and deletes object
 
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
---*/	
+--*/
 	zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display) {
-		
+
 		var sig = "list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display";
 		var duo; if (duo = zob(zim.Stepper, arguments, sig)) return duo;
-		
+
 		function makeStepper() {
-			
+
 			// if (zon) zog("zim build - Stepper");
-			
+
 			if (zot(list)) list = [0,1,2,3,4,5,6,7,8,9];
-			if (zot(width)) width=200; 
+			if (zot(width)) width=200;
 			if (zot(color)) color="white";
 			if (zot(strokeColor)) strokeColor=null;
-			if (zot(label)) label = "";			
-			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555");			
+			if (zot(label)) label = "";
+			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555");
 			if (zot(vertical)) vertical=false;
 			if (zot(arrows)) arrows=true;
 			if (zot(corner)) corner=16;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=14;
 			if (zot(loop)) loop=false;
-			if (zot(display)) display=true;	
+			if (zot(display)) display=true;
 			var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
 
 			var that = this;
 			var index;
 			var height = 100;
 			var boxSpacing = height/4;
-			
+
 			label.mouseChildren = false;
 			label.mouseEnabled = false;
-			
+
 			var prev = this.arrowPrev = new createjs.Container();
 			this.addChild(prev);
 			var prevBacking = new createjs.Shape();
@@ -1845,13 +1998,13 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			prevBacking.regX = height*1.5 / 2;
 			prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
 			prev.hitArea = prevBacking;
-			
+
 			var arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
 			if (shadowColor != -1 && shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
 			prev.cursor = "pointer";
 			prev.on(eventType, function(e) {step(-1);});
-			
+
 			if (vertical) {
 				prev.rotation = 180;
 				prev.x = width/2;
@@ -1860,13 +2013,13 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				} else {
 					prev.y = prev.getBounds().height * 2;
 				}
-				
+
 			} else {
 				prev.rotation = -90;
 				prev.x = prev.getBounds().height/2;
 				prev.y = prev.getBounds().width/2;
 			}
-			
+
 			if (display) {
 				var box = this.textBox = new createjs.Shape();
 				box.cursor = "pointer";
@@ -1874,15 +2027,15 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				box.setBounds(0, 0, width, height);
 				if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
 				box.graphics.f(color).rr(0, 0, width, height, corner);
-				if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);		
-	
+				if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+
 				if (vertical) {
 					box.y = arrowPrev.height + boxSpacing;
 				} else {
 					box.x = arrowPrev.height + boxSpacing;
 				}
 				// label
-				
+
 				this.addChild(label);
 				if (list.length > 0) {
 					// index = Math.floor(list.length/2)
@@ -1904,19 +2057,19 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			nextBacking.regX = height*1.5 / 2;
 			nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
 			next.hitArea = nextBacking;
-			
+
 			var arrowNext = new zim.Triangle(height, height*.8, height*.8, color);
 			if (shadowColor != -1 && shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			next.addChild(arrowNext);
-			
+
 			next.cursor = "pointer";
 			next.on(eventType, function(e) {step(1);});
 			if (display) box.on(eventType, function(e) {step(1);});
-			
+
 			if (vertical) {
 				next.rotation = 0;
-				next.x = width/2;				
-				next.y = next.getBounds().height/2;				
+				next.x = width/2;
+				next.y = next.getBounds().height/2;
 			} else {
 				next.rotation = 90;
 				if (display) {
@@ -1926,9 +2079,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				}
 				next.y = next.getBounds().width/2;
 			}
-			
+
 			setLabel(index);
-			
+
 			function step(n) {
 				var nextIndex = index + n;
 				if (!loop) {
@@ -1943,58 +2096,58 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 					if (nextIndex > list.length-1) nextIndex = 0;
 					if (nextIndex < 0) nextIndex = list.length-1;
 				}
-				setLabel(nextIndex);	
-				that.dispatchEvent("change");			
+				setLabel(nextIndex);
+				that.dispatchEvent("change");
 			}
-			
+
 			Object.defineProperty(this, 'currentIndex', {
-				get: function() {				
+				get: function() {
 					return index;
 				},
-				set: function(value) {					
+				set: function(value) {
 					value = Math.min(list.length-1, Math.max(0, value));
 					if (value == that.currentIndex) return;
 					setLabel(index=value);
 					that.dispatchEvent("change");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'currentValue', {
-				get: function() {				
+				get: function() {
 					return list[index];
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (list.indexOf(value) > -1) {
-						value = list.indexOf(value);	
+						value = list.indexOf(value);
 					}
 					if (value == that.currentIndex) return;
 					setLabel(index=value);
 					that.dispatchEvent("change");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'loop', {
-				get: function() {				
+				get: function() {
 					return loop;
 				},
-				set: function(value) {					
+				set: function(value) {
 					loop = value;
 					setLabel(index);
 				}
 			});
-			
+
 			Object.defineProperty(this, 'stepperArray', {
-				get: function() {				
+				get: function() {
 					return list;
 				},
-				set: function(value) {					
+				set: function(value) {
 					list = value;
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
@@ -2007,14 +2160,14 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						prev.cursor = "default";
 						next.alpha = .8;
 						arrowNext.setFill("#aaa");
-						next.cursor = "default";	
+						next.cursor = "default";
 						if (display) label.mouseChildren = false;
-						if (display) label.mouseEnabled = false;					
+						if (display) label.mouseEnabled = false;
 					}
 					if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();
 				}
 			});
-			
+
 			function setLabel(n) {
 				index = n;
 				if (display) {
@@ -2033,16 +2186,16 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						prev.alpha = .8;
 						arrowPrev.setFill("#aaa");
 						prev.cursor = "default";
-					} 
+					}
 					if (index == list.length-1) {
 						next.alpha = .8;
 						arrowNext.setFill("#aaa");
 						next.cursor = "default";
 					}
 				}
-				if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();				
+				if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();
 			}
-			
+
 			if (arrows) {
 				this.keyDownEvent = function(e) {
 					if (!e) e = event;
@@ -2055,31 +2208,31 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 						}
 					}
 				}
-				window.addEventListener("keydown", this.keyDownEvent); 
+				window.addEventListener("keydown", this.keyDownEvent);
 			}
-			
+
 			this.next = function() {
 				step(1);
 			}
-			
+
 			this.prev = function() {
 				step(-1);
 			}
-			
+
 			this.dispose = function() {
-				that.removeAllEventListeners();	
+				that.removeAllEventListeners();
 				return true;
 			}
 		}
-		
+
 		// note the actual class is wrapped in a function
-		// because createjs might not have existed at load time		
+		// because createjs might not have existed at load time
 		makeStepper.prototype = new createjs.Container();
 		makeStepper.prototype.constructor = zim.Stepper;
 		return new makeStepper();
-		
-	}	
-	
+
+	}
+
 /*--
 zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks)
 
@@ -2087,8 +2240,8 @@ Slider Class
 
 extends a createjs.Container
 a traditional slider - will give values back based on min and max and position of button (knob)
-var slider = new zim.Slider(parameters); 
-slider.on("change", function() {zog(slider.currentValue);}); 
+var slider = new zim.Slider(parameters);
+slider.on("change", function() {zog(slider.currentValue);});
 
 PARAMETERS: supports DUO - parameters or single object
 pass in min and max amounts for slider (default 0, 10)
@@ -2117,209 +2270,508 @@ and stage.update() in change event to see component change its graphics
 
 EVENTS
 dispatches a "change" event when button is slid on slider
---*/	
-	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks) {
-		
-		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks";
+--*/
+	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside) {
+
+		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside";
 		var duo; if (duo = zob(zim.Slider, arguments, sig)) return duo;
-		
+
 		function makeSlider() {
-			
-			// if (zon) zog("zim build - Slider");
-			
+
 			if (zot(min)) min = 0;
-			if (zot(max)) max = 10; 
+			if (zot(max)) max = 10;
 			if (max-min == 0) {zog("ZIM Slider range must not be 0"); return;}
 			if (zot(step)) step = 0;
-			if (zot(barLength)) barLength = 300; 
+			if (zot(barLength)) barLength = 300;
 			if (zot(barWidth)) barWidth = 3;
 			if (zot(barColor)) barColor = "#666";
 			if (zot(vertical)) vertical = false;
 			if (zot(useTicks)) useTicks = false;
-			
+			if (zot(inside)) inside = false;
+
 			if (zot(button)) {
 				var w = 30; var h = 40;
 				if (vertical) {w = 50; h = 40;}
 				button = new zim.Button(w,h,"","#fff","#ddd","#666",1,0,null,null,30);
 			}
+
 			if (vertical) {
 				this.width = button.width;
-				this.height = barLength + button.height;
-				this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+				if (inside) {
+					this.height = barLength;
+					this.setBounds(0, 0, this.width, this.height);
+				} else {
+					this.height = barLength + button.height;
+					this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+				}
 			} else {
-				this.width = barLength+button.width;
 				this.height = button.height;
-				this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+				if (inside) {
+					this.width = barLength;
+					this.setBounds(0, 0, this.width, this.height);
+				} else {
+					this.width = barLength+button.width;
+					this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+				}
 			}
-			
-			var that = this;			
+
+			var that = this;
 			var myValue = min;
+			var lastValue = 0; // does not include min so always starts at 0
 			this.button = button;
-			
+			this.cursor = "pointer";
+
 			var bar, rect, bounds, ticks, g;
-			
+
 			if (useTicks && step != 0) {
 				ticks = this.ticks = new createjs.Shape();
 				this.addChild(ticks);
 				g = ticks.graphics;
 				g.ss(1).s(barColor);
 				var stepsTotal = (max - min) / step;
-				var spacing = barLength / stepsTotal;
+				if (inside) {
+					var spacing = (barLength - ((vertical) ? button.height : button.width)) / stepsTotal;
+				} else {
+					var spacing = barLength / stepsTotal;
+				}
 			}
 
 			if (vertical) {
+				var start = (inside) ? button.height / 2 : 0;
 				if (useTicks && step != 0) {
 					for (var i=0; i<=stepsTotal; i++) {
-						g.mt(0, spacing*i).lt(20, spacing*i);
+						g.mt(0, start+spacing*i).lt(20, start+spacing*i);
 					}
-					ticks.x = 10;					
+					ticks.x = 10;
 				}
 				bar = this.bar = new zim.Rectangle(barWidth, barLength, barColor);
 				this.addChild(bar);
 				zim.centerReg(button);
 				this.addChild(button);
 				bounds = bar.getBounds();
-				rect = new createjs.Rectangle(bounds.width/2, bounds.y, 0, bounds.height);
+				rect = new createjs.Rectangle(bounds.width/2, bounds.y+start, 0, bounds.height-start*2);
 			} else {
+				var start = (inside) ? button.width / 2 : 0;
 				if (useTicks && step != 0) {
 					for (var i=0; i<=stepsTotal; i++) {
-						g.mt(spacing*i,0).lt(spacing*i,-20);
+						g.mt(start+spacing*i,0).lt(start+spacing*i,-20);
 					}
-					ticks.y = -10;					
+					ticks.y = -10;
 				}
 				bar = this.bar = new zim.Rectangle(barLength, barWidth, barColor);
 				this.addChild(bar);
 				zim.centerReg(button);
 				this.addChild(button);
 				bounds = bar.getBounds();
-				rect = new createjs.Rectangle(bounds.x, bounds.height/2, bounds.width, 0);
+				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start*2, 0);
 			}
 			button.x = rect.x;
 			button.y = rect.y;
-			
+
 			function snap(v) {
 				if (step == 0) return v;
-				return Math.round(v/step)*step;	
+				return Math.round(v/step)*step;
 			}
 
 			var diffX, diffY;
-			var lastValue = 0;
 			button.on("mousedown", function(e) {
 				var point = that.globalToLocal(e.stageX, e.stageY);
 				diffX = point.x - button.x;
 				diffY = point.y - button.y;
 			});
-							
-			button.on("pressmove", function(e) {	
-				var point = that.globalToLocal(e.stageX, e.stageY);				
-				var p = checkBounds(point.x-diffX, point.y-diffY, rect); 
+
+			button.on("pressmove", function(e) {
+				setValue(e);
+			});
+			function setValue(e) {
+				var point = that.globalToLocal(e.stageX, e.stageY);
+				var p = checkBounds(point.x-diffX, point.y-diffY, rect);
 				if (vertical) {
 					button.x = p.x;
-					myValue = snap(p.y / barLength * (max - min));
-					button.y = myValue * barLength / (max - min);
+					myValue = snap(p.y / rect.height * (max - min));
+					button.y = myValue * rect.height / (max - min) + start;
 					myValue += min;
 					if (button.y != lastValue) {
-						that.dispatchEvent("change");						
+						that.dispatchEvent("change");
 					}
 					lastValue = button.y;
 				} else {
-					myValue = snap(p.x / barLength * (max - min));
-					button.x = myValue * barLength / (max - min);
+					myValue = snap(p.x / rect.width * (max - min));
+					button.x = myValue * rect.width / (max - min) + start;
 					myValue += min;
 					button.y = p.y;
 					if (button.x != lastValue) {
-						that.dispatchEvent("change");						
+						that.dispatchEvent("change");
 					}
 					lastValue = button.x;
 				}
 				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
-			});
+			};
 
-			function checkBounds(x,y,rect) {		
-				x = Math.max(rect.x, Math.min(rect.width, x));
-				y = Math.max(rect.y, Math.min(rect.height, y));
-				return {x:x,y:y}				
-			}	
+			function checkBounds(x,y,rect) {
+				x = Math.max(rect.x-start*((vertical)?0:1), Math.min(rect.width, x));
+				y = Math.max(rect.y-start*((vertical)?1:0), Math.min(rect.height, y));
+				return {x:x,y:y}
+			}
+
+			bar.on("mousedown", function(e) {
+				diffX = button.width/2;
+				diffY = button.height/2;
+				setValue(e);
+			});
 
 			Object.defineProperty(this, 'currentValue', {
 				get: function() {
 					return myValue;
 				},
-				set: function(value) {		
-					if (value < min) value = min;			
+				set: function(value) {
+					if (value < min) value = min;
 					if (value > max) value = max;
 					myValue = value = snap(value);
 					if (vertical) {
-						button.y = (value - min) / (max - min) * barLength;
+						button.y = (value - min) / (max - min) * rect.height + start;
 						lastValue = button.y;
 					} else {
-						button.x = (value - min) / (max - min) * barLength;
+						button.x = (value - min) / (max - min) * rect.width + start;
 						lastValue = button.x;
 					}
-					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update(); 
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(this, 'min', {
-				get: function() {				
+				get: function() {
 					return min;
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("min is read only");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'max', {
-				get: function() {				
+				get: function() {
 					return max;
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("max is read only");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'step', {
-				get: function() {				
+				get: function() {
 					return step;
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("step is read only");
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
 					zenable(that, value);
 				}
 			});
-			
+
 			this.dispose = function() {
 				button.removeAllEventListeners();
 				return true;
 			}
 		}
-		
+
 		// note the actual class is wrapped in a function
-		// because createjs might not have existed at load time		
+		// because createjs might not have existed at load time
 		makeSlider.prototype = new createjs.Container();
 		makeSlider.prototype.constructor = zim.Slider;
 		return new makeSlider();
-		
-	}	
-		
+
+	}
+
+	/*--
+	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, type, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit)
+
+	Dial Class
+
+	extends a createjs.Container
+	a traditional dial - will give values back based on min and max and position of dial
+	var dial = new zim.Dial(parameters);
+	dial.on("change", function() {zog(dial.currentValue);});
+
+	PARAMETERS: supports DUO - parameters or single object
+	pass in min and max amounts for dial (default 0, 10)
+	step for the dial (default 0 - for continuous decimal number)
+	the width (100), color("#666"), indicatorColor("#222"), indicatorScale (1)
+	type - of indicator defaults to "arrow" or "triangle" - can also be "dot" or "circle", and "line" or "rectangle"
+	innerCircle defaults to true and gives a knob type look - set to false for flat
+	innerScale (1) can be adjusted along with indicatorScale to get a variety of looks
+	useTicks (true) will show lines and innerTicks (false) being set to true will put the ticks inside
+	tickColor defaults to the indicatorColor
+	limit (true) stops the dial from going right around - set to false to spin freely
+
+	PROPERTIES
+	currentValue - gets or sets the current value of the dial
+	width, height - gives width and height (read only)
+	min, max, step - the assigned values (read only)
+	backing - gives access to the dial backing zim.Circle
+	inner and inner2 give access to any inner circles
+	ticks - gives access to the ticks (to scale these for example)
+	indicator - gives access to the indicator container with registration point at the dial center
+	indicatorShape - gives access to the shape on the end of the indicator (zim Triangle, Circle, Rectangle)
+	enabled - default is true - set to false to disable
+
+	METHODS
+	dispose() - removes listeners and deletes object
+
+	OPTIMIZED
+	This component is affected by the general zim.OPTIMIZE setting (default is false)
+	if set to true, you will have to stage.update() after setting certain properties
+	and stage.update() in change event to see component change its graphics
+
+	EVENTS
+	dispatches a "change" event when dial changes value
+	--*/
+		zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, type, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit) {
+
+			var sig = "min, max, step, width, color, indicatorColor, indicatorScale, type, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit";
+			var duo; if (duo = zob(zim.Dial, arguments, sig)) return duo;
+
+			function makeDial() {
+
+				if (zot(min)) min = 0;
+				if (zot(max)) max = 10;
+				if (max-min == 0) {zog("ZIM Dial range must not be 0"); return;}
+				if (zot(step)) step = 1;
+				if (zot(width)) width = 100;
+				if (zot(color)) color = "#666";
+				if (zot(indicatorColor)) indicatorColor = "#222";
+				if (zot(indicatorScale)) indicatorScale = 1;
+				if (zot(type)) type = "arrow";
+				if (zot(innerCircle)) innerCircle = true;
+				if (zot(innerScale)) innerScale = .5;
+				if (zot(useTicks)) useTicks = true;
+				if (zot(innerTicks)) innerTicks = false;
+				if (zot(tickColor)) tickColor = indicatorColor;
+				if (zot(limit)) limit = true;
+
+				var that = this;
+				this.cursor = "pointer";
+
+				var r = width / 2;
+				this.width = this.height = width;
+
+				var myValue = min; // includes the min
+				var lastValue = 0; // does not include min (so always starts at 0)
+
+				var backing = this.backing = new zim.Circle(r, color);
+				this.addChild(backing);
+
+				if (innerCircle) {
+					var ic = (innerTicks) ? "rgba(0,0,0,.2)" : "rgba(0,0,0,.1)";
+					if (color=="black"||color=="#000"||color=="#000000"||color=="#111"||color=="#111111") ic = "#222";
+					var inner = this.inner = new zim.Circle(r*innerScale, ic);
+					this.addChild(inner);
+
+					if (!innerTicks) {
+						var ic2 = "rgba(0,0,0,.1)";
+						var inner2 = this.inner2 = new zim.Circle(r*(innerScale-.1), ic2);
+						this.addChild(inner2);
+					}
+
+				}
+
+				var stepsTotal = (max - min) / step;
+				if (useTicks && step != 0) {
+					ticks = this.ticks = new createjs.Container();
+					this.addChild(ticks);
+					var tick;
+					for (var i=0; i<stepsTotal+1; i++) {
+						var tick = new zim.Rectangle(1, r*.2, tickColor);
+						tick.regY = r * ((innerTicks) ? (innerScale-.05) : 1.28);
+						tick.regX = .5;
+						tick.rotation = (360 / (stepsTotal+1)) * i;
+						ticks.addChild(tick);
+					}
+				}
+
+				this.setBounds(-r,-r,width,width);
+				if (type == "dot" || type == "circle") {
+					var indicator = this.indicator = new createjs.Container();
+					var indicatorShape = this.indicatorShape = new zim.Circle(r*.19, indicatorColor);
+					indicator.addChild(indicatorShape);
+					zim.scale(indicator, indicatorScale);
+					indicator.regY = r - indicator.getBounds().width*indicatorScale/2 - r*.07;
+				} else if (type == "line" || type == "rectangle") {
+					var indicator = this.indicator = new createjs.Container();
+					var indicatorShape = this.indicatorShape = new zim.Rectangle(r * .1, r*.3, indicatorColor);
+					indicator.addChild(indicatorShape);
+					zim.scale(indicator, indicatorScale);
+					indicator.regY = r - indicator.getBounds().width*indicatorScale/2 - r*.07;
+					indicator.regX = r * .05;
+				} else { // arrow
+					var indicator = this.indicator = new createjs.Container();
+					var indicatorShape = this.indicatorShape = new zim.Triangle(r*.4, r*.4, r*.4, indicatorColor);
+					indicator.addChild(indicatorShape);
+					zim.scale(indicator, indicatorScale);
+					indicator.regY = r - indicator.getBounds().height*indicatorScale*((innerTicks)?.85:.75);
+					if (innerTicks) {
+						indicatorShape.rotation = 180;
+					}
+				}
+				indicator.regY /= indicatorScale;
+				this.addChild(indicator);
+
+				function snap(v) {
+					if (step == 0) return v;
+					return Math.round(v/step)*step;
+				}
+
+				var lastAngle;
+				var startAngle;
+				var moveEvent;
+				var upEvent;
+				var lastA = 0;
+				this.on("mousedown", function() {
+					lastAngle = indicator.rotation;
+					var p = that.parent.globalToLocal(that.getStage().mouseX, that.getStage().mouseY);
+					var dX = p.x-that.x;
+					var dY = that.y-p.y;
+					startAngle = Math.atan2(dX,dY)*180/Math.PI;
+					var pressTime = new Date().getTime();
+					moveEvent = that.on("pressmove", function() {
+						p = that.parent.globalToLocal(that.getStage().mouseX, that.getStage().mouseY);
+						dX = p.x-that.x;
+						dY = that.y-p.y;
+						var angle = lastAngle + Math.atan2(dX,dY)*180/Math.PI - startAngle;
+						if (limit) {
+							if (angle < 0) angle += 360;
+							angle = angle % 360;
+							if (Math.abs(angle-lastA) > 180) return;
+						}
+						lastA = angle;
+
+						setValue(angle);
+					});
+					upEvent = this.on("pressup", function() {
+						var deltaTime = new Date().getTime()-pressTime;
+						if (deltaTime < 200) {
+							p = that.parent.globalToLocal(that.getStage().mouseX, that.getStage().mouseY);
+							dX = p.x-that.x;
+							dY = that.y-p.y;
+							var angle = Math.atan2(dX,dY)*180/Math.PI;
+							setValue(angle);
+						}
+						lastAngle = indicator.rotation;
+						that.off("pressmove", moveEvent);
+						that.off("pressup", upEvent);
+					});
+
+				});
+
+				function sign(n) {return n > 0 ? 1 : -1;}
+
+				function setValue(angle) {
+					var v; // value (not including min)
+					if (angle < 0) angle += 360;
+					angle = angle % 360;
+					if (step != 0) {
+						angle = Math.min(angle,  360 - 360 / (stepsTotal+1));
+						v = snap(angle / (360 - 360 / (stepsTotal+1)) * (max - min));
+						indicator.rotation = v * (360 - 360 / (stepsTotal+1)) / (max - min);
+					} else {
+						indicator.rotation = angle;
+						v = (angle / 360) * (max - min);
+					}
+					if (v != lastValue) {
+						lastValue = v;
+						myValue = v + min;
+						that.dispatchEvent("change");
+						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					}
+				}
+
+				Object.defineProperty(this, 'currentValue', {
+					get: function() {
+						return myValue;
+					},
+					set: function(value) {
+						if (value < min) value = min;
+						if (value > max) value = max;
+						myValue = value;
+						value = snap(value);
+						if (step != 0) {
+							indicator.rotation = (value - min) * (360 - 360 / (stepsTotal+1)) / (max - min);
+						} else {
+							indicator.rotation = (value - min) * 360 / (max - min);
+						}
+						lastValue = value - min;
+						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					}
+				});
+
+				Object.defineProperty(this, 'min', {
+					get: function() {
+						return min;
+					},
+					set: function(value) {
+						if (zon) zog("min is read only");
+					}
+				});
+
+				Object.defineProperty(this, 'max', {
+					get: function() {
+						return max;
+					},
+					set: function(value) {
+						if (zon) zog("max is read only");
+					}
+				});
+
+				Object.defineProperty(this, 'step', {
+					get: function() {
+						return step;
+					},
+					set: function(value) {
+						if (zon) zog("step is read only");
+					}
+				});
+
+				this._enabled = true;
+				Object.defineProperty(that, 'enabled', {
+					get: function() {
+						return that._enabled;
+					},
+					set: function(value) {
+						zenable(that, value);
+					}
+				});
+
+				this.dispose = function() {
+					that.removeAllEventListeners();
+					return true;
+				}
+			}
+
+			// note the actual class is wrapped in a function
+			// because createjs might not have existed at load time
+			makeDial.prototype = new createjs.Container();
+			makeDial.prototype.constructor = zim.Dial;
+			return new makeDial();
+
+		}
+
 /*--
-zim.Tabs = function(width, height, tabs, color, rollColor, offColor, auto, spacing, corner, labelAdjust, keyEnabled)
+zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust, keyEnabled)
 
 Tabs Class
 
 extends a createjs.Container
-a traditional slider - will give values back based on min and max and position of button (knob)
-var tabs = new zim.Tabs(parameters); 
-tabs.on("change", function() {zog(tabs.selectedIndex);}); 
+a traditional tab layout for along the edge of content
+can also act as an independent button row or column
+var tabs = new zim.Tabs(parameters);
+tabs.on("change", function() {zog(tabs.selectedIndex);});
 
 PARAMETERS: supports DUO - parameters or single object
 pass in an overall width and height for the tab set
@@ -2327,14 +2779,13 @@ zim will automatically divide the width for each tab taking into account spacing
 tabs is an array of tab objects with the following properties available
 any tab specific properties will override the default values from other parameters
 [{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
-the label can be a String or a zim.Label object - default text color is white 
-color is the color of the selected tab - default #333 
+the label can be a String or a zim.Label object - default text color is white
+color is the color of the selected tab - default #333
 rollColor is the rollover color (selected tabs do not roll over) - default #555
 offColor is the color of a deselected tab when not rolled over - default #777
-note - if auto is false, the color applies to all buttons
 spacing is the pixels between buttons - default 1 pixel
-auto defaults to true and means the selected tab button will be disabled
-corner is the corner radius - default 0 
+currentEnabled defaults to false and means the selected tab button cannot be clicked
+corner is the corner radius - default 0
 labelAdjust defaults to 0 and can be negative or positive to move the labels up or down
 Then you can set the corner to some value, give a bigger height, move the labels up
 and hide the bottom of the buttons to give a curved top effect
@@ -2349,7 +2800,7 @@ tabs - gets or sets tabs object (will have to manually change buttons as well as
 color - gets or sets default selected tab color
 rollColor - gets or sets default rolled over color
 offColor - gets or sets default unselected tab color
-text - gets or sets current selected label text
+text - gets current selected label text
 label - gets current selected label object
 buttons - an array of the ZIM Button objects. buttons[0].enabled = false;
 labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
@@ -2365,81 +2816,87 @@ if set to true, you will have to stage.update() after setting certain properties
 and stage.update() in change event to see component change its graphics
 
 ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting 
+This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
 dispatches a "change" event when a tab changes
---*/	
-	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, auto, corner, labelAdjust, keyEnabled) {
-		
-		var sig = "width, height, tabs, color, rollColor, offColor, spacing, auto, corner, labelAdjust, keyEnabled";
+--*/
+	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust, keyEnabled) {
+
+		var sig = "width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust, keyEnabled";
 		var duo; if (duo = zob(zim.Tabs, arguments, sig)) return duo;
-		
+
 		function makeTabs() {
-			
+
 			if (zot(width)) width = 240;
-			if (zot(height)) height = 60; 
-			if (zot(tabs) || tabs.length<=0) tabs = [{label:1},{label:2},{label:3},{label:4}]; 
+			if (zot(height)) height = 60;
+			if (zot(tabs) || tabs.length<=0) tabs = [{label:1},{label:2},{label:3},{label:4}];
 			if (zot(color)) color = "#333";
-			if (zot(rollColor)) rollColor = "#555"; 
-			if (zot(offColor)) offColor = "#777"; 
-			if (zot(auto)) auto = true;
+			if (zot(rollColor)) rollColor = "#555";
+			if (zot(offColor)) offColor = "#777";
+			if (zot(currentEnabled)) currentEnabled = false;
 			if (zot(spacing)) spacing = 1;
 			if (zot(corner)) corner = 0;
 			if (zot(labelAdjust)) labelAdjust = 0;
 			if (zot(keyEnabled)) keyEnabled = true;
 
 			var that = this;
-			this.width = width;	
+			this.width = width;
 			this.height = height;
 			this.keyEnabled = keyEnabled;
-			
+
 			var myIndex = 0; // local value for this.currentIndex
 			var labels = []
 			var buttons = [];
 			var button; var t;
 			var num = tabs.length;
 			var tabW = (width - spacing*(num-1))/num;
+
+			if (typeof tabs[0] == "number" || typeof tabs[0] == "string") { // change to objects with labels
+				for (var i=0; i<tabs.length; i++) {
+					tabs[i] = {label:String(tabs[i])};
+				}
+			}
 			// calculate widths
-			var total = 0; var t; 
+			var total = 0; var t;
 			var newTabW; var nonSpecifiedCount = 0;
 			for (var i=0; i<tabs.length; i++) {
 				t = tabs[i];
 				if (zot(t.width)) nonSpecifiedCount++;
 				total += (zot(t.width))?tabW:t.width;
-			}			
-			
+			}
+
 			if (total > width - spacing*(num-1)) {
 				// go back and assign proportional widths
 				for (i=0; i<tabs.length; i++) {
 					t = tabs[i];
-					t.width = (width - spacing*(num-1)) / total * ((zot(t.width))?tabW:t.width); 
-				}					
+					t.width = (width - spacing*(num-1)) / total * ((zot(t.width))?tabW:t.width);
+				}
 			} else if (total < width - spacing*(num-1)) {
 				// go back and readjust the average of non specified widths
 				if (nonSpecifiedCount > 0) {
 					newTabW = (total-nonSpecifiedCount*tabW)/nonSpecifiedCount;
 					for (i=0; i<tabs.length; i++) {
 						t = tabs[i];
-						t.width = ((zot(t.width))?newTabW:t.width); 
-					}						
+						t.width = ((zot(t.width))?newTabW:t.width);
+					}
 				} else {
-					if (zon) zog("ZIM Tabs - total less than width");	
-					this.width = total + spacing*(num-1);	
+					if (zon) zog("ZIM Tabs - total less than width");
+					this.width = total + spacing*(num-1);
 				}
-			} 
+			}
 
-			var lastX = 0; var tColor; 
+			var lastX = 0; var tColor;
 			for (i=0; i<tabs.length; i++) {
 				t = tabs[i];
 				if (zot(t.label)) t.label = " ";
-				tColor = (i==0 || !auto)?((zot(t.color))?color:t.color):((zot(t.offColor))?offColor:t.offColor);
+				tColor = (i==0)?((zot(t.color))?color:t.color):((zot(t.offColor))?offColor:t.offColor);
 				if (typeof t.label === "string" || typeof t.label === "number") {
-					t.label = new zim.Label(t.label, 36, "arial", "white");
+					t.label = new zim.Label(t.label, height/2, "arial", "white");
 				}
 				button = new zim.Button(
-					(zot(t.width))?tabW:t.width, 
+					(zot(t.width))?tabW:t.width,
 					height, t.label, tColor,
 					(zot(t.rollColor))?rollColor:t.rollColor,
 					null, null, corner, -1
@@ -2451,30 +2908,32 @@ dispatches a "change" event when a tab changes
 				buttons.push(button);
 				this.addChild(button);
 				button.x = lastX;
-				lastX = button.x + button.width + spacing;		
-				if (i==0 && auto) button.enabled = false;					
+				lastX = button.x + button.width + spacing;
+				if (i==0 && !currentEnabled) button.enabled = false;
 			};
-			
+
 			this.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
-				change(e.target.num);				
+				change(e.target.num);
+				that.dispatchEvent("change");
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			});
-			
+
 			function change(num) {
 				var t = tabs[myIndex];
-				if (auto) {
+				if (t) {
 					buttons[myIndex].color = (zot(t.offColor))?offColor:t.offColor;
-					buttons[myIndex].enabled = true;
+					if (!currentEnabled) buttons[myIndex].enabled = true;
 				}
 				myIndex = num;
 				t = tabs[myIndex];
-				buttons[myIndex].color = (zot(t.color))?color:t.color;;
-				if (auto) buttons[myIndex].enabled = false;
-				that.dispatchEvent("change");
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (t) {
+					buttons[myIndex].color = (zot(t.color))?color:t.color;
+					if (!currentEnabled) buttons[myIndex].enabled = false;
+				}
 			}
-	
+
 			window.addEventListener("keydown", function(e) {
-				if (!that.keyEnabled) return; 
+				if (!that.keyEnabled) return;
 				if (e.keyCode == 9) {
 					var next = myIndex; // note that change updates the index
 					if (e.shiftKey) {
@@ -2482,42 +2941,47 @@ dispatches a "change" event when a tab changes
 					} else {
 						change((++next>tabs.length-1)?0:next);
 					}
-					e.preventDefault();	
+					that.dispatchEvent("change");
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					e.preventDefault();
 				}
 			});
-		
+
 			Object.defineProperty(this, 'selected', {
 				get: function() {
 					return buttons[myIndex];
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("selected is read only - try selectedIndex");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'selectedIndex', {
 				get: function() {
 					return myIndex;
 				},
-				set: function(value) {		
-					change(Math.min(Math.max(value, 0), tabs.length-1));					
+				set: function(value) {
+					// change(Math.min(Math.max(value, 0), tabs.length-1));
+					change(value);
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(this, 'tabs', {
 				get: function() {
 					return myIndex;
 				},
-				set: function(value) {		
-					change(Math.min(Math.max(value, 0), tabs.length-1));					
+				set: function(value) {
+					change(Math.min(Math.max(value, 0), tabs.length-1));
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(this, 'color', {
 				get: function() {
 					return color;
 				},
-				set: function(value) {		
+				set: function(value) {
 					color = value;
 					if (zot(tabs[myIndex].color)) {
 						buttons[myIndex].color = color;
@@ -2525,13 +2989,13 @@ dispatches a "change" event when a tab changes
 					}
 				}
 			});
-			
+
 			Object.defineProperty(this, 'rollColor', {
 				get: function() {
 					return rollColor;
 				},
-				set: function(value) {		
-					rollColor = value;	
+				set: function(value) {
+					rollColor = value;
 					for (var i=0; i<tabs.length; i++) {
 						if (zot(tabs[myIndex].rollColor)) {
 							buttons[i].rollColor = rollColor;
@@ -2539,81 +3003,245 @@ dispatches a "change" event when a tab changes
 					}
 				}
 			});
-			
+
 			Object.defineProperty(this, 'offColor', {
 				get: function() {
 					return offColor;
 				},
-				set: function(value) {		
+				set: function(value) {
 					offColor = value;
 					for (var i=0; i<tabs.length; i++) {
 						if (zot(tabs[myIndex].offColor)) {
 							buttons[i].color = offColor;
 						}
-					}	
-					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update(); 		
+					}
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(this, 'label', {
 				get: function() {
 					return labels[myIndex];
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("selected is read only - try selectedIndex");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'text', {
 				get: function() {
-					return labels[myIndex].text;
+					return (labels[myIndex]!=null) ? labels[myIndex].text : undefined;
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("selected is read only - try selectedIndex");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'buttons', {
 				get: function() {
 					return buttons;
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("buttons is read only");
 				}
 			});
-			
+
 			Object.defineProperty(this, 'labels', {
 				get: function() {
 					return labels;
 				},
-				set: function(value) {					
+				set: function(value) {
 					if (zon) zog("labels is read only");
 				}
 			});
-			
+
 			this._enabled = true;
 			Object.defineProperty(that, 'enabled', {
-				get: function() {								
+				get: function() {
 					return that._enabled;
 				},
 				set: function(value) {
 					zenable(that, value);
 				}
 			});
-			
+
 			this.dispose = function() {
-				button.removeAllEventListeners();
+				for (var i=0; i<that.buttons.length; i++) {
+					that.buttons[i].dispose();
+					that.labels[i].dispose();
+				}
+				that.removeAllEventListeners();
 				return true;
 			}
 		}
-		
+
 		// note the actual class is wrapped in a function
-		// because createjs might not have existed at load time		
+		// because createjs might not have existed at load time
 		makeTabs.prototype = new createjs.Container();
 		makeTabs.prototype.constructor = zim.Tabs;
 		return new makeTabs();
-		
-	}	
+
+	}
+
+	/*--
+	zim.Pad = function(width, cols, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust)
+
+	Pad Class
+
+	extends a createjs.Container
+	a traditional slider - will give values back based on min and max and position of button (knob)
+	var tabs = new zim.Tabs(parameters);
+	tabs.on("change", function() {zog(tabs.selectedIndex);});
+
+	PARAMETERS: supports DUO - parameters or single object
+	pass in an overall width and height for the tab set
+	zim will automatically divide the width for each tab taking into account spacing
+	tabs is an array of tab objects with the following properties available
+	any tab specific properties will override the default values from other parameters
+	[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
+	the label can be a String or a zim.Label object - default text color is white
+	color is the color of the selected tab - default #333
+	rollColor is the rollover color (selected tabs do not roll over) - default #555
+	offColor is the color of a deselected tab when not rolled over - default #777
+	spacing is the pixels between buttons - default 1 pixel
+	currentEnabled defaults to true and means the selected button will be clickable
+	corner is the corner radius - default 0
+	labelAdjust defaults to 0 and can be negative or positive to move the labels up or down
+	Then you can set the corner to some value, give a bigger height, move the labels up
+	and hide the bottom of the buttons to give a curved top effect
+	keyEnabled defaults to true so tab key cycles through tabs, shift tab backwards
+
+
+	PROPERTIES
+	width, height - actual width and provided height
+	selectedIndex - gets or sets the selected index of the tabs
+	selected - gets the selected button - selected.enabled = true, etc.
+	tabs - gets or sets tabs object (will have to manually change buttons as well as adjust props)
+	color - gets or sets default selected tab color
+	rollColor - gets or sets default rolled over color
+	offColor - gets or sets default unselected tab color
+	text - gets current selected label text
+	label - gets current selected label object
+	buttons - an array of the ZIM Button objects. buttons[0].enabled = false;
+	labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
+	keyEnabled - gets or sets whether the tab key and shift tab key cycles through tabs
+	enabled - default is true - set to false to disable
+
+	METHODS
+	dispose() - removes listeners and deletes object
+
+	OPTIMIZED
+	This component is affected by the general zim.OPTIMIZE setting (default is false)
+	if set to true, you will have to stage.update() after setting certain properties
+	and stage.update() in change event to see component change its graphics
+
+	ACTIONEVENT
+	This component is affected by the general zim.ACTIONEVENT setting
+	The default is "mousedown" - if set to something else the component will act on click (press)
+
+	EVENTS
+	dispatches a "change" event when a tab changes
+	--*/
+		zim.Pad = function(width, cols, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust) {
+
+			var sig = "width, cols, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust";
+			var duo; if (duo = zob(zim.Pad, arguments, sig)) return duo;
+
+			function makePad() {
+
+				// the other parameters will be handled by the Tabs object for each row
+				if (zot(width)) width = 150;
+				if (zot(cols)) cols = 3;
+				if (zot(keys)) keys = [1,2,3,4,5,6,7,8,9];
+				if (zot(currentEnabled)) currentEnabled = true;
+				if (zot(spacing)) spacing = 1;
+
+				var that = this;
+				var myIndex;
+
+				this.width = this.height = width;
+
+				var height = width / cols - spacing;
+				var rowTabs = [];
+				var rows = Math.ceil(keys.length/cols);
+				var count = 0;
+				var r;
+				this.labels = [];
+				this.buttons = [];
+				for (var i=0; i<rows; i++) {
+					var rowKeys = [];
+					for (var j=0; j<cols; j++) {
+						rowKeys.push(keys[count]);
+						count++;
+					}
+					r = rowTabs[i] = new zim.Tabs(width, height, rowKeys, color, rollColor, offColor, spacing, currentEnabled, corner, labelAdjust, false);
+					this.labels = this.labels.concat(r.labels);
+					this.buttons = this.buttons.concat(r.buttons);
+					this.addChild(r);
+					r.selectedIndex = -1;
+					r.y = (height+spacing)*i;
+					r.num = i;
+					r.on("change", pressKey);
+				}
+				this.tabs = rowTabs;
+				function pressKey(e) {
+					var r = e.target;
+					that.selected = r.selected;
+					that.text = r.text;
+					that.label = r.label;
+					var s = r.selectedIndex; // store selected then clear all in pad
+					for (var i=0; i<rowTabs.length; i++) {
+						rowTabs[i].selectedIndex = -1;
+					}
+					r.selectedIndex = s; // restore selected
+					myIndex = r.num * cols + s; // calculate pad selected
+					that.dispatchEvent("change");
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				}
+
+				Object.defineProperty(this, 'selectedIndex', {
+					get: function() {
+						return myIndex;
+					},
+					set: function(value) {
+						myIndex = value;
+						for (var i=0; i<rowTabs.length; i++) {
+							rowTabs[i].selectedIndex = -1;
+						}
+						var tabNum = Math.floor(myIndex / cols);
+						if (tabNum >= 0 && tabNum < that.tabs.length) {
+							that.tabs[tabNum].selectedIndex = myIndex % cols;
+						}
+					}
+				});
+
+				this._enabled = true;
+				Object.defineProperty(that, 'enabled', {
+					get: function() {
+						return that._enabled;
+					},
+					set: function(value) {
+						zenable(that, value);
+					}
+				});
+
+				this.dispose = function() {
+					for (var i=0; i<that.tabs.length; i++) {
+						that.tabs[i].dispose();
+					}
+					that.removeAllEventListeners();
+					return true;
+				}
+			}
+
+			// note the actual class is wrapped in a function
+			// because createjs might not have existed at load time
+			makePad.prototype = new createjs.Container();
+			makePad.prototype.constructor = zim.Pad;
+			return new makePad();
+
+		}
+
 
 /*--
 zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur)
@@ -2626,8 +3254,8 @@ additionally can show 16 greys and / or an alpha slider
 picking on a color sets the swatch color and the selectedColor property
 OK dispatches a change event if the color changed or a close event if not
 The X dispatches a close event
-var cp = new zim.ColorPicker(parameters); 
-cp.on("change", function() {zog(cp.selectedColor, cp.selectedAlpha);}); 
+var cp = new zim.ColorPicker(parameters);
+cp.on("change", function() {zog(cp.selectedColor, cp.selectedAlpha);});
 
 PARAMETERS: supports DUO - parameters or single object
 pass in a width (default 500) for the color picker
@@ -2667,21 +3295,21 @@ METHODS
 dispose() - removes listeners and deletes object
 
 ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting 
+This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
 dispatches a "change" event when the OK button is activated and the color is different than before
 dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
---*/	
-	
+--*/
+
 	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur) {
-			
+
 		var sig = "width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur";
 		var duo; if (duo = zob(zim.ColorPicker, arguments, sig)) return duo;
-		
+
 		function makeColorPicker() {
-		
+
 			if (zot(width)) width = 500;
 			if (zot(colors)) standard = true;
 			if (zot(cols)) cols = 10;
@@ -2690,20 +3318,20 @@ dispatches a "close" event if the OK button is activated and the color has not c
 			if (zot(greyPicker)) greyPicker = true;
 			if (zot(drag)) drag = true;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=14;	
-			
+			if (zot(shadowBlur)) shadowBlur=14;
+
 			var that = this;
-			
+
 			var secondLastColor = "#e472c4"; // only used on standard colors
 			var thirdLastColor = "#50c4b7";
 			var lastAlpha = 1;
 			var myAlpha = 1;
-			
+
 			var box = new createjs.Shape(); // shape that holds all colors and greys
 			this.addChild(box);
 			box.x += spacing;
 			box.y += spacing;
-						
+
 			var standard = false;
 			var colorsTemp; var w;
 			var greys = [];
@@ -2714,13 +3342,13 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				num = Math.ceil(Math.pow(tot,1/2));
 				w = (width - spacing)/18-spacing;
 				var f = Math.floor(Math.pow(num*num, 1/3));
-				colorsTemp = [];	
+				colorsTemp = [];
 				for (var i=0; i<6; i++) {
 					for (var j=0; j<6; j++) {
 						for (var k=0; k<6; k++) {
-							colorsTemp.push("#" + con(i*3) + con(j*3) + con(k*3));				
-						}				
-					}			
+							colorsTemp.push("#" + con(i*3) + con(j*3) + con(k*3));
+						}
+					}
 				}
 				colors = []; // flip every six by six sideways and put on two lines
 				var c, r, nC, nR;
@@ -2735,19 +3363,19 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				cols = 18;
 				greys = [thirdLastColor, secondLastColor];
 			} else {
-				w = (width - spacing) / cols - spacing;	
+				w = (width - spacing) / cols - spacing;
 			}
 			var rows = Math.ceil(colors.length/cols);
-			
+
 			var myColor = String(colors[colors.length-1]);
 			if (!zot(startColor)) myColor = String(startColor);
 			var lastColor = thirdLastColor;
-			
+
 			function con(n) {
-				n = Math.floor(n).toString(16);	
+				n = Math.floor(n).toString(16);
 				return n + "" + n;
 			}
-	
+
 			var g = box.graphics; var f=0; var color, r, c, rX , rY;
 			for (i=0; i<colors.length; i++) {
 				c = i%cols;
@@ -2756,11 +3384,11 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				rY = r*(w+spacing);
 				g.f(colors[i]).r(rX,rY,w,w);
 			}
-			
+
 			var lastHeight = rY + w + spacing;
-	
+
 			var greyHeight = lastHeight;
-			if (greyPicker) {	
+			if (greyPicker) {
 				for (i=0; i<16; i++) {
 					greys.push("#"+con(i)+con(i)+con(i));
 				}
@@ -2773,61 +3401,61 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				}
 				lastHeight = rY + w + spacing;
 				var greyCols = cols;
-				var greyRows = Math.ceil(greys.length/cols);			
+				var greyRows = Math.ceil(greys.length/cols);
 			}
-			
+
 			var margin = 10;
-			
+
 			if (alphaPicker) {
 				var alpha = new createjs.Container();
 				alpha.setBounds(0,0,600,70);
 				alpha.width = 600;
-				alpha.height = 70;			
+				alpha.height = 70;
 				this.addChild(alpha);
 				alpha.x = 0;
 				alpha.y = lastHeight;
-				
+
 				var alphaBacking = this.alphaBacking = new zim.Rectangle(600-margin*2, 50, "#222", null, null, 0);
 				alpha.addChild(alphaBacking);
 				zim.centerReg(alphaBacking, alpha);
-				 
+
 				var sliderBut = this.alphaBut = new zim.Button({width:20,height:30,label:"",corner:0,hitPadding:20});
 				var slider = this.alphaSlider = new zim.Slider(0,1,.05,sliderBut,600*.55);
 				slider.currentValue = 1;
 				alpha.addChild(slider);
 				slider.x = 40;
 				slider.y = alpha.height/2;
-				
+
 				var alphaText = this.alphaText = new zim.Label("Alpha: 1", 30, null, "orange");
 				alpha.addChild(alphaText);
 				alphaText.x = slider.x + slider.bar.width + 40;
 				alphaText.y = alpha.height/2 - alphaText.height/2;
-				
+
 				alpha.scaleX = alpha.scaleY = width / 600;
-				
+
 				slider.on("change", function() {
 					alphaText.text = "Alpha: " + decimals(slider.currentValue);
 					swatch.alpha = myAlpha = slider.currentValue;
 					if (that.getStage()) that.getStage().update();
 				});
-				
+
 				lastHeight += (alpha.height-margin)*alpha.scaleX;
 			}
-			
+
 			var nav = new createjs.Container();
 			nav.setBounds(0,0,600,100);
 			nav.width = 600;
-			nav.height = 100;			
+			nav.height = 100;
 			this.addChild(nav);
 			nav.x = 0;
 			nav.y = lastHeight+margin;
-			
+
 			var swatchText = this.swatchText = new zim.Label(myColor.toUpperCase().substr(0,7), 30, null, "orange");
 			nav.addChild(swatchText);
 			zim.centerReg(swatchText);
 			swatchText.x = 200/2-10;
 			swatchText.y = 50-2;
-			
+
 			if (drag) {
 				var grip = this.grip = new createjs.Shape();
 				nav.addChild(grip);
@@ -2835,43 +3463,43 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				grip.x = 70; grip.y = 65;
 				swatchText.y = 50-10;
 			}
-				
+
 			var closeBut = this.closeBut = new zim.Button(90, 90, "X", "#222", "#444", null,null,0);
 			nav.addChild(closeBut);
 			closeBut.x = 600 - closeBut.width - margin;
 			closeBut.y = 0;
 			closeBut.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(){that.dispatchEvent("close");});
-	
+
 			var button = this.okBut = new zim.Button(150, 90, "OK", "#222", "#444", null,null,0);
 			nav.addChild(button);
 			button.x = closeBut.x - button.width - margin;
 			button.y = 0;
 			button.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
-			
+
 			var swatchBacking = this.swatchBacking = new createjs.Shape();
 			nav.addChild(swatchBacking);
 			var g = swatchBacking.graphics;
 			g.f("black").r(0.5,0.5,50,89).f("#666").r(50,0.5,50,89).f("white").r(100,0.5,49.5,89);
 			swatchBacking.x = button.x - 150 - margin;
 			swatchBacking.y = 0;
-			
+
 			var swatch = this.swatch = new zim.Rectangle(150, 90, myColor);
 			nav.addChild(swatch);
 			swatch.x = swatchBacking.x;
 			swatch.y = 0;
 			swatch.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
 			swatch.cursor = "pointer";
-			
+
 			nav.scaleX = nav.scaleY = width / 600;
 			lastHeight += nav.height * nav.scaleX;
-	
-			this.width = width; 
+
+			this.width = width;
 			this.height = lastHeight + margin;
 			this.setBounds(0,0,this.width,this.height);
-			
+
 			var backing = this.backing = new zim.Rectangle(this.width,this.height,"black");
 			this.addChildAt(backing,0);
-			if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);		
+			if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
 
 			function doChange(){
 				if (myColor != lastColor || myAlpha != lastAlpha) {
@@ -2889,7 +3517,7 @@ dispatches a "close" event if the OK button is activated and the color has not c
 							g.f(backing.color).r(rX-1,rY-1,w+2,w+2).f(lastColors[i]).r(rX,rY,w,w);
 						}
 						if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
-					}				
+					}
 					lastColor = myColor;
 					lastAlpha = myAlpha
 					that.dispatchEvent("change");
@@ -2897,25 +3525,25 @@ dispatches a "close" event if the OK button is activated and the color has not c
 					that.dispatchEvent("close");
 				}
 			}
-	
-			if (drag) {	
-				var diffX, diffY;	
+
+			if (drag) {
+				var diffX, diffY;
 				backing.on("mousedown", function(e) {
 					diffX = e.stageX - that.x;
 					diffY = e.stageY - that.y;
 					backing.cursor = "move";
-				});						
+				});
 				backing.on("pressmove", function(e) {
 					that.x = e.stageX-diffX;
 					that.y = e.stageY-diffY;
 					if (that.getStage()) that.getStage().update();
-				});				
-				backing.on("pressup", function(e) {				
+				});
+				backing.on("pressup", function(e) {
 					backing.cursor = "default";
 					if (that.getStage()) that.getStage().update();
-				});				
+				});
 			}
-			
+
 			var gridW = cols*(w+spacing);
 			var gridH = rows*(w+spacing);
 			if (greyPicker) {
@@ -2929,23 +3557,23 @@ dispatches a "close" event if the OK button is activated and the color has not c
 					swatchText.text = String(colors[index]).toUpperCase().substr(0,7);
 					zim.centerReg(swatchText);
 					if (that.getStage()) that.getStage().update();
-				}				
+				}
 				if (greyPicker) {
 					// note greyW not gridW
 					index = null;
 					index = zim.hitTestGrid(box, greyW, greyH, greyCols, greyRows, that.getStage().mouseX, that.getStage().mouseY, 0, gridH, spacing, spacing);
-					
+
 					if (!zot(index)) {
 						swatch.color = myColor = greys[index];
 						swatchText.text = greys[index].toUpperCase();
 						zim.centerReg(swatchText);
 						if (that.getStage()) that.getStage().update();
 					}
-				}				
+				}
 			});
-			
+
 			Object.defineProperty(this, 'selectedColor', {
-				get: function() {				
+				get: function() {
 					return myColor;
 				},
 				set: function(value) {
@@ -2955,28 +3583,28 @@ dispatches a "close" event if the OK button is activated and the color has not c
 					if (that.getStage()) that.getStage().update();
 				}
 			});
-			
+
 			Object.defineProperty(this, 'selectedAlpha', {
-				get: function() {	
-					if (alphaPicker) {			
+				get: function() {
+					if (alphaPicker) {
 						return decimals(slider.currentValue);
 					} else {
 						return 1;
 					}
 				},
 				set: function(value) {
-					if (alphaPicker) {			
+					if (alphaPicker) {
 						swatch.alpha = slider.currentValue = value;
 						alphaText.text = "Alpha: " + decimals(slider.currentValue);
 						if (that.getStage()) that.getStage().update();
-					} 
+					}
 				}
 			});
-			
+
 			function decimals(n) {
 				return Math.round(n*Math.pow(10, 2))/Math.pow(10, 2);
 			}
-			
+
 			this.dispose = function() {
 				slider.dispose();
 				box.removeAllEventListeners();
@@ -2985,20 +3613,20 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				swatch.removeAllEventListeners();
 				button.removeAllEventListeners();
 				return true;
-			}			
+			}
 		}
-	
+
 		// note the actual class is wrapped in a function
-		// because createjs might not have existed at load time		
+		// because createjs might not have existed at load time
 		makeColorPicker.prototype = new createjs.Container();
 		makeColorPicker.prototype.constructor = zim.ColorPicker;
-		return new makeColorPicker();	
+		return new makeColorPicker();
 	}
-	
+
 /*--
 zim.Parallax = function(stage, damp, layers, auto, fps)
 
-Parallax Class	
+Parallax Class
 
 takes objects as layers and sets properties based on an input
 for instance, each layer could move a different x based on position of mouseX
@@ -3023,11 +3651,11 @@ the first three properties are required
 object is the object whose property is being changed
 prop is the property that is being changed
 propChange is how much you want the property to change
-input defaults to mouseX but can also be mouseY, scrollX, scrollY 
+input defaults to mouseX but can also be mouseY, scrollX, scrollY
 the inMin defaults to 0, inMax to stageW (for x prop) stageH (for y prop)
 the factor defaults to 1 which means change is in same direction
 set factor to -1 to change in the opposite direction
-integer rounds the value to an integer 
+integer rounds the value to an integer
 note, if frame is the property, the gotoAndStop() accepts decimals
 
 For instance,
@@ -3041,7 +3669,7 @@ if auto is set to false, you must make your own Ticker and use the step(input) m
 can set frames per second as fps parameter default 30 (works better on mobile)
 note: the ticker parameter has been removed - see zim.Ticker
 
-METHODS 
+METHODS
 addLayer({layer object properties}) - adds a layer
 removeLayer(index) - removes a layer based on order added
 step(input) - used when auto is false to send in custom input data
@@ -3050,26 +3678,26 @@ dispose() - removes listeners
 
 PROPERTIES
 damp - allows you to dynamically change the damping
---*/	
+--*/
 	zim.Parallax = function(stage, damp, layers, auto, fps) {
-		
+
 		var sig = "stage, damp, layers, auto, fps";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
-						
+
 		if (zon) zog("zim build - Parallax");
-		
+
 		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
 		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
 		if (zot(auto)) auto = true;
-		
+
 		var stageW = stage.getBounds().width;
 		var stageH = stage.getBounds().height;
-		
+
 		var that = this;
-		
+
 		// public properties
 		this.damp = (zot(damp)) ? .1 : damp;
-		
+
 		// public methods (do not get hoisted so define early)
 		// addLayer works as a public method
 		// and also is called from the object in case we add layers via the Parallax object parameters
@@ -3082,18 +3710,18 @@ damp - allows you to dynamically change the damping
 		this.addLayer = function(layer) {
 			//{obj, prop, propChange, input, inMin, inMax, factor, integer}
 			if (zot(layer.obj) || zot(layer.prop) || zot(layer.propChange)) return;
-			var obj = {obj:layer.obj, prop:layer.prop}; 
+			var obj = {obj:layer.obj, prop:layer.prop};
 			obj[obj.prop] = layer.propChange;
 			if (zot(layer.input)) layer.input = "mouseX";
 			obj.input = layer.input;
-			
+
 			var inMin = (zot(layer.inMin)) ? 0 : layer.inMin;
 			var inMax = (zot(layer.inMax)) ? stageW : layer.inMax;
 			var factor = (zot(layer.factor)) ? 1 : layer.factor;
 			var integer = (zot(layer.integer)) ? false : layer.integer;
-				
+
 			// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound
-			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], that.damp, factor, integer);				
+			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], that.damp, factor, integer);
 			if (obj.prop == "scale") {
 				obj["s_"+obj.prop] = obj.obj.scaleX; // helper to allow scale to be property
 			} else if (obj.prop == "frame") {
@@ -3103,15 +3731,15 @@ damp - allows you to dynamically change the damping
 			}
 			myLayers.push(obj);
 			return myLayers.length-1;
-		}	
-		
-		this.removeLayer = function(index) {			
+		}
+
+		this.removeLayer = function(index) {
 			if (zot(index)) return;
 			var layer = myLayers[index];
 			layer["p_"+layer.prop].dispose();
 			myLayers.splice(index,1);
-		}	
-		
+		}
+
 		this.immediate = function(array) {
 			var o;
 			for (var i=0; i<myLayers.length; i++) {
@@ -3119,35 +3747,35 @@ damp - allows you to dynamically change the damping
 				o["p_"+o.prop].immediate(array[i]);
 			}
 		}
-		
+
 		this.dispose = function() {
 			myLayers = null;
-			if (auto) zim.Ticker.remove(zimTicker); 
+			if (auto) zim.Ticker.remove(zimTicker);
 			return true;
 		}
-		
+
 		// private properties
 		// here are any layers that come in from Parallax object parameters
-		layers = (zot(layers)) ? [] : layers;			
-		
+		layers = (zot(layers)) ? [] : layers;
+
 		// we now are going to process these layers with the public addLayer method
 		// this will add the processed layers to the private property, myLayers
-		var myLayers = [];		
-		for (var i=0; i<layers.length; i++) {			
+		var myLayers = [];
+		for (var i=0; i<layers.length; i++) {
 			this.addLayer(layers[i]);
 		}
-		
-		if (auto) {			
+
+		if (auto) {
 			zim.Ticker.stage = stage;
 			var zimTicker = zim.Ticker.add(animate);
 			if (!zot(fps)) createjs.Ticker.setFPS(fps);
-		}		
+		}
 
 		// loop though our layers and apply the converted proportion damping
-		function animate(e) {			
+		function animate(e) {
 			that.step();
-		}		
-		
+		}
+
 		this.step = function(custom) {
 			var o; var input;
 			for (var i=0; i<myLayers.length; i++) {
@@ -3166,39 +3794,39 @@ damp - allows you to dynamically change the damping
 				} else if (o.prop == "frame") {
 					o.obj.gotoAndStop(o["s_"+o.prop] + o["p_"+o.prop].convert(input));
 				} else {
-					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);	
+					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);
 					// for x on mouseX we split the destination range in two for a centered parallax
 					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
 				}
-			}	
+			}
 		}
 	}
-	
-	
+
+
 /*--
 zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps)
 
 Scroller Class
 
 animates a backing either horizontally or vertically (not both)
-make a new zim.Scroller(parameters) object 
+make a new zim.Scroller(parameters) object
 the Scroller object will animate and swap the backgrounds when needed
 
 PARAMETERS: supports DUO - parameters or single object
-pass in two backgrounds (that look the same - clone them)	
+pass in two backgrounds (that look the same - clone them)
 pass in the speed, direction and a boolean for horizontal (default true)
 setting horizontal to false will animate vertically
 you can adjust the speed and direction properties dynamically
 you cannot adjust the backings and horizontal dynamically
 to change your animation, dispose() of the Scroller object and make a new one
 disposing just removes the ticker - you have to remove the backings
-not sure what is causing a small gap to appear over time 
+not sure what is causing a small gap to appear over time
 but if your background can overlap a little you can pass in a gapFix of 10 pixels etc.
 can set frames per second as fps parameter default 30 (works better on mobile)
 note: the ticker parameter has been removed - see zim.Ticker
 
 METHODS
-dispose() - get rid of the event listeners - you need to remove the backings 
+dispose() - get rid of the event listeners - you need to remove the backings
 
 PROPERTIES
 speed - how fast the animation is going in pixels per frame (ticker set at 60)
@@ -3206,35 +3834,35 @@ direction - either left or right if horizontal or up or down if not horizontal
 gapFix - if spacing occurs over time you can set the gapFix dynamically
 --*/
 	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps) {
-		
+
 		var sig = "backing1, backing2, speed, direction, horizontal, gapFix, fps";
 		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
-		
+
 		var b1 = backing1; var b2 = backing2;
 		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
 		if (zot(horizontal)) horizontal = true;
 		var that = this; // we keep animate protected but want to access public properties
 		if (zot(fps)) fps = 30;
-		
+
 		// here are the public properties that can be changed
 		this.speed = (zot(speed)) ? 1 : speed;
 		this.direction = (zot(direction)) ? 1 : direction;
 		this.gapFix = (zot(gapFix)) ? 0 : gapFix;
-		
+
 		if (!b1.getBounds() || !b2.getBounds()) {
 			zog("zim build - Scroller(): please setBounds() on backing objects");
 			return;
-		}	
+		}
 		if (!b1.getStage()) {
 			zog("zim build - Scroller(): please add backing objects to stage to start");
 			return;
-		}	
-			
+		}
+
 		var stageW;
 		var stageH;
-		
+
 		if (horizontal) {
-			b2.x = b1.getBounds().width;	
+			b2.x = b1.getBounds().width;
 		} else {
 			b2.y = b1.getBounds().height;
 		}
@@ -3242,7 +3870,7 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 		zim.Ticker.stage = b1.getStage();
 		var zimTicker = zim.Ticker.add(animate);
 		if (!zot(fps)) createjs.Ticker.setFPS(fps);
-		
+
 		function animate(e) {
 			if (!b1.getStage()) return;
 			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
@@ -3252,53 +3880,53 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 			}
 			// pausing the ticker does not really pause the ticker (weird)
 			if (that.speed == 0 || that.direction == 0) {return;}
-			
+
 			if (horizontal) {
 				b1.x -= that.speed*that.direction;
-				b2.x -= that.speed*that.direction;	
-				
-				if (that.direction * that.speed > 0) { 
+				b2.x -= that.speed*that.direction;
+
+				if (that.direction * that.speed > 0) {
 					if (b2.x < 0 && b1.x < b2.x) {
 						b1.x = b2.getBounds().width-that.gapFix;
 					} else if (b1.x < 0 && b2.x < b1.x) {
 						b2.x = b1.getBounds().width-that.gapFix;
-					}			
+					}
 				} else {
 					if (b2.x > stageW && b2.x > b1.x) {
 						b2.x = b1.x - b1.getBounds().width+that.gapFix;
 					} else if (b1.x > stageW && b1.x > b2.x) {
 						b1.x = b2.x - b2.getBounds().width+that.gapFix;
-					}	
+					}
 				}
 			} else {
 				b1.y -= that.speed*that.direction;
-				b2.y -= that.speed*that.direction;	
-				
-				if (that.direction * that.speed > 0) { 
+				b2.y -= that.speed*that.direction;
+
+				if (that.direction * that.speed > 0) {
 					if (b2.y < 0 && b1.y < b2.y) {
 						b1.y = b2.getBounds().height-that.gapFix;
 					} else if (b1.y < 0 && b2.y < b1.y) {
 						b2.y = b1.getBounds().height-that.gapFix;
-					}			
+					}
 				} else {
 					if (b2.y > stageH && b2.y > b1.y) {
 						b2.y = b1.y - b1.getBounds().height+that.gapFix;
 					} else if (b1.y > stageH && b1.y > b2.y) {
 						b1.y = b2.y - b2.getBounds().height+that.gapFix;
-					}	
+					}
 				}
 			}
 			b1.getStage().update();
-		}		
-		
+		}
+
 		this.dispose = function() {
 			if (zon) zog("bye from Scroller");
 			zim.Ticker.remove(zimTicker);
-			return true;			
+			return true;
 		}
-		
+
 	}
-	
+
 	// function to set enabled of components
 	function zenable(t,v) {
 		if (v) {
@@ -3310,7 +3938,7 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 			t.mouseEnabled = false;
 			t._enabled = false;
 		}
-	}	
+	}
 	
 	return zim;
 } (zim || {});
