@@ -1,31 +1,31 @@
 
 // ZIM js Interactive Media modules by Dan Zen http://danzen.com (c) 2016
-// http://zimjs.com  
+// http://zimjs.com
 // zimframe.js provides code to help you set up your coding environment
 // free to use - donations welcome of course! http://zimjs.com/donate
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.5.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.6.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimframe_2.6.1.js"><\/script>');
 } else {
 
 var zim = function(zim) {
-	
+
 	if (zon) zog("ZIM FRAME Module");
-	
-	
+
+
 /*-- // borrowed zim.mobile from ZIM Code
 zim.mobile = function(orientation)
-detects if app is on a mobile device - if so, returns the mobile device type 
+detects if app is on a mobile device - if so, returns the mobile device type
 android, ios, blackberry, windows, other (all which evaluate to true) else returns false
-orientation defaults to true and if there is window.orientation then it assumes mobile 
-BUT this may return true for some desktop and laptop touch screens  
-so you can turn the orientation check off by setting orientation to false 
+orientation defaults to true and if there is window.orientation then it assumes mobile
+BUT this may return true for some desktop and laptop touch screens
+so you can turn the orientation check off by setting orientation to false
 the check looks at the navigator.userAgent for the following regular expression
 /ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
-microsoft mobile gets detected by nokia, mobile or phone 
+microsoft mobile gets detected by nokia, mobile or phone
 so if orientation is set to false the check may miss non-mainstream devices
---*/	
+--*/
 	zim.mobile = function(orientation) {
 		if (zot(orientation)) orientation = true;
 		if (/ip(hone|od|ad)/i.test(navigator.userAgent)) return "ios";
@@ -33,7 +33,7 @@ so if orientation is set to false the check may miss non-mainstream devices
 		if (/blackberry/i.test(navigator.userAgent)) return "blackberry";
 		if (/nokia|phone|mobile/i.test(navigator.userAgent)) return "windows";
 		if (/opera mini|webos/i.test(navigator.userAgent)) return "other";
-		if (orientation && window.orientation !== undefined) return true; 
+		if (orientation && window.orientation !== undefined) return true;
 		return false;
 	}
 
@@ -41,7 +41,7 @@ so if orientation is set to false the check may miss non-mainstream devices
 zim.windowWidth = function()
 returns the width of a window
 window.clientWidth or window.innerWidth
---*/	
+--*/
 	zim.windowWidth = function() {
 		return isNaN(window.innerWidth) ? window.clientWidth : window.innerWidth;
 	}
@@ -50,11 +50,11 @@ window.clientWidth or window.innerWidth
 zim.windowHeight = function()
 returns the height of a window
 window.clientHeight or window.innerHeight
---*/	
+--*/
 	zim.windowHeight = function() {
 		return isNaN(window.innerHeight) ? window.clientHeight : window.innerHeight;
 	}
-	
+
 /*--
 zim.Frame = function(scaling, width, height, rollover, touch, scrollTop)
 
@@ -95,6 +95,7 @@ will have to set your local stage, stageW and stageH variables again
 loadAssets([file, file], path) - pass in an array of images or sounds then an optional path to directory
 asset(file) - access a loaded asset based on file string (not including path)
 if the asset is a sound then use asset(file).play(); // returns createjs sound instance
+makeCircles(radius) - returns a createjs.Shape with the ZIM Circles (centered reg) linked to ZIM site
 dispose() - only removes canvas, resize listener and stage
 
 EVENTS
@@ -141,7 +142,8 @@ EVENTS
 
 			if (scaling != "none") window.addEventListener('resize', function() {
 				sizeCanvas();
-				if (mobile == "android") setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
+				if (mobile) setTimeout(function() {sizeCanvas();}, 250);
+				if (mobile) setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
 			});
 
 
@@ -159,7 +161,8 @@ EVENTS
 				if (scaling=="full") {
 					appReady = true;
 					fullResize();
-					if (mobile == "android") setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
+					if (mobile) setTimeout(function() {sizeCanvas();}, 250);
+					if (mobile) setTimeout(function() {sizeCanvas();}, 500); // to catch delayed screen sizes
 				}
 			}
 
@@ -293,7 +296,7 @@ EVENTS
 
 			this.asset = function(n) {
 				if (zot(n)) return;
-				return that.assets[n];
+				return that.assets[n] || {play:function(){if (zon) {zog("zim.Frame - asset(sound) not found"); return {};}}};
 			}
 
 			Object.defineProperty(that, 'stage', {
@@ -374,6 +377,20 @@ EVENTS
 			this.dark 		= this.bits 	= "#333333";
 			this.darker 	= this.zim 		= "#111111";
 
+			this.makeCircles = function(radius) {
+				if (zot(radius)) radius = 100;
+				var colors = [that.wrap, that.code, that.create, that.build, that.pages, that.bits];
+				var c = new createjs.Shape();
+				var g = c.graphics;
+				c.radius = radius;
+				for (var i=0; i<colors.length; i++) {
+					g.f(colors[i]).dc(0,0,(c.radius/colors.length)*(colors.length-i));
+				}
+				c.setBounds(-c.radius,-c.radius,c.radius*2,c.radius*2);
+				c.width = c.height = radius*2;
+				return c;
+			}
+
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
@@ -384,4 +401,4 @@ EVENTS
 
 	return zim;
 } (zim || {});
-} 
+}

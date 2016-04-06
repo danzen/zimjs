@@ -7,18 +7,18 @@
 
 if (typeof zog === "undefined") { // bootstrap zimwrap.js
 	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimwrap_2.5.js"><\/script>');
-	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.6.js"><\/script>');
+	document.write('<script src="http://d309knd7es5f10.cloudfront.net/zimcreate_2.6.1.js"><\/script>');
 } else {
 
 var zim = function(zim) {
-	
+
 	if (zon) zog("ZIM CREATE Module");
-	
+
 /*-- // borrowed from ZIM Code
 zim.copy = function(obj)
 copies arrays and basic objects
 http://stackoverflow.com/users/35881/a-levy
---*/	
+--*/
 	zim.copy = function(obj) {
 		if (obj==null || typeof obj != 'object') return obj;
 		if (obj instanceof Array) {
@@ -31,8 +31,8 @@ http://stackoverflow.com/users/35881/a-levy
 			}
 			return copy;
 		}
-	} 	
-	
+	}
+
 /*-- // borrowed from ZIM Build
 zim.OPTIMIZE
 
@@ -48,13 +48,13 @@ however, concurrent stage.update() calls can slow down mobile performance
 so if you are making content for mobile you should set zim.OPTIMIZE = true;
 then you will have to stage.update() in the change event handlers
 but you were probably doing things in these events and updating anyway!
-just be careful - you might be testing a checkbox and it won't check... 
+just be careful - you might be testing a checkbox and it won't check...
 so it takes some getting used to running in optimized mode
 
 Components affected by OPTIMIZE:
 Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
 
-OPTIMIZE set to true also affects the zim Ticker 
+OPTIMIZE set to true also affects the zim Ticker
 for functions like move, animate, drag, Scroller, Parallax
 See zim.Ticker as you may have to set zim.Ticker.update = true;
 
@@ -102,87 +102,85 @@ run zim.Ticker.always(stage);
 4. if for some reason (can't think of any) you want no ticker updates for zim but want component updates
 then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 --*/
-
-
-		zim.Ticker = {
-			stage:null,
-			myUpdate: null,
-			myAlways:false,
-			list:[],
-			setFPS: function(m, d) {
-				if (zot(m)) m = 30;
-				if (zot(d)) d = 60;
-				createjs.Ticker.framerate = (zim.mobile()) ? m : d;
-			},
-			add: function(f, s) {
-				var t = zim.Ticker;
-				if (s && s.update) t.stage = s;
-				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only add functions"); return;}
-				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
-				t.list.push(f);
-				return f;
-			},
-			call: function() {
-				var t = zim.Ticker;
-				for (var i=0; i<t.list.length; i++) {
-					t.list[i]();
-				}
-				if (t.myAlways && zim.Ticker.stage) {
-					t.stage.update();
-					return;
-				}
-				if (zot(t.update) && !zim.OPTIMIZE && t.stage) {
-					t.stage.update();
-				} else if (t.update && t.stage) {
-					t.stage.update();
-				}
-			},
-			always: function(s) {
-				var t = zim.Ticker;
-				if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
-				t.myAlways = true;
-				if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
-			},
-			remove: function(f) {
-				var t = zim.Ticker;
-				if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only remove functions"); return;}
-				var i = t.list.indexOf(f);
-				if (i > -1) t.list.splice(i,1);
-				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
-			},
-			removeAll: function() {
-				var t = zim.Ticker;
-				t.list = [];
-				if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
-			},
-			dispose: function() {
-				var t = zim.Ticker;
-				t.removeAll();
-				createjs.Ticker.off("tick", t.ticker);
-				t.update = null;
-				return true;
+	zim.Ticker = {
+		stage:null,
+		myUpdate: null,
+		myAlways:false,
+		list:[],
+		setFPS: function(m, d) {
+			if (zot(m)) m = 30;
+			if (zot(d)) d = 60;
+			createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+		},
+		add: function(f, s) {
+			var t = zim.Ticker;
+			if (s && s.update) t.stage = s;
+			if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only add functions"); return;}
+			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+			t.list.push(f);
+			return f;
+		},
+		call: function() {
+			var t = zim.Ticker;
+			for (var i=0; i<t.list.length; i++) {
+				t.list[i]();
 			}
+			if (t.myAlways && zim.Ticker.stage) {
+				t.stage.update();
+				return;
+			}
+			if (zot(t.update) && !zim.OPTIMIZE && t.stage) {
+				t.stage.update();
+			} else if (t.update && t.stage) {
+				t.stage.update();
+			}
+		},
+		always: function(s) {
+			var t = zim.Ticker;
+			if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
+			t.myAlways = true;
+			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+		},
+		remove: function(f) {
+			var t = zim.Ticker;
+			if (zot(f) || typeof f !== 'function') {zog("zim.Ticker - only remove functions"); return;}
+			var i = t.list.indexOf(f);
+			if (i > -1) t.list.splice(i,1);
+			if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+		},
+		removeAll: function() {
+			var t = zim.Ticker;
+			t.list = [];
+			if (!t.myAlways && t.list.length == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+		},
+		dispose: function() {
+			var t = zim.Ticker;
+			t.removeAll();
+			createjs.Ticker.off("tick", t.ticker);
+			t.update = null;
+			return true;
 		}
+	}
 
-		Object.defineProperty(zim.Ticker, 'update', {
-			get: function() {
-				return zim.Ticker.myUpdate;
-			},
-			set: function(value) {
-				var t =  zim.Ticker;
-				if (typeof value != "boolean") value = null;
-				t.myUpdate = value;
-				if (t.myUpdate === false) {
-					 createjs.Ticker.off("tick", t.ticker);
-					 // note, this overrides always()
-					 // but running always() will override update = false
-					 t.myAlways = false;
-					 return;
-				}
-				if (t.myAlways) return;
-				if (!t.myUpdate && t.list.length == 0) createjs.Ticker.off("tick", t.ticker);
+	Object.defineProperty(zim.Ticker, 'update', {
+		get: function() {
+			return zim.Ticker.myUpdate;
+		},
+		set: function(value) {
+			var t =  zim.Ticker;
+			if (typeof value != "boolean") value = null;
+			t.myUpdate = value;
+			if (t.myUpdate === false) {
+				 createjs.Ticker.off("tick", t.ticker);
+				 // note, this overrides always()
+				 // but running always() will override update = false
+				 t.myAlways = false;
+				 return;
 			}
-		});
+			if (t.myAlways) return;
+			if (!t.myUpdate && t.list.length == 0) createjs.Ticker.off("tick", t.ticker);
+		}
+	});
 
 
 /*--
@@ -1161,13 +1159,14 @@ will not be resized - really just to use while building and then comment it out 
 	}
 
 /*--
-zim.centerReg = function(obj, container)
+zim.centerReg = function(obj, container, add)
 centers the registration point on the bounds - obj must have bounds set
 supports DUO - parameters or single object
 if container is specified then sets obj x and y to half the width and height of container
+add defaults to true and will add the child to the container - set to false if you do not want this
 just a convenience function - returns obj for chaining
 --*/
-	zim.centerReg = function(obj, container) {
+	zim.centerReg = function(obj, container, add) {
 
 		var sig = "obj, container";
 		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
@@ -1185,6 +1184,8 @@ just a convenience function - returns obj for chaining
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
+		if (zot(add)) add = true;
+		if (add && container && container.addChild) container.addChild(obj);
 		return obj;
 	}
 
@@ -1223,4 +1224,4 @@ returns object for chaining
 
 	return zim;
 } (zim || {});
-} 
+}
