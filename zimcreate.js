@@ -139,6 +139,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			var t = zim.Ticker;
 			if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
 			t.myAlways = true;
+			t.stage = s;
 			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
 		},
 		remove: function(f) {

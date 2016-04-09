@@ -786,6 +786,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			var t = zim.Ticker;
 			if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
 			t.myAlways = true;
+			t.stage = s;
 			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
 		},
 		remove: function(f) {
@@ -3893,7 +3894,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 	}
 
 /*--
-zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks)
+zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside)
 
 Slider Class
 
@@ -3909,6 +3910,7 @@ a zim.Button (default small button with no label)
 barLength (default 300), barWidth (default 3), varColor (default #666)
 vertical (default false) for horizontal or vertical slider
 useTicks (default false) set to true to show small ticks for each step (step > 0)
+inside (default false) set to true to fit button inside bar (need to manually adjust widths)
 
 PROPERTIES
 currentValue - gets or sets the current value of the slider
@@ -3987,7 +3989,10 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				this.addChild(ticks);
 				g = ticks.graphics;
 				g.ss(1).s(barColor);
-				var stepsTotal = (max - min) / step;
+				var stepsTotal = Math.round((max - min) / step);
+				var newStep = (max - min) / stepsTotal;
+				if (newStep != step) {if (zon) zog("zim.Slider() : non-divisible step ("+step+") adjusted");}
+				step = newStep;
 				if (inside) {
 					var spacing = (barLength - ((vertical) ? button.height : button.width)) / stepsTotal;
 				} else {
@@ -4022,7 +4027,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				zim.centerReg(button);
 				this.addChild(button);
 				bounds = bar.getBounds();
-				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start*2, 0);
+				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start, 0);
 			}
 			button.x = rect.x;
 			button.y = rect.y;
@@ -4047,16 +4052,16 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				var p = checkBounds(point.x-diffX, point.y-diffY, rect);
 				if (vertical) {
 					button.x = p.x;
-					myValue = snap(p.y / rect.height * (max - min));
-					button.y = myValue * rect.height / (max - min) + start;
+					myValue = snap((p.y-rect.y) / rect.height * (max - min));
+					button.y = rect.y + myValue * rect.height / (max - min);
 					myValue += min;
 					if (button.y != lastValue) {
 						that.dispatchEvent("change");
 					}
 					lastValue = button.y;
 				} else {
-					myValue = snap(p.x / rect.width * (max - min));
-					button.x = myValue * rect.width / (max - min) + start;
+					myValue = snap((p.x-rect.x) / rect.width * (max - min));
+					button.x = rect.x + myValue * rect.width / (max - min);
 					myValue += min;
 					button.y = p.y;
 					if (button.x != lastValue) {
@@ -4068,8 +4073,8 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 			};
 
 			function checkBounds(x,y,rect) {
-				x = Math.max(rect.x-start*((vertical)?0:1), Math.min(rect.width, x));
-				y = Math.max(rect.y-start*((vertical)?1:0), Math.min(rect.height, y));
+				x = Math.max(rect.x, Math.min(rect.x+rect.width, x));
+				y = Math.max(rect.y, Math.min(rect.y+rect.height, y));
 				return {x:x,y:y}
 			}
 
@@ -4084,8 +4089,13 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 					return myValue;
 				},
 				set: function(value) {
-					if (value < min) value = min;
-					if (value > max) value = max;
+					if (min < max) {
+						if (value < min) value = min;
+						if (value > max) value = max;
+					} else {
+						if (value > min) value = min;
+						if (value < max) value = max;
+					}
 					myValue = value = snap(value);
 					if (vertical) {
 						button.y = (value - min) / (max - min) * rect.height + start;
@@ -7909,11 +7919,13 @@ EVENTS
 			this.blue   	= this.build 	= "#50c4b7";
 			this.brown  	= this.pages 	= "#d1a170";
 			this.silver		= this.frame 	= "#999999";
+			this.tin		= this.examples	= "#777777";
 			this.grey   	= this.cdn  	= "#555555";
-			this.lighter 	= this.template = "#eeeee";
+			this.lighter 	= this.template = "#eeeeee";
 			this.light 		= this.docs 	= "#cccccc";
 			this.dark 		= this.bits 	= "#333333";
 			this.darker 	= this.zim 		= "#111111";
+			this.purple		= this.github 	= "#993399";
 
 			this.makeCircles = function(radius) {
 				if (zot(radius)) radius = 100;

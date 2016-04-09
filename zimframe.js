@@ -87,7 +87,7 @@ ead only reference to the stage width - to change run remakeCanvas()
 height - rwidth - read only reference to the stage height - to change run remakeCanvas()
 orientation - "vertical" or "horizontal" (updated live with orientation change)
 zil - reference to zil events that stop canvas from shifting
-colors: orange, green, pink, blue, brown, silver, grey, lighter, light, dark, darker
+colors: orange, green, pink, blue, brown, silver, tin, grey, lighter, light, dark, darker, purple
 
 METHODS
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
@@ -371,11 +371,13 @@ EVENTS
 			this.blue   	= this.build 	= "#50c4b7";
 			this.brown  	= this.pages 	= "#d1a170";
 			this.silver		= this.frame 	= "#999999";
+			this.tin		= this.examples	= "#777777";
 			this.grey   	= this.cdn  	= "#555555";
-			this.lighter 	= this.template = "#eeeee";
+			this.lighter 	= this.template = "#eeeeee";
 			this.light 		= this.docs 	= "#cccccc";
 			this.dark 		= this.bits 	= "#333333";
 			this.darker 	= this.zim 		= "#111111";
+			this.purple		= this.github 	= "#993399";
 
 			this.makeCircles = function(radius) {
 				if (zot(radius)) radius = 100;
