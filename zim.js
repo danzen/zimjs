@@ -4027,7 +4027,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				zim.centerReg(button);
 				this.addChild(button);
 				bounds = bar.getBounds();
-				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start, 0);
+				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start*2, 0);
 			}
 			button.x = rect.x;
 			button.y = rect.y;
@@ -4042,6 +4042,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				var point = that.globalToLocal(e.stageX, e.stageY);
 				diffX = point.x - button.x;
 				diffY = point.y - button.y;
+				if (that.getStage()) that.getStage().mouseMoveOutside = true;
 			});
 
 			button.on("pressmove", function(e) {
@@ -7631,11 +7632,11 @@ scrollTop - activates scrolling on older apple devices to hide the url bar and d
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
-ead only reference to the stage width - to change run remakeCanvas()
-height - rwidth - read only reference to the stage height - to change run remakeCanvas()
+width - read only reference to the stage width - to change run remakeCanvas()
+height - read only reference to the stage height - to change run remakeCanvas()
 orientation - "vertical" or "horizontal" (updated live with orientation change)
 zil - reference to zil events that stop canvas from shifting
-colors: orange, green, pink, blue, brown, silver, grey, lighter, light, dark, darker
+colors: orange, green, pink, blue, brown, silver, tin, grey, lighter, light, dark, darker, purple
 
 METHODS
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
@@ -7643,7 +7644,7 @@ will have to set your local stage, stageW and stageH variables again
 loadAssets([file, file], path) - pass in an array of images or sounds then an optional path to directory
 asset(file) - access a loaded asset based on file string (not including path)
 if the asset is a sound then use asset(file).play(); // returns createjs sound instance
-makeCircles(radius) - returns a createjs.Shape with the ZIM Circles (centered reg) linked to ZIM site
+makeCircles(radius) - returns a createjs.Shape with the ZIM Circles (centered reg)
 dispose() - only removes canvas, resize listener and stage
 
 EVENTS

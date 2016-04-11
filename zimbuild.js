@@ -2385,7 +2385,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				zim.centerReg(button);
 				this.addChild(button);
 				bounds = bar.getBounds();
-				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start, 0);
+				rect = new createjs.Rectangle(bounds.x+start, bounds.height/2, bounds.width-start*2, 0);
 			}
 			button.x = rect.x;
 			button.y = rect.y;
@@ -2400,6 +2400,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				var point = that.globalToLocal(e.stageX, e.stageY);
 				diffX = point.x - button.x;
 				diffY = point.y - button.y;
+				if (that.getStage()) that.getStage().mouseMoveOutside = true;
 			});
 
 			button.on("pressmove", function(e) {
