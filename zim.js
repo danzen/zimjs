@@ -2055,6 +2055,7 @@ will not be resized - really just to use while building and then comment it out 
 		if (zot(size)) size = 2;
 		var oB = obj.getBounds();
 		var shape = new createjs.Shape();
+		var shapeC = new createjs.Shape();
 		var p = obj.parent;
 
 		var pTL = obj.localToLocal(oB.x, oB.y, p);
@@ -2063,6 +2064,7 @@ will not be resized - really just to use while building and then comment it out 
 		var pBL = obj.localToLocal(oB.x, oB.y+oB.height, p);
 
 		var g = shape.graphics;
+		var gC = shapeC.graphics;
 		g.s(color).ss(size)
 			.mt(pTL.x, pTL.y)
 			.lt(pTR.x, pTR.y)
@@ -2076,18 +2078,22 @@ will not be resized - really just to use while building and then comment it out 
 		// cross at 0 0
 		var s = 10;
 		var ss = s+1;
-		g.s("white").ss(size+2);
-		g.mt(zero.x-ss, zero.y+0).lt(zero.x+ss, zero.y+0);
-		g.mt(zero.x+0,  zero.y-ss).lt(zero.x+0, zero.y+ss);
-		g.s(color).ss(size);
-		g.mt(zero.x-s, zero.y+0).lt(zero.x+s, zero.y+0);
-		g.mt(zero.x+0,  zero.y-s).lt(zero.x+0, zero.y+s);
+		gC.s("white").ss(size+2);
+		gC.mt(-ss, 0).lt(ss, 0);
+		gC.mt(0, -ss).lt(0, ss);
+		gC.s(color).ss(size);
+		gC.mt(-s, 0).lt(s, 0);
+		gC.mt(0, -s).lt(0, s);
+		shapeC.x = zero.x;
+		shapeC.y = zero.y;
+		shapeC.rotation = obj.rotation;
 
 		// circle at registration point
 		g.s("white").ss(size+2).dc(obj.x,obj.y,s+6);
 		g.s(color).ss(size).dc(obj.x,obj.y,s+6);
 
 		obj.parent.addChild(shape);
+		obj.parent.addChild(shapeC);
 		if (obj.getStage()) obj.getStage().update();
 		return obj;
 	}//-47
@@ -2124,10 +2130,13 @@ returns obj for chaining
 	zim.center = function(obj, container, add) {
 
 		var sig = "obj, container, add";
-		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
+		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
 		z_d("48.1");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim.center(): please provide object with bounds set"); return;}
 		if (zot(container) || !container.getBounds || !container.getBounds()) {zog("zim.center(): please provide container with bounds set"); return;}
+
+		if (zot(add)) add = true;
+		if (add && container.addChild) container.addChild(obj);
 
 		// get registration point of object in coordinates of the container
 		var reg = obj.localToLocal(obj.regX, obj.regY, container);
@@ -2146,15 +2155,10 @@ returns obj for chaining
 		obj.x = cB.x + cB.width/2 - loc.width/2  + (reg.x-loc.x);
 		obj.y = cB.y + cB.height/2 - loc.height/2  + (reg.y-loc.y);
 
-		if (zot(add)) add = true;
-		if (add) {
-			if (container.addChild) container.addChild(obj);
-		} else {
-			if (container.getStage && container.getStage() && obj.parent) {
-				var p = container.localToLocal(obj.x, obj.y, obj.parent);
-				obj.x = p.x;
-				obj.y = p.y;
-			}
+		if (!add && container.getStage && container.getStage() && obj.parent) {
+			var p = container.localToLocal(obj.x, obj.y, obj.parent);
+			obj.x = p.x;
+			obj.y = p.y;
 		}
 		return obj;
 	}//-48.1
@@ -2593,7 +2597,7 @@ if you nest things inside and want to drag them, will want to set to true
 
 
 /*--
-zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign)
 
 Label Class
 
@@ -2610,6 +2614,7 @@ fontSize, font, textColor, textRollColor,
 shadowColor defaults to -1 for no shadow
 value for shadow blur (default 14)
 align - defaults to "left" also there is "center" and "right"
+valign - defaults to "top".  Options: "top", "middle / center", "bottom"
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
@@ -2631,9 +2636,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events
 --*///+54
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign) {
 
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align";
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign";
 		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
 		z_d("54");
 		function makeLabel() {
@@ -2647,13 +2652,14 @@ dispatches no events
 			if (zot(shadowColor)) shadowColor=-1;
 			if (zot(shadowBlur)) shadowBlur=14;
 			if (zot(align)) align="left";
+			if (zot(valign)) valign="top";
 
 			var that = this;
 			this.mouseChildren = false;
 
 			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color);
-			obj.textBaseline = "alphabetic";
 			obj.textAlign = align;
+			obj.textBaseline = "alphabetic";
 			if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.addChild(obj);
 
@@ -2661,17 +2667,26 @@ dispatches no events
 			backing.graphics.f("black").r(0,0,this.getBounds().width,this.getBounds().height);
 			this.hitArea = backing;
 
-			this.width = this.getBounds().width;
-			this.height = this.getBounds().height;
-			if (align == "center") {
-				this.setBounds(-this.width/2,0,this.width,this.height);
-			} else if (align == "right") {
-				this.setBounds(-this.width,0,this.width,this.height);
-			} else {
-				this.setBounds(0,0,this.width,this.height);
+			function setSize() {
+				that.width = that.getBounds().width;
+				that.height = that.getBounds().height;
+				var x,y;
+				if (align == "center") {
+					x = -that.width/2;
+				} else if (align == "right") {
+					x = -that.width;
+				}
+				if (valign == "top") {
+					obj.y = size-size/6;
+				} else if (valign == "bottom") {
+					y = -(size-size/6);
+				} else {
+					y = -size*.5;
+					obj.y = size*.3;
+				}
+				that.setBounds(x,y,that.width,that.height);
 			}
-
-			obj.y = size-size/6;
+			setSize();
 
 			Object.defineProperty(that, 'text', {
 				get: function() {
@@ -2681,15 +2696,7 @@ dispatches no events
 				set: function(value) {
 					if (zot(value)) {value = " ";}
 					obj.text = String(value);
-					that.width = obj.getBounds().width;
-					that.height = obj.getBounds().height;
-					if (align == "center") {
-						that.setBounds(-that.width/2,0,that.width,that.height);
-					} else if (align == "right") {
-						that.setBounds(-that.width,0,that.width,that.height);
-					} else {
-						that.setBounds(0,0,that.width,that.height);
-					}
+					setSize();
 				}
 			});
 
