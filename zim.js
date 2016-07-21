@@ -52,7 +52,8 @@ if (typeof zon === "undefined") zon = false; // comments from zim scripts
 zog(item1, item2, etc.)         ~ log
 a wrapper for console.log()
 --*/
-var zog = console.log.bind(console);
+var zog = Function.prototype.bind.call(console.log, console);
+// var zog = console.log.bind(console);
 //
 
 /*--
@@ -981,15 +982,18 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				}
 				if (t.alwaysList.at(s)) {
 					s.update();
-					continue;
-				}
-				if (functions.length > 0) {
+				} else if (functions.length > 0) {
 					if (zot(t.update) && !zim.OPTIMIZE) {
 						s.update();
 					} else if (t.update) {
 						s.update();
 					}
 				}
+			}
+			// may have no functions to run but always is turned on
+			for (i=0; i<t.alwaysList.length; i++) {
+				s = t.alwaysList.objects[i]; // stage
+				if (t.list[s] == null) 	s.update(); // if functions then update is already handled
 			}
 		},
 		always: function(s) {
@@ -2198,6 +2202,38 @@ returns object for chaining
 		return obj;
 	}//-50
 
+	/*--
+	zim.mask = function(obj, mask)
+	specifies a mask for an object - the object can be any display object
+	the mask can be a CreateJS Shape or a ZIM Rectangle, Circle or Triangle
+	returns the mask which can then be animated using ZIM move() or animate()
+	to drag the mask, drag some other object with ZIM drag() and then in that object's pressmove event,
+	set the x and y position of the mask (returned from the mask() function)
+	to the x and y position of the object you are dragging and update stage
+	this was added because it is nice to use positioned ZIM shapes (which are containers) as masks
+	and yet, ony CreateJS Shapes can be used as masks
+	and you often have to transform them properly which can be confusing
+	--*///+50.1
+		zim.mask = function(obj, mask) {
+			z_d("50.1");
+			if (zot(obj) || zot(mask)) {zog("zim create - mask(): please provide obj and mask"); return;}
+			var m;
+			if (mask.shape) { // zim.Rectangle, Circle or Triangle
+				m = mask.shape.clone();
+				m.x = mask.x;
+				m.y = mask.y;
+				m.rotation = mask.rotation;
+				m.scaleX = mask.scaleX;
+				m.scaleY = mask.scaleY;
+				mask.addChildAt(m,0);
+				m.alpha = 0;
+			} else {
+				m = mask;
+			}
+			obj.mask = m;
+			return m;
+		}//-50.1
+
 
 ////////////////  ZIM BUILD  //////////////
 
@@ -2823,7 +2859,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			if (zot(shadowBlur)) shadowBlur=14;
 			if (zot(hitPadding)) hitPadding=0;
 			if (zot(label)) label = "PRESS";
-			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white");
+			// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
+			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white", null, null, null, "center", "middle");
 
 			var that = this;
 			this.mouseChildren = false;
@@ -2844,8 +2881,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			this.width = width;
 			this.height = height;
 
-			label.x = (width-label.getBounds().width)/2+1;
-			label.y = (height-label.getBounds().height)/2+2;
+			label.x = width/2;
+			label.y = height/2+2;
 			this.addChild(label);
 			this.label = label;
 
@@ -2856,8 +2893,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				},
 				set: function(value) {
 					label.text = value;
-					label.x = (width-label.getBounds().width)/2+1;
-					label.y = (height-label.getBounds().height)/2+2;
+					label.x = width/2;
+					label.y = height/2+2;
 				}
 			});
 
@@ -4708,6 +4745,7 @@ dispatches a "change" event when dial changes value (but not when setting curren
 						indicator.rotation = (value - min) * 360 / (max - min);
 					}
 					lastValue = value - min;
+					lastA = indicator.rotation;
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
@@ -8096,7 +8134,7 @@ touch - activates touch on mobile and is set to true by default
 scrollTop - activates scrolling on older apple devices to hide the url bar and defaults to true
 align - for fit and outside, the horizontal alignment "left", "center/middle", "right" with center being default
 valign - for fit and outside, the vertical alignment "top", "center/middle", "bottom" with center being default
-canvasID - default "myCanvas" - the tag id of the canvas made by ZIM Frame - set this if more than one canvas on page
+canvasID - default "myCanvas" - will be set to tagIDCanvas if a tagID is provided - eg. scaling=test, canvasID=testCanvas
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -8152,6 +8190,7 @@ EVENTS
 				if (zot(zid(tagID))) {zog("zim.Frame - scaling: HTML tag with id="+scaling+" must exist"); return;};
 				var tag = this.tag = zid(tagID);
 				scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
+				if (canvasID == "myCanvas") canvasID = tagID + "Canvas";
 			}
 
 			// now assign default width and height (ignored by full and tag)
