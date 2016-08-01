@@ -52,8 +52,8 @@ if (typeof zon === "undefined") zon = false; // comments from zim scripts
 zog(item1, item2, etc.)         ~ log
 a wrapper for console.log()
 --*/
-var zog = Function.prototype.bind.call(console.log, console);
-// var zog = console.log.bind(console);
+// var zog = Function.prototype.bind.call(console.log, console);
+var zog = console.log.bind(console);
 //
 
 /*--
@@ -2881,9 +2881,10 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			this.width = width;
 			this.height = height;
 
-			label.x = width/2;
-			label.y = height/2+2;
+			label.x = (width - label.width)/2 - label.getBounds().x;
+			label.y = (height - label.height)/2 + 2 - label.getBounds().y;
 			this.addChild(label);
+
 			this.label = label;
 
 			Object.defineProperty(that, 'text', {
