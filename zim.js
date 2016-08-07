@@ -902,6 +902,7 @@ NOTE: we have experienced duplicate script calls if nothing is sent back
 			if (zim.async.z_s && zim.async.z_s.parentNode) zim.async.z_s.parentNode.removeChild(zim.async.z_s); // keep overwriting same script tag if no callback
 			zim.async.z_s = tag;
 		}
+		if (!url.match(/\?/)) url += "?";
 		tag.setAttribute("src", url + "&r="+Math.random());
 		document.getElementsByTagName("head")[0].appendChild(tag);
 	}//-29
