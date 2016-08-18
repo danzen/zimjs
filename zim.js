@@ -2,44 +2,6 @@
 // Also see http://zimjs.com/code/distill to minify only the functions in your app
 // free to use - donations welcome of course! http://zimjs.com/donate
 
-////////////////  ZIM DISTILL  //////////////
-
-// zim distill allows you to track which functions you are using in your app
-// and create a custom minified js file with just those functions
-
-var zim = function(zim) {
-
-/*--
-zim.DISTILL
-set zim.DISTILL to true to record which functions your are using in your app
-default is false.  While running your app, call the zim.distill() function
-take the results to http://zimjs.com/code/distill to create a minified distilled file
---*/
-	zim.DISTILL = false;
-	zim.distillery = [];
-
-/*--
-zim.distill = function()
-call this function to display which zim functions you are using in your app
-must set zim.DISTILL constant to true before using (set at the start of your app)
-then after running through your app, call zim.distill() and see the console (F12)
-take the results to http://zimjs.com/code/distill to create a minified distilled js file
-you would then host this js file yourself or include it in your mobile files, etc.
-NOTE: zim.distill() only records functions that have been used
-so you may have functions still to be used in your app
-you will want to make sure you call distill() after you have used all your functions
-for instance, on a restart event, etc.
-NOTE: zim.distill() will not be available from your distilled file
---*/
-	zim.distill = function() {
-		zog("zim.distill() - go to http://zimjs.com/code/distill and enter the following:");
-		zog((zim.distillery.length>0)?zim.distillery.join(" "):"must set zim.DISTILL = true;");
-	}
-	return zim;
-} (zim || {});
-// internal global function for the distill process
-function z_d(n) {if (zim.DISTILL) zim.distillery.push(n);}
-
 
 ////////////////  ZIM WRAP  //////////////
 
@@ -808,6 +770,7 @@ gets an HTML cookie
 			inner = outer[i].split("=");
 			cookies[inner[0]] = inner[1];
 		}
+		if (typeof cookies[name] == 'undefined') return undefined;
 		return unescape(cookies[name]);
 	}//-26
 
@@ -2383,7 +2346,7 @@ if you nest things inside and want to drag them, will want to set to true
 
 
 /*--
-zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner)
+zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner, flatBottom)
 
 Rectangle class
 
@@ -2398,6 +2361,7 @@ PARAMETERS: supports DUO - parameters or single object
 width, height
 fill, stroke, strokeSize are optional
 corner - round of corner default 0
+flatBottom - Boolean (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
 
 METHODS
 setFill(color)
@@ -2412,9 +2376,9 @@ width and height - as expected or use getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the rectangle
 if you nest things inside and want to drag them, will want to set to true
 --*///+52
-	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner) {
+	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner, flatBottom) {
 
-		var sig = "width, height, fill, stroke, strokeSize, corner";
+		var sig = "width, height, fill, stroke, strokeSize, corner, flatBottom";
 		var duo; if (duo = zob(zim.Rectangle, arguments, sig)) return duo;
 		z_d("52");
 		function makeRectangle() {
@@ -2423,6 +2387,7 @@ if you nest things inside and want to drag them, will want to set to true
 			if (zot(height)) height = 100;
 			if (zot(fill)) fill = "black";
 			if (zot(corner)) corner = 0;
+			if (zot(flatBottom)) flatBottom = false;
 
 			var that = this;
 			this.mouseChildren = false;
@@ -2439,7 +2404,11 @@ if you nest things inside and want to drag them, will want to set to true
 			}
 
 			if (corner > 0) {
-				g.rr(0,0,width,height,corner);
+				if (flatBottom) {
+					g.rc(0,0,width,height,corner,corner,0,0);
+				} else {
+					g.rr(0,0,width,height,corner);
+				}
 			} else {
 				g.r(0,0,width,height);
 			}
@@ -2472,7 +2441,7 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSizeObj.width = strokeSize;
 			}
 			this.clone = function() {
-				return new zim.Rectangle(width, height, fill, stroke, strokeSize, corner);
+				return new zim.Rectangle(width, height, fill, stroke, strokeSize, corner, flatBottom);
 			}
 		}
 
@@ -2803,7 +2772,7 @@ dispatches no events
 
 
 /*--
-zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding)
+zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom)
 
 Button Class
 
@@ -2822,6 +2791,10 @@ corner default 20
 shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
 value for shadow blur (default 14)
 hitPadding (default 0) adds extra hit area to the button for mobile
+gradient - (default 0) 0 to 1 (try .3) adds a gradient to the button
+gloss - (default 0) 0 to 1 (try .1) adds a gloss to the button
+flatBottom - Boolean (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
+
 
 METHODS
 dispose() - to get rid of the button and listeners
@@ -2842,9 +2815,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events - you make your own click event (or mousedown for mobile)
 --*///+55
-	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding) {
+	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom) {
 
-		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding";
+		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom";
 		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
 		z_d("55");
 		function makeButton() {
@@ -2859,6 +2832,9 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=14;
 			if (zot(hitPadding)) hitPadding=0;
+			if (zot(gradient)) gradient = 0;
+			if (zot(gloss)) gloss = 0;
+			if (zot(flatBottom)) flatBottom = false;
 			if (zot(label)) label = "PRESS";
 			// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white", null, null, null, "center", "middle");
@@ -2867,9 +2843,26 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			this.mouseChildren = false;
 			this.cursor = "pointer";
 
-			var buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner);
+			var buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner,flatBottom);
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
+			var corner2 = (flatBottom) ? 0 : corner;
+
+			if (gradient > 0) { // add an overlay
+				var gr = new createjs.Shape();
+				gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height);
+				gr.graphics.rc(0, 0, width, height, corner, corner, corner2, corner2);
+			}
+			buttonBacking.addChild(gr);
+
+			if (gloss > 0) { // add an overlay
+				var gl = new createjs.Shape();
+				gl.graphics.f("rgba(255,255,255,"+gloss+")");
+				gl.graphics.rc(0, 0, width, height/2, corner, corner, 0, 0);
+				gl.graphics.f("rgba(0,0,0,"+gloss+")");
+				gl.graphics.rc(0, height/2, width, height/2, 0, 0, corner2, corner2);
+			}
+			buttonBacking.addChild(gl);
 
 			if (hitPadding > 0) {
 				var rect = new createjs.Shape();
@@ -4807,7 +4800,7 @@ dispatches a "change" event when dial changes value (but not when setting curren
 	//***************** RADIAL  64
 
 /*--
-zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust, keyEnabled)
+zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, flatBottom, keyEnabled, gradient, gloss)
 
 Tabs Class
 
@@ -4831,11 +4824,10 @@ spacing is the pixels between buttons - default 1 pixel
 currentEnabled defaults to false and means the selected tab button cannot be clicked
 corner is the corner radius - default 0
 labelColor defaults to white
-labelAdjust defaults to 0 and can be negative or positive to move the labels up or down
-Then you can set the corner to some value, give a bigger height, move the labels up
-and hide the bottom of the buttons to give a curved top effect
+flatBottom (Boolean - defaults to true for tab shape) set to false for button sets
 keyEnabled defaults to true so tab key cycles through tabs, shift tab backwards
-
+gradient - (default 0) 0 to 1 (try .3) adds a gradient to the tabs
+gloss - (default 0) 0 to 1 (try .1) adds a gloss to the tabs
 
 PROPERTIES
 width, height - actual width and provided height
@@ -4867,9 +4859,9 @@ The default is "mousedown" - if set to something else the component will act on 
 EVENTS
 dispatches a "change" event when a tab changes (but not when selecting selectedIndex property)
 --*///+65
-	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust, keyEnabled) {
+	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, flatBottom, keyEnabled, gradient, gloss) {
 
-		var sig = "width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust, keyEnabled";
+		var sig = "width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, flatBottom, keyEnabled, gradient, gloss";
 		var duo; if (duo = zob(zim.Tabs, arguments, sig)) return duo;
 		z_d("65");
 		function makeTabs() {
@@ -4884,7 +4876,7 @@ dispatches a "change" event when a tab changes (but not when selecting selectedI
 			if (zot(spacing)) spacing = 1;
 			if (zot(corner)) corner = 0;
 			if (zot(labelColor)) labelColor = "white";
-			if (zot(labelAdjust)) labelAdjust = 0;
+			if (zot(flatBottom)) flatBottom = false;
 			if (zot(keyEnabled)) keyEnabled = true;
 
 			var that = this;
@@ -4946,11 +4938,10 @@ dispatches a "change" event when a tab changes (but not when selecting selectedI
 					(zot(t.width))?tabW:t.width,
 					height, t.label, tColor,
 					(zot(t.rollColor))?rollColor:t.rollColor,
-					null, null, corner, -1
+					null, null, corner, -1, null, null, gradient, gloss, true
 				)
 				button.znum = i;
 				t.label.znum = i;
-				t.label.y += labelAdjust;
 				labels.push(t.label);
 				buttons.push(button);
 				this.addChild(button);
@@ -5131,7 +5122,7 @@ dispatches a "change" event when a tab changes (but not when selecting selectedI
 	}//-65
 
 /*--
-zim.Pad = function(width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust)
+zim.Pad = function(width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor)
 
 Pad Class
 
@@ -5156,7 +5147,6 @@ spacing is the pixels between keys - default 1 pixel
 currentEnabled defaults to true and means the selected key will be clickable
 corner is the corner radius - default 0
 labelColor defaults to white
-labelAdjust defaults to 0 and can be negative or positive to move the labels up or down
 
 PROPERTIES
 width, height
@@ -5187,9 +5177,9 @@ The default is "mousedown" - if set to something else the component will act on 
 EVENTS
 dispatches a "change" event when a pad changes (but not when setting selectedIndex property)
 --*///+66
-	zim.Pad = function(width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust) {
+	zim.Pad = function(width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor) {
 
-		var sig = "width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust";
+		var sig = "width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor";
 		var duo; if (duo = zob(zim.Pad, arguments, sig)) return duo;
 		z_d("66");
 		function makePad() {
@@ -5220,7 +5210,7 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 					rowKeys.push((keys[count]!=null) ? keys[count] : "");
 					count++;
 				}
-				r = rowTabs[i] = new zim.Tabs(width, height, rowKeys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelAdjust, false);
+				r = rowTabs[i] = new zim.Tabs(width, height, rowKeys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, false, false);
 				this.labels = this.labels.concat(r.labels);
 				this.buttons = this.buttons.concat(r.buttons);
 				this.addChild(r);
@@ -8101,7 +8091,6 @@ dispose() - clear any event listeners, etc.
 
 // zimframe.js provides code to help you set up your coding environment
 
-
 	if (zon) zog("ZIM FRAME");
 
 /*--
@@ -8496,5 +8485,41 @@ EVENTS
 		return new makeFrame();
 	}//-83
 
+
+////////////////  ZIM DISTILL  //////////////
+
+// zim distill allows you to track which functions you are using in your app
+// and create a custom minified js file with just those functions
+
+/*--
+zim.DISTILL
+set zim.DISTILL to true to record which functions your are using in your app
+default is false.  While running your app, call the zim.distill() function
+take the results to http://zimjs.com/code/distill to create a minified distilled file
+--*/
+	zim.DISTILL = false;
+	zim.distillery = [];
+
+/*--
+zim.distill = function()
+call this function to display which zim functions you are using in your app
+must set zim.DISTILL constant to true before using (set at the start of your app)
+then after running through your app, call zim.distill() and see the console (F12)
+take the results to http://zimjs.com/code/distill to create a minified distilled js file
+you would then host this js file yourself or include it in your mobile files, etc.
+NOTE: zim.distill() only records functions that have been used
+so you may have functions still to be used in your app
+you will want to make sure you call distill() after you have used all your functions
+for instance, on a restart event, etc.
+NOTE: zim.distill() will not be available from your distilled file
+--*/
+	zim.distill = function() {
+		zog("zim.distill() - go to http://zimjs.com/code/distill and enter the following:");
+		zog((zim.distillery.length>0)?zim.distillery.join(" "):"must set zim.DISTILL = true;");
+	}
+
 	return zim;
 } (zim || {});
+
+// internal global function for the distill process
+function z_d(n) {if (zim && zim.DISTILL) zim.distillery.push(n);}
