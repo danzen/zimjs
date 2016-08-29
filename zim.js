@@ -549,7 +549,7 @@ zim.Dictionary = function()
 
 Dictionary Class
 
-A object that uses objects as keys to give values
+An object that uses objects as keys to give values
 Similar to an object with properties except the property names are objects instead of strings
 JavaScript currently does not have a dictionary, but other languages do
 var o = {test:"test"}
@@ -1038,6 +1038,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 		}
 	});//-30
 
+
 /*--
 zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens)
 adds drag and drop to an object
@@ -1057,8 +1058,9 @@ swipe defaults to false which prevents a swipe from triggering when dragging
 localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame
 onTop (default true) brings the dragged object to the top of the container
 surround (default false) is for dragging a big object that always surrounds the rect
-slide (default false) will let you throw the object and it will damp with slideDamp value (default .3)
-slidSnap (default true) will let the object go outside and snap back to bounds
+slide (default false) will let you throw the object and dispatch a slidestop event when done
+slideDamp (default .3) is the damping setting for the slide 1 is no damping and .1 will slide more, etc.
+slidSnap (default true) also "vertical", "horizontal", and false - will let the object go outside and snap back to bounds
 reg (default false) when set to true will snap the registration of the object to the mouse position
 removeTweens (default true) will automatically remove tweens from dragged object unless set to false
 note: will not update stage if zim.OPTIMIZE is set to true
@@ -1081,6 +1083,8 @@ returns obj for chaining
 		if (zot(slide)) slide = false;
 		if (zot(slideDamp)) slideDamp = .3;
 		if (zot(slideSnap)) slideSnap = true;
+		var snapOptions = ["horizontal", "vertical", "auto"];
+		if (slideSnap !== true && snapOptions.indexOf(slideSnap) < 0) slideSnap = false;
 		if (zot(reg)) reg = false;
 		if (zot(removeTweens)) removeTweens = true;
 
@@ -1230,11 +1234,22 @@ returns obj for chaining
 			}
 
 			var point = o.parent.globalToLocal(x, y);
+			var checkedPoint;
 			if (slide && slideSnap) {
-				o.x = point.x-diffX;
-				o.y = point.y-diffY;
+				if (slideSnap == "vertical") {
+					checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);
+					o.x = checkedPoint.x;
+					o.y = point.y-diffY;
+				} else if (slideSnap == "horizontal") {
+					checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);
+					o.x = point.x-diffX;
+					o.y = checkedPoint.y;
+				} else {
+					o.x = point.x-diffX;
+					o.y = point.y-diffY;
+				}
 			} else {
-				var checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);
+				checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);
 				// now set the object's x and y to the resulting checked local point
 				o.x = checkedPoint.x;
 				o.y = checkedPoint.y;
@@ -2621,6 +2636,8 @@ shadowColor defaults to -1 for no shadow
 value for shadow blur (default 14)
 align - defaults to "left" also there is "center" and "right"
 valign - defaults to "top".  Options: "top", "middle / center", "bottom"
+lineWidth - defaults to false for no wrapping (use \n) set to number for wrap
+lineHeight - default is text's getMeasuredLineHeight
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
@@ -2642,9 +2659,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events
 --*///+54
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight) {
 
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign";
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight";
 		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
 		z_d("54");
 		function makeLabel() {
@@ -2665,6 +2682,8 @@ dispatches no events
 
 			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color);
 			obj.textAlign = align;
+			obj.lineWidth = lineWidth;
+			obj.lineHeight = lineHeight;
 			obj.textBaseline = "alphabetic";
 			if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.addChild(obj);
@@ -3629,6 +3648,349 @@ dispatches a "close" event when closed by clicking on backing
 
 	}//-58
 
+
+/*--
+zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideSnap, interactive, shadowColor, shadowBlur)
+
+Window Class
+
+extends a createjs.Container
+adds a window for content that can be swiped
+var w = new zim.Window(parameters);
+
+PARAMETERS: supports DUO - parameters or single object
+see the defaults in the code below
+width and heigth of window
+color - background color (use "rbga(0,0,0,0)" for no background)
+borderColor and borderThickness (set to 0 for no border)
+padding places the content in and down from top left corner
+	(no padding on right and bottom but indicator is usally there)
+corner (default 0) is the rounded corner of the window
+indicatorActive (default true) Boolean to show indicator (set to false to not)
+indicatorColor, indicatorAlpha - default is borderColor and .3
+indicatorFade (default true) Boolean to fade indicator unless being used
+slide (default true) Boolean to throw the content when drag/swipe released
+slideSnap (default "vertical") "auto" / true, "none" / false, "horizontal"
+	(slide past bounds and then snaps back to bounds when released)
+	(default is vertical so snaps when dragging up and down but not if dragging horizontal)
+interactive (default true) Boolean to let you interact with content in window
+	(set to false and whole window will be swipeable but not interactive inside)
+shadowColor, shadowBlur - set shadowBlur to -1 for now drop shadow
+
+METHODS
+add(content) - adds to 0, 0 in content container of window (you can position with x and y)
+dispose() - removes event listeners from Window and content and removes any Ticker functions
+
+PROPERTIES
+backing - CreateJS Shape used for backing of Window
+content - CreateJS Container used to hold added content
+indicator - data object that holds the following properties (with defaults):
+	you can set after object is made...
+	size = 6;
+	spacing = 3 + size + borderThickness / 2;
+	margin = 4;
+	corner = indicator.size / 2;
+	showTime = 500; // ms to fade in
+	fadeTime = 3000; // ms to fade out
+scrollX - gets and sets the content x position in the window (this will be negative)
+scrollY - gets and sets the content y position in the window (this will be negative)
+
+EVENTS
+dispatches a "select" event when clicked on in a traditional manner (fast click with little movement)
+dispatches a "hoverover" event when rolled on without moving for 300 ms
+dispatches a "hoverout" event when not hovering due to movement or mouseout on the window
+--*///+58.1
+	zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideSnap, interactive, shadowColor, shadowBlur) {
+
+		var sig = "width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideSnap, interactive, shadowColor, shadowBlur";
+		var duo; if (duo = zob(zim.Window, arguments, sig)) return duo;
+		z_d("58.1");
+		function makeWindow() {
+
+			if (zot(width)) width=300;
+			if (zot(height)) height=200;
+			if (zot(color)) color="#333"; // none
+			if (zot(borderColor)) borderColor="#999";
+			if (zot(borderThickness)) borderThickness=1; // 0
+			if (zot(padding)) padding=10;
+			if (zot(corner)) corner=0;
+			if (zot(swipe)) swipe=true; // true / auto, vertical, horizontal, false / none
+			if (zot(indicatorActive)) indicatorActive=true;
+			if (zot(indicatorColor)) indicatorColor=borderColor;
+			if (zot(indicatorAlpha)) indicatorAlpha=.3;
+			if (zot(indicatorFade)) indicatorFade=true;
+			if (zot(slide)) slide=true;
+			if (zot(slideSnap)) slideSnap="vertical"; // true / auto, vertical, horizontal, false / none
+			if (zot(interactive)) interactive=true;
+			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
+			if (zot(shadowBlur)) shadowBlur=20;
+
+			var that = this;
+			this.setBounds(0,0,width,height);
+
+			var backing = this.backing = new createjs.Shape();
+			var g = backing.graphics;
+			g.f(color).rr(0,0,width,height,corner);
+			this.addChild(backing);
+			if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
+
+			var mask = new createjs.Shape();
+			var mg = mask.graphics;
+			// make the mask in the setWindow function
+			// when we know if there are vertical and horizontal indicators
+			this.addChild(mask);
+
+			var content = this.content = new createjs.Container();
+			this.addChild(content);
+			content.mask = mask;
+
+			if (!interactive) {
+				// hitArea makes the whole window draggable
+				// but then you can't interact with the content inside the window
+				var hitArea = new createjs.Shape();
+				hitArea.graphics.f("red").dr(0,0,width,height);
+				content.hitArea = hitArea;
+			}
+
+			if (borderThickness > 0) {
+				var border = new createjs.Shape();
+				g = border.graphics;
+				g.s(borderColor).ss(borderThickness).rr(0,0,width,height,corner);
+				this.addChild(border);
+			}
+
+			// indicators are the little scroll bars but they are not themselves draggable
+			// this exposes an indicator data object so creators can adjust indicator properties
+			// note that these properties are set dynamically in the setWindow function
+			var indicator = this.indicator = {}; // data object to expose indicator properties
+			indicator.size = 6;
+			indicator.spacing = 3 + indicator.size + borderThickness / 2;
+			indicator.margin = 4;
+			indicator.corner = indicator.size / 2;
+			indicator.showTime = 500;
+			indicator.fadeTime = 3000;
+
+			if (indicatorActive) {
+				var hIndicator = this.hIndicator = new createjs.Shape();
+				var hg = hIndicator.graphics;
+				hIndicator.alpha = indicatorAlpha;
+				this.addChild(hIndicator);
+
+				var vIndicator = this.vIndicator = new createjs.Shape();
+				var vg = vIndicator.graphics;
+				vIndicator.alpha = indicatorAlpha;
+				this.addChild(vIndicator);
+			}
+
+			var hProportion;
+			var vProportion;
+			var hCheck;
+			var vCheck;
+			var gap;
+			var contentWidth;
+			var contentHeight;
+
+			function setWindow() {
+				if (indicatorActive) {
+					// clear the indicators and remake anytime this function is called
+					// as these may change as people add and remove content to the Window
+					hg.clear(); // horizontal indicator
+					vg.clear(); // vertical indicator
+				}
+
+				gap = (indicatorActive) ? indicator.size + indicator.margin : 0;
+				contentWidth = content.getBounds().width;
+				contentHeight = content.getBounds().height;
+
+				// 10 fudge
+				hCheck = (contentWidth > width-gap-10 && (swipe === true || swipe == "auto" || swipe == "horizontal"));
+				vCheck = (contentHeight > height-gap-10 && (swipe === true || swipe == "auto" || swipe == "vertical"));
+
+				// set mask dynamically as indicators may come and go affecting the mask size slightly
+				mg.clear();
+				mg.f("rgba(0,0,0,.01)").rr(0,0,width-((vCheck && indicatorActive)?indicator.spacing+indicator.margin:0),height-((hCheck && indicatorActive)?indicator.spacing+indicator.margin:0),corner);
+
+				if (hCheck && indicatorActive) {
+					indicatorLength = Math.max(20, (width-Math.max(gap,corner)*2) * (width-Math.max(gap,corner)*2) / contentWidth);
+					hg.f(indicatorColor).rr(0,0,indicatorLength,indicator.size,indicator.corner);
+					hIndicator.x = Math.max(gap,corner);
+					hIndicator.y = height-indicator.spacing;
+					hProportion = new zim.Proportion((width-gap-10)-contentWidth, 0, Math.max(gap,corner), width-indicatorLength-Math.max(gap,corner), -1);
+				}
+
+				if (vCheck && indicatorActive) {
+					indicatorLength = Math.max(20, (height-Math.max(gap,corner)*2) * (height-Math.max(gap,corner)*2) / contentHeight);
+					vg.f(indicatorColor).rr(0,0,indicator.size,indicatorLength,indicator.corner);
+					vIndicator.x = width-indicator.spacing;
+					vIndicator.y = Math.max(gap,corner);
+					vProportion = new zim.Proportion((height-gap-10)-contentHeight, 0, Math.max(gap,corner), height-indicatorLength-Math.max(gap,corner), -1);
+				}
+			}
+
+			// METHODS to add and remove content from Window
+			this.add = function(c) {
+				if (!c.getBounds()) {zog("SwipeBox.add() - please add content with bounds set"); return;}
+				content.addChild(c);
+				c.x = c.y = padding;
+				setWindow();
+				setDragRect();
+			}
+
+			this.remove = function(c) {
+				content.removeChild(c);
+				setWindow();
+				setTimeout(function(){setDragRect();}, 300);
+			}
+
+			function setDragRect() {
+				zim.dragRect(content, new createjs.Rectangle(0, 0, ((hCheck)?width-Math.max(width, contentWidth+padding*2+((vCheck)?gap:0)):0), ((vCheck)?height-Math.max(height, contentHeight+padding*2+((hCheck)?gap:0)):0)));
+			}
+
+			if (swipe) {
+				content.on("mousedown", function() {
+					if (indicatorActive) zim.Ticker.add(moveIndicators, content.stage);
+					if (hCheck && indicatorActive) if (indicatorFade) zim.animate(hIndicator, {alpha:indicatorAlpha}, indicator.showTime);
+					if (vCheck && indicatorActive) if (indicatorFade) zim.animate(vIndicator, {alpha:indicatorAlpha}, indicator.showTime);
+				});
+			}
+
+			function moveIndicators() {
+				if (hCheck && indicatorActive) hIndicator.x = hProportion.convert(content.x);
+				if (vCheck && indicatorActive) vIndicator.y = vProportion.convert(content.y);
+			}
+
+			// may add content before adding Window to stage...
+			this.on("added", setDrag, null, true);
+			function setDrag() {
+				if (!swipe) return;
+				zim.drag({
+					obj:content,
+					currentTarget:true,
+					localBounds:true,
+					rect:new createjs.Rectangle(-1000, -1000, 1000, 1000),
+					slide:slide, slideDamp:.6,
+					slideSnap:(swipe===true||swipe=="auto"||swipe=="vertical")?slideSnap:false
+				});
+				if (content.getBounds() && content.getBounds().width > 0) {
+					setTimeout(function(){setDragRect();}, 300);
+				}
+			}
+
+			if (slide) {
+				content.on("slidestop", stageUp);
+			} else {
+				content.on("mousedown", function() {
+					content.stage.on("stagemouseup", stageUp, null, true);
+				});
+			}
+
+			function stageUp(e) {
+				if (hitArea) {
+					// move hitarea to display box
+					hitArea.x = -content.x;
+					hitArea.y = -content.y;
+				}
+				zim.Ticker.remove(moveIndicators);
+				if (hCheck) if (indicatorFade) zim.animate(hIndicator, {alpha:0}, indicator.fadeTime);
+				if (vCheck) if (indicatorFade) zim.animate(vIndicator, {alpha:0}, indicator.fadeTime);
+			}
+
+			if (interactive) {
+				// dispatches SELECT (click) and HOVEROVER (500 ms) and gives mouseX and mouseY on content
+				// CLICKS (in the traditional sense rather than a mouseup replacement)
+				var downLoc;
+				var downTime;
+				content.on("mousedown", function(){downLoc=content.stage.mouseX; downTime=Date.now();});
+				content.on("click", function(){
+					if (Date.now()-downTime<600 && Math.abs(content.stage.mouseX-downLoc)<5) {
+						that.contentMouse = content.globalToLocal(content.stage.mouseX, content.stage.mouseY);
+						that.dispatchEvent("select");
+					}
+				});
+				// HOVER (must stay within thresh pixels for pauseTime ms)
+				content.on("mouseover", moveOn);
+				content.on("mouseout", moveOff);
+				var startTime;
+				function moveOn() {
+					startTime=Date.now();
+					zim.Ticker.add(timeMouse, content.stage);
+				}
+				function moveOff() {
+					if (!hoverOutCalled) {
+						that.dispatchEvent("hoverout");
+						hoverOutCalled = true;
+					}
+					zim.Ticker.remove(timeMouse);
+				}
+				var lastMouseX = 0;
+				var lastMouseY = 0;
+				var lastReportX = 0;
+				var lastReportY = 0;
+				var pauseTime = 300;
+				var thresh = 2;
+				var hoverOutCalled = false;
+				function timeMouse() {
+					if (Math.abs(lastMouseX-content.stage.mouseX) > thresh || Math.abs(lastMouseY-content.stage.mouseY) > thresh) {
+						if (!hoverOutCalled) {
+							that.dispatchEvent("hoverout");
+							hoverOutCalled = true;
+						}
+						startTime=Date.now();
+						lastMouseX=content.stage.mouseX;
+						lastMouseY=content.stage.mouseY;
+					} else {
+						if (Date.now()-startTime > pauseTime) {
+							if (Math.abs(lastReportX-content.stage.mouseX) > thresh || Math.abs(lastReportY-content.stage.mouseY) > thresh) {
+								that.contentMouse = content.globalToLocal(content.stage.mouseX, content.stage.mouseY);
+								that.dispatchEvent("hoverover");
+								lastReportX=content.stage.mouseX;
+								lastReportY=content.stage.mouseY;
+								hoverOutCalled = false;
+							}
+							startTime=Date.now();
+						}
+					}
+				}
+			}
+
+			Object.defineProperty(that, 'scrollX', {
+				get: function() {
+					return content.x;
+				},
+				set: function(value) {
+					content.x = value;
+					moveIndicators();
+				}
+			});
+
+			Object.defineProperty(that, 'scrollY', {
+				get: function() {
+					return content.y;
+				},
+				set: function(value) {
+					content.y = value;
+					moveIndicators();
+				}
+			});
+
+			this.dispose = function() {
+				// fix these!  remember to remove drag...
+				this.removeAllEventListeners();
+				content.removeAllEventListeners();
+				zim.Ticker.remove(timeMouse);
+				zim.Ticker.remove(moveIndicators);
+				zim.noDrag(content);
+				return true;
+			}
+		}
+
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeWindow.prototype = new createjs.Container();
+		makeWindow.prototype.constructor = zim.Window;
+		return new makeWindow();
+
+	}//-58.1
 
 /*--
 zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur)
@@ -7890,7 +8252,6 @@ will fill up the rest of the height until they reach their maximum widths
 		return new makeLayout();
 	}//-80
 
-
 /*--
 zim.LayoutManager = function()
 
@@ -8380,6 +8741,16 @@ EVENTS
 			this.asset = function(n) {
 				if (zot(n)) return;
 				return that.assets[n] || {play:function(){if (zon) {zog("zim.Frame - asset(sound) not found"); return {};}}};
+			}
+
+			this.cloneAsset = function(n) {
+				if (!that.assets[n]) return;
+				if (that.assets[n].type != "image") return that.asset[n];
+				var img = that.assets[n].clone();
+				img.type = "image";
+				img.width = img.getBounds().width;
+				img.height = img.getBounds().height;
+				return img;
 			}
 
 			Object.defineProperty(that, 'stage', {
