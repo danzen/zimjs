@@ -1060,7 +1060,7 @@ onTop (default true) brings the dragged object to the top of the container
 surround (default false) is for dragging a big object that always surrounds the rect
 slide (default false) will let you throw the object and dispatch a slidestop event when done
 slideDamp (default .3) is the damping setting for the slide 1 is no damping and .1 will slide more, etc.
-slidSnap (default true) also "vertical", "horizontal", and false - will let the object go outside and snap back to bounds
+slidSnap (default true) also "vertical", "horizontal", and false - true will let the object go outside and snap back to bounds
 reg (default false) when set to true will snap the registration of the object to the mouse position
 removeTweens (default true) will automatically remove tweens from dragged object unless set to false
 note: will not update stage if zim.OPTIMIZE is set to true
@@ -3678,20 +3678,24 @@ interactive (default true) Boolean to let you interact with content in window
 shadowColor, shadowBlur - set shadowBlur to -1 for now drop shadow
 
 METHODS
-add(content) - adds to 0, 0 in content container of window (you can position with x and y)
+add(obj) - adds obj to content container of window (at padding)
+(it is best to position and size obj first before adding)
+(otherwise if adjusting to outside current content size then call update())
+update() - resets window scrolling if perhaps the content gets bigger or smaller
 dispose() - removes event listeners from Window and content and removes any Ticker functions
 
 PROPERTIES
+width, height
 backing - CreateJS Shape used for backing of Window
 content - CreateJS Container used to hold added content
 indicator - data object that holds the following properties (with defaults):
 	you can set after object is made...
-	size = 6;
-	spacing = 3 + size + borderThickness / 2;
-	margin = 4;
-	corner = indicator.size / 2;
-	showTime = 500; // ms to fade in
-	fadeTime = 3000; // ms to fade out
+	indicator.size = 6;
+	indicator.spacing = 3 + size + borderThickness / 2;
+	indicator.margin = 4;
+	indicator.corner = indicator.size / 2;
+	indicator.showTime = 500; // ms to fade in
+	indicator.fadeTime = 3000; // ms to fade out
 scrollX - gets and sets the content x position in the window (this will be negative)
 scrollY - gets and sets the content y position in the window (this will be negative)
 
@@ -3726,6 +3730,9 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			if (zot(shadowBlur)) shadowBlur=20;
 
 			var that = this;
+            this.width = width;
+            this.height = height;
+            this.setBounds(0,0,width,height);
 			this.setBounds(0,0,width,height);
 
 			var backing = this.backing = new createjs.Shape();
@@ -3736,7 +3743,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 
 			var mask = new createjs.Shape();
 			var mg = mask.graphics;
-			// make the mask in the setWindow function
+			// make the mask in the update function
 			// when we know if there are vertical and horizontal indicators
 			this.addChild(mask);
 
@@ -3761,7 +3768,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 
 			// indicators are the little scroll bars but they are not themselves draggable
 			// this exposes an indicator data object so creators can adjust indicator properties
-			// note that these properties are set dynamically in the setWindow function
+			// note that these properties are set dynamically in the update function
 			var indicator = this.indicator = {}; // data object to expose indicator properties
 			indicator.size = 6;
 			indicator.spacing = 3 + indicator.size + borderThickness / 2;
@@ -3790,7 +3797,8 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			var contentWidth;
 			var contentHeight;
 
-			function setWindow() {
+
+			this.update = function() {
 				if (indicatorActive) {
 					// clear the indicators and remake anytime this function is called
 					// as these may change as people add and remove content to the Window
@@ -3825,21 +3833,21 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 					vIndicator.y = Math.max(gap,corner);
 					vProportion = new zim.Proportion((height-gap-10)-contentHeight, 0, Math.max(gap,corner), height-indicatorLength-Math.max(gap,corner), -1);
 				}
+				setTimeout(function(){setDragRect();}, 300);
 			}
 
 			// METHODS to add and remove content from Window
 			this.add = function(c) {
 				if (!c.getBounds()) {zog("SwipeBox.add() - please add content with bounds set"); return;}
 				content.addChild(c);
-				c.x = c.y = padding;
-				setWindow();
-				setDragRect();
+				if (c.x == 0) c.x = padding;
+				if (c.y == 0) c.y = padding;
+				that.update();
 			}
 
 			this.remove = function(c) {
 				content.removeChild(c);
-				setWindow();
-				setTimeout(function(){setDragRect();}, 300);
+				that.update();
 			}
 
 			function setDragRect() {
