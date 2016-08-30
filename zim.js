@@ -3650,7 +3650,7 @@ dispatches a "close" event when closed by clicking on backing
 
 
 /*--
-zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideSnap, interactive, shadowColor, shadowBlur)
+zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur)
 
 Window Class
 
@@ -3670,6 +3670,7 @@ indicatorActive (default true) Boolean to show indicator (set to false to not)
 indicatorColor, indicatorAlpha - default is borderColor and .3
 indicatorFade (default true) Boolean to fade indicator unless being used
 slide (default true) Boolean to throw the content when drag/swipe released
+slideDamp (default .6) amount the slide damps when let go 1 for instant, .01 for long slide, etc.
 slideSnap (default "vertical") "auto" / true, "none" / false, "horizontal"
 	(slide past bounds and then snaps back to bounds when released)
 	(default is vertical so snaps when dragging up and down but not if dragging horizontal)
@@ -3704,9 +3705,9 @@ dispatches a "select" event when clicked on in a traditional manner (fast click 
 dispatches a "hoverover" event when rolled on without moving for 300 ms
 dispatches a "hoverout" event when not hovering due to movement or mouseout on the window
 --*///+58.1
-	zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideSnap, interactive, shadowColor, shadowBlur) {
+	zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur) {
 
-		var sig = "width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideSnap, interactive, shadowColor, shadowBlur";
+		var sig = "width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur";
 		var duo; if (duo = zob(zim.Window, arguments, sig)) return duo;
 		z_d("58.1");
 		function makeWindow() {
@@ -3724,6 +3725,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			if (zot(indicatorAlpha)) indicatorAlpha=.3;
 			if (zot(indicatorFade)) indicatorFade=true;
 			if (zot(slide)) slide=true;
+            if (zot(slideDamp)) slideDamp=.6;
 			if (zot(slideSnap)) slideSnap="vertical"; // true / auto, vertical, horizontal, false / none
 			if (zot(interactive)) interactive=true;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
@@ -3876,7 +3878,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 					currentTarget:true,
 					localBounds:true,
 					rect:new createjs.Rectangle(-1000, -1000, 1000, 1000),
-					slide:slide, slideDamp:.6,
+					slide:slide, slideDamp:slideDamp,
 					slideSnap:(swipe===true||swipe=="auto"||swipe=="vertical")?slideSnap:false
 				});
 				if (content.getBounds() && content.getBounds().width > 0) {
