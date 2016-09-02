@@ -1767,6 +1767,8 @@ if the loop prop is set then sequenceCall would activate for each loop
 sequenceParams is the optional parameter sent to the sequenceCall function
 note - the ticker parameter has been removed - see zim.Ticker
 returns target for chaining
+to pause the move call pauseZimMove(true) on the target (or false to unpause)
+to stop the move call removeZimMove() on the target
 --*///+44
 	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams) {
 		var sig = "target, x, y, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams";
@@ -1800,6 +1802,8 @@ if the loop prop is set then sequenceCall would activate for each loop
 sequenceParams is the optional parameter sent to the sequenceCall function
 note - the ticker parameter has been removed - see zim.Ticker
 returns target for chaining
+to pause the animation call pauseZimAnimate(true) on the target (or false to unpause)
+to stop the animation call removeZimAnimate() on the target
 --*///+45
 	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams) {
 
@@ -1890,7 +1894,7 @@ returns target for chaining
 				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
 				delete props.rewindParams;
-				tween = createjs.Tween.get(target, props)
+				tween = target.zimTween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.call(rewindCall)
@@ -1899,7 +1903,7 @@ returns target for chaining
 					.call(doneAnimating)
 					.wait(wait3);
 			} else {
-				tween = createjs.Tween.get(target, props)
+				tween = target.zimTween = createjs.Tween.get(target, props)
 					.wait(wait)
 					.to(obj, t, createjs.Ease[ease])
 					.wait(wait2)
@@ -1908,14 +1912,14 @@ returns target for chaining
 					.wait(wait3);
 			}
 		} else {
-			tween = createjs.Tween.get(target, props)
+			tween = target.zimTween = createjs.Tween.get(target, props)
 				.wait(wait)
 				.to(obj, t, createjs.Ease[ease])
 				.call(doneAnimating)
 				.wait(wait3);
 		}
 
-		var zimTicker = zim.Ticker.add(function(){}, target.getStage());
+		var zimTicker = target.zimTicker = zim.Ticker.add(function(){}, target.getStage());
 		if (!zot(fps)) createjs.Ticker.setFPS(fps);
 
 		function doneAnimating() {
@@ -1936,6 +1940,21 @@ returns target for chaining
 		function rewindCall() {
 			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}
+        target.stopZimAnimate = target.stopZimMove = function() {
+            createjs.Tween.removeTweens(target);
+            setTimeout(function(){zim.Ticker.remove(target.zimTicker);},200);
+        }
+        target.pauseZimAnimate = target.pauseZimMove = function(v) {
+            if (zot(v)) v = true;
+            if (v) {
+                target.zimTween.setPaused(true);
+     			setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
+            } else {
+                target.zimTween.setPaused(false);
+     			zim.Ticker.add(zimTicker, target.getStage());
+            }
+
+        }
 		return target;
 	}//-45
 
@@ -2082,16 +2101,17 @@ will not be resized - really just to use while building and then comment it out 
 	}//-47
 
 /*--
-zim.centerReg = function(obj, container, add)
+zim.centerReg = function(obj, container, add, index)
 centers the registration point on the bounds - obj must have bounds set
 supports DUO - parameters or single object
 if container is specified then sets obj x and y to half the width and height of container
 add defaults to true and will add the child to the container - set to false if you do not want this
+index is the optional index with 0 being the bottom of the container - leave off to add to top
 just a convenience function - returns obj for chaining
 --*///+48
-	zim.centerReg = function(obj, container, add) {
+	zim.centerReg = function(obj, container, add, index) {
 
-		var sig = "obj, container, add";
+		var sig = "obj, container, add, index";
 		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
 		z_d("48");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim create - centerReg(): please provide object with bounds set"); return;}
@@ -2103,23 +2123,30 @@ just a convenience function - returns obj for chaining
 	}//-48
 
 /*--
-zim.center = function(obj, container, add)
+zim.center = function(obj, container, add, index)
 centers the object on the container - obj and container must have bounds set
 supports DUO - parameters or single object
 add defaults to true and will add the child to the container - set to false if you do not want this
+index is the optional index with 0 being the bottom of the container - leave off to add to top
 similar to zim.centerReg but does not center the registration point
 returns obj for chaining
 --*///+48.1
-	zim.center = function(obj, container, add) {
+	zim.center = function(obj, container, add, index) {
 
-		var sig = "obj, container, add";
+		var sig = "obj, container, add, index";
 		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
 		z_d("48.1");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim.center(): please provide object with bounds set"); return;}
 		if (zot(container) || !container.getBounds || !container.getBounds()) {zog("zim.center(): please provide container with bounds set"); return;}
 
 		if (zot(add)) add = true;
-		if (add && container.addChild) container.addChild(obj);
+		if (add && container.addChild) {
+            if (zot(index) || Number.isNaN(index)) {
+                container.addChild(obj);
+            } else {
+                container.addChildAt(obj, index);
+            }
+        }
 
 		// get registration point of object in coordinates of the container
 		var reg = obj.localToLocal(obj.regX, obj.regY, container);
@@ -3679,7 +3706,7 @@ interactive (default true) Boolean to let you interact with content in window
 shadowColor, shadowBlur - set shadowBlur to -1 for now drop shadow
 
 METHODS
-add(obj) - adds obj to content container of window (at padding)
+add(obj) - adds obj to content container of window (at padding) must have bounds set
 (it is best to position and size obj first before adding)
 (otherwise if adjusting to outside current content size then call update())
 update() - resets window scrolling if perhaps the content gets bigger or smaller
@@ -3699,6 +3726,8 @@ indicator - data object that holds the following properties (with defaults):
 	indicator.fadeTime = 3000; // ms to fade out
 scrollX - gets and sets the content x position in the window (this will be negative)
 scrollY - gets and sets the content y position in the window (this will be negative)
+scrollXMax - gets the max we can scroll in x based on content width - window width
+scrollYMax - gets the max we can scroll in y based on content height - window height
 
 EVENTS
 dispatches a "select" event when clicked on in a traditional manner (fast click with little movement)
@@ -3734,6 +3763,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			var that = this;
             this.width = width;
             this.height = height;
+            this.scrollX = this.scrollY = this.scrollXMax = this.scrollYMax = 0;
             this.setBounds(0,0,width,height);
 			this.setBounds(0,0,width,height);
 
@@ -3811,6 +3841,8 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 				gap = (indicatorActive) ? indicator.size + indicator.margin : 0;
 				contentWidth = content.getBounds().width;
 				contentHeight = content.getBounds().height;
+                that.scrollXMax = contentWidth - width;
+                that.scrollYMax = contentHeight - height;
 
 				// 10 fudge
 				hCheck = (contentWidth > width-gap-10 && (swipe === true || swipe == "auto" || swipe == "horizontal"));
@@ -5229,7 +5261,7 @@ This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
-dispatches a "change" event when a tab changes (but not when selecting selectedIndex property)
+dispatches a "change" event when a tab changes (but not when setting selectedIndex property)
 --*///+65
 	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, flatBottom, keyEnabled, gradient, gloss) {
 
@@ -5248,7 +5280,7 @@ dispatches a "change" event when a tab changes (but not when selecting selectedI
 			if (zot(spacing)) spacing = 1;
 			if (zot(corner)) corner = 0;
 			if (zot(labelColor)) labelColor = "white";
-			if (zot(flatBottom)) flatBottom = false;
+			if (zot(flatBottom)) flatBottom = true;
 			if (zot(keyEnabled)) keyEnabled = true;
 
 			var that = this;
@@ -5287,7 +5319,6 @@ dispatches a "change" event when a tab changes (but not when selecting selectedI
 				// go back and readjust the average of non specified widths
 				if (nonSpecifiedCount > 0) {
 					newTabW = (total-nonSpecifiedCount*tabW)/nonSpecifiedCount;
-					zog(tabW);
 					for (i=0; i<tabs.length; i++) {
 						t = tabs[i];
 						t.width = ((zot(t.width))?newTabW:t.width);
@@ -5310,7 +5341,7 @@ dispatches a "change" event when a tab changes (but not when selecting selectedI
 					(zot(t.width))?tabW:t.width,
 					height, t.label, tColor,
 					(zot(t.rollColor))?rollColor:t.rollColor,
-					null, null, corner, -1, null, null, gradient, gloss, true
+					null, null, corner, -1, null, null, gradient, gloss, flatBottom
 				)
 				button.znum = i;
 				t.label.znum = i;
@@ -8521,7 +8552,7 @@ dispose() - only removes canvas, resize listener and stage
 EVENTS
 "ready" - fired when the stage is made
 "progress" - fires constantly as assets are loaded with loadAssets() to represent overall load progress
-"assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object)
+"assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object - with type and id properties)
 "complete" - fired when all assets loaded with loadAssets() are loaded (then use frame.asset())
 "error" - fired when there is a problem loading an asset with loadAssets()
 "resize" - fired on resize of screen
@@ -8730,12 +8761,19 @@ EVENTS
 					var ext = item.id.match(re);
 					var asset;
 					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) {
-						asset = that.assets[item.id] = {type:"sound", play:function(added){
-							return createjs.Sound.play(item.id, added);
-						}};
+						asset = that.assets[item.id] = {
+                            type:"sound",
+                            id:item.id,
+                            play:function(added){
+                                var instance = createjs.Sound.play(item.id, added);
+                                instance.getStage = function(){return stage;}
+                                return instance;
+                            }
+                        };
 					} else {
 						asset = that.assets[item.id] = new createjs.Bitmap(e.result);
 						asset.type = "image";
+                        asset.id = item.id;
 						asset.width = asset.getBounds().width;
 						asset.height = asset.getBounds().height;
 					}
@@ -8758,6 +8796,7 @@ EVENTS
 				if (that.assets[n].type != "image") return that.asset[n];
 				var img = that.assets[n].clone();
 				img.type = "image";
+                img.id = n.id;
 				img.width = img.getBounds().width;
 				img.height = img.getBounds().height;
 				return img;
