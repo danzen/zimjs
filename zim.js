@@ -922,13 +922,19 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 		alwaysList:new zim.Dictionary(),
 		list:new zim.Dictionary(),
 		setFPS: function(m, d) {
-			if (zot(m)) m = 30;
-			if (zot(d)) d = 60;
-			createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+			if (zot(m) && zot(d)) {
+				m = 30; d = 60;
+			} else if (zot(m)) {
+				m = 30;
+			} else if (zot(d)) {
+				d = m;
+			}
+			zim.Ticker.framerate = createjs.Ticker.framerate = (zim.mobile()) ? m : d;
 		},
 		add: function(f, s) {
 			z_d("30");
 			var t = zim.Ticker;
+			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) {zog("zim.Ticker.add() - needs stage parameter"); return;}
 			if (zot(f) || typeof f !== 'function') {zog("zim.Ticker.add() - only add functions"); return;}
 			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
@@ -963,6 +969,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 		always: function(s) {
 			z_d("30");
 			var t = zim.Ticker;
+			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
 			t.alwaysList.add(s, true);
 			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
