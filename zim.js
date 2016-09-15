@@ -1751,7 +1751,7 @@ returns the object for chaining
 	}//-43
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, sequence)
+zim.move = function(target, x, y, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams)
 convenience function (wraps createjs.Tween)
 to animate an object target to position x, y in time milliseconds
 supports DUO - parameters or single object
@@ -1777,15 +1777,15 @@ returns target for chaining
 to pause the move call pauseZimMove(true) on the target (or false to unpause)
 to stop the move call removeZimMove() on the target
 --*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams) {
-		var sig = "target, x, y, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams";
+	zim.move = function(target, x, y, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams) {
+		var sig = "target, x, y, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		z_d("44");
-		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams);
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams);
 	}//-44
 
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence)
+zim.animate = function(target, obj, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams)
 convenience function (wraps createjs.Tween)
 to animate object obj properties in time milliseconds
 supports DUO - parameters or single object
@@ -1800,7 +1800,7 @@ rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
 rewindCall:function - calls function at middle of rewind animation
 rewindParams:obj - parameters to send rewind function
 count:Integer - if loop is true how many times it will loop - default 0 forever
-can set frames per second as fps parameter default 30 (works better on mobile)
+fps has been removed - set this on zim.Ticker.setFPS(mobile, desktop)
 sequence defaults to 0 ms - set it to the delay time (ms) to run an array of targets
 for example, target = [a,b,c] and sequence = 1000
 would run the animation on a and then 1 second later, run the animation on b, etc.
@@ -1812,9 +1812,9 @@ returns target for chaining
 to pause the animation call pauseZimAnimate(true) on the target (or false to unpause)
 to stop the animation call removeZimAnimate() on the target
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams) {
+	zim.animate = function(target, obj, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams) {
 
-		var sig = "target, obj, time, ease, call, params, wait, props, fps, sequence, sequenceCall, sequenceParams";
+		var sig = "target, obj, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 		// handle multiple targets first if there is an array
@@ -1828,7 +1828,7 @@ to stop the animation call removeZimAnimate() on the target
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, obj, time, ease, call, params, wait, zim.copy(props), fps);
+						zim.animate(t, obj, time, ease, call, params, wait, zim.copy(props));
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000) + ((wait)?wait:0);
@@ -1927,7 +1927,6 @@ to stop the animation call removeZimAnimate() on the target
 		}
 
 		var zimTicker = target.zimTicker = zim.Ticker.add(function(){}, target.getStage());
-		if (!zot(fps)) createjs.Ticker.setFPS(fps);
 
 		function doneAnimating() {
 			if (call && typeof call == 'function') {(call)(params);}
@@ -2057,7 +2056,7 @@ will not be resized - really just to use while building and then comment it out 
 		var sig = "obj, color, size";
 		var duo; if (duo = zob(zim.outline, arguments, sig)) return duo;
 		z_d("47");
-		if (zot(obj) || !obj.getBounds) {zog("zim create - outline(): please provide object and shape"); return;}
+		if (zot(obj) || !obj.getBounds) {zog("zim create - outline(): please provide object with bounds set"); return;}
 		if (!obj.getBounds()) {zog("zim create - outline(): please setBounds() on object");	return;}
 		if (!obj.parent) {zog("zim create - outline(): object should be on stage first"); return;}
 		if (zot(color)) color = "brown";
@@ -2126,7 +2125,7 @@ just a convenience function - returns obj for chaining
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
-		return (container) ? zim.center(obj, container, add) : obj;
+		return (container) ? zim.center(obj, container, add, index) : obj;
 	}//-48
 
 /*--
@@ -2576,7 +2575,9 @@ if you nest things inside and want to drag them, will want to set to true
 			}
 
 			g.mt(0,0);
+			this.one={x:0,y:0};
 			g.lt(a,0);
+			this.two={x:a,y:0};
 
 			// find biggest angle with cosine rule
 			var angle1 = Math.acos( (Math.pow(bb,2) + Math.pow(cc,2) - Math.pow(aa,2)) / (2 * bb * cc) ) * 180 / Math.PI;
@@ -2606,13 +2607,13 @@ if you nest things inside and want to drag them, will want to set to true
 			tri.y = this.height;
 
 			g.lt(a-backX,0-upY);
+			this.three={x:a-backX,y:0-upY};
 			g.cp();
 
 			if (center) {
 				this.regX = this.width/2;
 				this.regY = this.height/2+adjust;
 			}
-
 			this.setFill = function(c) {
 				if (zot(c)) return;
 				fill = c;
@@ -8553,6 +8554,7 @@ will have to set your local stage, stageW and stageH variables again
 loadAssets([file, file], path, xhr) - pass in an array of images or sounds, optional path to directory and XHR (default false)
 asset(file) - access a loaded asset based on file string (not including path)
 if the asset is a sound then use asset(file).play(); // returns createjs sound instance
+cloneAsset(file | asset) - clones an asset along with its id and type (not its transforms, etc.)
 makeCircles(radius) - returns a createjs.Shape with the ZIM Circles (centered reg)
 dispose() - only removes canvas, resize listener and stage
 
@@ -8585,13 +8587,6 @@ EVENTS
 			// setting a scaling of something other than this list will set the scaling to tag mode
 			// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
 			var types = ["fit","outside","full"];
-			if (types.indexOf(scaling) == -1) {
-				var tagID = scaling;
-				if (zot(zid(tagID))) {zog("zim.Frame - scaling: HTML tag with id="+scaling+" must exist"); return;};
-				var tag = this.tag = zid(tagID);
-				scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
-				if (canvasID == "myCanvas") canvasID = tagID + "Canvas";
-			}
 
 			// now assign default width and height (ignored by full and tag)
 			if (zot(width)) width = 500;
@@ -8609,6 +8604,8 @@ EVENTS
 			var appOrientation; // watch out - orientation keyword is used by apple - sigh
 			var lastOrientation; // used to detect orientation change
 			var appReady = false; // check variable (watch - "ready" is reserved)
+			var tagID;
+			var tag;
 
 			if (document.readyState === 'interactive' || document.readyState === 'complete' ) { // DOM has loaded
 				setTimeout(function() {init();}, 200); // can't dispatch directly from a constructor
@@ -8630,6 +8627,13 @@ EVENTS
 			});
 
 			function init() {
+				if (types.indexOf(scaling) == -1) {
+					tagID = scaling;
+					if (zot(zid(tagID))) {zog("zim.Frame - scaling: HTML tag with id="+scaling+" must exist"); return;};
+					tag = this.tag = zid(tagID);
+					scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
+					if (canvasID == "myCanvas") canvasID = tagID + "Canvas";
+				}
 				makeCanvas();
 				makeStage();
 
@@ -8799,11 +8803,14 @@ EVENTS
 			}
 
 			this.cloneAsset = function(n) {
-				if (!that.assets[n]) return;
+
+				if (!that.assets[n] && (!n.id || !that.assets[n.id])) return;
+				if (!that.assets[n]) n = n.id;
 				if (that.assets[n].type != "image") return that.asset[n];
+
 				var img = that.assets[n].clone();
 				img.type = "image";
-                img.id = n.id;
+                img.id = that.assets[n].id;
 				img.width = img.getBounds().width;
 				img.height = img.getBounds().height;
 				return img;
