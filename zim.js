@@ -11001,10 +11001,6 @@ EVENTS
 			// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
 			var types = ["fit","outside","full"];
 
-			// now assign default width and height (ignored by full and tag)
-			if (zot(width)) width = 500;
-			if (zot(height)) height = 500;
-
 			this.scale = 1;
 			this.x = 0;
 			this.y = 0;
@@ -11020,6 +11016,7 @@ EVENTS
 			var tagID;
 			var tag;
 
+			var initCheck = false;
 			if (document.readyState === 'interactive' || document.readyState === 'complete' ) { // DOM has loaded
 				setTimeout(function() {init();}, 200); // can't dispatch directly from a constructor
 			} else {
@@ -11040,6 +11037,8 @@ EVENTS
 			});
 
 			function init() {
+				if (initCheck) return;
+				initCheck = true;
 				if (types.indexOf(scaling) == -1) {
 					tagID = scaling;
 					if (zot(zid(tagID))) {zog("zim.Frame - scaling: HTML tag with id="+scaling+" must exist"); return;};
@@ -11047,6 +11046,11 @@ EVENTS
 					scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
 					if (canvasID == "myCanvas") canvasID = tagID + "Canvas";
 				}
+
+				// now assign default width and height (ignored by full and tag)
+				if (zot(width)) width = 500;
+				if (zot(height)) height = 500;
+
 				makeCanvas();
 				makeStage();
 
