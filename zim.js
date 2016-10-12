@@ -12,15 +12,48 @@ if (typeof zon === "undefined") zon = false; // comments from zim scripts
 
 /*--
 zog(item1, item2, etc.)         ~ log
-a wrapper for console.log()
---*/
-// var zog = Function.prototype.bind.call(console.log, console);
+
+zog
+global function
+
+DESCRIPTION
+short version of console.log()
+logs the item(s) to the console
+use F12 to open your Browser console
+
+EXAMPLE
+zog("hello", circle.x); // logs these values to the console
+END EXAMPLE
+
+PARAMETERS
+item1, item2 (optional), etc. - items (expressions) to log to the console
+
+RETURNS items it is logging separated by a space if more than one
+--*///+0
+// reported a bug in Firefox: https://bugzilla.mozilla.org/show_bug.cgi?id=1280818
+// that after FF 46 binding the console did not show file and line number
+// this is fixed in FF 50
 var zog = console.log.bind(console);
-//
+//-0
 
 /*--
 zid(string)                     ~ id
+
+zid
+global function
+
+DESCRIPTION
 short version of document.getElementById(string)
+to access an HTML tag by its id
+
+EXAMPLE
+zid("logo").addEventListener("click", function(){});
+END EXAMPLE
+
+PARAMETERS
+string - the id of the tag you are wanting to access
+
+RETURNS HTML tag with id of string or null if not found
 --*///+1
 function zid(s) {
 	z_d("1");
@@ -29,8 +62,22 @@ function zid(s) {
 
 /*--
 zss(string)                     ~ css
+
+zss
+global function
+
+DESCRIPTION
 short version of document.getElementById(string).style
-so you can do zss("logo").top = "10px"; // for instance
+to access the style property of an HTML tag by the tag id
+
+EXAMPLE
+zss("logo").margin = "10px";
+END EXAMPLE
+
+PARAMETERS
+string - the id of the tag whose style you are wanting to access
+
+RETURNS style property of HTML tag with id of string or undefined if not found
 --*///+2
 function zss(s) {
 	z_d("2");
@@ -40,7 +87,24 @@ function zss(s) {
 
 /*--
 zgo(url, target, modal)         ~ go
+
+zgo
+global function
+
+DESCRIPTION
 short version of either window.location.href or window.open
+to open a link in the same window or a specified window
+
+EXAMPLE
+zid("logo").addEventListener("click", function(){zgo("http://zimjs.com");})
+END EXAMPLE
+
+PARAMETERS
+url - the link to use (Absolute, Relative or Virtual)
+target - (default null) the string name of a window (tab) _blank for new window each time
+modal - (default false) set to true to force user to close window
+
+RETURNS null if opening in same window or reference to the window otherwise
 --*///+3
 function zgo(u,t,m) {
 	z_d("3");
@@ -48,17 +112,38 @@ function zgo(u,t,m) {
 		window.location.href = u;
 	} else {
 		if (zot(m)) { // not modal
-			window.open(u,t);
+			return window.open(u,t);
 		} else {
-			window.open(u,t,"modal=yes,alwaysRaised=yes");
+			return window.open(u,t,"modal=yes,alwaysRaised=yes");
 		}
 	}
 } //-3
 
 /*--
 zum(string)                     ~ num
-converts "10px string from styles to number 10, for instance
+
+zum
+global function
+
+DESCRIPTION
+takes the units off a string number
+converts "10px" string from styles to number 10, for instance
 if there is no value then this will return 0
+
+EXAMPLE
+// in HTML
+<div id="logo" style="position:relative; left:10px">LOGO</div>
+
+// in JavaScript
+var left = zum(zss("logo").left); // converts 10px to the Number 10
+left += 20; // adds 20 to 10
+zss("logo").left = left + "px"; // assigns 30px to left style
+END EXAMPLE
+
+PARAMETERS
+string - the string representation of a number eg. "10px"
+
+RETURNS a Number
 --*///+4
 function zum(s) {
 	z_d("4");
@@ -68,18 +153,57 @@ function zum(s) {
 
 /*--
 zot(value)                      ~ not
+
+zot
+global function
+
+DESCRIPTION
 test to see if value has no value (value must exist as var or parameter)
 or if value has been set to null
-good for setting function defaults: if (zot(speed)) speed=1;
---*/
+good for setting function defaults
+really just asking if the value == null
+often we forget exactly how to do this - it is tricky
+value === null, value == undefined, value == 0, !value DO NOT WORK
+
+EXAMPLE
+if (zot(width)) width = 100;
+// equivalent to
+if (width == null) width = 100;
+END EXAMPLE
+
+PARAMETERS
+value - a variable or parameter you want to see if there is no value assigned
+
+RETURNS Boolean true if value does not exist
+--*///+4.5
 function zot(v) {
 	return v==null; // both null and undefined match but not false or 0
-}
+}//-4.5
 
 /*--
 zop(e)                          ~ stop
-stop event propagation - just easier to remember than below
+
+zop
+global function
+
+DESCRIPTION
+stop event propagation to subsequently added existing listeners
 must pass it e || window.event from your event function
+NOTE: this is not canceling the default action
+to cancel default action use e.preventDefault();
+
+EXAMPLE
+zid("button").addEventListener("click", function(e) {
+	// do something
+	zop(e||window.event);
+});
+END EXAMPLE
+
+PARAMETERS
+e - the event object from your event function
+ 	collect the event object as e and then pass in e || window.event
+
+RETURNS null
 --*///+5
 function zop(e) {
 	z_d("5");
@@ -90,11 +214,28 @@ function zop(e) {
 
 /*--
 zil()                           ~ still
+
+zil
+global function
+
+DESCRIPTION
 stop keys from moving content - arrows, spacebar, pgup, pgdown, home, end
 stop scroll wheel from moving content - scrolling the canvas for instance
-do once at start - usually in the template for full scale mode
+ZIM Frame does this in the full, fit and outside scale modes
+if not using Frame, then you can do this once at the start of your code
 returns an array of references to three listeners: [keydown, mousewheel and DOMMouseScroll]
 use these to removeEventListeners
+the arrows, etc, still work but just not their default window behaviour
+
+EXAMPLE
+// at the top of your code
+var listenersArray = zill();
+// key and mousewheel arrows, spacebar, etc.
+// will have their default actions stopped until you remove the listeners:
+// window.removeEventListener("keydown", listenersArray[0]); // etc.
+END EXAMPLE
+
+RETURNS an Array
 --*///+6
 function zil() {
 	z_d("6");
@@ -109,20 +250,32 @@ function zil() {
 
 /*--
 zet(selector)                   ~ set
-uses document.querySelectorAll() to get a list of tags and then apply events or styles
-zet(".class").on("click", function(){}); // would add function event to all tags with the class
-zet("p").css("color", "goldenrod"); // would make the text of all paragraphs goldenrod
-pass in a CSS query selector such as a class, id, tag, or multiple selectors separated by commands
-can also be complex selectors sucs as ".class img"
-this returns a ZIM Zet object which can be used for the following methods and properties
+
+zet
+global function
+
+DESCRIPTION
+uses document.querySelectorAll() to get a list of tags
+returns a ZIM Zet object which can be used for the following methods and properties
 zet(selector).on(type, function) - a shortcut for addEventListener() and will be added to all tags matching the selector
 zet(selector).css(property, value) - gets and sets styles
 	- gets the first programmatic property if a single string property is passed
 	- sets the property to the value on each of the Zet's tags from the selector passed to zet()
 	- if an object of properties and values is passed as the single parameter then sets all these properties
-	- for instance: zet("#test").css({color:"red", "backgound-color":"blue", paddingLeft:"20px"})
 	- NOTE: style names do not need quotes unless the dash is used - so camelCase does not require quotes
 	- NOTE: remember that commas are used for objects - not the semi-colon as in CSS
+
+EXAMPLE
+zet(".class").on("click", function(){}); // would add function event to all tags with the class
+zet("p").css("color", "goldenrod"); // would make the text of all paragraphs goldenrod
+zet("#test").css({color:"red", "backgound-color":"blue", paddingLeft:"20px"})
+END EXAMPLE
+
+PARAMETERS
+selector -  a CSS query selector such as a class, id, tag, or multiple selectors separated by commands
+	can also be complex selectors suchs as ".class img"
+
+RETURNS Zet object with on(), css() methods and tags property (HTML tag list)
 --*///+6.1
 function zet(selector) {
 	z_d("6.1");
@@ -169,27 +322,61 @@ function zet(selector) {
 
 /*--
 zob(func, args, sig, scope)     ~ object
-pass in a function and the function's arguments
-and use the following as the first line of your function
+
+zob
+global function
+
+DESCRIPTION
+a system to build functions or classes that allow traditional parameters
+or a configuration object passed in as a single parameter
+the configuration object has property names that match the function arguments
+
+to use zob on your own functions, pass in a function and the function's arguments
+and insert zob into first line of your function as shown below
 replace yourFunction with a reference to your function but keep arguments as is
-var duo; if (duo = zob(yourFunction, arguments)) return duo;
-this will allow either individual arguments to be passed
-or a single object (with property names of the arguments) to be passed
-for example: function test(a,b,c){}; test(1,null,3); test({a:1,c:3});
-many of the ZIM functions and classes use this "DUO" technique
+
+EXAMPLE
+function test(a,b,c){
+	var duo; if (duo = zob(yourFunction, arguments)) return duo;
+};
+test(1,null,3); // traditional parameters in order
+test({a:1,c:3}); // configuration object with zob
+END EXAMPLE
+
 NOTE: if you are minifying the file then you need to do an extra step
 add a string version of the signature of your function above the duo call
-for example: var sig = "a,b,c";
 then pass the signature in as a parameter to zob()
+
+EXAMPLE
+var sig = "a,b,c";
 var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
-works also with JS6 default parameter values
+END EXAMPLE
+
 NOTE: if you are running the function as a constructor with the new keyword
 then you need to pass in this (keyword) as the last parameter (sig can be null)
-var duo; if (duo = zob(yourFunction, arguments, sig, this)) return duo;
 this allows zob() to test to see if we need to rerun the function as a constructor
+
+EXAMPLE
+var duo; if (duo = zob(yourFunction, arguments, sig, this)) return duo;
+END EXAMPLE
+
+many of the ZIM functions and classes use this "DUO" technique
+the documentation for parameters will tell you if they support DUO
+works also with JS6 default parameter values
+
+PARAMETERS
+func - reference to the function you want to use params or a config object with
+args - reference to the arguments property of the function (literally, use "arguments" with no quotes)
+sig - (default null) a string listing of the parameters just how they are in the () not including the ()
+	required if you are minifying the file as minifying changes the signature
+scope - (default null) reference to this (litterally, use "this" without the quotes)
+	required if the function is being run with the new keyword
+
+RETURNS um... a Boolean
 --*///+7
+function isDUO(a) {return a.length == 1 && a[0].constructor === {}.constructor;}
 function zob(func, args, sig, scope) {
-	if (args.length == 1 && args[0].constructor === {}.constructor) {
+	if (isDUO(args)) {
 		z_d("7");
 		var zp = args[0];
 		var za = (zot(sig))?func.toString().split(/\n/,1)[0].match(/\((.*)\)/)[1].replace(/\s+/g,"").split(","):sig.replace(/\s+/g,"").split(",");
@@ -210,13 +397,33 @@ var zim = function(zim) {
 
 // zimcode.js adds some general code functionality along with Browser and DOM code
 // some of these are common Web solutions over the years (sorry for lack of credit)
-// moved Damp, Proportion and ProportionDamp here as they can be used without CreateJS
 
 /*--
 zim.shuffle = function(array)
+
+shuffle
+zim function
+
+DESCRIPTION
 randomly shuffles elements of an array
-actually changes the original array (but also returns it)
-shuffle and loop to show random but unique elements from an array
+actually changes the original array (and also returns it)
+
+EXAMPLE
+var array = ["happy", "sad", "spooked"];
+var randomFromArray = zim.shuffle(array)[0];
+// this will be randomized each time it is run
+END EXAMPLE
+
+EXAMPLE
+var array = zim.shuffle(["happy", "sad", "spooked"]);
+for (var i=0; i<array.length) zog(array[i]);
+// this will get random and unique elements of the array
+END EXAMPLE
+
+PARAMETERS
+array - the Array to shuffle
+
+RETURNS the modified Array
 --*///+8
 	zim.shuffle = function(array) {
 		z_d("8");
@@ -234,11 +441,31 @@ shuffle and loop to show random but unique elements from an array
 
 /*--
 zim.rand = function(a, b, integer)
+
+rand
+zim function
+
+DESCRIPTION
 returns a random integer between and including a and b if integer is true
 returns a random number (with decimals) including a and up to b but not b if integer is false
 b is optional and if left out will default to 0 (includes 0)
 integer is a boolean and defaults to true
 if a and b are 0 then just returns Math.random()
+
+EXAMPLE
+var speed = zim.rand(10,20); // 10, 11, 12... 18, 19 or 20
+END EXAMPLE
+
+PARAMETERS
+a - the first Number for the range
+	if a and b are not provided, zim.rand() acts like Math.random()
+	if parameter b is not provided, rand will use range 0 to and including a
+b - (default 0) second Number for the range
+	it does not matter if a>b or a<b
+integer - (default true) set to false to include decimals in results
+	if false, range will include decimals up to but not including the highest number
+
+RETURNS a Number
 --*///+9
 	zim.rand = function(a, b, integer) {
 		z_d("9");
@@ -263,8 +490,32 @@ if a and b are 0 then just returns Math.random()
 
 /*--
 zim.copy = function(obj)
+
+copy
+zim function
+
+DESCRIPTION
 copies arrays and basic objects
 http://stackoverflow.com/users/35881/a-levy
+if you have var obj = {prop:"val"};
+and then try and copy obj to obj2 like so: obj2 = obj;
+you obj2 and obj refer to the same object
+so after obj.prop = "new"; both obj.prop and obj2.prop would be "new"
+zim.copy(obj) returns a new object so both will work independently
+
+EXAMPLE
+var obj = {hair:blue, cars:["audi", "honda"]};
+var cop = zim.copy(obj);
+cop.hair = "green";
+zog(obj.hair, obj.cop); // blue, green
+obj.cars.push("vw");
+zog(obj.cars.length, cop.cars.length); // 3, 2
+END EXAMPLE
+
+PARAMETERS
+obj - the object to copy
+
+RETURNS a new Object
 --*///+10
 	zim.copy = function(obj) {
 		z_d("10");
@@ -283,10 +534,28 @@ http://stackoverflow.com/users/35881/a-levy
 
 /*--
 zim.arraysEqual = function(a, b, strict)
-slightly modified Evan Steinkerchnerv & Tomas Zato
+
+arraysEqual
+zim function
+
+DESCRIPTION
 finds out if arrays are same (including nested arrays)
 works for arrays with strings and numbers (not necessarily other objects)
-strict defaults to true - if false, order in arrays does not matter
+(slightly modified Evan Steinkerchnerv & Tomas Zato)
+
+EXAMPLE
+var one = [1,2,"wow",[3,4]];
+var two = [1,2,"wow",[3,4]];
+zog(zim.arraysEqual(one, two)); // true
+one[3][1] = 5;
+zog(zim.arraysEqual(one, two)); // false
+END EXAMPLE
+
+PARAMETERS
+a, b - the arrays to check to see if they are equal
+strict - (default true) set to false so order in arrays does not matter
+
+RETURNS a Boolean
 --*///+11
 	zim.arraysEqual = function(a, b, strict) {
 		z_d("11");
@@ -310,8 +579,26 @@ strict defaults to true - if false, order in arrays does not matter
 
 /*--
 zim.merge = function(objects)
+
+merge
+zim function
+
+DESCRIPTION
 merges any number of objects {} you pass in as parameters
 overwrites properties if they have the same name
+returns a merged object - originals kept intact
+
+EXAMPLE
+var one = {food:"chocolate"};
+var two = {drink:"milk"};
+var tri = zim.merge(one, two);
+zog(tri.food, tri.drink); // chocolate, milk
+END EXAMPLE
+
+PARAMETERS
+objects - a list of objects (any number) to merge together
+
+RETURNS a new Object
 --*///+12
 	zim.merge = function() {
 		z_d("12");
@@ -328,9 +615,27 @@ overwrites properties if they have the same name
 
 /*--
 zim.decimals = function(num, places)
+
+decimals
+zim function
+
+DESCRIPTION
 rounds number to the number of decimal places specified by places
 negative number places round to tens, hundreds, etc.
-for instance zim.decimals(1.8345, 2) == 1.83
+
+EXAMPLE
+var score = 1.234;
+score = zim.decimals(score);
+zog(score); // 1.2
+zog(zim.decimals(1.8345, 2)); // 1.83
+zog(zim.decimals(123,-1)); // 120
+END EXAMPLE
+
+PARAMETERS
+num - the Number to operate on
+places - (default 1) how many decimals to include (negative for left of decimal place)
+
+RETURNS a rounded Number
 --*///+13
 	zim.decimals = function(num, places) {
 		z_d("13");
@@ -342,22 +647,46 @@ for instance zim.decimals(1.8345, 2) == 1.83
 /*--
 zim.Damp = function(startValue, damp)
 
-Damp Class
+Damp
+zim class
 
+DESCRIPTION
 damping emulates things slowing down due to friction
-the movement heads towards the right direction and looks organic
+the movement heads towards the right value and looks organic
 this is similar if not the same as easing out
-create your Damp object outside an interval or ticker
-var d = new zim.Damp(parameters);
+create your Damp object outside an interval or Ticker
 then inside an interval or ticker call the convert method
-d.convert(desiredValue)
+
+EXAMPLE
+var d = new zim.Damp(parameters);
+setInterval(function() {
+	dampedValue = d.convert(desiredValue);
+}, 100);
+END EXAMPLE
+
 you would then apply that desired value to a property such as x or y or scale
 if you want to do both x and y then you need two Damp objects
 and two convert calls (you can do both in one interval or ticker)
 
-PARAMETERS: supports DUO - parameters or single object
-a startValue if you want the object to start directly somewhere
-the damp value with 1 being no damping and 0 being no movement - default is .1
+EXAMPLE
+var circle = new zim.Circle();
+circle.center(stage);
+var dampX = new zim.Damp(circle.x);
+var dampY = new zim.Damp(circle.y);
+// start moving once mouse enters stage
+// this event will only run once (the last parameter is true)
+stage.on("stagemousemove", start, null, true);
+function start() {
+	zim.Ticker.add(function() {
+		circle.x = dampX.convert(stage.mouseX);
+		circle.y = dampY.convert(stage.mouseY);
+	}, stage);
+}
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+startValue - (default 0) start object at this value and then start damping
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
 
 METHODS
 convert() - converts a value into a damped value
@@ -384,30 +713,44 @@ lastValue - setting this would go immediately to this value (would not normally 
 /*--
 zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound)
 
-Proportion Class
+Proportion
+zim class
 
+DESCRIPTION
 converts an input value to an output value on a different scale
+(sometimes called a map() function)
 for instance like a slider controlling the scale of an object or sound volume
-make a Proportion object
-var p = new zim.Proportion(parameters)
+make a Proportion object and then in an interval, ticker or event
+convert the base value to the target value using the convert method
 
-PARAMETERS: supports DUO - parameters or single object
-put in min and max for the input scale (say x values, 0 and 1 are the defaults)
-put in min and max for the output scale (say volume)
-factor (default 1) is going the same direction and -1 is going in opposite directions
-round (default false) rounds the converted number if set to true
+EXAMPLE
+frame.loadAssets("mySound.mp3");
+frame.on("complete", function() {
+	var sound = frame.asset("mySound.mp3").play();
+	var p = new zim.Proportion(0, 10, 0, 1);
+	var dial = new zim.Dial(); // default range of 0 to 10
+	dial.currentValue = 10;
+	dial.on("change", function(){
+		sound.volume = p.convert(dial.currentValue);
+	}); // end of dial change
+}); // end sound loaded
+END EXAMPLE
 
-in your own pressmove event function or whatever call p.convert(input)
-pass in your input property (say the mouseX)
-a proportional value will be returned - so use that for your volume (or whatever)
-
-the object always starts by assuming baseMin as baseValue
-just call the convert method right away if you want it to start at a different baseValue
-for instance, if your slider went from 100 to 500 and you want to start at half way
-make the object and call p.convert(300); on the next line
+PARAMETERS supports DUO - parameters or single object with properties below
+baseMin - min for the input scale (say x value)
+baseMax - max for the input scale (say x value)
+targetMin - (default 0) min for the output scale (say volume)
+targetMax - (default 1) max for the output scale (say volume)
+factor (default 1) is going the same direction and -1 is going in opposite direction
+targetRound (default false) set to true to round the converted number
 
 METHODS
 convert(input) - will return the output property (for instance, a volume)
+
+NOTE: the object always starts by assuming baseMin as baseValue
+just call the convert method right away if you want it to start at a different baseValue
+for instance, if your slider went from 100 to 500 and you want to start at half way
+make the object and call p.convert(300); on the next line
 --*///+15
 	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound) {
 
@@ -446,18 +789,32 @@ convert(input) - will return the output property (for instance, a volume)
 /*--
 zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound)
 
-ProportionDamp Class
+ProportionDamp
+zim class
 
+DESCRIPTION
 converts an input value to an output value on a different scale with damping
 works like Proportion Class but with a damping parameter
-var pd = new zim.ProportionDamp(parmeters);
+damping needs constant calculating so do not put in mousemove event
+the below example scales the circle based on the mouse height
 
-PARAMETERS: supports DUO - parameters or single object
-put in desired damping with 1 being no damping and .1 being the default
-in your own interval or ticker event function call pd.convert(input)
-the object always starts by assuming baseMin as baseValue
-if you want to start or go to an immediate value without easing then
-call the pd.immediate(baseValue) method with your desired baseValue (not targetValue)
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+circle.center(stage); // center method added in ZIM 4TH
+var pd = new zim.ProportionDamp(0, stageH, 0, 5, .2);
+zim.Ticker.add(function() {
+	circle.scale(pd.convert(stage.mouseH)); // scale method added in ZIM 4TH
+}, stage);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+baseMin - min for the input scale (say x value)
+baseMax - max for the input scale (say x value)
+targetMin - (default 0) min for the output scale (say volume)
+targetMax - (default 1) max for the output scale (say volume)
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
+factor (default 1) is going the same direction and -1 is going in opposite direction
+targetRound (default false) set to true to round the converted number
 
 METHODS
 convert(input) - converts a base value to a target value
@@ -466,6 +823,10 @@ dispose() - clears interval
 
 PROPERTIES
 damp - can adjust this dynamically (usually just pass it in as a parameter to start)
+
+NOTE: the object always starts by assuming baseMin as baseValue
+if you want to start or go to an immediate value without easing then
+call the pd.immediate(baseValue) method with your desired baseValue (not targetValue)
 --*///+16
 	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
 
@@ -547,12 +908,16 @@ damp - can adjust this dynamically (usually just pass it in as a parameter to st
 /*--
 zim.Dictionary = function()
 
-Dictionary Class
+Dictionary
+zim class
 
+DESCRIPTION
 An object that uses objects as keys to give values
-Similar to an object with properties except the property names are objects instead of strings
+Similar to an object literal with properties except the property names are objects instead of strings
 JavaScript currently does not have a dictionary, but other languages do
-var o = {test:"test"}
+
+EXAMPLE
+var o = {test:"test"};
 var f = function(w) {zog(w)};
 var c = new zim.Circle();
 var d = new zim.Dictionary();
@@ -562,6 +927,7 @@ zog(d.at(f)); // 2
 d.at(c)("hello"); // hello
 d.remove(o); // to clear o
 zog(d.length); // 2
+END EXAMPLE
 
 METHODS
 add(object, value) - adds a value that can be retrieved by an object reference
@@ -614,34 +980,82 @@ values - array of values synched to keys
 
 /*--
 zim.swapProperties = function(property, objA, objB)
+
+swapProperties
+zim function
+
+DESCRIPTION
 pass in a property as a string and two object references
 this function will swap the property values
+
+EXAMPLE
+// exchanges the x position of two ZIM circles
+zim.swapProperties("x", circle1, circle2); stage.update();
+END EXAMPLE
+
+PARAMETERS
+property - a String of the property to swap values eg. "alpha"
+objA, objB - the objects on which to swap properties
+
+RETURNS Boolean indicating success
 --*///+17.1
 	zim.swapProperties = function(property, objA, objB) {
 		z_d("17.1");
+		if (zot(objA) || zot(objB) || zot(objA[property]) || zot(objB[property])) return false;
 		var temp = objB[property];
 		objB[property] = objA[property];
 		objA[property] = temp;
+		return true;
 	}//-17.1
-
 
 	// DOM CODE
 
 /*--
 zim.swapHTML = function(idA, idB)
+
+swapHTML
+zim function
+
+DESCRIPTION
 pass in two tag ids as strings and this function will swap their innerHTML content
+the content (including nested tags) will be swapped
+
+EXAMPLE
+// exchanges the content of two divs called question and answer
+zim.swapHTML("question","answer");
+END EXAMPLE
+
+PARAMETERS
+idA, idB - String names of the tag id with which to swap innerHTML values
+
+RETURNS Boolean indicating success
 --*///+17.2
 	zim.swapHTML = function(idA, idB) {
 		z_d("17.2");
-		zim.swapProperties("innerHTML", zid(idA), zid(idB));
+		return zim.swapProperties("innerHTML", zid(idA), zid(idB));
 	}//-17.2
 
 /*--
 zim.scrollX = function(num, time)
+
+scrollX
+zim function
+
+DESCRIPTION
 num and time are optional
 if not provided, this gets how many pixels from the left the browser window has been scrolled
 if only num is provided it scrolls the window to this x position
 if num and time are provided it animates the window to the x position in time milliseconds
+EXAMPLE
+// hide the logo if the page is scrolled left more than 200 pixels
+if (zim.scrollX < -200) zss("logo").display = "none";
+END EXAMPLE
+
+PARAMETERS
+num - (default null) optional scroll position to go to (probably negative)
+time - (default 0) time in milliseconds to take to go to the num position
+
+RETURNS a Number
 --*///+18
 	zim.scrollX = function(num, time) {
 		z_d("18");
@@ -651,10 +1065,26 @@ if num and time are provided it animates the window to the x position in time mi
 
 /*--
 zim.scrollY = function(num, time)
+
+scrollY
+zim function
+
+DESCRIPTION
 num and time are optional
 if not provided, this gets how many pixels from the top the browser window has been scrolled
 if only num is provided it scrolls the window to this y position
 if num and time are provided it animates the window to the y position in time milliseconds
+
+EXAMPLE
+// animate the scroll position down 100 pixels in half a second
+zim.scrollY(zim.scrollY()-100, 500);
+END EXAMPLE
+
+PARAMETERS
+num - (default null) optional scroll position to go to (probably negative)
+time - (default 0) time in milliseconds to take to go to the num position
+
+RETURNS a Number
 --*///+19
 	zim.scrollY = function(num, time) {
 		z_d("19");
@@ -697,12 +1127,24 @@ if num and time are provided it animates the window to the y position in time mi
 				}
 			}, interval);
 		}
+		return num;
 	}//-20
 
 /*--
 zim.windowWidth = function()
+
+windowWidth
+zim function
+
+DESCRIPTION
 returns the width of a window
 window.clientWidth or window.innerWidth
+
+EXAMPLE
+if (zim.windowWidth() < 500) zss("related").display = "none";
+END EXAMPLE
+
+RETURNS a Number
 --*///+21
 	zim.windowWidth = function() {
 		z_d("21");
@@ -711,8 +1153,19 @@ window.clientWidth or window.innerWidth
 
 /*--
 zim.windowHeight = function()
+
+windowHeight
+zim function
+
+DESCRIPTION
 returns the height of a window
 window.clientHeight or window.innerHeight
+
+EXAMPLE
+if (zim.windowHeight() > 1000) zgo("big.html");
+END EXAMPLE
+
+RETURNS a Number
 --*///+22
 	zim.windowHeight = function() {
 		z_d("22");
@@ -721,7 +1174,25 @@ window.clientHeight or window.innerHeight
 
 /*--
 zim.urlEncode = function(string)
+
+urlEncode
+zim function
+
+DESCRIPTION
 matches PHP urlencode and urldecode functions
+for passing data on end of URL
+NOTE: only encode values of key=value pairs
+NOTE: JSON automatically encodes and decodes
+
+EXAMPLE
+var motto = "good = life & life = now";
+zgo("submit.php?motto="+zim.urlEncode(motto));
+END EXAMPLE
+
+PARAMETERS
+string - a value to URL encode (space to plus, etc.)
+
+RETURNS a String
 --*///+23
 	zim.urlEncode = function(s) {
 		z_d("23");
@@ -732,21 +1203,58 @@ matches PHP urlencode and urldecode functions
 
 /*--
 zim.urlDecode = function(string)
+
+urlDecode
+zim function
+
+DESCRIPTION
 matches PHP urlencode and urldecode functions
+for receiving raw data from a source that URLencodes
+NOTE: JSON automatically encodes and decodes
+
+EXAMPLE
+var pairs = command.split("&");
+var motto = zim.urlDecode(pairs[0].split("=")[1]);
+END EXAMPLE
+
+PARAMETERS
+string - a URLencoded String to decode
+
+RETURNS a String
 --*///+24
 	zim.urlDecode = function(s) {
 		z_d("24");
 		 return decodeURIComponent((s + '').replace(/\+/g, '%20'));
 	}//-24
 
-
 /*--
 zim.setCookie = function(name, value, days)
-sets an HTML cookie
+
+setCookie
+zim function
+
+DESCRIPTION
+sets an HTML cookie to remember some user data your site has set over time
 if no days, it will be a session cookie (while browser is open)
+
+EXAMPLE
+var visits = zim.getCookie("visits");
+if (zot(visits)) visits = 0;
+zim.setCookie("visits", ++visits);
+END EXAMPLE
+
+PARAMETERS
+name - a String name for your cookie
+value - a String value that you want to store
+days - (default 0) for how many days do you want to store the cookie
+
+ALSO: see zim.getCookie and zim.deleteCookie
+
+RETURNS a Boolean indicating success
 --*///+25
 	zim.setCookie = function(name, value, days) {
 		z_d("25");
+		if (zot(name) || zot(value)) return;
 		if (days) {
 			var date = new Date();
 			date.setTime(date.getTime()+(days*24*60*60*1000));
@@ -755,11 +1263,30 @@ if no days, it will be a session cookie (while browser is open)
 			var expires = "";
 		}
 		document.cookie = name+"="+escape(value)+expires+"; path=/";
+		return true;
 	}//-25
 
 /*--
 zim.getCookie = function(name)
-gets an HTML cookie
+
+getCookie
+zim function
+
+DESCRIPTION
+gets an HTML cookie that you have previously set
+
+EXAMPLE
+var visits = zim.getCookie("visits");
+if (zot(visits)) visits = 0;
+zim.setCookie("visits", ++visits);
+END EXAMPLE
+
+PARAMETERS
+name - the String name of your stored cookie
+
+ALSO: see zim.setCookie and zim.deleteCookie
+
+RETURNS a String or undefined if not found
 --*///+26
 	zim.getCookie = function(name) {
 		z_d("26");
@@ -776,15 +1303,38 @@ gets an HTML cookie
 
 /*--
 zim.deleteCookie = function(name)
+
+deleteCookie
+zim function
+
+DESCRIPTION
 deletes an HTML cookie
+
+EXAMPLE
+zim.deleteCookie("visits"); // clears the cookie
+END EXAMPLE
+
+PARAMETERS
+name - the String name of your stored cookie to delete
+
+ALSO: see zim.setCookie and zim.getCookie
+
+RETURNS a Boolean indicating success
 --*///+27
 	zim.deleteCookie = function(name) {
 		z_d("27");
+		if (zot(zim.getCookie(name))) return false;
 		zim.setCookie(name,"",-1);
+		return true;
 	}//-27
 
 /*--
 zim.mobile = function(orientation)
+
+mobile
+zim function
+
+DESCRIPTION
 detects if app is on a mobile device - if so, returns the mobile device type
 android, ios, blackberry, windows, other (all which evaluate to true) else returns false
 orientation defaults to true and if there is window.orientation then it assumes mobile
@@ -794,6 +1344,20 @@ the check looks at the navigator.userAgent for the following regular expression
 /ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
 microsoft mobile gets detected by nokia, mobile or phone
 so if orientation is set to false the check may miss non-mainstream devices
+
+EXAMPLE
+if (zim.mobile()) {
+	var pane = new zim.Pane(stage, 300, 200, "Desktop Only");
+	pane.show();
+}
+END EXAMPLE
+
+PARAMETERS
+orientation - (default true) uses window.orientation property to determine mobile
+	this may call certain touch screens mobile
+	but setting to false uses a test on mobile names which could be incomplete
+
+RETURNS a String or false
 --*///+28
 	zim.mobile = function(orientation) {
 		z_d("28");
@@ -809,6 +1373,11 @@ so if orientation is set to false the check may miss non-mainstream devices
 
 /*--
 zim.async = function(url, callback)
+
+async
+zim function
+
+DESCRIPTION
 a way to send data back and forth to a server script without reloading the HTML page
 (like AJAX but without the bother)
 uses a dynamic script call with an optional callback (cross domain calls are okay)
@@ -817,34 +1386,44 @@ pass a url to the server script (ie. php or node page)
 and an optional callback function that you define in your code (cannot be an anonymous function)
 zim.async will automatically add a random number to the end of your script call to defeat cache
 
-EXAMPLE 1 - existing service:
-assuming that we have a callback function called test as shown below
-	zim.async("http://ip-api.com/json?callback=zim.async.test",test);
-	function test(data) {zog(data.country);}
-note that the callback we pass the service is zim.async.test not just test
-this allows zim to handle scope issues and garbage collect the dynamic script when done
-if the service passes JSON you may need to JSON.decode() the data being returned
-this service passes an object literal not JSON despite its file name
+EXAMPLE
+// existing service:
+// assuming that we have a callback function called test as shown below
+zim.async("http://ip-api.com/json?callback=zim.async.test",test);
+function test(data) {zog(data.country);}
+// note that the callback we pass the service is zim.async.test not just test
+// this allows zim to handle scope issues and garbage collect the dynamic script when done
+// if the service passes JSON you may need to JSON.decode() the data being returned
+// this service passes an object literal not JSON despite its file name
+END EXAMPLE
 
-EXAMPLE 2 CLIENT - your own server script:
-assuming we have a callback function called myFunction as shown below
-	zim.async("http://yourserver.com/script.php?id=72&name=dan", myFunction);
-	function myFunction(data){zog(data);}
+EXAMPLE
+// CLIENT - your own server script:
+// assuming we have a callback function called myFunction as shown below
+zim.async("http://yourserver.com/script.php?id=72&name=dan", myFunction);
+function myFunction(data){zog(data);}
 
-EXAMPLE 2 SERVER - your script must output the following format as a string:
-"zim.async.myFunction(somedata)"
-in the php file we would use:
-	echo "zim.async.myFunction('success')";
-to return an object literal with nodejs express for example, you would use:
-	res.send('zim.async.myFunction({list:[1,2,3], name:"whatever"})');
-the data parameter in the myFunction function defined earlier would be an object literal
-we could then do zog(data.list[0]) to log the value 1, etc.
+// SERVER - your script must output the following format as a string:
+// "zim.async.myFunction(somedata)"
+// in the php file we would use:
+echo "zim.async.myFunction('success')";
+// to return an object literal with nodejs express for example, you would use:
+res.send('zim.async.myFunction({list:[1,2,3], name:"whatever"})');
+// the data parameter in the myFunction function defined earlier would be an object literal
+// we could then do zog(data.list[0]) to log the value 1, etc.
+END EXAMPLE
+
+PARAMETERS
+url - url to the server script (ie. php or node page)
+callback - (default null) callback function that you define in your code (cannot be an anonymous function)
 
 calling the return function on zim.async does two things:
 1. it handles scope issues so we can find your callback function
 2. it handles garbage collection to remove the dynamic script tag that was used
 if you do not specify a callback function then just send "" back from your server script
 NOTE: we have experienced duplicate script calls if nothing is sent back
+
+RETURNS undefined
 --*///+29
 	zim.async = function (url, callback) {
 		z_d("29");
@@ -879,9 +1458,32 @@ NOTE: we have experienced duplicate script calls if nothing is sent back
 
 /*--
 zim.Ticker = {}
+
+Ticker
+zim static class
+
+DESCRIPTION
 a static class to let ZIM use one createjs Ticker
 if a function has been added to the Ticker queue then it will run in the order added
 along with a single stage update after all functions in queue have run
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+circle.center(stage);
+zim.Ticker.add(function(){
+	circle.x++;
+}, stage);
+
+// to be able to remove the function:
+zim.Ticker.add(tryMe, stage);
+function tryMe() {circle.x++;}
+zim.Ticker.remove(tryMe);
+
+// OR with function literal, use the return value
+var tickerFunction = zim.Ticker.add(function(){circle.x++;}, stage);
+zim.Ticker.remove(tickerFunction);
+END EXAMPLE
+
 if zim.OPTIMIZE is true then the Ticker will not update the stage (it will still run functions)
 however, OPTIMIZE can be overridden as follows (or with the always() method):
 
@@ -915,7 +1517,6 @@ run zim.Ticker.always(stage);
 4. if for some reason (can't think of any) you want no ticker updates for zim but want component updates
 then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 --*///+30
-
 	zim.Ticker = {
 		stages:null,
 		myUpdate: null,
@@ -1047,36 +1648,70 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens)
+zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds)
+
+drag
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 adds drag and drop to an object
 handles scaled, rotated nested objects
-supports DUO - parameters or single object
-obj is the object to drag
-rect is a rectangle object for the bounds of dragging
-if surround is true then it will make sure the obj surrounds the rect rather than stays within it
-this rectangle is relative to the stage (global)
-if a rectangle relative to the object's parent is desired then set the localBounds parameter to true
-after the rect comes two cursor properties which are any css cursor value such as "pointer", etc.
-the default cursors are pointer
-currentTarget defaults to false allowing you to drag things within a container
-eg. drag(container); will drag any object within a container
-setting currentTarget to true will then drag the whole container
-swipe defaults to false which prevents a swipe from triggering when dragging
-localBounds defaults to false which means the rect is global - set to true for a rect in the object parent frame
-onTop (default true) brings the dragged object to the top of the container
-surround (default false) is for dragging a big object that always surrounds the rect
-slide (default false) will let you throw the object and dispatch a slidestop event when done
-slideDamp (default .3) is the damping setting for the slide 1 is no damping and .1 will slide more, etc.
-slidSnap (default true) also "vertical", "horizontal", and false - true will let the object go outside and snap back to bounds
-reg (default false) when set to true will snap the registration of the object to the mouse position
-removeTweens (default true) will automatically remove tweens from dragged object unless set to false
+
+EXAMPLE
+var radius = 50;
+var circle = new zim.Circle(radius, "red");
+zim.center(circle, stage);
+zim.drag(circle);
+
+// OR with ZIM DUO
+zim.drag({obj:circle, slide:true});
+
+// OR with ZIM 4TH methods
+circle.center(stage);
+circle.drag();
+
+// OR with ZIM 4TH and ZIM DUO
+circle.drag({slide:true});
+
+// BOUNDS
+// circle has its registration point in the middle
+// keep registration point within rectangle starting at x=100, y=100
+// and drag within a width of 500 and height of 400
+// var dragBounds = new createjs.Rectangle(100,100,500,400);
+// or keep circle on the stage with the following
+var dragBounds = new createjs.Rectangle(radius,radius,stageW-radius,stageH-radius);
+circle.drag(dragBounds); // drag within stage
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object to drag
+rect - (default null) a createjs.Rectangle object for the bounds of dragging
+	if surround is true then it will make sure the obj surrounds the rect rather than stays within it
+	this rectangle is relative to the stage (global)
+	if a rectangle relative to the object's parent is desired then set the localBounds parameter to true
+overCursor, dragCursor - (default "pointer") the CSS cursor properties as strings
+currentTarget - (default false) allowing you to drag things within a container
+	eg. drag(container); will drag any object within a container
+	setting currentTarget to true will then drag the whole container
+swipe - (default false) which prevents a swipe from triggering when dragging
+localBounds - (default false) which means the rect is global - set to true for a rect in the object parent frame
+onTop - (default true) brings the dragged object to the top of the container
+surround - (default false) is for dragging a big object that always surrounds the rect
+slide - (default false) will let you throw the object and dispatch a slidestop event when done
+slideDamp - (default .3) is the damping setting for the slide (1 is no damping and .1 will slide more, etc.)
+slideSnap - (default true) lets the object go outside and snap back to bounds - also "vertical", "horizontal", and false
+reg - (default false) when set to true will snap the registration of the object to the mouse position
+removeTweens - (default true) will automatically remove tweens from dragged object unless set to false
+startBounds - (default true) set to false to ignore bound rect before dragging (sometimes handy when putting drag on container)
+
 note: will not update stage if zim.OPTIMIZE is set to true
 unless zim.Ticker.update is set to true or you run zim.Ticker.always(stage) see zim.Ticker
-returns obj for chaining
---*///+31
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens) {
 
-		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens";
+RETURNS obj for chaining
+--*///+31
+	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds) {
+
+		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds";
 		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
 		z_d("31");
 		if (zot(obj) || !obj.on) return;
@@ -1094,6 +1729,7 @@ returns obj for chaining
 		if (slideSnap !== true && snapOptions.indexOf(slideSnap) < 0) slideSnap = false;
 		if (zot(reg)) reg = false;
 		if (zot(removeTweens)) removeTweens = true;
+		if (zot(startBounds)) startBounds = true;
 
 		zim.setSwipe(obj, swipe);
 		obj.zimDragRect = rect;
@@ -1118,15 +1754,18 @@ returns obj for chaining
 				r = obj.zimDragRect;
 				if (surround) rLocal = zim.boundsToGlobal(obj.parent, obj.zimDragRect, true); // flips to global to local
 			}
-			point = obj.parent.localToGlobal(obj.x, obj.y);
-			positionObject(obj, point.x, point.y);
+
+			if (r && startBounds) {
+				point = obj.parent.localToGlobal(obj.x, obj.y);
+				positionObject(obj, point.x, point.y);
+			}
 			if (slide) {
 				setUpSlide();
 			}
 		}
 
 		function unInitializeObject() {
-			zim.Ticker.remove(obj.zimDragTicker);
+			if (obj.zimDragTicker) zim.Ticker.remove(obj.zimDragTicker);
 		}
 
 		// set up damping for slide and variables used to predict future locations
@@ -1261,6 +1900,14 @@ returns obj for chaining
 				o.x = checkedPoint.x;
 				o.y = checkedPoint.y;
 			}
+
+			// mask graphics needs to have same position as object
+			// yet the mask is inside the object (but alpha = 0)
+			if (o.zimMask) {
+				m = o.zimMask;
+				m.x = o.x;
+				m.y = o.y;
+			}
 		}
 		obj.zimPosition = positionObject;
 
@@ -1389,11 +2036,27 @@ returns obj for chaining
 
 /*--
 zim.noDrag = function(obj)
+
+noDrag
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 removes drag function from an object
 this is not a stopDrag function (as in the drop of a drag and drop)
 that happens automatically with the drag() function
-this in a sense, turns off a drag function so it is no longer draggable
-returns obj for chaining
+this turns off the drag function so it is no longer draggable
+
+EXAMPLE
+zim.noDrag(circle);
+
+// OR ZIM 4TH method
+circle.noDrag();
+END EXAMPLE
+
+PARAMETERS
+obj - the object to make not draggable
+
+RETURNS obj for chaining
 --*///+32
 	zim.noDrag = function(obj) {
 		z_d("32");
@@ -1412,9 +2075,26 @@ returns obj for chaining
 
 /*--
 zim.dragRect = function(obj, rect)
+
+dragRect
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 dynamically changes or adds a bounds rectangle to the object being dragged with zim.drag()
-obj is an object that currently has its zim.drag() set
-rect is a createjs Rectangle for the bounds - the local / global does not change from the original drag
+
+EXAMPLE
+var dragBounds = new createjs.Rectangle(100,100,500,400);
+zim.dragRect(circle, dragBounds);
+
+OR with ZIM 4TH
+circle.dragRect(dragBounds);
+END EXAMPLE
+
+PARAMETERS
+obj - an object that currently has its zim.drag() set
+rect - is a createjs.Rectangle for the bounds - the local / global does not change from the original drag
+
+RETURNS obj for chaining
 --*///+33
 	zim.dragRect = function(obj, rect) {
 		z_d("33");
@@ -1428,10 +2108,26 @@ rect is a createjs Rectangle for the bounds - the local / global does not change
 
 /*--
 zim.setSwipe = function(obj, swipe)
-sets a zimNoSwipe property on the object to true if not swiping
-sets the property to null if we want to swipe
-zim Swipe in the Pages module will not swipe if zimNoSwipe is true
+
+setSwipe
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+sets whether we want to swipe an object or not using ZIM Swipe
 recursively sets children to same setting
+
+EXAMPLE
+zim.swipe(circle, false);
+
+OR with ZIM 4TH method
+circle.swipe(false);
+END EXAMPLE
+
+PARAMETERS
+obj - a display object
+swipe - (default true) set to false to not swipe object
+
+RETURNS obj for chaining
 --*///+34
 	zim.setSwipe = function(obj, swipe) {
 		z_d("34");
@@ -1449,14 +2145,50 @@ recursively sets children to same setting
 				}
 			}
 		}
+		return obj;
 	}//-34
 
 /*--
 zim.hitTestPoint = function(obj, x, y)
-see if shape (obj) is hitting the global point x and y on the stage
+
+hitTestPoint
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+see if shape of obj is hitting the global point x and y on the stage
+
+EXAMPLE
+var circle = new zim.Circle();
+stage.addChild(circle);
+zim.drag(circle);
+circle.on("pressmove", function() {
+	if (zim.hitTestPoint(circle, stageW/2, stageH/2)) {
+		if (circle.alpha == 1) {
+			circle.alpha = .5;
+			stage.update();
+		}
+	} else {
+		if (circle.alpha == .5) {
+			circle.alpha = 1;
+			stage.update();
+		}
+	}
+});
+
+OR with ZIM 4TH methods
+circle.drag(); // etc.
+if (circle.hitTestPoint(stageW/2, stageH/2)) {} // etc.
+END EXAMPLE
+
+PARAMETERS
+obj - the obj whose shape we are testing
+x and y - the point we are testing to see if it hits the shape
+
+RETURNS a Boolean true if hitting, false if not
 --*///+35
 	zim.hitTestPoint = function(obj, x, y) {
 		z_d("35");
+		if (!obj.stage) return false;
 		if (zot(obj) || !obj.globalToLocal) return;
 		var point = obj.globalToLocal(x,y);
 		return obj.hitTest(point.x, point.y);
@@ -1464,10 +2196,41 @@ see if shape (obj) is hitting the global point x and y on the stage
 
 /*--
 zim.hitTestReg = function(a, b)
+
+hitTestReg
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 see if shape (a) is hitting the registration point of object (b)
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+var rect = new zim.Rectangle(100, 100, "blue");
+stage.addChild(rect);
+zim.drag(circle);
+circle.on("pressmove", function() {
+	if (zim.hitTestReg(circle, rect)) {
+		stage.removeChild(rect);
+		stage.update();
+	}
+})
+
+OR with ZIM 4TH method
+circle.center(stage); etc.
+circle.drag(); etc.
+if (circle.hitTestReg(rect)) {} // etc.
+END EXAMPLE
+
+PARAMETERS
+a - the object whose shape we are testing
+b - the object whose registration point we are checking against
+
+RETURNS a Boolean true if hitting, false if not
 --*///+36
 	zim.hitTestReg = function(a, b) {
 		z_d("36");
+		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.localToLocal || !b.localToLocal) return;
 		var point = b.localToLocal(b.regX,b.regY,a);
 		return a.hitTest(point.x, point.y);
@@ -1475,16 +2238,48 @@ see if shape (a) is hitting the registration point of object (b)
 
 /*--
 zim.hitTestRect = function(a, b, num)
+
+hitTestRect
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 see if a shape (a) is hitting points on a rectangle
 the rectangle is based on the position, registration and bounds of object (b)
-the four corners are the default with num=0;
-also checks center of bounds hitting
-if num is 1 then it tests for one extra (mid) point on each side
-if num is 2 then it tests for two extra points on each side (1/3 and 2/3)
-etc.
+the four corners always get points as well as the very middle of the rectangle
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+var rect = new zim.Rectangle(100, 100, "blue");
+stage.addChild(rect);
+zim.drag(circle);
+circle.on("pressmove", function() {
+	if (zim.hitTestRect(circle, rect)) {
+		stage.removeChild(rect);
+		stage.update();
+	}
+});
+
+OR with ZIM 4TH method
+circle.center(stage); etc.
+circle.drag(); etc.
+if (circle.hitTestRect(rect)) {} // etc.
+END EXAMPLE
+
+PARAMETERS
+a - the object whose shape we are testing
+b - the object whose bounding rectangle we are checking against
+num - (default 0) the number of points along each edge to checking
+	1 would put a point at the middle of each edge
+	2 would put two points at 1/3 and 2/3 along the edge, etc.
+	there are always points at the corners
+	and one point in the middle of the rectangle
+
+RETURNS a Boolean true if hitting, false if not
 --*///+37
 	zim.hitTestRect = function(a, b, num) {
 		z_d("37");
+		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
 		if (zot(num)) num = 0;
 		var bounds = b.getBounds();
@@ -1521,13 +2316,46 @@ etc.
 
 /*--
 zim.hitTestCircle = function(a, b, num)
+
+hitTestCircle
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 see if a shape (a) is hitting points on a circle
 the circle is based on the position, registration and bounds of object (b)
 num is how many points around the circle we test - default is 8
 also checks center of circle hitting
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+var triangle = new zim.Triangle(100, 100, 100, "blue");
+stage.addChild(triangle);
+zim.drag(circle);
+circle.on("pressmove", function() {
+	if (zim.hitTestCircle(triangle, circle)) {
+		stage.removeChild(triangle);
+		stage.update();
+	}
+});
+
+OR with ZIM 4TH method
+circle.center(stage); etc.
+circle.drag(); etc.
+if (triangle.hitTestCircle(circle)) {} // etc.
+END EXAMPLE
+
+PARAMETERS
+a - the object whose shape we are testing
+b - the object whose circle based on the bounding rect we are using
+num - (default 8) the number of points evenly distributed around the circle
+	and one point in the middle of the circle
+
+RETURNS a Boolean true if hitting, false if not
 --*///+38
 	zim.hitTestCircle = function(a, b, num) {
 		z_d("38");
+		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
 		if (zot(num)) num = 8;
 		var bounds = b.getBounds();
@@ -1554,11 +2382,45 @@ also checks center of circle hitting
 
 /*--
 zim.hitTestBounds = function(a, b, boundsShape)
+
+hitTestBounds
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 see if the a.getBounds() is hitting the b.getBounds()
 we draw bounds for demonstration if you pass in a boundsShape shape
+this is the fastest of the hitTests as it is code based not shape based
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+var rect = new zim.Rectangle(100, 100, "blue");
+stage.addChild(rect);
+zim.drag(circle);
+circle.on("pressmove", function() {
+	if (zim.hitTestBounds(circle, rect)) {
+		stage.removeChild(rect);
+		stage.update();
+	}
+});
+
+OR with ZIM 4TH method
+circle.center(stage); etc.
+circle.drag(); etc.
+if (circle.hitTestBounds(rect)) {} // etc.
+END EXAMPLE
+
+PARAMETERS
+a - an object whose rectanglular bounds we are testing
+b - another object whose rectanglular bounds we are testing
+boundsShape - (default null) an empty zim.Shape or createjs.Shape
+	you would need to add the boundsShape to the stage
+
+RETURNS a Boolean true if hitting, false if not
 --*///+39
 	zim.hitTestBounds = function(a, b, boundsShape) {
 		z_d("39");
+		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.getBounds || !b.getBounds) return;
 		var boundsCheck = false;
 		if (boundsShape && boundsShape.graphics) boundsCheck=true;
@@ -1597,12 +2459,31 @@ we draw bounds for demonstration if you pass in a boundsShape shape
 
 /*--
 zim.boundsToGlobal = function(obj, rect, flip)
+
+boundsToGlobal
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 returns a createjs Rectangle of the bounds of object projected onto the stage
 handles scaling and rotation
 if a createjs rectangle is passed in then it converts this rectangle
 from within the frame of the obj to a global rectangle
 if flip (default false) is set to true it goes from global to local rect
 used by drag() and hitTestBounds() above so probably you will not use this directly
+
+EXAMPLE
+zog(zim.boundsToGlobal(circle).x); // global x of circle
+
+OR with ZIM 4TH method
+zog(circle.boundsToGlobal().width); // global width of circle)
+END EXAMPLE
+
+PARAMETERS
+obj - an object for which you would like global bounds projected
+rect - a rect inside an object which you would like mapped to global
+flip - (default false) make a global rect ported to local values
+
+RETURNS a Boolean true if hitting, false if not
 --*///+40
 	zim.boundsToGlobal = function(obj, rect, flip) {
 		z_d("40");
@@ -1643,23 +2524,44 @@ used by drag() and hitTestBounds() above so probably you will not use this direc
 
 /*--
 zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+
+hitTestGrid
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 converts an x and y point to an index in a grid
 if you have a grid of rectangles for instance and you want to find out which is beneath the cursor
 this technique will work faster than any of the other hit tests
-obj is the object that contains the grid
-width and height are the overall dimensions
-cols and rows are how many of each (note it is cols and then rows)
-x and y would be your stage.mouseX and stage.mouseY most likely
-these get automatically converted to the object's cooridinates unless local is set to true (default is false)
-offsetX and offsetY are the distances the grid starts from the origin of the obj - default is 0
-spacingX and spacingY default to 0 - null will be returned if x and y within spacing
-spacing is only between the cells and is to be included in the width and height (but not outside the grid)
-type defaults to index which means the hitTestGrid returns the index of the cell beneath the x and y point
-starting at 0 for top left corner and counting columns along the row and then to the next row, etc.
-type set to "col" will return the column and "row" will return the row "array" will return all three [index, col, row]
+
+EXAMPLE
+zim.Ticker.add(function() {
+	var index = zim.hitTestGrid(stage, 200, 200, 10, 10, stage.mouseX, stage.mouseY);
+	if (index) zog(index);
+});
+OR with ZIM 4TH method
+var index = stage.hitTestGrid(200, 200, 10, 10, stage.mouseX, stage.mouseY);
+END EXAMPLE
+offsetX, offsetY, spacingX, spacingY, local, type
+
+PARAMETERS
+obj - the object that contains the grid
+width and height - the overall dimensions
+cols and rows - how many of each (note it is cols and then rows)
+x and y - where you are in the grid (eg. stage.mouseX and stage.mouseY)
+offsetX and offsetY - (default 0) the distances the grid starts from the origin of the obj
+spacingX and spacingY - (default 0) spacing between grid cells (null will be returned if x and y within spacing)
+	spacing is only between the cells and is to be included in the width and height (but not outside the grid)
+local - (default false) set to true to convert x and y to local values
+type - (default index) which means the hitTestGrid returns the index of the cell beneath the x and y point
+	starting with 0 at top left corner and counting columns along the row and then to the next row, etc.
+	set type to "col" to return the column and "row" to return the row
+	set to "array" to return all three in an Array [index, col, row]
+
+RETURNS an index Number (or undefined) | col | row | an Array of [index, col, row]
 --*///+41
 	zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 		z_d("41");
+		if (!obj.stage) return false;
 		if (!zot(obj) && !local) {
 			var point = obj.globalToLocal(x,y);
 			x=point.x; y=point.y;
@@ -1691,14 +2593,362 @@ type set to "col" will return the column and "row" will return the row "array" w
 	}//-41
 
 /*--
+zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props)
+
+move
+zim function - and Display object method under ZIM 4TH
+wraps createjs.Tween
+
+DESCRIPTION
+to move a target object to position x, y in time milliseconds
+you can set various types of easing like bounce, elastic, back, linear, sine, etc.
+handles callbacks, delays, loops, rewinds, sequences of move animations
+also see the more general zim.animate()
+(which this function calls after consolidating x an y into an object)
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+zim.move(circle, 100, 100, 700, "backOut");
+
+OR with ZIM 4TH method
+circle.center(stage);
+circle.move(100, 100, 700, "backOut");
+// see ZIM Bits for more move examples
+END EXAMPLE
+
+PARAMETERS - supports DUO - parameters or single object with properties below
+target - the target object to tween
+x and y - the absolute positions to tween to
+time - the time for the tween in milliseconds 1000 ms = 1 second
+ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
+call - (default null) the function to call when the animation is done
+params - (default target) a single parameter for the call function (eg. use object literal or array)
+wait - (default 0) milliseconds to wait before doing animation
+loop - (default false) set to true to loop animation
+loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
+loopWait - (default 0) milliseconds to wait before looping (post animation wait)
+rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
+rewindWait (default 0) milliseconds to wait in the middle of the rewind
+rewindCall (default null) calls function at middle of rewind animation
+rewindParams - (default target) parameters to send rewind function
+sequence - (default 0) the delay time in milliseconds to run an array of target animations
+	for example, target = [a,b,c] and sequence = 1000
+	would run the animation on a and then 1 second later, run the animation on b, etc.
+	if the loop prop is true then sequenceCall below would activate for each loop
+sequenceCall - (default null) the function that will be called when the sequence ends
+sequenceParams - (default null) a parameter sent to the sequenceCall function
+sequenceCall - (default null) the function that will be called when the sequence ends
+props - (default {override: true}) legacy - allows you to pass in TweenJS props
+
+NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
+NOTE: the ticker and fps parameters have been removed - see zim.Ticker
+
+to pause the move call pauseZimMove(true) on the target (or false to unpause) (not available for CSS)
+to stop the move call stopZimMove() on the target
+to access the CreateJS Tween object use target.zimTween
+to access the zim.Ticker function use target.zimTicker
+
+RETURNS the target for chaining
+--*///+44
+	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props) {
+		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props";
+		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
+		z_d("44");
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props);
+	}//-44
+
+/*--
+zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css)
+
+animate
+zim function - and Display object method under ZIM 4TH
+wraps createjs.Tween
+
+DESCRIPTION
+to animate object obj properties in time milliseconds
+you can set various types of easing like bounce, elastic, back, linear, sine, etc.
+handles callbacks, delays, loops, rewinds, sequences of move animations
+also see the more specific zim.move() to animate position x, y
+although you can animate x an y just fine with zim.animate
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+circle.alpha = 0;
+zim.scale(circle, 0);
+zim.animate(circle, {alpha:1, scale:1}, 700, null, done);
+function done(target) {
+	// target is circle if params is not set
+	zim.drag(target);
+}
+
+OR with ZIM 4TH method
+circle.alpha = 1;
+circle.scale(0);
+// pulse circle from scale 0 - 1 every second (use ZIM DUO)
+circle.animate({obj:{scale:1}, time:500, props:{loop:true, rewind:true}});
+// see ZIM Bits for more move examples
+END EXAMPLE
+
+EXAMPLE
+// sequence example to pulse two circles
+var circle1 = new zim.Circle(50, "red");
+var circle2 = new zim.Circle(50, "blue");
+zim.center(circle1, stage);
+zim.center(circle2, stage);
+circle2.x += 70;
+circle1.scale(.1);
+circle2.scale(.1);
+zim.animate({
+	target:[circle1, circle2],
+	obj:{scale:1},
+	time:500,
+	loop:true,
+	rewind:true,
+	sequence:500
+});
+END EXAMPLE
+
+PARAMETERS - supports DUO - parameters or single object with properties below
+target - the target object to tween
+obj - the object literal holding properties and values to animate
+time - the time for the tween in milliseconds 1000 ms = 1 second
+ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
+call - (default null) the function to call when the animation is done
+params - (default target) a single parameter for the call function (eg. use object literal or array)
+wait - (default 0) milliseconds to wait before doing animation
+loop - (default false) set to true to loop animation
+loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
+loopWait - (default 0) milliseconds to wait before looping (post animation wait)
+rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
+rewindWait (default 0) milliseconds to wait in the middle of the rewind
+rewindCall (default null) calls function at middle of rewind animation
+rewindParams - (default target) parameters to send rewind function
+sequence - (default 0) the delay time in milliseconds to run an array of target animations
+	for example, target = [a,b,c] and sequence = 1000
+	would run the animation on a and then 1 second later, run the animation on b, etc.
+	if the loop prop is true then sequenceCall below would activate for each loop
+sequenceCall - (default null) the function that will be called when the sequence ends
+sequenceParams - (default null) a parameter sent to the sequenceCall function
+sequenceCall - (default null) the function that will be called when the sequence ends
+ticker - (default true) set to false to not use an automatic zim.Ticker function
+props - (default {override: true}) legacy - allows you to pass in TweenJS props
+css - (default false) set to true to animate CSS properties in HTML
+ 	requires CreateJS CSSPlugin - ZIM has a copy here:
+	<script src="https://d309knd7es5f10.cloudfront.net/CSSPlugin.js"></script>
+	<script>
+		// in your code at top after loading createjs
+		createjs.CSSPlugin.install(createjs.Tween);
+		// the property must be set before you can animate
+		zss("tagID").opacity = 1; // set this even if it is default
+		zim.animate(zid("tagID"), {opacity:0}, 2000); // etc.
+	</script>
+
+NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
+NOTE: the ticker and fps parameters have been removed - see zim.Ticker
+
+to pause the animate call pauseZimAnimate(true) on the target (or false to unpause) (not available for CSS)
+to stop the animate call stopZimAnimate() on the target
+to access the CreateJS Tween object use target.zimTween
+to access the zim.Ticker function use target.zimTicker
+
+RETURNS the target for chaining
+--*///+45
+	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css) {
+		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css";
+		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
+		z_d("45");
+
+		// convert loop and rewind properties into the legacy props object
+		var newProps = {override: true};
+		if (!zot(loop)) newProps.loop = loop;
+		if (!zot(loopCount)) newProps.count = loopCount; // note prop is count
+		if (!zot(loopWait)) newProps.loopWait = loopWait;
+		if (!zot(rewind)) newProps.rewind = rewind;
+		if (!zot(rewindWait)) newProps.rewindWait = rewindWait;
+		if (!zot(rewindCall)) newProps.rewindCall = rewindCall;
+		if (!zot(rewindParams)) newProps.rewindParams = rewindParams;
+		if (!zot(props)) newProps = zim.merge(newProps, props); // props to overwrite
+		props = newProps;
+
+		// handle multiple targets first if there is an array
+		// this just recalls the animate function for each element delayed by the sequence parameter
+		if (zot(sequence)) sequence = 0;
+		if (target instanceof Array) {
+			var currentTarget = 0;
+			for (var i=0; i<target.length; i++) {
+				-function () { // closure to store num (i) for timeout
+					var num = i;
+					setTimeout(function() {
+						var t =	target[currentTarget];
+						currentTarget++;
+						zim.animate(t, obj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css);
+						if (num == target.length-1 && sequenceCall) {
+							// calculate tween time
+							var duration = ((time)?time:1000) + ((wait)?wait:0);
+							if (props && props.rewind) {
+								duration += ((time)?time:1000) + ((props.rewindWait)?props.rewindWait:0);
+							}
+							setTimeout(function(){
+								sequenceCall(sequenceParams);
+							}, duration);
+						}
+					}, sequence*i);
+				}();
+			}
+			return;
+		}
+
+		// original animate functionality
+
+		// if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
+
+		var t = time;
+		if (zot(t)) t = 1000;
+		if (zot(ease)) ease = "quadInOut";
+		if (zot(wait)) wait = 0;
+		if (zot(props)) props = {override: true};
+		if (zot(params)) params = target;
+		if (zot(ticker)) ticker = true;
+		if (zot(css)) css = false;
+		if (!zot(obj.scale)) {
+			obj.scaleX = obj.scaleY = obj.scale;
+			delete obj.scale;
+		}
+		var tween;
+		if (props.loop) {
+			if (!zot(props.count)) {
+				var count = props.count;
+				delete props.count;
+				var currentCount = 1;
+			}
+		}
+		var wait3 = 0;
+		if (props.loopWait) {
+			wait3 = props.loopWait;
+			delete props.loopWait;
+		}
+		if (props.rewind) {
+			// flip second ease
+			if (ease) {
+				// backIn backOut backInOut
+				var ease2 = ease;
+				if (ease2.indexOf("InOut") == -1) {
+					if (ease2.indexOf("Out") != -1) {
+						ease2 = ease2.replace("Out", "In");
+					} else if (ease2.indexOf("In") != -1) {
+						ease2 = ease2.replace("In", "Out");
+					}
+				}
+			}
+			var obj2 = {}; var wait2 = 0;
+			for (var i in obj) {
+				if (css) {
+					obj2[i] = target.style[i];
+				} else {
+					obj2[i] = target[i];
+				}
+			}
+			delete props.rewind;
+			if (props.rewindWait) {
+				wait2 = props.rewindWait;
+				delete props.rewindWait; // not a createjs prop so delete
+			}
+			if (props.rewindCall) {
+				var call2 = props.rewindCall;
+				var params2 = props.rewindParams;
+				if (zot(params2)) params2 = target;
+				delete props.rewindCall;
+				delete props.rewindParams;
+				tween = target.zimTween = createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.call(doRewindCall)
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease2])
+					.call(doneAnimating)
+					.wait(wait3);
+			} else {
+				tween = target.zimTween = createjs.Tween.get(target, props)
+					.wait(wait)
+					.to(obj, t, createjs.Ease[ease])
+					.wait(wait2)
+					.to(obj2, t, createjs.Ease[ease2])
+					.call(doneAnimating)
+					.wait(wait3);
+			}
+		} else {
+			tween = target.zimTween = createjs.Tween.get(target, props)
+				.wait(wait)
+				.to(obj, t, createjs.Ease[ease])
+				.call(doneAnimating)
+				.wait(wait3);
+		}
+
+		if (!css && ticker) var zimTicker = target.zimTicker = zim.Ticker.add(function(){}, target.getStage());
+
+		function doneAnimating() {
+			if (call && typeof call == 'function') {(call)(params);}
+			if (props.loop) {
+				if (count > 0) {
+					if (currentCount < count) {
+						currentCount++;
+						return;
+					}
+				} else {
+					return;
+				}
+			}
+			tween.setPaused(true);
+			if (!css && ticker) setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
+		}
+		function doRewindCall() {
+			if (call2 && typeof call2 == 'function') {(call2)(params2);}
+		}
+        target.stopZimAnimate = target.stopZimMove = function() {
+            createjs.Tween.removeTweens(target);
+            if (!css && ticker) setTimeout(function(){zim.Ticker.remove(target.zimTicker);},200);
+        }
+        target.pauseZimAnimate = target.pauseZimMove = function(v) {
+            if (zot(v)) v = true;
+            if (v) {
+                target.zimTween.setPaused(true);
+     			if (!css && ticker) setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
+            } else {
+                target.zimTween.setPaused(false);
+     			if (!css && ticker) zim.Ticker.add(zimTicker, target.getStage());
+            }
+        }
+		return target;
+	}//-45
+
+/*--
 zim.scale = function(obj, scale)
+
+scale
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 convenience function to do scaleX and scaleY in one call
-pass in the object to scale followed by the scale
-returns the object for chaining
+also see zim.scaleTo(), zim.fit() and zim.Layout()
+
+EXAMPLE
+zim.scale(circle, .5);
+
+OR with ZIM 4TH method
+circle.scale(.5);
+END EXAMPLE
+
+PARAMETERS
+obj - object to scale
+scale - the scale (1 being full scale, 2 being twice as big, etc.)
+
+RETURNS obj for chaining
 --*///+42
 	zim.scale = function(obj, scale) {
 		z_d("42");
-		if (zot(obj) || !obj.scaleX) return;
+		if (zot(obj) || zot(obj.scaleX)) return;
 		if (zot(scale)) scale=1;
 		obj.scaleX = obj.scaleY = scale;
 		return obj;
@@ -1706,15 +2956,34 @@ returns the object for chaining
 
 /*--
 zim.scaleTo = function(obj, boundObj, percentX, percentY, type)
+
+scaleTo
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 scales object to a percentage of another object's bounds
 percentage is from 0 - 100 (not 0-1)
-for example, button (obj) is 10% the width of the stage (boundObj)
-supports DUO - parameters or single object
-type is "smallest" (default), "biggest", and "both"
-smallest: uses the smallest scaling (fit)
-biggest: uses the largest scaling (outside)
-both: keeps both x and y scales - may stretch object (stretch)
-returns the object for chaining
+also see zim.scale(), zim.fit() and zim.Layout()
+
+EXAMPLE
+zim.scaleTo(circle, stage, 50); // scale to half the stageW
+zim.scaleTo(circle, stage, 10, 20); // fit within these scalings of the stage
+
+OR with ZIM 4TH method
+circle.scaleTo(stage, 100, 100, "both"); // make an oval touch all stage edges
+END EXAMPLE
+
+PARAMETERS - supports DUO - parameters or single object with properties below
+obj - object to scale
+boundObj - the object that we are scaling to with percents below
+percentX - (default no scaling) the scale in the x
+percentY - (default no scaling) the scale in the y
+type - (default "smallest") to fit inside or outside or stretch to bounds
+	smallest: uses the smallest scaling keeping proportion (fit)
+	biggest: uses the largest scaling keeping proportion (outside)
+	both: keeps both x and y scales - may stretch object (stretch)
+
+RETURNS obj for chaining
 --*///+43
 	zim.scaleTo = function(obj, boundObj, percentX, percentY, type) {
 
@@ -1751,230 +3020,31 @@ returns the object for chaining
 	}//-43
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams)
-convenience function (wraps createjs.Tween)
-to animate an object target to position x, y in time milliseconds
-supports DUO - parameters or single object
-with optional ease, call back function and params (send an array, for instance)
-and props for TweenJS tween (see CreateJS documentation) defaults to override:true
-note, this is where you can set loop:true to loop animation
-added to props as a convenience are:
-loopWait:ms - how many ms to wait before looping (post animation wait)
-rewind:true - rewinds (reverses) animation
-rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
-rewindCall:function - calls function at middle of rewind animation
-rewindParams:obj - parameters to send rewind function
-count:Integer - if loop is true how many times it will loop - default 0 forever
-can set frames per second as fps parameter default 30 (works better on mobile)
-sequence defaults to 0 ms - set it to the delay time (ms) to run an array of targets
-for example, target = [a,b,c] and sequence = 1000
-would run the animation on a and then 1 second later, run the animation on b, etc.
-sequenceCall is the function that will be called when the sequence ends
-if the loop prop is set then sequenceCall would activate for each loop
-sequenceParams is the optional parameter sent to the sequenceCall function
-note - the ticker parameter has been removed - see zim.Ticker
-returns target for chaining
-to pause the move call pauseZimMove(true) on the target (or false to unpause)
-to stop the move call removeZimMove() on the target
---*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams) {
-		var sig = "target, x, y, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams";
-		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
-		z_d("44");
-		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams);
-	}//-44
-
-/*--
-zim.animate = function(target, obj, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams)
-convenience function (wraps createjs.Tween)
-to animate object obj properties in time milliseconds
-supports DUO - parameters or single object
-added convinience property of scale that does both scaleX and scaleY
-with optional ease, call back function and params (send an array, for instance)
-and props for TweenJS tween (see CreateJS documentation) defaults to override:true
-note, this is where you can set loop:true to loop animation
-added to props as a convenience are:
-loopWait:ms - how many ms to wait before looping (post animation wait)
-rewind:true - rewinds (reverses) animation
-rewindWait:ms - milliseconds to wait in the middle of the rewind (default 0 ms)
-rewindCall:function - calls function at middle of rewind animation
-rewindParams:obj - parameters to send rewind function
-count:Integer - if loop is true how many times it will loop - default 0 forever
-fps has been removed - set this on zim.Ticker.setFPS(mobile, desktop)
-sequence defaults to 0 ms - set it to the delay time (ms) to run an array of targets
-for example, target = [a,b,c] and sequence = 1000
-would run the animation on a and then 1 second later, run the animation on b, etc.
-sequenceCall is the function that will be called when the sequence ends
-if the loop prop is set then sequenceCall would activate for each loop
-sequenceParams is the optional parameter sent to the sequenceCall function
-note - the ticker parameter has been removed - see zim.Ticker
-returns target for chaining
-to pause the animation call pauseZimAnimate(true) on the target (or false to unpause)
-to stop the animation call removeZimAnimate() on the target
---*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams) {
-
-		var sig = "target, obj, time, ease, call, params, wait, props, sequence, sequenceCall, sequenceParams";
-		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
-		z_d("45");
-		// handle multiple targets first if there is an array
-		// this just recalls the animate function for each element delayed by the sequence parameter
-		if (zot(sequence)) sequence = 0;
-		if (target instanceof Array) {
-			var currentTarget = 0;
-			for (var i=0; i<target.length; i++) {
-				-function () { // closure to store num (i) for timeout
-					var num = i;
-					setTimeout(function() {
-						var t =	target[currentTarget];
-						currentTarget++;
-						zim.animate(t, obj, time, ease, call, params, wait, zim.copy(props));
-						if (num == target.length-1 && sequenceCall) {
-							// calculate tween time
-							var duration = ((time)?time:1000) + ((wait)?wait:0);
-							if (props && props.rewind) {
-								duration += ((time)?time:1000) + ((props.rewindWait)?props.rewindWait:0);
-							}
-							setTimeout(function(){
-								sequenceCall(sequenceParams);
-							}, duration);
-						}
-					}, sequence*i);
-				}();
-			}
-			return;
-		}
-
-		// original animate functionality
-
-		if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
-
-		var t = time;
-		if (zot(t)) t = 1000;
-		if (zot(ease)) ease = "quadInOut";
-		if (zot(wait)) wait = 0;
-		if (zot(props)) props = {override: true};
-		if (zot(params)) params = target;
-		if (!zot(obj.scale)) {
-			obj.scaleX = obj.scaleY = obj.scale;
-			delete obj.scale;
-		}
-
-		var tween;
-		if (props.loop) {
-			if (!zot(props.count)) {
-				var count = props.count;
-				delete props.count;
-				var currentCount = 1;
-			}
-		}
-		var wait3 = 0;
-		if (props.loopWait) {
-			wait3 = props.loopWait;
-			delete props.loopWait;
-		}
-		if (props.rewind) {
-			// flip second ease
-			if (ease) {
-				// backIn backOut backInOut
-				var ease2 = ease;
-				if (ease2.indexOf("InOut") == -1) {
-					if (ease2.indexOf("Out") != -1) {
-						ease2 = ease2.replace("Out", "In");
-					} else if (ease2.indexOf("In") != -1) {
-						ease2 = ease2.replace("In", "Out");
-					}
-				}
-			}
-			var obj2 = {}; var wait2 = 0;
-			for (var i in obj) {
-				obj2[i] = target[i];
-			}
-			delete props.rewind;
-			if (props.rewindWait) {
-				wait2 = props.rewindWait;
-				delete props.rewindWait; // not a createjs prop so delete
-			}
-			if (props.rewindCall) {
-				var call2 = props.rewindCall;
-				var params2 = props.rewindParams;
-				if (zot(params2)) params2 = target;
-				delete props.rewindCall;
-				delete props.rewindParams;
-				tween = target.zimTween = createjs.Tween.get(target, props)
-					.wait(wait)
-					.to(obj, t, createjs.Ease[ease])
-					.call(rewindCall)
-					.wait(wait2)
-					.to(obj2, t, createjs.Ease[ease2])
-					.call(doneAnimating)
-					.wait(wait3);
-			} else {
-				tween = target.zimTween = createjs.Tween.get(target, props)
-					.wait(wait)
-					.to(obj, t, createjs.Ease[ease])
-					.wait(wait2)
-					.to(obj2, t, createjs.Ease[ease2])
-					.call(doneAnimating)
-					.wait(wait3);
-			}
-		} else {
-			tween = target.zimTween = createjs.Tween.get(target, props)
-				.wait(wait)
-				.to(obj, t, createjs.Ease[ease])
-				.call(doneAnimating)
-				.wait(wait3);
-		}
-
-		var zimTicker = target.zimTicker = zim.Ticker.add(function(){}, target.getStage());
-
-		function doneAnimating() {
-			if (call && typeof call == 'function') {(call)(params);}
-			if (props.loop) {
-				if (count > 0) {
-					if (currentCount < count) {
-						currentCount++;
-						return;
-					}
-				} else {
-					return;
-				}
-			}
-			tween.setPaused(true);
-			setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
-		}
-		function rewindCall() {
-			if (call2 && typeof call2 == 'function') {(call2)(params2);}
-		}
-        target.stopZimAnimate = target.stopZimMove = function() {
-            createjs.Tween.removeTweens(target);
-            setTimeout(function(){zim.Ticker.remove(target.zimTicker);},200);
-        }
-        target.pauseZimAnimate = target.pauseZimMove = function(v) {
-            if (zot(v)) v = true;
-            if (v) {
-                target.zimTween.setPaused(true);
-     			setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
-            } else {
-                target.zimTween.setPaused(false);
-     			zim.Ticker.add(zimTicker, target.getStage());
-            }
-
-        }
-		return target;
-	}//-45
-
-/*--
 zim.fit = function(obj, left, top, width, height, inside)
+
+fit
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 scale an object to fit inside (or outside) a rectangle and center it
 actually scales and positions the object
 object must have bounds set (setBounds())
-supports DUO - parameters or single object
-if only the object is passed in then if fits to the stage
-the inside parameter defaults to true and fits the object inside the bounds
-if inside is false then it fits the object around the bounds
-in both cases the object is centered
-returns an object with the new and old details:
+
+EXAMPLE
+zim.fit(circle, 100, 100, 200, 300); // fits and centers
+
+OR with ZIM 4TH method
+circle.fit(); // fits circle and centers on stage
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object to fit to the rectangle
+left, top, width, height - (default stage dimensions) the rectangle to fit
+inside - (default true) fits the object inside the rectangle
+	if inside is false then it fits the object around the bounds
+	in both cases the object is centered
+
+RETURNS an Object literal with the new and old details (bX is rectangle x, etc.):
 {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height}
 --*///+46
 	zim.fit = function(obj, left, top, width, height, inside) {
@@ -2042,14 +3112,34 @@ returns an object with the new and old details:
 
 /*--
 zim.outline = function(obj, color, size)
+
+outline
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 for testing purposes
 draws a rectangle around the bounds of obj (adds rectangle to the objects parent)
 draws a cross at the origin of the object (0,0) where content will be placed
 draws a circle at the registration point of the object (where it will be placed in its container)
 these three things could be in completely different places ;-)
-supports DUO - parameters or single object
-returns the shape if you want to remove it: obj.parent.removeChild(returnedShape);
-will not be resized - really just to use while building and then comment it out or delete it
+
+NOTE: will not subsequently be resized - really just to use while building and then comment it out or delete it
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+zim.center(circle, stage);
+// show registration and origin at center and bounding box around outside
+zim.outline(circle);
+
+OR with ZIM 4TH method
+circle.outline();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object to outline (can be transformed - scaled or rotated)
+color - (default brown) the color of the outline
+size - (default 2) the stroke size of the outline
+RETURNS the shape if you want to remove it: obj.parent.removeChild(returnedShape);
 --*///+47
 	zim.outline = function(obj, color, size) {
 
@@ -2108,12 +3198,33 @@ will not be resized - really just to use while building and then comment it out 
 
 /*--
 zim.centerReg = function(obj, container, add, index)
+
+centerReg
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 centers the registration point on the bounds - obj must have bounds set
-supports DUO - parameters or single object
-if container is specified then sets obj x and y to half the width and height of container
-add defaults to true and will add the child to the container - set to false if you do not want this
-index is the optional index with 0 being the bottom of the container - leave off to add to top
-just a convenience function - returns obj for chaining
+if a container is provided it adds the object to the container
+a convenience function for both registration points at once
+also see zim.center() for centering without changing the registration point
+
+EXAMPLE
+var rect = new zim.Rectangle(100, 100, "blue");
+zim.centerReg(rect, stage); // centers registration, centers and adds to stage
+zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+
+OR with ZIM 4TH method
+rect.centerReg(stage);
+rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object to set the regX and regY to the center
+container - (default null) centers the object on and adds to the container
+add - (default true) set to false to only center the object on the container
+index - (default null) if provided will addChildAt the object at the index (0 being bottom)
+
+RETURNS obj for chaining
 --*///+48
 	zim.centerReg = function(obj, container, add, index) {
 
@@ -2130,12 +3241,34 @@ just a convenience function - returns obj for chaining
 
 /*--
 zim.center = function(obj, container, add, index)
+
+center
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 centers the object on the container - obj and container must have bounds set
-supports DUO - parameters or single object
-add defaults to true and will add the child to the container - set to false if you do not want this
-index is the optional index with 0 being the bottom of the container - leave off to add to top
-similar to zim.centerReg but does not center the registration point
-returns obj for chaining
+will default to adding the object to the container
+also see zim.centerReg() for centering registration point at same time
+
+EXAMPLE
+var rect = new zim.Rectangle(100, 100, "blue");
+zim.center(rect, stage); // centers and adds to stage
+// the below animation will be around the registration point at the corners
+// this is usually not desired - see zim.centerReg() when rotating and scaling
+zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+
+OR with ZIM 4TH method
+rect.center(stage);
+rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object to center
+container - centers the object on and adds to the container
+add - (default true) set to false to only center and not add the object to the container
+index - (default null) if provided will addChildAt the object at the index (0 being bottom)
+
+RETURNS obj for chaining
 --*///+48.1
 	zim.center = function(obj, container, add, index) {
 
@@ -2144,6 +3277,9 @@ returns obj for chaining
 		z_d("48.1");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim.center(): please provide object with bounds set"); return;}
 		if (zot(container) || !container.getBounds || !container.getBounds()) {zog("zim.center(): please provide container with bounds set"); return;}
+
+		// get the container bounds before adding the object
+		var cB = container.getBounds();
 
 		if (zot(add)) add = true;
 		if (add && container.addChild) {
@@ -2167,7 +3303,6 @@ returns obj for chaining
 		var loc = zim.boundsToGlobal(container, glob, true);
 
 		// the positions are all in the container coordinate so do the calculation
-		var cB = container.getBounds();
 		obj.x = cB.x + cB.width/2 - loc.width/2  + (reg.x-loc.x);
 		obj.y = cB.y + cB.height/2 - loc.height/2  + (reg.y-loc.y);
 
@@ -2180,10 +3315,29 @@ returns obj for chaining
 	}//-48.1
 
 /*--
-zim.place = function(obj)
+zim.place = function(obj, id)
+
+place
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
 sets the object to drag and logs to the console the x and y
 this is for when building you can move an object around to position it
-and then once positioned just set the reported x and y and delete the place call
+then when positioned, look at the console for the positioning code
+in your code, set the reported x and y and delete the place call
+
+EXAMPLE
+zim.place(circle, "circle"); // lets you drag circle around - then see console
+
+OR with ZIM 4TH method
+circle.place("circle");
+END EXAMPLE
+
+PARAMETERS
+obj - object to place
+id - (default null) the name of the object so that the log gives you complete code
+
+RETURNS undefined
 --*///+49
 	zim.place = function(obj, id) {
 		z_d("49");
@@ -2197,10 +3351,31 @@ and then once positioned just set the reported x and y and delete the place call
 
 /*--
 zim.expand = function(obj, padding, paddingVertical)
-adds a createjs hitArea to an object with an extra padding of padding (default 20)
-or if padding vertical is supplied then the padding parameter is for horizontal padding
+
+expand
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+adds a createjs hitArea to an object with an extra padding of padding
 good for making mobile interaction better on labels, buttons, etc.
-returns object for chaining
+
+EXAMPLE
+var circle = new zim.Circle(10, "red");
+zim.center(circle, stage);
+zim.expand(circle); // makes hit area bigger
+circle.on("click", function(){zog("yes");});
+
+OR with ZIM 4TH method
+circle.center(stage);
+circle.expand();
+END EXAMPLE
+
+PARAMETERS
+obj - object on which you wish to expand the hit area
+padding - (default 20) how many pixels to expand bounds
+paddingVertical - (default null) the vertical padding (making padding for horizontal)
+
+RETURNS obj for chaining
 --*///+50
 	zim.expand = function(obj, padding, paddingVertical) {
 		z_d("50");
@@ -2214,37 +3389,103 @@ returns object for chaining
 		return obj;
 	}//-50
 
-	/*--
-	zim.mask = function(obj, mask)
-	specifies a mask for an object - the object can be any display object
-	the mask can be a CreateJS Shape or a ZIM Rectangle, Circle or Triangle
-	returns the mask which can then be animated using ZIM move() or animate()
-	to drag the mask, drag some other object with ZIM drag() and then in that object's pressmove event,
-	set the x and y position of the mask (returned from the mask() function)
-	to the x and y position of the object you are dragging and update stage
-	this was added because it is nice to use positioned ZIM shapes (which are containers) as masks
-	and yet, ony CreateJS Shapes can be used as masks
-	and you often have to transform them properly which can be confusing
-	--*///+50.1
-		zim.mask = function(obj, mask) {
-			z_d("50.1");
-			if (zot(obj) || zot(mask)) {zog("zim create - mask(): please provide obj and mask"); return;}
-			var m;
-			if (mask.shape) { // zim.Rectangle, Circle or Triangle
-				m = mask.shape.clone();
-				m.x = mask.x;
-				m.y = mask.y;
-				m.rotation = mask.rotation;
-				m.scaleX = mask.scaleX;
-				m.scaleY = mask.scaleY;
-				mask.addChildAt(m,0);
-				m.alpha = 0;
-			} else {
-				m = mask;
-			}
-			obj.mask = m;
-			return m;
-		}//-50.1
+/*--
+zim.mask = function(obj, mask)
+
+mask
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+specifies a mask for an object - the object can be any display object
+the mask can be a ZIM (or CreateJS) Shape or a ZIM Rectangle, Circle or Triangle
+returns the mask which can then be animated using ZIM move() or animate()
+this was added because it is nice to use positioned ZIM shapes (which are containers) as masks
+and yet, ony proper Shapes can be used as masks
+and you often have to transform them properly which can be confusing
+so mask will make a clone of the shape of the zim shape and set its alpha to 0
+
+NOTE: the mask you pass in can still be seen but you can set its alpha to 0
+just watch, if you want to interact with the mask it cannot have 0 alpha
+unless you provide a hit area with zim.expend() for instance (use 0 for padding)
+
+EXAMPLE
+var label = new zim.Label("BIG", 200, null, "white");
+zim.center(label, stage);
+var rect = new zim.Rectangle(200,100,"black");
+zim.center(rect, stage).alpha = 0;
+zim.mask(label, rect);
+zim.drag(label);
+
+OR with ZIM 4TH method
+var rect = new zim.Rectangle(200,100,"black");
+rect.center(stage).alpha = 0;
+var label = new zim.Label("BIG", 200, null, "white");
+label.center(stage).drag().mask(rect);
+// not sure we really recommend such dramatic chaining...
+END EXAMPLE
+
+NOTE: to drag something, the alpha cannot be 0
+so we can use zim.expand(rect, 0) to assign a hit area
+then we can drag even if the alpha is 0 (or set the alpha to .01)
+
+EXAMPLE
+var label = new zim.Label("BIG", 200, null, "white");
+zim.center(label, stage);
+var rect = new zim.Rectangle(200,100,"black");
+zim.expand(rect, 0); // adds a hit area to rect so we can drag alpha 0
+zim.center(rect, stage).alpha = 0;
+zim.mask(label, rect);
+zim.drag(rect);
+
+OR with ZIM 4TH method
+rect.expand(0);
+rect.center(stage).alpha = 0;
+label.mask(rect);
+rect.drag();
+END EXAMPLE
+
+NOTE: drag works specially with zim shapes to make this work
+otherwise, if you want to reposition your mask
+then save the return value of the mask call in a variable
+and move the mask object using that variable
+or use a zim.Shape or createjs.Shape directly to avoid this issue
+
+EXAMPLE
+var mask = zim.mask(label, rect);
+mask.x += 100;
+// note: rect.x += 100 will not work
+// because the mask is inside the rect and does not change its x
+// so you would animate this mask too rather than the rect:
+zim.animate(mask, {scale:.5}, 500);
+END EXAMPLE
+
+PARAMETERS
+obj - the object to mask
+mask - the object that have its shape be the mask
+
+RETURNS the mask shape (different than the mask if using ZIM shapes)
+--*///+50.1
+	zim.mask = function(obj, mask) {
+		z_d("50.1");
+		if (zot(obj) || zot(mask)) {zog("zim create - mask(): please provide obj and mask"); return;}
+		var m;
+		if (mask.shape) { // zim.Rectangle, Circle or Triangle
+			mask.zimMask = m = mask.shape.clone();
+			m.x = mask.x;
+			m.y = mask.y;
+			m.rotation = mask.rotation;
+			m.scaleX = mask.scaleX;
+			m.scaleY = mask.scaleY;
+			m.skewX = mask.skewX;
+			m.skewY = mask.skewY;
+			mask.addChildAt(m,0);
+			m.alpha = 0;
+		} else {
+			m = mask;
+		}
+		obj.mask = m;
+		return m;
+	}//-50.1
 
 
 ////////////////  ZIM BUILD  //////////////
@@ -2257,6 +3498,10 @@ returns object for chaining
 /*--
 zim.OPTIMIZE
 
+OPTIMIZE
+zim constant
+
+DESCRIPTION
 a setting that relates to how stage.update() is used by the components
 default is false which means some components will update the stage automatically
 for instance, the Slider will update the stage so that you can see the knob slide
@@ -2272,59 +3517,698 @@ but you were probably doing things in these events and updating anyway!
 just be careful - you might be testing a checkbox and it won't check...
 so it takes some getting used to running in optimized mode
 
-Components affected by OPTIMIZE:
+EXAMPLE
+// add this to the top of your script
+zim.OPTIMIZE = true;
+var slider = new zim.Slider();
+slider.center(stage);
+// will not see the slider operate (aside from rolling over button)
+// unless you call stage.update() in the change event
+slider.on("change", function() {
+	// do your code
+	stage.update(); // now will see the slider operate
+});
+END EXAMPLE
+
+components affected by OPTIMIZE:
 Label, Button, Checkbox, RadioButton, Pane, Stepper, Slider, Tabs
 
-OPTIMIZE set to true also affects the zim Ticker
+OPTIMIZE set to true also affects the ZIM Ticker
 for functions like move, animate, drag, Scroller, Parallax
 See zim.Ticker as you may have to set zim.Ticker.update = true;
-
-For mobile, you should set the mouseover parameter of zim.Frame to false
-and, as mentioned, set zim.OPTIMIZE = true at the top of your script
---*/
-
+--*///+50.2
 zim.OPTIMIZE = false;
-
+//-50.2
 
 /*--
 zim.ACTIONEVENT
 
+ACTIONEVENT
+zim constant
+
+DESCRIPTION
 a setting that specifies the event type to trigger many of the components
 default is "mousedown" which is more responsive on mobile
 setting the constant to anything else, will cause the components to use "click"
 
 for instance, with the default settings, the following components will act on mousedown
-Button, CheckBox, RadioButtons, Pane, Stepper and Tabs
---*/
+CheckBox, RadioButtons, Pane, Stepper and Tabs
 
+EXAMPLE
+// put this at the top of your code
+zim.ACTIONEVENT = "click";
+var checkBox = new zim.CheckBox();
+checkBox.center(stage);
+// note it now operates on mouseup (click)
+// the default ACTIONEVENT is mousedown
+END EXAMPLE
+--*///+50.3
 zim.ACTIONEVENT = "mousedown";
+//-50.3
 
+/*--
+zim.addDisplayMembers = function(obj)
+
+addDisplayMembers
+zim function
+
+DESCRIPTION
+function to add display methods like drag, hitTests, move, animate, center, etc. to an object
+also adds read only width and height properties that call getBounds()
+the term "members" is used because we are adding both methods and properties
+all the ZIM 4TH display objects come with these members
+BUT... the native CreateJS display objects do not
+when we import assets from Adobe Animate, these are native CreateJS objects
+so we can use addDisplayMembers to add these members to a CreateJS Shape, Container, etc.
+
+ZIM uses addDisplayMembers internally to add the members
+to the ZIM shapes and components (Rectangle, Circle, Triangle, Label, Button, etc.)
+as applied through the ZIM Container inheritance
+as well as to the ZIM wrappers for CreateJS Container, Shape, Sprite, MovieClip objects
+the display methods call the original ZIM functions
+passing the extra object parameter as the first parameter
+or if DUO is being used then adds the object to the configuration object
+
+EXAMPLE
+var shape = new createjs.Shape();
+shape.graphics.beginFill("red").drawRect(0,0,200,200);
+shape.setBounds(0,0,200,200); // need to set bounds to center
+zim.addDisplayMembers(shape); // add methods like center, drag, etc.
+shape.center(stage); // ZIM 4TH method format
+stage.update();
+
+// note: even without using zim.addDisplayMembers()
+// we can use the traditional zim.center() function
+var shape = new createjs.Shape();
+shape.graphics.beginFill("red").drawRect(0,0,200,200);
+shape.setBounds(0,0,200,200); // need to set bounds to center
+zim.center(shape, stage); // use the zim function rather than the method
+stage.update();
+
+// of course we can just use a zim.Shape
+// then the methods like center, drag, etc. are already added
+var shape = new zim.Shape(200, 200); // passing params sets bounds
+shape.graphics.beginFill("red").drawRect(0,0,200,200);
+shape.center(stage);
+stage.update();
+
+// in this case, we may have well used a zim.Rectangle ;-)
+var shape = new zim.Rectangle(200, 200, "red");
+shape.center(stage);
+stage.update();
+END EXAMPLE
+
+PARAMETERS
+obj - the object to add the methods and properties to (probably a CreateJS display object)
+
+RETURNS the object for chaining
+--*///+50.4
+	zim.displayMethods = {
+		drag:function(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.drag(arguments[0]);}
+			else {return zim.drag(this, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens);}
+		},
+		noDrag:function() {
+			return zim.noDrag(this);
+		},
+		dragRect:function(rect) {
+			return zim.dragRect(this, rect);
+		},
+		setSwipe:function(swipe) {
+			return zim.setSwipe(this, swipe);
+		},
+		hitTestPoint:function(x, y) {
+			return zim.hitTestPoint(this, x, y);
+		},
+		hitTestReg:function(b) {
+			return zim.hitTestReg(this, b);
+		},
+		hitTestRect:function(b, num) {
+			return zim.hitTestRect(this, b, num);
+		},
+		hitTestCircle:function(b, num) {
+			return zim.hitTestCircle(this, b, num);
+		},
+		hitTestBounds:function(b, boundsShape) {
+			return zim.hitTestBounds(this, b, boundsShape);
+		},
+		boundsToGlobal:function(rect, flip) {
+			return zim.boundsToGlobal(this, rect, flip);
+		},
+		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
+			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
+		},
+		scale:function(scale) {
+			return zim.scale(this, scale);
+		},
+		scaleTo:function(boundObj, percentX, percentY, type) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
+			else {return zim.scaleTo(this, boundObj, percentX, percentY, type);}
+		},
+		move:function(x, y, time, ease, call, params, wait, props, fps, sequence) {
+			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
+			else {return zim.move(this, x, y, time, ease, call, params, wait, props, fps, sequence);}
+		},
+		animate:function(obj, time, ease, call, params, wait, props, fps, sequence) {
+			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
+			else {return zim.animate(this, obj, time, ease, call, params, wait, props, fps, sequence);}
+		},
+		fit:function(left, top, width, height, inside) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.fit(arguments[0]);}
+			else {return zim.fit(this, left, top, width, height, inside);}
+		},
+		outline:function(color, size) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.outline(arguments[0]);}
+			else {return zim.outline(this, color, size);}
+		},
+		centerReg:function(container, add, index) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.centerReg(arguments[0]);}
+			else {return zim.centerReg(this, container, add, index);}
+		},
+		center:function(container, add, index) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.center(arguments[0]);}
+			else {return zim.center(this, container, add, index);}
+		},
+		place:function() {
+			return zim.place(this);
+		},
+		expand:function(padding, paddingVertical) {
+			return zim.expand(this, padding, paddingVertical);
+		},
+		mask:function(mask) {
+			return zim.mask(this, mask);
+		},
+		cloneProps:function(clone) { // from CreateJS DisplayObject
+			clone.alpha = this.alpha;
+			clone.mouseEnabled = this.mouseEnabled;
+			clone.tickEnabled = this.tickEnabled;
+			clone.name = this.name;
+			clone.regX = this.regX;
+			clone.regY = this.regY;
+			clone.rotation = this.rotation;
+			clone.scaleX = this.scaleX;
+			clone.scaleY = this.scaleY;
+			clone.shadow = this.shadow;
+			clone.skewX = this.skewX;
+			clone.skewY = this.skewY;
+			clone.visible = this.visible;
+			clone.x  = this.x;
+			clone.y = this.y;
+			clone.compositeOperation = this.compositeOperation;
+			clone.snapToPixel = this.snapToPixel;
+			clone.filters = this.filters==null?null:this.filters.slice(0);
+			clone.mask = this.mask;
+			clone.hitArea = this.hitArea;
+			clone.cursor = this.cursor;
+			clone._bounds = this._bounds;
+			return clone;
+		},
+		cloneChildren:function(clone) {
+			if (clone.children.length) clone.removeAllChildren();
+			var arr = clone.children;
+			for (var i=0, l=this.children.length; i<l; i++) {
+				var childClone = this.children[i].clone();
+				childClone.parent = clone;
+				arr.push(childClone);
+			}
+			return clone;
+		}
+	}
+
+	zim.addDisplayMembers = function(obj) {
+		z_d("50.4");
+		for (var i in zim.displayMethods) {
+			if (zim.displayMethods.hasOwnProperty(i)) {
+				obj[i] = zim.displayMethods[i];
+			}
+		}
+		Object.defineProperty(obj, 'width', {
+			get: function() {
+				// that.setBounds(null);
+				var b = this.getBounds();
+				return (zot(b))?null:b.width;
+			},
+			set: function(value) {
+				zog("width is read only - use setBounds() to set");
+			}
+		});
+		Object.defineProperty(obj, 'height', {
+			get: function() {
+				// that.setBounds(null);
+				var b = this.getBounds();
+				return (zot(b))?null:b.height;
+			},
+			set: function(value) {
+				zog("height is read only - use setBounds() to set");
+			}
+		});
+		return obj;
+	}//-50.4
+
+/*--
+zim.Container = function(width, height)
+
+Container
+zim class - extends a createjs.Container
+
+DESCRIPTION
+a Container object is used to hold other display objects or other containers
+you can then move or scale the container and all objects inside will move or scale
+you can apply an event on a container and use the target property of the event object
+to access the object in the container that caused the event
+or use the currentTarget property of the event object to access the container itself
+containers do not have bounds unless all items in the container have bounds
+you can manually set the bounds with setBounds(x,y,w,h) - read the CreateJS docs
+manually set bounds will not update automatically unless you setBounds(null)
+
+NOTE: all the ZIM shapes and components extend the zim.Container
+this means all shapes and components inherit the methods and properties below
+and indeed, the zim.Container inherits all the createjs.Container methods and properties
+see the CreateJS documentation for x, y, alpha, rotation, on(), addChild(), etc.
+
+EXAMPLE
+var container = new zim.Container();
+stage.addChild(container);
+container.x = 100; container.y = 100;
+
+var rect = new zim.Rectangle(100, 100, "blue");
+container.addChild(rect); // add rectangle to container
+var circle = new zim.Circle(40, "red");
+circle.center(container) // add the circle to the container and center
+
+container.drag(); // will drag either the rectangle or the circle
+container.drag({currentTarget:true}); // will drag both the rectangle and the circle
+
+// below will reduce the alpha of the object in the container that was clicked (target)
+container.on("click" function(e) {e.target.alpha = .5; stage.update();})
+// below will reduce the alpha of all the objects in the container (currentTarget)
+container.on("click" function(e) {e.currentTarget.alpha = .5; stage.update();})
+END EXAMPLE
+
+PARAMETERS
+width - (default null) the width of the container
+height - (default width) the height of the container
+	if there is a width supplied but no height then the height is set to the width
+	setting these run container.setBounds(0,0,width,height);
+	you should be able to container.setBounds(null) to go back to auto calculation
+	but there is currently a bug in CreateJS - it will be fixed
+	so for now, if you ever want to auto calculate, do not set width and height
+
+**** this class has all the DISPLAY METHODS introduced in ZIM 4TH
+**** the methods below are available in ZIM Rectangle, Circle, Triangle
+**** as well as all components like: Label, Button, Slider, Dial, Tab, Pane, etc.
+**** as well as the ZIM display wrappers: Container, Shape, Sprite, MovieClip and Bitmap
+**** the addition of methods and display wrappers added 3.4K to the file size
+
+METHODS
+* see the ZIM Create Module functions for full documentation
+* see the USAGE section that follows this list of methods
+* most methods accept ZIM DUO (except for 0 or 1 parameter functions like the hitTests)
+
+drag(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens)
+noDrag()
+dragRect(rect)
+setSwipe(swipe)
+hitTestPoint(x, y)
+hitTestReg(b)
+hitTestRect(b, num)
+hitTestCircle(b, num)
+hitTestBounds(b, boundsShape)
+boundsToGlobal(rect, flip)
+hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props)
+animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props)
+scale(scale)
+scaleTo(boundObj, percentX, percentY, type)
+fit(left, top, width, height, inside)
+outline(color, size)
+centerReg(container, add, index)
+center(container, add, index)
+place(id)
+expand(padding, paddingVertical)
+mask(mask)
+
+USAGE
+the above list of methods work on all objects that extend zim.Container
+such as ZIM shapes and components (Label, Button, Slider, Dial, etc.)
+also other ZIM display objects can use these methods (Shape, Bitmap, MovieClip, Sprite)
+
+EXAMPLE
+var circle = new zim.Circle();
+circle.center(stage); // add circle to stage and center
+circle.drag();
+
+// alternatively, we can still use the traditional ZIM functions:
+zim.center(circle, stage);
+zim.drag(circle);
+
+// ZIM DUO works the same way as before - eg.
+circle.drag({slide:true});
+END EXAMPLE
+
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
+
+SPECIFIC METHODS
+clone() - clones all the container, its properties and all its children
+
+PROPERTIES
+width, height - read only - calculated from getBounds()
+--*///+50.5
+	zim.Container = function(width, height) {
+		z_d("50.5");
+		function makeContainer() {
+			zim.addDisplayMembers(this);
+			if (!zot(width)) {
+				if (zot(height)) height = width;
+				this.setBounds(0,0,width,height);
+			}
+			this.clone = function() {
+				return this.cloneChildren(this.cloneProps(new zim.Container()));
+			}
+		}
+
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeContainer.prototype = new createjs.Container();
+		makeContainer.prototype.constructor = zim.Container;
+		return new makeContainer();
+
+	}//-50.5
+
+/*--
+zim.Shape = function(width, height)
+
+Shape
+zim class - extends a createjs.Shape
+
+DESCRIPTION
+ZIM Shape lets you draw dynamic shapes beyond the ZIM provided shapes
+you make a new shape object and then draw in its graphics property
+using similar commands to the HTML Canvas commands (and Flash Bitmap drawing)
+see the CreateJS Easel Shapes and Graphics docs:
+http://www.createjs.com/docs/easeljs/classes/Graphics.html
+
+EXAMPLE
+var shape = new zim.Shape();
+shape.graphics.fill("red").drawRect(0,0,200,100);
+// similar to zim.Rectangle(200, 100, "Red");
+
+// we can draw lines, etc.
+var g = shape.graphics; // shorter reference to graphics object
+g.stroke("blue").moveTo(200,200).lineTo(300,300);
+
+// we can continue to draw as much as we want in the same shape
+// there is also a tiny API with shortcuts: stroke, fill, etc.
+g.s("green").f("red").mt(500,500).qt(550,500,600,500);
+END EXAMPLE
+
+PARAMETERS
+width - (default null) the width of the container
+height - (default width) the height of the container
+	if there is a width supplied but no height then the height is set to the width
+	setting these run container.setBounds(0,0,width,height);
+	you should be able to container.setBounds(null) to go back to auto calculation
+	but there is currently a bug in CreateJS - it will be fixed
+	so for now, if you ever want to auto calculate, do not set width and height
+graphics - (default null) a CreateJS Graphics instance (see CreateJS docs)
+	or just use the graphics property of the shape object (like usual)
+
+METHODS
+clone(recursive) - makes a copy of the shape
+	recursive defaults to true so copy will have own copy of graphics
+	set recursive to false to have clone share graphic property
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Shape properties, methods and events
+**** for example: on(), setBounds(), cache(), x, y, alpha, rotation
+
+PROPERTIES
+width, height - read only - calculated from getBounds()
+--*///+50.6
+	zim.Shape = function(width, height, graphics) {
+		z_d("50.6");
+		function makeShape() {
+			var that = this;
+			zim.addDisplayMembers(this);
+			if (!zot(width)) {
+				if (zot(height)) height = width;
+				this.setBounds(0,0,width,height);
+			}
+			this.clone = function(recursive) {
+				if (zot(recursive)) recursive = true;
+				var c = that.cloneProps(new zim.Shape(graphics));
+				if (recursive) c.graphics = that.graphics.clone();
+				else c.graphics = that.graphics;
+				return c;
+			}
+		}
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeShape.prototype = new createjs.Shape(graphics);
+		makeShape.prototype.constructor = zim.Shape;
+		return new makeShape();
+
+	}//-50.6
+
+/*--
+zim.Bitmap = function(image, id)
+
+Bitmap
+zim class - extends a createjs.Bitmap
+
+DESCRIPTION
+makes a Bitmap object from an image
+it is best to use the loadAssets() method of ZIM Frame
+to preload the image and then use the asset() method to access the Bitmap
+see the ZIM Frame class and asset example on the ZIM Frame page of templates
+
+EXAMPLE
+var frame = new zim.Frame();
+frame.on("ready", function() {
+	var stage = frame.stage;
+	frame.loadAssets("logo.jpg");
+	frame.on("complete", function() {
+		var logo = frame.asset("logo.jpg"); // logo is a zim.Bitmap
+		logo.center(stage);
+		stage.update();
+	});
+});
+END EXAMPLE
+
+PARAMETERS
+image - an HTML image URL (may not load right away - see zim.Frame loadAssets)
+id - an optional id
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
+
+PROPERTIES
+width, height - read only - calculated from getBounds()
+id - the filename used in the frame.loadAssets()
+	if you add the path the file name then it will be included with the id
+	if you add the path with the path parameter, it will not be included with the id
+--*///+50.7
+	zim.Bitmap = function(image, id) {
+		z_d("50.7");
+		function makeBitmap() {
+			this.id = id;
+			zim.addDisplayMembers(this);
+			this.clone = function() {
+				return this.cloneProps(new zim.Bitmap(image, id));
+			}
+		}
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeBitmap.prototype = new createjs.Bitmap(image);
+		makeBitmap.prototype.constructor = zim.Bitmap;
+		return new makeBitmap();
+
+	}//-50.7
+
+/*--
+zim.Sprite = function(spritesheet)
+
+Sprite
+zim class - extends a createjs.Sprite
+
+DESCRIPTION
+a Sprite plays an animation of a CreateJS SpriteSheet object
+which is a set of images layed out in one file
+see the CreateJS Easel Sprite and SpriteSheet docs:
+http://www.createjs.com/docs/easeljs/classes/Sprite.html
+http://www.createjs.com/docs/easeljs/classes/SpriteSheet.html
+
+EXAMPLE
+// inside zim.Frame template
+// robot.png is a sprite sheet made by ZOE based on a Flash swf
+// you can also make your own with Photoshop or Texture Packer
+
+frame.loadAssets("robot.png");
+frame.on("complete", function() {
+
+	// using ZOE to export swf animation to spritesheet data
+	// spritesheet data uses the image name, not the Bitmap itself
+	var image = frame.asset("robot.png").image;
+	var spriteData = {
+		"framerate":24,
+		"images":[image],
+		"frames":[[0, 0, 256, 256, 0, -54, -10], many more - etc.],
+		"animations":{}
+	};
+
+	// create a createjs.SpriteSheet and then a zim.Sprite
+	var spriteSheet = new createjs.SpriteSheet(spriteData);
+	var animation = new zim.Sprite(spriteSheet);
+	animation.center(stage); // now can use ZIM 4TH on Sprite
+	animation.play();
+	zim.Ticker.always(stage);
+	zim.Ticker.setFPS(24);
+
+	// animation.stop();
+	// animation.gotoAndStop(5); // etc.
+});
+END EXAMPLE
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Sprite properties, methods and events
+**** for example: on(), setBounds(), addChild(), clone(), cache(), x, y, alpha, rotation
+
+PROPERTIES
+width, height - read only - calculated from getBounds()
+--*///+50.8
+	zim.Sprite = function(spriteSheet) {
+		z_d("50.8");
+		function makeSprite() {
+			zim.addDisplayMembers(this);
+			this.clone = function() {
+				return this.cloneProps(new zim.Sprite(spriteSheet));
+			}
+		}
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeSprite.prototype = new createjs.Sprite(spriteSheet);
+		makeSprite.prototype.constructor = zim.Sprite;
+		return new makeSprite();
+
+	}//-50.8
+
+/*--
+zim.MovieClip = function()
+
+MovieClip
+zim class - extends a createjs.MovieClip
+
+DESCRIPTION
+a MovieClip adds timelines to a Container
+the timelines are zim.move() or zim.animate() zimTween properties
+the zimTween property returns a CreateJS Tween object
+primarily made to support Adobe Animate MovieClip export
+*consider this experimental for the moment...
+
+EXAMPLE
+var movieClip = new zim.MovieClip();
+var circle = new zim.Circle(20, frame.blue);
+// circle needs to be on stage for zim.animate()
+// movieClip will add it to itself anyway
+stage.addChild(circle);
+
+// *not sure why time is messed up
+movieClip.timeline.addTween(circle.animate({obj:{scale:3}, time:100, rewind:true}).zimTween);
+movieClip.play();
+movieClip.center(stage);
+stage.on("stagemousedown", function() {
+	movieClip.paused = !movieClip.paused;
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+// from the CreateJS MovieClip docs: http://www.createjs.com/docs/easeljs/classes/MovieClip.html
+mode - (default "independent") or single_frame (based on startPosition) or synched (syncs to parent)
+startPosition - (default 0) the start position of the MovieClip (*could not get to work)
+loop - (default true) set to false not to loop
+labels - (default null) declare label property with position value
+	eg. {explode:20} to use with gotoAndPlay("explode") rather than gotoAndPlay(20)
+	*could not get labels to work either
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for MovieClip properties, methods and events
+**** for example: on(), setBounds(), addChild(), clone(), cache(), x, y, alpha, rotation
+
+PROPERTIES
+width, height - read only - calculated from getBounds()
+--*///+50.9
+	zim.MovieClip = function(mode, startPosition, loop, labels) {
+		var sig = "mode, startPosition, loop, labels";
+		var duo; if (duo = zob(zim.MovieClip, arguments, sig)) return duo;
+		z_d("50.9");
+		function makeMovieClip() {
+			zim.addDisplayMembers(this);
+			this.clone = function() {
+				return this.cloneProps(new zim.MovieClip(mode, startPosition, loop, labels));
+			}
+		}
+		// note the actual class is wrapped in a function
+		// because createjs might not have existed at load time
+		makeMovieClip.prototype = new createjs.MovieClip();
+		makeMovieClip.prototype.constructor = zim.MovieClip;
+		return new makeMovieClip(mode, startPosition, loop, labels);
+
+	}//-50.9
 
 /*--
 zim.Circle = function(radius, fill, stroke, strokeSize)
 
-Circle class
+Circle
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container (allows for ZIM HotSpots)
+DESCRIPTION
 makes a circle shape inside a container
-var circle = new zim.Circle(parameters);
 the registration and origin will be the center
 
-PARAMETERS: supports DUO - parameters or single object
-radius is the radius ;-)
-fill, stroke, strokeSize are optional
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+circle.center(stage);
+
+// or with 10 pixel grey stroke
+var circle = new zim.Circle(50, "red", "#666", 10);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+radius - (default 50) the radius ;-)
+fill - (default black) the fill color as any CSS color
+stroke - (default null) the stroke color
+strokeSize - (default 1 if stroke is set) the size of the stroke
 
 METHODS
-setFill(color)
-setStroke(color)
-setStrokeSize(size) - number
-clone() - makes a copy
+setFill(color) - changes the color of the fill (or see color property)
+setStroke(color) - changes the color of the stroke
+setStrokeSize(size) - the size of the stroke as a number
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), clone(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 shape - gives access to the circle shape
 color - get and set the fill color
-width and height - as expected or use getBounds()
-mouseChildren - set to false so  you do not drag the shape inside the circle
+width, height - read only - calculated from getBounds()
+mouseChildren - set to false so you do not drag the shape inside the circle
 if you nest things inside and want to drag them, will want to set to true
 --*///+51
 	zim.Circle = function(radius, fill, stroke, strokeSize) {
@@ -2351,10 +4235,7 @@ if you nest things inside and want to drag them, will want to set to true
 				var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
 			}
 			g.dc(0,0,radius);
-
-			this.width = radius*2;
-			this.height = radius*2;
-			this.setBounds(-radius,-radius,this.width,this.height);
+			this.setBounds(-radius,-radius,radius*2,radius*2);
 
 			this.setFill = function(c) {
 				if (zot(c)) return;
@@ -2379,48 +4260,62 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}
-			this.clone = function() {
-				return new zim.Circle(radius, fill, stroke, strokeSize);
-			}
 		}
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeCircle.prototype = new createjs.Container();
+		makeCircle.prototype = new zim.Container();
 		makeCircle.prototype.constructor = zim.Circle;
 		return new makeCircle();
 
 	}//-51
 
-
 /*--
 zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner, flatBottom)
 
-Rectangle class
+Rectangle
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 makes a rectangle shape inside a container
 var rectangle = new zim.Rectangle(parameters);
 the registration and origin will be top left
 mouseChildren is set to false so clicks return expected target (instead of shape in container)
 to use ZIM HotSpots inside rectangle then set rectangle's mouseChildren = true
 
-PARAMETERS: supports DUO - parameters or single object
-width, height
-fill, stroke, strokeSize are optional
-corner - round of corner default 0
-flatBottom - Boolean (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
+EXAMPLE
+var rect = new zim.Rectangle(200, 100, "blue");
+rect.center(stage);
+
+// or with rounded corners:
+var rect = new zim.Rectangle({width:200, height:100, fill:"blue", corner:20});
+
+// or with 2 pixel white stroke
+var rect = new zim.Rectangle(200, 100, "blue", "white", 2);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width, height - (default 100) the width and height ;-)
+fill - (default black) the fill color as any CSS color
+stroke - (default null) the stroke color
+strokeSize - (default 1 if stroke is set) the size of the stroke
+corner - (default 0) the round of corner
+flatBottom - (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
 
 METHODS
-setFill(color)
-setStroke(color)
-setStrokeSize(size) - number
-clone() - makes a copy
+setFill(color) - changes the color of the fill (or see color property)
+setStroke(color) - changes the color of the stroke
+setStrokeSize(size) - the size of the stroke as a number
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), clone(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 shape - gives access to the circle shape
 color - get and set the fill color
-width and height - as expected or use getBounds()
+width, height - read only - calculated from getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the rectangle
 if you nest things inside and want to drag them, will want to set to true
 --*///+52
@@ -2461,9 +4356,7 @@ if you nest things inside and want to drag them, will want to set to true
 				g.r(0,0,width,height);
 			}
 
-			this.width = width;
-			this.height = height;
-			this.setBounds(0,0,this.width,this.height);
+			this.setBounds(0,0,width,height);
 
 			this.setFill = function(c) {
 				if (zot(c)) return;
@@ -2488,49 +4381,67 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}
-			this.clone = function() {
-				return new zim.Rectangle(width, height, fill, stroke, strokeSize, corner, flatBottom);
-			}
 		}
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeRectangle.prototype = new createjs.Container();
+		makeRectangle.prototype = new zim.Container();
 		makeRectangle.prototype.constructor = zim.Rectangle;
 		return new makeRectangle();
 
 	}//-52
 
-
 /*--
 zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
 
-Triangle class
+Triangle
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container (allows for ZIM HotSpots)
+DESCRIPTION
 makes a triangle shape inside a container using three line lengths
-var tri = new zim.Triangle(parameters);
+passing one length parameter makes an equilateral triangle
+passing two length parameters makes an isosceles triangle
+passing -1 as the last length parameter makes a 90 degree triangle
 
-PARAMETERS: supports DUO - parameters or single object
-a, b and c are the lengths of the sides
-a will run horizontally along the bottom
-b is upwards and c is back to the origin
-if c is set to -1 will assume a 90 angle
-fill, stroke, strokeSize are optional
-center defaults to true and puts the registration point to the center
-the actual center is not really the weighted center
-so can pass in an adjust which brings the center towards its vertical base
+EXAMPLE
+var tri = new zim.Triangle(200, null, null, "green");
+tri.center(stage);
+
+// all three sides specified - tall pointy triangle with yellow stroke of 10 pixels
+var tri = new zim.Triangle(100, 200, 200, "green", "yellow", 10);
+
+// here we adjust so rotation looks better
+var tri = new zim.Triangle({a:200, fill:"green", adjust:30});
+tri.center(stage);
+tri.animate({obj:{rotation:360}, time:3000, ease:"linear", loop:true});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+a, b and c - (default 100) the lengths of the sides
+	a will run horizontally along the bottom
+	b is upwards and c is back to the origin
+	if c is set to -1 will assume a 90 angle
+fill - (default black) the fill color as any CSS color
+stroke - (default null) the stroke color
+strokeSize - (default 1 if stroke is set) the size of the stroke
+center - (default true) puts the registration point to the center
+adjust - (default 0) pixels to bring center towards vertical base
+	the actual center is not really the weighted center
 
 METHODS
-setFill(color)
-setStroke(color)
-setStrokeSize(size) - number
-clone() - makes a copy
+setFill(color) - changes the color of the fill (or see color property)
+setStroke(color) - changes the color of the stroke
+setStrokeSize(size) - the size of the stroke as a number
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), clone(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 shape - gives access to the triangle shape
 color - get and set the fill color
-width and height - as expected or use getBounds()
+width, height - read only - calculated from getBounds()
 mouseChildren - set to false so  you do not drag the shape inside the triangle
 if you nest things inside and want to drag them, will want to set to true
 --*///+53
@@ -2600,19 +4511,18 @@ if you nest things inside and want to drag them, will want to set to true
 			var backX = Math.cos(nextAngle * Math.PI / 180) * b;
 			var upY = Math.sin(nextAngle * Math.PI / 180) * b;
 
-			this.width = Math.max(a, a-backX);
-			this.height = upY;
-			this.setBounds(0,0,this.width,this.height);
-
-			tri.y = this.height;
+			var width = Math.max(a, a-backX);
+			var height = upY
+			this.setBounds(0,0,width,height);
+			tri.y = height;
 
 			g.lt(a-backX,0-upY);
 			this.three={x:a-backX,y:0-upY};
 			g.cp();
 
 			if (center) {
-				this.regX = this.width/2;
-				this.regY = this.height/2+adjust;
+				this.regX = width/2;
+				this.regY = height/2+adjust;
 			}
 			this.setFill = function(c) {
 				if (zot(c)) return;
@@ -2637,54 +4547,78 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}
-			this.clone = function() {
-				return new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust);
-			}
 
 		}
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeTriangle.prototype = new createjs.Container();
+		makeTriangle.prototype = new zim.Container();
 		makeTriangle.prototype.constructor = zim.Triangle;
 		return new makeTriangle();
 
 	}//-53
 
-
 /*--
-zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions)
 
-Label Class
+Label
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 makes a label - wraps the createjs Text object
 can use with Button, CheckBox, RadioButtons and Pane
-var label = new zim.Label(parameters);
-Text seems to come in different sizes so we do our best
-Have tended to find that left and alphabetic are most consistent across browsers
+text seems to come in different sizes so we do our best
+have tended to find that left and alphabetic are most consistent across browsers
+custom fonts loaded through css can be used as well
+NOTE: can wrap text at given width using lineWidth parameter
 
-PARAMETERS (see the defaults in the code) supports DUO - parameters or single object
-labelText,
-fontSize, font, textColor, textRollColor,
-shadowColor defaults to -1 for no shadow
-value for shadow blur (default 14)
-align - defaults to "left" also there is "center" and "right"
-valign - defaults to "top".  Options: "top", "middle / center", "bottom"
-lineWidth - defaults to false for no wrapping (use \n) set to number for wrap
-lineHeight - default is text's getMeasuredLineHeight
+EXAMPLE
+var label = new zim.Label("Hello");
+label.center(stage); // adds label to and centers on the stage
+
+var label = new zim.Label({
+	text:"CLICK",
+	size:100,
+	font:"courier",
+	color:"white",
+	rollColor:"red",
+	fontOptions:"italic bold"
+});
+stage.addChild(label);
+label.x = label.y = 100;
+label.on("click", function(){zog("clicking");});
+END EXAMPLE
+
+PARAMETERS - supports DUO - parameters or single object with properties below
+text - String for the the text of the label
+size - (default 36) the size of the font in pixels
+font - (default arial) the font or list of fonts for the text
+color - (default "black") color of font (any CSS color)
+rollColor - (default color) the rollover color of the font
+shadowColor - (default -1) for no shadow - set to any css color to see
+shadowBlur - (default 14) if shadow is present
+align - ((default "left") text registration point alignment also "center" and "right"
+valign - (default "top") vertical registration point alignment alse "middle / center", "bottom"
+lineWidth - (default false) for no wrapping (use \n) Can set to number for wrap
+lineHeight - (default getMeasuredLineHeight) set to number to adjust line height
+fontOptions - (default null) css values in order for font-style font-variant font-weight
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
-clone() - returns a copy of the label and its properties
+clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 label - references the text object of the label
 color - gets or sets the label text color
 rollColor - gets or sets the label rollover color
 text - references the text property of the text object
-width and height (or use getBounds().width, getBounds().height)
+width, height - read only - calculated from getBounds()
 enabled - default is true - set to false to disable
 
 OPTIMIZED
@@ -2694,9 +4628,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events
 --*///+54
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions) {
 
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight";
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions";
 		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
 		z_d("54");
 		function makeLabel() {
@@ -2711,11 +4645,12 @@ dispatches no events
 			if (zot(shadowBlur)) shadowBlur=14;
 			if (zot(align)) align="left";
 			if (zot(valign)) valign="top";
+			if (zot(fontOptions)) fontOptions="";
 
 			var that = this;
 			this.mouseChildren = false;
 
-			var obj = this.label = new createjs.Text(String(text), size + "px " + font, color);
+			var obj = this.label = new createjs.Text(String(text), fontOptions + " " + size + "px " + font, color);
 			obj.textAlign = align;
 			obj.lineWidth = lineWidth;
 			obj.lineHeight = lineHeight;
@@ -2728,13 +4663,15 @@ dispatches no events
 			this.hitArea = backing;
 
 			function setSize() {
-				that.width = that.getBounds().width;
-				that.height = that.getBounds().height;
+				var width = that.getBounds().width;
+				var height = that.getBounds().height;
 				var x,y;
 				if (align == "center") {
-					x = -that.width/2;
+					x = -width/2;
 				} else if (align == "right") {
-					x = -that.width;
+					x = -width;
+				} else {
+					x = 0;
 				}
 				if (valign == "top") {
 					obj.y = size-size/6;
@@ -2744,7 +4681,6 @@ dispatches no events
 					y = -size*.5;
 					obj.y = size*.3;
 				}
-				that.setBounds(x,y,that.width,that.height);
 			}
 			setSize();
 
@@ -2807,7 +4743,7 @@ dispatches no events
 			this.on("mouseout", function(e) {that.showRollColor(false);});
 
 			this.clone = function() {
-				return new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur);
+				return that.cloneProps(new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight));
 			}
 
 			this.dispose = function() {
@@ -2818,43 +4754,76 @@ dispatches no events
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeLabel.prototype = new createjs.Container();
+		makeLabel.prototype = new zim.Container();
 		makeLabel.prototype.constructor = zim.Label;
 		return new makeLabel();
 
 	}//-54
 
-
 /*--
 zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom)
 
-Button Class
+Button
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
-makes a button with rollovers
-var button = new zim.Button(parameters);
-you will need to stage.addChild(button); and position it
-you will need to add a click event button.on("click", function); (or mousedown for mobile)
-the Button class handles the rollovers
+DESCRIPTION
+makes a rectangular button with rollover
+you will then need to add it to the stage and add a mousedown or click event
+button rollover is done automatically
 
-PARAMETERS (all with defaults - see code) supports DUO - parameters or single object
-width (default 200), height (default 60),
-label, // ZIM Label or plain text for default settings
-color (backing), rollColor (backing), borderColor, borderThickness,
-corner default 20
-shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 14)
-hitPadding (default 0) adds extra hit area to the button for mobile
+EXAMPLE
+var button = new zim.Button("CLICK");
+button.center(stage);
+button.on("click", function(){zog("clicking");});
+
+// OR add custom label (needed to change label color for instance)
+var label = new zim.Label({
+	text:"POWER OPTION",
+	size:40,
+	color:"violet",
+	fontOptions:"bold"
+});
+var button = new zim.Button({
+	label:label,
+	width:390,
+	height:110,
+	color:"purple",
+	rollColor:"MediumOrchid",
+	borderThickness:8,
+	borderColor:"violet",
+	gradient:.3,
+	corner:0
+});
+button.center(stage);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width - (default 200) the width of the button
+height - (default 60) the height of the button
+label - (default "CLICK") ZIM Label or plain text with default settings (white)
+color - (default "orange") backing color of button (any CSS color)
+rollColor - (default "lightorange") rollover color of button
+borderColor - (default null) for no border - set border color to see
+borderThickness - (default 1) thickness of border (needs borderColor set)
+corner - (default 20) the round of the corner (set to 0 for no corner)
+shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
+shadow blur - (default 14) how blurred the shadow is if the shadow is set
+hitPadding - (default 0) adds extra hit area to the button (good for mobile)
 gradient - (default 0) 0 to 1 (try .3) adds a gradient to the button
 gloss - (default 0) 0 to 1 (try .1) adds a gloss to the button
-flatBottom - Boolean (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
-
+flatBottom - (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
 
 METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
+
 PROPERTIES
-width and height - or use getBounds().width and getBounds().height
+width, height - read only - calculated from getBounds()
 text - references the text property of the Label object of the button
 label - gives access to the label
 backing - references the backing (zim.Rectangle) of the button
@@ -2904,17 +4873,17 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 
 			if (gradient > 0) { // add an overlay
 				var gr = new createjs.Shape();
-				gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height);
-				gr.graphics.rc(0, 0, width, height, corner, corner, corner2, corner2);
+				gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height-borderThickness);
+				gr.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, height-borderThickness, corner, corner, corner2, corner2);
 			}
 			buttonBacking.addChild(gr);
 
 			if (gloss > 0) { // add an overlay
 				var gl = new createjs.Shape();
 				gl.graphics.f("rgba(255,255,255,"+gloss+")");
-				gl.graphics.rc(0, 0, width, height/2, corner, corner, 0, 0);
+				gl.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, (height-borderThickness)/2, corner, corner, 0, 0);
 				gl.graphics.f("rgba(0,0,0,"+gloss+")");
-				gl.graphics.rc(0, height/2, width, height/2, 0, 0, corner2, corner2);
+				gl.graphics.rc(borderThickness/2, height/2, width-borderThickness, (height-borderThickness)/2, 0, 0, corner2, corner2);
 			}
 			buttonBacking.addChild(gl);
 
@@ -2926,8 +4895,6 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 
 			if (shadowColor != -1 && shadowBlur > 0) buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.setBounds(0,0,width,height);
-			this.width = width;
-			this.height = height;
 
 			label.x = (width - label.width)/2 - label.getBounds().x;
 			label.y = (height - label.height)/2 + 2 - label.getBounds().y;
@@ -2942,8 +4909,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				},
 				set: function(value) {
 					label.text = value;
-					label.x = width/2;
-					label.y = height/2+2;
+					label.x = (width - label.width)/2 - label.getBounds().x;
+					label.y = (height - label.height)/2 + 2 - label.getBounds().y;
 				}
 			});
 
@@ -2995,6 +4962,10 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				if (that.getStage()) that.getStage().update();
 			}
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom));
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				that.removeChild(buttonBacking);
@@ -3008,37 +4979,51 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeButton.prototype = new createjs.Container();
+		makeButton.prototype = new zim.Container();
 		makeButton.prototype.constructor = zim.Button;
 		return new makeButton();
 
 	}//-55
 
-
 /*--
 zim.CheckBox = function(size, label, startChecked, color, margin, type)
 
-CheckBox Class
+CheckBox
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends createjs.Container
+DESCRIPTION
 a checkbox that when pressed toggles the check and a checked property
-var checkBox = new zim.CheckBox(parameters)
 
-PARAMETERS: supports DUO - parameters or single object
-size - in pixels (always square)
-label - ZIM Label object - or just some text to make a default label
-startChecked - an initial parameter to set checked if true - default is false
-color - the stroke and text color (default black) - background is set to a .5 alpha white
-margin - is on outside of box so clicking or pressing is easier
-type - default check, could be square (box) or x
+EXAMPLE
+var checkBox = new zim.CheckBox(50, "TEST");
+checkBox.center(stage);
+checkBox.on("change", function() {
+	zog(checkBox.checked); // will be true then false, etc.
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+size - (default 60) size in pixels (always square)
+label - (default null) ZIM Label object - or String to make a default label (black)
+startChecked - (default false) an initial parameter to set checked if true
+color - (default "#111") the stroke and text color - background is set to a .5 alpha white
+margin - (default 10) is on outside of box so clicking or pressing is easier
+type - (default check) could be square (box) or x
 
 METHODS
 setChecked(Boolean) - defaults to true to set button checked (or use checked property)
+clone() - makes a copy with properties such as x, y, etc. also copied
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
+checked - gets or sets the check of the box
+width, height - read only - calculated from getBounds()
 label - gives access to the label
 text - the text of the label
-checked - gets or sets the check of the box
 check - gives access to the check mark ie. check.color = "blue";
 color - gets or sets the color of the check
 enabled - default is true - set to false to disable
@@ -3065,7 +5050,7 @@ dispatches a "change" event when pressed on but not when the checked property is
 			if (zot(label)) label = null;
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, size*5/6, "arial", color);
 			var myChecked = (zot(startChecked)) ? false : startChecked;
-			if (zot(color)) color = "black";
+			if (zot(color)) color = "#111";
 			if (zot(margin)) margin = 10; //20;
 			if (type != "box" && type != "square" && type != "x") type = "check";
 
@@ -3201,6 +5186,10 @@ dispatches a "change" event when pressed on but not when the checked property is
 				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			}
 
+			this.clone = function() {
+				return that.cloneProps(new zim.CheckBox(size, label.clone(), startChecked, color, margin, type));
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				return true;
@@ -3209,40 +5198,55 @@ dispatches a "change" event when pressed on but not when the checked property is
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeCheckBox.prototype = new createjs.Container();
+		makeCheckBox.prototype = new zim.Container();
 		makeCheckBox.prototype.constructor = zim.CheckBox;
 		return new makeCheckBox();
 
 	}//-56
 
-
 /*--
 zim.RadioButtons = function(size, buttons, vertical, color, spacing, margin, always)
 
-RadioButtons Class
+RadioButtons
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends createjs.Container
+DESCRIPTION
 a radio button set that lets you pick from choices
-var radioButton = new zim.RadioButton(parameters)
+can display radio buttons vertically (default) or horizontally
 
-PARAMETERS: supports DUO - parameters or single object
-size - in pixels (always square)
+EXAMPLE
+var radioButtons = new zim.RadioButtons(50, ["ONE", "TWO", "THREE"]);
+radioButtons.center(stage);
+radioButtons.on("change", function() {
+	zog(radioButtons.text); // will be ONE, TWO or THREE
+	zog(radioButtons.selectedIndex); // will be 0, 1, or 2
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+size - (default 60) in pixels
 buttons - an array of button data objects as follows:
-[{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
-or just a list of labels for default labels ["hi", "bye", "what!"]
-
-vertical - boolean that if true displays radio buttons vertically else horizontally
-color - the stroke and font color (default #111) - background is set to a .5 alpha white
-spacing - the space between radio button objects
-margin - the space around the radio button itself
-always - defaults to false - if set true, cannot click on selection to unselect it
+	[{label:ZIM Label or text, id:optional id, selected:optional Boolean}, {etc...}]
+	or just a list of labels for default labels ["hi", "bye", "what!"]
+vertical - (default true) displays radio buttons vertically - set to false to display horizontally
+color - (default "#111") the stroke and font color - background is set to a .5 alpha white
+spacing - (size*.2 for vertical and size for horizontal) the space between radio button objects
+margin - (size/5) the space around the radio button itself
+always - (default false) if set true, cannot click on selection to unselect it
 
 METHODS
 setSelected(num) - sets the selected index (or use selectedIndex) -1 is default (none)
+clone() - makes a copy with properties such as x, y, etc. also copied
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 selected - gets the selected object - selected.label, selected.id, etc.
 selectedIndex - gets or sets the selected index of the buttons
+width, height - read only - calculated from getBounds()
 label - current selected label object
 text - current selected label text
 id - current selected id
@@ -3283,8 +5287,16 @@ then ask for the properties above for info
 			this.labels = [];
 			this.dots = [];
 			var currentObject; // reference to the current data object
+			if (typeof buttons == "string") {
+				// convert to buttons object literal (for cloning)
+				var bString = buttons;
+				buttons = [];
+				for (var i=0; i<bString.length; i++) {
+					buttons.push({label:bString[i]});
+				}
+			}
 
-			var buttonContainer = new createjs.Container();
+			var buttonContainer = new zim.Container();
 			this.addChild(buttonContainer);
 			buttonContainer.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", pressBut);
 			function pressBut(e) {
@@ -3325,6 +5337,7 @@ then ask for the properties above for info
 					}
 					that.labels.push(data.label);
 					data.index = i;
+					buttons[i] = data; // for cloning
 					but = makeButton(data.selected, data.label);
 					but.obj = data;
 					if (data.selected) currentObject = but.obj;
@@ -3343,7 +5356,7 @@ then ask for the properties above for info
 
 			// making a single button - similar to CheckBox class
 			function makeButton(mySelected, label) {
-				var but = new createjs.Container();
+				var but = new zim.Container();
 				but.mouseChildren = false;
 				but.setBounds(-margin, -margin, size+margin*2, size+margin*2);
 
@@ -3452,6 +5465,14 @@ then ask for the properties above for info
 				}
 			});
 
+			this.clone = function() {
+				var buttonsCopy = zim.copy(buttons);
+				for (var i=0; i<buttonsCopy.length; i++) {
+					buttonsCopy[i].label = buttonsCopy[i].label.clone();
+				}
+				return that.cloneProps(new zim.RadioButtons(size, buttonsCopy, vertical, color, spacing, margin, always));
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				return true;
@@ -3460,49 +5481,60 @@ then ask for the properties above for info
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeRadioButtons.prototype = new createjs.Container();
+		makeRadioButtons.prototype = new zim.Container();
 		makeRadioButtons.prototype.constructor = zim.RadioButtons;
 		return new makeRadioButtons();
 
 	}//-57
 
-
 /*--
 zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose)
 
-Pane Class
+Pane
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 adds a window for alerts, etc.
-var pane = new zim.Pane(parameters);
 you need to call the pane.show() to show the pane and pane.hide() to hide it
 you do not need to add it to the stage - it adds itself centered
-you can change the x and y (with origin and registration point in middle)
+you can change the x and y (the origin and registration point are in the middle)
 
-PARAMETERS: supports DUO - parameters or single object
-see the defaults in the code below
-pass in the container for the pane (usually the stage) and the width and height of the pane
-pass in an optional ZIM Label (or text for default label properties)
-pass in a boolean for if you want to drag the pane (default false)
-pass in whether a dragging pane should open at first start position (defaults false)
-for reset, default true, Pane takes the first position and will continue to use that on opening
-modal defaults to true and means the pane will close when user clicks off the pane
-corner is the corner radius default 20
-the backingAlpha is the darkness of the background that fills the stage
-shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 20)
-align - defaults to true and centers the pane and the label on the pane
-if center is false you will have to set x and y for the pane and the label
-note, the origin inside the pane is in the center
-displayClose defaults to true and closes the Pane if display backing is pressed
-set selfClose to false if you do not want this
-if drag is set to true, selfClose will automatically be set to false
+EXAMPLE
+var pane = new zim.Pane(stage, 300, 200, "Watch out!", "#CCC");
+pane.show(); // pressing anywhere will close pane (see parameters for options)
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+container - container for the pane (usually the stage)
+width - (default 200) width of pane
+height - (default 200) height of pane
+label - (default null) an optional ZIM Label (or text for default label properties)
+drag - (default false) pass in true to drag the pane
+resets - (default true) resets position to start on re-open - set to false to keep last position
+modal - (default true) pane will close when user clicks off the pane - set to false to keep pane open
+corner - (default 20) is the corner radius - set to 0 for no corner
+backingAlpha - (default .14) the darkness of the background that fills the stage
+shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
+shadow blur - (default 20) how blurred the shadow is if shadow is set
+center - (default true) centers the pane and the label on the pane
+	if center is false you will have to set x and y for the pane and the label
+	the origin inside the pane is in the center
+displayClose - (default true) closes the Pane if display backing is pressed
+	if drag is set to true, displayClose will automatically be set to false
 
 METHODS
 show() - shows the pane
 hide() - hides the pane
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes all events
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
+width, height - read only - calculated from getBounds()
 display - reference to the pane box
 text - gives access to the label text
 label - gives access to the label
@@ -3667,6 +5699,15 @@ dispatches a "close" event when closed by clicking on backing
 				return {x:x,y:y}
 			}
 
+			this.clone = function() {
+				var lX = label.x; // new Panes automatically center the label
+				var lY = label.y;
+				var p2 = that.cloneProps(new zim.Pane(container, width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose));
+				p2.label.x = lX;
+				p2.label.y = lY;
+				return p2;
+			}
+
 			this.dispose = function() {
 				display.removeAllEventListeners();
 				that.removeChild(display);
@@ -3677,53 +5718,81 @@ dispatches a "close" event when closed by clicking on backing
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makePane.prototype = new createjs.Container();
+		makePane.prototype = new zim.Container();
 		makePane.prototype.constructor = zim.Pane;
 		return new makePane();
 
 	}//-58
 
-
 /*--
 zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur)
 
-Window Class
+Window
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 adds a window for content that can be swiped
-var w = new zim.Window(parameters);
 
-PARAMETERS: supports DUO - parameters or single object
-see the defaults in the code below
-width and heigth of window
-color - background color (use "rbga(0,0,0,0)" for no background)
-borderColor and borderThickness (set to 0 for no border)
-padding places the content in and down from top left corner
-	(no padding on right and bottom but indicator is usally there)
-corner (default 0) is the rounded corner of the window
-indicatorActive (default true) Boolean to show indicator (set to false to not)
-indicatorColor, indicatorAlpha - default is borderColor and .3
-indicatorFade (default true) Boolean to fade indicator unless being used
-slide (default true) Boolean to throw the content when drag/swipe released
-slideDamp (default .6) amount the slide damps when let go 1 for instant, .01 for long slide, etc.
-slideSnap (default "vertical") "auto" / true, "none" / false, "horizontal"
-	(slide past bounds and then snaps back to bounds when released)
-	(default is vertical so snaps when dragging up and down but not if dragging horizontal)
-interactive (default true) Boolean to let you interact with content in window
-	(set to false and whole window will be swipeable but not interactive inside)
-shadowColor, shadowBlur - set shadowBlur to -1 for now drop shadow
+EXAMPLE
+var win = new zim.Window({
+	height:300,
+	interactive:false,
+	padding:0,
+	slideDamp:.2
+});
+var container = new zim.Container(); // make some content
+var c; spacing = 10;
+for (var i=0; i<4; i++) {
+	c = frame.makeCircles();
+	c.x = win.width/2;
+	c.y = c.width/2 + (c.width+spacing)*i;
+	container.addChild(c);
+}
+win.add(container); // add the content to the window
+win.center(stage);
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width - (default 300) the width of the window
+height - (default 200) the heigth of window
+color - (default #333) background color (use "rbga(0,0,0,0)" for no background)
+borderColor - (default #999) border color
+borderThickness - (default 1) set to 0 for no border
+padding - (default 10) places the content in and down from top left corner
+corner - (default 0) is the rounded corner of the window
+indicatorActive - (default true) shows indicator (set to false to not)
+indicatorColor - (default borderColor) the color of the indicator
+indicatorAlpha - (default .3) the transparency of the indicator
+indicatorFade - (default true) fades indicator unless being used
+slide - (default true) Boolean to throw the content when drag/swipe released
+slideDamp - (default .6) amount the slide damps when let go 1 for instant, .01 for long slide, etc.
+slideSnap - (default "vertical") "auto" / true, "none" / false, "horizontal"
+	slides past bounds and then snaps back to bounds when released
+	vertical snaps when dragging up and down but not if dragging horizontal
+interactive - (default true) allows interaction with content in window
+	set to false and whole window will be swipeable but not interactive inside
+shadowColor - (default rgba(0,0,0,.3)) the color of the shadow
+shadowBlur - (default 20) set shadowBlur to -1 for no drop shadow
 
 METHODS
 add(obj) - adds obj to content container of window (at padding) must have bounds set
-(it is best to position and size obj first before adding)
-(otherwise if adjusting to outside current content size then call update())
+	it is best to position and size obj first before adding
+	otherwise if adjusting to outside current content size then call update()
 update() - resets window scrolling if perhaps the content gets bigger or smaller
+clone(recursive) - makes a copy with properties such as x, y, etc. also copied
+	recursive (default true) clones the window content as well (set to false to not clone content)
 dispose() - removes event listeners from Window and content and removes any Ticker functions
 
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
+
 PROPERTIES
-width, height
+width, height - read only - calculated from getBounds()
 backing - CreateJS Shape used for backing of Window
-content - CreateJS Container used to hold added content
+content - ZIM Container used to hold added content
 indicator - data object that holds the following properties (with defaults):
 	you can set after object is made...
 	indicator.size = 6;
@@ -3762,17 +5831,15 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			if (zot(indicatorAlpha)) indicatorAlpha=.3;
 			if (zot(indicatorFade)) indicatorFade=true;
 			if (zot(slide)) slide=true;
-            if (zot(slideDamp)) slideDamp=.6;
+			if (zot(slideDamp)) slideDamp=.6;
 			if (zot(slideSnap)) slideSnap="vertical"; // true / auto, vertical, horizontal, false / none
 			if (zot(interactive)) interactive=true;
 			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 			if (zot(shadowBlur)) shadowBlur=20;
 
 			var that = this;
-            this.width = width;
-            this.height = height;
-            this.scrollX = this.scrollY = this.scrollXMax = this.scrollYMax = 0;
-            this.setBounds(0,0,width,height);
+			this.scrollX = this.scrollY = this.scrollXMax = this.scrollYMax = 0;
+			this.setBounds(0,0,width,height);
 			this.setBounds(0,0,width,height);
 
 			var backing = this.backing = new createjs.Shape();
@@ -3787,7 +5854,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			// when we know if there are vertical and horizontal indicators
 			this.addChild(mask);
 
-			var content = this.content = new createjs.Container();
+			var content = this.content = new zim.Container();
 			this.addChild(content);
 			content.mask = mask;
 
@@ -3836,7 +5903,6 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 			var gap;
 			var contentWidth;
 			var contentHeight;
-
 
 			this.update = function() {
 				if (indicatorActive) {
@@ -4023,8 +6089,17 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 				}
 			});
 
+			this.clone = function(recursive) {
+				if (zot(recursive)) recursive = true;
+				var w = that.cloneProps(new zim.Window(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur));
+				if (recursive) {
+					that.content.cloneChildren(w.content);
+					w.update();
+				}
+				return w;
+			}
+
 			this.dispose = function() {
-				// fix these!  remember to remove drag...
 				this.removeAllEventListeners();
 				content.removeAllEventListeners();
 				zim.Ticker.remove(timeMouse);
@@ -4036,7 +6111,7 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeWindow.prototype = new createjs.Container();
+		makeWindow.prototype = new zim.Container();
 		makeWindow.prototype.constructor = zim.Window;
 		return new makeWindow();
 
@@ -4045,30 +6120,48 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 /*--
 zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur)
 
-Waiter Class
+Waiter
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 adds a little animated three dot wait widget
-var waiter = new zim.Waiter(parameters);
-you need to call the waiter.show() to show the waiter and waiter.hide() to hide it
+you need to call waiter.show() to show the waiter and waiter.hide() to hide it
 you do not need to add it to the stage - it adds itself centered
 you can change the x and y (with origin and registration point in middle)
 
-PARAMETERS: supports DUO - parameters or single object
-pass in the container for the waiter (usually the stage)
-pass in the speed in ms for the cycle time (default 600ms)
-pass in backing color and dot color
-corner is the corner radius default 14
-shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 14)
+EXAMPLE
+var waiter = new zim.Waiter();
+waiter.show(); // show the waiter until assets load
+frame.loadAssets("greeting.mp3");
+frame.on("complete", function() {
+	waiter.hide();
+	frame.asset("greeting.mp3").play();
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+container - the container that holds the waiter (usually the stage)
+speed - (default 600) cycle time in milliseconds
+color - (default "orange") the backing color
+circleColor - (default "white") the dot color
+corner - (default 14) the corner radius of the waiter box
+shadowColor - (defaults rgba(0,0,0,.3)) set to -1 for no shadow
+shadow blur - (default 14) the blur of the shadow if shadow is set
 
 METHODS
 show() - shows the waiter
 hide() - hides the waiter
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
+width, height - read only - calculated from getBounds()
 display - reference to the waiter backing graphic
-
 --*///+59
 	zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur) {
 
@@ -4112,7 +6205,7 @@ display - reference to the waiter backing graphic
 				e.stopImmediatePropagation();
 			});
 
-			var circles = new createjs.Container();
+			var circles = new zim.Container();
 			this.addChild(circles);
 
 			var dot;
@@ -4158,6 +6251,10 @@ display - reference to the waiter backing graphic
 				container.getStage().update();
 			}
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Waiter(container, speed, color, circleColor, corner, shadowColor, shadowBlur));
+			}
+
 			this.dispose = function() {
 				if (that.ticker) createjs.Ticker.off("tick", that.ticker);
 				display.removeAllEventListeners();
@@ -4171,7 +6268,7 @@ display - reference to the waiter backing graphic
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeWaiter.prototype = new createjs.Container();
+		makeWaiter.prototype = new zim.Container();
 		makeWaiter.prototype.constructor = zim.Waiter;
 		return new makeWaiter();
 
@@ -4180,37 +6277,59 @@ display - reference to the waiter backing graphic
 /*--
 zim.Indicator = function(width, height, num, color, offColor, borderColor, backingColor, type, fill, scale, lightScale, press, shadowColor, shadowBlur)
 
-Indicator Class
+Indicator
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
-a row of dots or squares (or just one) that can be used to indicate a step, page, level, score, etc.
-var Indicator = new zim.Indicator(parameters);
+DESCRIPTION
+a row of dots or squares that can be used to indicate a step, page, level, score, etc.
 the indicator can be used as an input as well but often these are small so may not be best to rely on
 
-PARAMETERS: supports DUO - parameters or single object
-pass in the width (100), height (50), number of lights (6), the color of the active light (orange) and inactive lights (grey)
-pass in the borderColor (-1 for no border - default), backingColor (-1 for no backing - default),
-type defaults to "dot" or "circle" - can also set "box" or "square"
-fill defaults to false - set to true to fill in lights to the left of the selectedIndex
-scale (1) is for all the lights including spacing
-lightScale (1) is for each light keeping the spacing unchanged
-press defaults to false - set to true to make lights clickable
-shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 5)
+EXAMPLE
+var lights = new zim.Indicator({fill:true});
+lights.selectedIndex = 0; // set the first light on
+lights.center(stage);
+stage.on("stagemousedown", function() {
+	// increase the indicator lights each click (then start over)
+	lights.selectedIndex = (lights.selectedIndex+1) % lights.num;
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width - (default 100) width of indicator
+height - (default 50) height of indicator
+num - (default 6) the number of lights
+color - (default "orange") color of the light(s) turned on
+offColor - (default "grey") color of the light(s) turned off
+borderColor - (default -1 for no border) border color of lights
+backingColor - (default -1 for no backing) backing rectangle around lights
+type - (default "dot" or "circle") can also be "box" or "square"
+fill - (default false) set to true to fill in lights to the left of the selectedIndex
+scale - (default 1) for all the lights including spacing
+lightScale - (default 1) scale for each light - keeping the spacing unchanged
+press - (default false) set to true to make lights clickable
+shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
+shadowBlur - (default 5) the shadow blur if shadow is set
 
 METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes any listeners
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 selectedIndex - gets or sets the current index of the indicator
-width, height - gives width and height (read only)
-min, max, step - the assigned values (read only)
+width, height - read only - calculated from getBounds()
+num - the assigned num value (how many light objects) (read only)
 backing - gives access to the backing if there is one zim.Rectangle
 lights - an array of the light objects (zim Circle or Rectangle objects)
 lightsContainer - gives access to the lights createjs.Container with its zim.Circle or zim.Rectangle children
 
 EVENTS
-dispatches a changed event if press is true and indicator is pressed on and lights change
+dispatches a change event if press is true and indicator is pressed on and lights change
 --*///+60
 	zim.Indicator = function(width, height, num, color, offColor, borderColor, backingColor, type, fill, scale, lightScale, press, shadowColor, shadowBlur) {
 
@@ -4238,19 +6357,16 @@ dispatches a changed event if press is true and indicator is pressed on and ligh
 			var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
 
 			var that = this;
-
-			this.width = width; // read only
-			this.height = height;
 			this.lights = [];
 
 			var myValue;
-			var indicator = new createjs.Container();
+			var indicator = new zim.Container();
 			if (backingColor != -1) {
 				var backing = new zim.Rectangle(width, height, backingColor);
 				this.addChild(backing);
 				this.backing = backing;
 			}
-			var lights = this.lightsContainer = new createjs.Container();
+			var lights = this.lightsContainer = new zim.Container();
 			this.addChild(lights);
 			var hitArea = new createjs.Shape();
 			hitArea.graphics.f("black").dr(-height/2,-height/2,height,height);
@@ -4284,7 +6400,7 @@ dispatches a changed event if press is true and indicator is pressed on and ligh
 			if (press) {
 				lights.cursor = "pointer";
 				var lightsEvent = lights.on(eventType, function(e) {
-					if (myValue != e.target.znum) that.dispatchEvent("changed");
+					if (myValue != e.target.znum) that.dispatchEvent("change");
 					myValue = e.target.znum;
 					setLights(myValue);
 				});
@@ -4326,6 +6442,10 @@ dispatches a changed event if press is true and indicator is pressed on and ligh
 				}
 			});
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Indicator(width, height, num, color, offColor, borderColor, backingColor, type, fill, scale, lightScale, press, shadowColor, shadowBlur));
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				return true;
@@ -4334,40 +6454,58 @@ dispatches a changed event if press is true and indicator is pressed on and ligh
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeIndicator.prototype = new createjs.Container();
+		makeIndicator.prototype = new zim.Container();
 		makeIndicator.prototype.constructor = zim.Indicator;
 		return new makeIndicator();
 
 	}//-60
 
-
 /*--
 zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display)
 
-Stepper Class
+Stepper
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
-lets you step through a list of strings or numbers with arrows or keyboard arrows
-var stepper = new zim.Stepper(parameters);
+DESCRIPTION
+lets you step through a list of numbers or string with arrows or keyboard arrows
 
-PARAMETERS: supports DUO - parameters or single object
-list - pass in an array of strings or numbers to display one at a time - default 1-10
-width is the width of the text box - default 100 (you can scale the whole stepper if needed)
-a color for the arrows and the text box - default white
-a strokeColor color for the box - default null - no stroke
-an optional label which can be used to define the text properties
-vertical if you want the numbers above and below - default false - left and right of text
-arrows - use keyboard arrows - default true (will always show graphical arrows)
-corner is the radius of the text box corners default 10
-shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 14)
-loop - defaults to false so will not loop around or go back past 0 index (unless set to true)
-display - defaults to true to show the value - set to false just to show the arrows
+EXAMPLE
+var stepper = new zim.Stepper();
+stepper.on("change", function() {
+	zog(stepper.currentIndex);
+	zog(stepper.currentValue);
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+list - (default 1-10) pass in an array of strings or numbers to display one at a time
+width - (default 100) is the width of the text box (you can scale the whole stepper if needed)
+color - (default "white") for the arrows and the text box
+strokeColor - (default null) stroke color for the box
+label - (default null) which can be used to define custom text properties
+vertical - (default false) set to true if you want the numbers above and below the text
+arrows - (default true) - use keyboard arrows (will always show graphical arrows)
+corner - (default 10) is the radius of the text box corners - set to 0 for square corners
+shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
+shadowBlur - (default 14) value for shadow blur if shadow is set
+loop - (default false) set to true to loop around or go back past 0 index
+display - (default true) set to false just to just show the arrows and not the value
+
+METHODS
+next() - goes to next
+prev() - goes to previous
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
-width, height
 currentIndex - gets or sets the current index of the array and display
 currentValue - gets or sets the current value of the array and display
+width, height - read only - calculated from getBounds()
 stepperArray - gets or sets the list - you should manually set the desired currentIndex if you change this
 prev, next - access to the arrow containers (use to position)
 arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
@@ -4384,11 +6522,6 @@ and stage.update() in change event to see component change its graphics
 ACTIONEVENT
 This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
-
-METHODS
-next() - goes to next
-prev() - goes to previous
-dispose() - removes listeners and deletes object
 
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
@@ -4425,7 +6558,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 			label.mouseChildren = false;
 			label.mouseEnabled = false;
 
-			var prev = this.prev = new createjs.Container();
+			var prev = this.prev = new zim.Container();
 			this.addChild(prev);
 			var prevBacking = new createjs.Shape();
 			prevBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
@@ -4484,7 +6617,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				}
 			}
 
-			var next = this.next = new createjs.Container();
+			var next = this.next = new zim.Container();
 			this.addChild(next);
 			var nextBacking = new createjs.Shape();
 			nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
@@ -4513,9 +6646,6 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				}
 				next.y = next.getBounds().width/2;
 			}
-
-			this.width = this.getBounds().width;
-			this.height = this.getBounds().height;
 
 			setLabel(index);
 
@@ -4654,6 +6784,10 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 				step(-1);
 			}
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Stepper(list, width, color, strokeColor, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, loop, display));
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				return true;
@@ -4662,7 +6796,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeStepper.prototype = new createjs.Container();
+		makeStepper.prototype = new zim.Container();
 		makeStepper.prototype.constructor = zim.Stepper;
 		return new makeStepper();
 
@@ -4671,33 +6805,50 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 /*--
 zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside)
 
-Slider Class
+Slider
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 a traditional slider - will give values back based on min and max and position of button (knob)
-var slider = new zim.Slider(parameters);
-slider.on("change", function() {zog(slider.currentValue);});
 
-PARAMETERS: supports DUO - parameters or single object
-pass in min and max amounts for slider (default 0, 10)
-step for the slider (default 0 - for continuous decimal number)
-a zim.Button (default small button with no label)
-barLength (default 300), barWidth (default 3), varColor (default #666)
-vertical (default false) for horizontal or vertical slider
-useTicks (default false) set to true to show small ticks for each step (step > 0)
-inside (default false) set to true to fit button inside bar (need to manually adjust widths)
+EXAMPLE
+var slider = new zim.Slider({step:1});
+slider.center(stage);
+slider.on("change", function() {
+	zog(slider.currentValue); // 1-10 in steps of 1
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+min - (default 0) the minimum value for the slider
+max - (default 10) the maximum value for the slider
+step - (default 0) 0 is continuous decimal - 1 would provide steps of 1, 2 would provide steps of 2, etc.
+button - (default small button with no label) - a zim.Button
+barLength - (default 300) the length of the bar (the slider slides along its length)
+barWidth - (default 3) the width of the bar (how fat the bar is)
+color - (default "#666") the color of the bar (any CSS color)
+vertical - (default false) set to true to make slider vertical
+useTicks - (default false) set to true to show small ticks for each step (step > 0)
+inside - (default false) set to true to fit button inside bar (need to manually adjust widths)
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 currentValue - gets or sets the current value of the slider
-width, height - gives width and height including button
+width, height - read only - calculated from getBounds()
 min, max, step - the assigned values (read only)
 bar - gives access to the bar zim.Rectangle
 button - gives access to the zim.Button
 ticks - gives access to the ticks (to position these for example)
 enabled - default is true - set to false to disable
-
-METHODS
-dispose() - removes listeners and deletes object
 
 OPTIMIZED
 This component is affected by the general zim.OPTIMIZE setting (default is false)
@@ -4731,23 +6882,24 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				button = new zim.Button(w,h,"","#fff","#ddd","#666",1,0,null,null,30);
 			}
 
+			var width; var height;
 			if (vertical) {
-				this.width = button.width;
+				width = button.width;
 				if (inside) {
-					this.height = barLength;
-					this.setBounds(0, 0, this.width, this.height);
+					height = barLength;
+					this.setBounds(0, 0, width, height);
 				} else {
-					this.height = barLength + button.height;
-					this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+					height = barLength + button.height;
+					this.setBounds(-button.width/2, -button.height/2, width, height);
 				}
 			} else {
-				this.height = button.height;
+				height = button.height;
 				if (inside) {
-					this.width = barLength;
-					this.setBounds(0, 0, this.width, this.height);
+					width = barLength;
+					this.setBounds(0, 0, width, height);
 				} else {
-					this.width = barLength+button.width;
-					this.setBounds(-button.width/2, -button.height/2, this.width, this.height);
+					width = barLength+button.width;
+					this.setBounds(-button.width/2, -button.height/2, width, height);
 				}
 			}
 
@@ -4921,6 +7073,10 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				}
 			});
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, inside));
+			}
+
 			this.dispose = function() {
 				button.removeAllEventListeners();
 				return true;
@@ -4929,7 +7085,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeSlider.prototype = new createjs.Container();
+		makeSlider.prototype = new zim.Container();
 		makeSlider.prototype.constructor = zim.Slider;
 		return new makeSlider();
 
@@ -4938,27 +7094,49 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 /*--
 zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, type, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit)
 
-Dial Class
+Dial
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 a traditional dial - will give values back based on min and max and position of dial
-var dial = new zim.Dial(parameters);
-dial.on("change", function() {zog(dial.currentValue);});
 
-PARAMETERS: supports DUO - parameters or single object
-pass in min and max amounts for dial (default 0, 10)
-step for the dial (default 0 - for continuous decimal number)
-the width (100), color("#666"), indicatorColor("#222"), indicatorScale (1)
-type - of indicator defaults to "arrow" or "triangle" - can also be "dot" or "circle", and "line" or "rectangle"
-innerCircle defaults to true and gives a knob type look - set to false for flat
-innerScale (1) can be adjusted along with indicatorScale to get a variety of looks
-useTicks (true) will show lines and innerTicks (false) being set to true will put the ticks inside
-tickColor defaults to the indicatorColor
-limit (true) stops the dial from going right around - set to false to spin freely
+EXAMPLE
+var dial = new zim.Dial({step:1, color:"violet"});
+dial.center(stage);
+dial.on("change", function() {
+	zog(dial.currentValue); // 1-10 in steps of 1
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+min - (default 0) the minimum value for the dial
+max - (default 10) the maximum value for the dial
+step - (default 0) 0 is continuous decimal - 1 would provide steps of 1, 2 would provide steps of 2, etc.
+width - (default 100) the width of the dial (diameter)
+color - (default "#666") the backing color of the dial
+indicatorColor - (default "#222") the color of the indicator
+indicatorScale - (default 1) the scale of the indicator
+type - (default "arrow" or "triangle") can also be "dot" or "circle", and "line" or "rectangle"
+innerCircle - (default true) gives an inner knob look - set to false for flat
+innerScale - (default 1) can be adjusted along with indicatorScale to get a variety of looks
+useTicks - (default true) will show lines for ticks if step is set
+innerTicks (default false) set to true to put the ticks inside if step is set
+tickColor - (default indicatorColor) set the tick color if ticks are set
+limit - (default true) stops dial from spinning right around - set to false to not limit dial
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 currentValue - gets or sets the current value of the dial
-width, height - gives width and height (read only)
+width, height - read only - calculated from getBounds()
 min, max, step - the assigned values (read only)
 backing - gives access to the dial backing zim.Circle
 inner and inner2 give access to any inner circles
@@ -4966,9 +7144,6 @@ ticks - gives access to the ticks (to scale these for example)
 indicator - gives access to the indicator container with registration point at the dial center
 indicatorShape - gives access to the shape on the end of the indicator (zim Triangle, Circle, Rectangle)
 enabled - default is true - set to false to disable
-
-METHODS
-dispose() - removes listeners and deletes object
 
 OPTIMIZED
 This component is affected by the general zim.OPTIMIZE setting (default is false)
@@ -5005,8 +7180,6 @@ dispatches a "change" event when dial changes value (but not when setting curren
 			this.cursor = "pointer";
 
 			var r = width / 2;
-			this.width = this.height = width;
-
 			var myValue = min; // includes the min
 			var lastValue = 0; // does not include min (so always starts at 0)
 
@@ -5029,7 +7202,7 @@ dispatches a "change" event when dial changes value (but not when setting curren
 
 			var stepsTotal = (max - min) / step;
 			if (useTicks && step != 0) {
-				ticks = this.ticks = new createjs.Container();
+				ticks = this.ticks = new zim.Container();
 				this.addChild(ticks);
 				var tick;
 				for (var i=0; i<stepsTotal+1; i++) {
@@ -5043,20 +7216,20 @@ dispatches a "change" event when dial changes value (but not when setting curren
 
 			this.setBounds(-r,-r,width,width);
 			if (type == "dot" || type == "circle") {
-				var indicator = this.indicator = new createjs.Container();
+				var indicator = this.indicator = new zim.Container();
 				var indicatorShape = this.indicatorShape = new zim.Circle(r*.19, indicatorColor);
 				indicator.addChild(indicatorShape);
 				zim.scale(indicator, indicatorScale);
 				indicator.regY = r - indicator.getBounds().width*indicatorScale/2 - r*.07;
 			} else if (type == "line" || type == "rectangle") {
-				var indicator = this.indicator = new createjs.Container();
+				var indicator = this.indicator = new zim.Container();
 				var indicatorShape = this.indicatorShape = new zim.Rectangle(r * .1, r*.3, indicatorColor);
 				indicator.addChild(indicatorShape);
 				zim.scale(indicator, indicatorScale);
 				indicator.regY = r - indicator.getBounds().width*indicatorScale/2 - r*.07;
 				indicator.regX = r * .05;
 			} else { // arrow
-				var indicator = this.indicator = new createjs.Container();
+				var indicator = this.indicator = new zim.Container();
 				var indicatorShape = this.indicatorShape = new zim.Triangle(r*.4, r*.4, r*.4, indicatorColor);
 				indicator.addChild(indicatorShape);
 				zim.scale(indicator, indicatorScale);
@@ -5112,7 +7285,6 @@ dispatches a "change" event when dial changes value (but not when setting curren
 					that.off("pressmove", moveEvent);
 					that.off("pressup", upEvent);
 				});
-
 			});
 
 			function sign(n) {return n > 0 ? 1 : -1;}
@@ -5194,6 +7366,10 @@ dispatches a "change" event when dial changes value (but not when setting curren
 				}
 			});
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, type, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit));
+			}
+
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				return true;
@@ -5202,49 +7378,66 @@ dispatches a "change" event when dial changes value (but not when setting curren
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeDial.prototype = new createjs.Container();
+		makeDial.prototype = new zim.Container();
 		makeDial.prototype.constructor = zim.Dial;
 		return new makeDial();
 
 	}//-63
 
-
-	//***************** RADIAL  64
+//***************** RADIAL  64
 
 /*--
 zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, flatBottom, keyEnabled, gradient, gloss)
 
-Tabs Class
+Tabs
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 a traditional tab layout for along the edge of content
 can also act as an independent button row or column
-var tabs = new zim.Tabs(parameters);
-tabs.on("change", function() {zog(tabs.selectedIndex);});
 
-PARAMETERS: supports DUO - parameters or single object
-pass in an overall width and height for the tab set
-zim will automatically divide the width for each tab taking into account spacing
-tabs is an array of tab objects with the following properties available
-any tab specific properties will override the default values from other parameters
-[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
-the label can be a String or a zim.Label object - default text color is white
-color is the color of the selected tab - default #333
-rollColor is the rollover color (selected tabs do not roll over) - default #555
-offColor is the color of a deselected tab when not rolled over - default #777
-spacing is the pixels between buttons - default 1 pixel
-currentEnabled defaults to false and means the selected tab button cannot be clicked
-corner is the corner radius - default 0
-labelColor defaults to white
-flatBottom (Boolean - defaults to true for tab shape) set to false for button sets
-keyEnabled defaults to true so tab key cycles through tabs, shift tab backwards
-gradient - (default 0) 0 to 1 (try .3) adds a gradient to the tabs
-gloss - (default 0) 0 to 1 (try .1) adds a gloss to the tabs
+EXAMPLE
+var tabs = new zim.Tabs({tabs:["A", "B", "C", "D"], spacing:5, corner:14});
+tabs.center(stage);
+tabs.on("change", function() {
+	zog(tabs.selectedIndex);
+	zog(tabs.text);
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width - (default 240) overall width of tab set (ZIM divides the width across tabs and spacing)
+height - (default 60) height of tabs
+tabs - (default ["1","2","3","4"]) an array of tab objects with the following properties available:
+	any tab specific properties will override the default values from other parameters
+	[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
+	label can be a String or a zim.Label object - default text color is white
+color - (default "#333") the color of the selected tab (any CSS color)
+rollColor - (default "#555") the rollover color (selected tabs do not roll over)
+offColor - (default "#777") the color of a deselected tab when not rolled over
+spacing - (default 1) is the pixels between tab buttons
+currentEnabled - (default false) set to true to be able to press the selected tab button
+corner - (default 0) the corner radius of the tabs (at the top when flatBottom is true)
+labelColor - (default "white") the color of the label
+flatBottom - (default true) flat bottom for tab shape set to false for button sets
+keyEnabled - (default true) so tab key cycles through tabs, shift tab backwards
+gradient - (default null) 0 to 1 (try .3) adds a gradient to the tabs
+gloss - (default null) 0 to 1 (try .1) adds a gloss to the tabs
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
-width, height - actual width and provided height
 selectedIndex - gets or sets the selected index of the tabs
 selected - gets the selected button - selected.enabled = true, etc.
+width, height - read only - calculated from getBounds()
 tabs - gets or sets tabs object (will have to manually change buttons as well as adjust props)
 color - gets or sets default selected tab color
 rollColor - gets or sets default rolled over color
@@ -5255,9 +7448,6 @@ buttons - an array of the ZIM Button objects. buttons[0].enabled = false;
 labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
 keyEnabled - gets or sets whether the tab key and shift tab key cycles through tabs
 enabled - default is true - set to false to disable
-
-METHODS
-dispose() - removes listeners and deletes object
 
 OPTIMIZED
 This component is affected by the general zim.OPTIMIZE setting (default is false)
@@ -5292,8 +7482,6 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 			if (zot(keyEnabled)) keyEnabled = true;
 
 			var that = this;
-			this.width = width;
-			this.height = height;
 			this.keyEnabled = keyEnabled;
 
 			var myIndex = 0; // local value for this.currentIndex
@@ -5514,6 +7702,14 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 				}
 			});
 
+			this.clone = function() {
+				var tabsCopy = zim.copy(tabs);
+				for (var i=0; i<tabsCopy.length; i++) {
+					tabsCopy[i].label = tabsCopy[i].label.clone();
+				}
+				return that.cloneProps(new zim.Tabs(width, height, tabsCopy, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, flatBottom, keyEnabled, gradient, gloss));
+			}
+
 			this.dispose = function() {
 				for (var i=0; i<that.buttons.length; i++) {
 					that.buttons[i].dispose();
@@ -5526,7 +7722,7 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeTabs.prototype = new createjs.Container();
+		makeTabs.prototype = new zim.Container();
 		makeTabs.prototype.constructor = zim.Tabs;
 		return new makeTabs();
 
@@ -5535,34 +7731,54 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 /*--
 zim.Pad = function(width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor)
 
-Pad Class
+Pad
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container - is really rows of zim Tab objects
+DESCRIPTION
 a pad that has rows and cols made of square keys
 when keys are pressed the pad will dispatch a change event - get the selectedIndex or text property
 var pad = new zim.Pad(parameters);
 pad.on("change", function() {zog(pad.selectedIndex);});
 
-PARAMETERS: supports DUO - parameters or single object
-pass in an overall width for the pad (default 150)
-zim will automatically divide the width into the cols taking into account spacing
-pass in cols (default 3) and rows - rows will default to the cols
-keys is an array of key objects with the following properties available
-any key specific properties will override the default values from other parameters
-[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
-the label can be a String or a zim.Label object - default text color is white
-color is the color of the selected key - default #333
-rollColor is the rollover color (selected keys do not roll over) - default #555
-offColor is the color of a deselected key when not rolled over - default #777
-spacing is the pixels between keys - default 1 pixel
-currentEnabled defaults to true and means the selected key will be clickable
-corner is the corner radius - default 0
-labelColor defaults to white
+EXAMPLE
+var pad = new zim.Pad();
+pad.center(stage);
+pad.on("change", function() {
+	zog(pad.selectedIndex); // 0-8
+	zog(pad.text); // 1-9
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width - (default 150) overall width of pad (ZIM divides the width across cols and spacing)
+cols - (default 3) the columns in the pad
+rows - (default cols) the rows in the pad
+keys - (default [1,2,3,4,5,6,7,8,9]) an array of key objects with the following properties available:
+	any key specific properties will override the default values from other parameters
+	[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
+	the label can be a String or a zim.Label object - default text color is white
+color - (default "#333") the color of the selected tab (any CSS color)
+rollColor - (default "#555") the rollover color (selected keys do not roll over)
+offColor - (default "#777") the color of a deselected key when not rolled over
+spacing - (default 1) is the pixels between key buttons
+currentEnabled - (default true) set to false to make selected key not pressable
+corner - (default 0) the corner radius of the keys
+labelColor - (default "white") the color of the label
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
-width, height
 selectedIndex - gets or sets the selected index of the pad
 selected - gets the selected button - selected.enabled = true, etc.
+width, height - read only - calculated from getBounds()
 text - gets current selected label text
 label - gets current selected label object
 color - gets or sets default selected tab color
@@ -5572,9 +7788,6 @@ buttons - an array of the ZIM Button objects. buttons[0].enabled = false;
 labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
 tabs - an array of the zim Tab objects (one object per row)
 enabled - default is true - set to false to disable
-
-METHODS
-dispose() - removes listeners and deletes object
 
 OPTIMIZED
 This component is affected by the general zim.OPTIMIZE setting (default is false)
@@ -5646,9 +7859,6 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			}
 
-			this.width = this.getBounds().width;
-			this.height = this.getBounds().height;
-
 			Object.defineProperty(this, 'selectedIndex', {
 				get: function() {
 					return myIndex;
@@ -5675,6 +7885,10 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 				}
 			});
 
+			this.clone = function() {
+				return that.cloneProps(new zim.Pad(width, cols, rows, keys, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor));
+			}
+
 			this.dispose = function() {
 				for (var i=0; i<that.tabs.length; i++) {
 					that.tabs[i].dispose();
@@ -5686,46 +7900,63 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makePad.prototype = new createjs.Container();
+		makePad.prototype = new zim.Container();
 		makePad.prototype.constructor = zim.Pad;
 		return new makePad();
 
 	}//-66
 
-
 /*--
 zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur)
 
-ColorPicker Class
+ColorPicker
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
+DESCRIPTION
 a color picker which shows 256 Web colors by default or custom colors
 additionally can show 16 greys and / or an alpha slider
 picking on a color sets the swatch color and the selectedColor property
 OK dispatches a change event if the color changed or a close event if not
 The X dispatches a close event
-var cp = new zim.ColorPicker(parameters);
-cp.on("change", function() {zog(cp.selectedColor, cp.selectedAlpha);});
 
-PARAMETERS: supports DUO - parameters or single object
-pass in a width (default 500) for the color picker
-colors is an optional list of colors ["red", "#CCC", etc.] - default 256 Web colors
-cols is how many columns to use if you pass in custom colors - default 10
-spacing is the space between the color squares - default 2
-greyPicker defaults to true and shows an extra 16 greys (set to false to hide these)
-(for the default colors it also includes 2 starting colors that record last picked colors)
-alphaPicker defaults to true and shows an alpha slider (set to false to hide this)
-(the swatch has a black, grey and white backing underneath to show multiple alpha effects)
-startColor is a starting color and defaults to the last color in the colors array
-drag defaults to true and is whether you can drag the component - set to false to not drag
-(a small grip under the color text shows if draggable)
-shadowColor defaults to rgba(0,0,0,.3) set to -1 for no shadow
-value for shadow blur (default 14)
+EXAMPLE
+var cp = new zim.ColorPicker();
+cp.center(stage);
+cp.on("change", function() {
+	zog(cp.selectedColor); // #ffcc99, etc. after pressing OK
+	zog(cp.selectedAlpha); // 0-1
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+width - (default 500) the width of the color picker
+colors - (default 256 Web colors) an optional list of colors ["red", "#CCC", etc.]
+cols - (default 10) how many columns to use if you pass in custom colors
+spacing - (default 2) is the space between the color squares
+greyPicker - (default true) shows an extra 16 greys (set to false to hide these)
+	for the default colors it also includes 2 starting colors that record last picked colors
+alphaPicker - (default true) shows an alpha slider (set to false to hide this)
+	the swatch has a black, grey and white backing underneath to show multiple alpha effects
+startColor - (default the last color in color array) the starting color
+drag - (default true) whether you can drag the component - set to false to not drag
+	a small grip under the color text shows if draggable
+shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
+shadow blur - (default 14) the blur of the shadow if shadow is set
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+**** ZIM 4TH adds all the methods listed under Container above
+**** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
+**** also see the CreateJS Easel Docs for Container properties, methods and events
+**** for example: on(), setBounds(), addChild(), cache(), x, y, alpha, rotation
 
 PROPERTIES
 selectedColor - gets or sets the selected color swatch
 selectedAlpha - gets or sets the selected alpha (set does not work if alphaPicker is false)
-width, height - gets width and height of component
+width, height - read only - calculated from getBounds()
 
 swatch - gets the zim.Rectangle that is the color swatch
 swatchBacking - gets the createjs.Shape that is under the swatch (seen if alpha set low)
@@ -5740,9 +7971,6 @@ alpaBacking - gets reference to the zim.Rectangle that makes the backing for the
 alphaBut - the zim.Button on the alpha slider
 alphaSlider - the zim.Slider for the alpha
 alphaText - the zim.Label for the alpha
-
-METHODS
-dispose() - removes listeners and deletes object
 
 ACTIONEVENT
 This component is affected by the general zim.ACTIONEVENT setting
@@ -5856,10 +8084,8 @@ dispatches a "close" event if the OK button is activated and the color has not c
 			var margin = 10;
 
 			if (alphaPicker) {
-				var alpha = new createjs.Container();
+				var alpha = new zim.Container();
 				alpha.setBounds(0,0,600,70);
-				alpha.width = 600;
-				alpha.height = 70;
 				this.addChild(alpha);
 				alpha.x = 0;
 				alpha.y = lastHeight;
@@ -5891,10 +8117,8 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				lastHeight += (alpha.height-margin)*alpha.scaleX;
 			}
 
-			var nav = new createjs.Container();
+			var nav = new zim.Container();
 			nav.setBounds(0,0,600,100);
-			nav.width = 600;
-			nav.height = 100;
 			this.addChild(nav);
 			nav.x = 0;
 			nav.y = lastHeight+margin;
@@ -5942,11 +8166,10 @@ dispatches a "close" event if the OK button is activated and the color has not c
 			nav.scaleX = nav.scaleY = width / 600;
 			lastHeight += nav.height * nav.scaleX;
 
-			this.width = width;
-			this.height = lastHeight + margin;
-			this.setBounds(0,0,this.width,this.height);
+			var height = lastHeight + margin;
+			this.setBounds(0,0,width,height);
 
-			var backing = this.backing = new zim.Rectangle(this.width,this.height,"black");
+			var backing = this.backing = new zim.Rectangle(width,height,"black");
 			this.addChildAt(backing,0);
 			if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
 
@@ -6054,6 +8277,10 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				return Math.round(n*Math.pow(10, 2))/Math.pow(10, 2);
 			}
 
+			this.clone = function() {
+				return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur));
+			}
+
 			this.dispose = function() {
 				slider.dispose();
 				box.removeAllEventListeners();
@@ -6067,310 +8294,10 @@ dispatches a "close" event if the OK button is activated and the color has not c
 
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeColorPicker.prototype = new createjs.Container();
+		makeColorPicker.prototype = new zim.Container();
 		makeColorPicker.prototype.constructor = zim.ColorPicker;
 		return new makeColorPicker();
 	}//-67
-
-/*--
-zim.Parallax = function(stage, damp, layers, auto, fps)
-
-Parallax Class
-
-takes objects as layers and sets properties based on an input
-for instance, each layer could move a different x based on position of mouseX
-or each layer could scale a different amount based on scroll of y
-The types of input are mouseX, mouseY, scrollX, scrollY
-The types of properties to change could be x, y, scaleX, scaleY, rotation, alpha, frameNumber, etc.
-Parallax allows scale to be a property which scales scaleX and scaleY together
-Parallax allows frame to be a property and calls gotoAndStop() on a Sprite frame
-Parallax really just manages multiple ProportionDamp objects
-for proper parallax, the objects closer move more than the objects farther back
-make a new object: p = new zim.Parallax(parameters)
-
-PARAMETERS: supports DUO - parameters or single object
-pass in a reference to the stage as the first parameter
-pass in the damping value (.1 default)
-pass in an array of layer objects in the following format:
-
-[{obj:obj, prop:"x", propChange:200, input:"scrolly", inMin:100, inMax:300, factor:1, integer:false}, etc.]
-this would move the obj 200 px in the x as the window scrolls from 100 to 300 px in the y
-
-the first three properties are required
-object is the object whose property is being changed
-prop is the property that is being changed
-propChange is how much you want the property to change
-input defaults to mouseX but can also be mouseY, scrollX, scrollY
-the inMin defaults to 0, inMax to stageW (for x prop) stageH (for y prop)
-the factor defaults to 1 which means change is in same direction
-set factor to -1 to change in the opposite direction
-integer rounds the value to an integer
-note, if frame is the property, the gotoAndStop() accepts decimals
-
-For instance,
-[{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
-would do traditional mouse move parallax for one object
-you would probably have more objects to follow
-
-or you can add these one at a time with the p.addLayer({layer object properties});
-the auto parameter defaults to true and uses the specified input
-if auto is set to false, you must make your own Ticker and use the step(input) method
-can set frames per second as fps parameter default 30 (works better on mobile)
-note: the ticker parameter has been removed - see zim.Ticker
-
-METHODS
-addLayer({layer object properties}) - adds a layer
-removeLayer(index) - removes a layer based on order added
-step(input) - used when auto is false to send in custom input data
-immediate([]) - immediately sets the target value for each layer object (no damping)
-dispose() - removes listeners
-
-PROPERTIES
-damp - allows you to dynamically change the damping
---*///+68
-	zim.Parallax = function(stage, damp, layers, auto, fps) {
-
-		var sig = "stage, damp, layers, auto, fps";
-		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
-		z_d("68");
-		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
-		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
-		if (zot(auto)) auto = true;
-
-		var stageW = stage.getBounds().width;
-		var stageH = stage.getBounds().height;
-
-		var that = this;
-
-		// public properties
-		this.damp = (zot(damp)) ? .1 : damp;
-
-		// public methods (do not get hoisted so define early)
-		// addLayer works as a public method
-		// and also is called from the object in case we add layers via the Parallax object parameters
-		// the function prepares ProportionDamp objects for two values
-		// and stores them on the layer object
-		// and also stores the desired amounts on the layer objects themselves
-		// finally, the layer object is added to the myLayers private property
-		// the timer then loops through these layers and handles things from there
-		// obj, distanceX, distanceY, minX, minY, maxX, maxY, factor, targetRound
-		this.addLayer = function(layer) {
-			//{obj, prop, propChange, input, inMin, inMax, factor, integer}
-			if (zot(layer.obj) || zot(layer.prop) || zot(layer.propChange)) return;
-			var obj = {obj:layer.obj, prop:layer.prop};
-			obj[obj.prop] = layer.propChange;
-			if (zot(layer.input)) layer.input = "mouseX";
-			obj.input = layer.input;
-
-			var inMin = (zot(layer.inMin)) ? 0 : layer.inMin;
-			var inMax = (zot(layer.inMax)) ? stageW : layer.inMax;
-			var factor = (zot(layer.factor)) ? 1 : layer.factor;
-			var integer = (zot(layer.integer)) ? false : layer.integer;
-
-			// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound
-			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], that.damp, factor, integer);
-			if (obj.prop == "scale") {
-				obj["s_"+obj.prop] = obj.obj.scaleX; // helper to allow scale to be property
-			} else if (obj.prop == "frame") {
-				obj["s_"+obj.prop] = obj.obj.currentFrame;
-			} else {
-				obj["s_"+obj.prop] = obj.obj[obj.prop]; // obj.s_x = obj.obj.x for example
-			}
-			myLayers.push(obj);
-			return myLayers.length-1;
-		}
-
-		this.removeLayer = function(index) {
-			if (zot(index)) return;
-			var layer = myLayers[index];
-			layer["p_"+layer.prop].dispose();
-			myLayers.splice(index,1);
-		}
-
-		this.immediate = function(array) {
-			var o;
-			for (var i=0; i<myLayers.length; i++) {
-				o = myLayers[i];
-				o["p_"+o.prop].immediate(array[i]);
-			}
-		}
-
-		this.dispose = function() {
-			myLayers = null;
-			if (auto) zim.Ticker.remove(zimTicker);
-			return true;
-		}
-
-		// private properties
-		// here are any layers that come in from Parallax object parameters
-		layers = (zot(layers)) ? [] : layers;
-
-		// we now are going to process these layers with the public addLayer method
-		// this will add the processed layers to the private property, myLayers
-		var myLayers = [];
-		for (var i=0; i<layers.length; i++) {
-			this.addLayer(layers[i]);
-		}
-
-		if (auto) {
-			var zimTicker = zim.Ticker.add(animate, stage);
-			if (!zot(fps)) createjs.Ticker.setFPS(fps);
-		}
-
-		// loop though our layers and apply the converted proportion damping
-		function animate(e) {
-			that.step();
-		}
-
-		this.step = function(custom) {
-			var o; var input;
-			for (var i=0; i<myLayers.length; i++) {
-				o = myLayers[i];
-				if (zot(custom)) {
-					if (o.input == "mouseX") input = stage.mouseX;
-					else if (o.input == "mouseY") input = stage.mouseY;
-					else if (o.input == "scrollX") input = zim.scrollX();
-					else if (o.input == "scrollY") input = zim.scrollY();
-				} else {
-					input = custom;
-				}
-				// damp object at property to start value + converted goal based on input
-				if (o.prop == "scale") {
-					o.obj.scaleX = o.obj.scaleY = o["s_"+o.prop] + o["p_"+o.prop].convert(input);
-				} else if (o.prop == "frame") {
-					o.obj.gotoAndStop(o["s_"+o.prop] + o["p_"+o.prop].convert(input));
-				} else {
-					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);
-					// for x on mouseX we split the destination range in two for a centered parallax
-					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
-				}
-			}
-		}
-	}//-68
-
-
-/*--
-zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps)
-
-Scroller Class
-
-animates a backing either horizontally or vertically (not both)
-make a new zim.Scroller(parameters) object
-the Scroller object will animate and swap the backgrounds when needed
-
-PARAMETERS: supports DUO - parameters or single object
-pass in two backgrounds (that look the same - clone them)
-pass in the speed, direction and a boolean for horizontal (default true)
-setting horizontal to false will animate vertically
-you can adjust the speed and direction properties dynamically
-you cannot adjust the backings and horizontal dynamically
-to change your animation, dispose() of the Scroller object and make a new one
-disposing just removes the ticker - you have to remove the backings
-not sure what is causing a small gap to appear over time
-but if your background can overlap a little you can pass in a gapFix of 10 pixels etc.
-can set frames per second as fps parameter default 30 (works better on mobile)
-note: the ticker parameter has been removed - see zim.Ticker
-
-METHODS
-dispose() - get rid of the event listeners - you need to remove the backings
-
-PROPERTIES
-speed - how fast the animation is going in pixels per frame (ticker set at 60)
-direction - either left or right if horizontal or up or down if not horizontal
-gapFix - if spacing occurs over time you can set the gapFix dynamically
---*///+69
-	zim.Scroller = function(backing1, backing2, speed, direction, horizontal, gapFix, fps) {
-
-		var sig = "backing1, backing2, speed, direction, horizontal, gapFix, fps";
-		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
-		z_d("69");
-		var b1 = backing1; var b2 = backing2;
-		if (zot(b1) || !b1.getBounds || zot(b2) || !b2.getBounds) return;
-		if (zot(horizontal)) horizontal = true;
-		var that = this; // we keep animate protected but want to access public properties
-		if (zot(fps)) fps = 30;
-
-		// here are the public properties that can be changed
-		this.speed = (zot(speed)) ? 1 : speed;
-		this.direction = (zot(direction)) ? 1 : direction;
-		this.gapFix = (zot(gapFix)) ? 0 : gapFix;
-
-		if (!b1.getBounds() || !b2.getBounds()) {
-			zog("zim build - Scroller(): please setBounds() on backing objects");
-			return;
-		}
-		if (!b1.getStage()) {
-			zog("zim build - Scroller(): please add backing objects to stage to start");
-			return;
-		}
-
-		var stageW;
-		var stageH;
-
-		if (horizontal) {
-			b2.x = b1.getBounds().width;
-		} else {
-			b2.y = b1.getBounds().height;
-		}
-
-		var zimTicker = zim.Ticker.add(animate, b1.getStage());
-		if (!zot(fps)) createjs.Ticker.setFPS(fps);
-
-		function animate(e) {
-			if (!b1.getStage()) return;
-			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
-			if (!stageW) {
-				stageW = b1.getStage().getBounds().width;
-				stageH = b1.getStage().getBounds().height;
-			}
-			// pausing the ticker does not really pause the ticker (weird)
-			if (that.speed == 0 || that.direction == 0) {return;}
-
-			if (horizontal) {
-				b1.x -= that.speed*that.direction;
-				b2.x -= that.speed*that.direction;
-
-				if (that.direction * that.speed > 0) {
-					if (b2.x < 0 && b1.x < b2.x) {
-						b1.x = b2.getBounds().width-that.gapFix;
-					} else if (b1.x < 0 && b2.x < b1.x) {
-						b2.x = b1.getBounds().width-that.gapFix;
-					}
-				} else {
-					if (b2.x > stageW && b2.x > b1.x) {
-						b2.x = b1.x - b1.getBounds().width+that.gapFix;
-					} else if (b1.x > stageW && b1.x > b2.x) {
-						b1.x = b2.x - b2.getBounds().width+that.gapFix;
-					}
-				}
-			} else {
-				b1.y -= that.speed*that.direction;
-				b2.y -= that.speed*that.direction;
-
-				if (that.direction * that.speed > 0) {
-					if (b2.y < 0 && b1.y < b2.y) {
-						b1.y = b2.getBounds().height-that.gapFix;
-					} else if (b1.y < 0 && b2.y < b1.y) {
-						b2.y = b1.getBounds().height-that.gapFix;
-					}
-				} else {
-					if (b2.y > stageH && b2.y > b1.y) {
-						b2.y = b1.y - b1.getBounds().height+that.gapFix;
-					} else if (b1.y > stageH && b1.y > b2.y) {
-						b1.y = b2.y - b2.getBounds().height+that.gapFix;
-					}
-				}
-			}
-			b1.getStage().update();
-		}
-
-		this.dispose = function() {
-			if (zon) zog("bye from Scroller");
-			zim.Ticker.remove(zimTicker);
-			return true;
-		}
-
-	}//-69
 
 	// function to set enabled of components
 	function zenable(t,v) {
@@ -6396,19 +8323,45 @@ gapFix - if spacing occurs over time you can set the gapFix dynamically
 /*--
 zim.Swipe = function(obj, distance, duration)
 
-Swipe class
+Swipe
+zim class - extends a createjs.EventDispatcher
 
-extends a createjs.EventDispatcher so it can dispatch events
+DESCRIPTION
 sets up capturing swipes on objects
 dispatches a "swipe" event on swipe left, right, up, down
-var s = zim.Swipe(parameters)
 
-PARAMETERS: supports DUO - parameters or single object
-pass into the object the object you want to swipe on
-then an optional distance to activate swipe (30 pixel default)
-might want to pass in a pixel distance based on percentage of stage
-and an optional time to travel that distance (80 ms default)
-try http://zimjs.com/code/swipe.html for testing distance and time (speed)
+EXAMPLE
+var rect = new zim.Rectangle(200, 200, "blue");
+rect.center(stage);
+var swipe = zim.Swipe(rect);
+var distance = 100;
+swipe.on("swipe", function(e) {
+	zog(e.swipeX); // -1, 0, 1  (for left, none and right)
+	zog(e.swipeY); // -1, 0, 1  (for up, none and down)
+
+	// move directly:
+	// rect.x += distance * e.swipeX;
+	// rect.y += distance * e.swipeY;
+	// stage.update();
+
+	// or animate
+	zim.move({
+		target:rect,
+		x:rect.x+distance*e.swipeX,
+		y:rect.y+distance*e.swipeY,
+		time:400,
+		ease:"quadOut"
+	});
+});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object you want to swipe on
+distance - (default 30) the distance in pixels to activate swipe
+	might want to pass in a pixel distance based on percentage of stage
+time - (default 80) time in milliseconds to travel that distance
+	try http://zimjs.com/code/swipe.html for testing distance and time (speed)
 
 PROPERTIES
 distance - the distance needed for swipe to activate
@@ -6428,6 +8381,7 @@ the Swipe event object has a swipeX and swipeY property that is -1,0, or 1
 for left, none, or right OR up, none, down
 the event object has an obj property as well for what object was swiped
 also dispatches a "swipedown" event for convenience on a mousedown
+
 LEGACY
 the Swipe object provides a direction property of "left", "right", "up", or "down"
 the Swipe object provides an obj property of what object was swiped on
@@ -6519,42 +8473,90 @@ this can be used to snap back to an original location
 		return new makeSwipe();
 	}//-70
 
-
 /*--
 zim.Pages = function(holder, pages, transition, speed, transitionTable)
 
-Pages Class
+Pages
+zim class - extends a zim.Container which extends a createjs.Container
 
-Pages extends the createjs Container - so you stage.addChild(myPages)
+DESCRIPTION
 handles going between pages
-make a var myPages = new zim.Pages() object
+make a var myPages = new zim.Pages() object and add it to the stage
 all your pages from then on are added to and manipulated inside the Pages object
 Pages allows you to set the destination pages for swipe events
 other events like buttons can call the go(page, direction) method
 consider using zim.HotSpots() to efficiently handle multiple buttons
 
-PARAMETERS: supports DUO - parameters or single object
-pass in the holder object (ie. stage) so we can set various transition animation parameters
-pass in an array of page objects - for example:
-[{page:home, swipe:[null,"info",hide,find]},{page:hide, swipe:[null,null,null,home]}]
-the pages should be containers - it helps to give them each a name property
-the optional swipe array holds mappings to swipe events ["right", "left", "down", "up"]
-in other words, these could be pages to the left, right, top and bottom of the current page
-or they can call commands as strings
-pass in the type of transition "reveal", "slide", "fade", "black", "white" or the default: "none"
-and a speed in milliseconds
-finally an optional transitionTable (read the property below for format)
+EXAMPLE
+// make pages (these would be containers with content)
+var home = new zim.Rectangle(stageW, stageH, "blue");
+var hide = new zim.Rectangle(stageW, stageH, "green");
+var find = new zim.Rectangle(stageW, stageH, "yellow");
+
+var pages = new zim.Pages({
+	holder:stage,
+	pages:[
+		// swipe:["right", "left", "down", "up"]
+		{page:home, swipe:[null,"info",hide,find]},
+		{page:hide, swipe:[null,null,null,home]},
+		{page:find, swipe:[null,null,home,null]}
+	],
+	transition:"slide",
+	speed:1000 // slower than usual for demonstration
+});
+stage.addChild(pages);
+
+// handle any events inserted into the swipe arrays
+pages.on("info", function(){zog("info requested")});
+
+// handle any custom requirements when arriving at a page
+// the event gives you the page object
+// so add a name properties just make it easier to manage
+home.name = "home";
+hide.name = "hide";
+find.name = "find";
+pages.on("page", function() {
+	zog(pages.page.name); // now we know which page we are on
+})
+
+// you can manually go to pages as well
+// we will make a little triangle to click:
+var back = new zim.Triangle({fill:"red"});
+back.center(find); // add triangle to find page
+// not really supposed to add things to zim shapes
+// they default to mouseChildren false
+// we want to click on the back button
+// so we have to set the mouseChildren of find to true
+find.mouseChildren = true;
+back.cursor = "pointer";
+back.on("click", function() {pages.go(home, "up")});
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+holder - where are we putting the pages (eg. stage) (used for setting transition properties)
+pages - (default null) an array of page objects - for example:
+	[{page:home, swipe:[null,"info",hide,find]},{page:hide, swipe:[null,null,null,home]}]
+	the pages should be containers - it helps to give them each a name property
+	the optional swipe array holds mappings to swipe events ["right", "left", "down", "up"]
+	in other words, these could be pages to the left, right, top and bottom of the current page
+	or they can call commands as strings
+transition - (default "none") the type of transition "none", "reveal", "slide", "fade", "black", "white"
+speed - (default 200) speed in milliseconds of the transition if set
+transitionTable - (default none) an array to override general transitions with following format:
+	[[fromPage, toPage, "transition", ms(optional)], etc.]
 
 METHODS
 addPage() - lets you alternatively add pages after you create the object
 removePage() - lets you remove a page (if on this page, call a go() first and remove on the page event)
 setSwipe() - lets you set the swipe array for a page
 go(newPage, direction, trans, ms) - lets you go to a page for events other than swipe events
-trans and ms are optional and will override any previously set transitions (speed in ms)
+	direction is which way the pages is relative to the current page
+	trans and ms are optional and will override any previously set transitions (speed in ms)
 resize() - call to resize transitions - not the pages themselves (use layouts)
 pause() - pauses a transition before it starts (call from swipe event)
 unpause() - unpauses a paused transition (unless another go() command is called)
-puff(time) - adds all the pages behind the currentPage (time (ms) auto calls settle)
+puff(time) - adds all the pages behind the currentPage (adding time (ms) will auto calls settle)
 settle() - removes all pages except the currentPage
 disable() - stops swipe from activating and sets active = false
 enable() - enables swipe action and sets active = true
@@ -6570,31 +8572,41 @@ active - default true, boolean to have swipes active (good for layered Pages obj
 swipe - the ZIM Swipe object used for pages (can tweak distance to percentage if rescaling)
 
 EVENTS
-for the data above, swiping the home page down automatically goes to the hide page
-if the home page is swiped up it automatically goes to the find page
+Pages dispatches a "page" event when the page changes (to a page in the swipe array)
+myPages.on("page",function(e){...})
+with myPages.page being set to the new page (e.target.page)
+and myPages.lastPage being set to the old page (e.target.lastPage)
+myPages.direction gets the direction of the transition (e.target.direction)
+
+if there is a string in the swipe array like "info"
+then the zim.Pages() object dispatches an event equivalent to the string
+for the data example above, myPages.on("info",function(e){...});
+would trigger when the home page is swiped to the left
+
 Pages dispatches a "swipe" event before changing pages if swiped
 you can then get pages.page, pages.nextPage and pages.direction
 you can pause() if needed the transition to handle data, etc. and then unpause()
 you do not need to handle going to another page when swiping - that is handled automatically
 so you probably will not use the swipe event unless handling data between pages
-Pages dispatches a "page" event when you pass in a page object in the swipe array
-myPages.on("page",function(e){...})
-with myPages.page being set to the new page (e.target.page)
-and myPages.lastPage being set to the old page (e.target.lastPage)
-myPages.direction gets the direction of the transition (e.target.direction)
-if there is a string in the swipe array like "info"
-then the zim.Pages() object dispatches an event equivalent to the string
-for the data example above, myPages.on("info",function(e){...});
-would trigger when the home page is swiped to the left
+
 Pages also dispatches a "pageTransitioned" event when a transition is complete
 you will have the same properties available as with the page event
 
+USAGE
 the first page object is the start page
+for the data above, swiping the home page down automatically goes to the hide page
+if the home page is swiped up it automatically goes to the find page
 you can add pages with the addPage() method
 it will not show until you swipe or go to it - unless it was the first page added
-once again - do not add the pages to the stage yourself - let Pages do it for you
-just add the pages object to the stage.  Pages is designed for full stage
-if you want pages within a smaller area - consider using two canvas tags
+1. if the holder is the stage then add the pages object to the stage
+2. if the holder is another container then add pages object to the holder
+and add the holder to the stage (read this twice to make sure you got it!)
+in the second case, you will have to mask the holder so you do not see transitions
+DO NOT add the pages to the stage or holder - let Pages do it for you
+sometimes you need a page to be on the stage to operate on it
+if this is the case, call puff() and make adjustments
+call settle() when done - or pass in a time in ms to puff to auto settle after that time
+you can define multiple pages objects add and remove pages objects as needed
 --*///+71
 	zim.Pages = function(holder, pages, transition, speed, transitionTable) {
 
@@ -6617,7 +8629,7 @@ if you want pages within a smaller area - consider using two canvas tags
 			var hW = holder.getBounds().width;
 			var hH = holder.getBounds().height;
 
-			var currentPage = this.page = (pages[0]) ? pages[0].page : null;
+			var currentPage = this.page = pages[0] ? pages[0].page : null;
 
 			var black; var white;
 			if (transition!="none" || transitionTable!=[]) makeTransitionAssets();
@@ -6820,7 +8832,6 @@ if you want pages within a smaller area - consider using two canvas tags
 				if (transition!="none" || transitionTable!=[]) makeTransitionAssets();
 			}
 
-
 			this.puff = function(milliseconds) {
 				// add all pages to the holder behind current page
 				// if milliseconds then this is the time to settle automatically
@@ -6859,7 +8870,7 @@ if you want pages within a smaller area - consider using two canvas tags
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makePages.prototype = new createjs.Container();
+		makePages.prototype = new zim.Container();
 		makePages.prototype.constructor = zim.Pages;
 		return new makePages();
 	}//-71
@@ -6868,31 +8879,54 @@ if you want pages within a smaller area - consider using two canvas tags
 /*--
 zim.HotSpots = function(spots, local, mouseDowns)
 
-HotSpots Class
+HotSpots
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends a createjs.Container
-puts an invisible click area (hotSpot) on pages
-or specify an object and it will turn that into a hotspot
-var hs = new zim.HotSpots();
+DESCRIPTION
+allows you to create multiple zim.hotSpot objects on multiple pages
+a zim.hotSpot is an invisible click area (like an image map in HTML)
+you can alternatively specify an object and it will turn that into a hotspot
+zim.HotSpots lets you control many or all of your interactions in one place
 
-PARAMETERS: supports DUO - parameters or single object
-you pass in an array of hotspot data objects:
-[{page:home, rect:[190,50,260,260], call:someFunction},
-{page:home, rect:[70,405,500,150], call:someOtherFunction}]
-the page should be a createjs Container
-the rect is the [left, right, width, height] of a rectangle relative to the stage
-call is the callback function to call when a hotSpot is clicked
-instead of a rect array you can pass an object that must have setBounds() set
-[{page:home, rect:submitButton, call:function(){//code}}]
-the hotSpot will then use the button position and bounds as the rectangle
-this allows you to manage all your button presses from one place
-note - in this case, HotSpots will actually add a click event to the button
-the second parameter local defaults to true
-and should be used when the element scale independently from the stage
-in local mode you must add coordinates of the hotSpot inside its container
-if set to false then you pass in global coordinates and hotSpot will convert them
-the third parameter is whether you want mouseDowns on the hotSpots
-this defaults to false to prevent users from activating a swipe on a button (when using ZIM Swipe)
+EXAMPLE
+// our first hotSpot will be a 50 pixel square at 100, 100
+// then we will add hotSpots to these items as well
+var circle = new zim.Circle(60, "red");
+circle.center(stage);
+
+var button = new zim.Button();
+stage.addChild(button);
+button.x = stageW - button.width - 100;
+button.y = stageH - button.height - 100;
+
+// make the hotSpots object
+// these are all on the same page
+// gets really handy when you have multiple pages with zim.Pages
+var hs = new zim.HotSpots([
+	{page:stage, rect:[100,100,50,50], call:function(){zog("hot!");}},
+	{page:stage, rect:circle, call:function(){zog("circle!");}},
+	{page:stage, rect:button, call:function(){zog("button!");}},
+]);
+// hs.show(); // uncomment this to see rectangle hotSpots
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+spots - an array of hotspot data objects with the following format:
+	[{page:home, rect:[190,50,260,260], call:someFunction},
+	 {page:home, rect:[70,405,500,150], call:someOtherFunction}]
+	the page should be a createjs Container
+	the rect is the [left, right, width, height] of a rectangle relative to the stage
+	call is the callback function to call when a hotSpot is clicked
+	instead of a rect array you can pass an object that must have setBounds() set
+	[{page:home, rect:submitButton, call:function(){//code}}]
+	the hotSpot will then use the button position and bounds as the rectangle
+	note - in this case, HotSpots will actually add a mousedown or click event to the button
+local (default true) hotSpot rect is based on local coordinates of the container
+	use when the element scale independently from the stage
+	if set to false then you pass in global coordinates and hotSpot will convert them
+mouseDowns (default false) stops mousedown events on a button that is used as a hotSpot
+	prevents users from activating a swipe on a button (when using ZIM Swipe)
 
 METHODS
 show() - shows the hotspots for testing during authoring time
@@ -6905,12 +8939,11 @@ ACTIONEVENT
 This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
-note, the class does actually add rectangle shapes to your page
+NOTE: the class does actually add rectangle shapes to your page
 the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 this could have been done with "math" alone but rollover cursor would be a pain
 the class creates zim.HotSpot objects - see the class underneath this one
 --*///+72
-
 	if (zot(zim.ACTIONEVENT)) zim.ACTIONEVENT = "mousedown";
 
 	zim.HotSpots = function(spots, local, mouseDowns) {
@@ -7044,7 +9077,7 @@ the class creates zim.HotSpot objects - see the class underneath this one
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeHotSpots.prototype = new createjs.Container();
+		makeHotSpots.prototype = new zim.Container();
 		makeHotSpots.prototype.constructor = zim.HotSpots;
 		return new makeHotSpots();
 	}//-72
@@ -7053,26 +9086,32 @@ the class creates zim.HotSpot objects - see the class underneath this one
 /*--
 zim.HotSpot = function(obj, x, y, width, height, call, local)
 
-HotSpot Class
+HotSpot
+zim class - extends a zim.Container which extends a createjs.Container
 
+DESCRIPTION
 adds an invisible button to a container object (often think of this as the page)
-var hs = new zim.HotSpot();
 if you want multiple spots it is more efficient to use the HotSpots class above
 which manages multiple HotSpot objects (otherwise you end up with multiple event functions)
 the spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape
 the spot will get a cursor of "pointer"
 
-PARAMETERS: supports DUO - parameters or single object
-the container object in which to place the hotspot
-the x, y, width and height of the hotspot relative to the stage
-call is the function to call when the spot is pressed
-local defaults to true and should be used when the element scale independently from the stage
-in local mode you must add coordinates of the hotSpot inside its container
-if set to false then you pass in global coordinates and hotSpot will convert them
+EXAMPLE
+var hs = new zim.HotSpot(stage, 100, 100, 50, 50, myFunction);
+function myFunction() {
+	zog("activation!");
+}
+// hs.show(); // uncomment this to see rectangle hotSpot
+stage.update();
+END EXAMPLE
 
-ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting
-The default is "mousedown" - if set to something else the component will act on click (press)
+PARAMETERS supports DUO - parameters or single object with properties below
+holder - container object in which to place the hotspot (stage for instance)
+x, y, width and height - of the rectangle for the hotspot
+call - the function to call when the spot is pressed
+local (default true) hotSpot rect is based on local coordinates of the container
+	use when the element scale independently from the stage
+	if set to false then you pass in global coordinates and hotSpot will convert them
 
 METHODS
 show() - helps when creating the spot to see where it is
@@ -7082,6 +9121,10 @@ dispose() - removes the listener and the spot
 PROPERTIES
 spot - the actual hotSpot object that gets added to the container can be accessed with the spot property
 eg. hs.spot
+
+ACTIONEVENT
+This component is affected by the general zim.ACTIONEVENT setting
+The default is "mousedown" - if set to something else the component will act on click (press)
 --*///+73
 	zim.HotSpot = function(obj, x, y, width, height, call, local) {
 
@@ -7090,7 +9133,8 @@ eg. hs.spot
 		z_d("73");
 		function makeHotSpot() {
 			if (zot(obj) || !obj.addChild) {zog("zim pages - HotSpot():\nPlease pass in container object for obj"); return;}
-			if (obj instanceof createjs.Container == false) zog("zim build - HotSpot():\nObjects passed in should be Containers");
+			if (obj instanceof createjs.Container == false) {zog("zim pages - HotSpot():\nObjects passed in should be Containers"); return;}
+			if (zot(x) || zot(y) || zot(width) || zot(height)) {zog("zim pages - HotSpot():\nPlease pass in x, y, width, height"); return;}
 			if (zot(local)) local = true;
 			eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
 
@@ -7140,15 +9184,19 @@ eg. hs.spot
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeHotSpot.prototype = new createjs.Container();
+		makeHotSpot.prototype = new zim.Container();
 		makeHotSpot.prototype.constructor = zim.HotSpot;
 		return new makeHotSpot();
 	}//-73
 
-
 /*--
 zim.dashedLinesOn = function()
 
+dashedLinesOn
+zim function
+
+DESCRIPTION
+CreateJS now supports dashed lines in its graphics but keep here for legacy
 adds dashedLineTo(x1, y1, x2, y2, dashLen)
 and drawDashedRect(x, y, w, h, dashLen) methods to createjs Graphics
 https://gist.github.com/diverted247/9216242 - Ted Patrick
@@ -7191,8 +9239,10 @@ https://gist.github.com/diverted247/9216242 - Ted Patrick
 /*--
 zim.Manager = function()
 
-Manager class
+Manager
+zim class
 
+DESCRIPTION
 used internally to make GridManager and GuideManager
 and in future perhaps OutlineManager
 --*///+75
@@ -7210,7 +9260,8 @@ and in future perhaps OutlineManager
 			}
 		}
 		this.dispose = function() {
-			for (var i=0; i<that.items.length; i++) {
+			zog(that.items.length);
+			for (var i=that.items.length-1; i>=0; i--) {
 				that.items[i].dispose();
 			}
 			that.items = [];
@@ -7224,30 +9275,54 @@ and in future perhaps OutlineManager
 zim.Guide = function(obj, vertical, percent, hideKey, pixelKey)
 
 Guide Class
+extends a zim.Container which extends a createjs.Container
 
-extends createjs.Container
-var guide = new zim.Guide(parameters);
-stage.addChild(guide);
+DESCRIPTION
 shows a guide to help layout assets with code
-cursor x and y percentage or pixels are shown along edges
+cursor x and y in percentage or pixels are shown along edges
 as a distance from the guide
+so you only need one guide per axis
+because you measure from the guide to your cursor
 can use G key to toggle guide visibility
 can use P key to toggle percent and pixels
-
 make sure you remove the guide for your final version (dispose)
 
-PARAMETERS: supports DUO - parameters or single object
-obj - to add guide to (stage is default)
-vertical - defaults to true, set to false for horizontal guide
-percent - defaults to true to show percent - false to show pixels
-hideKey - key to press to hide guide - default G
-pixelKey - key to press to swap percent and pixels - default P
+EXAMPLE
+// simple form for a vertical guide
+// use the distance from the guide to your cursor to measure
+// so you only need one vertical guide for horizontal measurement
+var guide = new zim.Guide(stage);
+
+// better to add guides to a GuideManager
+var manager = new zim.GuideManager();
+manager.add(new zim.Guide(stage));
+manager.add(new zim.Guide(stage, false));
+
+// or with pixels
+// manager.add(new zim.Guide(stage, true, false));
+// manager.add(new zim.Guide(stage, false, false));
+
+// then you can remove all guides with
+// manager.dispose();
+// handy with guides on multiple zim.Pages
+
+// and in frame resize event we can resize all guides:
+frame.on("resize", function() {manager.resize();})
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - object to add guide to for example the stage
+vertical - (default true) set to false for horizontal guide
+percent - (default true) set to false to show pixels
+hideKey - (default G) key to press to hide guide
+pixelKey - (default P) key to press to swap percent and pixels
+
+METHODS
+resize() - resizes the guide if the container size changes (put in frame resize event)
+dispose() - removes keyboard event listeners and guide
 
 PROPERTIES
 pixels - boolean - set to true to change to pixels, false to go to percent
-
-METHODS
-dispose() - clears keyboard events and guide
 --*///+76
 	zim.Guide = function(obj, vertical, percent, hideKey, pixelKey) {
 
@@ -7288,7 +9363,7 @@ dispose() - clears keyboard events and guide
 			}
 
 			function makeBox(fill, stroke, textColor) {
-				var box = new createjs.Container();
+				var box = new zim.Container();
 				box.shape = new createjs.Shape();
 				box.shape.graphics.s(stroke).ss(1).f(fill).r(0,0,boxW,boxH);
 				box.shape.alpha = .9;
@@ -7338,8 +9413,6 @@ dispose() - clears keyboard events and guide
 				if (vertical) {
 					box.y = objH/2;
 					box.label.text = "y:" + ((that.pixels) ? Math.round(objW*70/100) : "70%");
-
-
 				} else {
 					box.x = objW/2;
 					box.label.text = "x:" + ((that.pixels) ? Math.round(objH*70/100) : "70%");
@@ -7487,7 +9560,7 @@ dispose() - clears keyboard events and guide
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeGuide.prototype = new createjs.Container();
+		makeGuide.prototype = new zim.Container();
 		makeGuide.prototype.constructor = zim.Guide;
 		return new makeGuide();
 	}//-76
@@ -7496,11 +9569,30 @@ dispose() - clears keyboard events and guide
 /*--
 zim.GuideManager = function()
 
-GuideManager class
-extends the ZIM Manager abstract class
+GuideManager
+zim class - extends the ZIM Manager abstract class
+
+DESCRIPTION
 add Zim Guide objects and update or remove all guides at once
 guides are handy to use but perhaps annoying to update and remove if you have many
 GuideManager keeps track of the guides and lets you update or dispose of them on command
+
+EXAMPLE
+var manager = new zim.GuideManager();
+manager.add(new zim.Guide(stage));
+manager.add(new zim.Guide(stage, false));
+
+// or with pixels
+// manager.add(new zim.Guide(stage, true, false));
+// manager.add(new zim.Guide(stage, false, false));
+
+// then you can remove all guides with
+// manager.dispose();
+// handy with guides on multiple zim.Pages
+
+// and in frame resize event we can resize all guides:
+frame.on("resize", function() {manager.resize();})
+END EXAMPLE
 
 PROPERTIES
 items - an array of all Guide objects added with add()
@@ -7510,7 +9602,7 @@ add(guide) - registers a guide with the GuideManager
 resize() - resizes all the guides in the GuideManager (ie. if stage changes)
 dispose() - disposes all guides and the GuideManager
 
-note: to just hide guides, you use the G key
+NOTE: to just hide guides, you use the G key
 and to toggle percent and pixels use the P key
 you can dispose guides individually or use this class to dispose all
 disposing will remove the G, P key listener and the guide
@@ -7526,30 +9618,47 @@ disposing will remove the G, P key listener and the guide
 /*--
 zim.Grid = function(obj, color, percent, hideKey, pixelKey)
 
-Grid Class
+Grid
+zim class - extends a zim.Container which extends a createjs.Container
 
-extends createjs.Container
-var grid = new zim.Grid(parameters);
-stage.addChild(grid);
+DESCRIPTION
 shows a grid to help layout assets with code (percent is default)
 cursor x and y percentage or pixels are shown along edges
 can use G key to toggle grid visibility
 can use P key to toggle percent and pixels
-
 make sure you remove the grid for your final version (dispose)
 
-PARAMETERS: supports DUO - parameters or single object
-obj - to add grid to (stage is default)
-color - defaults to black
-percent - defaults to true to show percent - false to show pixels
-hideKey - key to press to hide grid - default G
-pixelKey - key to press to swap percent and pixels - default P
+EXAMPLE
+var grid = new zim.Grid(stage);
+
+// better to add grids to a GridManager
+var manager = new zim.GridManager();
+manager.add(new zim.Grid(stage));
+
+// or with pixels
+// manager.add(new zim.Grid(stage, null, false));
+
+// then you can remove all grids with
+// grid.dispose();
+// handy with guides on multiple zim.Pages
+
+// and in frame resize event we can resize all grids:
+frame.on("resize", function() {manager.resize();})
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the object to add grid to (for example the stage)
+color - (default black) the color of the grid
+percent - (default true) set to false to show pixels
+hideKey - (default G) key to press to hide grid
+pixelKey - (default P) key to press to swap percent and pixels
+
+METHODS
+resize() - resize the grid if the container changes size (eg. put in frame resize event)
+dispose() - clears keyboard events and grid
 
 PROPERTIES
 pixels - boolean - set to true to change to pixels, false to go to percent
-
-METHODS
-dispose() - clears keyboard events and grid
 --*///+78
 	zim.Grid = function(obj, color, percent, hideKey, pixelKey) {
 
@@ -7587,7 +9696,7 @@ dispose() - clears keyboard events and grid
 			left.label.x = boxW/2 + boxW/6;
 
 			function makeBox(fill, stroke, textColor) {
-				var box = new createjs.Container();
+				var box = new zim.Container();
 				box.shape = new createjs.Shape();
 				box.shape.graphics.s(stroke).ss(1).f(fill).r(0,0,boxW,boxH);
 				box.shape.alpha = .9;
@@ -7688,7 +9797,7 @@ dispose() - clears keyboard events and grid
 				maxX = objW-boxW*2/3;
 				maxY = objH-boxH - boxH;
 
-				cached = new createjs.Container();
+				cached = new zim.Container();
 				that.addChild(cached);
 				var grid = new createjs.Shape();
 				cached.addChild(grid);
@@ -7821,7 +9930,7 @@ dispose() - clears keyboard events and grid
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeGrid.prototype = new createjs.Container();
+		makeGrid.prototype = new zim.Container();
 		makeGrid.prototype.constructor = zim.Grid;
 		return new makeGrid();
 	}//-78
@@ -7830,23 +9939,41 @@ dispose() - clears keyboard events and grid
 /*--
 zim.GridManager = function()
 
-GridManager class
+GridManager
+zim class - extends a zim.Manager
+
+DESCRIPTION
 add Zim Grid objects and update or remove all grids at once
 grids are handy to use but perhaps annoying to update and remove if you have many
 GridManager keeps track of the grids and lets you update or dispose of them on command
 
-PROPERTIES
-items - an array of all Grid objects added with add()
+EXAMPLE
+var manager = new zim.GridManager();
+manager.add(new zim.Grid(stage));
+
+// or with pixels
+// manager.add(new zim.Grid(stage, null, false));
+
+// then you can remove all grids with
+// grid.dispose();
+// handy with guides on multiple zim.Pages
+
+// and in frame resize event we can resize all grids:
+frame.on("resize", function() {manager.resize();})
+END EXAMPLE
 
 METHODS
 add(grid) - registers a grid with the GridManager
 resize() - resizes all the grids in the GridManager (ie. if stage changes)
 dispose() - disposes all grids and the GridManager
 
-note: to just hide grids, you use the G key
+NOTE: to just hide grids, you use the G key
 and to toggle percent and pixels use the P key
 you can dispose grids individually or use this class to dispose all
 disposing will remove the G key listener and the grid
+
+PROPERTIES
+items - an array of all Grid objects added with add()
 --*///+79
 	zim.GridManager = function() {
 		z_d("79");
@@ -7859,52 +9986,79 @@ disposing will remove the G key listener and the grid
 /*--
 zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey)
 
-Layout class
+Layout
+zim class - extends a createjs.EventDispatcher
 
-extends a createjs.EventDispatcher so it can dispatch events
+DESCRIPTION
 arranges objects on the page by fitting them in regions
 make a layout object for each page if desired
 and even nest layout objects inside regions
 fixed aspect ratio content is fit into regions
 good for flexive design where you anchor titles and navigation
 handles any number of regions vertically or horizontally
-var layout = zim.Layout(parameters)
+useful for full scale mode for different devices or browser window scale
+you need to run the resize() method to adjust layout
+put the all your layouts in zim.LayoutManager to scale all at once
 
-PARAMETERS: supports DUO - parameters or single object
-the holder object (stage, container, etc) that must have bounds set
-the bounds will constrain the layout
-an array of region objects with specific properties for each
-example - with all dimensions as percents
+EXAMPLE
+// these would be containers with your content
+// make sure that bounds are set on containers
+// you may want to hard code bounds for clarity
+var header = new zim.Rectangle(500, 200, "blue");
+var content = new zim.Rectangle(600, 500, "green");
+var footer = new zim.Rectangle(500, 200, "blue");
+stage.addChild(header, content, footer);
 
-Example VERTICAL region objects
-[ {object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"},
-{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
-{object:nav, marginTop:5, maxWidth:80, height:20, backgroundColor:"red"} ]
-note: no minHeight for middle regions - but heights on any region
-align defaults to middle for the regions
-valign defaults to top and bottom for the top and bottom region and middle for the others
-backgroundColor applies a backing color to the region
+// make the Layout - more useful for FULL scale mode
+var layout = new zim.Layout({
+	holder:stage,
+	regions:[
+		{object:header, marginTop:10, maxWidth:80, minHeight:10, valign:"top"},
+		{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
+		{object:footer, marginTop:5, maxWidth:80, height:10}
+	],
+	lastMargin:5
+});
 
-Example HORIZONTAL region objects
-{object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"},
-{object:col2, marginLeft:5, maxHeight:90, align:"middle"}, // note, middle gets no minWidth
-{object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"},
-align defaults to left and right for the outer regions and middle for the inside regions
-valign defaults to top for all the regions
+// add to LayoutManager to resize or dispose all layouts together
+// disposing only removes keyboard events to show boundaries
+var manager = new zim.LayoutManager();
+manager.add(layout);
 
-PARAMETERS CONT'D
-lastMargin - the margin at the bottom (vertical) or at the right (horizontal) defaults to 0
-backgroundColor - for the whole holder - defaults to ""
-vertical - boolean defaults to true for vertical layout (set to false for horizontal)
-regionShape - a createjs Shape object to show where bounds are (optional) (added to holder)
-can toggle on and off with B key - but must pass in the Shape to use the B key
-scalingTarget - an object used as the bounds of the region scaling
-setting a scalingTarget will also set the bounds of the holder to the scalingTarget bounds
-it does not scale the holder - only scales the region objects inside
-hideKey is the hot key for hiding and showing the bounds - default B
+frame.on("resize", function() {
+	manager.resize();
+	stage.update();
+});
 
-PROPERTIES
-regions - the regions object - if changed will have to call resize() manually
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+holder - object to hold layout (stage, container, etc) that must have bounds set
+regions - an array of region objects with specific properties for each
+	Example VERTICAL region objects - all dimensions are percents
+		[{object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"},
+		{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
+		{object:nav, marginTop:5, maxWidth:80, height:20, backgroundColor:"red"}]
+	note: no minHeight for middle regions - but heights on any region
+	align defaults to middle for the regions
+	valign defaults to top and bottom for the top and bottom region and middle for the others
+	backgroundColor applies a backing color to the region
+	Example HORIZONTAL region objects
+		[{object:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"},
+		{object:col2, marginLeft:5, maxHeight:90, align:"middle"}, // note, middle gets no minWidth
+		{object:col3, marginLeft:5, maxHeight:80, minWidth:20, align:"left", valign:"top"}]
+	align defaults to left and right for the outer regions and middle for the inside regions
+	valign defaults to top for all the regions
+lastMargin - (default 0) the margin at the bottom (vertical) or at the right (horizontal)
+backgroundColor - (default null) background color for the whole holder
+vertical - (default true) set to false for horizontal layout
+regionShape - (default null) a zim or createjs Shape object to show bounds (gets added to holder)
+	can toggle on and off with B key - but must pass in the Shape to use the B key
+scalingTarget - (default holder) an object used as the bounds of the region scaling
+	setting a scalingTarget will also set the bounds of the holder to the scalingTarget bounds
+	it does not scale the holder - only scales the region objects inside
+hideKey - (default B) is the hot key for hiding and showing the bounds
 
 METHODS
 resize() - resize based on new bounds of the holder (or scalingObject)
@@ -7914,6 +10068,9 @@ removeShape() - permanently removes the bounding shape
 disable() - disables all the layout (shape and sizing)
 enable() - enables all the layout (shape and sizing)
 if you want to get rid of the objects then you need to do so in your app
+
+PROPERTIES
+regions - the regions object - if changed will have to call resize() manually
 
 DESCRIPTION OF FLEXIVE DESIGN
 here described with vertical layout - horizontal is similar but rotated 90
@@ -8145,7 +10302,6 @@ will fill up the rest of the height until they reach their maximum widths
 					return;
 				}
 
-
 				// if specified all primaries or all maxed in secondary
 				// then distribute based on inner margins
 				// watch out - may need to revert to original margins if page is resized
@@ -8285,14 +10441,12 @@ will fill up the rest of the height until they reach their maximum widths
 			}
 
 			this.dispose = function() {
-				// does not really dispose incase a resize is needed
+				// does not really dispose in case a resize is needed
 				// it has no events aside from the keydown
 				// which gets removed when we removeShape below
 				that.removeShape();
 				return true;
 			}
-
-
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
@@ -8304,8 +10458,10 @@ will fill up the rest of the height until they reach their maximum widths
 /*--
 zim.LayoutManager = function()
 
-LayoutManager class
+LayoutManager
+zim class
 
+DESCRIPTION
 add Zim Layout objects and update them all at once
 also can remove all layout region bound shapes at once
 as well as remove the B key to show the region bound shapes
@@ -8313,8 +10469,38 @@ for a final project, call the dispose()
 this will remove all shapes and key events
 the layouts will remain in place to handle multiple screen sizes
 
-PROPERTIES
-items - an array of all Layout objects added with add()
+EXAMPLE
+// these would be containers with your content
+// make sure that bounds are set on containers
+// you may want to hard code bounds for clarity
+var header = new zim.Rectangle(500, 200, "blue");
+var content = new zim.Rectangle(600, 500, "green");
+var footer = new zim.Rectangle(500, 200, "blue");
+stage.addChild(header, content, footer);
+
+// make the Layout - more useful for FULL scale mode
+var layout = new zim.Layout({
+	holder:stage,
+	regions:[
+		{object:header, marginTop:10, maxWidth:80, minHeight:10, valign:"top"},
+		{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
+		{object:footer, marginTop:5, maxWidth:80, height:10}
+	],
+	lastMargin:5
+});
+
+// add to LayoutManager to resize or dispose all layouts together
+// disposing only removes keyboard events to show boundaries
+var manager = new zim.LayoutManager();
+manager.add(layout);
+
+frame.on("resize", function() {
+	manager.resize();
+	stage.update();
+});
+
+stage.update();
+END EXAMPLE
 
 METHODS
 add(layout) - registers a layout with the LayoutManager
@@ -8323,7 +10509,10 @@ disable() - disables all the layouts in the LayoutManager (shapes and sizing)
 enable() - enables all the layouts in the LayoutManager (shapes and sizing)
 dispose() - only removes bounds shapes and keyboard events (does not really dispose)
 
-note: to just hide bounds, you use the B key
+NOTE: to just hide bounds, you use the B key
+
+PROPERTIES
+items - an array of all Layout objects added with add()
 --*///+81
 	zim.LayoutManager = function() {
 		z_d("81");
@@ -8357,144 +10546,334 @@ note: to just hide bounds, you use the B key
 	}//-81
 
 /*--
-zim.Wonder = function(wid, client, app, notes, server)
+zim.Parallax = function(stage, damp, layers, auto)
 
-Wonder class
+Parallax
+zim class
 
-Wonder sends counts, times, and orders to a server for user testing or statistical purposes
-go to http://zimjs.com/code/wonder/ to get a Wonder ID (wid) and set up Wonder stats with ZIM
-or make up your own wid and use your own server script to collect data
-see the zim Wonder site for a sample script to collect data
-NOTE: all records at ZIM are archived NEW YEARS DAY and kept for a year after that
-service is provided as is and ZIM and Dan Zen are not responsible for lost data
+DESCRIPTION
+takes objects as layers and sets properties based on an input
+for instance, each layer could move a different x based on position of mouseX
+or each layer could scale a different amount based on scroll of y
+The types of input are mouseX, mouseY, scrollX, scrollY or custom
+The types of properties to change could be x, y, scaleX, scaleY, rotation, alpha, frameNumber, etc.
+Parallax allows scale to be a property which scales scaleX and scaleY together
+Parallax allows frame to be a property and calls gotoAndStop() on a Sprite frame
+Parallax really just manages multiple ProportionDamp objects
+for proper parallax, the objects closer move more than the objects farther back
 
-USES
-count will count things like app loads, button clicks within an app, how many monsters they killed
-time will tell you the time the user took to do something - like solve a puzzle, or locate the witch
-order will record the order items were done - which section did they go to first, second, third, etc.
+EXAMPLE
+// make assets to move around
+// these could be pictures, shapes, containers, etc.
+var backing = new zim.Rectangle(800, 200, "yellow");
+backing.center(stage);
+var mid = new zim.Rectangle(400, 200, "green");
+mid.center(stage).y += 20;
+var front = new zim.Circle(60, "red");
+front.center(stage).y += 80;
 
-PARAMETERS: supports DUO - parameters or single object
-wid - string with your company wonder ID for example z14i46m3z29
-	  this is the ID you are e-mailed when you sign up or sign in with your company name
-	  this is NOT your company name that you log into Wonder with
-	  NOTE: recording to a non-registered wid on the ZIM server will not work and there is no error message
-client - the client the app is for - if it is for your company, just put your company
-app - the app or site the Wonder stats are for
-notes - optional - any extra notes like any user data (limit 256 characters as it is stored each record)
-server - optional - default is the ZIM Wonder server (where you signed up - if you signed up)
+// make Parallax object - here we move with stage mouseX and mouseY
+var parallax = new zim.Parallax(stage, .1, [
+	{obj:backing, prop:"x", propChange:50}, {obj:backing, prop:"y", propChange:40, input:"mouseY"},
+	{obj:mid, prop:"x", propChange:100}, {obj:mid, prop:"y", propChange:80, input:"mouseY"},
+	{obj:front, prop:"x", propChange:150}, {obj:front, prop:"y", propChange:100, input:"mouseY"}
+]);
+
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+stage - the stage
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
+layers - (default null) an array of layer objects, the format as below
+	Example: to move an obj 200 px in the x as the window scrolls from 100 to 300 px in the y
+		[{obj:obj, prop:"x", propChange:200, input:"scrolly", inMin:100, inMax:300, factor:1, integer:false}, etc.]
+	obj - the object whose property is being changed
+	prop - the property that is being changed
+	propChange - how much you want the property to change
+	input - (default mouseX) but can also be mouseY, scrollX, scrollY
+	inMin - (default 0) minimum input range
+	inMax - (default stageW (for x prop) stageH (for y prop)) maximum input range
+	factor - (default 1) set factor to -1 to change in the opposite direction
+	integer - (default false) set to true to round the value to an integer
+	Example 2: a traditional mouse move parallax for one object
+		[{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
+	you would probably have more objects to follow
+	or you can add these one at a time with the p.addLayer({layer object properties});
+auto - (default true) uses the specified input
+	if auto is set to false, you must make your own Ticker and use the step(input) method
+NOTE: ticker and fps parameters have been removed - see zim.Ticker to set
 
 METHODS
-count(keyword) - sends a line to the server script with the given keyword as well as date and time
-timeStart(keyword) - starts timing for the specified keyword (nothing sent to server yet)
-timePause(keyword) - pauses the timing for this keyword
-timeUnpause(keyword) - unpauses the timing for this keyword
-timeEnd(keyword) - ends timing for the specific keyword and sends the time to the server
-	NOTE: if the user exits the app (or leaves page) nothing gets sent to the server
-		  due to unreliable beforeUnload events in the HTML world (otherwise all this would be batched)
-order(keyword, item) - sends a line to the server for this item along with a unique order id for the keyword for the user
+addLayer({layer object properties}) - adds a layer
+removeLayer(index) - removes a layer based on order added
+step(input) - used when auto is false to send in custom input data
+immediate([]) - immediately sets the target value for each layer object (no damping)
+dispose() - removes listeners
 
-countOff(keyword) - prevents counts from being sent for this keyword
-countOn(keyword) - allows counts from being sent for this keyword (default)
-timeOff(keyword) - prevents sending time to the server for this keyword
-timeOn(keyword) - allows sending time to the server for this keyword (default)
-orderOff(keyword) - prevents sending orders to the server for this keyword
-orderOn(keyword) - allows sending orders for this keyword (default)
+PROPERTIES
+damp - allows you to dynamically change the damping
+--*///+68
+	zim.Parallax = function(stage, damp, layers, auto) {
 
-dispose() - clear any event listeners, etc.
---*///+82
-	zim.Wonder = function(wid, client, app, notes, server) {
+		var sig = "stage, damp, layers, auto";
+		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
+		z_d("68");
+		if (zot(stage) || !stage.getBounds) {zog("zim build - Parallax(): please pass in the stage with bounds as first parameter"); return;}
+		if (!stage.getBounds()) {zog("zim build - Parallax(): Please give the stage bounds using setBounds()");	return;}
+		if (zot(auto)) auto = true;
 
-		var sig = "wid, client, app, notes, server";
-		var duo; if (duo = zob(zim.Wonder, arguments, sig)) return duo;
-		z_d("82");
-		if (zot(wid)) {zog("zim.Wonder() - please provide Wonder ID (see http://zimjs.com/code/wonder/)"); return;}
-		if (zot(server)) server = "http://54.209.193.48:3001/wonder"; // adjust to amazon server
+		var stageW = stage.getBounds().width;
+		var stageH = stage.getBounds().height;
+
 		var that = this;
-		if (zot(zim.wonderSession)) zim.wonderSession = "W"+zim.rand(100000,999999); // session id
-		var data = [];
-		// buffer to send at most every second
-		var wonderInterval = setInterval(sendData,1000);
-		var sendCount = 0;
-		function sendData() {
-			if (data.length > 0) {
-				zim.async(server + "?wonder=" + JSON.stringify(data));
-				data = [];
-				sendCount++;
+
+		// public properties
+		this.damp = (zot(damp)) ? .1 : damp;
+
+		// public methods (do not get hoisted so define early)
+		// addLayer works as a public method
+		// and also is called from the object in case we add layers via the Parallax object parameters
+		// the function prepares ProportionDamp objects for two values
+		// and stores them on the layer object
+		// and also stores the desired amounts on the layer objects themselves
+		// finally, the layer object is added to the myLayers private property
+		// the timer then loops through these layers and handles things from there
+		// obj, distanceX, distanceY, minX, minY, maxX, maxY, factor, targetRound
+		this.addLayer = function(layer) {
+			//{obj, prop, propChange, input, inMin, inMax, factor, integer}
+			if (zot(layer.obj) || zot(layer.prop) || zot(layer.propChange)) return;
+			var obj = {obj:layer.obj, prop:layer.prop};
+			obj[obj.prop] = layer.propChange;
+			if (zot(layer.input)) layer.input = "mouseX";
+			obj.input = layer.input;
+
+			var inMin = (zot(layer.inMin)) ? 0 : layer.inMin;
+			var inMax = (zot(layer.inMax)) ? stageW : layer.inMax;
+			var factor = (zot(layer.factor)) ? 1 : layer.factor;
+			var integer = (zot(layer.integer)) ? false : layer.integer;
+
+			// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound
+			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], that.damp, factor, integer);
+			if (obj.prop == "scale") {
+				obj["s_"+obj.prop] = obj.obj.scaleX; // helper to allow scale to be property
+			} else if (obj.prop == "frame") {
+				obj["s_"+obj.prop] = obj.obj.currentFrame;
+			} else {
+				obj["s_"+obj.prop] = obj.obj[obj.prop]; // obj.s_x = obj.obj.x for example
+			}
+			myLayers.push(obj);
+			return myLayers.length-1;
+		}
+
+		this.removeLayer = function(index) {
+			if (zot(index)) return;
+			var layer = myLayers[index];
+			layer["p_"+layer.prop].dispose();
+			myLayers.splice(index,1);
+		}
+
+		this.immediate = function(array) {
+			var o;
+			for (var i=0; i<myLayers.length; i++) {
+				o = myLayers[i];
+				o["p_"+o.prop].immediate(array[i]);
 			}
 		}
-		var lastKeyword;
-		var wonderCheck = setInterval(function(){
-			if (sendCount > 28) {
-				data.push({id:wid, c:client, a:app, n:notes, k:lastKeyword, t:"e", v:"frequency max - terminated", s:zim.wonderSession});
-				zog("zim.Wonder() - frequency max - terminated");
-				that.dispose();
-			}
-			sendCount=0;
-		}, 30*1000); // 30 seconds
-		this.countsOff = {};
-		this.timesOff = {};
-		this.ordersOff = {};
-		function kw(k,t){
-			if (zot(k)) {
-				zog("zim.Wonder "+t+" - please provide a keyword"); return false;
-			} else { // check if in off lists
-				if (that[t+"sOff"][k]) return false;
-				return true;
-			}
-		}
-		this.count = function(keyword) {
-			if (!kw(keyword, "count")) return;
-			lastKeyword = keyword;
-			data.push({id:wid, c:client, a:app, n:notes, k:keyword, t:"c", v:1, s:zim.wonderSession});
-		}
-		var times = {};
-		this.timeStart = function(keyword) {
-			if (!kw(keyword, "time")) return;
-			that.timeEnd(keyword);
-			lastKeyword = keyword;
-			times[keyword] = new Date().getTime();
-		}
-		var pauseTimes = {};
-		this.timePause = function(keyword) {
-			if (!kw(keyword, "time")) return;
-			if (pauseTimes[keyword]) return; // already pausing
-			pauseTimes[keyword] = new Date().getTime();
-		}
-		this.timeUnpause = function(keyword) {
-			if (!kw(keyword, "time")) return;
-			if (!pauseTimes[keyword]) return; // no pauses
-			var pausedTime = new Date().getTime() - pauseTimes[keyword];
-			if (times[keyword]) times[keyword] += pausedTime;
-			delete pauseTimes[keyword];
-		}
-		this.timeEnd = function(keyword) {
-			if (!kw(keyword, "time")) return;
-			if (!times[keyword]) return;
-			var t1 = (pauseTimes[keyword]) ? pauseTimes[keyword] : new Date().getTime();
-			var time = Math.round((t1 - times[keyword])/1000);
-			delete pauseTimes[keyword];
-			delete times[keyword];
-			data.push({id:wid, c:client, a:app, n:notes, k:keyword, t:"t", v:time, s:zim.wonderSession});
-		}
-		this.order = function(keyword, item) {
-			if (!kw(keyword, "order")) return;
-			lastKeyword = keyword;
-			if (zot(item)) {zog("zim.Wonder order() - please provide an item"); return;}
-			data.push({id:wid, c:client, a:app, n:notes, k:keyword, t:"o", v:item, s:zim.wonderSession});
-		}
-		this.countOff = function(keyword) {that.countsOff[keyword] = 1;}
-		this.countOn = function(keyword) {delete that.countOff[keyword];}
-		this.timeOff = function(keyword) {that.timesOff[keyword] = 1;}
-		this.timeOn = function(keyword) {delete that.timesOff[keyword];}
-		this.orderOff = function(keyword) {that.ordersOff[keyword] = 1;}
-		this.orderOn = function(keyword) {delete that.ordersOff[keyword];}
 
 		this.dispose = function() {
-			sendData();
-			clearInterval(wonderInterval);
-			clearInterval(wonderCheck);
+			myLayers = null;
+			if (auto) zim.Ticker.remove(zimTicker);
+			return true;
 		}
-	}//-82
+
+		// private properties
+		// here are any layers that come in from Parallax object parameters
+		layers = (zot(layers)) ? [] : layers;
+
+		// we now are going to process these layers with the public addLayer method
+		// this will add the processed layers to the private property, myLayers
+		var myLayers = [];
+		for (var i=0; i<layers.length; i++) {
+			this.addLayer(layers[i]);
+		}
+
+		if (auto) {
+			var zimTicker = zim.Ticker.add(animate, stage);
+		}
+
+		// loop though our layers and apply the converted proportion damping
+		function animate(e) {
+			that.step();
+		}
+
+		this.step = function(custom) {
+			var o; var input;
+			for (var i=0; i<myLayers.length; i++) {
+				o = myLayers[i];
+				if (zot(custom)) {
+					if (o.input == "mouseX") input = stage.mouseX;
+					else if (o.input == "mouseY") input = stage.mouseY;
+					else if (o.input == "scrollX") input = zim.scrollX();
+					else if (o.input == "scrollY") input = zim.scrollY();
+				} else {
+					input = custom;
+				}
+				// damp object at property to start value + converted goal based on input
+				if (o.prop == "scale") {
+					o.obj.scaleX = o.obj.scaleY = o["s_"+o.prop] + o["p_"+o.prop].convert(input);
+				} else if (o.prop == "frame") {
+					o.obj.gotoAndStop(o["s_"+o.prop] + o["p_"+o.prop].convert(input));
+				} else {
+					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);
+					// for x on mouseX we split the destination range in two for a centered parallax
+					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
+				}
+			}
+		}
+	}//-68
+
+
+/*--
+zim.Scroller = function(backing, speed, direction, horizontal)
+
+Scroller
+zim class
+
+DESCRIPTION
+animates a backing either horizontally or vertically (not both)
+make a new zim.Scroller(parameters) object
+the Scroller object will create a clone of the backing
+and animate and swap the backgrounds when needed
+
+EXAMPLE
+var one = new zim.Rectangle(1200, 400, "red");
+frame.makeCircles().center(one);
+stage.addChild(one);
+
+var scroller = new zim.Scroller(one);
+
+stage.update();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+background - an object to animate (make start and end edges match to be seemless)
+speed - (default 1) how fast in pixels per second the animation is going
+direction - (default 1) set to -1 for left or down
+horizontal - (default true) set to false to animate vertically
+	you can adjust the speed and direction properties dynamically
+	you cannot adjust the backings and horizontal dynamically
+	to change your animation, dispose() of the Scroller object and make a new one
+	disposing just removes the ticker - you have to remove the backings
+	NOTE: the gapFix and ticker parameters have been removed - see zim.Ticker
+
+METHODS
+dispose() - get rid of the event listeners - you need to remove the backings (see backing properties)
+
+PROPERTIES
+backing1 - the original backing passed in
+backing2 - the cloned backing made from the original backing
+speed - how fast the animation is going in pixels per frame
+direction - either left or right if horizontal or up or down if not horizontal
+--*///+69
+	zim.Scroller = function(backing, speed, direction, horizontal) {
+		var sig = "backing, speed, direction, horizontal";
+		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
+		z_d("69");
+		var b1 = this.backing1 = backing;
+		if (zot(b1) || !b1.getBounds) return;
+		var b2 = this.backing2 = backing.clone();
+		b1.parent.addChild(b2);
+		if (zot(horizontal)) horizontal = true;
+		var that = this; // we keep animate protected but want to access public properties
+
+		// here are the public properties that can be changed
+		this.speed = (zot(speed)) ? 1 : speed;
+		this.direction = (zot(direction)) ? 1 : direction;
+
+		if (!b1.getBounds()) {
+			zog("zim build - Scroller(): please setBounds() on backing objects");
+			return;
+		}
+		if (!b1.getStage()) {
+			zog("zim build - Scroller(): please add backing objects to stage to start");
+			return;
+		}
+
+		var w = b1.getBounds().width;
+		var h = b1.getBounds().height;
+
+		var stageW;
+		var stageH;
+
+		if (horizontal) {
+			b2.x = w;
+		} else {
+			b2.y = h;
+		}
+
+		var zimTicker = zim.Ticker.add(animate, b1.getStage());
+
+		function animate(e) {
+			if (!b1.getStage()) return;
+			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
+			if (!stageW) {
+				stageW = b1.getStage().getBounds().width;
+				stageH = b1.getStage().getBounds().height;
+			}
+			// pausing the ticker does not really pause the ticker (weird)
+			if (that.speed == 0 || that.direction == 0) {return;}
+
+			if (horizontal) {
+				b1.x -= that.speed*that.direction;
+				if (b1.x < b2.x) {
+					b2.x = b1.x + w;
+				} else {
+					b2.x = b1.x - w;
+				}
+				if (that.direction * that.speed > 0) {
+					if (b2.x < 0 && b1.x < b2.x) {
+						b1.x = w;
+					} else if (b1.x < 0 && b2.x < b1.x) {
+						b2.x = w;
+					}
+				} else {
+					if (b2.x > stageW && b2.x > b1.x) {
+						b2.x = b1.x - w;
+					} else if (b1.x > stageW && b1.x > b2.x) {
+						b1.x = b2.x - w;
+					}
+				}
+			} else {
+				b1.y -= that.speed*that.direction;
+				if (b1.y < b2.y) {
+					b2.y = b1.y + h;
+				} else {
+					b2.y = b1.y - h;
+				}
+				if (that.direction * that.speed > 0) {
+					if (b2.y < 0 && b1.y < b2.y) {
+						b1.y = h;
+					} else if (b1.y < 0 && b2.y < b1.y) {
+						b2.y = h;
+					}
+				} else {
+					if (b2.y > stageH && b2.y > b1.y) {
+						b2.y = b1.y - h;
+					} else if (b1.y > stageH && b1.y > b2.y) {
+						b1.y = b2.y - h;
+					}
+				}
+			}
+		}
+
+		this.dispose = function() {
+			if (zon) zog("bye from Scroller");
+			zim.Ticker.remove(zimTicker);
+			return true;
+		}
+
+	}//-69
 
 
 ////////////////  ZIM FRAME  //////////////
@@ -8504,23 +10883,52 @@ dispose() - clear any event listeners, etc.
 	if (zon) zog("ZIM FRAME");
 
 /*--
-zim.Frame = function(scaling, width, height, rollover, touch, scrollTop, align, valign, canvasID)
+zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID)
 
-Frame class
+Frame
+zim class - extends a createjs EventDispatcher
 
-extends a createjs EventDispatcher
-var frame = new zim.Frame(parameters);
+DESCRIPTION
 creates your canvas and stage
 Frame lets you decide how you want your stage to scale
-It also provides events for resizing and orientation change
+it also provides events for resizing and orientation change
 as well as a way to remake the canvas if necessary
+Frame handles loading Bitmap and Sound assets by wrapping PreloadJS
+see http://zimjs.com/code/frame.html for sample templates using Frame
 
-PARAMETERS: supports DUO - parameters or single object
-scaling can have values as follows with full being the default
-"fit"		sets canvas and stage to dimensions and scales to fit inside window size
-"outside"	sets canvas and stage to dimensions and scales to fit outside window size
-"full"		sets stage to window size with no scaling
-"tagID"		add canvas to HTML tag of ID - set to dimensions if provided - no scaling
+EXAMPLE
+// HTML: style the canvas (see parameters for more info)
+<style>
+	#myCanvas {background-color:#CCC;}
+</style>
+
+// SCRIPT: create a zim.Frame
+var frame = new zim.Frame("fit", 1024, 768);
+frame.on("ready", function() {
+	var stage = frame.stage;
+	var stageW = frame.width;
+	var stageH = frame.height;
+
+	// code here - or optionally load assets
+
+	frame.loadAssets("image.png");
+	frame.on("complete", function() {
+
+		// code here if waiting for assets
+		var image = frame.asset("image.png");
+		image.center(stage);
+		stage.update();
+
+	}); // end asset complete
+}); // end of ready
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+scaling - (default "full") can have values as follows
+	"fit"      sets canvas and stage to dimensions and scales to fit inside window size
+	"outside"  sets canvas and stage to dimensions and scales to fit outside window size
+	"full"     sets stage to window size with no scaling
+	"tagID"    add canvas to HTML tag of ID - set to dimensions if provided - no scaling
 
 FIT and OUTSIDE: width and height will set the stage width and height and the canvas is then scaled
 this is handy because all your dimensions are set to start
@@ -8530,12 +10938,13 @@ if width and height are not provided in tag mode, the canvas and stage will take
 this means, the tag must have some sort of width and height dimensions set or it will be really big!
 NOTE: in tag mode, the tag must exist before running Frame - so use a window DOMContentLoaded event
 
-rollover - activates rollovers and is set to true by default
-touch - activates touch on mobile and is set to true by default
-scrollTop - activates scrolling on older apple devices to hide the url bar and defaults to true
-align - for fit and outside, the horizontal alignment "left", "center/middle", "right" with center being default
-valign - for fit and outside, the vertical alignment "top", "center/middle", "bottom" with center being default
-canvasID - default "myCanvas" - will be set to tagIDCanvas if a tagID is provided - eg. scaling=test, canvasID=testCanvas
+color - (default null) the background color of the frame (any CSS value) - or just set in styles
+rollover - (default true) activates rollovers
+touch - (default true) activates touch on mobile
+scrollTop - (default true) activates scrolling on older apple devices to hide the url bar
+align - (default "center") for fit and outside, the horizontal alignment "left", "center/middle", "right"
+valign - (default "center") for fit and outside, the vertical alignment "top", "center/middle", "bottom"
+canvasID - (default "myCanvas") will be set to tagIDCanvas if a tagID is provided - eg. scaling=test, canvasID=testCanvas
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -8549,14 +10958,19 @@ zil - reference to zil events that stop canvas from shifting
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple
 
 METHODS
-remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
-will have to set your local stage, stageW and stageH variables again
 loadAssets([file, file], path, xhr) - pass in an array of images or sounds, optional path to directory and XHR (default false)
 asset(file) - access a loaded asset based on file string (not including path)
-if the asset is a sound then use asset(file).play(); // returns createjs sound instance
-cloneAsset(file | asset) - clones an asset along with its id and type (not its transforms, etc.)
+	if the asset is a sound then use asset(file).play();
+	or can pass in a configuration object in play
+	with the following properties (see CreateJS SoundJS docs)
+	delay, offset, loop, volume, pan, startTime, interrupt and duration
+	asset(file).play({volume:.5, pan:-1, loop:2});
+	this returns createjs sound instance which can also be manipulated
+	to stop the sound or set its volume dynamically, etc.
 makeCircles(radius) - returns a createjs.Shape with the ZIM Circles (centered reg)
-dispose() - only removes canvas, resize listener and stage
+remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
+	will have to set your local stage, stageW and stageH variables again
+dispose() - removes canvas, resize listener and stage
 
 EVENTS
 "ready" - fired when the stage is made
@@ -8566,11 +10980,10 @@ EVENTS
 "error" - fired when there is a problem loading an asset with loadAssets()
 "resize" - fired on resize of screen
 "orientation" - fired on orientation change
-
 --*///+83
-	zim.Frame = function(scaling, width, height, rollover, touch, scrollTop, align, valign, canvasID) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID) {
 
-		var sig = "scaling, width, height, rollover, touch, scrollTop, align, valign, canvasID";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID";
 		var duo; if (duo = zob(zim.Frame, arguments, sig)) return duo;
 		z_d("83");
 		function makeFrame() {
@@ -8638,7 +11051,7 @@ EVENTS
 				makeStage();
 
 				// for older mobile - pan hides the location bar
-				if (scrollTop) {setTimeout(function() {window.scrollTo(0, 0);}, 100);}
+				if (mobile && scrollTop) {setTimeout(function() {window.scrollTo(0, 0);}, 100);}
 
 				that.dispatchEvent("ready");
 				appReady = true;
@@ -8671,11 +11084,12 @@ EVENTS
 				} else {
 					document.body.appendChild(canvas);
 				}
+				if (!zot(color)) canvas.style.backgroundColor = color;
 			}
 
 			function makeStage() {
 				sizeCanvas();
-				if (scaling == "full") {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.)
+				if (types.indexOf(scaling) != -1) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.)
 				stage = new createjs.Stage(canvasID);
 				stage.setBounds(0, 0, stageW, stageH);
 				if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
@@ -8782,11 +11196,7 @@ EVENTS
                             }
                         };
 					} else {
-						asset = that.assets[item.id] = new createjs.Bitmap(e.result);
-						asset.type = "image";
-                        asset.id = item.id;
-						asset.width = asset.getBounds().width;
-						asset.height = asset.getBounds().height;
+						asset = that.assets[item.id] = new zim.Bitmap(e.result, item.id);
 					}
 					var ev = new createjs.Event("assetload");
 					ev.item = item; // createjs preload item
@@ -8800,20 +11210,6 @@ EVENTS
 			this.asset = function(n) {
 				if (zot(n)) return;
 				return that.assets[n] || {play:function(){if (zon) {zog("zim.Frame - asset(sound) not found"); return {};}}};
-			}
-
-			this.cloneAsset = function(n) {
-
-				if (!that.assets[n] && (!n.id || !that.assets[n.id])) return;
-				if (!that.assets[n]) n = n.id;
-				if (that.assets[n].type != "image") return that.asset[n];
-
-				var img = that.assets[n].clone();
-				img.type = "image";
-                img.id = that.assets[n].id;
-				img.width = img.getBounds().width;
-				img.height = img.getBounds().height;
-				return img;
 			}
 
 			Object.defineProperty(that, 'stage', {
@@ -8900,7 +11296,7 @@ EVENTS
 			this.makeCircles = function(radius) {
 				if (zot(radius)) radius = 100;
 				var colors = [that.wrap, that.code, that.create, that.build, that.pages, that.bits];
-				var c = new createjs.Shape();
+				var c = new zim.Shape();
 				var g = c.graphics;
 				c.radius = radius;
 				for (var i=0; i<colors.length; i++) {
@@ -8920,22 +11316,56 @@ EVENTS
 	}//-83
 
 
-////////////////  ZIM DISTILL  //////////////
+////////////////  ZIM META  //////////////
 
-// zim distill allows you to track which functions you are using in your app
-// and create a custom minified js file with just those functions
+// the Meta section is for overall classes that operate on ZIM
+// for instance zim.Distill and zim.Wonder
 
 /*--
 zim.DISTILL
+
+distill
+zim constant
+
+DESCRIPTION
+zim distill allows you to track which functions you are using in your app
+and create a custom minified js file with just those functions
 set zim.DISTILL to true to record which functions your are using in your app
 default is false.  While running your app, call the zim.distill() function
 take the results to http://zimjs.com/code/distill to create a minified distilled file
---*/
+
+EXAMPLE
+// at the start of your code
+zim.DISTILL = true;
+
+// at the end of your code (once everything has run)
+// this means we may have to wait for events to happen, etc.
+zim.distill();
+
+// this will log to the console a series of numbers
+// separated by spaces representing the functions used
+
+1 6 81 81 79 75 77 75 55 54 52 53 55 54 52 53 55 54 52
+53 42 80 74 46 46 46 80 74 46 46 46 55 54 52 53 55 54
+52 53 55 54 52 53 42 80 74
+
+// copy these into the zim DISTILL form field
+// to get the minified JavaScript for these functions
+// NOTE: Distill will not duplicate the functions
+// data duplication is left in for statistical purposes
+END EXAMPLE
+--*///+83.1
 	zim.DISTILL = false;
 	zim.distillery = [];
+//-83.1
 
 /*--
 zim.distill = function()
+
+distill
+zim function
+
+DESCRIPTION
 call this function to display which zim functions you are using in your app
 must set zim.DISTILL constant to true before using (set at the start of your app)
 then after running through your app, call zim.distill() and see the console (F12)
@@ -8946,14 +11376,248 @@ so you may have functions still to be used in your app
 you will want to make sure you call distill() after you have used all your functions
 for instance, on a restart event, etc.
 NOTE: zim.distill() will not be available from your distilled file
---*/
+
+EXAMPLE
+// at the start of your code
+zim.DISTILL = true;
+
+// at the end of your code (once everything has run)
+// this means we may have to wait for events to happen, etc.
+zim.distill();
+
+// this will log to the console a series of numbers
+// separated by spaces representing the functions used
+
+1 6 81 81 79 75 77 75 55 54 52 53 55 54 52 53 55 54 52
+53 42 80 74 46 46 46 80 74 46 46 46 55 54 52 53 55 54
+52 53 55 54 52 53 42 80 74
+
+// copy these into the zim DISTILL form field
+// to get the minified JavaScript for these functions
+// NOTE: Distill will not duplicate the functions
+// data duplication is left in for statistical purposes
+END EXAMPLE
+--*///+83.2
 	zim.distill = function() {
 		zog("zim.distill() - go to http://zimjs.com/code/distill and enter the following:");
 		zog((zim.distillery.length>0)?zim.distillery.join(" "):"must set zim.DISTILL = true;");
-	}
+	}//-83.2
 
 	return zim;
 } (zim || {});
 
 // internal global function for the distill process
 function z_d(n) {if (zim && zim.DISTILL) zim.distillery.push(n);}
+
+// back into zim
+var zim = function(zim) {
+
+/*--
+zim.Wonder = function(wid, client, app, notes, server)
+
+Wonder
+zim class
+
+DESCRIPTION
+Wonder sends counts, times, and orders to a server for user testing or statistical purposes
+go to http://zimjs.com/code/wonder/ to get a Wonder ID (wid) and set up Wonder stats with ZIM
+or make up your own wid and use your own server script to collect data
+see the zim Wonder site for a sample script to collect data
+NOTE: all records at ZIM are archived NEW YEARS DAY and kept for a year after that
+service is provided as is and ZIM and Dan Zen are not responsible for lost data
+
+USAGE
+count will count things like app loads, button clicks within an app, how many monsters they killed
+time will tell you the time the user took to do something - like solve a puzzle, or locate the witch
+order will record the order items were done - which section did they go to first, second, third, etc.
+
+EXAMPLE
+// make a Wonder object
+// wonderID is e-mailed to you when you sign up
+// client is your client's name that you provide
+// app is the app for which you are recording data
+// you can also pass an optional note
+var wonder = new zim.Wonder("wonderID", "client", "app");
+
+// COUNT EXAMPLE
+// for this example we count times a button is pressed
+var button = new zim.Button("CLICK");
+button.center(stage);
+button.on("click", function(){
+	// records an entry for this keyword in your stats
+	// along with date, time, session, etc.
+	wonder.count("wow");
+});
+
+// TIME EXAMPLE
+// assuming we have our Wonder object from above
+// (you only need one Wonder object)
+// start the timer counting for a keyword called "test"
+// this will record nothing until you timeEnd()
+// or you timeStart() again
+// you can also timePause() and timeUnpause()
+// see DOCS for more functionality and information
+wonder.timeStart("test");
+
+// add the circle
+var circle = new zim.Circle(100, "red");
+circle.center(stage);
+circle.drag();
+circle.on("pressup", function(){
+	if (circle.hitTestRect(square)) {
+		// if the shapes are hitting then end the timer
+		// this will send data to your Wonder report
+		wonder.timeEnd("test");
+	}
+});
+
+// add the square to a random location on stage
+var square = new zim.Rectangle(100, "yellow");
+stage.addChild(square);
+square.x = zim.rand(stageW-square.width);
+square.y = zim.rand(stageH-square.height);
+
+// ORDER EXAMPLE
+// assuming we have our Wonder object from above
+// (you only need one Wonder object)
+
+// make tabs
+var tabs = new zim.Tabs(400, 40, ["MOUSE", "CAT", "MONKEY"]);
+tabs.selectedIndex = -1; // start with no selection
+tabs.center(stage);
+var count = 0; // perhaps get the first four presses
+tabs.on("change", function(){
+	// record which tab was pressed
+	// this gets stored under keyword animal
+	wonder.order("animal", tabs.text);
+	count++;
+	// turn the order recording off for "animal"
+	if (count == 4) wonder.orderOff("animal");
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+wid - string with your company wonder ID for example z14i46m3z29
+	  this is the ID you are e-mailed when you sign up or sign in with your company name
+	  this is NOT your company name that you log into Wonder with
+	  NOTE: recording to a non-registered wid on the ZIM server will not work and there is no error message
+client - the client the app is for - if it is for your company, just put your company
+app - the app or site the Wonder stats are for
+notes - (default null) any extra notes like any user data (limit 256 characters as it is stored each record)
+server - (default the ZIM Wonder server - where you signed up - if you signed up) a server with zim Wonder running
+
+METHODS
+count(keyword) - sends a line to the server script with the given keyword as well as date and time
+timeStart(keyword) - starts timing for the specified keyword (nothing sent to server yet)
+timePause(keyword) - pauses the timing for this keyword
+timeUnpause(keyword) - unpauses the timing for this keyword
+timeEnd(keyword) - ends timing for the specific keyword and sends the time to the server
+	NOTE: if the user exits the app (or leaves page) nothing gets sent to the server
+		  due to unreliable beforeUnload events in the HTML world (otherwise all this would be batched)
+order(keyword, item) - sends a line to the server for this item along with a unique order id for the keyword for the user
+
+countOff(keyword) - prevents counts from being sent for this keyword
+countOn(keyword) - allows counts from being sent for this keyword (default)
+timeOff(keyword) - prevents sending time to the server for this keyword
+timeOn(keyword) - allows sending time to the server for this keyword (default)
+orderOff(keyword) - prevents sending orders to the server for this keyword
+orderOn(keyword) - allows sending orders for this keyword (default)
+
+dispose() - clear any event listeners, etc.
+--*///+82
+	zim.Wonder = function(wid, client, app, notes, server) {
+
+		var sig = "wid, client, app, notes, server";
+		var duo; if (duo = zob(zim.Wonder, arguments, sig)) return duo;
+		z_d("82");
+		if (zot(wid)) {zog("zim.Wonder() - please provide Wonder ID (see http://zimjs.com/code/wonder/)"); return;}
+		if (zot(server)) server = "http://54.165.135.152:3001/wonder"; // adjust to amazon server
+		var that = this;
+		if (zot(zim.wonderSession)) zim.wonderSession = "W"+zim.rand(100000,999999); // session id
+		var data = [];
+		// buffer to send at most every second
+		var wonderInterval = setInterval(sendData,1000);
+		var sendCount = 0;
+		function sendData() {
+			if (data.length > 0) {
+				zim.async(server + "?wonder=" + JSON.stringify(data));
+				data = [];
+				sendCount++;
+			}
+		}
+		var lastKeyword;
+		var wonderCheck = setInterval(function(){
+			if (sendCount > 28) {
+				data.push({id:wid, c:client, a:app, n:notes, k:lastKeyword, t:"e", v:"frequency max - terminated", s:zim.wonderSession});
+				zog("zim.Wonder() - frequency max - terminated");
+				that.dispose();
+			}
+			sendCount=0;
+		}, 30*1000); // 30 seconds
+		this.countsOff = {};
+		this.timesOff = {};
+		this.ordersOff = {};
+		function kw(k,t){
+			if (zot(k)) {
+				zog("zim.Wonder "+t+" - please provide a keyword"); return false;
+			} else { // check if in off lists
+				if (that[t+"sOff"][k]) return false;
+				return true;
+			}
+		}
+		this.count = function(keyword) {
+			if (!kw(keyword, "count")) return;
+			lastKeyword = keyword;
+			data.push({id:wid, c:client, a:app, n:notes, k:keyword, t:"c", v:1, s:zim.wonderSession});
+		}
+		var times = {};
+		this.timeStart = function(keyword) {
+			if (!kw(keyword, "time")) return;
+			that.timeEnd(keyword);
+			lastKeyword = keyword;
+			times[keyword] = new Date().getTime();
+		}
+		var pauseTimes = {};
+		this.timePause = function(keyword) {
+			if (!kw(keyword, "time")) return;
+			if (pauseTimes[keyword]) return; // already pausing
+			pauseTimes[keyword] = new Date().getTime();
+		}
+		this.timeUnpause = function(keyword) {
+			if (!kw(keyword, "time")) return;
+			if (!pauseTimes[keyword]) return; // no pauses
+			var pausedTime = new Date().getTime() - pauseTimes[keyword];
+			if (times[keyword]) times[keyword] += pausedTime;
+			delete pauseTimes[keyword];
+		}
+		this.timeEnd = function(keyword) {
+			if (!kw(keyword, "time")) return;
+			if (!times[keyword]) return;
+			var t1 = (pauseTimes[keyword]) ? pauseTimes[keyword] : new Date().getTime();
+			var time = Math.round((t1 - times[keyword])/1000);
+			delete pauseTimes[keyword];
+			delete times[keyword];
+			data.push({id:wid, c:client, a:app, n:notes, k:keyword, t:"t", v:time, s:zim.wonderSession});
+		}
+		this.order = function(keyword, item) {
+			if (!kw(keyword, "order")) return;
+			lastKeyword = keyword;
+			if (zot(item)) {zog("zim.Wonder order() - please provide an item"); return;}
+			data.push({id:wid, c:client, a:app, n:notes, k:keyword, t:"o", v:item, s:zim.wonderSession});
+		}
+		this.countOff = function(keyword) {that.countsOff[keyword] = 1;}
+		this.countOn = function(keyword) {delete that.countOff[keyword];}
+		this.timeOff = function(keyword) {that.timesOff[keyword] = 1;}
+		this.timeOn = function(keyword) {delete that.timesOff[keyword];}
+		this.orderOff = function(keyword) {that.ordersOff[keyword] = 1;}
+		this.orderOn = function(keyword) {delete that.ordersOff[keyword];}
+
+		this.dispose = function() {
+			sendData();
+			clearInterval(wonderInterval);
+			clearInterval(wonderCheck);
+		}
+	}//-82
+
+	return zim;
+} (zim || {});
