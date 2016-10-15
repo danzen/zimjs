@@ -256,14 +256,7 @@ global function
 
 DESCRIPTION
 uses document.querySelectorAll() to get a list of tags
-returns a ZIM Zet object which can be used for the following methods and properties
-zet(selector).on(type, function) - a shortcut for addEventListener() and will be added to all tags matching the selector
-zet(selector).css(property, value) - gets and sets styles
-	- gets the first programmatic property if a single string property is passed
-	- sets the property to the value on each of the Zet's tags from the selector passed to zet()
-	- if an object of properties and values is passed as the single parameter then sets all these properties
-	- NOTE: style names do not need quotes unless the dash is used - so camelCase does not require quotes
-	- NOTE: remember that commas are used for objects - not the semi-colon as in CSS
+returns a ZIM Zet object which can be used to add events or styles to the set
 
 EXAMPLE
 zet(".class").on("click", function(){}); // would add function event to all tags with the class
@@ -275,7 +268,20 @@ PARAMETERS
 selector -  a CSS query selector such as a class, id, tag, or multiple selectors separated by commands
 	can also be complex selectors suchs as ".class img"
 
-RETURNS Zet object with on(), css() methods and tags property (HTML tag list)
+METHODS (on the returned Zet object)
+zet(selector).on(type, function) - a shortcut for addEventListener() and will be added to all tags matching the selector
+zet(selector).off(type, function) - a shortcut for removeEventListener() and will be remove from all tags matching the selector
+zet(selector).css(property, value) - gets and sets styles
+	- gets the first programmatic property if a single string property is passed
+	- sets the property to the value on each of the Zet's tags from the selector passed to zet()
+	- if an object of properties and values is passed as the single parameter then sets all these properties
+	- NOTE: style names do not need quotes unless the dash is used - so camelCase does not require quotes
+	- NOTE: remember that commas are used for objects - not the semi-colon as in CSS
+
+PROPERTIES  (on the returned Zet object)
+tags - an HTML tag list
+
+RETURNS Zet object with on(), off(), css() methods and tags property (HTML tag list)
 --*///+6.1
 function zet(selector) {
 	z_d("6.1");
@@ -286,6 +292,13 @@ function zet(selector) {
 			var tags = that.tags;
 			for (var i=0; i<tags.length; i++) {
 				tags[i].addEventListener(type, call);
+			}
+		}
+		this.off = function(type, call) {
+			if (zot(selector) || zot(type) || zot(call)) return;
+			var tags = that.tags;
+			for (var i=0; i<tags.length; i++) {
+				tags[i].removeEventListener(type, call);
 			}
 		}
 		Object.defineProperty(that, 'tags', {
