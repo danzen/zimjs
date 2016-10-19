@@ -4689,7 +4689,7 @@ dispatches no events
 			this.addChild(obj);
 
 			var backing = new createjs.Shape();
-			backing.graphics.f("black").r(0,0,this.getBounds().width,this.getBounds().height);
+			backing.graphics.f("black").r(this.getBounds().x,this.getBounds().y,this.getBounds().width,this.getBounds().height);
 			this.hitArea = backing;
 
 			function setSize() {
@@ -4791,7 +4791,7 @@ dispatches no events
 	}//-54
 
 /*--
-zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom)
+zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking)
 
 Button
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4843,6 +4843,9 @@ hitPadding - (default 0) adds extra hit area to the button (good for mobile)
 gradient - (default 0) 0 to 1 (try .3) adds a gradient to the button
 gloss - (default 0) 0 to 1 (try .1) adds a gloss to the button
 flatBottom - (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
+backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
+	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lighning Bolts, etc.
+rollBacking - (default null) a Display object for the backing of the rolled-on button
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -4869,9 +4872,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events - you make your own click event (or mousedown for mobile)
 --*///+55
-	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom) {
+	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking) {
 
-		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom";
+		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking";
 		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
 		z_d("55");
 		function makeButton() {
@@ -4897,7 +4900,18 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			this.mouseChildren = false;
 			this.cursor = "pointer";
 
-			var buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner,flatBottom);
+			var buttonBacking;
+			if (zot(backing)) {
+				buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner,flatBottom);
+			} else {
+				buttonBacking = backing;
+				buttonBacking.x = width / 2;
+				buttonBacking.y = height / 2;
+				if (!zot(rollBacking)) {
+					rollBacking.x =  width / 2;
+					rollBacking.y = height / 2;
+				}
+			}
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
 			var corner2 = (flatBottom) ? 0 : corner;
@@ -4906,8 +4920,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				var gr = new createjs.Shape();
 				gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height-borderThickness);
 				gr.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, height-borderThickness, corner, corner, corner2, corner2);
+				buttonBacking.addChild(gr);
 			}
-			buttonBacking.addChild(gr);
 
 			if (gloss > 0) { // add an overlay
 				var gl = new createjs.Shape();
@@ -4915,8 +4929,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				gl.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, (height-borderThickness)/2, corner, corner, 0, 0);
 				gl.graphics.f("rgba(0,0,0,"+gloss+")");
 				gl.graphics.rc(borderThickness/2, height/2, width-borderThickness, (height-borderThickness)/2, 0, 0, corner2, corner2);
+				buttonBacking.addChild(gl);
 			}
-			buttonBacking.addChild(gl);
 
 			if (hitPadding > 0) {
 				var rect = new createjs.Shape();
@@ -4924,7 +4938,10 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				this.hitArea = rect;
 			}
 
-			if (shadowColor != -1 && shadowBlur > 0) buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			if (shadowColor != -1 && shadowBlur > 0) {
+				buttonBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+				if (!zot(rollBacking)) rollBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			}
 			this.setBounds(0,0,width,height);
 
 			label.x = (width - label.width)/2 - label.getBounds().x;
@@ -4951,7 +4968,11 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				},
 				set: function(value) {
 					color = value;
-					buttonBacking.color = color;
+					if (buttonBacking.color) {
+						buttonBacking.color = color;
+					} else {
+						if (zon) zog("zim.Button - backing has no color property");
+					}
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 				}
 			});
@@ -4981,28 +5002,40 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			this.on("mouseover", buttonOn);
 			function buttonOn(e) {
 				that.on("mouseout", buttonOff);
-				buttonBacking.color = rollColor;
+				if (zot(backing)) {
+					buttonBacking.color = rollColor;
+				} else if (!zot(rollBacking)) {
+					that.removeChild(backing);
+					that.addChildAt(rollBacking, 0);
+				}
 				that.label.showRollColor();
 				if (that.getStage()) that.getStage().update();
 			}
 
 			function buttonOff(e) {
 				that.off("mouseout", buttonOff);
-				buttonBacking.color = color;
+				if (zot(backing)) {
+					buttonBacking.color = color;
+				} else if (!zot(rollBacking)) {
+					that.removeChild(rollBacking);
+					that.addChildAt(backing, 0);
+				}
 				that.label.showRollColor(false);
 				if (that.getStage()) that.getStage().update();
 			}
 
 			this.clone = function() {
-				return that.cloneProps(new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom));
+				return that.cloneProps(new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, (!zot(backing))?backing.clone():null, (!zot(rollBacking))?rollBacking.clone():null));
 			}
 
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				that.removeChild(buttonBacking);
+				that.removeChild(rollBacking);
 				that.removeChild(that.label);
 				that.label.dispose();
 				buttonBacking = null;
+				rollBacking = null;
 				that.label = null;
 				return true;
 			}
@@ -5519,7 +5552,7 @@ then ask for the properties above for info
 	}//-57
 
 /*--
-zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose)
+zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing)
 
 Pane
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5552,10 +5585,13 @@ center - (default true) centers the pane and the label on the pane
 	the origin inside the pane is in the center
 displayClose - (default true) closes the Pane if display backing is pressed
 	if drag is set to true, displayClose will automatically be set to false
+backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
+	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lighning Bolts, etc.
 
 METHODS
 show() - shows the pane
 hide() - hides the pane
+toggle() - shows if hidden and hides if showing
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes all events
 
@@ -5569,7 +5605,7 @@ width, height - read only - calculated from getBounds()
 display - reference to the pane box
 text - gives access to the label text
 label - gives access to the label
-backing - reference to the backing that covers the stage
+backdrop - reference to the backdrop that covers the stage
 resetX - if reset is true you can dynamically adjust the position if needed
 resetY
 
@@ -5585,9 +5621,9 @@ The default is "mousedown" - if set to something else the component will act on 
 EVENTS
 dispatches a "close" event when closed by clicking on backing
 --*///+58
-	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose) {
+	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing) {
 
-		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose";
+		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing";
 		var duo; if (duo = zob(zim.Pane, arguments, sig)) return duo;
 		z_d("58");
 		function makePane() {
@@ -5612,37 +5648,45 @@ dispatches a "close" event when closed by clicking on backing
 			if (zot(displayClose)) displayClose=true;
 			if (drag) displayClose = false;
 
-			var backing = this.backing = new createjs.Shape();
+			var backdrop = this.backdrop = new createjs.Shape();
 			// make a big backing that closes the pane when clicked
 			// could also provide a close button
-			var g = backing.graphics;
+			var g = backdrop.graphics;
 			g.beginFill("black");
 			g.drawRect(-5000,-5000,10000,10000);
 			// makes it seem like the pane has the dimensions of the display
 			this.setBounds(-width/2,-height/2, width, height);
 
-			backing.alpha = backingAlpha;
+			backdrop.alpha = backingAlpha;
 			var that = this;
-			backing.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", closePane);
+			backdrop.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", closePane);
 			function closePane(e) {
 				removePane();
 				container.getStage().update();
 				that.dispatchEvent("close");
 				e.stopImmediatePropagation();
 			};
-			backing.on("mousedown", function(e) {
+			backdrop.on("mousedown", function(e) {
 				e.stopImmediatePropagation();
 			});
-			if (modal) this.addChild(backing);
+			if (modal) this.addChild(backdrop);
 
-			var display = this.display = new createjs.Shape();
-			if (displayClose) display.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", closePane);
-			display.setBounds(0, 0, width, height);
-			display.regX = width/2;
-			display.regY = height/2;
-			g = display.graphics;
-			g.beginFill(color);
-			g.drawRoundRect(0, 0, width, height, corner);
+			var display;
+			if (zot(backing)) {
+				display = this.display = new createjs.Shape();
+				g = display.graphics;
+				g.beginFill(color);
+				g.drawRoundRect(0, 0, width, height, corner);
+				display.setBounds(0, 0, width, height);
+				display.regX = width/2;
+				display.regY = height/2;
+			} else {
+				display = backing;
+			}
+			if (displayClose) {
+				display.cursor = "pointer";
+				display.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", closePane);
+			}
 			if (shadowColor != -1 && shadowBlur > 0) display.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
 			display.on("click", function(e) {
 				// stops the click from going through the display to the background
@@ -5658,7 +5702,7 @@ dispatches a "close" event when closed by clicking on backing
 					if (isNaN(that.resetY)) that.resetY = that.y;
 					diffX = e.stageX - that.x;
 					diffY = e.stageY - that.y;
-					display.cursor = "move";
+					display.cursor = "pointer";
 				});
 
 				display.on("pressmove", function(e) {
@@ -5730,10 +5774,14 @@ dispatches a "close" event when closed by clicking on backing
 				return {x:x,y:y}
 			}
 
+			this.toggle = function() {
+				if (container.contains(that)) {that.hide();} else {that.show();}
+			}
+
 			this.clone = function() {
 				var lX = label.x; // new Panes automatically center the label
 				var lY = label.y;
-				var p2 = that.cloneProps(new zim.Pane(container, width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose));
+				var p2 = that.cloneProps(new zim.Pane(container, width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, zot(backing)?backing.clone():null));
 				p2.label.x = lX;
 				p2.label.y = lY;
 				return p2;
