@@ -4063,7 +4063,7 @@ id - the filename used in the frame.loadAssets()
 	}//-50.7
 
 /*--
-zim.Sprite = function(spritesheet)
+zim.Sprite = function(spriteSheet, frameOrAnimation)
 
 Sprite
 zim class - extends a createjs.Sprite
@@ -4106,6 +4106,10 @@ frame.on("complete", function() {
 });
 END EXAMPLE
 
+PARAMETERS
+spriteSheet - the CreateJS SpriteSheet object to build the Sprite with
+frameOrAnimation - the frame number or animation to play inititially
+
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
 
@@ -4117,17 +4121,17 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 PROPERTIES
 width, height - read only - calculated from getBounds()
 --*///+50.8
-	zim.Sprite = function(spriteSheet) {
+	zim.Sprite = function(spriteSheet, frameOrAnimation) {
 		z_d("50.8");
 		function makeSprite() {
 			zim.addDisplayMembers(this);
 			this.clone = function() {
-				return this.cloneProps(new zim.Sprite(spriteSheet));
+				return this.cloneProps(new zim.Sprite(spriteSheet, frameOrAnimation));
 			}
 		}
 		// note the actual class is wrapped in a function
 		// because createjs might not have existed at load time
-		makeSprite.prototype = new createjs.Sprite(spriteSheet);
+		makeSprite.prototype = new createjs.Sprite(spriteSheet, frameOrAnimation);
 		makeSprite.prototype.constructor = zim.Sprite;
 		return new makeSprite();
 
@@ -4589,7 +4593,7 @@ if you nest things inside and want to drag them, will want to set to true
 	}//-53
 
 /*--
-zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing)
 
 Label
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4632,6 +4636,8 @@ valign - (default "top") vertical registration point alignment alse "middle / ce
 lineWidth - (default false) for no wrapping (use \n) Can set to number for wrap
 lineHeight - (default getMeasuredLineHeight) set to number to adjust line height
 fontOptions - (default null) css values in order for font-style font-variant font-weight
+backing - (default null) a Display object for the backing of the label (eg. Shape, Bitmap, Container, Sprite)
+	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
@@ -4649,6 +4655,7 @@ color - gets or sets the label text color
 rollColor - gets or sets the label rollover color
 text - references the text property of the text object
 width, height - read only - calculated from getBounds()
+backing - access to backing object
 enabled - default is true - set to false to disable
 
 OPTIMIZED
@@ -4658,9 +4665,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events
 --*///+54
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing) {
 
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions";
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing";
 		var duo; if (duo = zob(zim.Label, arguments, sig)) return duo;
 		z_d("54");
 		function makeLabel() {
@@ -4688,31 +4695,34 @@ dispatches no events
 			if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			this.addChild(obj);
 
-			var backing = new createjs.Shape();
-			backing.graphics.f("black").r(this.getBounds().x,this.getBounds().y,this.getBounds().width,this.getBounds().height);
-			this.hitArea = backing;
-
 			function setSize() {
-				var width = that.getBounds().width;
-				var height = that.getBounds().height;
-				var x,y;
-				if (align == "center") {
-					x = -width/2;
-				} else if (align == "right") {
-					x = -width;
-				} else {
-					x = 0;
-				}
+				// when clearing setBounds(null) works will add that here
+				// so that changing text updates the bounds
+				var b = obj.getBounds();
+				var yAdjust;
 				if (valign == "top") {
 					obj.y = size-size/6;
-				} else if (valign == "bottom") {
-					y = -(size-size/6);
-				} else {
-					y = -size*.5;
+					yAdjust = 0;
+				} else if (valign == "center" || valign == "middle") {
+					yAdjust = - b.height / 2;
 					obj.y = size*.3;
+				} else { // bottom align
+					yAdjust = -b.height;
 				}
+				obj.setBounds(b.x, yAdjust, b.width, b.height);
+				that.setBounds(b.x, yAdjust, b.width, b.height);
 			}
 			setSize();
+
+			if (zot(backing)) {
+				backing = this.backing = new createjs.Shape();
+				backing.graphics.f("black").r(obj.getBounds().x, obj.getBounds().y, obj.getBounds().width, obj.getBounds().height);
+				this.hitArea = backing;
+			} else {
+				this.backing = backing;
+			 	zim.center(backing, this, true, 0);
+				backing.y -= size/16; // backing often on capital letters without descenders
+			}
 
 			Object.defineProperty(that, 'text', {
 				get: function() {
@@ -4773,7 +4783,7 @@ dispatches no events
 			this.on("mouseout", function(e) {that.showRollColor(false);});
 
 			this.clone = function() {
-				return that.cloneProps(new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight));
+				return that.cloneProps(new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing));
 			}
 
 			this.dispose = function() {
@@ -4844,7 +4854,7 @@ gradient - (default 0) 0 to 1 (try .3) adds a gradient to the button
 gloss - (default 0) 0 to 1 (try .1) adds a gloss to the button
 flatBottom - (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
 backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
-	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lighning Bolts, etc.
+	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 rollBacking - (default null) a Display object for the backing of the rolled-on button
 
 METHODS
@@ -4944,8 +4954,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			}
 			this.setBounds(0,0,width,height);
 
-			label.x = (width - label.width)/2 - label.getBounds().x;
-			label.y = (height - label.height)/2 + 2 - label.getBounds().y;
+			label.x = width / 2;
+			label.y = height / 2 + 2 ;
 			this.addChild(label);
 
 			this.label = label;
@@ -5580,13 +5590,14 @@ corner - (default 20) is the corner radius - set to 0 for no corner
 backingAlpha - (default .14) the darkness of the background that fills the stage
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
 shadow blur - (default 20) how blurred the shadow is if shadow is set
-center - (default true) centers the pane and the label on the pane
-	if center is false you will have to set x and y for the pane and the label
-	the origin inside the pane is in the center
+center - (default true) centers the pane
+	if center is false you will have to set x and y for the pane
+	the registration point and the origin inside the pane is in the center
+	you can adjust the label placement by changing its x and y or registration point
 displayClose - (default true) closes the Pane if display backing is pressed
 	if drag is set to true, displayClose will automatically be set to false
 backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
-	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lighning Bolts, etc.
+	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 
 METHODS
 show() - shows the pane
@@ -5721,11 +5732,8 @@ dispatches a "close" event when closed by clicking on backing
 			this.addChild(display);
 
 			if (label) {
-				if (center) {
-					label.x =  -label.getBounds().width/2 - label.getBounds().x;
-					label.y =  -label.getBounds().height/2 - label.getBounds().y;
-				}
 				this.addChild(label);
+				zim.center(label, this);
 				this.label = label;
 				this.text = label.text;
 				label.mouseEnabled = false;
@@ -11214,6 +11222,9 @@ EVENTS
 					document.body.appendChild(canvas);
 				}
 				if (!zot(color)) canvas.style.backgroundColor = color;
+				if (scaling == "full" || scaling == "fit" || scaling == "outside") {
+					canvas.style.position = "absolute";
+				}
 			}
 
 			function makeStage() {
@@ -11350,23 +11361,6 @@ EVENTS
 				}
 			});
 
-			Object.defineProperty(that, 'stageW', { // depreciated (use width)
-				get: function() {
-					return stageW;
-				},
-				set: function(w) {
-					zog("zim.Frame(): stageW is read only - see remakeCanvas(), perhaps");
-				}
-			});
-
-			Object.defineProperty(that, 'stageH', { // depreciated (use height)
-				get: function() {
-					return stageH;
-				},
-				set: function(h) {
-					zog("zim.Frame(): stageH is read only - see remakeCanvas(), perhaps");
-				}
-			});
 			Object.defineProperty(that, 'width', {
 				get: function() {
 					return stageW;
@@ -11432,7 +11426,6 @@ EVENTS
 					g.f(colors[i]).dc(0,0,(c.radius/colors.length)*(colors.length-i));
 				}
 				c.setBounds(-c.radius,-c.radius,c.radius*2,c.radius*2);
-				c.width = c.height = radius*2;
 				return c;
 			}
 
