@@ -2833,7 +2833,7 @@ RETURNS the target for chaining
 
 		// original animate functionality
 
-		// if (zot(target) || !target.on || zot(obj) || !target.getStage()) return;
+		if (zot(target)) return;
 
 		var t = time;
 		if (zot(t)) t = 1000;
@@ -2848,11 +2848,29 @@ RETURNS the target for chaining
 			delete obj.scale;
 		}
 		var tween;
+		// if a loop or rewind is currently running for any of these properties
+		// then remove the property from obj as it is currently busy
+		for(var o in obj) {
+			if (!target.zimBusy) break;
+			if (target.zimBusy[o]) delete obj[o];
+		}
 		if (props.loop) {
+			addZimBusy(); // if it is a loop then set properties to busy
 			if (!zot(props.count)) {
 				var count = props.count;
 				delete props.count;
 				var currentCount = 1;
+			}
+		}
+		// the function to set obj properties busy for this target
+		// when the function is run, we record that we set the properties
+		// so that when the animation ends we know we have to set them not busy
+		var zimBusyCheck = false;
+		function addZimBusy() {
+			zimBusyCheck = true;
+			if (!target.zimBusy) target.zimBusy = {};
+			for(var o in obj) {
+				target.zimBusy[o] = true;
 			}
 		}
 		var wait3 = 0;
@@ -2861,6 +2879,7 @@ RETURNS the target for chaining
 			delete props.loopWait;
 		}
 		if (props.rewind) {
+			addZimBusy(); // if it is a rewind then set properties to busy
 			// flip second ease
 			if (ease) {
 				// backIn backOut backInOut
@@ -2931,6 +2950,12 @@ RETURNS the target for chaining
 					return;
 				}
 			}
+			// if we have set the properties as busy then remove them from busy
+			if (zimBusyCheck) {
+				for (var o in obj) {
+					delete target.zimBusy[o];
+				}
+			}
 			tween.setPaused(true);
 			if (!css && ticker) setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
 		}
@@ -2938,6 +2963,7 @@ RETURNS the target for chaining
 			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}
         target.stopZimAnimate = target.stopZimMove = function() {
+			target.zimBusy = null; // clear any busy properties
             createjs.Tween.removeTweens(target);
             if (!css && ticker) setTimeout(function(){zim.Ticker.remove(target.zimTicker);},200);
         }
@@ -3371,6 +3397,7 @@ id - (default null) the name of the object so that the log gives you complete co
 RETURNS undefined
 --*///+49
 	zim.place = function(obj, id) {
+		zog(id)
 		z_d("49");
 		if (zot(obj)) return;
 		if (zot(id)) id = "obj";
@@ -3421,9 +3448,9 @@ RETURNS obj for chaining
 	}//-50
 
 /*--
-zim.mask = function(obj, mask)
+zim.setMask = function(obj, mask)
 
-mask
+setMask
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
@@ -3438,19 +3465,22 @@ NOTE: the mask you pass in can still be seen but you can set its alpha to 0
 just watch, if you want to interact with the mask it cannot have 0 alpha
 unless you provide a hit area with zim.expand() for instance (use 0 for padding)
 
+NOTE: this was just mask() but that conflicted with createjs.mask property
+so it would work to set the mask but then you could not use it again - so changed name
+
 EXAMPLE
 var label = new zim.Label("BIG", 200, null, "white");
 zim.center(label, stage);
 var rect = new zim.Rectangle(200,100,"black");
 zim.center(rect, stage).alpha = 0;
-zim.mask(label, rect);
+zim.setMask(label, rect);
 zim.drag(label);
 
 OR with ZIM 4TH method
 var rect = new zim.Rectangle(200,100,"black");
 rect.center(stage).alpha = 0;
 var label = new zim.Label("BIG", 200, null, "white");
-label.center(stage).drag().mask(rect);
+label.center(stage).drag().setMask(rect);
 // not sure we really recommend such dramatic chaining...
 END EXAMPLE
 
@@ -3464,13 +3494,13 @@ zim.center(label, stage);
 var rect = new zim.Rectangle(200,100,"black");
 zim.expand(rect, 0); // adds a hit area to rect so we can drag alpha 0
 zim.center(rect, stage).alpha = 0;
-zim.mask(label, rect);
+zim.setMask(label, rect);
 zim.drag(rect);
 
 OR with ZIM 4TH method
 rect.expand(0);
 rect.center(stage).alpha = 0;
-label.mask(rect);
+label.setMask(rect);
 rect.drag();
 END EXAMPLE
 
@@ -3481,7 +3511,7 @@ and move the mask object using that variable
 or use a zim.Shape or createjs.Shape directly to avoid this issue
 
 EXAMPLE
-var mask = zim.mask(label, rect);
+var mask = zim.setMask(label, rect);
 mask.x += 100;
 // note: rect.x += 100 will not work
 // because the mask is inside the rect and does not change its x
@@ -3491,15 +3521,17 @@ END EXAMPLE
 
 PARAMETERS
 obj - the object to mask
-mask - the object that have its shape be the mask
+mask - the object whose shape will be the mask
+
+NOTE: use setMask(obj, null) or obj.setMask(null) to clear the mask
 
 RETURNS the mask shape (different than the mask if using ZIM shapes)
 --*///+50.1
-	zim.mask = function(obj, mask) {
+	zim.setMask = function(obj, mask) {
 		z_d("50.1");
-		if (zot(obj) || zot(mask)) {zog("zim create - mask(): please provide obj and mask"); return;}
+		if (zot(obj)) {zog("zim create - setMask(): please provide obj"); return;}
 		var m;
-		if (mask.shape) { // zim.Rectangle, Circle or Triangle
+		if (mask && mask.shape) { // zim.Rectangle, Circle or Triangle
 			mask.zimMask = m = mask.shape.clone();
 			m.x = mask.x;
 			m.y = mask.y;
@@ -3513,7 +3545,7 @@ RETURNS the mask shape (different than the mask if using ZIM shapes)
 		} else {
 			m = mask;
 		}
-		obj.mask = m;
+		obj.mask = m; // set the createjs mask
 		return m;
 	}//-50.1
 
@@ -3718,14 +3750,14 @@ RETURNS the object for chaining
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.center(arguments[0]);}
 			else {return zim.center(this, container, add, index);}
 		},
-		place:function() {
-			return zim.place(this);
+		place:function(id) {
+			return zim.place(this, id);
 		},
 		expand:function(padding, paddingVertical) {
 			return zim.expand(this, padding, paddingVertical);
 		},
-		mask:function(mask) {
-			return zim.mask(this, mask);
+		setMask:function(mask) {
+			return zim.setMask(this, mask);
 		},
 		cloneProps:function(clone) { // from CreateJS DisplayObject
 			clone.alpha = this.alpha;
@@ -3876,7 +3908,7 @@ centerReg(container, add, index)
 center(container, add, index)
 place(id)
 expand(padding, paddingVertical)
-mask(mask)
+setMask(mask)
 
 USAGE
 the above list of methods work on all objects that extend zim.Container
@@ -4233,6 +4265,7 @@ METHODS
 setFill(color) - changes the color of the fill (or see color property)
 setStroke(color) - changes the color of the stroke
 setStrokeSize(size) - the size of the stroke as a number
+clone() - makes a copy of the shape
 
 **** ZIM 4TH adds all the methods listed under Container above
 **** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
@@ -4295,6 +4328,9 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}
+			this.clone = function() {
+				return that.cloneProps(new zim.Circle(radius, fill, stroke, strokeSize));
+			}
 		}
 
 		// note the actual class is wrapped in a function
@@ -4339,6 +4375,7 @@ METHODS
 setFill(color) - changes the color of the fill (or see color property)
 setStroke(color) - changes the color of the stroke
 setStrokeSize(size) - the size of the stroke as a number
+clone() - makes a copy of the shape
 
 **** ZIM 4TH adds all the methods listed under Container above
 **** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
@@ -4414,6 +4451,9 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}
+			this.clone = function() {
+				return that.cloneProps(new zim.Rectangle(width, height, fill, stroke, strokeSize, corner, flatBottom));
+			}
 		}
 
 		// note the actual class is wrapped in a function
@@ -4466,6 +4506,7 @@ METHODS
 setFill(color) - changes the color of the fill (or see color property)
 setStroke(color) - changes the color of the stroke
 setStrokeSize(size) - the size of the stroke as a number
+clone() - makes a copy of the shape
 
 **** ZIM 4TH adds all the methods listed under Container above
 **** for example: drag(), hitTestRect(), animate(), scale(), center(), etc.
@@ -4581,7 +4622,9 @@ if you nest things inside and want to drag them, will want to set to true
 				strokeSize = size;
 				strokeSizeObj.width = strokeSize;
 			}
-
+			this.clone = function() {
+				return that.cloneProps(new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust));
+			}
 		}
 
 		// note the actual class is wrapped in a function
@@ -4635,7 +4678,8 @@ align - ((default "left") text registration point alignment also "center" and "r
 valign - (default "top") vertical registration point alignment alse "middle / center", "bottom"
 lineWidth - (default false) for no wrapping (use \n) Can set to number for wrap
 lineHeight - (default getMeasuredLineHeight) set to number to adjust line height
-fontOptions - (default null) css values in order for font-style font-variant font-weight
+fontOptions - (default null) css VALUES as a single string for font-style font-variant font-weight
+	eg. "italic bold small-caps" or just "italic", etc.
 backing - (default null) a Display object for the backing of the label (eg. Shape, Bitmap, Container, Sprite)
 	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 
@@ -4801,7 +4845,7 @@ dispatches no events
 	}//-54
 
 /*--
-zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking)
+zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist)
 
 Button
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4856,6 +4900,7 @@ flatBottom - (default false) top corners can round and bottom stays flat (used f
 backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
 	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 rollBacking - (default null) a Display object for the backing of the rolled-on button
+rollPersist - (default false) set to true to keep rollover state when button is pressed even if rolling off
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -4872,6 +4917,7 @@ text - references the text property of the Label object of the button
 label - gives access to the label
 backing - references the backing (zim.Rectangle) of the button
 enabled - default is true - set to false to disable
+rollPersist - default is false - set to true to keep rollover state when button is pressed even if rolling off
 color - get or set non-rolled on backing color
 rollColor - get or set rolled on backing color
 
@@ -4882,9 +4928,9 @@ if set to true, you will have to stage.update() after setting certain properties
 EVENTS
 dispatches no events - you make your own click event (or mousedown for mobile)
 --*///+55
-	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking) {
+	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist) {
 
-		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking";
+		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist";
 		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
 		z_d("55");
 		function makeButton() {
@@ -4905,6 +4951,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			if (zot(label)) label = "PRESS";
 			// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white", null, null, null, "center", "middle");
+			if (zot(rollPersist)) rollPersist = false;
+			this.rollPersist = rollPersist;
 
 			var that = this;
 			this.mouseChildren = false;
@@ -4953,12 +5001,51 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				if (!zot(rollBacking)) rollBacking.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			}
 			this.setBounds(0,0,width,height);
-
-			label.x = width / 2;
-			label.y = height / 2 + 2 ;
 			this.addChild(label);
-
+			label.center(this);
 			this.label = label;
+
+			var pressCheck = false;
+			this.on("mousedown", function(){pressCheck=true;});
+			this.on("pressup", function(){
+				pressCheck=false;
+				if (that.rollPersist && !rollCheck) removeRoll();
+			});
+
+			var rollCheck = false;
+			this.on("mouseover", buttonOn);
+			function buttonOn(e) {
+				rollCheck = true;
+				that.on("mouseout", buttonOff);
+				if (zot(backing)) {
+					buttonBacking.color = rollColor;
+				} else if (!zot(rollBacking)) {
+					that.removeChild(backing);
+					that.addChildAt(rollBacking, 0);
+				}
+				that.label.showRollColor();
+				if (that.getStage()) that.getStage().update();
+			}
+
+			function buttonOff(e) {
+				rollCheck = false;
+				that.off("mouseout", buttonOff);
+				if (that.rollPersist) {
+					if (!pressCheck) removeRoll();
+				} else {
+					removeRoll();
+				}
+			}
+			function removeRoll() {
+				if (zot(backing)) {
+					buttonBacking.color = color;
+				} else if (!zot(rollBacking)) {
+					that.removeChild(rollBacking);
+					that.addChildAt(backing, 0);
+				}
+				that.label.showRollColor(false);
+				if (that.getStage()) that.getStage().update();
+			}
 
 			Object.defineProperty(that, 'text', {
 				get: function() {
@@ -5009,33 +5096,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				}
 			});
 
-			this.on("mouseover", buttonOn);
-			function buttonOn(e) {
-				that.on("mouseout", buttonOff);
-				if (zot(backing)) {
-					buttonBacking.color = rollColor;
-				} else if (!zot(rollBacking)) {
-					that.removeChild(backing);
-					that.addChildAt(rollBacking, 0);
-				}
-				that.label.showRollColor();
-				if (that.getStage()) that.getStage().update();
-			}
-
-			function buttonOff(e) {
-				that.off("mouseout", buttonOff);
-				if (zot(backing)) {
-					buttonBacking.color = color;
-				} else if (!zot(rollBacking)) {
-					that.removeChild(rollBacking);
-					that.addChildAt(backing, 0);
-				}
-				that.label.showRollColor(false);
-				if (that.getStage()) that.getStage().update();
-			}
-
 			this.clone = function() {
-				return that.cloneProps(new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, (!zot(backing))?backing.clone():null, (!zot(rollBacking))?rollBacking.clone():null));
+				return that.cloneProps(new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, (!zot(backing))?backing.clone():null, (!zot(rollBacking))?rollBacking.clone():null, rollPersist));
 			}
 
 			this.dispose = function() {
@@ -7018,6 +7080,7 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 				if (vertical) {w = 50; h = 40;}
 				button = new zim.Button(w,h,"","#fff","#ddd","#666",1,0,null,null,30);
 			}
+			button.rollPersist = true;
 
 			var width; var height;
 			if (vertical) {
@@ -8042,7 +8105,7 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 	}//-66
 
 /*--
-zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur)
+zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur, buttonBar, circles, indicator)
 
 ColorPicker
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8078,6 +8141,9 @@ drag - (default true) whether you can drag the component - set to false to not d
 	a small grip under the color text shows if draggable
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
 shadow blur - (default 14) the blur of the shadow if shadow is set
+buttonBar - (default true) set to false to hide the button bar with OK and X (close)
+circles - (default false) set to true to show colors in circles rather than squares
+indicator - (default true) set to false to remove indicator from currentColor
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -8100,6 +8166,7 @@ grip - gets the createjs.Shape for the grip if the panel is dragable
 backing - gets the zim.Rectangle that is the backing (cp.backing.color = "white")
 okBut - references the OK zim.Button
 closeBut - references the X zim.Button
+indicator - gets the zim shape that is the indicator (if indicator is true)
 
 if alphaPicker is true:
 alpaBacking - gets reference to the zim.Rectangle that makes the backing for the alpha slider
@@ -8115,9 +8182,9 @@ EVENTS
 dispatches a "change" event when the OK button is activated and the color is different than before
 dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
 --*///+67
-	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur) {
+	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur, buttonBar, circles, indicator) {
 
-		var sig = "width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur";
+		var sig = "width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur, buttonBar, circles, indicator";
 		var duo; if (duo = zob(zim.ColorPicker, arguments, sig)) return duo;
 		z_d("67");
 		function makeColorPicker() {
@@ -8129,8 +8196,14 @@ dispatches a "close" event if the OK button is activated and the color has not c
 			if (zot(alphaPicker)) alphaPicker = true;
 			if (zot(greyPicker)) greyPicker = true;
 			if (zot(drag)) drag = true;
-			if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
-			if (zot(shadowBlur)) shadowBlur=14;
+			if (zot(shadowColor)) shadowColor = "rgba(0,0,0,.3)";
+			if (zot(shadowBlur)) shadowBlur = 14;
+			if (zot(buttonBar)) buttonBar = true;
+			if (zot(circles)) circles = false;
+			if (zot(indicator)) {
+				indicator = false;
+				if (!buttonBar) indicator = true;
+			}
 
 			var that = this;
 
@@ -8194,9 +8267,12 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				r = Math.floor(i/cols);
 				rX = c*(w+spacing);
 				rY = r*(w+spacing);
-				g.f(colors[i]).r(rX,rY,w,w);
+				if (circles) {
+					g.f(colors[i]).dc(rX+w/2,rY+w/2,w/2);
+				} else {
+					g.f(colors[i]).r(rX,rY,w,w);
+				}
 			}
-
 			var lastHeight = rY + w + spacing;
 
 			var greyHeight = lastHeight;
@@ -8209,11 +8285,26 @@ dispatches a "close" event if the OK button is activated and the color has not c
 					r = i%cols;
 					rX = r*(w+spacing);
 					rY = c*(w+spacing)+lastHeight;
-					g.f(greys[i]).r(rX,rY,w,w);
+					if (circles) {
+						g.f(greys[i]).dc(rX+w/2,rY+w/2,w/2);
+					} else {
+						g.f(greys[i]).r(rX,rY,w,w);
+					}
 				}
 				lastHeight = rY + w + spacing;
 				var greyCols = cols;
 				var greyRows = Math.ceil(greys.length/cols);
+			}
+			if (indicator) {
+				indicator = this.indicator = circles ? new zim.Circle(w/2*.5) : new zim.Rectangle(w*.5, w*.5);
+				indicator.alpha = .5;
+				indicator.centerReg();
+				this.addChild(indicator);
+				function positionIndicator(i) {
+					indicator.x = box.x + i%cols*(w+spacing) + w/2;
+					indicator.y = box.x + Math.floor(i/cols)*(w+spacing) + w/2;
+				}
+				positionIndicator(colors.indexOf(myColor));
 			}
 
 			var margin = 10;
@@ -8245,61 +8336,68 @@ dispatches a "close" event if the OK button is activated and the color has not c
 
 				slider.on("change", function() {
 					alphaText.text = "Alpha: " + decimals(slider.currentValue);
-					swatch.alpha = myAlpha = slider.currentValue;
+					if (swatch) {
+						swatch.alpha = myAlpha = slider.currentValue;
+					}
 					if (that.getStage()) that.getStage().update();
 				});
-
 				lastHeight += (alpha.height-margin)*alpha.scaleX;
 			}
 
-			var nav = new zim.Container();
-			nav.setBounds(0,0,600,100);
-			this.addChild(nav);
-			nav.x = 0;
-			nav.y = lastHeight+margin;
+			if (buttonBar) {
 
-			var swatchText = this.swatchText = new zim.Label(myColor.toUpperCase().substr(0,7), 30, null, "orange");
-			nav.addChild(swatchText);
-			zim.centerReg(swatchText);
-			swatchText.x = 200/2-10;
-			swatchText.y = 50-2;
+				var nav = new zim.Container();
+				nav.setBounds(0,0,600,100);
+				this.addChild(nav);
+				nav.x = 0;
+				nav.y = lastHeight+margin;
 
-			if (drag) {
-				var grip = this.grip = new createjs.Shape();
-				nav.addChild(grip);
-				grip.graphics.f("rgba(256,256,256,.25)").r(0,0,5,20).r(10,0,5,20).r(20,0,5,20).r(30,0,5,20);
-				grip.x = 70; grip.y = 65;
-				swatchText.y = 50-10;
+				var swatchText = this.swatchText = new zim.Label(myColor.toUpperCase().substr(0,7), 30, null, "orange");
+				nav.addChild(swatchText);
+				zim.centerReg(swatchText);
+				swatchText.x = 200/2-10;
+				swatchText.y = 50-2;
+
+				if (drag) {
+					var grip = this.grip = new createjs.Shape();
+					nav.addChild(grip);
+					grip.graphics.f("rgba(256,256,256,.25)").r(0,0,5,20).r(10,0,5,20).r(20,0,5,20).r(30,0,5,20);
+					grip.x = 70; grip.y = 65;
+					swatchText.y = 50-10;
+				}
+
+				var closeBut = this.closeBut = new zim.Button(90, 90, "X", "#222", "#444", null,null,0);
+				nav.addChild(closeBut);
+				closeBut.x = 600 - closeBut.width - margin;
+				closeBut.y = 0;
+				closeBut.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(){that.dispatchEvent("close");});
+
+				var button = this.okBut = new zim.Button(150, 90, "OK", "#222", "#444", null,null,0);
+				nav.addChild(button);
+				button.x = closeBut.x - button.width - margin;
+				button.y = 0;
+				button.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
+
+				var swatchBacking = this.swatchBacking = new createjs.Shape();
+				nav.addChild(swatchBacking);
+				var g = swatchBacking.graphics;
+				g.f("black").r(0.5,0.5,50,89).f("#666").r(50,0.5,50,89).f("white").r(100,0.5,49.5,89);
+				swatchBacking.x = button.x - 150 - margin;
+				swatchBacking.y = 0;
+
+				var swatch = this.swatch = new zim.Rectangle(150, 90, myColor);
+				nav.addChild(swatch);
+				swatch.x = swatchBacking.x;
+				swatch.y = 0;
+				swatch.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
+				swatch.cursor = "pointer";
+
+				nav.scaleX = nav.scaleY = width / 600;
+				lastHeight += nav.height * nav.scaleX;
+			} else {
+				lastHeight -= margin - spacing;
+				box.cursor = "pointer";
 			}
-
-			var closeBut = this.closeBut = new zim.Button(90, 90, "X", "#222", "#444", null,null,0);
-			nav.addChild(closeBut);
-			closeBut.x = 600 - closeBut.width - margin;
-			closeBut.y = 0;
-			closeBut.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(){that.dispatchEvent("close");});
-
-			var button = this.okBut = new zim.Button(150, 90, "OK", "#222", "#444", null,null,0);
-			nav.addChild(button);
-			button.x = closeBut.x - button.width - margin;
-			button.y = 0;
-			button.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
-
-			var swatchBacking = this.swatchBacking = new createjs.Shape();
-			nav.addChild(swatchBacking);
-			var g = swatchBacking.graphics;
-			g.f("black").r(0.5,0.5,50,89).f("#666").r(50,0.5,50,89).f("white").r(100,0.5,49.5,89);
-			swatchBacking.x = button.x - 150 - margin;
-			swatchBacking.y = 0;
-
-			var swatch = this.swatch = new zim.Rectangle(150, 90, myColor);
-			nav.addChild(swatch);
-			swatch.x = swatchBacking.x;
-			swatch.y = 0;
-			swatch.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", doChange);
-			swatch.cursor = "pointer";
-
-			nav.scaleX = nav.scaleY = width / 600;
-			lastHeight += nav.height * nav.scaleX;
 
 			var height = lastHeight + margin;
 			this.setBounds(0,0,width,height);
@@ -8360,10 +8458,15 @@ dispatches a "close" event if the OK button is activated and the color has not c
 			box.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {
 				var index = zim.hitTestGrid(box, gridW, gridH, cols, rows, that.getStage().mouseX, that.getStage().mouseY, 0, 0, spacing, spacing);
 				if (!zot(index)) {
-					swatch.color = myColor = colors[index];
-					swatchText.text = String(colors[index]).toUpperCase().substr(0,7);
-					zim.centerReg(swatchText);
-					if (that.getStage()) that.getStage().update();
+					myColor = colors[index];
+					if (buttonBar) {
+						swatch.color = myColor;
+						swatchText.text = String(colors[index]).toUpperCase().substr(0,7);
+						zim.centerReg(swatchText);
+						if (that.getStage()) that.getStage().update();
+					} else {
+						doChange();
+					}
 				}
 				if (greyPicker) {
 					// note greyW not gridW
@@ -8371,12 +8474,18 @@ dispatches a "close" event if the OK button is activated and the color has not c
 					index = zim.hitTestGrid(box, greyW, greyH, greyCols, greyRows, that.getStage().mouseX, that.getStage().mouseY, 0, gridH, spacing, spacing);
 
 					if (!zot(index)) {
-						swatch.color = myColor = greys[index];
-						swatchText.text = greys[index].toUpperCase();
-						zim.centerReg(swatchText);
-						if (that.getStage()) that.getStage().update();
+						myColor = greys[index];
+						if (buttonBar) {
+							swatch.color = myColor;
+							swatchText.text = greys[index].toUpperCase();
+							zim.centerReg(swatchText);
+							if (that.getStage()) that.getStage().update();
+						} else {
+							doChange();
+						}
 					}
 				}
+				if (indicator) positionIndicator(colors.indexOf(myColor));
 			});
 
 			Object.defineProperty(this, 'selectedColor', {
@@ -8384,10 +8493,30 @@ dispatches a "close" event if the OK button is activated and the color has not c
 					return myColor;
 				},
 				set: function(value) {
-					swatch.color = myColor = value;
-					swatchText.text = colors[index];
-					zim.centerReg(swatchText);
-					if (that.getStage()) that.getStage().update();
+					lastColor = myColor = value;
+					if (buttonBar) {
+						swatch.color = myColor;
+						swatchText.text = myColor;
+						zim.centerReg(swatchText);
+						if (that.getStage()) that.getStage().update();
+					}
+					if (indicator) positionIndicator(colors.indexOf(myColor));
+				}
+			});
+
+			Object.defineProperty(this, 'selectedIndex', {
+				get: function() {
+					return colors.indexOf(myColor);
+				},
+				set: function(value) {
+					lastColor = myColor = colors[value];
+					if (buttonBar) {
+						swatch.color = myColor;
+						swatchText.text = myColor;
+						zim.centerReg(swatchText);
+						if (that.getStage()) that.getStage().update();
+					}
+					if (indicator) positionIndicator(colors.indexOf(myColor));
 				}
 			});
 
@@ -8401,7 +8530,7 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				},
 				set: function(value) {
 					if (alphaPicker) {
-						swatch.alpha = slider.currentValue = value;
+						lastAlpha = swatch.alpha = slider.currentValue = value;
 						alphaText.text = "Alpha: " + decimals(slider.currentValue);
 						if (that.getStage()) that.getStage().update();
 					}
@@ -8413,7 +8542,7 @@ dispatches a "close" event if the OK button is activated and the color has not c
 			}
 
 			this.clone = function() {
-				return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur));
+				return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur, buttonBar, circles, indicator));
 			}
 
 			this.dispose = function() {
@@ -10899,6 +11028,7 @@ horizontal - (default true) set to false to animate vertically
 	to change your animation, dispose() of the Scroller object and make a new one
 	disposing just removes the ticker - you have to remove the backings
 	NOTE: the gapFix and ticker parameters have been removed - see zim.Ticker
+gapFix - (default 0) if a thin line appears when changing speed - try setting to 1 or 2
 
 METHODS
 dispose() - get rid of the event listeners - you need to remove the backings (see backing properties)
@@ -10909,8 +11039,8 @@ backing2 - the cloned backing made from the original backing
 speed - how fast the animation is going in pixels per frame
 direction - either left or right if horizontal or up or down if not horizontal
 --*///+69
-	zim.Scroller = function(backing, speed, direction, horizontal) {
-		var sig = "backing, speed, direction, horizontal";
+	zim.Scroller = function(backing, speed, direction, horizontal, gapFix) {
+		var sig = "backing, speed, direction, horizontal, gapFix";
 		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
 		z_d("69");
 		var b1 = this.backing1 = backing;
@@ -10918,11 +11048,13 @@ direction - either left or right if horizontal or up or down if not horizontal
 		var b2 = this.backing2 = backing.clone();
 		b1.parent.addChild(b2);
 		if (zot(horizontal)) horizontal = true;
+		if (zot(gapFix)) gapFix = 0;
 		var that = this; // we keep animate protected but want to access public properties
 
 		// here are the public properties that can be changed
 		this.speed = (zot(speed)) ? 1 : speed;
 		this.direction = (zot(direction)) ? 1 : direction;
+		var scale = horizontal ? b1.scaleX : b1.scaleY;
 
 		if (!b1.getBounds()) {
 			zog("zim build - Scroller(): please setBounds() on backing objects");
@@ -10933,8 +11065,8 @@ direction - either left or right if horizontal or up or down if not horizontal
 			return;
 		}
 
-		var w = b1.getBounds().width;
-		var h = b1.getBounds().height;
+		var w = b1.getBounds().width*scale-gapFix;
+		var h = b1.getBounds().height*scale-gapFix;
 
 		var stageW;
 		var stageH;
@@ -10964,11 +11096,12 @@ direction - either left or right if horizontal or up or down if not horizontal
 				} else {
 					b2.x = b1.x - w;
 				}
+				zog(that.direction, that.speed);
 				if (that.direction * that.speed > 0) {
 					if (b2.x < 0 && b1.x < b2.x) {
-						b1.x = w;
+						b1.x = b2.x + w;
 					} else if (b1.x < 0 && b2.x < b1.x) {
-						b2.x = w;
+						b2.x = b1.x + w;
 					}
 				} else {
 					if (b2.x > stageW && b2.x > b1.x) {
@@ -10986,9 +11119,9 @@ direction - either left or right if horizontal or up or down if not horizontal
 				}
 				if (that.direction * that.speed > 0) {
 					if (b2.y < 0 && b1.y < b2.y) {
-						b1.y = h;
+						b1.y = b2.y + h;
 					} else if (b1.y < 0 && b2.y < b1.y) {
-						b2.y = h;
+						b2.y = b1.y + h;
 					}
 				} else {
 					if (b2.y > stageH && b2.y > b1.y) {
@@ -11032,11 +11165,11 @@ see http://zimjs.com/code/frame.html for sample templates using Frame.
 EXAMPLE
 // HTML: style the canvas (see parameters for more info)
 <style>
-	#myCanvas {background-color:#CCC;}
+	#myCanvas {optional styles - color is now a Frame parameter...}
 </style>
 
 // SCRIPT: create a zim.Frame
-var frame = new zim.Frame("fit", 1024, 768);
+var frame = new zim.Frame("fit", 1024, 768, "#CCC");
 frame.on("ready", function() {
 	var stage = frame.stage;
 	var stageW = frame.width;
