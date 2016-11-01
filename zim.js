@@ -1933,9 +1933,8 @@ RETURNS obj for chaining
 			// mask graphics needs to have same position as object
 			// yet the mask is inside the object (but alpha = 0)
 			if (o.zimMask) {
-				m = o.zimMask;
-				m.x = o.x;
-				m.y = o.y;
+				o.zimMask.x = o.x;
+				o.zimMask.y = o.y;
 			}
 		}
 		obj.zimPosition = positionObject;
@@ -2936,7 +2935,14 @@ RETURNS the target for chaining
 				.wait(wait3);
 		}
 
-		if (!css && ticker) var zimTicker = target.zimTicker = zim.Ticker.add(function(){}, target.getStage());
+		if (!css && ticker) var zimTicker = target.zimTicker = zim.Ticker.add(function(){
+			// mask graphics needs to have same position, scale, skew, rotation and reg as object
+			if (target.zimMask) {
+				zim.copyMatrix(target.zimMask, target);
+				target.zimMask.regX = target.regX;
+				target.zimMask.regY = target.regY;
+			}
+		}, target.getStage());
 
 		function doneAnimating() {
 			if (call && typeof call == 'function') {(call)(params);}
@@ -2979,6 +2985,48 @@ RETURNS the target for chaining
         }
 		return target;
 	}//-45
+
+/*--
+zim.copyMatrix = function(obj, source)
+
+copyMatrix
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Copies the transformation properties from the source to the obj
+(x, y, rotation, scale and skew)
+Might need to still copy the regX and regY (not included in copyMatrix)
+
+NOTE: used internally by move(), animate() and setMask() for copying transform of shapes to mask
+also used in addDisplayMembers for clone() method
+
+EXAMPLE
+zim.copyMatrix(circle, circle2);
+// circle will now match circle2 in x, y, rotation, scale and skew properties
+
+OR with ZIM 4TH method
+circle.copyMatrix(circle2);
+END EXAMPLE
+
+PARAMETERS
+obj - object to receive the new transform values
+source - object from which the transform properties are being copied
+
+RETURNS obj for chaining
+--*///+45.5
+	zim.copyMatrix = function(obj, source) {
+		z_d("45.5");
+		obj.x = source.x;
+		obj.y = source.y;
+		obj.scaleX = source.scaleX;
+		obj.scaleY = source.scaleY;
+		obj.regX = source.regX;
+		obj.regY = source.regY;
+		obj.rotation = source.rotation;
+		obj.skewX = source.skewX;
+		obj.skewY = source.skewY;
+		return obj;
+	}//-45.5
 
 /*--
 zim.scale = function(obj, scale)
@@ -3397,7 +3445,6 @@ id - (default null) the name of the object so that the log gives you complete co
 RETURNS undefined
 --*///+49
 	zim.place = function(obj, id) {
-		zog(id)
 		z_d("49");
 		if (zot(obj)) return;
 		if (zot(id)) id = "obj";
@@ -3504,10 +3551,10 @@ label.setMask(rect);
 rect.drag();
 END EXAMPLE
 
-NOTE: drag works specially with zim shapes to make this work
+NOTE: move(), animate() and drag() work specially with zim shapes to make this work
 otherwise, if you want to reposition your mask
-then save the return value of the mask call in a variable
-and move the mask object using that variable
+then save the return value of the setMask call in a variable
+and position, scale or rotate the mask object using that variable
 or use a zim.Shape or createjs.Shape directly to avoid this issue
 
 EXAMPLE
@@ -3515,8 +3562,7 @@ var mask = zim.setMask(label, rect);
 mask.x += 100;
 // note: rect.x += 100 will not work
 // because the mask is inside the rect and does not change its x
-// so you would animate this mask too rather than the rect:
-zim.animate(mask, {scale:.5}, 500);
+// rect.move(rect.x+100, rect.y, 700); will work
 END EXAMPLE
 
 PARAMETERS
@@ -3533,13 +3579,10 @@ RETURNS the mask shape (different than the mask if using ZIM shapes)
 		var m;
 		if (mask && mask.shape) { // zim.Rectangle, Circle or Triangle
 			mask.zimMask = m = mask.shape.clone();
-			m.x = mask.x;
-			m.y = mask.y;
-			m.rotation = mask.rotation;
-			m.scaleX = mask.scaleX;
-			m.scaleY = mask.scaleY;
-			m.skewX = mask.skewX;
-			m.skewY = mask.skewY;
+			zim.copyMatrix(m, mask);
+			m.regX = mask.regX;
+			m.regY = mask.regY;
+			zim.addDisplayMembers(m);
 			mask.addChildAt(m,0);
 			m.alpha = 0;
 		} else {
@@ -3719,13 +3762,6 @@ RETURNS the object for chaining
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		scale:function(scale) {
-			return zim.scale(this, scale);
-		},
-		scaleTo:function(boundObj, percentX, percentY, type) {
-			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
-			else {return zim.scaleTo(this, boundObj, percentX, percentY, type);}
-		},
 		move:function(x, y, time, ease, call, params, wait, props, fps, sequence) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
 			else {return zim.move(this, x, y, time, ease, call, params, wait, props, fps, sequence);}
@@ -3733,6 +3769,16 @@ RETURNS the object for chaining
 		animate:function(obj, time, ease, call, params, wait, props, fps, sequence) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
 			else {return zim.animate(this, obj, time, ease, call, params, wait, props, fps, sequence);}
+		},
+		copyMatrix:function(source) {
+			return zim.copyMatrix(this, source);
+		},
+		scale:function(scale) {
+			return zim.scale(this, scale);
+		},
+		scaleTo:function(boundObj, percentX, percentY, type) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
+			else {return zim.scaleTo(this, boundObj, percentX, percentY, type);}
 		},
 		fit:function(left, top, width, height, inside) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.fit(arguments[0]);}
@@ -3766,15 +3812,9 @@ RETURNS the object for chaining
 			clone.name = this.name;
 			clone.regX = this.regX;
 			clone.regY = this.regY;
-			clone.rotation = this.rotation;
-			clone.scaleX = this.scaleX;
-			clone.scaleY = this.scaleY;
-			clone.shadow = this.shadow;
-			clone.skewX = this.skewX;
-			clone.skewY = this.skewY;
 			clone.visible = this.visible;
-			clone.x  = this.x;
-			clone.y = this.y;
+			clone.shadow = this.shadow;
+			zim.copyMatrix(clone, this);
 			clone.compositeOperation = this.compositeOperation;
 			clone.snapToPixel = this.snapToPixel;
 			clone.filters = this.filters==null?null:this.filters.slice(0);
@@ -8180,6 +8220,7 @@ The default is "mousedown" - if set to something else the component will act on 
 
 EVENTS
 dispatches a "change" event when the OK button is activated and the color is different than before
+	or if buttonBar is false dispatches "change" when a new color is selected
 dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
 --*///+67
 	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur, buttonBar, circles, indicator) {
@@ -8301,6 +8342,13 @@ dispatches a "close" event if the OK button is activated and the color has not c
 				indicator.centerReg();
 				this.addChild(indicator);
 				function positionIndicator(i) {
+					if (myColor == "#000" || myColor == "#000000" || myColor == "black") {
+						indicator.color = "#222";
+						indicator.alpha = 1;
+					} else {
+						indicator.color = "black";
+						indicator.alpha = .5;
+					}
 					indicator.x = box.x + i%cols*(w+spacing) + w/2;
 					indicator.y = box.x + Math.floor(i/cols)*(w+spacing) + w/2;
 				}
@@ -8463,7 +8511,6 @@ dispatches a "close" event if the OK button is activated and the color has not c
 						swatch.color = myColor;
 						swatchText.text = String(colors[index]).toUpperCase().substr(0,7);
 						zim.centerReg(swatchText);
-						if (that.getStage()) that.getStage().update();
 					} else {
 						doChange();
 					}
@@ -8479,13 +8526,17 @@ dispatches a "close" event if the OK button is activated and the color has not c
 							swatch.color = myColor;
 							swatchText.text = greys[index].toUpperCase();
 							zim.centerReg(swatchText);
-							if (that.getStage()) that.getStage().update();
 						} else {
 							doChange();
 						}
 					}
 				}
 				if (indicator) positionIndicator(colors.indexOf(myColor));
+				if (buttonBar) {
+					if (that.getStage()) that.getStage().update();
+				} else if (indicator) {
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				}
 			});
 
 			Object.defineProperty(this, 'selectedColor', {
@@ -10998,7 +11049,7 @@ damp - allows you to dynamically change the damping
 
 
 /*--
-zim.Scroller = function(backing, speed, direction, horizontal)
+zim.Scroller = function(backing, speed, direction, horizontal, gapFix)
 
 Scroller
 zim class
@@ -11096,7 +11147,6 @@ direction - either left or right if horizontal or up or down if not horizontal
 				} else {
 					b2.x = b1.x - w;
 				}
-				zog(that.direction, that.speed);
 				if (that.direction * that.speed > 0) {
 					if (b2.x < 0 && b1.x < b2.x) {
 						b1.x = b2.x + w;
