@@ -601,6 +601,37 @@ RETURNS a Boolean
 		return true;
 	}//-11
 
+	/*--
+	zim.isEmpty = function(obj)
+
+	isEmpty
+	zim function
+
+	DESCRIPTION
+	returns whether an object literal is empty
+
+	EXAMPLE
+	var o = {};
+	zog( zim.isEmpty(o) ); // true
+	o.test = 9;
+	zog( zim.isEmpty(o) ); // false
+	END EXAMPLE
+
+	PARAMETERS
+	obj - the object literal to test
+
+	RETURNS a Boolean
+	--*///+11.5
+		zim.isEmpty = function(obj) {
+			z_d("11.5");
+			if (zot(obj)) return;
+			var count = 0;
+			for (var o in obj) {
+				count++; break;
+			}
+			return (count == 0);
+		}//-11.5
+
 /*--
 zim.merge = function(objects)
 
@@ -2623,7 +2654,6 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props)
 
 move
 zim function - and Display object method under ZIM 4TH
@@ -2658,6 +2688,8 @@ wait - (default 0) milliseconds to wait before doing animation
 loop - (default false) set to true to loop animation
 loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
 loopWait - (default 0) milliseconds to wait before looping (post animation wait)
+loopCall - (default null) calls function after loop is done (including last loop)
+loopParams - (default target) parameters to send loop function
 rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
 rewindWait (default 0) milliseconds to wait in the middle of the rewind
 rewindCall (default null) calls function at middle of rewind animation
@@ -2670,26 +2702,32 @@ sequenceCall - (default null) the function that will be called when the sequence
 sequenceParams - (default null) a parameter sent to the sequenceCall function
 sequenceCall - (default null) the function that will be called when the sequence ends
 props - (default {override: true}) legacy - allows you to pass in TweenJS props
+protect - (default false) protects animation from being interrupted before finishing
+ 	unless manually interrupted with stopZimMove()
+	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
+override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
+	set to false to allow multiple tweens of same object
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
+NOTE: call is now triggered once after all loops and rewinds are done
 NOTE: the ticker and fps parameters have been removed - see zim.Ticker
 
-to pause the move call pauseZimMove(true) on the target (or false to unpause) (not available for CSS)
+to pause the move call pauseZimMove(true) on the target (or false to unpause)
 to stop the move call stopZimMove() on the target
 to access the CreateJS Tween object use target.zimTween
 to access the zim.Ticker function use target.zimTicker
 
 RETURNS the target for chaining
 --*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props) {
-		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props";
+	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override) {
+		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		z_d("44");
-		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props);
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, null, protect, override);
 	}//-44
 
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css)
+zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override)
 
 animate
 zim function - and Display object method under ZIM 4TH
@@ -2751,6 +2789,8 @@ wait - (default 0) milliseconds to wait before doing animation
 loop - (default false) set to true to loop animation
 loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
 loopWait - (default 0) milliseconds to wait before looping (post animation wait)
+loopCall - (default null) calls function after loop is done (including last loop)
+loopParams - (default target) parameters to send loop function
 rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
 rewindWait (default 0) milliseconds to wait in the middle of the rewind
 rewindCall (default null) calls function at middle of rewind animation
@@ -2774,8 +2814,14 @@ css - (default false) set to true to animate CSS properties in HTML
 		zss("tagID").opacity = 1; // set this even if it is default
 		zim.animate(zid("tagID"), {opacity:0}, 2000); // etc.
 	</script>
+protect - (default false) protects animation from being interrupted before finishing
+ 	unless manually interrupted with stopZimAnimate()
+	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
+override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
+	set to false to allow multiple tweens of same object
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
+NOTE: call is now triggered once after all loops and rewinds are done
 NOTE: the ticker and fps parameters have been removed - see zim.Ticker
 
 to pause the animate call pauseZimAnimate(true) on the target (or false to unpause) (not available for CSS)
@@ -2785,8 +2831,8 @@ to access the zim.Ticker function use target.zimTicker
 
 RETURNS the target for chaining
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css) {
-		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css";
+	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override) {
+		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
@@ -2795,6 +2841,8 @@ RETURNS the target for chaining
 		if (!zot(loop)) newProps.loop = loop;
 		if (!zot(loopCount)) newProps.count = loopCount; // note prop is count
 		if (!zot(loopWait)) newProps.loopWait = loopWait;
+		if (!zot(loopCall)) newProps.loopCall = loopCall;
+		if (!zot(loopParams)) newProps.loopParams = loopParams;
 		if (!zot(rewind)) newProps.rewind = rewind;
 		if (!zot(rewindWait)) newProps.rewindWait = rewindWait;
 		if (!zot(rewindCall)) newProps.rewindCall = rewindCall;
@@ -2842,25 +2890,22 @@ RETURNS the target for chaining
 		if (zot(params)) params = target;
 		if (zot(ticker)) ticker = true;
 		if (zot(css)) css = false;
+		if (zot(protect)) protect = false;
+		if (!zot(override)) props.override = override;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
 		}
 		var tween;
-		// if a loop or rewind is currently running for any of these properties
+
+		// if protected or a loop or rewind is currently running for any of these properties
 		// then remove the property from obj as it is currently busy
 		for(var o in obj) {
 			if (!target.zimBusy) break;
 			if (target.zimBusy[o]) delete obj[o];
 		}
-		if (props.loop) {
-			addZimBusy(); // if it is a loop then set properties to busy
-			if (!zot(props.count)) {
-				var count = props.count;
-				delete props.count;
-				var currentCount = 1;
-			}
-		}
+		if (zim.isEmpty(obj)) return; // nothing left to animate
+
 		// the function to set obj properties busy for this target
 		// when the function is run, we record that we set the properties
 		// so that when the animation ends we know we have to set them not busy
@@ -2872,13 +2917,33 @@ RETURNS the target for chaining
 				target.zimBusy[o] = true;
 			}
 		}
+		if (protect || props.loop || props.rewind) addZimBusy();
+
+		// loop and rewind:
+		if (props.loop) {
+			if (!zot(props.count)) {
+				var count = props.count;
+				delete props.count;
+				var currentCount = 1;
+			}
+		}
 		var wait3 = 0;
 		if (props.loopWait) {
 			wait3 = props.loopWait;
 			delete props.loopWait;
 		}
+		var call3;
+		if (props.loopCall) {
+			call3 = props.loopCall;
+			delete props.loopCall;
+		}
+		var params3 = target;
+		if (props.loopParams) {
+			params3 = props.loopParams;
+			delete props.loopParams;
+		}
+
 		if (props.rewind) {
-			addZimBusy(); // if it is a rewind then set properties to busy
 			// flip second ease
 			if (ease) {
 				// backIn backOut backInOut
@@ -2934,7 +2999,6 @@ RETURNS the target for chaining
 				.call(doneAnimating)
 				.wait(wait3);
 		}
-
 		if (!css && ticker) var zimTicker = target.zimTicker = zim.Ticker.add(function(){
 			// mask graphics needs to have same position, scale, skew, rotation and reg as object
 			if (target.zimMask) {
@@ -2945,7 +3009,7 @@ RETURNS the target for chaining
 		}, target.getStage());
 
 		function doneAnimating() {
-			if (call && typeof call == 'function') {(call)(params);}
+				if (call3 && typeof call3 == 'function') {(call3)(params3);}
 			if (props.loop) {
 				if (count > 0) {
 					if (currentCount < count) {
@@ -2956,13 +3020,18 @@ RETURNS the target for chaining
 					return;
 				}
 			}
+			if (call && typeof call == 'function') {(call)(params);}
 			// if we have set the properties as busy then remove them from busy
 			if (zimBusyCheck) {
 				for (var o in obj) {
 					delete target.zimBusy[o];
 				}
+				if (zim.isEmpty(target.zimBusy)) target.zimBusy = null;
 			}
 			tween.setPaused(true);
+			target.zimTween = null;
+			target.pauseZimAnimate = target.pauseZimMove = null;
+			target.stopZimAnimate = target.stopZimMove = null;
 			if (!css && ticker) setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
 		}
 		function doRewindCall() {
@@ -2985,6 +3054,138 @@ RETURNS the target for chaining
         }
 		return target;
 	}//-45
+
+/*--
+zim.loop = function(obj, call)
+
+loop
+zim function - and Display object method under ZIM 4TH (for number 4 below)
+
+DESCRIPTION
+1. If you pass in a Number for obj then loop() does function call that many times
+and passes function call the index and the length.
+The index starts at 0 and counts up to one less than the number.
+So this is like: for (var i=0; i<obj; i++) {}
+
+2. If you pass in an Array then loop() loops through the array
+and passes the function call the element in the array, the index, the length, and the array.
+So this is like: for (var i=0; i<obj; i++) {element = array[i]}
+
+3. If you pass in an Object literal then loop() loops through the object
+and passes the function call the property name, value, index, length, and object
+So this is like: for (var i in obj) {property = i; value = obj[i];}
+
+4. If you pass in a container for obj then loop() loops through all the children of the container
+and does the function for each one passing the child, the index, the numChildren and the object
+So this is like for(i=0; i<obj; i++) {var child = obj.getChildAt(i);} loop
+or for (var i in container.children) {var child = container.children[i];}
+
+If you pass in true for reverse, the loop is run backwards counting to 0
+
+EXAMPLE
+var container = new zim.Container();
+zim.loop(1000, function(i) { // gets passed an index i when obj is a Number
+	// make 1000 rectangles
+	container.addChild(new zim.Rectangle());
+});
+stage.addChild(container);
+
+// here we loop through children of the container
+zim.loop(container, function(child, i) { // gets passed the child and the index when obj is container
+	child.x += i*2;
+	child.y += i*2;
+});
+
+// to continue or break from loop have the function return the string "continue" or "break"
+zim.loop(10, function(i) {
+	if (i%2==0) return "continue"; // skip even
+	if (i>6) return "break"; // quit loop when > 6
+	zog(i);
+});
+
+var colors = [frame.green, frame.yellow, frame.pink];
+zim.loop(colors, function(color, index, length, array) { // do not have to collect all these
+	zog(color); // each color
+});
+
+var person = {name:"Dan Zen", occupation:"Inventor", location:"Dundas"}
+zim.loop(person, function(prop, val, index, length, object) { // do not have to collect all these
+	zog(prop, val); // each key value pair
+});
+END EXAMPLE
+
+PARAMETERS
+obj - a Number of times to loop or a Container with children to loop through
+call - the function to call
+	receives an index (when obj is a Number) and a total (Number)
+	receives a child and an index (when obj is a Container) and a total (container.numChildren)
+reverse - (default false) set to true to run the loop backwards to 0
+
+RETURNS obj for reference or for chaining
+--*///+45.3
+	zim.loop = function(obj, call, reverse) {
+		z_d("45.3");
+		if (zot(obj) || zot(call)) return;
+		if (zot(reverse)) reverse = false;
+
+		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":"container"));
+
+		if (type == "number" || type == "array") {
+			var length = type=="number"?obj:obj.length;
+			if (reverse) {
+				for(var i=length-1; i>=0; i--) {
+					if (type=="number") {
+						var r = call(i, length);
+					} else { // array
+						var r = call(obj[i], i, length, obj);
+					}
+					if (r) {if (r=="break") break; else if (r=="continue") continue;}
+				}
+			} else {
+				for(var i=0; i<length; i++) {
+					if (type=="number") {
+						var r = call(i, length);
+					} else { // array
+						var r = call(obj[i], i, length, obj);
+					}
+					if (r) {if (r=="break") break; else if (r=="continue") continue;}
+				}
+			}
+		} else if (type == "object") {
+			var length = 0;
+			var props = [];
+			for (var i in obj) {
+				length++;
+				props.push(i);
+			}
+			if (reverse) {
+				for(var i=length-1; i>=0; i--) {
+					var r = call(props[i], obj[props[i]], i, length, obj);
+					if (r) {if (r=="break") break; else if (r=="continue") continue;}
+				}
+			} else {
+				var index = 0;
+				for(var i in obj) {
+					var r = call(i, obj[i], index, length, obj);
+					index++;
+					if (r) {if (r=="break") break; else if (r=="continue") continue;}
+				}
+			}
+		} else {
+			if (reverse) {
+				for(var i=obj.numChildren-1; i>=0; i--) {
+					var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
+					if (r) {if (r=="break") break; else if (r=="continue") continue;}
+				}
+			} else {
+				for(var i=0; i<obj.numChildren; i++) {
+					var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
+					if (r) {if (r=="break") break; else if (r=="continue") continue;}
+				}
+			}
+		}
+		return obj;
+	}//-45.3
 
 /*--
 zim.copyMatrix = function(obj, source)
@@ -3762,13 +3963,16 @@ RETURNS the object for chaining
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		move:function(x, y, time, ease, call, params, wait, props, fps, sequence) {
+		move:function(x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
-			else {return zim.move(this, x, y, time, ease, call, params, wait, props, fps, sequence);}
+			else {return zim.move(this, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override);}
 		},
-		animate:function(obj, time, ease, call, params, wait, props, fps, sequence) {
+		animate:function(obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, obj, time, ease, call, params, wait, props, fps, sequence);}
+			else {return zim.animate(this, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override);}
+		},
+		loop:function(call, reverse) {
+			return zim.loop(this, call, reverse);
 		},
 		copyMatrix:function(source) {
 			return zim.copyMatrix(this, source);
@@ -3938,8 +4142,6 @@ hitTestCircle(b, num)
 hitTestBounds(b, boundsShape)
 boundsToGlobal(rect, flip)
 hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
-move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props)
-animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props)
 scale(scale)
 scaleTo(boundObj, percentX, percentY, type)
 fit(left, top, width, height, inside)
@@ -4557,6 +4759,8 @@ PROPERTIES
 shape - gives access to the triangle shape
 color - get and set the fill color
 width, height - read only - calculated from getBounds()
+one, two, three - read only - points with x, y properties for bottom left, bottom right, top right
+angles - read only - Array of angles [bottom left, bottom right, top right]
 mouseChildren - set to false so  you do not drag the shape inside the triangle
 if you nest things inside and want to drag them, will want to set to true
 --*///+53
@@ -4583,6 +4787,7 @@ if you nest things inside and want to drag them, will want to set to true
 			aa = lines[0];
 			bb = lines[1];
 			cc = lines[2];
+			var order = [lines.indexOf(a), lines.indexOf(b), lines.indexOf(c)];
 
 			if (aa > bb+cc) {
 				zog("zim build - Triangle(): invalid triangle lengths");
@@ -4614,15 +4819,13 @@ if you nest things inside and want to drag them, will want to set to true
 			// find last angle
 			var angle3 = 180 - angle1 - angle2;
 
-			// the next line is b the angle will be relative to the length of c
-			// if c is the longest, then the angle is angle1
-			// if c is the second longest, then the angle is angle2, etc.
+			// get position of angles by mapping to opposite side sizes
+			// as in smallest angle is across from smallest side
+			// largest angle is across from largest size, etc.
+			var temp = [angle1, angle2, angle3]; // largets to smallest
+			this.angles = [temp[order[1]], temp[order[2]], temp[order[0]]];
 
-			var nextAngle;
-			if (c == aa) {nextAngle = angle1}
-			else if (c == bb) {nextAngle = angle2}
-			else {nextAngle = angle3}
-
+			var nextAngle = this.angles[1];
 			var backX = Math.cos(nextAngle * Math.PI / 180) * b;
 			var upY = Math.sin(nextAngle * Math.PI / 180) * b;
 
@@ -4885,7 +5088,7 @@ dispatches no events
 	}//-54
 
 /*--
-zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist)
+zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent)
 
 Button
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4941,8 +5144,18 @@ backing - (default null) a Display object for the backing of the button (eg. Sha
 	see ZIM Pizzazz module for a fun set of Button Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 rollBacking - (default null) a Display object for the backing of the rolled-on button
 rollPersist - (default false) set to true to keep rollover state when button is pressed even if rolling off
+icon - (default false) set to display object to add icon at the center of the button and remove label
+rollIcon - (default false) set to display object to show icon on rollover
+toggle - (default null) set to string to toggle with label or display object to toggle with icon
+rollToggle - (default null) set to display object to toggle with rollIcon
+	there is no rollToggle for a label - that is handled by rollColor on the label
+toggleEvent - (default mousedown for mobile and click for not mobile) what event causes the toggle
 
 METHODS
+setIcons(newIcon, newRollIcon) - dynamically set icon and rollIcon on button (both default to null and if empty, removes icons)
+toggle(state) - forces a toggle
+	state defaults to null so just toggles
+	pass in true to go to the toggled state and false to go to the original state
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
@@ -4955,22 +5168,29 @@ PROPERTIES
 width, height - read only - calculated from getBounds()
 text - references the text property of the Label object of the button
 label - gives access to the label
-backing - references the backing (zim.Rectangle) of the button
+backing - references the backing of the button
+rollBacking - references the rollBacking (if set)
+icon - references the icon of the button (if set)
+rollIcon - references the rollIcon (if set)
+toggleObj - references the toggle object (string or display object if set)
+rollToggle - references the rollToggle (if set)
+toggled - true if button is in toggled state, false if button is in original state
 enabled - default is true - set to false to disable
 rollPersist - default is false - set to true to keep rollover state when button is pressed even if rolling off
-color - get or set non-rolled on backing color
+color - get or set non-rolled on backing color (if no backing specified)
 rollColor - get or set rolled on backing color
 
 OPTIMIZED
 This component is affected by the general zim.OPTIMIZE setting (default is false)
 if set to true, you will have to stage.update() after setting certain properties
+for example seeing toggle take effect
 
 EVENTS
 dispatches no events - you make your own click event (or mousedown for mobile)
 --*///+55
-	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist) {
+	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent) {
 
-		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist";
+		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent";
 		var duo; if (duo = zob(zim.Button, arguments, sig)) return duo;
 		z_d("55");
 		function makeButton() {
@@ -4988,7 +5208,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			if (zot(gradient)) gradient = 0;
 			if (zot(gloss)) gloss = 0;
 			if (zot(flatBottom)) flatBottom = false;
-			if (zot(label)) label = "PRESS";
+			if (zot(label)) {if (zot(icon)) {label = "PRESS";} else {label = "";}}
+			if (!zot(toggle) && zot(toggleEvent)) toggleEvent = zim.mobile()?"mousedown":"click";
 			// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
 			if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white", null, null, null, "center", "middle");
 			if (zot(rollPersist)) rollPersist = false;
@@ -5008,10 +5229,24 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				if (!zot(rollBacking)) {
 					rollBacking.x =  width / 2;
 					rollBacking.y = height / 2;
+					this.rollBacking = rollBacking;
 				}
 			}
 			this.addChild(buttonBacking);
 			this.backing = buttonBacking;
+
+			if (!zot(icon)) {
+				this.addChild(icon);
+				icon.x = width/2;
+				icon.y = height/2;
+				this.icon = icon;
+			}
+			if (!zot(rollIcon)) {
+				this.rollIcon = rollIcon;
+				rollIcon.x = width/2;
+				rollIcon.y = height/2;
+			}
+
 			var corner2 = (flatBottom) ? 0 : corner;
 
 			if (gradient > 0) { // add an overlay
@@ -5043,6 +5278,7 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 			this.setBounds(0,0,width,height);
 			this.addChild(label);
 			label.center(this);
+			label.y+=2;
 			this.label = label;
 
 			var pressCheck = false;
@@ -5062,6 +5298,15 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				} else if (!zot(rollBacking)) {
 					that.removeChild(backing);
 					that.addChildAt(rollBacking, 0);
+				}
+				if (!zot(rollIcon)) {
+					if (that.toggled) {
+						that.removeChild(toggle);
+						that.addChild(rollToggle);
+					} else {
+						that.removeChild(icon);
+						that.addChild(rollIcon);
+					}
 				}
 				that.label.showRollColor();
 				if (that.getStage()) that.getStage().update();
@@ -5083,8 +5328,38 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 					that.removeChild(rollBacking);
 					that.addChildAt(backing, 0);
 				}
+				if (!zot(rollIcon)) {
+					if (that.toggled) {
+						that.removeChild(rollToggle);
+						that.addChild(toggle);
+					} else {
+						that.removeChild(rollIcon);
+						that.addChild(icon);
+					}
+				}
 				that.label.showRollColor(false);
 				if (that.getStage()) that.getStage().update();
+			}
+
+			this.toggled = false;
+			this.toggleObj = toggle;
+			this.rollToggle = rollToggle;
+			var toggleFunction;
+			var originalText = label.text;
+			if (!zot(toggle)) {
+				toggleFunction = this.on(toggleEvent, function() {
+					that.toggled = !that.toggled;
+					setToggled(that.toggled);
+				});
+			}
+
+			function setToggled(state) {
+				if (typeof toggle == "string") { // change label text
+					that.text = that.toggled?toggle:originalText;
+					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				} else { // change icons
+					that.setIcons(that.toggled?toggle:icon,	that.toggled?rollToggle:rollIcon);
+				}
 			}
 
 			Object.defineProperty(that, 'text', {
@@ -5094,8 +5369,8 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				},
 				set: function(value) {
 					label.text = value;
-					label.x = (width - label.width)/2 - label.getBounds().x;
-					label.y = (height - label.height)/2 + 2 - label.getBounds().y;
+					label.center(this);
+					label.y+=2;
 				}
 			});
 
@@ -5136,18 +5411,54 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				}
 			});
 
+			this.setIcons = function(newIcon, newRollIcon) {
+				if (that.contains(that.icon)) {
+					that.removeChild(that.icon);
+					that.addChild(newIcon);
+				} else if (that.contains(that.rollIcon)) {
+					that.removeChild(that.rollIcon);
+					that.addChild(newRollIcon);
+				}
+				that.icon = newIcon;
+				that.rollIcon = newRollIcon;
+				if (that.icon) {
+					that.icon.x = width/2;
+					that.icon.y = height/2;
+				}
+				if (that.rollIcon) {
+					that.rollIcon.x = width/2;
+					that.rollIcon.y = height/2;
+				}
+				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			}
+
+			this.toggle = function(state) {
+				if (zot(state)) {
+					that.toggled = !that.toggled;
+				} else {
+					that.toggled = state;
+				}
+				setToggled(that.toggled);
+			}
+
 			this.clone = function() {
-				return that.cloneProps(new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, (!zot(backing))?backing.clone():null, (!zot(rollBacking))?rollBacking.clone():null, rollPersist));
+				return that.cloneProps(
+					new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom,
+					(!zot(backing))?backing.clone():null, (!zot(rollBacking))?rollBacking.clone():null, rollPersist,
+					(!zot(icon))?icon.clone():null), (!zot(rollIcon))?rollIcon.clone():null, (!zot(toggle))?(typeof toggle == "string"?toggle:toggle.clone()):null, (!zot(rollToggle))?rollToggle.clone():null, toggleEvent
+				);
 			}
 
 			this.dispose = function() {
 				that.removeAllEventListeners();
 				that.removeChild(buttonBacking);
 				that.removeChild(rollBacking);
+				that.removeChild(icon);
 				that.removeChild(that.label);
 				that.label.dispose();
 				buttonBacking = null;
 				rollBacking = null;
+				icon = null;
 				that.label = null;
 				return true;
 			}
@@ -7554,8 +7865,13 @@ dispatches a "change" event when dial changes value (but not when setting curren
 					return myValue;
 				},
 				set: function(value) {
-					if (value < min) value = min;
-					if (value > max) value = max;
+					if (min < max) {
+						if (value < min) value = min;
+						if (value > max) value = max;
+					} else {
+						if (value > min) value = min;
+						if (value < max) value = max;
+					}
 					myValue = value;
 					value = snap(value);
 					if (step != 0) {
@@ -11559,6 +11875,20 @@ EVENTS
 				},
 				set: function(h) {
 					zog("zim.Frame(): height is read only - see remakeCanvas(), perhaps");
+				}
+			});
+
+			Object.defineProperty(this, 'color', {
+				get: function() {
+					return color;
+				},
+				set: function(value) {
+					color = value;
+					if (!zot(value)) {
+						canvas.style.backgroundColor = color;
+					} else {
+						canvas.style.backgroundColor = "default";
+					}
 				}
 			});
 
