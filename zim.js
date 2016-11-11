@@ -601,36 +601,36 @@ RETURNS a Boolean
 		return true;
 	}//-11
 
-	/*--
-	zim.isEmpty = function(obj)
+/*--
+zim.isEmpty = function(obj)
 
-	isEmpty
-	zim function
+isEmpty
+zim function
 
-	DESCRIPTION
-	returns whether an object literal is empty
+DESCRIPTION
+returns whether an object literal is empty
 
-	EXAMPLE
-	var o = {};
-	zog( zim.isEmpty(o) ); // true
-	o.test = 9;
-	zog( zim.isEmpty(o) ); // false
-	END EXAMPLE
+EXAMPLE
+var o = {};
+zog( zim.isEmpty(o) ); // true
+o.test = 9;
+zog( zim.isEmpty(o) ); // false
+END EXAMPLE
 
-	PARAMETERS
-	obj - the object literal to test
+PARAMETERS
+obj - the object literal to test
 
-	RETURNS a Boolean
-	--*///+11.5
-		zim.isEmpty = function(obj) {
-			z_d("11.5");
-			if (zot(obj)) return;
-			var count = 0;
-			for (var o in obj) {
-				count++; break;
-			}
-			return (count == 0);
-		}//-11.5
+RETURNS a Boolean
+--*///+11.5
+	zim.isEmpty = function(obj) {
+		z_d("11.5");
+		if (zot(obj)) return;
+		var count = 0;
+		for (var o in obj) {
+			count++; break;
+		}
+		return (count == 0);
+	}//-11.5
 
 /*--
 zim.merge = function(objects)
@@ -2654,6 +2654,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
+zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override)
 
 move
 zim function - and Display object method under ZIM 4TH
@@ -3009,8 +3010,8 @@ RETURNS the target for chaining
 		}, target.getStage());
 
 		function doneAnimating() {
-				if (call3 && typeof call3 == 'function') {(call3)(params3);}
 			if (props.loop) {
+				if (call3 && typeof call3 == 'function') {(call3)(params3);}
 				if (count > 0) {
 					if (currentCount < count) {
 						currentCount++;
@@ -4142,6 +4143,10 @@ hitTestCircle(b, num)
 hitTestBounds(b, boundsShape)
 boundsToGlobal(rect, flip)
 hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override)
+animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override)
+loop(call, reverse)
+copyMatrix(source)
 scale(scale)
 scaleTo(boundObj, percentX, percentY, type)
 fit(left, top, width, height, inside)
@@ -5002,9 +5007,9 @@ dispatches no events
 			setSize();
 
 			if (zot(backing)) {
-				backing = this.backing = new createjs.Shape();
-				backing.graphics.f("black").r(obj.getBounds().x, obj.getBounds().y, obj.getBounds().width, obj.getBounds().height);
-				this.hitArea = backing;
+				var hitArea = new createjs.Shape();
+				hitArea.graphics.f("black").r(obj.getBounds().x, obj.getBounds().y, obj.getBounds().width, obj.getBounds().height);
+				this.hitArea = hitArea;
 			} else {
 				this.backing = backing;
 			 	zim.center(backing, this, true, 0);
@@ -5146,14 +5151,15 @@ rollBacking - (default null) a Display object for the backing of the rolled-on b
 rollPersist - (default false) set to true to keep rollover state when button is pressed even if rolling off
 icon - (default false) set to display object to add icon at the center of the button and remove label
 rollIcon - (default false) set to display object to show icon on rollover
-toggle - (default null) set to string to toggle with label or display object to toggle with icon
-rollToggle - (default null) set to display object to toggle with rollIcon
+toggle - (default null) set to string to toggle with label or display object to toggle with icon or if no icon, the backing
+rollToggle - (default null) set to display object to toggle with rollIcon or rollBacking if no icon
 	there is no rollToggle for a label - that is handled by rollColor on the label
 toggleEvent - (default mousedown for mobile and click for not mobile) what event causes the toggle
 
 METHODS
+setBackings(newBacking, newRollBacking) - dynamically set backing and rollBacking on button (both default to null and if empty, removes backings)
 setIcons(newIcon, newRollIcon) - dynamically set icon and rollIcon on button (both default to null and if empty, removes icons)
-toggle(state) - forces a toggle
+toggle(state) - forces a toggle of label if toggle param is string, else toggles icon if icon is set or otherwise toggles backing
 	state defaults to null so just toggles
 	pass in true to go to the toggled state and false to go to the original state
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -5296,8 +5302,18 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				if (zot(backing)) {
 					buttonBacking.color = rollColor;
 				} else if (!zot(rollBacking)) {
-					that.removeChild(backing);
-					that.addChildAt(rollBacking, 0);
+					if (zot(icon)) {
+						if (that.toggled) {
+							that.removeChild(toggle);
+							that.addChildAt(rollToggle, 0);
+						} else {
+							that.removeChild(backing);
+							that.addChildAt(rollBacking, 0);
+						}
+					} else {
+						that.removeChild(backing);
+						that.addChildAt(rollBacking, 0);
+					}
 				}
 				if (!zot(rollIcon)) {
 					if (that.toggled) {
@@ -5325,8 +5341,18 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				if (zot(backing)) {
 					buttonBacking.color = color;
 				} else if (!zot(rollBacking)) {
-					that.removeChild(rollBacking);
-					that.addChildAt(backing, 0);
+					if (zot(icon)) {
+						if (that.toggled) {
+							that.removeChild(rollToggle);
+							that.addChildAt(toggle, 0);
+						} else {
+							that.removeChild(rollBacking);
+							that.addChildAt(backing, 0);
+						}
+					} else {
+						that.removeChild(rollBacking);
+						that.addChildAt(backing, 0);
+					}
 				}
 				if (!zot(rollIcon)) {
 					if (that.toggled) {
@@ -5353,12 +5379,14 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				});
 			}
 
-			function setToggled(state) {
+			function setToggled() {
 				if (typeof toggle == "string") { // change label text
 					that.text = that.toggled?toggle:originalText;
 					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
-				} else { // change icons
-					that.setIcons(that.toggled?toggle:icon,	that.toggled?rollToggle:rollIcon);
+				} else if (!zot(icon)) { // change icons
+					that.setIcons(that.toggled?toggle:icon, that.toggled?rollToggle:rollIcon);
+				} else { // change backings
+					that.setBackings(that.toggled?toggle:backing, that.toggled?rollToggle:rollBacking);
 				}
 			}
 
@@ -5411,23 +5439,33 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				}
 			});
 
+			// setBackings does not swap newBacking for newRollBacking but rather
+			// the old backing and rollBacking for these new ones - same with setIcons below
+			// used internally by toggle but can also be used to dynamically change backings and icons
+			// or if parameters left blank to remove backings and icons
+			this.setBackings = function(newBacking, newRollBacking) {
+				swapObjects("backing", "rollBacking", newBacking, newRollBacking, 0);
+			}
 			this.setIcons = function(newIcon, newRollIcon) {
-				if (that.contains(that.icon)) {
-					that.removeChild(that.icon);
-					that.addChild(newIcon);
-				} else if (that.contains(that.rollIcon)) {
-					that.removeChild(that.rollIcon);
-					that.addChild(newRollIcon);
+				swapObjects("icon", "rollIcon", newIcon, newRollIcon, that.numChildren-1);
+			}
+			function swapObjects(objName, objRollName, obj, roll, index) {
+				if (that.contains(that[objName])) {
+					that.removeChild(that[objName]);
+					that.addChildAt(obj, index);
+				} else if (that.contains(that[objRollName])) {
+					that.removeChild(that[objRollName]);
+					that.addChildAt(roll, index);
 				}
-				that.icon = newIcon;
-				that.rollIcon = newRollIcon;
-				if (that.icon) {
-					that.icon.x = width/2;
-					that.icon.y = height/2;
+				that[objName] = obj; // be careful - this is assignment
+				that[objRollName] = roll;
+				if (that[objName]) {
+					that[objName].x = width/2;
+					that[objName].y = height/2;
 				}
-				if (that.rollIcon) {
-					that.rollIcon.x = width/2;
-					that.rollIcon.y = height/2;
+				if (that[objRollName]) {
+					that[objRollName].x = width/2;
+					that[objRollName].y = height/2;
 				}
 				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
 			}
@@ -5438,15 +5476,21 @@ dispatches no events - you make your own click event (or mousedown for mobile)
 				} else {
 					that.toggled = state;
 				}
-				setToggled(that.toggled);
+				setToggled();
 			}
 
 			this.clone = function() {
-				return that.cloneProps(
-					new zim.Button(width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom,
-					(!zot(backing))?backing.clone():null, (!zot(rollBacking))?rollBacking.clone():null, rollPersist,
-					(!zot(icon))?icon.clone():null), (!zot(rollIcon))?rollIcon.clone():null, (!zot(toggle))?(typeof toggle == "string"?toggle:toggle.clone()):null, (!zot(rollToggle))?rollToggle.clone():null, toggleEvent
+				var but = new zim.Button(
+					width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom,
+					!zot(backing)?backing.clone():null,
+					!zot(rollBacking)?rollBacking.clone():null,
+					rollPersist,
+					!zot(icon)?icon.clone():null, !zot(rollIcon)?rollIcon.clone():null,
+					!zot(toggle)?(typeof toggle == "string"?toggle:toggle.clone()):null,
+					!zot(rollToggle)?rollToggle.clone():null,
+					toggleEvent
 				);
+				return that.cloneProps(but);
 			}
 
 			this.dispose = function() {
