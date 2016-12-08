@@ -598,21 +598,22 @@ if (result == "criminal") alert("oh no!");
 END EXAMPLE
 
 PARAMETERS
-obj - a Number of times to loop or a Container with children to loop through
+obj - a Number of times to loop or an Array or Object to loop through
 call - the function to call
 	receives an index and obj when obj is a Number
-	receives the element, the index, the length and the array when obj is an array
-	receives the property name, the property value, the index, the length and the obj when obj is an object literal
+	receives an element, the index, the length and the array when obj is an array
+	receives a propery name, the property value, the index, the length and the object when obj is an object
 reverse - (default false) set to true to run the loop backwards to 0
 
 RETURNS any value returned from the loop - or undefined if no value is returned from a loop
 --*///+9.5
 	zim.loop = function(obj, call, reverse) {
-		z_d("45.3");
+		z_d("9.5");
 		if (zot(obj) || zot(call)) return undefined;
 		if (zot(reverse)) reverse = false;
 
 		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":"invalid"));
+
 		if (type == "invalid") {
 			return undefined;
 		}
@@ -2402,6 +2403,11 @@ RETURNS a Boolean true if hitting, false if not
 		if (!obj.stage) return false;
 		if (zot(obj) || !obj.globalToLocal) return;
 		var point = obj.globalToLocal(x,y);
+		var bounds = obj.getBounds();
+		if (bounds) { // faster to check if point is in bounds first
+			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return;
+			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return;
+		}
 		return obj.hitTest(point.x, point.y);
 	}//-35
 
@@ -2444,6 +2450,11 @@ RETURNS a Boolean true if hitting, false if not
 		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.localToLocal || !b.localToLocal) return;
 		var point = b.localToLocal(b.regX,b.regY,a);
+		var bounds = a.getBounds();
+		if (bounds) { // faster to check if point is in bounds first
+			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return;
+			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return;
+		}
 		return a.hitTest(point.x, point.y);
 	}//-36
 
@@ -2499,6 +2510,8 @@ RETURNS a Boolean true if hitting, false if not
 			zog("zim create - hitTestRect():\n please setBounds() on param b object");
 			return;
 		}
+		var bounds2 = a.getBounds();
+		if (bounds2 && !zim.hitTestBounds(a,b)) return; // bounds not hitting
 
 		var centerX = bounds.x+bounds.width/2;
 		var centerY = bounds.y+bounds.height/2;
@@ -2575,6 +2588,8 @@ RETURNS a Boolean true if hitting, false if not
 			zog("zim create - hitTestCircle():\n please setBounds() on param b object");
 			return;
 		}
+		var bounds2 = a.getBounds();
+		if (bounds2 && !zim.hitTestBounds(a,b)) return; // bounds not hitting
 
 		var centerX = bounds.x+bounds.width/2;
 		var centerY = bounds.y+bounds.height/2;
@@ -2601,8 +2616,6 @@ zim function - and Display object method under ZIM 4TH
 DESCRIPTION
 See if a.getBounds() is hitting b.getBounds().
 Pass in a boundsShape shape if you want a demonstration of where the bounds are.
-This is the second fastest of the hitTests as it is code based not shape based.
-The first fastest is hitTestGrid.
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
@@ -3230,13 +3243,28 @@ RETURNS the target for chaining
 	}//-45
 
 /*--
-zim.loopChildren = function(obj, call, reverse)
+zim.loop = function(obj, call, reverse)
 
-loopChildren
+loop
 zim function - and Display object method under ZIM 4TH
+NOTE: overrides earlier loop function with added container loop
+so that we can use earlier loop function without createjs
 
 DESCRIPTION
-pass in a container for obj and loopChildren() loops through all the children of the container
+1. If you pass in a Number for obj then loop() does function call that many times
+and passes function call the index and the length.
+The index starts at 0 and counts up to one less than the number.
+So this is like: for (var i=0; i<obj; i++) {}
+
+2. If you pass in an Array then loop() loops through the array
+and passes the function call the element in the array, the index, the length, and the array.
+So this is like: for (var i=0; i<obj; i++) {element = array[i]}
+
+3. If you pass in an Object literal then loop() loops through the object
+and passes the function call the property name, value, index, length, and object
+So this is like: for (var i in obj) {property = i; value = obj[i];}
+
+4. If you pass in a container for obj then loopChildren() loops through all the children of the container
 and does the function for each one passing the child, the index, the numChildren and the object.
 So this is like for(i=0; i<obj; i++) {var child = obj.getChildAt(i);} loop
 or for (var i in container.children) {var child = container.children[i];}
@@ -3247,6 +3275,32 @@ NOTE: return a value to return out of the loop completely like a break (and retu
 
 
 EXAMPLE
+var container = new zim.Container();
+zim.loop(1000, function(i) { // gets passed an index i and obj when obj is a Number
+	// make 1000 rectangles
+	container.addChild(new zim.Rectangle());
+});
+stage.addChild(container);
+
+// to continue or break from loop have the function return the string "continue" or "break"
+zim.loop(10, function(i) {
+	if (i%2==0) return; // skip even
+	if (i>6) return "break"; // quit loop when > 6
+	zog(i);
+});
+
+var colors = [frame.green, frame.yellow, frame.pink];
+zim.loop(colors, function(color, index, length, array) { // do not have to collect all these
+	zog(color); // each color
+});
+
+var person = {name:"Dan Zen", occupation:"Inventor", location:"Dundas"}
+var result = zim.loop(person, function(prop, val, index, length, object) { // do not have to collect all these
+	zog(prop, val); // each key value pair
+	if (val == "criminal") return "criminal"; // this would return out of the loop to the containing function
+});
+if (result == "criminal") alert("oh no!");
+
 // loop through children of the container
 zim.loop(container, function(child, i) { // gets passed the child, index, numChildren and obj
 	child.x += i*2;
@@ -3261,26 +3315,78 @@ container.loop(function(child, i) { // gets passed the child, index, numChildren
 END EXAMPLE
 
 PARAMETERS
-obj - a Container with children to loop through
-call - the function to call - receives a child, an index (when obj is a Container) and a total (container.numChildren)
+obj - a Number of times to loop or an Array or a Container with children to loop through
+call - the function to call
+	receives an index and obj when obj is a Number
+	receives an element, the index, the length and the array when obj is an array
+	receives a property name, the property value, the index, the length and the obj when obj is an object literal
+	receives a child, the index, the numChildren and the obj when the obj is a container
 reverse - (default false) set to true to run the loop backwards to 0
 
 RETURNS any value returned from the loop - or undefined if no value is returned from a loop
 --*///+45.3
 	zim.loop = function(obj, call, reverse) {
 		z_d("45.3");
-		if (zot(obj) || zot(call)) return;
+		if (zot(obj) || zot(call)) return undefined;
 		if (zot(reverse)) reverse = false;
 
-		if (reverse) {
-			for(var i=obj.numChildren-1; i>=0; i--) {
-				var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
-				if (typeof r != 'undefined') return r;
+		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":"container"));
+
+		if (type == "container" && !obj.addChild) {
+			return undefined;
+		}
+		if (type == "number" || type == "array") {
+			var length = type=="number"?obj:obj.length;
+			if (reverse) {
+				for(var i=length-1; i>=0; i--) {
+					if (type=="number") {
+						var r = call(i, length);
+					} else { // array
+						var r = call(obj[i], i, length, obj);
+					}
+					if (typeof r != 'undefined') return r;
+				}
+			} else {
+				for(var i=0; i<length; i++) {
+					if (type=="number") {
+						var r = call(i, length);
+					} else { // array
+						var r = call(obj[i], i, length, obj);
+					}
+					if (typeof r != 'undefined') return r;
+				}
+			}
+		} else if (type == "object") {
+			var length = 0;
+			var props = [];
+			for (var i in obj) {
+				length++;
+				props.push(i);
+			}
+			if (reverse) {
+				for(var i=length-1; i>=0; i--) {
+					var r = call(props[i], obj[props[i]], i, length, obj);
+					if (typeof r != 'undefined') return r;
+				}
+			} else {
+				var index = 0;
+				for(var i in obj) {
+					var r = call(i, obj[i], index, length, obj);
+					index++;
+					if (typeof r != 'undefined') return r;
+				}
 			}
 		} else {
-			for(var i=0; i<obj.numChildren; i++) {
-				var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
-				if (typeof r != 'undefined') return r;
+			if (reverse) {
+				for(var i=obj.numChildren-1; i>=0; i--) {
+					var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
+					if (typeof r != 'undefined') return r;
+				}
+			} else {
+				for(var i=0; i<obj.numChildren; i++) {
+					var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
+					if (typeof r != 'undefined') return r;
+				}
 			}
 		}
 	}//-45.3
@@ -5663,14 +5769,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var corner2 = (flatBottom) ? 0 : corner;
 
-		if (gradient > 0) { // add an overlay
+		if (gradient > 0 && zot(backing)) { // add an overlay
 			var gr = new createjs.Shape();
 			gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height-borderThickness);
 			gr.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, height-borderThickness, corner, corner, corner2, corner2);
 			buttonBacking.addChild(gr);
 		}
 
-		if (gloss > 0) { // add an overlay
+		if (gloss > 0 && zot(backing)) { // add an overlay
 			var gl = new createjs.Shape();
 			gl.graphics.f("rgba(255,255,255,"+gloss+")");
 			gl.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, (height-borderThickness)/2, corner, corner, 0, 0);
@@ -6722,6 +6828,8 @@ borderColor - (default #999) border color
 borderThickness - (default 1) set to 0 for no border
 padding - (default 10) places the content in from edges of border (see paddingHorizontal and paddingVertical)
 corner - (default 0) is the rounded corner of the window
+swipe - (default auto/true) the direction for swiping set to none / false for no swiping
+	also can set swipe to just vertical or horizontal
 indicatorActive - (default true) shows indicator (set to false to not)
 indicatorDrag - (default false) set to true to be able to drag the indicator
 indicatorColor - (default borderColor) the color of the indicator
@@ -7401,25 +7509,27 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		var lights = this.lightsContainer = new zim.Container();
 		this.addChild(lights);
-		var hitArea = new createjs.Shape();
-		hitArea.graphics.f("black").dr(-height/2,-height/2,height,height);
 		var light;
-		var size;
+		var size = height * .5;
 		var space = width / (num+1);
+		var hitArea = new createjs.Shape();
+		if (type == "square" || type == "box") {
+			hitArea.graphics.f("black").dr(-space/2/lightScale+size/2, -height/2+size/2, space/lightScale, height);
+		} else {
+			hitArea.graphics.f("black").dr(-space/2/lightScale, -height/2, space/lightScale, height);
+		}
 		for (var i=0; i<num; i++) {
 			if (type == "square" || type == "box") {
-				var size = height * .5;
 				light = new zim.Rectangle(size, size, offColor, borderColor);
 				light.regX = light.width/2;
 				light.regY = light.height/2;
 			} else {
-				var size = height * .5;
 				light = new zim.Circle(size/2, offColor, borderColor);
 			}
 			this.lights.push(light);
 			light.znum = i;
-			light.hitArea = hitArea;
 			light.scaleX = light.scaleY = lightScale;
+			light.hitArea = hitArea;
 			light.x = space + space * i;
 			light.y = height / 2;
 			lights.addChild(light);
@@ -7433,9 +7543,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (press) {
 			lights.cursor = "pointer";
 			var lightsEvent = lights.on(eventType, function(e) {
-				if (myValue != e.target.znum) that.dispatchEvent("change");
+				if (myValue == e.target.znum) return;
 				myValue = e.target.znum;
 				setLights(myValue);
+				that.dispatchEvent("change");
 			});
 		}
 		lights.scaleX = lights.scaleY = scale;
