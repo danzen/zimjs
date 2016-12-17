@@ -111,16 +111,17 @@ modal - (default false) set to true to force user to close window
 
 RETURNS null if opening in same window or reference to the window otherwise
 --*///+3
-function zgo(u,t,m) {
+function zgo(u,t,w,h,f,m) {
 	z_d("3");
 	if ((zot(t) && t != "") || t == "_self") {
 		window.location.href = u;
 	} else {
-		if (zot(m)) { // not modal
-			return window.open(u,t);
-		} else {
-			return window.open(u,t,"modal=yes,alwaysRaised=yes");
-		}
+		var added = "";
+		if (w) added += "width=" + w + ",";
+		if (h) added += "height=" + h + ",";
+		if (f) added += "fullscreen=yes,";
+		if (m) added += "modal=yes,alwaysRaised=yes";
+		return window.open(u,t,added);
 	}
 } //-3
 
@@ -545,26 +546,26 @@ RETURNS a Number
 	}//-9
 
 /*--
-zim.loop = function(obj, call, reverse)
+zim.loop = function(obj, call, reverse, step, start, end)
 
 loop
 zim function
 
 DESCRIPTION
 1. If you pass in a Number for obj then loop() does function call that many times
-and passes function call the index and the length.
-The index starts at 0 and counts up to one less than the number.
+and passes function call the currentIndex, the startIndex and endIndex.
+By default, the index starts at 0 and counts up to one less than the number.
 So this is like: for (var i=0; i<obj; i++) {}
 
 2. If you pass in an Array then loop() loops through the array
-and passes the function call the element in the array, the index, the length, and the array.
+and passes the function call the element in the array, currentIndex, startIndex, endIndex and the array.
 So this is like: for (var i=0; i<obj; i++) {element = array[i]}
 
 3. If you pass in an Object literal then loop() loops through the object
-and passes the function call the property name, value, index, length, and object
+and passes the function call the property name, value, currentIndex, startIndex, endIndex, and object
 So this is like: for (var i in obj) {property = i; value = obj[i];}
 
-NOTE: If you pass in true for reverse, the loop is run backwards counting to 0
+NOTE: If you pass in true for reverse, the loop is run backwards counting to 0 (by default)
 NOTE: use return to act like a continue in a loop and go to the next loop
 NOTE: return a value to return out of the loop completely like a break (and return a result if desired)
 
@@ -585,32 +586,39 @@ zim.loop(10, function(i) {
 });
 
 var colors = [frame.green, frame.yellow, frame.pink];
-zim.loop(colors, function(color, index, length, array) { // do not have to collect all these
+zim.loop(colors, function(color, index, start, end, array) { // do not have to collect all these
 	zog(color); // each color
 });
 
 var person = {name:"Dan Zen", occupation:"Inventor", location:"Dundas"}
-var result = zim.loop(person, function(prop, val, index, length, object) { // do not have to collect all these
+var result = zim.loop(person, function(prop, val, index, start, end, object) { // do not have to collect all these
 	zog(prop, val); // each key value pair
 	if (val == "criminal") return "criminal"; // this would return out of the loop to the containing function
 });
 if (result == "criminal") alert("oh no!");
 END EXAMPLE
 
-PARAMETERS
+PARAMETERS supports DUO - parameters or single object with properties below
 obj - a Number of times to loop or an Array or Object to loop through
 call - the function to call
 	receives an index and obj when obj is a Number
 	receives an element, the index, the length and the array when obj is an array
 	receives a propery name, the property value, the index, the length and the object when obj is an object
 reverse - (default false) set to true to run the loop backwards to 0
+step - (default 1) each step will increase by this amount (positive whole number - see reverse for negative)
+start - (default 0) index to start (or to end if reverse is true)
+end - (default length-1) index to end (or to start if reverse is true)
 
 RETURNS any value returned from the loop - or undefined if no value is returned from a loop
 --*///+9.5
-	zim.loop = function(obj, call, reverse) {
+	zim.loop = function(obj, call, reverse, step, start, end) {
+
+		var sig = "obj, call, reverse, step, start, end";
+		var duo; if (duo = zob(zim.loop, arguments, sig)) return duo;
 		z_d("9.5");
 		if (zot(obj) || zot(call)) return undefined;
 		if (zot(reverse)) reverse = false;
+		if (zot(step)) step = 1;
 
 		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":"invalid"));
 
@@ -619,21 +627,23 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 		}
 		if (type == "number" || type == "array") {
 			var length = type=="number"?obj:obj.length;
+			if (zot(start)) start = reverse?length-1:0;
+			if (zot(end)) end = reverse?0:length-1;
 			if (reverse) {
-				for(var i=length-1; i>=0; i--) {
+				for(var i=start; i>=end; i-=step) {
 					if (type=="number") {
-						var r = call(i, length);
+						var r = call(i, start, end);
 					} else { // array
-						var r = call(obj[i], i, length, obj);
+						var r = call(obj[i], i, start, end, obj);
 					}
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				for(var i=0; i<length; i++) {
+				for(var i=start; i<=end; i+=step) {
 					if (type=="number") {
 						var r = call(i, length);
 					} else { // array
-						var r = call(obj[i], i, length, obj);
+						var r = call(obj[i], i, start, end, obj);
 					}
 					if (typeof r != 'undefined') return r;
 				}
@@ -645,16 +655,16 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 				length++;
 				props.push(i);
 			}
+			if (zot(start)) start = reverse?length-1:0;
+			if (zot(end)) end = reverse?0:length-1;
 			if (reverse) {
-				for(var i=length-1; i>=0; i--) {
-					var r = call(props[i], obj[props[i]], i, length, obj);
+				for(var i=start; i>=end; i-=step) {
+					var r = call(props[i], obj[props[i]], i, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				var index = 0;
-				for(var i in obj) {
-					var r = call(i, obj[i], index, length, obj);
-					index++;
+				for(var i=start; i<=end; i+=step) {
+					var r = call(props[i], obj[props[i]], i, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			}
@@ -819,7 +829,7 @@ RETURNS a new Object
 	}//-12
 
 /*--
-zim.decimals = function(num, places)
+zim.decimals = function(num, places, addZeros)
 
 decimals
 zim function
@@ -839,14 +849,23 @@ END EXAMPLE
 PARAMETERS
 num - the Number to operate on
 places - (default 1) how many decimals to include (negative for left of decimal place)
+addZeros - (default false) set to true to add zeros to number of decimal places (and return String)
 
-RETURNS a rounded Number
+RETURNS a rounded Number or a String if addZeros is true
 --*///+13
-	zim.decimals = function(num, places) {
+	zim.decimals = function(num, places, addZeros) {
 		z_d("13");
 		if (zot(num) || num==0) return 0;
 		if (zot(places)) places = 1;
-		return Math.round(num*Math.pow(10, places))/Math.pow(10, places);
+		if (zot(addZeros)) addZeros = false;
+		var answer = Math.round(num*Math.pow(10, places))/Math.pow(10, places);
+		if (addZeros && places > 0 && answer != 0) {
+			var place = String(answer).indexOf(".");
+			var length = String(answer).length;
+			if (place < 0) {place = length++; answer+=".";}
+			for (var i=0; i<places-(length-place-1); i++) {answer += "0";}
+		}
+		return answer;
 	}//-13
 
 /*--
@@ -1662,6 +1681,45 @@ if (typeof(createjs) == "undefined") {if (zon) {zog("ZIM >= 4.3.0 requires creat
 // available at http://createjs.com
 
 /*--
+zim.ANIMATE
+
+ANIMATE
+zim constant
+
+DESCRIPTION
+Set to false to stop zim.move() and zim.animate() calls from working.
+Handy for testing your app so you do not have to wait for animations every time!
+To animate things in you can place everything in their final positions
+and then set the "from" parameter to true to animate from starting positions
+like x or y offstage, scale or alpha of 0, etc.
+Then to avoid waiting for animations to complete, you can just set zim.ANIMATE = false
+and all your objects will be in their final locations and you don't wait for animations
+When you are ready to run your animations for a final version, etc. just delete the line
+or set zim.ANIMATE to true.
+
+EXAMPLE
+zim.ANIMATE = false;
+// without the line above, the circles will animate in
+// we would have to wait for them everytime we load the app
+// sometimes animations are even longer and this can waste development time
+// when we add the line above, the circles are on stage right away
+// this is easier and safer than commenting out all your animations
+
+var circle1 = new zim.Circle(200, frame.green);
+circle1.center(stage);
+circle1.x -= 110;
+circle1.animate({obj:{alpha:0, scale:0}, time:700, from:true});
+
+var circle2 = new zim.Circle(200, frame.pink);
+circle2.center(stage);
+circle2.x += 110;
+circle2.animate({obj:{alpha:0, scale:0}, time:700, wait:700, from:true});
+END EXAMPLE
+--*///+29.5
+zim.ANIMATE = true;
+//-29.5
+
+/*--
 zim.Ticker = {}
 
 Ticker
@@ -1867,18 +1925,21 @@ Handles scaled, rotated nested objects.
 EXAMPLE
 var radius = 50;
 var circle = new zim.Circle(radius, "red");
+circle.center(stage);
+circle.drag();
+
+// OR with chaining
+var circle = new zim.Circle(radius, "red").center(stage).drag();
+
+// OR with ZIM DUO
+circle.drag({slide:true});
+
+// OR with pre ZIM 4TH methods
 zim.center(circle, stage);
 zim.drag(circle);
 
 // OR with ZIM DUO
 zim.drag({obj:circle, slide:true});
-
-// OR with ZIM 4TH methods
-circle.center(stage);
-circle.drag();
-
-// OR with ZIM 4TH and ZIM DUO
-circle.drag({slide:true});
 
 // BOUNDS
 // circle has its registration point in the middle
@@ -2006,6 +2067,7 @@ RETURNS obj for chaining
 			dragObject = (currentTarget)?e.currentTarget:e.target;
 			if (obj.zimDragRect && !dragObject.getBounds()) {zog("zim.drag() - drag object needs bounds set"); return;}
 			downCheck = true;
+			obj.getStage().mouseMoveOutside = true;
 
 			// add a function to the Ticker queue (remove it if there first)
 			if (!slide) { // slide has a persistent Ticker function
@@ -2259,10 +2321,10 @@ Dropping happens automatically with the drag() function.
 The noDrag function turns off the drag function so it is no longer draggable.
 
 EXAMPLE
-zim.noDrag(circle);
-
-// OR ZIM 4TH method
 circle.noDrag();
+
+// OR with pre ZIM 4TH function
+zim.noDrag(circle);
 END EXAMPLE
 
 PARAMETERS
@@ -2296,10 +2358,10 @@ Dynamically changes or adds a bounds rectangle to the object being dragged with 
 
 EXAMPLE
 var dragBounds = new createjs.Rectangle(100,100,500,400);
-zim.dragRect(circle, dragBounds);
-
-OR with ZIM 4TH
 circle.dragRect(dragBounds);
+
+OR pre ZIM 4TH
+zim.dragRect(circle, dragBounds);
 END EXAMPLE
 
 PARAMETERS
@@ -2331,7 +2393,7 @@ Recursively sets children to same setting.
 EXAMPLE
 zim.swipe(circle, false);
 
-OR with ZIM 4TH method
+OR with pre ZIM 4TH function
 circle.swipe(false);
 END EXAMPLE
 
@@ -2372,9 +2434,9 @@ See if shape of obj is hitting the global point x and y on the stage.
 EXAMPLE
 var circle = new zim.Circle();
 stage.addChild(circle);
-zim.drag(circle);
+circle.drag();
 circle.on("pressmove", function() {
-	if (zim.hitTestPoint(circle, stageW/2, stageH/2)) {
+	if (circle.hitTestPoint(stageW/2, stageH/2)) {
 		if (circle.alpha == 1) {
 			circle.alpha = .5;
 			stage.update();
@@ -2387,9 +2449,9 @@ circle.on("pressmove", function() {
 	}
 });
 
-OR with ZIM 4TH methods
-circle.drag(); // etc.
-if (circle.hitTestPoint(stageW/2, stageH/2)) {} // etc.
+OR with pre ZIM 4TH functions
+zim.drag(circle); // etc.
+if (zim.hitTestPoint(circle, stageW/2, stageH/2)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
@@ -2422,21 +2484,21 @@ See if shape (a) is hitting the registration point of object (b).
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
-zim.center(circle, stage);
+circle.center(stage);
+circle.drag();
 var rect = new zim.Rectangle(100, 100, "blue");
 stage.addChild(rect);
-zim.drag(circle);
 circle.on("pressmove", function() {
-	if (zim.hitTestReg(circle, rect)) {
+	if (circle.hitTestReg(rect)) {
 		stage.removeChild(rect);
 		stage.update();
 	}
 })
 
-OR with ZIM 4TH method
-circle.center(stage); etc.
-circle.drag(); etc.
-if (circle.hitTestReg(rect)) {} // etc.
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.drag(circle); etc.
+if (zim.hitTestReg(circle, rect)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
@@ -2472,21 +2534,21 @@ The four corners are always tested as well as the very middle of the rectangle.
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
-zim.center(circle, stage);
+circle.center(stage);
+circle.drag();
 var rect = new zim.Rectangle(100, 100, "blue");
 stage.addChild(rect);
-zim.drag(circle);
 circle.on("pressmove", function() {
-	if (zim.hitTestRect(circle, rect)) {
+	if (circle.hitTestRect(rect)) {
 		stage.removeChild(rect);
 		stage.update();
 	}
 });
 
-OR with ZIM 4TH method
-circle.center(stage); etc.
-circle.drag(); etc.
-if (circle.hitTestRect(rect)) {} // etc.
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.drag(circle); etc.
+if (zim.hitTestRect(circle, rect)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
@@ -2553,21 +2615,21 @@ Also checks center of circle hitting.
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
-zim.center(circle, stage);
+circle.center(stage);
+circle.drag();
 var triangle = new zim.Triangle(100, 100, 100, "blue");
 stage.addChild(triangle);
-zim.drag(circle);
 circle.on("pressmove", function() {
-	if (zim.hitTestCircle(triangle, circle)) {
+	if (triangle.hitTestCircle(circle)) {
 		stage.removeChild(triangle);
 		stage.update();
 	}
 });
 
-OR with ZIM 4TH method
-circle.center(stage); etc.
-circle.drag(); etc.
-if (triangle.hitTestCircle(circle)) {} // etc.
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.drag(circle); etc.
+if (zim.hitTestCircle(triangle, circle)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
@@ -2619,21 +2681,21 @@ Pass in a boundsShape shape if you want a demonstration of where the bounds are.
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
-zim.center(circle, stage);
+circle.center(stage);
+circle.drag();
 var rect = new zim.Rectangle(100, 100, "blue");
 stage.addChild(rect);
-zim.drag(circle);
 circle.on("pressmove", function() {
-	if (zim.hitTestBounds(circle, rect)) {
+	if (circle.hitTestBounds(rect)) {
 		stage.removeChild(rect);
 		stage.update();
 	}
 });
 
-OR with ZIM 4TH method
-circle.center(stage); etc.
-circle.drag(); etc.
-if (circle.hitTestBounds(rect)) {} // etc.
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.drag(circle); etc.
+if (zim.hitTestBounds(circle, rect)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
@@ -2663,11 +2725,11 @@ RETURNS a Boolean true if hitting, false if not
 
 		if (boundsCheck) {
 			var g = boundsShape.graphics;
-			g.clear();
-			g.setStrokeStyle(1).beginStroke("blue");
-			g.drawRect(adjustedA.x, adjustedA.y, adjustedA.width, adjustedA.height);
-			g.beginStroke("green");
-			g.drawRect(adjustedB.x, adjustedB.y, adjustedB.width, adjustedB.height);
+			g.c();
+			g.ss(1).s("blue");
+			g.r(adjustedA.x, adjustedA.y, adjustedA.width, adjustedA.height);
+			g.s("green");
+			g.r(adjustedB.x, adjustedB.y, adjustedB.width, adjustedB.height);
 			boundsShape.getStage().update();
 		}
 
@@ -2698,10 +2760,10 @@ If flip (default false) is set to true it goes from global to local rect.
 Used by drag() and hitTestBounds() above - probably you will not use this directly.
 
 EXAMPLE
-zog(zim.boundsToGlobal(circle).x); // global x of circle
+zog(circle.boundsToGlobal().x); // global x of circle
 
-OR with ZIM 4TH method
-zog(circle.boundsToGlobal().width); // global width of circle)
+OR with pre ZIM 4TH function
+zog(zim.boundsToGlobal(circle).width); // global width of circle)
 END EXAMPLE
 
 PARAMETERS
@@ -2761,11 +2823,11 @@ This technique will work faster than any of the other hit tests.
 
 EXAMPLE
 zim.Ticker.add(function() {
-	var index = zim.hitTestGrid(stage, 200, 200, 10, 10, stage.mouseX, stage.mouseY);
+	var index = stage.hitTestGrid(200, 200, 10, 10, stage.mouseX, stage.mouseY);
 	if (index) zog(index);
 });
-OR with ZIM 4TH method
-var index = stage.hitTestGrid(200, 200, 10, 10, stage.mouseX, stage.mouseY);
+OR with pre ZIM 4TH function
+var index = zim.hitTestGrid(stage, 200, 200, 10, 10, stage.mouseX, stage.mouseY);
 END EXAMPLE
 offsetX, offsetY, spacingX, spacingY, local, type
 
@@ -2819,7 +2881,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override)
+zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from)
 
 move
 zim function - and Display object method under ZIM 4TH
@@ -2834,12 +2896,12 @@ Also see the more general zim.animate()
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
-zim.center(circle, stage);
-zim.move(circle, 100, 100, 700, "backOut");
-
-OR with ZIM 4TH method
 circle.center(stage);
 circle.move(100, 100, 700, "backOut");
+
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.move(circle, 100, 100, 700, "backOut");
 // see ZIM Bits for more move examples
 END EXAMPLE
 
@@ -2860,19 +2922,22 @@ rewind - (default false) set to true to rewind (reverse) animation (doubles anim
 rewindWait (default 0) milliseconds to wait in the middle of the rewind
 rewindCall (default null) calls function at middle of rewind animation
 rewindParams - (default target) parameters to send rewind function
-sequence - (default 0) the delay time in milliseconds to run an array of target animations
-	for example, target = [a,b,c] and sequence = 1000
-	would run the animation on a and then 1 second later, run the animation on b, etc.
-	if the loop prop is true then sequenceCall below would activate for each loop
+sequence - (default 0) the delay time in milliseconds to run on children of a container or an array of target animations
+	for example, target = container or target = [a,b,c] and sequence = 1000
+	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
+	or in the case of the array, on element a and then 1 second later, element b, etc.
+	If the loop prop is true then sequenceCall below would activate for each loop
+	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 sequenceCall - (default null) the function that will be called when the sequence ends
 sequenceParams - (default null) a parameter sent to the sequenceCall function
-sequenceCall - (default null) the function that will be called when the sequence ends
+sequenceReverse - (default false) set to true to sequence through container or array backwards
 props - (default {override: true}) legacy - allows you to pass in TweenJS props
 protect - (default false) protects animation from being interrupted before finishing
  	unless manually interrupted with stopZimMove()
 	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
+from - (default false) set to true to animate from obj properties to the current properties set on target
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
 NOTE: call is now triggered once after all loops and rewinds are done
@@ -2882,18 +2947,19 @@ to pause the move call pauseZimMove(true) on the target (or false to unpause)
 to stop the move call stopZimMove() on the target
 to access the CreateJS Tween object use target.zimTween
 to access the zim.Ticker function use target.zimTicker
+to temporarily prevent moves from running set zim.ANIMATE to false
 
 RETURNS the target for chaining
 --*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override) {
-		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override";
+	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from) {
+		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		z_d("44");
-		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, null, protect, override);
+		return zim.animate(target, {x:x, y:y}, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, null, protect, override, from);
 	}//-44
 
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override)
+zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from)
 
 animate
 zim function - and Display object method under ZIM 4TH
@@ -2902,11 +2968,43 @@ wraps createjs.Tween
 DESCRIPTION
 Animate object obj properties in time milliseconds.
 You can set various types of easing like bounce, elastic, back, linear, sine, etc.
-Handles callbacks, delays, loops, rewinds, sequences of move animations.
+Handles callbacks, delays, loops, rewinds, sequences of animations.
 Also see the more specific zim.move() to animate position x, y
 although you can animate x an y just fine with zim.animate.
 
 EXAMPLE
+var circle = new zim.Circle(50, "red");
+circle.center(stage);
+circle.alpha = 0;
+circle.scale(0);
+circle.animate({alpha:1, scale:1}, 700, null, done);
+function done(target) {
+	// target is circle if params is not set
+	target.drag();
+}
+
+// or with ZIM DUO and from parameter:
+var circle = new zim.Circle(50, "red");
+circle.center(stage);
+circle.animate({obj:{alpha:0, scale:0}, time:700, from:true});
+
+// note: there was no need to set alpha and scale to 0 before the animation
+// because from will animate from property values in obj {alpha:0, scale:0}
+// to the present set values - which are 1 and 1 for the default scale and alpha.
+// This allows you to place everything how you want it to end up
+// and then easily animate to this state.
+// An extra advantage of this is that you can use the zim.ANIMATE constant to skip animations while building
+// See the http://zimjs.com/code/ornamate.html example
+
+
+// pulse circle
+var circle = new zim.Circle(50, "red");
+circle.center(stage);
+// pulse circle from scale 0 - 1 every second (use ZIM DUO)
+circle.animate({obj:{scale:0}, time:500, loop:true, rewind:true, from:true});
+// see ZIM Bits for more move examples
+
+OR with pre ZIM 4TH function and without from
 var circle = new zim.Circle(50, "red");
 zim.center(circle, stage);
 circle.alpha = 0;
@@ -2916,13 +3014,6 @@ function done(target) {
 	// target is circle if params is not set
 	zim.drag(target);
 }
-
-OR with ZIM 4TH method
-circle.alpha = 1;
-circle.scale(0);
-// pulse circle from scale 0 - 1 every second (use ZIM DUO)
-circle.animate({obj:{scale:1}, time:500, loop:true, rewind:true});
-// see ZIM Bits for more move examples
 END EXAMPLE
 
 EXAMPLE
@@ -2932,21 +3023,20 @@ var circle2 = new zim.Circle(50, "blue");
 zim.center(circle1, stage);
 zim.center(circle2, stage);
 circle2.x += 70;
-circle1.scale(.1);
-circle2.scale(.1);
 zim.animate({
 	target:[circle1, circle2],
 	obj:{scale:1},
 	time:500,
 	loop:true,
 	rewind:true,
+	from:true,
 	sequence:500
 });
 END EXAMPLE
 
 PARAMETERS - supports DUO - parameters or single object with properties below
 target - the target object to tween
-obj - the object literal holding properties and values to animate
+obj - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
 time - the time for the tween in milliseconds 1000 ms = 1 second
 ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
 call - (default null) the function to call when the animation is done
@@ -2961,13 +3051,15 @@ rewind - (default false) set to true to rewind (reverse) animation (doubles anim
 rewindWait (default 0) milliseconds to wait in the middle of the rewind
 rewindCall (default null) calls function at middle of rewind animation
 rewindParams - (default target) parameters to send rewind function
-sequence - (default 0) the delay time in milliseconds to run an array of target animations
-	for example, target = [a,b,c] and sequence = 1000
-	would run the animation on a and then 1 second later, run the animation on b, etc.
-	if the loop prop is true then sequenceCall below would activate for each loop
+sequence - (default 0) the delay time in milliseconds to run on children of a container or an array of target animations
+	for example, target = container or target = [a,b,c] and sequence = 1000
+	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
+	or in the case of the array, on element a and then 1 second later, element b, etc.
+	If the loop prop is true then sequenceCall below would activate for each loop
+	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 sequenceCall - (default null) the function that will be called when the sequence ends
 sequenceParams - (default null) a parameter sent to the sequenceCall function
-sequenceCall - (default null) the function that will be called when the sequence ends
+sequenceReverse - (default false) set to true to sequence through container or array backwards
 ticker - (default true) set to false to not use an automatic zim.Ticker function
 props - (default {override: true}) legacy - allows you to pass in TweenJS props
 css - (default false) set to true to animate CSS properties in HTML
@@ -2985,6 +3077,7 @@ protect - (default false) protects animation from being interrupted before finis
 	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
+from - (default false) set to true to animate from obj properties to the current properties set on target
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
 NOTE: call is now triggered once after all loops and rewinds are done
@@ -2994,13 +3087,16 @@ to pause the animate call pauseZimAnimate(true) on the target (or false to unpau
 to stop the animate call stopZimAnimate() on the target
 to access the CreateJS Tween object use target.zimTween
 to access the zim.Ticker function use target.zimTicker
+to temporarily prevent animations from running set zim.ANIMATE to false
 
 RETURNS the target for chaining
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override) {
-		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override";
+	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from) {
+		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
+
+		if (zim.ANIMATE == false) return;
 
 		// convert loop and rewind properties into the legacy props object
 		var newProps = {override: true};
@@ -3019,15 +3115,35 @@ RETURNS the target for chaining
 		// handle multiple targets first if there is an array
 		// this just recalls the animate function for each element delayed by the sequence parameter
 		if (zot(sequence)) sequence = 0;
+		if (sequence > 0 && target.addChild) { // container with sequence so convert target to array
+			var newTarget = [];
+			for (var i=0; i<target.numChildren; i++) {
+				newTarget.push(target.getChildAt(i));
+			}
+			target = newTarget;
+		}
+
 		if (target instanceof Array) {
+			if (sequenceReverse) target.reverse();
 			var currentTarget = 0;
 			for (var i=0; i<target.length; i++) {
 				-function () { // closure to store num (i) for timeout
 					var num = i;
+					if (from) {
+						var val;
+						target[i].zimObj = {};
+						for (var prop in obj) {
+							val = obj[prop];
+							target[i].zimObj[prop] = target[i][prop];
+							target[i][prop] = val;
+						}
+					} else {
+						target[i].zimObj = obj;
+					}
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, obj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override);
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000); // + ((wait)?wait:0); // wait only happens at start - no longer each time
@@ -3050,6 +3166,7 @@ RETURNS the target for chaining
 		// original animate functionality
 
 		if (zot(target)) return;
+		if (zot(target.getStage) || zot(target.getStage())) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
 
 		var t = time;
 		if (zot(t)) t = 1000;
@@ -3060,11 +3177,14 @@ RETURNS the target for chaining
 		if (zot(ticker)) ticker = true;
 		if (zot(css)) css = false;
 		if (zot(protect)) protect = false;
+		if (zot(from)) from = false;
+
 		if (!zot(override)) props.override = override;
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = obj.scale;
 			delete obj.scale;
 		}
+
 		var tween;
 
 		// if protected or a loop or rewind is currently running for any of these properties
@@ -3074,6 +3194,17 @@ RETURNS the target for chaining
 			if (target.zimBusy[o]) delete obj[o];
 		}
 		if (zim.isEmpty(obj)) return; // nothing left to animate
+
+		if (from) {
+			var val;
+			var toObj = {};
+			for (var prop in obj) {
+				val = obj[prop];
+				toObj[prop] = target[prop];
+				target[prop] = val;
+			}
+			obj = toObj;
+		}
 
 		// the function to set obj properties busy for this target
 		// when the function is run, we record that we set the properties
@@ -3243,7 +3374,7 @@ RETURNS the target for chaining
 	}//-45
 
 /*--
-zim.loop = function(obj, call, reverse)
+zim.loop = function(obj, call, reverse, step, start, end)
 
 loop
 zim function - and Display object method under ZIM 4TH
@@ -3252,24 +3383,24 @@ so that we can use earlier loop function without createjs
 
 DESCRIPTION
 1. If you pass in a Number for obj then loop() does function call that many times
-and passes function call the index and the length.
-The index starts at 0 and counts up to one less than the number.
+and passes function call the currentIndex, startIndex and endIndex.
+By default, the index starts at 0 and counts up to one less than the number.
 So this is like: for (var i=0; i<obj; i++) {}
 
 2. If you pass in an Array then loop() loops through the array
-and passes the function call the element in the array, the index, the length, and the array.
+and passes the function call the element in the array, currentIndex, startIndex, endIndex and the array.
 So this is like: for (var i=0; i<obj; i++) {element = array[i]}
 
 3. If you pass in an Object literal then loop() loops through the object
-and passes the function call the property name, value, index, length, and object
+and passes the function call the property name, value, currentIndex, startIndex, endIndex and object
 So this is like: for (var i in obj) {property = i; value = obj[i];}
 
-4. If you pass in a container for obj then loopChildren() loops through all the children of the container
-and does the function for each one passing the child, the index, the numChildren and the object.
+4. If you pass in a container for obj then loop() loops through all the children of the container
+and does the function for each one passing the child, currentIndex, startIndex, endIndex, the numChildren and the object.
 So this is like for(i=0; i<obj; i++) {var child = obj.getChildAt(i);} loop
 or for (var i in container.children) {var child = container.children[i];}
 
-NOTE: If you pass in true for reverse, the loop is run backwards counting to 0
+NOTE: If you pass in true for reverse, the loop is run backwards counting to 0 (by default)
 NOTE: use return to act like a continue in a loop and go to the next loop
 NOTE: return a value to return out of the loop completely like a break (and return a result if desired)
 
@@ -3290,31 +3421,31 @@ zim.loop(10, function(i) {
 });
 
 var colors = [frame.green, frame.yellow, frame.pink];
-zim.loop(colors, function(color, index, length, array) { // do not have to collect all these
+zim.loop(colors, function(color, index, start, end, array) { // do not have to collect all these
 	zog(color); // each color
 });
 
 var person = {name:"Dan Zen", occupation:"Inventor", location:"Dundas"}
-var result = zim.loop(person, function(prop, val, index, length, object) { // do not have to collect all these
+var result = zim.loop(person, function(prop, val, index, start, end, object) { // do not have to collect all these
 	zog(prop, val); // each key value pair
 	if (val == "criminal") return "criminal"; // this would return out of the loop to the containing function
 });
 if (result == "criminal") alert("oh no!");
 
 // loop through children of the container
-zim.loop(container, function(child, i) { // gets passed the child, index, numChildren and obj
-	child.x += i*2;
-	child.y += i*2;
-});
-
-// with ZIM 4TH method:
 container.loop(function(child, i) { // gets passed the child, index, numChildren and obj
 	child.x += i*2;
 	child.y += i*2;
 }, true); // true would reverse - so highest in stack to lowest, with i going from numChildren-1 to 0
+
+// with pre ZIM 4TH function and without reverse
+zim.loop(container, function(child, i) { // gets passed the child, currentIndex, startIndex, endIndex and obj
+	child.x += i*2;
+	child.y += i*2;
+});
 END EXAMPLE
 
-PARAMETERS
+PARAMETERS supports DUO - parameters or single object with properties below
 obj - a Number of times to loop or an Array or a Container with children to loop through
 call - the function to call
 	receives an index and obj when obj is a Number
@@ -3322,13 +3453,20 @@ call - the function to call
 	receives a property name, the property value, the index, the length and the obj when obj is an object literal
 	receives a child, the index, the numChildren and the obj when the obj is a container
 reverse - (default false) set to true to run the loop backwards to 0
+step - (default 1) each step will increase by this amount (positive whole number - see reverse for negative)
+start - (default 0) index to start (or to end if reverse is true)
+end - (default length-1) index to end (or to start if reverse is true)
 
 RETURNS any value returned from the loop - or undefined if no value is returned from a loop
 --*///+45.3
-	zim.loop = function(obj, call, reverse) {
+	zim.loop = function(obj, call, reverse, step, start, end) {
+
+		var sig = "obj, call, reverse, step, start, end";
+		var duo; if (duo = zob(zim.loop, arguments, sig)) return duo;
 		z_d("45.3");
 		if (zot(obj) || zot(call)) return undefined;
 		if (zot(reverse)) reverse = false;
+		if (zot(step)) step = 1;
 
 		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":"container"));
 
@@ -3337,21 +3475,23 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 		}
 		if (type == "number" || type == "array") {
 			var length = type=="number"?obj:obj.length;
+			if (zot(start)) start = reverse?length-1:0;
+			if (zot(end)) end = reverse?0:length-1;
 			if (reverse) {
-				for(var i=length-1; i>=0; i--) {
+				for(var i=start; i>=end; i-=step) {
 					if (type=="number") {
-						var r = call(i, length);
+						var r = call(i, start, end);
 					} else { // array
-						var r = call(obj[i], i, length, obj);
+						var r = call(obj[i], i, start, end, obj);
 					}
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				for(var i=0; i<length; i++) {
+				for(var i=start; i<=end; i+=step) {
 					if (type=="number") {
 						var r = call(i, length);
 					} else { // array
-						var r = call(obj[i], i, length, obj);
+						var r = call(obj[i], i, start, end, obj);
 					}
 					if (typeof r != 'undefined') return r;
 				}
@@ -3363,28 +3503,30 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 				length++;
 				props.push(i);
 			}
+			if (zot(start)) start = reverse?length-1:0;
+			if (zot(end)) end = reverse?0:length-1;
 			if (reverse) {
-				for(var i=length-1; i>=0; i--) {
-					var r = call(props[i], obj[props[i]], i, length, obj);
+				for(var i=start; i>=end; i-=step) {
+					var r = call(props[i], obj[props[i]], i, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				var index = 0;
-				for(var i in obj) {
-					var r = call(i, obj[i], index, length, obj);
-					index++;
+				for(var i=start; i<=end; i+=step) {
+					var r = call(props[i], obj[props[i]], i, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			}
 		} else {
+			if (zot(start)) start = reverse?obj.numChildren-1:0;
+			if (zot(end)) end = reverse?0:obj.numChildren-1;
 			if (reverse) {
-				for(var i=obj.numChildren-1; i>=0; i--) {
-					var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
+				for(var i=start; i>=end; i-=step) {
+					var r = call(obj.getChildAt(i), i, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				for(var i=0; i<obj.numChildren; i++) {
-					var r = call(obj.getChildAt(i), i, obj.numChildren, obj);
+				for(var i=start; i<=end; i+=step) {
+					var r = call(obj.getChildAt(i), i, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			}
@@ -3406,11 +3548,11 @@ NOTE: used internally by move(), animate() and setMask() for copying transform o
 also used in addDisplayMembers for clone() method
 
 EXAMPLE
-zim.copyMatrix(circle, circle2);
+circle.copyMatrix(circle2);
 // circle will now match circle2 in x, y, rotation, scale and skew properties
 
-OR with ZIM 4TH method
-circle.copyMatrix(circle2);
+OR with pre ZIM 4TH function
+zim.copyMatrix(circle, circle2);
 END EXAMPLE
 
 PARAMETERS
@@ -3444,10 +3586,10 @@ Convenience function to do scaleX and scaleY in one call.
 Also see zim.scaleTo(), zim.fit() and zim.Layout().
 
 EXAMPLE
-zim.scale(circle, .5);
-
-OR with ZIM 4TH method
 circle.scale(.5);
+
+OR with pre ZIM 4TH function
+zim.scale(circle, .5);
 END EXAMPLE
 
 PARAMETERS
@@ -3476,11 +3618,11 @@ Percentage is from 0 - 100 (not 0-1).
 Also see zim.scale(), zim.fit() and zim.Layout().
 
 EXAMPLE
-zim.scaleTo(circle, stage, 50); // scale to half the stageW
-zim.scaleTo(circle, stage, 10, 20); // fit within these scalings of the stage
+circle.scaleTo(stage, 50); // scale to half the stageW
+circle.scaleTo(stage, 10, 20); // fit within these scalings of the stage
 
-OR with ZIM 4TH method
-circle.scaleTo(stage, 100, 100, "both"); // make an oval touch all stage edges
+OR with pre ZIM 4TH function
+zim.scaleTo(circle, stage, 100, 100, "both"); // make an oval touch all stage edges
 END EXAMPLE
 
 PARAMETERS - supports DUO - parameters or single object with properties below
@@ -3541,10 +3683,10 @@ Actually scales and positions the object.
 Object must have bounds set (setBounds()).
 
 EXAMPLE
-zim.fit(circle, 100, 100, 200, 300); // fits and centers
+circle.fit(100, 100, 200, 300); // fits and centers in these dimensions
 
-OR with ZIM 4TH method
-circle.fit(); // fits circle and centers on stage
+OR with pre ZIM 4TH function
+zim.fit(circle); // fits circle and centers on stage
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -3637,12 +3779,13 @@ NOTE: will not subsequently be resized - really just to use while building and t
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
-zim.center(circle, stage);
+circle.center(stage);
 // show registration and origin at center and bounding box around outside
-zim.outline(circle);
-
-OR with ZIM 4TH method
 circle.outline();
+
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.outline(circle);
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -3721,12 +3864,12 @@ Also see zim.center() for centering without changing the registration point.
 
 EXAMPLE
 var rect = new zim.Rectangle(100, 100, "blue");
-zim.centerReg(rect, stage); // centers registration, centers and adds to stage
-zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:true});
-
-OR with ZIM 4TH method
-rect.centerReg(stage);
+rect.centerReg(stage); // centers registration, centers and adds to stage
 rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+
+OR with pre ZIM 4TH function
+zim.centerReg(rect, stage);
+zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:true});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -3762,14 +3905,14 @@ Also see zim.centerReg() for centering registration point at same time.
 
 EXAMPLE
 var rect = new zim.Rectangle(100, 100, "blue");
-zim.center(rect, stage); // centers and adds to stage
+rect.center(stage); // centers and adds to stage
 // the below animation will be around the registration point at the top left corner
 // this is usually not desired - see zim.centerReg() when rotating and scaling
-zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:true});
-
-OR with ZIM 4TH method
-rect.center(stage);
 rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+
+OR with pre ZIM 4TH function
+zim.center(rect, stage);
+zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:true});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -3844,10 +3987,10 @@ then when positioned, look at the console for the positioning code.
 In your code, set the reported x and y and delete the place call.
 
 EXAMPLE
-zim.place(circle, "circle"); // lets you drag circle around - then see console
+circle.place("circle"); // lets you drag circle around - then see console
 
-OR with ZIM 4TH method
-circle.place("circle");
+OR with pre ZIM 4TH function
+zim.place(circle, "circle");
 END EXAMPLE
 
 PARAMETERS
@@ -3878,13 +4021,13 @@ Good for making mobile interaction better on labels, buttons, etc.
 
 EXAMPLE
 var circle = new zim.Circle(10, "red");
-zim.center(circle, stage);
-zim.expand(circle); // makes hit area bigger
+circle.center(stage);
+circle.expand(); // makes hit area bigger
 circle.on("click", function(){zog("yes");});
 
-OR with ZIM 4TH method
-circle.center(stage);
-circle.expand();
+OR with pre ZIM 4TH function
+zim.center(circle, stage);
+zim.expand(circle);
 END EXAMPLE
 
 PARAMETERS
@@ -3929,18 +4072,19 @@ so it would work to set the mask but then you could not use it again - so change
 
 EXAMPLE
 var label = new zim.Label("BIG", 200, null, "white");
-zim.center(label, stage);
-var rect = new zim.Rectangle(200,100,"black");
-zim.center(rect, stage).alpha = 0;
-zim.setMask(label, rect);
-zim.drag(label);
-
-OR with ZIM 4TH method
+label.center(stage);
 var rect = new zim.Rectangle(200,100,"black");
 rect.center(stage).alpha = 0;
 var label = new zim.Label("BIG", 200, null, "white");
 label.center(stage).drag().setMask(rect);
 // not sure we really recommend such dramatic chaining...
+
+OR with pre ZIM 4TH function
+zim.center(label, stage);
+var rect = new zim.Rectangle(200,100,"black");
+zim.center(rect, stage).alpha = 0;
+zim.setMask(label, rect);
+zim.drag(label);
 END EXAMPLE
 
 NOTE: to drag something, the alpha cannot be 0
@@ -3949,18 +4093,18 @@ then we can drag even if the alpha is 0 (or set the alpha to .01)
 
 EXAMPLE
 var label = new zim.Label("BIG", 200, null, "white");
-zim.center(label, stage);
+label.center(stage);
 var rect = new zim.Rectangle(200,100,"black");
-zim.expand(rect, 0); // adds a hit area to rect so we can drag alpha 0
-zim.center(rect, stage).alpha = 0;
-zim.setMask(label, rect);
-zim.drag(rect);
-
-OR with ZIM 4TH method
 rect.expand(0);
 rect.center(stage).alpha = 0;
 label.setMask(rect);
 rect.drag();
+
+OR with pre ZIM 4TH function
+zim.expand(rect, 0); // adds a hit area to rect so we can drag alpha 0
+zim.center(rect, stage).alpha = 0;
+zim.setMask(label, rect);
+zim.drag(rect);
 END EXAMPLE
 
 NOTE: move(), animate() and drag() work specially with zim shapes to make this work
@@ -4254,7 +4398,8 @@ EXAMPLE
 var shape = new createjs.Shape();
 shape.graphics.beginFill("red").drawRect(0,0,200,200);
 shape.setBounds(0,0,200,200); // need to set bounds to center
-zim.addDisplayMembers(shape); // add methods like center, drag, etc.
+zimify(shape); // add methods like center, drag, etc.
+// shorter version of zim.addDisplayMembers(shape);
 shape.center(stage); // ZIM 4TH method format
 stage.update();
 
@@ -4319,16 +4464,16 @@ RETURNS the object for chaining
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		move:function(x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override) {
+		move:function(x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
-			else {return zim.move(this, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override);}
+			else {return zim.move(this, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from);}
 		},
-		animate:function(obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override) {
+		animate:function(obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override);}
+			else {return zim.animate(this, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from);}
 		},
-		loop:function(call, reverse) {
-			return zim.loop(this, call, reverse);
+		loop:function(call, reverse, step, start, end) {
+			return zim.loop(this, call, reverse, step, start, end);
 		},
 		copyMatrix:function(source) {
 			return zim.copyMatrix(this, source);
@@ -4408,7 +4553,7 @@ RETURNS the object for chaining
 			get: function() {
 				// that.setBounds(null);
 				var b = this.getBounds();
-				return (zot(b))?null:b.width;
+				return (zot(b))?null:b.width*this.scaleX;
 			},
 			set: function(value) {
 				var b = this.getBounds();
@@ -4422,7 +4567,7 @@ RETURNS the object for chaining
 			get: function() {
 				// that.setBounds(null);
 				var b = this.getBounds();
-				return (zot(b))?null:b.height;
+				return (zot(b))?null:b.height*this.scaleY;
 			},
 			set: function(value) {
 				var b = this.getBounds();
@@ -4436,7 +4581,7 @@ RETURNS the object for chaining
 			get: function() {
 				// that.setBounds(null);
 				var b = this.getBounds();
-				return (zot(b))?null:b.width;
+				return (zot(b))?null:b.width*this.scaleX;
 			},
 			set: function(value) {
 				var b = this.getBounds();
@@ -4450,7 +4595,7 @@ RETURNS the object for chaining
 			get: function() {
 				// that.setBounds(null);
 				var b = this.getBounds();
-				return (zot(b))?null:b.height;
+				return (zot(b))?null:b.height*this.scaleY;
 			},
 			set: function(value) {
 				var b = this.getBounds();
@@ -4546,9 +4691,9 @@ hitTestCircle(b, num)
 hitTestBounds(b, boundsShape)
 boundsToGlobal(rect, flip)
 hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
-move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override)
-animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override)
-loop(call, reverse)
+move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override, from)
+animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override, from)
+loop(call, reverse, step, start, end)
 copyMatrix(source)
 scale(scale)
 scaleTo(boundObj, percentX, percentY, type)
@@ -4586,7 +4731,8 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 PROPERTIES
-**bounds must be set first (or width and height parameters set) for these to work
+** bounds must be set first (or width and height parameters set) for these to work
+** setting these adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -4653,8 +4799,8 @@ g.s("green").f("red").mt(500,500).qt(550,500,600,500);
 END EXAMPLE
 
 PARAMETERS
-width - (default null) the width of the container
-height - (default width) the height of the container
+width - (default null) the width of the shape
+height - (default width) the height of the shape
 	if there is a width supplied but no height then the height is set to the width
 	setting these run container.setBounds(0,0,width,height);
 	you should be able to container.setBounds(null) to go back to auto calculation
@@ -4687,7 +4833,8 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 PROPERTIES
-**bounds must be set first (or width and height parameters set) for these to work
+** bounds must be set first (or width and height parameters set) for these to work
+** setting these adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -4769,6 +4916,7 @@ ALSO: See the CreateJS Easel Docs for Bitmap methods, such as:
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
 PROPERTIES
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -4855,7 +5003,8 @@ play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
 PROPERTIES
-**bounds must be set first for these to work
+** bounds must be set first for these to work
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -4929,7 +5078,8 @@ play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
 PROPERTIES
-**bounds must be set first for these to work
+** bounds must be set first for these to work
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -4958,7 +5108,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.9
 
 /*--
-zim.Circle = function(radius, fill, stroke, strokeSize)
+zim.Circle = function(radius, color, borderColor, borderWidth)
 
 Circle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4978,14 +5128,12 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 radius - (default 50) the radius ;-)
-fill - (default black) the fill color as any CSS color
-stroke - (default null) the stroke color
-strokeSize - (default 1 if stroke is set) the size of the stroke
+color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - (default null) the stroke color
+borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
 
 METHODS
-setFill(color) - changes the color of the fill (or see color property)
-setStroke(color) - changes the color of the stroke
-setStrokeSize(size) - the size of the stroke as a number
+** the methods setFill(), setStroke(), setStrokeSize() - have been removed - see properties above
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -4997,12 +5145,16 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 shape - gives access to the circle shape
 color - get and set the fill color
+borderColor - get and set the stroke color
+borderWidth - get and set the stroke size in pixels
+radius - gets or sets the radius.  Setting just sets width and height to twice the radius
+** setting widths, heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
 mouseChildren - set to false so you do not drag the shape inside the circle
-if you nest things inside and want to drag them, will want to set to true
+	if you nest things inside and want to drag them, will want to set to true
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
@@ -5012,64 +5164,95 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+51
-	zim.Circle = function(radius, fill, stroke, strokeSize) {
+	zim.Circle = function(radius, color, borderColor, borderWidth) {
 
-		var sig = "radius, fill, stroke, strokeSize";
+		var sig = "radius, color, borderColor, borderWidth";
 		var duo; if (duo = zob(zim.Circle, arguments, sig, this)) return duo;
 		z_d("51");
 		this.zimContainer_constructor();
 
 		if (zot(radius)) radius = 50;
-		if (zot(fill)) fill = "black";
+		if (zot(color)) color = "black";
 
 		var that = this;
+		var _radius = radius;
+		var _color = color;
+		var _borderColor = borderColor;
+		var _borderWidth = borderWidth;
 		this.mouseChildren = false;
 
 		var circle = this.shape = new createjs.Shape();
 		this.addChild(circle);
 
 		var g = circle.graphics;
-		var fillObj =g.beginFill(fill).command;
-		if (!zot(stroke)) {
-			var strokeObj = g.beginStroke(stroke).command;
-			if (zot(strokeSize)) strokeSize=1;
-			var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
+		var colorObj;
+		var borderColorObj;
+		var borderWidthObj;
+		drawShape();
+		function drawShape() {
+			g.c();
+			colorObj =g.f(_color).command;
+			// border of 0 or a string value still draws a border in CreateJS
+			if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
+				if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
+					if (zot(_borderColor)) _borderColor = "black";
+					borderColorObj = g.s(_borderColor).command;
+					borderWidthObj = g.ss(_borderWidth).command;
+				}
+			}
+			g.dc(0,0,_radius);
+			that.setBounds(-_radius,-_radius,_radius*2,_radius*2);
 		}
-		g.dc(0,0,radius);
-		this.setBounds(-radius,-radius,radius*2,radius*2);
 
-		this.setFill = function(c) {
-			if (zot(c)) return;
-			fill = c;
-			fillObj.style = fill;
-		}
 		Object.defineProperty(that, 'color', {
 			get: function() {
-				return fill;
+				return _color;
 			},
 			set: function(value) {
-				that.setFill(value);
+				if (zot(value)) value = "black";
+				_color = value;
+				colorObj.style = _color;
 			}
 		});
-		this.setStroke = function(c) {
-			if (!strokeObj || zot(c)) return;
-			stroke = c;
-			strokeObj.style = stroke;
-		}
-		this.setStrokeSize = function(size) {
-			if (!strokeSizeObj || zot(size)) return;
-			strokeSize = size;
-			strokeSizeObj.width = strokeSize;
-		}
+		Object.defineProperty(that, 'borderColor', {
+			get: function() {
+				return _borderColor;
+			},
+			set: function(value) {
+				_borderColor = value;
+				if (!borderColorObj) drawShape();
+				else borderColorObj.style = _borderColor;
+			}
+		});
+		Object.defineProperty(that, 'borderWidth', {
+			get: function() {
+				return _borderWidth;
+			},
+			set: function(value) {
+				if (!(value>0)) value = 0;
+				_borderWidth = value;
+				if (!borderWidthObj || _borderWidth == 0) drawShape();
+				else borderWidthObj.width = _borderWidth;
+			}
+		});
+		Object.defineProperty(that, 'radius', {
+			get: function() {
+				return _radius;
+			},
+			set: function(value) {
+				_radius = value;
+				drawShape();
+			}
+		});
 		this.clone = function() {
-			return that.cloneProps(new zim.Circle(radius, fill, stroke, strokeSize));
+			return that.cloneProps(new zim.Circle(radius, color, borderColor, borderWidth));
 		}
 	}
 	zim.extend(zim.Circle, zim.Container, "clone", "zimContainer", false);
 	//-51
 
 /*--
-zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner, flatBottom)
+zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner, flatBottom)
 
 Rectangle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5084,7 +5267,7 @@ var rect = new zim.Rectangle(200, 100, "blue");
 rect.center(stage);
 
 // or with rounded corners:
-var rect = new zim.Rectangle({width:200, height:100, fill:"blue", corner:20});
+var rect = new zim.Rectangle({width:200, height:100, color:"blue", corner:20});
 
 // or with 2 pixel white stroke
 var rect = new zim.Rectangle(200, 100, "blue", "white", 2);
@@ -5092,16 +5275,14 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 width, height - (default 100) the width and height ;-)
-fill - (default black) the fill color as any CSS color
-stroke - (default null) the stroke color
-strokeSize - (default 1 if stroke is set) the size of the stroke
+color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - (default null) the stroke color
+borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
 corner - (default 0) the round of corner
 flatBottom - (default false) top corners can round and bottom stays flat (used for ZIM Tabs)
 
 METHODS
-setFill(color) - changes the color of the fill (or see color property)
-setStroke(color) - changes the color of the stroke
-setStrokeSize(size) - the size of the stroke as a number
+** the methods setFill(), setStroke(), setStrokeSize() - have been removed - see properties above
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -5113,6 +5294,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 shape - gives access to the rectangle shape
 color - get and set the fill color
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -5128,77 +5310,96 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+52
-	zim.Rectangle = function(width, height, fill, stroke, strokeSize, corner, flatBottom) {
+	zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner, flatBottom) {
 
-		var sig = "width, height, fill, stroke, strokeSize, corner, flatBottom";
+		var sig = "width, height, color, borderColor, borderWidth, corner, flatBottom";
 		var duo; if (duo = zob(zim.Rectangle, arguments, sig, this)) return duo;
 		z_d("52");
 		this.zimContainer_constructor();
 
 		if (zot(width)) width = 100;
 		if (zot(height)) height = 100;
-		if (zot(fill)) fill = "black";
+		if (zot(color)) color = "black";
 		if (zot(corner)) corner = 0;
 		if (zot(flatBottom)) flatBottom = false;
 
 		var that = this;
+		var _color = color;
+		var _borderColor = borderColor;
+		var _borderWidth = borderWidth;
 		this.mouseChildren = false;
 
 		var rectangle = this.shape = new createjs.Shape();
 		this.addChild(rectangle);
 
 		var g = rectangle.graphics;
-		var fillObj =g.beginFill(fill).command;
-		if (!zot(stroke)) {
-			var strokeObj = g.beginStroke(stroke).command;
-			if (zot(strokeSize)) strokeSize=1;
-			var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
-		}
-
-		if (corner > 0) {
-			if (flatBottom) {
-				g.rc(0,0,width,height,corner,corner,0,0);
-			} else {
-				g.rr(0,0,width,height,corner);
+		var colorObj;
+		var borderColorObj;
+		var borderWidthObj;
+		drawShape();
+		function drawShape() {
+			g.c();
+			colorObj =g.f(_color).command;
+			// border of 0 or a string value still draws a border in CreateJS
+			if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
+				if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
+					if (zot(_borderColor)) _borderColor = "black";
+					borderColorObj = g.s(_borderColor).command;
+					borderWidthObj = g.ss(_borderWidth).command;
+				}
 			}
-		} else {
-			g.r(0,0,width,height);
+			if (corner > 0) {
+				if (flatBottom) {
+					g.rc(0,0,width,height,corner,corner,0,0);
+				} else {
+					g.rr(0,0,width,height,corner);
+				}
+			} else {
+				g.r(0,0,width,height);
+			}
+			that.setBounds(0,0,width,height);
 		}
 
-		this.setBounds(0,0,width,height);
-
-		this.setFill = function(c) {
-			if (zot(c)) return;
-			fill = c;
-			fillObj.style = fill;
-		}
 		Object.defineProperty(that, 'color', {
 			get: function() {
-				return fill;
+				return _color;
 			},
 			set: function(value) {
-				that.setFill(value);
+				if (zot(value)) value = "black";
+				_color = value;
+				colorObj.style = _color;
 			}
 		});
-		this.setStroke = function(c) {
-			if (!strokeObj || zot(c)) return;
-			stroke = c;
-			strokeObj.style = stroke;
-		}
-		this.setStrokeSize = function(size) {
-			if (!strokeSizeObj || zot(size)) return;
-			strokeSize = size;
-			strokeSizeObj.width = strokeSize;
-		}
+		Object.defineProperty(that, 'borderColor', {
+			get: function() {
+				return _borderColor;
+			},
+			set: function(value) {
+				_borderColor = value;
+				if (!borderColorObj) drawShape();
+				else borderColorObj.style = _borderColor;
+			}
+		});
+		Object.defineProperty(that, 'borderWidth', {
+			get: function() {
+				return _borderWidth;
+			},
+			set: function(value) {
+				if (!(value>0)) value = 0;
+				_borderWidth = value;
+				if (!borderWidthObj || _borderWidth == 0) drawShape();
+				else borderWidthObj.width = _borderWidth;
+			}
+		});
 		this.clone = function() {
-			return that.cloneProps(new zim.Rectangle(width, height, fill, stroke, strokeSize, corner, flatBottom));
+			return that.cloneProps(new zim.Rectangle(width, height, color, borderColor, borderWidth, corner, flatBottom));
 		}
 	}
 	zim.extend(zim.Rectangle, zim.Container, "clone", "zimContainer", false);
 	//-52
 
 /*--
-zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust)
+zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust)
 
 Triangle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5218,7 +5419,7 @@ tri.center(stage);
 var tri = new zim.Triangle(100, 200, 200, "green", "yellow", 10);
 
 // here we adjust so rotation looks better
-var tri = new zim.Triangle({a:200, fill:"green", adjust:30});
+var tri = new zim.Triangle({a:200, color:"green", adjust:30});
 tri.center(stage);
 tri.animate({obj:{rotation:360}, time:3000, ease:"linear", loop:true});
 END EXAMPLE
@@ -5228,17 +5429,15 @@ a, b and c - (default 100) the lengths of the sides
 	a will run horizontally along the bottom
 	b is upwards and c is back to the origin
 	if c is set to -1 will assume a 90 angle
-fill - (default black) the fill color as any CSS color
-stroke - (default null) the stroke color
-strokeSize - (default 1 if stroke is set) the size of the stroke
+color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - (default null) the stroke color
+borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
 center - (default true) puts the registration point to the center
 adjust - (default 0) pixels to bring center towards vertical base
 	the actual center is not really the weighted center
 
 METHODS
-setFill(color) - changes the color of the fill (or see color property)
-setStroke(color) - changes the color of the stroke
-setStrokeSize(size) - the size of the stroke as a number
+** the methods setFill(), setStroke(), setStrokeSize() - have been removed - see properties above
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -5250,6 +5449,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 shape - gives access to the triangle shape
 color - get and set the fill color
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -5267,9 +5467,9 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53
-	zim.Triangle = function(a, b, c, fill, stroke, strokeSize, center, adjust) {
+	zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust) {
 
-		var sig = "a, b, c, fill, stroke, strokeSize, center, adjust";
+		var sig = "a, b, c, color, borderColor, borderWidth, center, adjust";
 		var duo; if (duo = zob(zim.Triangle, arguments, sig, this)) return duo;
 		z_d("53");
 		this.zimContainer_constructor();
@@ -5278,12 +5478,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(b)) b = a;
 		if (zot(c)) c = b;
 		if (c==-1) c = Math.sqrt(Math.pow(a,2)+Math.pow(b,2));
-		if (zot(fill)) fill = "black";
+		if (zot(color)) color = "black";
 		if (zot(center)) center = true;
 		if (zot(adjust)) adjust = 0;
 
-		this.mouseChildren = false;
 		var that = this;
+		var _color = color;
+		var _borderColor = borderColor;
+		var _borderWidth = borderWidth;
+		this.mouseChildren = false;
 
 		var lines = [a,b,c];
 		lines.sort(function(a, b){return b-a});
@@ -5301,75 +5504,93 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.addChild(tri);
 
 		var g = tri.graphics;
-		var fillObj =g.beginFill(fill).command;
-		if (!zot(stroke)) {
-			var strokeObj = g.beginStroke(stroke).command;
-			if (zot(strokeSize)) strokeSize=1;
-			var strokeSizeObj = g.setStrokeStyle(strokeSize).command;
+		var colorObj;
+		var borderColorObj;
+		var borderWidthObj;
+		drawShape();
+		function drawShape() {
+			g.c();
+			colorObj =g.f(_color).command;
+			// border of 0 or a string value still draws a border in CreateJS
+			if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
+				if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
+					if (zot(_borderColor)) _borderColor = "black";
+					borderColorObj = g.s(_borderColor).command;
+					borderWidthObj = g.ss(_borderWidth).command;
+				}
+			}
+			g.mt(0,0);
+			that.one={x:0,y:0};
+			g.lt(a,0);
+			that.two={x:a,y:0};
+
+			// find biggest angle with cosine rule
+			var angle1 = Math.acos( (Math.pow(bb,2) + Math.pow(cc,2) - Math.pow(aa,2)) / (2 * bb * cc) ) * 180 / Math.PI;
+
+			// use the sine rule for next biggest angle
+			var angle2 = Math.asin( bb * Math.sin(angle1 * Math.PI / 180) / aa ) * 180 / Math.PI;
+
+			// find last angle
+			var angle3 = 180 - angle1 - angle2;
+
+			// get position of angles by mapping to opposite side sizes
+			// as in smallest angle is across from smallest side
+			// largest angle is across from largest size, etc.
+			var temp = [angle1, angle2, angle3]; // largets to smallest
+			that.angles = [temp[order[1]], temp[order[2]], temp[order[0]]];
+
+			var nextAngle = that.angles[1];
+			var backX = Math.cos(nextAngle * Math.PI / 180) * b;
+			var upY = Math.sin(nextAngle * Math.PI / 180) * b;
+
+			var width = Math.max(a, a-backX);
+			var height = upY
+			that.setBounds(0,0,width,height);
+			tri.y = height;
+
+			g.lt(a-backX,0-upY);
+			that.three={x:a-backX,y:0-upY};
+			g.cp();
+
+			if (center) {
+				that.regX = width/2;
+				that.regY = height/2+adjust;
+			}
 		}
 
-		g.mt(0,0);
-		this.one={x:0,y:0};
-		g.lt(a,0);
-		this.two={x:a,y:0};
-
-		// find biggest angle with cosine rule
-		var angle1 = Math.acos( (Math.pow(bb,2) + Math.pow(cc,2) - Math.pow(aa,2)) / (2 * bb * cc) ) * 180 / Math.PI;
-
-		// use the sine rule for next biggest angle
-		var angle2 = Math.asin( bb * Math.sin(angle1 * Math.PI / 180) / aa ) * 180 / Math.PI;
-
-		// find last angle
-		var angle3 = 180 - angle1 - angle2;
-
-		// get position of angles by mapping to opposite side sizes
-		// as in smallest angle is across from smallest side
-		// largest angle is across from largest size, etc.
-		var temp = [angle1, angle2, angle3]; // largets to smallest
-		this.angles = [temp[order[1]], temp[order[2]], temp[order[0]]];
-
-		var nextAngle = this.angles[1];
-		var backX = Math.cos(nextAngle * Math.PI / 180) * b;
-		var upY = Math.sin(nextAngle * Math.PI / 180) * b;
-
-		var width = Math.max(a, a-backX);
-		var height = upY
-		this.setBounds(0,0,width,height);
-		tri.y = height;
-
-		g.lt(a-backX,0-upY);
-		this.three={x:a-backX,y:0-upY};
-		g.cp();
-
-		if (center) {
-			this.regX = width/2;
-			this.regY = height/2+adjust;
-		}
-		this.setFill = function(c) {
-			if (zot(c)) return;
-			fill = c;
-			fillObj.style = fill;
-		}
 		Object.defineProperty(that, 'color', {
 			get: function() {
-				return fill;
+				return _color;
 			},
 			set: function(value) {
-				that.setFill(value);
+				if (zot(value)) value = "black";
+				_color = value;
+				colorObj.style = _color;
 			}
 		});
-		this.setStroke = function(c) {
-			if (!strokeObj || zot(c)) return;
-			stroke = c;
-			strokeObj.style = stroke;
-		}
-		this.setStrokeSize = function(size) {
-			if (!strokeSizeObj || zot(size)) return;
-			strokeSize = size;
-			strokeSizeObj.width = strokeSize;
-		}
+		Object.defineProperty(that, 'borderColor', {
+			get: function() {
+				return _borderColor;
+			},
+			set: function(value) {
+				_borderColor = value;
+				if (!borderColorObj) drawShape();
+				else borderColorObj.style = _borderColor;
+			}
+		});
+		Object.defineProperty(that, 'borderWidth', {
+			get: function() {
+				return _borderWidth;
+			},
+			set: function(value) {
+				if (!(value>0)) value = 0;
+				_borderWidth = value;
+				if (!borderWidthObj || _borderWidth == 0) drawShape();
+				else borderWidthObj.width = _borderWidth;
+			}
+		});
 		this.clone = function() {
-			return that.cloneProps(new zim.Triangle(a, b, c, fill, stroke, strokeSize, center, adjust));
+			return that.cloneProps(new zim.Triangle(a, b, c, color, borderColor, borderWidth, center, adjust));
 		}
 	}
 	zim.extend(zim.Triangle, zim.Container, "clone", "zimContainer");
@@ -5439,6 +5660,7 @@ label - references the text object of the label
 color - gets or sets the label text color
 rollColor - gets or sets the label rollover color
 text - references the text property of the text object
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -5588,7 +5810,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-54
 
 /*--
-zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent)
+zim.Button = function(width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent)
 
 Button
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5625,7 +5847,7 @@ var button = new zim.Button({
 	height:110,
 	color:"purple",
 	rollColor:"MediumOrchid",
-	borderThickness:8,
+	borderWidth:8,
 	borderColor:"violet",
 	gradient:.3,
 	corner:0
@@ -5639,8 +5861,8 @@ height - (default 60) the height of the button
 label - (default "CLICK") ZIM Label or plain text with default settings (white)
 color - (default "orange") backing color of button (any CSS color)
 rollColor - (default "lightorange") rollover color of button
-borderColor - (default null) for no border - set border color to see
-borderThickness - (default 1) thickness of border (needs borderColor set)
+borderColor - (default null) the color of the border
+borderWidth - (default null) thickness of the border
 corner - (default 20) the round of the corner (set to 0 for no corner)
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
 shadow blur - (default 14) how blurred the shadow is if the shadow is set
@@ -5677,6 +5899,7 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 PROPERTIES
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -5708,9 +5931,9 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+55
-	zim.Button = function(width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent) {
+	zim.Button = function(width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent) {
 
-		var sig = "width, height, label, color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent";
+		var sig = "width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent";
 		var duo; if (duo = zob(zim.Button, arguments, sig, this)) return duo;
 		z_d("55");
 		this.zimContainer_constructor();
@@ -5720,7 +5943,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(color)) color="#C60";
 		if (zot(rollColor)) rollColor="#F93";
 		if (zot(borderColor)) borderColor=null;
-		if (zot(borderThickness)) borderThickness=1;
+		if (zot(borderWidth)) borderWidth=null;
 		if (zot(corner)) corner=20;
 		if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 		if (zot(shadowBlur)) shadowBlur=14;
@@ -5741,7 +5964,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var buttonBacking;
 		if (zot(backing)) {
-			buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderThickness,corner,flatBottom);
+			buttonBacking = new zim.Rectangle(width,height,color,borderColor,borderWidth,corner,flatBottom);
 		} else {
 			buttonBacking = backing;
 			buttonBacking.x = width / 2;
@@ -5771,17 +5994,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (gradient > 0 && zot(backing)) { // add an overlay
 			var gr = new createjs.Shape();
-			gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height-borderThickness);
-			gr.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, height-borderThickness, corner, corner, corner2, corner2);
+			gr.graphics.lf(["rgba(255,255,255,"+gradient+")","rgba(0,0,0,"+gradient+")"], [0, 1], 0, 0, 0, height-borderWidth);
+			gr.graphics.rc(borderWidth/2, borderWidth/2, width-borderWidth, height-borderWidth, corner, corner, corner2, corner2);
 			buttonBacking.addChild(gr);
 		}
 
 		if (gloss > 0 && zot(backing)) { // add an overlay
 			var gl = new createjs.Shape();
 			gl.graphics.f("rgba(255,255,255,"+gloss+")");
-			gl.graphics.rc(borderThickness/2, borderThickness/2, width-borderThickness, (height-borderThickness)/2, corner, corner, 0, 0);
+			gl.graphics.rc(borderWidth/2, borderWidth/2, width-borderWidth, (height-borderWidth)/2, corner, corner, 0, 0);
 			gl.graphics.f("rgba(0,0,0,"+gloss+")");
-			gl.graphics.rc(borderThickness/2, height/2, width-borderThickness, (height-borderThickness)/2, 0, 0, corner2, corner2);
+			gl.graphics.rc(borderWidth/2, height/2, width-borderWidth, (height-borderWidth)/2, 0, 0, corner2, corner2);
 			buttonBacking.addChild(gl);
 		}
 
@@ -5995,7 +6218,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.clone = function() {
 			var but = new zim.Button(
-				width, height, label.clone(), color, rollColor, borderColor, borderThickness, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom,
+				width, height, label.clone(), color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom,
 				!zot(backing)?backing.clone():null,
 				!zot(rollBacking)?rollBacking.clone():null,
 				rollPersist,
@@ -6061,6 +6284,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 checked - gets or sets the check of the box
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -6291,6 +6515,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 selected - gets the selected object - selected.label, selected.id, etc.
 selectedIndex - gets or sets the selected index of the buttons
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -6537,7 +6762,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-57
 
 /*--
-zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing)
+zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing, fadeTime)
 
 Pane
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6573,6 +6798,7 @@ displayClose - (default true) closes the Pane if display backing is pressed
 	if drag is set to true, displayClose will automatically be set to false
 backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
 	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
+fadeTime - (default 0) milliseconds to fade in and out
 
 METHODS
 show() - shows the pane
@@ -6588,6 +6814,7 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 PROPERTIES
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -6618,9 +6845,9 @@ dispatches a "close" event when closed by clicking on backing
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58
-	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing) {
+	zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing, fadeTime) {
 
-		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing";
+		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing, fadeTime";
 		var duo; if (duo = zob(zim.Pane, arguments, sig, this)) return duo;
 		z_d("58");
 		this.zimContainer_constructor();
@@ -6644,12 +6871,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(center)) center=true;
 		if (zot(displayClose)) displayClose=true;
 		if (drag) displayClose = false;
+		if (zot(fadeTime)) fadeTime=0;
 
 		var backdrop = this.backdrop = new createjs.Shape();
 		// make a big backing that closes the pane when clicked
 		// could also provide a close button
 		var g = backdrop.graphics;
-		g.beginFill("black");
+		g.f("black");
 		g.drawRect(-5000,-5000,10000,10000);
 		// makes it seem like the pane has the dimensions of the display
 		this.setBounds(-width/2,-height/2, width, height);
@@ -6672,8 +6900,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(backing)) {
 			display = this.display = new createjs.Shape();
 			g = display.graphics;
-			g.beginFill(color);
-			g.drawRoundRect(0, 0, width, height, corner);
+			g.f(color);
+			g.rr(0, 0, width, height, corner);
 			display.setBounds(0, 0, width, height);
 			display.regX = width/2;
 			display.regY = height/2;
@@ -6741,14 +6969,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.hide = function() {
 			removePane();
-			if (!zim.OPTIMIZE) container.getStage().update();
 		}
 
 		function removePane() {
-			container.removeChild(that);
-			if (resets) {
-				if (!isNaN(that.resetX)) that.x = that.resetX;
-				if (!isNaN(that.resetY)) that.y = that.resetY;
+			if (fadeTime > 0) {
+				that.animate({obj:{alpha:0}, time:fadeTime, call:end});
+			} else {
+				end();
+			}
+			function end() {
+				container.removeChild(that);
+				if (!zim.OPTIMIZE) container.getStage().update();
+				if (resets) {
+					if (!isNaN(that.resetX)) that.x = that.resetX;
+					if (!isNaN(that.resetY)) that.y = that.resetY;
+				}
 			}
 		}
 
@@ -6760,7 +6995,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 			container.addChild(that);
-			if (container.getStage()) container.getStage().update();
+			if (fadeTime > 0) {
+				that.alpha = 0;
+				that.animate({alpha:1}, fadeTime);
+			} else {
+				if (container.getStage()) container.getStage().update();
+			}
 		}
 		function checkBounds(x,y) {
 			x = Math.max(width/2, Math.min(container.getBounds().width-width/2, x));
@@ -6775,7 +7015,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.clone = function() {
 			var lX = label.x; // new Panes automatically center the label
 			var lY = label.y;
-			var p2 = that.cloneProps(new zim.Pane(container, width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, zot(backing)?backing.clone():null));
+			var p2 = that.cloneProps(new zim.Pane(container, width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, zot(backing)?backing.clone():null, fadeTime));
 			p2.label.x = lX;
 			p2.label.y = lY;
 			return p2;
@@ -6792,7 +7032,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-58
 
 /*--
-zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical)
+zim.Window = function(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical)
 
 Window
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6825,7 +7065,7 @@ width - (default 300) the width of the window
 height - (default 200) the heigth of window
 color - (default #333) background color (use "rbga(0,0,0,0)" for no background)
 borderColor - (default #999) border color
-borderThickness - (default 1) set to 0 for no border
+borderWidth - (default 1) the thickness of the border
 padding - (default 10) places the content in from edges of border (see paddingHorizontal and paddingVertical)
 corner - (default 0) is the rounded corner of the window
 swipe - (default auto/true) the direction for swiping set to none / false for no swiping
@@ -6863,6 +7103,7 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 PROPERTIES
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -6872,7 +7113,7 @@ content - ZIM Container used to hold added content
 indicator - data object that holds the following properties (with defaults):
 	you can set after object is made...
 	indicator.size = 6;
-	indicator.spacing = 3 + size + borderThickness / 2;
+	indicator.spacing = 3 + size + borderWidth / 2;
 	indicator.margin = 0; // adds extra space only at end by scrollbars
 	indicator.corner = indicator.size / 2;
 	indicator.showTime = 500; // ms to fade in
@@ -6894,9 +7135,9 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.1
-	zim.Window = function(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical) {
+	zim.Window = function(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical) {
 
-		var sig = "width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical";
+		var sig = "width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical";
 		var duo; if (duo = zob(zim.Window, arguments, sig, this)) return duo;
 		z_d("58.1");
 		this.zimContainer_constructor();
@@ -6905,7 +7146,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(height)) height=200;
 		if (zot(color)) color="#333"; // none
 		if (zot(borderColor)) borderColor="#999";
-		if (zot(borderThickness)) borderThickness=1; // 0
+		if (zot(borderWidth)) borderWidth=1; // 0
 		if (zot(padding)) padding=10;
 		if (zot(corner)) corner=0;
 		if (zot(swipe)) swipe=true; // true / auto, vertical, horizontal, false / none
@@ -6954,10 +7195,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			content.hitArea = hitArea;
 		}
 
-		if (borderThickness > 0) {
+		if (borderWidth > 0) {
 			var border = new createjs.Shape();
 			g = border.graphics;
-			g.s(borderColor).ss(borderThickness).rr(0,0,width,height,corner);
+			g.s(borderColor).ss(borderWidth).rr(0,0,width,height,corner);
 			this.addChild(border);
 		}
 
@@ -6966,7 +7207,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		// note that these properties are set dynamically in the update function
 		var indicator = this.indicator = {}; // data object to expose indicator properties
 		indicator.size = 6;
-		indicator.spacing = 3.5 + borderThickness / 2;
+		indicator.spacing = 3.5 + borderWidth / 2;
 		indicator.margin = 0;
 		indicator.corner = indicator.size / 2;
 		indicator.showTime = 500;
@@ -7018,13 +7259,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			// set mask dynamically as indicators may come and go affecting the mask size slightly
 			mg.clear();
-			mg.f("rgba(0,0,0,.01)").rr(borderThickness/2,borderThickness/2,width-((vCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(vCheck?0:borderThickness),height-((hCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(hCheck?0:borderThickness),corner);
+			mg.f("rgba(0,0,0,.01)").rr(borderWidth/2,borderWidth/2,width-((vCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(vCheck?0:borderWidth),height-((hCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(hCheck?0:borderWidth),corner);
 
 			var edgeAdjust = Math.max(corner, Math.min(indicator.corner, indicator.spacing));
-			var edgeLeft = edgeAdjust + borderThickness/2;
-			var edgeRight = edgeAdjust + (vCheck?gap:0) + borderThickness/2;
-			var edgeTop = edgeAdjust + borderThickness/2;
-			var edgeBottom = edgeAdjust + (hCheck?gap:0) + borderThickness/2;
+			var edgeLeft = edgeAdjust + borderWidth/2;
+			var edgeRight = edgeAdjust + (vCheck?gap:0) + borderWidth/2;
+			var edgeTop = edgeAdjust + borderWidth/2;
+			var edgeBottom = edgeAdjust + (hCheck?gap:0) + borderWidth/2;
 
 			if (hCheck && indicatorActive) {
 				indicatorLength = Math.max(20, (width-edgeLeft-edgeRight) * (width-edgeLeft-edgeRight) / (contentWidth + paddingHorizontal + indicator.margin));
@@ -7221,7 +7462,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.clone = function(recursive) {
 			if (zot(recursive)) recursive = true;
-			var w = that.cloneProps(new zim.Window(width, height, color, borderColor, borderThickness, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical));
+			var w = that.cloneProps(new zim.Window(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical));
 			if (recursive) {
 				that.content.cloneChildren(w.content);
 				w.update();
@@ -7242,7 +7483,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-58.1
 
 /*--
-zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur)
+zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur, fadeTime)
 
 Waiter
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7271,6 +7512,7 @@ circleColor - (default "white") the dot color
 corner - (default 14) the corner radius of the waiter box
 shadowColor - (defaults rgba(0,0,0,.3)) set to -1 for no shadow
 shadow blur - (default 14) the blur of the shadow if shadow is set
+fadeTime - (default 0) milliseconds to fade in and out
 
 METHODS
 show() - shows the waiter
@@ -7285,6 +7527,7 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 PROPERTIES
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -7299,9 +7542,9 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+59
-	zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur) {
+	zim.Waiter = function(container, speed, color, circleColor, corner, shadowColor, shadowBlur, fadeTime) {
 
-		var sig = "container, speed, color, circleColor, corner, shadowColor, shadowBlur";
+		var sig = "container, speed, color, circleColor, corner, shadowColor, shadowBlur, fadeTime";
 		var duo; if (duo = zob(zim.Waiter, arguments, sig, this)) return duo;
 		z_d("59");
 		this.zimContainer_constructor();
@@ -7316,6 +7559,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(corner)) corner=16;
 		if (zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
 		if (zot(shadowBlur)) shadowBlur=14;
+		if (zot(fadeTime)) fadeTime=0;
 
 		var height = 40;
 		var numDots = 3;
@@ -7355,12 +7599,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.hide = function() {
-			createjs.Tween.get(that,{override:true})
-						.to({alpha:0}, 300).call(function() {
-							createjs.Ticker.off("tick", that.ticker);
-							container.removeChild(that);
-							container.getStage().update();
-						});
+			if (fadeTime > 0) {
+				that.animate({obj:{alpha:0}, time:fadeTime, call:end});
+			} else {
+				end();
+			}
+			function end() {
+				container.removeChild(that);
+				container.getStage().update();
+			}
 		}
 		this.show = function() {
 			var dot; var counter=0;
@@ -7384,11 +7631,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.x = (container.getBounds().width) /2;
 			that.y = (container.getBounds().height) /2;
 			container.addChild(that);
-			container.getStage().update();
+			if (fadeTime > 0) {
+				that.alpha = 0;
+				that.animate({alpha:1}, fadeTime);
+			}
 		}
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Waiter(container, speed, color, circleColor, corner, shadowColor, shadowBlur));
+			return that.cloneProps(new zim.Waiter(container, speed, color, circleColor, corner, shadowColor, shadowBlur, fadeTime));
 		}
 
 		this.dispose = function() {
@@ -7453,6 +7703,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 selectedIndex - gets or sets the current index of the indicator
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -7599,13 +7850,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-60
 
 /*--
-zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display)
+zim.Stepper = function(list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled)
 
 Stepper
 zim class - extends a zim.Container which extends a createjs.Container
 
 DESCRIPTION
 Lets you step through a list of numbers or strings with arrows and keyboard arrows.
+Uses mousedown to activate and defaults to stepping while pressing down
+and going faster if you drag away from your press.
 
 EXAMPLE
 var stepper = new zim.Stepper();
@@ -7619,7 +7872,7 @@ PARAMETERS supports DUO - parameters or single object with properties below
 list - (default 1-10) pass in an array of strings or numbers to display one at a time
 width - (default 100) is the width of the text box (you can scale the whole stepper if needed)
 color - (default "white") for the arrows and the text box
-strokeColor - (default null) stroke color for the box
+borderColor - (default null) stroke color for the box
 label - (default null) which can be used to define custom text properties
 vertical - (default false) set to true if you want the numbers above and below the text
 arrows - (default true) - use keyboard arrows (will always show graphical arrows)
@@ -7628,6 +7881,23 @@ shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
 shadowBlur - (default 14) value for shadow blur if shadow is set
 loop - (default false) set to true to loop around or go back past 0 index
 display - (default true) set to false just to just show the arrows and not the value
+hold - (default true) set to false to not step with extended press down
+holdDelay - (default 400 ms) time (milliseconds) to wait for first step with hold
+holdSpeed - (default 200 ms) time (milliseconds) between steps as holding
+drag - (default true) set to false to not step when dragging
+dragSensitivity - (default .1) .01 changes really quickly - 1 changes at base rate
+dragRange - (default 200) absolute distance (pixels) from press the drag will reach maximum
+type - (default "list") list draws values from list parameters
+	also types "number", "letter" - these get ranges below
+min - (default 0 for number and "A" for letter) the minimum value (can make min bigger than max) (not for list type)
+max - (default 100 for number and "Z" for letter) the maximum value (can make max smaller than min) (not for list type)
+step - (default 1) the step value each time - can be decimal (only positive, only for number type)
+step2 - (default set to step) the step value when dragging perpendicular to main horizontal or vertical direction
+	step2 will run with drag set to true or with arrows2 set below (only positive, only for number type)
+arrows2 - (default true if step2 different than step else false) secondary arrows perpendicular to main horizontal or vertical direction
+	arrows2 will activate step2 above (only for number type)
+arrows2Scale - (default .5) the scale relative to the main arrows
+keyEnabled - (default true) set to false to disable keyboard search / number picker
 
 METHODS
 next() - goes to next
@@ -7644,17 +7914,21 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 currentIndex - gets or sets the current index of the array and display
 currentValue - gets or sets the current value of the array and display
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
-stepperArray - gets or sets the list - you should manually set the desired currentIndex if you change this
-prev, next - access to the arrow containers (use to position)
-arrowPrev, arrowNext - access to the graphical zim Triangle objects (createjs.Containers)
+stepperArray - gets or sets the list
+prev, next - access to the zim Triangle objects (use to position)
+arrowPrev, arrowNext - access to the zim Triangle objects
+prev2, next2 - access to the arrows2 containers (use to position)
+arrowPrev2, arrowNext2 - access to the zim Triangle objects for arrows2
 label - access to the zim.Label
 textBox - access to the text box backing shape
 loop - does the stepper loop
 enabled - default is true - set to false to disable
+focus - get or set the focus for keypress
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
@@ -7665,10 +7939,6 @@ This component is affected by the general zim.OPTIMIZE setting (default is false
 if set to true, you will have to stage.update() after setting certain properties
 and stage.update() in change event to see component change its graphics
 
-ACTIONEVENT
-This component is affected by the general zim.ACTIONEVENT setting
-The default is "mousedown" - if set to something else the component will act on click (press)
-
 EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 (but not when setting currentIndex or currentValue properties)
@@ -7676,9 +7946,9 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+61
-	zim.Stepper = function(list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display) {
+	zim.Stepper = function(list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled) {
 
-		var sig = "list, width, color, strokeColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display";
+		var sig = "list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled";
 		var duo; if (duo = zob(zim.Stepper, arguments, sig, this)) return duo;
 		z_d("61");
 		this.zimContainer_constructor();
@@ -7686,7 +7956,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(list)) list = [0,1,2,3,4,5,6,7,8,9];
 		if (zot(width)) width=200;
 		if (zot(color)) color="white";
-		if (zot(strokeColor)) strokeColor=null;
+		if (zot(borderColor)) borderColor=null;
 		if (zot(label)) label = "";
 		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555", null, null, null, "center");
 		if (zot(vertical)) vertical=false;
@@ -7696,44 +7966,129 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(shadowBlur)) shadowBlur=14;
 		if (zot(loop)) loop=false;
 		if (zot(display)) display=true;
-		var eventType = (zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
+
+		if (zot(hold)) hold=true;
+		if (zot(holdDelay)) holdDelay=400;
+		if (zot(holdSpeed)) holdSpeed=200;
+		if (zot(drag)) drag=true;
+		if (zot(dragSensitivity) || dragSensitivity <= 0) dragSensitivity=.1;
+		if (zot(dragRange)) dragRange=200;
+
+		if (zot(type)) type="list";
+		if (zot(min)) min=0;
+		if (zot(max)) max=100;
+		if (zot(step)) step=1;
+		if (zot(step2)) step2=step;
+		if (zot(arrows2) && step2 != step) arrows2=true;
+		if (zot(arrows2Scale)) arrows2Scale=.5;
+		if (zot(keyEnabled)) keyEnabled = true;
 
 		var that = this;
 		var index;
 		var height = 100;
 		var boxSpacing = height/4;
 
+		var actualStep = step; // toggle between step and step2
+		var numVal;
+		var numDir = 1;
+		var letterVal;
+		var decimals;
+		if (type == "number") {
+			min = Number(min);
+			max = Number(max);
+			if (min == NaN) min = 0;
+			if (max == NaN) max = 100;
+			if (max < min) {
+				numDir = -1;
+				var temp = max; // one day ES6
+				max = min;
+				min = temp;
+				numVal = max;
+			} else {
+				numVal = min;
+			}
+			if (0 > min && 0 < max) numVal = 0;
+			step = Math.abs(step);
+			decimals = Math.max(getDecimals(step), getDecimals(step2));
+		} else if (type == "letter") {
+			list = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+			if (typeof min != "string") min = "A";
+			if (typeof max != "string") max = "Z";
+			min = min.substr(0,1).toUpperCase();
+			max = max.substr(0,1).toUpperCase();
+			var startLetter = list.indexOf(min);
+			if (startLetter < 0) {min = "A"; startLetter = 0;}
+			var endLetter = list.indexOf(max);
+			if (endLetter < 0) {max = "Z"; endLetter = list.length;}
+			if (endLetter < startLetter) {
+				list.reverse();
+				startLetter = list.length-1-startLetter;
+				endLetter = list.length-1-endLetter;
+			}
+			list = list.splice(startLetter, endLetter-startLetter+1);
+		} else {
+			type = "list";
+		}
+
+		function getDecimals(num) {
+			var decimals = String(num).split(".")[1]
+			if (decimals) {decimals = decimals.length} else {decimals = 0;};
+			return decimals;
+		}
+
+		var rawEvent;
+		var rawX = 0;
+		var rawY = 0;
+
+		if (drag) {
+			this.on("mousedown", function() {
+				this.getStage().mouseMoveOutside = true;
+				rawEvent = this.getStage().on("stagemousemove", function(e){
+					rawX = e.rawX;
+					rawY = e.rawY;
+				})
+			}, null, true);
+		}
 		this.label = label;
 		label.mouseChildren = false;
 		label.mouseEnabled = false;
 
+		var arrowBacking = new createjs.Shape();
+		arrowBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
+		arrowBacking.regX = height*1.5 / 2;
+		arrowBacking.regY = height*1.5 / 2 + boxSpacing/2;
+
 		var prev = this.prev = new zim.Container();
 		this.addChild(prev);
-		var prevBacking = new createjs.Shape();
-		prevBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
-		prevBacking.regX = height*1.5 / 2;
-		prevBacking.regY = height*1.5 / 2 + boxSpacing/2;
-		prev.hitArea = prevBacking;
+		prev.hitArea = arrowBacking;
 
 		var arrowPrev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
 		if (shadowColor != -1 && shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 		prev.addChild(arrowPrev);
 		prev.cursor = "pointer";
-		prev.on(eventType, function(e) {step(-1);});
+
+		var holdCheck = false;
+		var delayTimeout;
+		var speedTimeout;
+		prev.on("mousedown", function(e) {
+			actualStep = step;
+			doStep(-1);
+			go(-1);
+		})
+		if (hold) prev.on("pressup", goEnd);
 
 		if (vertical) {
 			prev.rotation = 180;
 			prev.x = width/2;
 			if (display) {
-				prev.y = prev.getBounds().height + boxSpacing + height + prev.getBounds().height/2 + boxSpacing;
+				prev.y = prev.height + boxSpacing + height + prev.height/2 + boxSpacing;
 			} else {
-				prev.y = prev.getBounds().height * 2;
+				prev.y = prev.height * 2;
 			}
-
 		} else {
 			prev.rotation = -90;
-			prev.x = prev.getBounds().height/2;
-			prev.y = prev.getBounds().width/2;
+			prev.x = prev.height/2;
+			prev.y = prev.width/2;
 		}
 
 		if (display) {
@@ -7741,7 +8096,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			box.cursor = "pointer";
 			this.addChild(box);
 			box.setBounds(0, 0, width, height);
-			if (strokeColor != null) box.graphics.s(strokeColor).ss(1.5);
+			if (borderColor != null) box.graphics.s(borderColor).ss(1.5);
 			box.graphics.f(color).rr(0, 0, width, height, corner);
 			if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 
@@ -7768,19 +8123,42 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var next = this.next = new zim.Container();
 		this.addChild(next);
-		var nextBacking = new createjs.Shape();
-		nextBacking.graphics.f("rgba(255,255,255,.01)").r(0,0,height*1.5,height*1.5);
-		nextBacking.regX = height*1.5 / 2;
-		nextBacking.regY = height*1.5 / 2 + boxSpacing/2;
-		next.hitArea = nextBacking;
+		next.hitArea = arrowBacking.clone();
 
 		var arrowNext = this.arrowNext = new zim.Triangle(height, height*.8, height*.8, color);
 		if (shadowColor != -1 && shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 		next.addChild(arrowNext);
-
 		next.cursor = "pointer";
-		next.on(eventType, function(e) {step(1);});
-		if (display) box.on(eventType, function(e) {step(1);});
+
+		next.on("mousedown", function(e) {
+			actualStep = step;
+			doStep(1);
+			go(1);
+		});
+		var roundTimeout;
+		var clickCheck = false;
+		if (display) box.on("mousedown", function(e) {
+			go(1, true); // do decimals from box
+			if (type == "number") {
+				clearTimeout(roundTimeout);
+				clickCheck = true;
+				roundTimeout = setTimeout(function() {
+					clickCheck = false;
+				}, 200);
+			}
+		});
+		box.on("pressup", function() {
+			if (clickCheck) {
+				numVal = Math.round(numVal);
+				setLabel(numVal, numVal);
+				that.dispatchEvent("change");
+			}
+		});
+		if (hold) {
+			next.on("pressup", goEnd);
+			if (display) box.on("pressup", goEnd);
+			clearTimeout(roundTimeout);
+		}
 
 		if (vertical) {
 			next.rotation = 0;
@@ -7796,47 +8174,199 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			next.y = next.getBounds().width/2;
 		}
 
-		setLabel(index);
 
-		function step(n) {
-			var nextIndex = index + n;
-			if (!loop) {
-				if (nextIndex > list.length-1) {
-					if (display) box.cursor = "default";
-					return;
-				} else {
-					if (display) box.cursor = "pointer";
-				}
-				if (nextIndex < 0) return;
-			} else {
-				if (nextIndex > list.length-1) nextIndex = 0;
-				if (nextIndex < 0) nextIndex = list.length-1;
+		var holdX;
+		var proportion;
+		// pressdown and move mouse changes speed and direction of stepper
+		function go(dir, both, dec) {
+			if (hold) {
+				holdX = that.getStage().mouseX;
+				holdY = that.getStage().mouseY;
+				if (holdX == 0) holdX = 1;
+				if (holdY == 0) holdY = 1;
+				if (!drag) dragSensitivity = 1;
+				proportion = new zim.Proportion(0, dragRange, holdSpeed, holdSpeed*dragSensitivity);
+				var dragInput = holdSpeed;
+				delayTimeout = setTimeout(function() {
+					holdCheck=true;
+					function doHold() {
+						speedTimeout = setTimeout(function() {
+							var dragDir = dir;
+							if (drag) {
+								// only change direction if outside of 10 pixels from where pressed
+								var diffX = Math.abs(rawX - holdX);
+								var diffY = Math.abs(rawY - holdY);
+								if (vertical) {
+									if (!both && !dec) diffX = 0; // don't do decimals
+									if (dec) diffY = 0;
+								} else {
+									if (!both && !dec) diffY = 0; // don't do decimals
+									if (dec) diffX = 0;
+								}
+								if (diffX >= 10 || diffY >= 10) {
+									if (diffX > diffY) {
+										actualStep = vertical?step2:step;
+										dragDir = rawX - holdX > 0 ? 1 : -1;
+										dragInput = proportion.convert(Math.abs(holdX-rawX));
+									} else {
+										actualStep = vertical?step:step2;
+										dragDir = rawY - holdY > 0 ? -1 : 1;
+										dragInput = proportion.convert(Math.abs(holdY-rawY));
+									}
+								}
+							}
+							doStep(dragDir);
+							doHold();
+						}, dragInput);
+					}
+					doHold();
+				}, holdDelay);
 			}
-			setLabel(nextIndex);
+		}
+
+		function goEnd() {
+			holdCheck = false;
+			clearTimeout(delayTimeout);
+			clearTimeout(speedTimeout);
+		}
+
+		if (arrows2) { // step2 arrows
+
+			var prev2 = this.prev2 = new zim.Container();
+			prev2.hitArea = arrowBacking.clone();
+			var arrowPrev2 = this.arrowPrev2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", color, 2);
+			prev2.addChild(arrowPrev2);
+			prev2.cursor = "pointer";
+			prev2.scale(arrows2Scale);
+			prev2.alpha = .5;
+			prev2.on("mousedown", function(e) {
+				actualStep = step2;
+				doStep(-1);
+				go(-1, null, true);
+			});
+			if (hold) prev2.on("pressup", goEnd);
+
+			var next2 = this.next2 = new zim.Container();
+			next2.hitArea = arrowBacking.clone();
+			var arrowNext2 = this.arrowNext2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", color, 2);
+			next2.addChild(arrowNext2);
+			next2.cursor = "pointer";
+			next2.scale(arrows2Scale);
+			next2.alpha = .5;
+			next2.on("mousedown", function(e) {
+				actualStep = step2;
+				doStep(1);
+				go(1, null, true);
+			});
+			if (hold) next2.on("pressup", goEnd);
+
+			if (vertical) {
+				prev2.y = this.height / 2;
+				prev2.x = -prev2.width / 2 - boxSpacing*Math.max(.2, Math.min(1, arrows2Scale));
+				prev2.rotation = 270;
+				next2.y = this.height / 2;
+				next2.x = this.width + next2.width/2 + boxSpacing*Math.max(.2, Math.min(1, arrows2Scale));
+				next2.rotation = 90;
+			} else {
+				next2.x = this.width / 2;
+				next2.y = -next2.height / 2 - boxSpacing*Math.max(.2, Math.min(1, arrows2Scale));
+				next2.rotation = 0;
+				prev2.x = this.width / 2;
+				prev2.y = this.height + prev2.height/2 + boxSpacing*Math.max(.2, Math.min(1, arrows2Scale));
+				prev2.rotation = 180;
+			}
+			this.addChild(prev2, next2);
+		}
+
+		setLabel(type=="number"?numVal:list[index], type=="number"?numVal:index);
+
+		if (zot(zim.focus)) zim.focus = this;
+		function doStep(n) {
+			var text;
+			var nextIndex;
+			if (type == "number") {
+				var lastNumVal = numVal;
+				numVal += actualStep * n * numDir;
+				numVal = zim.decimals(numVal, decimals);
+				if (!loop) {
+					if (numVal > max) {
+						numVal = step==1?max:lastNumVal;
+						if (display) box.cursor = "default";
+					} else {
+						if (display) box.cursor = "pointer";
+					}
+					if (numVal < min) {
+						numVal = step==1?min:lastNumVal;
+					}
+				} else {
+					if (numVal > max) {
+						numVal = min;
+					} else if (numVal < min) {
+						numVal = max;
+					}
+				}
+			} else {
+				nextIndex = index + n;
+				if (!loop) {
+					if (nextIndex > list.length-1) {
+						if (display) box.cursor = "default";
+						return;
+					} else {
+						if (display) box.cursor = "pointer";
+					}
+					if (nextIndex < 0) return;
+				} else {
+					if (nextIndex > list.length-1) nextIndex = 0;
+					if (nextIndex < 0) nextIndex = list.length-1;
+				}
+				index = nextIndex;
+			}
+			setLabel(type=="number"?numVal:list[index], type=="number"?numVal:index);
 			that.dispatchEvent("change");
 		}
 
 		Object.defineProperty(this, 'currentIndex', {
 			get: function() {
-				return index;
+				if (type=="number") {
+					return undefined;
+				} else {
+					return index;
+				}
 			},
 			set: function(value) {
+				if(zot(value)) return;
 				value = Math.min(list.length-1, Math.max(0, value));
-				if (value == that.currentIndex) return;
-				setLabel(index=value);
+				index = value;
+				setLabel(list[index], index);
 			}
 		});
 
 		Object.defineProperty(this, 'currentValue', {
 			get: function() {
-				return list[index];
+				if (type=="number") {
+					return numVal;
+				} else {
+					return list[index];
+				}
 			},
 			set: function(value) {
-				if (list.indexOf(value) > -1) {
-					value = list.indexOf(value);
+				if(zot(value)) return;
+				if (type=="number") {
+					if (max > min) {
+						if (value > max || value < min) return;
+					} else {
+						if (value < max || value > min) return;
+					}
+					numVal = value;
+					setLabel(numVal, numVal);
+				} else {
+					if (list.indexOf(value) > -1) {
+						value = list.indexOf(value);
+					}
+					if (value == that.currentIndex) return;
+					index=value;
+					setLabel(list[index], index);
 				}
-				if (value == that.currentIndex) return;
-				setLabel(index=value);
 			}
 		});
 
@@ -7846,7 +8376,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				loop = value;
-				setLabel(index);
+				if (type=="number") {
+					setLabel(numVal, numVal);
+				} else {
+					setLabel(list[that.currentIndex], that.currentIndex);
+				}
 			}
 		});
 
@@ -7856,6 +8390,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				list = value;
+				that.currentIndex = that.currentIndex;
+			}
+		});
+
+		Object.defineProperty(this, 'focus', {
+			get: function() {
+				return (zim.focus == that);
+			},
+			set: function(value) {
+				if (value) {
+					zim.focus = that;
+				} else {
+					// if this component was in focus then remove focus
+					if (zim.focus == that) zim.focus = null;
+				}
 			}
 		});
 
@@ -7867,14 +8416,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				zenable(that, value);
 				if (value) {
-					setLabel(that.currentIndex);
+					if (type=="number") {
+						setLabel(numVal, numVal);
+					} else {
+						setLabel(list[that.currentIndex], that.currentIndex);
+					}
+					window.addEventListener("keydown", that.keyDownEvent);
 				} else {
-					prev.alpha = .8;
-					arrowPrev.setFill("#aaa");
-					prev.cursor = "default";
-					next.alpha = .8;
-					arrowNext.setFill("#aaa");
-					next.cursor = "default";
+					greyPrev();
+					greyNext();
+					window.removeEventListener("keydown", that.keyDownEvent);
 					if (display) label.mouseChildren = false;
 					if (display) label.mouseEnabled = false;
 				}
@@ -7882,63 +8433,128 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
-		function setLabel(n) {
+		function setLabel(text, n) {
 			index = n;
 			if (display) {
-				label.text = list[index];
+				if (type == "number") {
+					if (text != 0 && decimals > 0) {
+						text = zim.decimals(text, decimals, true);
+					}
+				}
+				label.text = text;
 				label.x = box.x+box.getBounds().width/2;
 				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
 			}
 			prev.alpha = 1;
-			arrowPrev.setFill(color);
+			arrowPrev.color = color;
 			prev.cursor = "pointer";
 			next.alpha = 1;
-			arrowNext.setFill(color);
+			arrowNext.color = color;
 			next.cursor = "pointer";
 			if (!loop) {
-				if (index == 0) {
-					prev.alpha = .8;
-					arrowPrev.setFill("#aaa");
-					prev.cursor = "default";
-				}
-				if (index == list.length-1) {
-					next.alpha = .8;
-					arrowNext.setFill("#aaa");
-					next.cursor = "default";
+				if (type == "number") {
+					if (index == min) {
+						if (numDir > 0) {greyPrev();} else {greyNext()};
+					}
+					if (index == max) {
+						if (numDir > 0) {greyNext();} else {greyPrev()};
+					}
+				} else {
+					if (index == 0) greyPrev();
+					if (index == list.length-1) greyNext();
 				}
 			}
 			if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();
 		}
 
-		if (arrows) {
-			this.keyDownEvent = function(e) {
-				if (!e) e = event;
-				if (e.keyCode >= 37 && e.keyCode <= 40) {
+		function greyPrev() {
+			prev.alpha = .8;
+			arrowPrev.color = "#aaa";
+			prev.cursor = "default";
+		}
+		function greyNext() {
+			next.alpha = .8;
+			arrowNext.color = "#aaa";
+			next.cursor = "default";
+		}
+
+		var pressCheck = false;
+		var decimalCheck = false;
+		var negativeCheck = false;
+		this.on("mousedown", function() {
+			zim.focus = that;
+			pressCheck = true;
+			decimalCheck = false;
+			negativeCheck = false;
+		})
+
+		this.keyDownEvent = function(e) {
+			if (zim.focus != that) return;
+			if (!e) e = event;
+			var k = e.keyCode;
+			if (arrows) {
+				if (k >= 37 && k <= 40) {
 					var nextIndex;
-					if (e.keyCode == 38 || e.keyCode == 39) {
-						step(1);
-					} else if (e.keyCode == 37 || e.keyCode == 40) {
-						step(-1);
+					if (k == 38 || k == 39) {
+						doStep(1);
+					} else if (k == 37 || k == 40) {
+						doStep(-1);
 					}
 				}
 			}
-			window.addEventListener("keydown", this.keyDownEvent);
+
+			if (keyEnabled) {
+				if (type=="number") { // 48-57, 96-105 190. 173-
+					var num;
+					if (!e.shiftKey && k>=48 && k<=57) {
+						num = k-48;
+					} else if (k>=96 && k<=105) {
+						num = k-96;
+					} else if (k==190) {
+						decimalCheck = true;
+					} else if (k==173) {
+						that.currentValue = that.currentValue * -1;
+						that.dispatchEvent("change");
+						negativeCheck = !negativeCheck;
+					} else if (k == 46) { // delete
+						pressCheck = true;
+						decimalCheck = false;
+					} else if (k == 8) { // backspace
+
+					}
+					if (pressCheck && !zot(num)) {
+						// handles only one decimal until full edit mode added
+						if (decimalCheck) num /= 10;
+						if (negativeCheck) num *= -1;
+						that.currentValue = num;
+						pressCheck = false;
+						that.dispatchEvent("change");
+					} else if (!zot(num)) {
+						if (decimalCheck) num = String(num / 10).substr(1);
+						that.currentValue = Number(Math.floor(Number(label.text)) + String(num));
+						that.dispatchEvent("change");
+					}
+				}
+			}
 		}
+		window.addEventListener("keydown", this.keyDownEvent);
 
 		this.next = function() {
-			step(1);
+			doStep(1);
 		}
 
 		this.prev = function() {
-			step(-1);
+			doStep(-1);
 		}
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Stepper(list, width, color, strokeColor, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, loop, display));
+			return that.cloneProps(new zim.Stepper(list, width, color, borderColor, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled));
 		}
 
 		this.dispose = function() {
 			that.removeAllEventListeners();
+			window.removeEventListener("keydown", that.keyDownEvent);
+			stage.off(rawEvent);
 			return true;
 		}
 	}
@@ -7987,6 +8603,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 currentValue - gets or sets the current value of the slider
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -8172,6 +8789,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return myValue;
 			},
 			set: function(value) {
+				if (zot(value)) return;
 				if (min < max) {
 					if (value < min) value = min;
 					if (value > max) value = max;
@@ -8286,6 +8904,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 currentValue - gets or sets the current value of the dial
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -8474,6 +9093,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return myValue;
 			},
 			set: function(value) {
+				if(zot(value)) return;
 				if (min < max) {
 					if (value < min) value = min;
 					if (value > max) value = max;
@@ -8597,6 +9217,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 selectedIndex - gets or sets the selected index of the tabs
 selected - gets the selected button - selected.enabled = true, etc.
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -8941,6 +9562,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 selectedIndex - gets or sets the selected index of the pad
 selected - gets the selected button - selected.enabled = true, etc.
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -9127,6 +9749,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 selectedColor - gets or sets the selected color swatch
 selectedAlpha - gets or sets the selected alpha (set does not work if alphaPicker is false)
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -9770,7 +10393,7 @@ pages.on("page", function() {
 
 // you can manually go to pages as well
 // we will make a little triangle to click:
-var back = new zim.Triangle({fill:"red"});
+var back = new zim.Triangle({color:"red"});
 back.center(find); // add triangle to find page
 // not really supposed to add things to zim shapes
 // they default to mouseChildren false
@@ -12530,6 +13153,7 @@ EVENTS
 		this.dark 		= this.bits 	= "#333333";
 		this.darker 	= this.zim 		= "#111111";
 		this.purple		= this.github 	= "#993399";
+		this.clear 		= this.learn  	= "rgba(0,0,0,0)";
 
 		this.makeCircles = function(radius) {
 			if (zot(radius)) radius = 100;
