@@ -560,16 +560,16 @@ zim function
 
 DESCRIPTION
 1. If you pass in a Number for obj then loop() does function call that many times
-and passes function call the currentIndex, the startIndex and endIndex.
+and passes function call the currentIndex, totalLoops, startIndex, endIndex, obj.
 By default, the index starts at 0 and counts up to one less than the number.
 So this is like: for (var i=0; i<obj; i++) {}
 
 2. If you pass in an Array then loop() loops through the array
-and passes the function call the element in the array, currentIndex, startIndex, endIndex and the array.
+and passes the function call the element in the array, currentIndex, totalLoops, startIndex, endIndex and the array.
 So this is like: for (var i=0; i<obj; i++) {element = array[i]}
 
 3. If you pass in an Object literal then loop() loops through the object
-and passes the function call the property name, value, currentIndex, startIndex, endIndex, and object
+and passes the function call the property name, value, currentIndex, totalLoops, startIndex, endIndex, obj
 So this is like: for (var i in obj) {property = i; value = obj[i];}
 
 NOTE: If you pass in true for reverse, the loop is run backwards counting to 0 (by default)
@@ -579,7 +579,7 @@ NOTE: return a value to return out of the loop completely like a break (and retu
 
 EXAMPLE
 var container = new zim.Container();
-zim.loop(1000, function(i) { // gets passed an index i and obj when obj is a Number
+zim.loop(1000, function(i) { // gets passed an index i, totalLoops 1000, startIndex 0, endIndex 999, obj 1000
 	// make 1000 rectangles
 	container.addChild(new zim.Rectangle());
 });
@@ -598,7 +598,7 @@ zim.loop(colors, function(color, index, start, end, array) { // do not have to c
 });
 
 var person = {name:"Dan Zen", occupation:"Inventor", location:"Dundas"}
-var result = zim.loop(person, function(prop, val, index, start, end, object) { // do not have to collect all these
+var result = zim.loop(person, function(prop, val, index, total, start, end, object) { // do not have to collect all these
 	zog(prop, val); // each key value pair
 	if (val == "criminal") return "criminal"; // this would return out of the loop to the containing function
 });
@@ -3406,20 +3406,20 @@ so that we can use earlier loop function without createjs
 
 DESCRIPTION
 1. If you pass in a Number for obj then loop() does function call that many times
-and passes function call the currentIndex, startIndex and endIndex.
+and passes function call the currentIndex, totalLoops, startIndex, endIndex, obj.
 By default, the index starts at 0 and counts up to one less than the number.
 So this is like: for (var i=0; i<obj; i++) {}
 
 2. If you pass in an Array then loop() loops through the array
-and passes the function call the element in the array, currentIndex, startIndex, endIndex and the array.
+and passes the function call the element in the array, currentIndex, totalLoops, startIndex, endIndex, array.
 So this is like: for (var i=0; i<obj; i++) {element = array[i]}
 
 3. If you pass in an Object literal then loop() loops through the object
-and passes the function call the property name, value, currentIndex, startIndex, endIndex and object
+and passes the function call the property name, value, currentIndex, totalLoops, startIndex, endIndex, obj.
 So this is like: for (var i in obj) {property = i; value = obj[i];}
 
 4. If you pass in a container for obj then loop() loops through all the children of the container
-and does the function for each one passing the child, currentIndex, total, startIndex, endIndex and the object.
+and does the function for each one passing the child, currentIndex, totalLoops, startIndex, endIndex, obj.
 So this is like for(i=0; i<obj; i++) {var child = obj.getChildAt(i);} loop
 or for (var i in container.children) {var child = container.children[i];}
 
@@ -3430,7 +3430,7 @@ NOTE: return a value to return out of the loop completely like a break (and retu
 
 EXAMPLE
 var container = new zim.Container();
-zim.loop(1000, function(i) { // gets passed an index i, total, start, end, obj when obj is a Number
+zim.loop(1000, function(i) { // gets passed an index i, total 1000, start 0, end 999, obj 1000
 	// make 1000 rectangles
 	container.addChild(new zim.Rectangle());
 });
@@ -3462,7 +3462,7 @@ container.loop(function(child, i) { // gets passed the child, index, total, star
 }, true); // true would reverse - so highest in stack to lowest, with i going from numChildren-1 to 0
 
 // with pre ZIM 4TH function and without reverse
-zim.loop(container, function(child, i) { // gets passed the child, currentIndex, total, startIndex, endIndex and obj
+zim.loop(container, function(child, i) { // gets passed the child, index, total, start, end and obj
 	child.x += i*2;
 	child.y += i*2;
 });
@@ -3644,9 +3644,45 @@ RETURNS obj for chaining
 	}//-41.5
 
 /*--
-zim.pha = function(obj, alpha)
+zim.mov = function(mov, x, y)
 
-pha
+mov
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Move the object over in the x and/or y
+Equivilant to obj.x += x and obj.y += y
+Pass in 0 for no shift in x if you just want to shift y
+Gives chainable relative position
+
+NOTE: might want to pronounce this "mawv" to differentiate from ZIM move()
+
+EXAMPLE
+var circle = new zim.Circle().center(stage).mov(50); // move to right 50
+
+OR with pre ZIM 4TH function
+zim.mov(circle, 50);
+END EXAMPLE
+
+PARAMETERS
+obj - object to shift
+x - (default 0) the distance in x to move (can be negative)
+y - (default 0) the distance in y to move (can be negative)
+
+RETURNS obj for chaining
+--*///+41.6
+	zim.mov = function(obj, x, y) {
+		z_d("41.6");
+		if (zot(obj)) return;
+		if (!zot(x)) obj.x += x;
+		if (!zot(y)) obj.y += y;
+		return obj;
+	}//-41.6
+
+/*--
+zim.alp = function(obj, alpha)
+
+alp
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
@@ -3654,10 +3690,10 @@ Chainable convenience function to set the alpha
 See also the CreateJS set({prop:val, prop2:val}) method;
 
 EXAMPLE
-circle.pha(.5);
+circle.alp(.5);
 
 OR with pre ZIM 4TH function
-zim.pha(circle, .5);
+zim.alp(circle, .5);
 END EXAMPLE
 
 PARAMETERS
@@ -3665,13 +3701,13 @@ obj - object to scale
 alpha - default(null) the alpha between 0 and 1
 
 RETURNS obj for chaining
---*///+41.6
-	zim.pha = function(obj, alpha) {
-		z_d("41.6");
+--*///+41.7
+	zim.alp = function(obj, alpha) {
+		z_d("41.7");
 		if (zot(obj)) return;
 		if (!zot(alpha)) obj.alpha = alpha;
 		return obj;
-	}//-41.6
+	}//-41.7
 
 /*--
 zim.rot = function(obj, rotation)
@@ -3684,10 +3720,10 @@ Chainable convenience function to set the rotation
 See also the CreateJS set({prop:val, prop2:val}) method;
 
 EXAMPLE
-circle.rot(180);
+rect.rot(180);
 
 OR with pre ZIM 4TH function
-zim.rot(circle, 180);
+zim.rot(rect, 180);
 END EXAMPLE
 
 PARAMETERS
@@ -3695,13 +3731,45 @@ obj - object to scale
 rotation - (default null) the rotation in degrees
 
 RETURNS obj for chaining
---*///+41.7
+--*///+41.8
 	zim.rot = function(obj, rotation) {
-		z_d("41.7");
+		z_d("41.8");
 		if (zot(obj)) return;
 		if (!zot(rotation)) obj.rotation=rotation;
 		return obj;
-	}//-41.7
+	}//-41.8
+
+/*--
+zim.ske = function(obj, skewX, skewY)
+
+ske
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Chainable convenience function to skew x and y (slant)
+See also the CreateJS set({prop:val, prop2:val}) method;
+
+EXAMPLE
+circle.ske(20);
+
+OR with pre ZIM 4TH function
+zim.ske(circle, 20);
+END EXAMPLE
+
+PARAMETERS
+obj - object to position
+skewX - (default null) the x skew
+skewY - (default null) the y skew
+
+RETURNS obj for chaining
+--*///+41.9
+	zim.ske = function(obj, skewX, skewY) {
+		z_d("41.9");
+		if (zot(obj)) return;
+		if (!zot(skewX)) obj.skewX = skewX;
+		if (!zot(skewY)) obj.skewY = skewY;
+		return obj;
+	}//-41.9
 
 /*--
 zim.scale = function(obj, scale)
@@ -3710,14 +3778,18 @@ scale
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
-Convenience function to do scaleX and scaleY in one call.
+Chainable convenience function to do scaleX and scaleY in one call.
+If you pass in one parameter, it scales both x and y to this value.
+Can also pass in a second scale x and y independently.
 Also see zim.scaleTo(), zim.fit() and zim.Layout().
 
 EXAMPLE
-circle.scale(.5);
+circle.scale(.5); // x and y scale to .5
+circle.scale(.5, 2); // x scale to .5 and y scale to 2
 
 OR with pre ZIM 4TH function
 zim.scale(circle, .5);
+zim.scale(circle, .5, 2);
 END EXAMPLE
 
 PARAMETERS
@@ -3726,11 +3798,12 @@ scale - the scale (1 being full scale, 2 being twice as big, etc.)
 
 RETURNS obj for chaining
 --*///+42
-	zim.scale = function(obj, scale) {
+	zim.scale = function(obj, scale, scaleY) {
 		z_d("42");
 		if (zot(obj) || zot(obj.scaleX)) return;
-		if (zot(scale)) scale=1;
-		obj.scaleX = obj.scaleY = scale;
+		if (zot(scale)) scale = obj.scaleX;
+		if (zot(scaleY)) scaleY = scale;
+		obj.scaleX = scale; obj.scaleY = scaleY;
 		return obj;
 	}//-42
 
@@ -4696,14 +4769,20 @@ RETURNS the object for chaining
 		pos:function(x, y) {
 			return zim.pos(this, x, y);
 		},
-		pha:function(alpha) {
-			return zim.pha(this, alpha);
+		mov:function(x, y) {
+			return zim.mov(this, x, y);
+		},
+		alp:function(alpha) {
+			return zim.alp(this, alpha);
 		},
 		rot:function(rotation) {
 			return zim.rot(this, rotation);
 		},
-		scale:function(scale) {
-			return zim.scale(this, scale);
+		ske:function(skewX, skewY) {
+			return zim.ske(this, skewX, skewY);
+		},
+		scale:function(scale, scaleY) {
+			return zim.scale(this, scale, scaleY);
 		},
 		scaleTo:function(boundObj, percentX, percentY, type) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
@@ -4925,10 +5004,15 @@ move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, lo
 animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override, from)
 loop(call, reverse, step, start, end)
 copyMatrix(source)
+pos(x, y)
+alp(alpha)
+rot(rotation)
 scale(scale)
 scaleTo(boundObj, percentX, percentY, type)
 fit(left, top, width, height, inside)
 outline(color, size)
+addTo(container, index)
+removeFrom(container)
 centerReg(container, add, index)
 center(container, add, index)
 place(id)
@@ -5057,6 +5141,8 @@ clone(recursive) - makes a copy of the shape
 	set recursive to false to have clone share graphic property
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -5140,6 +5226,8 @@ METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Bitmap methods, such as:
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
@@ -5312,6 +5400,8 @@ run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopPa
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Sprite methods, such as:
 play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
@@ -5493,6 +5583,8 @@ METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for MovieClip methods, such as:
 play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
@@ -5557,6 +5649,8 @@ METHODS
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -5705,6 +5799,8 @@ METHODS
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -5859,6 +5955,8 @@ METHODS
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -6067,6 +6165,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -6309,6 +6409,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -6692,6 +6794,8 @@ setChecked(Boolean) - defaults to true to set button checked (or use checked pro
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -6921,6 +7025,8 @@ setSelected(num) - sets the selected index (or use selectedIndex) -1 is default 
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -7221,6 +7327,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes all events
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -7509,6 +7617,8 @@ clone(recursive) - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes event listeners from Window and content and removes any Ticker functions
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -7932,6 +8042,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -8106,6 +8218,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes any listeners
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -8315,6 +8429,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -9013,6 +9129,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -9313,6 +9431,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -9624,6 +9744,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -9968,6 +10090,8 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -10148,13 +10272,15 @@ shadow blur - (default 14) the blur of the shadow if shadow is set
 buttonBar - (default true) set to false to hide the button bar with OK and X (close)
 circles - (default false) set to true to show colors in circles rather than squares
 indicator - (default true) set to false to remove indicator from currentColor
+backingColor - (default black) the color of the backing
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
-backingColor - (default black) the color of the backing
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -10781,7 +10907,8 @@ var find = new zim.Rectangle(stageW, stageH, "yellow");
 var pages = new zim.Pages({
 	holder:stage,
 	pages:[
-		// swipe:["right", "left", "down", "up"]
+		// imagine pages to the left, right, up and down
+		// swipe:["to page on left", "to page on right", etc.s]
 		{page:home, swipe:[null,"info",hide,find]},
 		{page:hide, swipe:[null,null,null,home]},
 		{page:find, swipe:[null,null,home,null]}
@@ -13157,6 +13284,180 @@ direction - either left or right if horizontal or up or down if not horizontal
 		}
 
 	}//-69
+
+/*--
+zim.Swiper = function(swipeOn, target, property, sensitivity, horizontal, min, max, damp, integer)
+
+Swiper
+zim class - extends a createjs EventDispatcher
+
+DESCRIPTION
+Swiper lets you change a property of any object (with damping) by swiping.
+In a sense, it is like an invisible Slider.
+You pass in the DisplayObject to swipe on - stage, Container, Bitmap, etc.
+You pass in which object holds the property to animate and the property name.
+Then Swiper will change this property with damping based on a sensitivity you set.
+You can use horizontal or vertical but to do both, you need to make two Swiper objects.
+Originally made for controlling 3D objects like rotation and scale
+based on swiping a rectangle beneath the 3D object that is the same color as the stage.
+
+EXAMPLE
+var circle = new zim.Circle(100, frame.green).center(stage);
+// will move circle twice as fast as swipe
+var swiper = new zim.Swiper(stage, circle, "x", 2);
+
+var man = new zim.Rectangle(50, 100, frame.brown).center(stage);
+// will move man up an down slowly within vertical bounds of stage
+var swiper = new zim.Swiper(man, man, "y", .5, false, 0, stageH-man.height);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+swipeOn - the DisplayObject to swipe on such as the stage or a Rectangle or Bitmap, etc.
+target - the object that holds the property that you want to change
+property - the property name as a String to change when swiping
+sensitivity - (default 1) the change in property is equal to the change in distance times the sensitivity
+	set to 2 to change the property twice as fast as the swipe
+	set to .5 to change the property half as fast as the swipe
+	set to .001 to change the property very little while swiping
+	set to -1 to go the opposite way (or -2, -.5, -.001, etc.)
+horizontal - default(true) set to false for vertical swiping (y)
+min - (default null) if specified, the property value will not go below this number
+max - (default null) if specified, the property value will not go above this number
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
+integer - (default false) set to true to round the property value
+
+METHODS
+immediate(val) - set the damping immediately to this value to avoid damping to value
+dispose() - remove listeners and Ticker
+
+PROPERTIES
+target - get or set the target for the property that you are changing
+property - get or set the String property name that is being damped
+desiredValue - the current value that the swiper is damping towards
+enabled (default true) - set to false to disable the Swiper and visa versa
+
+EVENTS
+dispatches a swipedown event when swipe is started
+dispatches a swipemove event when swipe is moving
+dispatches a swipeup event when swipe is ended
+--*///+69.5
+	zim.Swiper = function(swipeOn, target, property, sensitivity, horizontal, min, max, damp, integer) {
+		var sig = "swipeOn, target, property, sensitivity, horizontal, min, max, damp, integer";
+		var duo; if (duo = zob(zim.Swiper, arguments, sig, this)) return duo;
+		z_d("69.5");
+
+		this.cjsEventDispatcher_constructor();
+
+		if (zot(swipeOn) || !swipeOn.getStage || !swipeOn.getStage()) {zog("zim.Swiper() - please provide container on stage"); return;}
+		if (zot(target)) return;
+		if (zot(sensitivity)) sensitivity = 1;
+		if (zot(horizontal)) horizontal = true;
+		if (zot(damp)) damp = .1;
+		if (zot(integer)) integer = false;
+
+		var that = this;
+		var container = swipeOn;
+		var startPos;
+		var startVal;
+		var desiredVal = that.desiredValue = target[property];
+		var stage;
+		this.target = target;
+		this.property = property;
+		if (container.canvas) {
+			var stagemousedownEvent;
+			var stagemousemoveEvent;
+			var stagemouseupEvent;
+			stagemousedownEvent = container.on("stagemousedown", function() {
+				downHandler();
+				stagemousemoveEvent = container.on("stagemousemove", pressHandler);
+				stagemouseupEvent = container.on("stagemouseup", function() {
+					container.off("stagemousemove", stagemousemoveEvent);
+					container.off("stagemouseup", stagemouseupEvent);
+					that.dispatchEvent("swipeup");
+				});
+			});
+			stage = container;
+		} else {
+			stage = container.getStage();
+			var containermousedownEvent = container.on("mousedown", downHandler);
+			var containerpressmoveEvent = container.on("pressmove", pressHandler);
+			var containerpressupEvent = container.on("pressup", function() {
+				that.dispatchEvent("swipeup");
+			});
+		}
+		function downHandler() {
+			startPos = horizontal?stage.mouseX:stage.mouseY;
+			startVal = that.target[that.property];
+			that.dispatchEvent("swipedown");
+		}
+		function pressHandler() {
+			var diff = startPos-(horizontal?stage.mouseX:stage.mouseY);
+			desiredVal = startVal - diff*sensitivity;
+			if (!zot(min)) desiredVal = Math.max(desiredVal, min);
+			if (!zot(max)) desiredVal = Math.min(desiredVal, max);
+			that.desiredValue = desiredVal;
+			that.dispatchEvent("swipemove");
+		};
+		var swiperDamp = new zim.Damp(that.target[that.property]);
+		var ticker = zim.Ticker.add(function() {
+			that.target[that.property] = integer?Math.round(swiperDamp.convert(desiredVal)):swiperDamp.convert(desiredVal);
+		}, stage);
+
+		this.immediate = function(val) {
+			swiperDamp.immediate(val);
+			that.target[that.property] = integer?Math.round(val):val;
+			that.desiredValue = desiredVal = val;
+		}
+
+		this._enabled = true;
+		Object.defineProperty(that, 'enabled', {
+			get: function() {
+				return that._enabled;
+			},
+			set: function(value) {
+				if (that._enabled == value) return;
+				if (value) {
+					enable();
+				} else {
+					disable();
+				}
+				that._enabled = Boolean(value);
+			}
+		});
+
+		function disable() {
+			if (container.canvas) {
+				container.off("stagemousedown", stagemousedownEvent);
+				container.off("stagemousemove", stagemousemoveEvent);
+				container.off("stagemouseup", stagemouseupEvent);
+			} else {
+				container.off("mousedown", containermousedownEvent);
+				container.off("pressmove", containerpressmoveEvent);
+				container.off("pressup", containerpressupEvent);
+			}
+			zim.Ticker.remove(ticker);
+		}
+
+		function enable() {
+			if (container.canvas) {
+				container.on("stagemousedown", stagemousedownEvent);
+				container.on("stagemousemove", stagemousemoveEvent);
+				container.on("stagemouseup", stagemouseupEvent);
+			} else {
+				container.on("mousedown", containermousedownEvent);
+				container.on("pressmove", containerpressmoveEvent);
+				container.on("pressup", containerpressupEvent);
+			}
+			zim.Ticker.add(ticker, stage);
+		}
+
+		this.dispose = function() {
+			disable();
+			swiperDamp = null;
+		}
+	}
+	zim.extend(zim.Swiper, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
+	//-69.5
 
 
 ////////////////  ZIM FRAME  //////////////
