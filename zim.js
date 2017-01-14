@@ -3644,7 +3644,7 @@ RETURNS obj for chaining
 	}//-41.5
 
 /*--
-zim.mov = function(mov, x, y)
+zim.mov = function(obj, x, y)
 
 mov
 zim function - and Display object method under ZIM 4TH
@@ -3772,15 +3772,15 @@ RETURNS obj for chaining
 	}//-41.9
 
 /*--
-zim.scale = function(obj, scale)
+zim.scale = function(obj, scale, scaleY)
 
 scale
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
 Chainable convenience function to do scaleX and scaleY in one call.
-If you pass in one parameter, it scales both x and y to this value.
-Can also pass in a second scale x and y independently.
+If you pass in just the scale parameter, it scales both x and y to this value.
+If you pass in scale and scaleY then it scales x and y independently.
 Also see zim.scaleTo(), zim.fit() and zim.Layout().
 
 EXAMPLE
@@ -3795,6 +3795,7 @@ END EXAMPLE
 PARAMETERS
 obj - object to scale
 scale - the scale (1 being full scale, 2 being twice as big, etc.)
+scaleY - (default null) pass this in to scale x and y independently
 
 RETURNS obj for chaining
 --*///+42
@@ -3831,6 +3832,7 @@ obj - object to scale
 boundObj - the object that we are scaling to with percents below
 percentX - (default no scaling) the scale in the x
 percentY - (default no scaling) the scale in the y
+	if both percentX and percentY are missing then assumes 100, 100 for each
 type - (default "smallest") to fit inside or outside or stretch to bounds
 	smallest: uses the smallest scaling keeping proportion (fit)
 	biggest: uses the largest scaling keeping proportion (outside)
@@ -3847,7 +3849,7 @@ RETURNS obj for chaining
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim create - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return;}
 		if (zot(percentX)) percentX = -1;
 		if (zot(percentY)) percentY = -1;
-		if (percentX == -1 && percentY == -1) return obj;
+		if (percentX == -1 && percentY == -1) percentX = percentY = 100;
 		if (zot(type)) type = "smallest";
 		var w = boundObj.getBounds().width * percentX / 100;
 		var h = boundObj.getBounds().height * percentY / 100;
@@ -4515,7 +4517,7 @@ zim.ACTIONEVENT = "mousedown";
 //-50.3
 
 /*--
-zim.extend = function(sub, sup, prefix, methods)
+zim.extend = function(subclass, superclass, override, prefix, prototype)
 
 extend
 zim function - modified CreateJS extend and promote utility methods
@@ -5262,7 +5264,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.7
 
 /*--
-zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet)
+zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet, json)
 
 Sprite
 zim class - extends a createjs.Sprite
@@ -5281,7 +5283,8 @@ For an un-evenly tiled spritesheet see the
 CreateJS Easel Sprite and SpriteSheet docs:
 http://www.createjs.com/docs/easeljs/classes/Sprite.html
 http://www.createjs.com/docs/easeljs/classes/SpriteSheet.html
-You can pass in a createjs.SpriteSheet as a parameter.
+You can pass in a createjs.SpriteSheet or
+JSON data for a createjs.SpriteSheet as a parameter.
 When you do so, all other parameters are ignored.
 
 NOTE: You can use CreateJS gotoAndPlay(), play(), etc.
@@ -5350,6 +5353,10 @@ frame.on("complete", function() {
 	var animation = new zim.Sprite({spriteSheet:spriteSheet});
 	animation.center(stage);
 	animation.run(2000); // note, duration alternative to framerate
+
+	// OR just pass the JSON into a zim.Sprite:
+	var animation = new zim.Sprite({json:spriteData});
+	animation.center(stage).run(2000);
 });
 END EXAMPLE
 
@@ -5372,6 +5379,8 @@ animations (default null) - an object literal of labels holding frames to play
 	run(1000, "label").run({time:1000, label:"another", wait:1000});
 spriteSheet (default null) - a CreateJS SpriteSheet object to build the Sprite with
  	If you pass in a spriteSheet parameter, all other parameters are ignored
+json (default null) - a JSON string for a CreateJS SpriteSheet
+	If you pass in a json parameter, all other parameters are ignored
 
 METHODS
 run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame)
@@ -5426,14 +5435,14 @@ EVENTS
 See the CreateJS Easel Docs for Sprite events, such as:
 animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.8
-	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet) {
-		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet";
+	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet, json) {
+		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet, json";
 		var duo; if (duo = zob(zim.Sprite, arguments, sig, this)) return duo;
 
 		z_d("50.8");
 		var that = this;
 
-		if (zot(spriteSheet) && !zot(image)) {
+		if ((zot(json) || zot(spriteSheet)) && !zot(image)) {
 			if (zot(cols)) cols = 1;
 			if (zot(rows)) rows = 1;
 			if (zot(count)) count = cols * rows;
@@ -5467,6 +5476,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			};
 			spriteSheet = new createjs.SpriteSheet(spriteData);
 		} else {
+			if (!zot(json)) spriteSheet = new createjs.SpriteSheet(json);
 			if (!zot(spriteSheet)) animations = spriteSheet.animations;
 		}
 		this.animations = animations;
@@ -5491,6 +5501,10 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					endFrame = a[a.length-1];
 				}
 			}
+			var extraTime = 0;
+			if (endFrame-startFrame > 0) extraTime = time / (endFrame-startFrame) / 2; // slight cludge - seems to look better?
+			if (zot(loopWait)) {loopWait = extraTime};
+			if (zot(rewindWait)) {rewindWait = extraTime};
 			that.frame = startFrame;
 			zim.animate({
 				target:that,
@@ -5501,6 +5515,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				call:call,
 				params:params,
 				wait:wait,
+				override:false,
 				loop:loop, loopCount:loopCount, loopWait:loopWait,
 				loopCall:loopCall, loopParams:loopParams,
 				rewind:rewind, rewindWait:rewindWait,
@@ -13481,12 +13496,6 @@ Frame handles loading Bitmap and Sound assets by wrapping PreloadJS
 see http://zimjs.com/code/frame.html for sample templates using Frame.
 
 EXAMPLE
-// HTML: style the canvas (see parameters for more info)
-<style>
-	#myCanvas {optional styles - color is now a Frame parameter...}
-</style>
-
-// SCRIPT: create a zim.Frame
 var frame = new zim.Frame("fit", 1024, 768, "#CCC");
 frame.on("ready", function() {
 	var stage = frame.stage;
@@ -13498,12 +13507,32 @@ frame.on("ready", function() {
 	frame.loadAssets("image.png");
 	frame.on("complete", function() {
 
-		// code here if waiting for assets
+		// app code goes here if waiting for assets
 		var image = frame.asset("image.png");
 		image.center(stage);
 		stage.update();
 
 	}); // end asset complete
+
+	// OR for multiple assets in an assets folder:
+
+	frame.loadAssets(["sound.mp3", "spriteData.json", "spriteImage.png"], "assets/");
+	frame.on("complete", function() {
+
+		// app code goes here if waiting for assets
+		var soundInstance = frame.asset("sound.mp3").play();
+		// later soundInstance.paused = true; // etc.
+
+		var sprite = new zim.Sprite({json:frame.asset("spriteData.json")});
+		sprite.center(stage).run(2000);
+		// the image for the sprite is specified in the JSON
+		// but we still want to load it so it is in the loadAssets()
+		// and the JSON data will take care of adding it to the sprite
+
+		stage.update();
+
+	}); // end asset complete
+
 }); // end of ready
 END EXAMPLE
 
@@ -13543,8 +13572,10 @@ zil - reference to zil events that stop canvas from shifting
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple
 
 METHODS
-loadAssets([file, file], path, xhr) - pass in an array of images or sounds, optional path to directory and XHR (default false)
+loadAssets([file, file], path, xhr) - pass in an array of assets, optional path to directory and XHR (default false)
+	asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
 asset(file) - access a loaded asset based on file string (not including path)
+	if the asset is an image then this is a zim.Bitmap and you add it to the stage
 	if the asset is a sound then use asset(file).play();
 	or can pass in a configuration object in play
 	with the following properties (see CreateJS SoundJS docs)
@@ -13552,6 +13583,7 @@ asset(file) - access a loaded asset based on file string (not including path)
 	asset(file).play({volume:.5, pan:-1, loop:2});
 	this returns createjs sound instance which can also be manipulated
 	to stop the sound or set its volume dynamically, etc.
+	if the asset is anything else, then it is what it is!
 makeCircles(radius) - returns a createjs.Shape with the ZIM Circles (centered reg)
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
 	will have to set your local stage, stageW and stageH variables again
@@ -13740,14 +13772,14 @@ EVENTS
 			// scaling and positioning for fit and full
 			can.style.width = newW + "px";
 			can.style.height = newH + "px";
-			if (align=="left") frame.x = 0;
-			else if (align=="right") frame.x = (w-newW);
-			else frame.x = ((w-newW)/2);
-			if (valign=="top") frame.y = 0;
-			else if (valign=="bottom") frame.y = (h-newH);
-			else frame.y = ((h-newH)/2);
-			can.style.left = frame.x + "px";
-			can.style.top = frame.y + "px";
+			if (align=="left") this.x = 0;
+			else if (align=="right") this.x = (w-newW);
+			else this.x = ((w-newW)/2);
+			if (valign=="top") this.y = 0;
+			else if (valign=="bottom") this.y = (h-newH);
+			else this.y = ((h-newH)/2);
+			can.style.left = this.x + "px";
+			can.style.top = this.y + "px";
 		}
 
 		function dispatchResize() {
@@ -13778,9 +13810,10 @@ EVENTS
 			that.preload.on("error", function(e) {that.dispatchEvent(e);});
 			that.preload.on("fileload", function(e) {
 				var item = e.item;
+				var type = e.item.type;
 				var ext = item.id.match(re);
 				var asset;
-				if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) {
+				if (type == createjs.LoadQueue.SOUND) {
 					asset = that.assets[item.id] = {
                         type:"sound",
                         id:item.id,
@@ -13790,8 +13823,10 @@ EVENTS
                             return instance;
                         }
                     };
-				} else {
+				} else if (type == createjs.LoadQueue.IMAGE) {
 					asset = that.assets[item.id] = new zim.Bitmap(e.result, item.id);
+				} else {
+					asset = that.assets[item.id] = e.result;
 				}
 				var ev = new createjs.Event("assetload");
 				ev.item = item; // createjs preload item
