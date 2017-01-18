@@ -889,6 +889,64 @@ RETURNS a rounded Number or a String if addZeros is true
 	}//-13
 
 /*--
+zim.makeID = function(length, type, letterCase)
+
+makeID
+zim function
+
+DESCRIPTION
+makes a random letter, number or mixed id of specified length
+
+EXAMPLE
+var id1 = zim.makeID(); // five random letters and numbers (starts with letter)
+var id2 = zim.makeID(null, "string"); // five random uppercase letters
+var id3 = zim.makeID(10, "number"); // ten random numbers
+var id4 = zim.makeID(5, ["Z", "I", "M", 1, 2, 3, 4, 5, "-"]); // random five characters from array (possibly repeating)
+END EXAMPLE
+
+PARAMETERS
+length - (default 5) the length of the id
+type - (default "mixed") set to "letters" or "numbers" as well
+	note: no O, 0, 1, I or L due to identification problems
+	pass in an array of characters to make an id from only those characters
+letterCase - (default uppercase) - set to "lowercase" or "mixed" as well
+
+RETURNS a String id (even if type is number)
+--*///+13.5
+	zim.makeID = function(type, length, letterCase) {
+		z_d("13.5");
+		if (zot(type)) type = "mixed";
+		if (zot(length)) length = 5;
+		if (zot(letterCase)) letterCase = "uppercase";
+		var choices;
+		var nums = [2,3,4,5,6,7,8,9];
+		var lets = "abcdefghjkmnpqrstuvwxyz".split("");
+		if (type.constructor === Array) {
+			choices = type;
+		} else if (type == "numbers") {
+			choices = nums;
+		} else if (type == "letters") {
+			choices = lets;
+		} else {
+			choices = nums.concat(lets);
+		}
+		var id = "";
+		var char;
+		var rand;
+		for (var i=0; i<length; i++) {
+			char = choices[Math.floor(Math.random()*length)];
+			rand = Math.random();
+			if (letterCase == "uppercase" || (letterCase == "mixed" && rand > .5)) {
+				if (char.toUpperCase) char = char.toUpperCase();
+			} else {
+				if (char.toLowerCase) char = char.toLowerCase();
+			}
+			id += String(char);
+		}
+		return id;
+	}//-13.5
+
+/*--
 zim.Damp = function(startValue, damp)
 
 Damp
@@ -1150,7 +1208,7 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 
 
 /*--
-zim.Dictionary = function()
+zim.Dictionary = function(unique)
 
 Dictionary
 zim class
@@ -1173,25 +1231,55 @@ d.remove(o); // to clear o
 zog(d.length); // 2
 END EXAMPLE
 
+EXAMPLE
+var d = new zim.Dictionary();
+d.add(circle, "one");
+d.add(circle, "two");
+zog(d.at(circle)); // two - just the latest but "one" is still there
+for (var i=0; i<d.length) {
+	if (d.objects[i] == circle) zog(d.values[i]); // one then two
+}
+// note, loop backwards to clear values at a key
+END EXAMPLE
+
+EXAMPLE
+// with unique property add(key, val) removes the last val at that key
+var d = new zim.Dictionary(true);
+d.add(circle, "one");
+d.add(circle, "two");
+zog(d.at(circle)); // two - and now only two is there
+for (var i=0; i<d.length) {
+	if (d.objects[i] == circle) zog(d.values[i]); // two
+}
+// note, now d.remove(key) removes that unique entry for the key
+END EXAMPLE
+
 METHODS
 add(object, value) - adds a value that can be retrieved by an object reference
-at(object) - retrieves the value stored at the object (or returns null if not there)
-remove(object) - removes the object and its value from the Dictionary
-dispose() - deletes object
+	if unique is false, this will not overwrite previous entries at the object key
+	if unique is true, this will overwrite previous entries at the object key
+	value is optional and will default to true
+at(object) - retrieves the last value stored at the object (or returns null if not there)
+remove(object) - removes the last value at the object from the Dictionary
+dispose() - deletes Dictionary object
 
 PROPERTIES
 length - the number of items in the Dictionary
+unique - whether the dictionary will overwrite values (going from false to true will not delete previous values)
 objects - array of keys
 values - array of values synched to keys
 --*///+17
-	zim.Dictionary = function() {
+	zim.Dictionary = function(unique) {
 		z_d("17");
 		this.length = 0;
+		this.unique = unique;
 		var objects = this.objects = []; // store objects and values in synched arrays
 		var values = this.values = [];
 
 		this.add = function(o,v) {
 			if (zot(o)) return;
+			if (zot(v)) v = true;
+			if (this.unique) this.remove(o);
 			objects.push(o);
 			values.push(v);
 			this.length++;
@@ -1772,14 +1860,6 @@ USAGE
 if zim.OPTIMIZE is true then the Ticker will not update the stage (it will still run functions)
 however, OPTIMIZE can be overridden as follows (or with the always() method):
 
-PROPERTIES (static)
-zim.Ticker.update = true - overrides zim.OPTIMIZE and forces an update if a function is in the queue
-zim.Ticker.update = false - forces no update regardless of zim.OPTIMIZE
-zim.Ticker.update = null (default) - only updates if there is a function in queue and zim.OPTIMIZE is false
-zim.Ticker.list - a ZIM Dictionary holding arrays with the functions in the Ticker queue for each stage
-zim.Ticker.list.objects - the array of stages in the Ticker
-zim.Ticker.list.values - the array holding an array of functions for each stage in the Ticker
-
 METHODS (static)
 zim.Ticker.always(stage) - overrides zim.OPTIMIZE and always runs an update for the stage even with no function in queue
 zim.Ticker.alwaysOff(stage) - stops an always Ticker for a stage
@@ -1788,6 +1868,14 @@ zim.Ticker.remove(function) - removes the function from the Ticker queue
 zim.Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
 zim.Ticker.setFPS(30, 60) - (mobile, pc) default 30 frames per second mobile, 60 frames per second non mobile
 zim.Ticker.dispose([stage]) - removes all functions from the queue removes and removes the list (optionally per stage)
+
+PROPERTIES (static)
+zim.Ticker.update = true - overrides zim.OPTIMIZE and forces an update if a function is in the queue
+zim.Ticker.update = false - forces no update regardless of zim.OPTIMIZE
+zim.Ticker.update = null (default) - only updates if there is a function in queue and zim.OPTIMIZE is false
+zim.Ticker.list - a ZIM Dictionary holding arrays with the functions in the Ticker queue for each stage
+zim.Ticker.list.objects - the array of stages in the Ticker
+zim.Ticker.list.values - the array holding an array of functions for each stage in the Ticker
 
 the Ticker is used internally by zim functions like move(), animate(), drag(), Scroller(), Parallax()
 you are welcome to add functions - make sure to pass the stage in as a second parameter to the add() method
@@ -2901,7 +2989,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from)
+zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id)
 
 move
 zim function - and Display object method under ZIM 4TH
@@ -2913,6 +3001,9 @@ You can set various types of easing like bounce, elastic, back, linear, sine, et
 Handles callbacks, delays, loops, rewinds, sequences of move animations.
 Also see the more general zim.animate()
 (which this function calls after consolidating x an y into an object).
+
+NOTE: to temporarily prevent animations from starting set zim.ANIMATE to false
+NOTE: see zim.pauseZimAnimate(state, ids) and zim.stopZimAnimate(ids) for controlling tweens when running
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
@@ -2936,7 +3027,7 @@ wait - (default 0) milliseconds to wait before doing animation
 loop - (default false) set to true to loop animation
 loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
 loopWait - (default 0) milliseconds to wait before looping (post animation wait)
-loopCall - (default null) calls function after loop is done (including last loop)
+loopCall - (default null) calls function after loop is done (not including last loop)
 loopParams - (default target) parameters to send loop function
 rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
 rewindWait (default 0) milliseconds to wait in the middle of the rewind
@@ -2958,31 +3049,26 @@ protect - (default false) protects animation from being interrupted before finis
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
 from - (default false) set to true to animate from obj properties to the current properties set on target
+set - (default null) an object of properties to set on the target to start (but after the wait time)
+id - (default randomly created) set to String for id to pause or stop Tween
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
 NOTE: call is now triggered once after all loops and rewinds are done
-NOTE: the ticker and fps parameters have been removed - see zim.Ticker
-
-to pause the move call pauseZimMove(true) on the target (or false to unpause)
-to stop the move call stopZimMove() on the target
-to access the CreateJS Tween object use target.zimTween
-to access the zim.Ticker function use target.zimTicker
-to temporarily prevent moves from running set zim.ANIMATE to false
 
 RETURNS the target for chaining
 --*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from) {
-		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from";
+	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id) {
+		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		z_d("44");
 		if (zot(x) && zot(y)) return;
 		var obj = {x:x, y:y};
 		if (zot(x)) {obj = {y:y};} else if (zot(y)) {obj = {x:x};}
-		return zim.animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, null, protect, override, from);
+		return zim.animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, null, protect, override, from, set, id);
 	}//-44
 
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from)
+zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
 
 animate
 zim function - and Display object method under ZIM 4TH
@@ -2991,9 +3077,12 @@ wraps createjs.Tween
 DESCRIPTION
 Animate object obj properties in time milliseconds.
 You can set various types of easing like bounce, elastic, back, linear, sine, etc.
-Handles callbacks, delays, loops, rewinds, sequences of animations.
+Handles callbacks, delays, loops, rewinds, series and sequences of animations.
 Also see the more specific zim.move() to animate position x, y
 although you can animate x an y just fine with zim.animate.
+
+NOTE: to temporarily prevent animations from starting set zim.ANIMATE to false
+NOTE: see zim.pauseZimAnimate(state, ids) and zim.stopZimAnimate(ids) for controlling tweens when running
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
@@ -3040,6 +3129,43 @@ function done(target) {
 END EXAMPLE
 
 EXAMPLE
+// Series example animating a circle in square formation
+// Also showing that the series can include multiple targets
+// Click on the stage to pause or unpause the animation
+
+var rect = new zim.Rectangle({color:frame.pink})
+	.centerReg(stage)
+	.scale(0); // hiding it to start
+
+var circle = new zim.Circle({color:frame.purple}) // chaining the rest
+	.addTo(stage)
+	.pos(400,300)
+	.animate({ // circle will be the default object for the inner animations
+		obj:[
+			// an array of animate configuration objects
+			{obj:{x:600, y:300, scale:2}},
+			{obj:{x:600, y:500, scale:1}, call:function(){zog("part way");}},
+			{obj:{x:400, y:500}, time:500, ease:"quadInOut"},
+			{target:rect, obj:{scale:3}, time:1000, rewind:true, ease:"quadInOut"},
+			{obj:{x:400, y:300}}
+		],
+		time:1000, // will be the default time for the inner animations
+		ease:"backOut", // will be the default ease for the inner animations
+		id:"square", // will override any id set in the inner animations
+		loop:true,
+		loopCount:3,
+		// note - no rewind or from parameters
+		call:function(){zog("done");}
+	});
+
+	var paused = false;
+	stage.on("stagemousedown", function() {
+			paused = !paused;
+			zim.pauseZimAnimate(paused, "square");
+	});
+END EXAMPLE
+
+EXAMPLE
 // sequence example to pulse two circles
 var circle1 = new zim.Circle(50, "red");
 var circle2 = new zim.Circle(50, "blue");
@@ -3060,6 +3186,17 @@ END EXAMPLE
 PARAMETERS - supports DUO - parameters or single object with properties below
 target - the target object to tween
 obj - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
+	if you pass in an array, then this will run an animation series
+	The array must hold animate configuration objects:
+	[{obj:{scale:2}, time:1000, rewind:true}, {target:different, obj:{x:100}}, etc.]
+	If you run animate as a method on an object then this is the default object for the series
+	but you can specify a target to override the default
+	The default time and tween are as provided in the main parameters
+	but you can specify these to override the default
+	The id of the main parameters is used for the whole series and cannot be overriden
+	The override parameter is set to false and cannot be overriden
+	All other parameters are available except rewind, sequence and from
+	You currently cannot nest animimation series
 time - the time for the tween in milliseconds 1000 ms = 1 second
 ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
 call - (default null) the function to call when the animation is done
@@ -3068,7 +3205,7 @@ wait - (default 0) milliseconds to wait before doing animation
 loop - (default false) set to true to loop animation
 loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
 loopWait - (default 0) milliseconds to wait before looping (post animation wait)
-loopCall - (default null) calls function after loop is done (including last loop)
+loopCall - (default null) calls function after loop is done (not including last loop)
 loopParams - (default target) parameters to send loop function
 rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
 rewindWait (default 0) milliseconds to wait in the middle of the rewind
@@ -3101,26 +3238,22 @@ protect - (default false) protects animation from being interrupted before finis
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
 from - (default false) set to true to animate from obj properties to the current properties set on target
+set - (default null) an object of properties to set on the target to start (but after the wait time)
+id - (default null) set to String to use with zimPauseTween(state, id) and zimStopTween(id)
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
 NOTE: call is now triggered once after all loops and rewinds are done
-NOTE: the ticker and fps parameters have been removed - see zim.Ticker
 
-to pause the animate call pauseZimAnimate(true) on the target (or false to unpause) (not available for CSS)
-to stop the animate call stopZimAnimate() on the target
-to access the CreateJS Tween object use target.zimTween
-to access the zim.Ticker function use target.zimTicker
-to temporarily prevent animations from running set zim.ANIMATE to false
-
-RETURNS the target for chaining
+RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from) {
-		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from";
+	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id) {
+		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
 		if (zim.ANIMATE == false) return;
 
+		// PROPS
 		// convert loop and rewind properties into the legacy props object
 		var newProps = {override: true};
 		if (!zot(loop)) newProps.loop = loop;
@@ -3132,13 +3265,10 @@ RETURNS the target for chaining
 		if (!zot(rewindWait)) newProps.rewindWait = rewindWait;
 		if (!zot(rewindCall)) newProps.rewindCall = rewindCall;
 		if (!zot(rewindParams)) newProps.rewindParams = rewindParams;
-		if (!zot(obj.scale)) {
-			obj.scaleX = obj.scaleY = obj.scale;
-			delete obj.scale;
-		}
 		if (!zot(props)) newProps = zim.merge(newProps, props); // props to overwrite
 		props = newProps;
 
+		// SEQUENCE HANDLING
 		// handle multiple targets first if there is an array
 		// this just recalls the animate function for each element delayed by the sequence parameter
 		if (zot(sequence)) sequence = 0;
@@ -3149,7 +3279,6 @@ RETURNS the target for chaining
 			}
 			target = newTarget;
 		}
-
 		if (target instanceof Array) {
 			if (sequenceReverse) target.reverse();
 			var currentTarget = 0;
@@ -3190,11 +3319,7 @@ RETURNS the target for chaining
 			return;
 		}
 
-		// original animate functionality
-
-		if (zot(target)) return;
-		if (ticker && (zot(target.getStage) || zot(target.getStage()))) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
-
+		// DEFAULTS
 		var t = time;
 		if (zot(t)) t = 1000;
 		if (zot(ease)) ease = "quadInOut";
@@ -3205,11 +3330,152 @@ RETURNS the target for chaining
 		if (zot(css)) css = false;
 		if (zot(protect)) protect = false;
 		if (zot(from)) from = false;
-
+		if (zot(set)) set = {};
 		if (!zot(override)) props.override = override;
-
 		var tween;
+		var idSet;
+		var providedID;
 
+		// ANIMATION SERIES HANDLING
+		// if an array is passed in to animate() as the obj
+		// then animate treats this as an animation series
+		// [{target:circle, obj:{alpha:0}, time:1000}, {target:rect, obj:{alpha:0}, time:1000},]
+		if (obj instanceof Array) {
+			var starts;
+			var currentCount = 1;
+			if (obj.length == 0) return this;
+
+			prepareSeries();
+			prepareIds();
+			runMaster();
+
+			function runMaster() { // one day might consider reverse...
+				var o; // inner obj
+				var w = wait; // time for wait before starting animation
+				var lastEnd = 0; // time of last label end
+				var duration; // time of each label animation not including initial wait
+				for (var i=0; i<obj.length; i++) {
+					o = obj[i];
+					if (zot(o.target)) continue;
+					if (zot(o.time)) o.time = t;
+					w += (o.wait?o.wait:0);
+					duration = o.time;
+					if (o.rewind) duration = duration * 2 + (o.rewindWait?o.rewindWait:0);
+					if (o.loop) {
+						if (zot(o.loopCount)) o.loopCount = 2;
+						duration *= o.loopCount;
+						duration += (o.loopCount-1) * (o.loopWait?o.loopWait:0);
+					}
+					var currentObj = {
+						target:o.target,
+						obj:o.obj,
+						wait:lastEnd+w,
+						time:o.time,
+						ease:o.ease,
+						from:o.from,
+						rewind:o.rewind,
+						call:o.call,
+						params:o.params,
+						loop:o.loop, loopCount:o.loopCount, loopWait:o.loopWait,
+						loopCall:o.loopCall, loopParams:o.loopParams,
+						rewind:o.rewind, rewindWait:o.rewindWait,
+						rewindCall:o.rewindCall, rewindParams:o.rewindParams,
+						set:o.set,
+						override:false,
+						id:id
+					}
+					if (i == obj.length-1) {
+						endSeries(currentObj);
+					}
+					zim.animate(currentObj);
+					lastEnd += w + duration;
+					w = 0;
+				}
+			}
+			function endSeries(currentObj) {
+
+				if (props.loop && (!props.count || currentCount < props.count)) {
+					currentObj.call = function() {
+						if (props.loopWait) {
+							tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(props.loopWait).call(goNext);
+						} else {
+							goNext();
+						}
+						function goNext() {
+							for (var k=0; k<starts.objects.length; k++) {
+								starts.objects[k].set(starts.values[k]);
+							}
+							if (props.loopCall && typeof props.loopCall == 'function') {(props.loopCall)(props.loopParams);}
+							runMaster();
+						}
+					}
+				} else {
+					currentObj.call = function() {
+						if (call && typeof call == 'function') {(call)(params);}
+						endTween(id);
+					}
+				}
+				currentCount++;
+			}
+			function prepareSeries() {
+				var froms = new zim.Dictionary();
+				starts = new zim.Dictionary();
+				for (var i=0; i<obj.length; i++) {
+					o = obj[i];
+					if (!target) target = o.target;
+					if (zot(o.target)) o.target = target;
+					if (zot(o.ease)) o.ease = ease;
+					if (zot(o.target)) continue;
+					if (!zot(o.obj.scale)) {
+						o.obj.scaleX = o.obj.scaleY = o.obj.scale;
+						delete o.obj.scale;
+					}
+					if (o.from) {
+						var firstFrom = froms.at(o.target);
+						if (firstFrom) {
+							if (o.set) {
+								// all properties from obj go to set
+								// matching firstFrom properties to to obj
+								// matching set properties override firstFrom on obj
+								var temp = zim.copy(o.obj);
+								var merged = zim.merge(firstFrom, o.set);
+								o.obj = getFroms(o.target, o.obj, merged);
+								o.set = zim.merge(o.set, temp);
+							} else {
+								o.set = zim.copy(o.obj);
+								o.obj = getFroms(o.target, o.obj, firstFrom);
+							}
+							o.from = false;
+						} else {
+							// any set properties override target properties
+							froms.add(o.target, getFroms(o.target, o.obj, o.set));
+						}
+					}
+					var startProps = {};
+					for (var iii in o.obj) {
+						startProps[iii] = o.set?(o.set[iii]?o.set[iii]:o.target[iii]):o.target[iii];
+					}
+					if (zot(starts.at(o.target))) starts.add(o.target, {});
+					var newEntry = zim.merge(starts.at(o.target), startProps);
+					starts.remove(o.target);
+					starts.add(o.target, newEntry);
+				}
+				if (zot(target.zimTweens)) target.zimTweens = {};
+			} // end prepareSeries
+			return;
+		} // end series
+
+		// -----------------------------
+		// NORMALIZED TWEEN COMING THROUGH
+		if (zot(target)) return;
+		if (zot(target.zimTweens)) target.zimTweens = {};
+		if (ticker && (zot(target.getStage) || zot(target.getStage()))) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
+		if (!zot(obj.scale)) {
+			obj.scaleX = obj.scaleY = obj.scale;
+			delete obj.scale;
+		}
+
+		// PROTECT LOOPS AND REWINDS WITH BUSY
 		// if protected or a loop or rewind is currently running for any of these properties
 		// then remove the property from obj as it is currently busy
 		for(var o in obj) {
@@ -3217,35 +3483,60 @@ RETURNS the target for chaining
 			if (target.zimBusy[o]) delete obj[o];
 		}
 		if (zim.isEmpty(obj)) return; // nothing left to animate
-
-		if (from) {
-			var val;
-			var toObj = {};
-			for (var prop in obj) {
-				val = obj[prop];
-				toObj[prop] = target[prop];
-				target[prop] = val;
-			}
-			obj = toObj;
-		}
-
-		// the function to set obj properties busy for this target
-		// when the function is run, we record that we set the properties
-		// so that when the animation ends we know we have to set them not busy
-		var zimBusyCheck = false;
 		function addZimBusy() {
-			zimBusyCheck = true;
-			if (!target.zimBusy) target.zimBusy = {};
-			for(var o in obj) {
-				target.zimBusy[o] = true;
-			}
+			setTimeout(function() {
+				if (!target.zimBusy) target.zimBusy = {};
+				for(var o in obj) {
+					target.zimBusy[o] = true;
+				}
+			}, 300);
 		}
 		if (protect || props.loop || props.rewind) addZimBusy();
 
-		// loop and rewind:
+		// IDS and IDSETS
+		prepareIds();
+		function prepareIds() {
+			if (zot(id)) {
+				id = zim.makeID(10);
+			} else {
+				id = String(id);
+				providedID = id;
+			}
+			if (zot(target.zimIdSets)) target.zimIdSets = {};
+			if (!zot(target.zimIdSets[id])) {
+				idSet = id;
+				id = zim.makeID(10);
+				target.zimIdSets[idSet].push(id);
+			} else if (!zot(target.zimTweens[id])) {
+				idSet = id;
+				id = zim.makeID(10);
+				target.zimIdSets[idSet] = [idSet]; // add original into set
+				target.zimTweens[idSet].zimIdSet = idSet; // reference back to idSet
+				target.zimIdSets[idSet].push(id); // push the second one in
+			} // else nothing - id is not currently part of idSet
+		}
+
+
+		// PREPARE START VALUES
+		if (from) obj = getFroms(target, obj, set, true);
+		function getFroms(target, obj, set, update) {
+			var newObj = {};
+			for (var i in obj) {
+				if (set && !zot(set[i])) {
+					newObj[i] = set[i];
+				} else {
+					newObj[i] = target[i];
+				}
+				if (update) target[i] = obj[i];
+			}
+			return newObj;
+		}
+
+		// LOOP AND REWIND SETUP
+		var count = 0;
 		if (props.loop) {
 			if (!zot(props.count)) {
-				var count = props.count;
+				count = props.count;
 				delete props.count;
 				var currentCount = 1;
 			}
@@ -3266,6 +3557,7 @@ RETURNS the target for chaining
 			delete props.loopParams;
 		}
 
+		// TWEENS FOR REWIND, LOOP and NORMAL
 		if (props.rewind) {
 			// flip second ease
 			if (ease) {
@@ -3279,14 +3571,7 @@ RETURNS the target for chaining
 					}
 				}
 			}
-			var obj2 = {}; var wait2 = 0;
-			for (var i in obj) {
-				if (css) {
-					obj2[i] = target.style[i];
-				} else {
-					obj2[i] = target[i];
-				}
-			}
+			var wait2 = 0;
 			delete props.rewind;
 			if (props.rewindWait) {
 				wait2 = props.rewindWait;
@@ -3299,102 +3584,397 @@ RETURNS the target for chaining
 				delete props.rewindCall;
 				delete props.rewindParams;
 				if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-					tween = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(tween1);
+					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(tween1);
 				} else {
 					tween1();
 				}
 				function tween1() {
-					tween = target.zimTween = createjs.Tween.get(target, props)
+					var obj2 = getStart();
+					target.set(set);
+					tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
 						.to(obj, t, createjs.Ease[ease])
 						.call(doRewindCall)
 						.wait(wait2)
 						.to(obj2, t, createjs.Ease[ease2])
 						.call(doneAnimating)
 						.wait(wait3);
+					setZimTweenProps();
 				}
 			} else {
 				if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-					tween = target.zimTween = createjs.Tween.get(target).wait(wait, {override:props.override}).call(tween2);
+					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target).wait(wait, {override:props.override}).call(tween2);
 				} else {
 					tween2();
 				}
 				function tween2() {
-					tween = target.zimTween = createjs.Tween.get(target, props)
+					var obj2 = getStart();
+					target.set(set);
+					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, props)
 						.to(obj, t, createjs.Ease[ease])
 						.wait(wait2)
 						.to(obj2, t, createjs.Ease[ease2])
 						.call(doneAnimating)
 						.wait(wait3);
+					setZimTweenProps();
 				}
 			}
 		} else {
 			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-				tween = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(tween3);
+				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(tween3);
 			} else {
 				tween3();
 			}
 			function tween3() {
-				tween = target.zimTween = createjs.Tween.get(target, props)
+				target.set(set);
+				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
 					.to(obj, t, createjs.Ease[ease])
 					.call(doneAnimating)
 					.wait(wait3);
+				setZimTweenProps();
 			}
 		}
-		if (!css && ticker) var zimTicker = target.zimTicker = zim.Ticker.add(function(){
-			// mask graphics needs to have same position, scale, skew, rotation and reg as object
-			if (target.zimMask) {
-				zim.copyMatrix(target.zimMask, target);
-				target.zimMask.regX = target.regX;
-				target.zimMask.regY = target.regY;
-			}
-		}, target.getStage());
 
+		// SET TICKER
+		var zimTicker;
+		if (!css && ticker) {
+			if (target.zimMask) { // mask graphics needs to have same position, scale, skew, rotation and reg as object
+				zimTicker = zim.Ticker.add(function(){
+					zim.copyMatrix(target.zimMask, target);
+					target.zimMask.regX = target.regX;
+					target.zimMask.regY = target.regY;
+				}, target.getStage());
+			} else {
+				zimTicker = zim.Ticker.add(function(){}, target.getStage());
+			}
+		}
+
+		// ANIMATION DONE AND HELPER FUNCTIONS
 		function doneAnimating() {
 			if (props.loop) {
-				if (call3 && typeof call3 == 'function') {(call3)(params3);}
 				if (count > 0) {
 					if (currentCount < count) {
+						if (call3 && typeof call3 == 'function') {(call3)(params3);}
 						currentCount++;
 						return;
+					} else {
+						if (rewind) {
+							target.set(getStart());
+						} else {
+							target.set(obj);
+						}
 					}
 				} else {
 					return;
 				}
 			}
 			if (call && typeof call == 'function') {(call)(params);}
-			// if we have set the properties as busy then remove them from busy
-			if (zimBusyCheck) {
-				for (var o in obj) {
-					delete target.zimBusy[o];
+			endTween(id);
+		}
+		function getStart() {
+			// for rewind, we need to know the start value
+			// which could be modified by the set parameter
+			var startObj = {}
+			for (var i in obj) {
+				if (css) {
+					if (!zot(set[i])) {
+						startObj[i] = set[i];
+					} else {
+						startObj[i] = target.style[i];
+					}
+				} else {
+					if (!zot(set[i])) {
+						startObj[i] = set[i];
+					} else {
+						startObj[i] = target[i];
+					}
 				}
-				if (zim.isEmpty(target.zimBusy)) target.zimBusy = null;
 			}
-			tween.setPaused(true);
-			target.zimTween = null;
-			target.pauseZimAnimate = target.pauseZimMove = null;
-			target.stopZimAnimate = target.stopZimMove = null;
-			if (!css && ticker) setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
+			return startObj
 		}
 		function doRewindCall() {
 			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}
-        target.stopZimAnimate = target.stopZimMove = function() {
-			target.zimBusy = null; // clear any busy properties
-            createjs.Tween.removeTweens(target);
-            if (!css && ticker) setTimeout(function(){zim.Ticker.remove(target.zimTicker);},200);
-        }
-        target.pauseZimAnimate = target.pauseZimMove = function(v) {
-            if (zot(v)) v = true;
-            if (v) {
-                target.zimTween.setPaused(true);
-     			if (!css && ticker) setTimeout(function(){zim.Ticker.remove(zimTicker);},200);
-            } else {
-                target.zimTween.setPaused(false);
-     			if (!css && ticker) zim.Ticker.add(zimTicker, target.getStage());
-            }
-        }
+		function removeBusy(obj) {
+			if (!target.zimBusy) return;
+			for (var o in obj) {
+				delete target.zimBusy[o];
+			}
+			if (zim.isEmpty(target.zimBusy)) target.zimBusy = null;
+		}
+
+		// PAUSE AND STOP MANAGEMENT
+		var zimPaused = false;
+		setZimTweenProps();
+		function setZimTweenProps() {
+			// used to keep track of tweens for various ids
+			// for pauseZimAnimate() and stopZimAnimate() down below
+			tween.zimObj = obj;
+			tween.zimTicker = zimTicker;
+			tween.zimPaused = zimPaused;
+			if (idSet) {
+				tween.zimIdSet = idSet;
+			}
+			if (providedID) {
+				// add to zim.idSets for global animation pause and stop by id
+				// zim.idSets = {id:[target, target], id:[target, target, target]}
+				// watchout - global idSet works on provided IDS
+				// local idSets work on multiple ids that are the same
+				// so an object with one tween under a provided id is not locally an idSet
+				if (zot(zim.idSets)) zim.idSets = {};
+				if (zot(zim.idSets[providedID])) {
+					zim.idSets[providedID] = [target];
+				} else {
+					if (zim.idSets[providedID].indexOf(target) < 0) zim.idSets[providedID].push(target); // ES6 needed
+				}
+			}
+			if (!zim.animatedObjects) zim.animatedObjects = new zim.Dictionary(true);
+			zim.animatedObjects.add(target, true);
+		}
+		function endTween(id) {
+			if (zot(target.zimTweens) || zot(target.zimTweens[id])) return;
+			removeBusy(target.zimTweens[id].zimObj);
+			target.zimTweens[id].setPaused(true);
+			endTicker(id);
+			var idSet = target.zimTweens[id].zimIdSet;
+			if (!zot(idSet) && target.zimIdSets) {
+				var sets = target.zimIdSets[idSet];
+				if (sets) sets.splice(sets.indexOf(id), 1);
+				if (sets && sets.length == 0) {
+					delete target.zimIdSets[idSet];
+					if (zim.isEmpty(target.zimIdSets)) delete target.zimIdSets;
+				}
+			}
+			delete target.zimTweens[id];
+			if (zim.isEmpty(target.zimTweens)) target.stopZimAnimate();
+
+			// handle zim.idSets
+			// very tricky - the originating id for an idSet does not get an idSet
+			// but rather its id is used by subsequent tweens for the tween.idSets
+			// the originating id may create a zim.idSets if it was provided as a parameter
+			if ((target.zimTweens && target.zimTweens[id]) ||
+				(target.zimIdSets && target.zimIdSets[idSet?idSet:id])) {
+					// leave zim.idSets alone
+			} else {
+				if (zim.idSets && zim.idSets[idSet?idSet:id]) {
+					delete zim.idSets[idSet?idSet:id];
+					if (zim.isEmpty(zim.idSets)) delete zim.idSets;
+				}
+			}
+		}
+		function endTicker(id) {
+			// need a little delay to make sure updates the last animation
+			// and to help call function have a stage update
+			// store reference to ticker function in a closure
+			// as we may delete the zimTweens reference before the 200 ms is up
+			-function() {
+				var ticker = target.zimTweens[id].zimTicker;
+				setTimeout(function(){
+					if (ticker) zim.Ticker.remove(ticker); ticker = null;
+				},200);
+			}();
+		}
+		function pauseTicker(id, paused) {
+			var tween = target.zimTweens[id];
+			tween.setPaused(paused);
+			if (paused == tween.zimPaused) return;
+			tween.zimPaused = paused;
+			if (paused) {
+				tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
+			} else {
+				clearTimeout(tween.zimAnimateTimeout);
+				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, target.getStage());
+			}
+		}
+		function expandIds(ids) {
+			// turn any idSets into ids
+			var actualIds = [];
+			for (var i=0; i<ids.length; i++) {
+				if (target.zimIdSets && !zot(target.zimIdSets[ids[i]])) {
+					actualIds = actualIds.concat(target.zimIdSets[ids[i]]);
+				} else {
+					actualIds.push(ids[i]);
+				}
+			}
+			return actualIds;
+		}
+
+		// METHODS ADDED TO TARGET
+		if (!target.stopZimAnimate) {
+	        target.stopZimAnimate = function(ids, include) {
+				if (zot(include)) include = true;
+				if (zot(ids)) {
+					if (!include) return; // would be exclude all ids
+					target.zimBusy = null; // clear any busy properties
+		            createjs.Tween.removeTweens(target);
+					for (var id in target.zimTweens) {endTicker(id);}
+					target.zimTweens = null;
+					target.zimIdSets = null;
+					if (zim.idSets && zim.idSets[idSet?idSet:id]) {
+						delete zim.idSets[idSet?idSet:id];
+						if (zim.isEmpty(zim.idSets)) delete zim.idSets;
+					}
+					zim.animatedObjects.remove(target);
+				} else {
+					if (!Array.isArray(ids)) ids = [ids];
+					// expand any idSets into ids
+					var actualIds = expandIds(ids);
+					for (var id in target.zimTweens) {
+						if (include && actualIds.indexOf(id) >= 0) endTween(id);
+						if (!include && actualIds.indexOf(id) < 0) endTween(id);
+					}
+				}
+				return target;
+	        }
+	        target.pauseZimAnimate = function(paused, ids, include) {
+	            if (zot(paused)) paused = true;
+				if (zot(include)) include = true;
+				if (zot(ids) && !include) return; // would be exclude all ids
+				if (zot(ids)) { // want all ids
+					for (var id in target.zimTweens) {pauseTicker(id, paused);}
+				} else {
+					if (!Array.isArray(ids)) ids = [ids];
+					// expand any idSets into ids
+					var actualIds = expandIds(ids);
+					for (var id in target.zimTweens) {
+						if (include && actualIds.indexOf(id) >= 0) pauseTicker(id, paused);
+						if (!include && actualIds.indexOf(id) < 0) pauseTicker(id, paused);
+					}
+				}
+				return target;
+	        }
+		}
 		return target;
 	}//-45
+
+/*--
+zim.stopZimAnimate = function(ids)
+
+stopZimAnimate
+zim function - and Display object function
+
+DESCRIPTION
+Stops tweens with the passed in id or array of ids.
+If no id is passed then this will stop all tweens.
+The id is set as a zim.animate, zim.move, zim.Sprite parameter
+An animation series will have the same id for all the animations inside.
+See also zim.pauseZimAnimate
+
+NOTE: calling zim.stopZimAnimate(id) stops tweens with this id on all objects
+calling object.stopZimAnimate(id) stops tweens with this id on the target object
+
+EXAMPLE
+// We have split the tween in two so we can control them individually
+// Set an id parameter to stop or pause
+// You can control multiple tweens at once by using the same id (the id is for a tween set)
+// Note the override:true parameter
+var rect = new zim.Rectangle(200, 200, frame.pink)
+	.centerReg(stage)
+	.animate({obj:{scale:2}, time:2000, loop:true, rewind:true, id:"scale"})
+	.animate({obj:{rotation:360}, time:4000, loop:true, ease:"linear", override:false});
+rect.cursor = "pointer";
+rect.on("click", function() {rect.stopZimAnimate()}); // will stop all tweens on rect
+// OR
+rect.on("click", function() {rect.stopZimAnimate("scale");}); // will stop scaling tween
+
+zim.stopZimAnimate("scale") // will stop tweens with the scale id on all objects
+
+zim.stopZimAnimate(); // will stop all animations
+END EXAMPLE
+
+PARAMETERS
+ids - (default null) pass in an id or an array of ids specified in zim.animate, zim.move and zim.Sprite
+
+RETURNS null if run as zim.stopZimAnimate() or the obj if run as obj.stopZimAnimate()
+--*///+45.1
+	zim.stopZimAnimate = function(ids) {
+		z_d("45.1");
+		if (zot(ids)) {
+			if (zim.animatedObjects) {
+				for (var i=zim.animatedObjects.length-1; i>=0; i--) {
+					zim.animatedObjects.objects[i].stopZimAnimate();
+				}
+			}
+			return;
+		}
+		if (!Array.isArray(ids)) ids = [ids];
+		if (!zim.idSets) return;
+		for (var j=0; j<ids.length; j++) {
+			var idSet = ids[j];
+			if (zim.idSets[idSet]) {
+				for (var i=zim.idSets[idSet].length-1; i>=0; i--) {
+					zim.idSets[idSet][i].stopZimAnimate(idSet);
+				}
+			}
+		}
+	}//-45.1
+
+/*--
+zim.pauseZimAnimate = function(state, ids)
+
+pauseZimAnimate
+zim function - and Display object function
+
+DESCRIPTION
+Pauses or unpauses tweens with the passed in id or array of ids.
+If no id is passed then this will pause or unpause all tweens.
+The id is set as a zim.animate, zim.move, zim.Sprite parameter.
+An animation series will have the same id for all the animations inside.
+See also zim.stopZimAnimate
+
+NOTE: calling zim.pauseZimAnimate(true, id) pauses tweens with this id on all objects
+calling object.pauseZimAnimate(true, id) pauses tweens with this id on the target object
+
+EXAMPLE
+// We have split the tween in two so we can control them individually
+// Set an id parameter to stop or pause
+// You can control multiple tweens at once by using the same id (the id is for a tween set)
+// note the override:true parameter
+var rect = new zim.Rectangle(200, 200, frame.pink)
+	.centerReg(stage)
+	.animate({obj:{scale:2}, time:2000, loop:true, rewind:true, id:"scale"})
+	.animate({obj:{rotation:360}, time:4000, loop:true, ease:"linear", override:false});
+rect.cursor = "pointer";
+rect.on("click", function() {rect.pauseZimAnimate()}); // will pause all tweens on rect
+// OR
+var paused = false;
+rect.on("click", function() {
+	paused = !paused;
+	rect.pauseZimAnimate(paused, "scale");
+}); // will toggle the pausing of the scaling tween
+
+zim.pauseZimAnimate(false, "scale") // will unpause tweens with the scale id on all objects
+
+zim.pauseZimAnimate(); // will pause all animations
+END EXAMPLE
+
+PARAMETERS
+state - (default true) will pause tweens - set to false to unpause tweens
+ids - (default null) pass in an id or an array of ids specified in zim.animate, zim.move and zim.Sprite
+
+RETURNS null if run as zim.pauseZimAnimate() or the obj if run as obj.pauseZimAnimate()
+--*///+45.2
+	zim.pauseZimAnimate = function(state, ids) {
+		z_d("45.2");
+		if (zot(state)) state = true;
+		if (zot(ids)) {
+			if (zim.animatedObjects) {
+				for (var i=zim.animatedObjects.length-1; i>=0; i--) {
+					zim.animatedObjects.objects[i].pauseZimAnimate(state);
+				}
+			}
+			return;
+		}
+		if (!Array.isArray(ids)) ids = [ids];
+		if (!zim.idSets) return;
+		for (var j=0; j<ids.length; j++) {
+			var idSet = ids[j];
+			 if (zim.idSets[idSet]) {
+				for (var i=zim.idSets[idSet].length-1; i>=0; i--) {
+					zim.idSets[idSet][i].pauseZimAnimate(state, idSet);
+				}
+			}
+		}
+	}//-45.2
 
 /*--
 zim.loop = function(obj, call, reverse, step, start, end)
@@ -3746,7 +4326,7 @@ ske
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
-Chainable convenience function to skew x and y (slant)
+Chainable convenience function to skewX and skewY (slant)
 See also the CreateJS set({prop:val, prop2:val}) method;
 
 EXAMPLE
@@ -3772,6 +4352,79 @@ RETURNS obj for chaining
 	}//-41.9
 
 /*--
+zim.reg = function(obj, regX, regY)
+
+reg
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Chainable convenience function to regX and regY (registration point)
+The registration point is the point the object is positioned with
+and the object scales and rotates around the registration point
+See also the CreateJS set({prop:val, prop2:val}) method;
+See also zim.centerReg()
+
+EXAMPLE
+circle.reg(200, 200);
+
+OR with pre ZIM 4TH function
+zim.reg(circle, 200, 200);
+END EXAMPLE
+
+PARAMETERS
+obj - object on which to set registration point
+regX - (default null) the x registration
+regY - (default null) the y registration
+
+RETURNS obj for chaining
+--*///+41.95
+	zim.reg = function(obj, regX, regY) {
+		z_d("41.95");
+		if (zot(obj)) return;
+		if (!zot(regX)) obj.regX = regX;
+		if (!zot(regY)) obj.regY = regY;
+		return obj;
+	}//-41.95
+
+/*--
+zim.sca = function(obj, scale, scaleY)
+
+sca
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Chainable convenience function to do scaleX and scaleY in one call.
+Same as zim.scale() but with consistent three letter shortcut (helps with stacked alignment)
+If you pass in just the scale parameter, it scales both x and y to this value.
+If you pass in scale and scaleY then it scales x and y independently.
+Also see zim.scaleTo(), zim.fit() and zim.Layout().
+
+EXAMPLE
+circle.sca(.5); // x and y scale to .5
+circle.sca(.5, 2); // x scale to .5 and y scale to 2
+
+OR with pre ZIM 4TH function
+zim.sca(circle, .5);
+zim.sca(circle, .5, 2);
+END EXAMPLE
+
+PARAMETERS
+obj - object to scale
+scale - the scale (1 being full scale, 2 being twice as big, etc.)
+scaleY - (default null) pass this in to scale x and y independently
+
+RETURNS obj for chaining
+--*///+41.97
+	zim.sca = function(obj, scale, scaleY) {
+		z_d("41.97");
+		if (zot(obj) || zot(obj.scaleX)) return;
+		if (zot(scale)) scale = obj.scaleX;
+		if (zot(scaleY)) scaleY = scale;
+		obj.scaleX = scale; obj.scaleY = scaleY;
+		return obj;
+	}//-41.97
+
+/*--
 zim.scale = function(obj, scale, scaleY)
 
 scale
@@ -3779,6 +4432,7 @@ zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
 Chainable convenience function to do scaleX and scaleY in one call.
+Same as zim.sca() but came first and full name was not taken.
 If you pass in just the scale parameter, it scales both x and y to this value.
 If you pass in scale and scaleY then it scales x and y independently.
 Also see zim.scaleTo(), zim.fit() and zim.Layout().
@@ -4754,13 +5408,13 @@ RETURNS the object for chaining
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		move:function(x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from) {
+		move:function(x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
-			else {return zim.move(this, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from);}
+			else {return zim.move(this, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id);}
 		},
-		animate:function(obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from) {
+		animate:function(obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from);}
+			else {return zim.animate(this, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id);}
 		},
 		loop:function(call, reverse, step, start, end) {
 			return zim.loop(this, call, reverse, step, start, end);
@@ -4782,6 +5436,9 @@ RETURNS the object for chaining
 		},
 		ske:function(skewX, skewY) {
 			return zim.ske(this, skewX, skewY);
+		},
+		reg:function(regX, regY) {
+			return zim.reg(this, regX, regY);
 		},
 		scale:function(scale, scaleY) {
 			return zim.scale(this, scale, scaleY);
@@ -5002,8 +5659,8 @@ hitTestCircle(b, num)
 hitTestBounds(b, boundsShape)
 boundsToGlobal(rect, flip)
 hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
-move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override, from)
-animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override, from)
+move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override, from, id)
+animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override, from, id)
 loop(call, reverse, step, start, end)
 copyMatrix(source)
 pos(x, y)
@@ -5264,7 +5921,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.7
 
 /*--
-zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet, json)
+zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl)
 
 Sprite
 zim class - extends a createjs.Sprite
@@ -5275,16 +5932,18 @@ which is a set of images layed out in one file.
 You play the Sprite with the run() method.
 This animates the Sprite over a given time
 with various features like playing a labelled animation,
+playing animation series,
 wait, loop, rewind and call functions.
 This actually runs a ZIM animation and animates the frames.
 
 NOTE: A ZIM Sprite handles an evenly tiled spritesheet.
-For an un-evenly tiled spritesheet see the
+For an un-evenly tiled spritesheet use the json parameter
+which loads a CreateJS SpriteSheet.
+The json can come from TexturePacker for instance exported for EaselJS/CreateJS
 CreateJS Easel Sprite and SpriteSheet docs:
 http://www.createjs.com/docs/easeljs/classes/Sprite.html
 http://www.createjs.com/docs/easeljs/classes/SpriteSheet.html
-You can pass in a createjs.SpriteSheet or
-JSON data for a createjs.SpriteSheet as a parameter.
+You can optionally pass in JSON data for a createjs.SpriteSheet as a parameter.
 When you do so, all other parameters are ignored.
 
 NOTE: You can use CreateJS gotoAndPlay(), play(), etc.
@@ -5293,7 +5952,8 @@ with other animations or Ticker events running.
 So we recommend using the ZIM Sprite run() method.
 
 NOTE: The run() method handles single frame and consecutive labels
-but does not handle non-consective labels or nested labels.
+but does not handle non-consective frame labels or nested labels.
+run() can however play series of labels.
 
 EXAMPLE
 // inside zim.Frame template
@@ -5311,13 +5971,25 @@ frame.on("complete", function() {
 		image:spriteImage,
 		cols:8,
 		rows:6,
-		animations:{mid:[10,20]} // optional animations with labels
+		animations:{mid:[10,20], end:[30,40]} // optional animations with labels
 	});
 	animation.center(stage);
-	animation.run(2000); // plays the frames of the Sprite over 2 seconds
+	animation.run(2000); // plays the frames of the Sprite over 2 seconds (master time)
 
 	// OR use the label to play the frames listed in animations parameter
 	animation.run(1000, "mid");
+
+	// OR run a series of animations
+	// by passing an array of label objects to the label parameter
+	// these each have a time so the master time is ignored
+	// they can also have any of the run() parameters
+	// but if they loop, they must have a loopCount
+	// if you provide an array of labels, you cannot rewind the overall animation
+	animation.run(null, [
+		{label:"mid", time:1000},
+		{label:"end", time:500, loop:true, loopCount:5, call:function(){zog("loops done");}},
+		{startFrame:10, endFrame:20, time:1000}
+	]);
 
 	// OR can call a function when done
 	animation.run(1000, "mid", function(){
@@ -5347,43 +6019,44 @@ frame.on("complete", function() {
 		"frames":[[0, 0, 256, 256, 0, -54, -10], many more - etc.],
 		"animations":{}
 	};
-
-	// create a createjs.SpriteSheet and then a zim.Sprite
-	var spriteSheet = new createjs.SpriteSheet(spriteData);
-	var animation = new zim.Sprite({spriteSheet:spriteSheet});
+	var animation = new zim.Sprite({json:spriteData});
 	animation.center(stage);
 	animation.run(2000); // note, duration alternative to framerate
-
-	// OR just pass the JSON into a zim.Sprite:
-	var animation = new zim.Sprite({json:spriteData});
-	animation.center(stage).run(2000);
 });
+
+OR
+// load in data from externa JSON
+frame.loadAssets(["robot.json", "robot.png"]);
+// ... same as before
+var animation = new zim.Sprite({json:frame.asset("robot.json")});
+// ... same as before
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 image - the ZIM Bitmap for the spritesheet
-cols (default 1) - the columns in the spritesheet
-rows (default 1) - the rows in the spritesheet
-count (default cols*rows) - how many total frames in the spritesheet
-offsetX (default 0) - the pixels from the left edge to the frames
-offsetY (default 0) - the pixels from the top edge to the frames
-spacingX (default 0) - the horizontal spacing between the frames
-spacingY (default 0) - the vertical spacing between the frames
-width (default image width) - the width including offset and spacing for frames
-height (default image height) - the height including offset and spacing for frames
-animations (default null) - an object literal of labels holding frames to play
+cols - (default 1) - the columns in the spritesheet
+rows - (default 1) the rows in the spritesheet
+count - (default cols*rows) how many total frames in the spritesheet
+offsetX - (default 0) the pixels from the left edge to the frames
+offsetY - (default 0) the pixels from the top edge to the frames
+spacingX - (default 0) the horizontal spacing between the frames
+spacingY - (default 0) the vertical spacing between the frames
+width - (default image width) the width including offset and spacing for frames
+height - (default image height) the height including offset and spacing for frames
+animations - (default null) an object literal of labels holding frames to play
 	{label:3, another:[4,10]}
 	run(1000, "label") would play frame 3 for a second
 	run(1000, "another") would play frames 4 to 10 for a second
 	You can combine play with the wait parameter:
 	run(1000, "label").run({time:1000, label:"another", wait:1000});
-spriteSheet (default null) - a CreateJS SpriteSheet object to build the Sprite with
- 	If you pass in a spriteSheet parameter, all other parameters are ignored
-json (default null) - a JSON string for a CreateJS SpriteSheet
+json - (default null) a JSON string for a CreateJS SpriteSheet
 	If you pass in a json parameter, all other parameters are ignored
+id - (default randomly assigned) an id you can use in other animations - available as sprite.id
+	use this id in other animations for pauseRun and stopRun to act on these as well
+globalControl - (default true) pauseRun and stopRun will control other animations with same id
 
 METHODS
-run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame)
+run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, spriteID)
 	The run() method animates the Sprite over an amount of time
 	Would recommend this method over the CreateJS play() and gotoAndPlay()
 	methods because the framerate for these get overwritten by other stage.update() calls
@@ -5392,8 +6065,11 @@ run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopPa
 	Can be paused with pauseZimAnimate(true) or unpaused with pauseZimAnimate(false)
 	Can be stopped with stopZimAnimate() on the Sprite
 	supports DUO - parameters or single object with properties below
-	time (default 1) - the time in milliseconds to run the animations
+	time (default 1) - the time in milliseconds to run the animations (the master time)
 	label (default null) - a label specified in the Sprite animations parameter
+		if this is an array holding label objects for example:
+		[{label:"run", time:1000}, {label:"stand", time:2000}]
+		then the sprite will play the series with the times given and ignore the master time
 	call - (default null) the function to call when the animation is done
 	params - (default target) a single parameter for the call function (eg. use object literal or array)
 	wait - (default 0) milliseconds to wait before doing animation
@@ -5403,9 +6079,15 @@ run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopPa
 	loopCall - (default null) calls function after loop is done (including last loop)
 	loopParams - (default target) parameters to send loop function
 	rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
-	rewindWait (default 0) milliseconds to wait in the middle of the rewind
-	rewindCall (default null) calls function at middle of rewind animation
+	rewindWait - (default 0) milliseconds to wait in the middle of the rewind
+	rewindCall - (default null) calls function at middle of rewind animation
 	rewindParams - (default target) parameters to send rewind function
+	id - (default randomly assigned) an id you can use in other animations - available as sprite.id
+		use this id in other animations for pauseRun and stopRun to act on these as well
+	globalControl - (default true) pauseRun and stopRun will control other animations with same id
+pauseRun(state) - pause or unpause the animation (including an animation series)
+	state - (default true) when true the animation is paused - set to false to unpause
+stopRun() - stop the sprite from animating
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -5416,9 +6098,15 @@ play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
 PROPERTIES
+id - an id that you can use in other animations to also be controlled by pauseRun() and stopRun()
 frame - get and set the current frame of the Sprite
 totalFrames - get the total frames of the Sprite - read only
 animations - the animations data with labels of frames to animate
+running - is the sprite animation being run (includes both paused and unpaused) - read only
+runPaused - is the sprite animation paused (also returns paused if not running) - read only
+	note: this only syncs to pauseRun() and stopRun() not pauseZimAnimate() and stopZimAnimate()
+	note: CreateJS has paused, etc. but use that only if running the CreateJS methods
+	such as gotoAndPlay(), gotoAndStop(), play(), stop()
 ** bounds must be set first for these to work
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -5435,14 +6123,15 @@ EVENTS
 See the CreateJS Easel Docs for Sprite events, such as:
 animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.8
-	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet, json) {
-		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet, json";
+	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl) {
+		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl";
 		var duo; if (duo = zob(zim.Sprite, arguments, sig, this)) return duo;
 
 		z_d("50.8");
+
 		var that = this;
 
-		if ((zot(json) || zot(spriteSheet)) && !zot(image)) {
+		if (zot(json) && !zot(image)) {
 			if (zot(cols)) cols = 1;
 			if (zot(rows)) rows = 1;
 			if (zot(count)) count = cols * rows;
@@ -5476,23 +6165,84 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			};
 			spriteSheet = new createjs.SpriteSheet(spriteData);
 		} else {
-			if (!zot(json)) spriteSheet = new createjs.SpriteSheet(json);
-			if (!zot(spriteSheet)) animations = spriteSheet.animations;
+			animations = json.animations;
+			spriteSheet = new createjs.SpriteSheet(json);
 		}
 		this.animations = animations;
 		this.cjsSprite_constructor(spriteSheet);
 
-		this.run = function(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame) {
-			var sig = "time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame";
+		if (zot(id)) id = zim.makeID();
+		this.id = id;
+
+		if (zot(globalControl)) globalControl = true;
+		that.globalControl = globalControl;
+
+		this.run = function(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, tweek, id, globalControl) {
+			var sig = "time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, tweek, id, globalControl";
 			var duo; if (duo = zob(this.run, arguments, sig)) return duo;
 
-			if (zot(time)) time = 1;
+			var obj;
+			var set;
 			var startFrame;
 			var endFrame;
-			if (zot(label) || zot(animations) || zot(animations[label])) {
-				if (zot(startFrame)) startFrame = 0;
-				if (zot(endFrame)) endFrame = spriteSheet.getNumFrames() - 1; // DUO might re-run function losing scope of this
-			} else {
+			if (zot(tweek)) tweek = 1;
+			if (!zot(id)) that.id = id;
+			if (!zot(globalControl)) that.globalControl = globalControl;
+
+			if (Array.isArray(label)) {
+				// check labels
+				var innerLabel;
+				var lastLabel;
+				obj = [];
+				var extraTime = 0;
+				var firstStartFrame;
+				for (var i=0; i<label.length; i++) {
+					innerLabel = label[i];
+
+					if (!zot(innerLabel.label) && !zot(animations) && !zot(animations[innerLabel.label])) {
+						var frames = getFrames(innerLabel.label);
+						startFrame = frames[0];
+						endFrame = frames[1];
+					} else if (!zot(innerLabel.startFrame) || !zot(innerLabel.endFrame)) {
+						if (zot(innerLabel.endFrame)) innerLabel.endFrame = spriteSheet.getNumFrames() - 1;
+						if (zot(innerLabel.startFrame)) innerLabel.startFrame = 0;
+						startFrame = innerLabel.startFrame;
+						endFrame = innerLabel.endFrame;
+					} else {
+						if (zon) zog("zim.Sprite - run() - bad multiple label format - see docs");
+						continue;
+					}
+
+					delete innerLabel.startFrame;
+					delete innerLabel.endFrame;
+
+					innerLabel.obj = zim.merge(innerLabel.obj, {frame:endFrame});
+					innerLabel.set = zim.merge(innerLabel.set, {frame:startFrame});
+
+					// based on previous frames
+					if (zot(innerLabel.wait)) innerLabel.wait = extraTime*tweek;
+
+					lastLabel = innerLabel.label;
+					delete innerLabel.label;
+
+					obj.push(innerLabel);
+
+					// will get applied next set of frames
+					extraTime = 0;
+					var tt = zot(innerLabel.time)?time:innerLabel.time;
+					if (endFrame-startFrame > 0) extraTime = tt / (endFrame-startFrame) / 2; // slight cludge - seems to look better?
+
+					if (i==0) firstStartFrame = startFrame;
+				}
+				startFrame = firstStartFrame;
+				if (obj.length == 0) return this;
+				if (obj.length == 1) {
+					time = obj[0].time;
+					label = lastLabel;
+					obj = null;
+				}
+			}
+			function getFrames(label) {
 				var a = animations[label];
 				if (typeof a == "number") {
 					startFrame = endFrame = a;
@@ -5500,28 +6250,82 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					startFrame = a[0];
 					endFrame = a[a.length-1];
 				}
+				return [startFrame, endFrame];
 			}
-			var extraTime = 0;
-			if (endFrame-startFrame > 0) extraTime = time / (endFrame-startFrame) / 2; // slight cludge - seems to look better?
-			if (zot(loopWait)) {loopWait = extraTime};
-			if (zot(rewindWait)) {rewindWait = extraTime};
+
+			// note, label might have been set back to normal if it was an array of one label
+			// normal single label
+			if (!Array.isArray(label)) {
+
+				if (zot(label) || zot(animations) || zot(animations[label])) {
+					label = null;
+					if (zot(startFrame)) startFrame = 0;
+					if (zot(endFrame)) endFrame = spriteSheet.getNumFrames() - 1; // DUO might re-run function losing scope of this
+				} else { // we do have a label and it is in animations
+					var frames = getFrames(label);
+					startFrame = frames[0];
+					endFrame = frames[1];
+				}
+				obj = {frame:endFrame};
+				set = {frame:startFrame};
+			}
+
+			if (zot(time)) time = 1000;
+			// if already running the sprite then stop the last run
+			if (that.running) that.stopZimAnimate(that.id);
+			that.running = true;
+
+			if (!Array.isArray(obj)) {
+				var extraTime = 0;
+				if (endFrame-startFrame > 0) extraTime = time / (endFrame-startFrame) / 2; // slight cludge - seems to look better?
+				if (zot(loopWait)) {loopWait = extraTime*tweek};
+				if (zot(rewindWait)) {rewindWait = extraTime*tweek};
+			}
 			that.frame = startFrame;
+
+			// locally override call to add running status after animation done
+			var localCall = function() {
+				if (call && typeof call == 'function') call(params);
+				that.running = false;
+			}
+
 			zim.animate({
 				target:that,
-				obj:{frame:endFrame},
+				obj:obj,
 				time:time,
 				ease:"linear",
-				rewind:rewind,
-				call:call,
+				call:localCall,
 				params:params,
 				wait:wait,
 				override:false,
 				loop:loop, loopCount:loopCount, loopWait:loopWait,
 				loopCall:loopCall, loopParams:loopParams,
-				rewind:rewind, rewindWait:rewindWait,
-				rewindCall:rewindCall, rewindParams:rewindParams
+				rewind:rewind, rewindWait:rewindWait, // rewind is ignored by animation series
+				rewindCall:rewindCall, rewindParams:rewindParams,
+				id:that.id
 			});
+			that.runPaused = false;
 			return that;
+		}
+
+		this.runPaused = true;
+		this.pauseRun = function(paused) {
+			if (zot(paused)) paused = true;
+			that.runPaused = paused;
+			if (that.globalControl) {
+				zim.pauseZimAnimate(paused, that.id);
+			} else {
+				that.pauseZimAnimate(paused, that.id);
+			}
+		}
+		this.stopRun = function() {
+			that.runPaused = true;
+			that.running = false;
+			if (that.globalControl) {
+				zim.stopZimAnimate(that.id);
+			} else {
+				that.stopZimAnimate(that.id);
+			}
 		}
 
 		Object.defineProperty(this, 'frame', {
@@ -13572,7 +14376,9 @@ zil - reference to zil events that stop canvas from shifting
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple
 
 METHODS
-loadAssets([file, file], path, xhr) - pass in an array of assets, optional path to directory and XHR (default false)
+loadAssets(file||[file, file, etc.], path, xhr)
+	pass in an file (String) or an array of files to assets,
+	pass in an optional path to directory and XHR (default false)
 	asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
 asset(file) - access a loaded asset based on file string (not including path)
 	if the asset is an image then this is a zim.Bitmap and you add it to the stage
