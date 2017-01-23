@@ -531,8 +531,8 @@ RETURNS a Number
 --*///+9
 	zim.rand = function(a, b, integer, negative) {
 		z_d("9");
-		if (zot(a)) a = 0;
-		if (zot(b)) b = 0;
+		if (zot(a) || isNaN(a)) a = 0;
+		if (zot(b) || isNaN(b)) b = 0;
 		if (a%1!=0 || b%1!=0) integer = false;
 		if (zot(integer)) integer = true;
 		if (negative) if (Math.random()>.5) {a*=-1; b*=-1;};
@@ -690,6 +690,242 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 			return Math.floor((reverse?(start-end):(end-start)) / step) + 1;
 		}
 	}//-9.5
+
+/*--
+zim.timeout = function(time, call)
+
+timeout
+zim function
+
+DESCRIPTION
+Calls a function after the time delay - like window.setTimeout()
+Uses window.requestAnimationFrame() that tends to rest when the window is not showing
+
+NOTE: setTimeout has the time parameter last, zim.timeout has it first
+so that it is consistent with zim.loop() and the CreateJS on() method
+
+NOTE: to clear a zim.timeout you use returnID.clear() - different than window.clearTimeout(returnID)
+
+EXAMPLE
+zim.timeout(1000, function(){
+	circle.x += 100;
+	stage.upate();
+});
+// moves the circle 100 pixels after one second
+
+// GAME to press button within one second:
+var timeout = zim.timeout(1000, function() {
+	zog("you lose!");
+	button.enabled = false;
+});
+var button = new zim.Button().center(stage);
+button.on("click", function() {
+	zog("you win!");
+	timeout.clear();
+});
+END EXAMPLE
+
+PARAMETERS
+time - milliseconds to wait until function is called
+call - function to call when the time passes - will receive the id object as a single parameter
+
+RETURNS a ZIM timeoutObject to pause and clear the timeout with the following methods and properties:
+
+METHODS - of ZIM timeoutObject
+pause(state) - (default true) will pause the timeout - set to false to unpause the timeout
+clear() - will clear the timeout
+
+PROPERTIES - of ZIM timeoutObject
+time - the time in milliseconds that has lapsed
+paused - the paused state of the timeout
+--*///+9.7
+	zim.timeout = function(time, call) {
+		z_d("9.7");
+		if (zot(call)) return;
+		if (typeof call != 'function') return;
+		if (zot(time)) time = 1000;
+		var obj = {startTime:Date.now(), time:0, paused:false};
+		var lastTime = obj.startTime;
+		function next() {
+			var now = Date.now()
+			obj.time += now - lastTime;
+			lastTime = now;
+			if (obj.time >= time) {
+				(call)(obj);
+				obj.clear();
+				return;
+			}
+			obj.rid = requestAnimationFrame(next);
+		}
+		next();
+		obj.pause = function(state) {
+			if (state) { // pausing
+				cancelAnimationFrame(obj.rid);
+			} else { // unpausing
+				next();
+			}
+			obj.paused = state;
+		}
+		obj.clear = function() {
+			if (obj) cancelAnimationFrame(obj.rid);
+			for (var i in obj) {
+				delete obj[i];
+			}
+			obj.pause = function() {};
+			obj.clear = function() {};
+		}
+		return obj;
+	}//-9.7
+
+/*--
+zim.interval = function(time, call, total, immediate)
+
+interval
+zim function
+
+DESCRIPTION
+Calls a function after each time delay - like window.setInterval().
+Can pass in an Array of two times to set random time delays each interval.
+Can pass in how many times you want to run the function and whether it runs right away.
+Uses window.requestAnimationFrame() that tends to rest when the window is not showing.
+
+NOTE: setInterval has the time parameter last, zim.interval has it first
+so that it is consistent with zim.loop() and the CreateJS on() method
+
+NOTE: to clear a zim.interval you use intervalObj.clear() - different than window.clearInterval(returnID)
+
+EXAMPLE
+zim.interval(1000, function(){
+	circle.x += 100;
+	stage.upate();
+});
+// every second the circle will move 100 pixels
+// if you want smooth movement, use:
+
+zim.Ticker.add(function() {
+	circle.x += 100; // no need for stage.update()
+});
+
+zim.interval(1000, function(obj) {
+	zog("counting " + obj.count); // starts counting at 1
+	if (obj.count == 10) obj.clear(); // will now log 1 to 10
+});
+OR better:
+zim.interval(1000, function(obj) {
+	zog("counting " + obj.count); // starts counting at 1
+}, 10); // now will log 1 - 10 with total parameter set to 10
+
+IMMEDIATE:
+zim.interval(1000, function(obj) {
+	zog("counting " + obj.count); // starts counting at 0
+}, 10, true); // now will log 0 - 9 with immediate parameter set to true
+
+EXTERNAL control:
+var interval = zim.interval(1000, function() {
+	zog("counting " + interval.count); // starts counting at 1
+});
+var button = new zim.Button({label:"STOP", toggle:"START"}).center(stage);
+button.on("click", function(){interval.pause(button.toggled);});
+
+RANDOM intervals
+zim.interval([200, 800], dropBombs); // bombs will fall at different rates between 200ms and 800ms
+END EXAMPLE
+
+PARAMETERS
+time - (default 1000) milliseconds for the interval (delay until the function runs - again and again)
+	pass in an Array of two times to vary the interval randomly between the two numbers
+call - function to call when the interval passes
+	Will be passed a ZIM intervalObject as a single parameter
+	This is the same as the return object from zim.animate()
+	See the Returns section below for methods and properties of the intervalObject
+total - (default null - infinite) the number of times the function is called
+	note: the count property counts intervals but the total property is based on function calls.
+	The total will be equal to the end count with the immediate parameter set to false (default)
+	but the total will be one less than the count if the immediate parameter is true (like an Array index and length)
+immediate - (default false) set to true to call the function right away (and then still call every interval)
+	This will not increase the count in the intervalObject because count counts intervals not function calls
+	Use the provided parameter of the call function to access the intervalObject inside the call function
+
+RETURNS a ZIM intervalObject to pause and clear the interval with the following methods and properties:
+
+METHODS - of ZIM intervalObject
+pause(state) - (default true) will pause the interval - set to false to unpause the interval
+clear() - will clear the interval
+
+PROPERTIES - of ZIM intervalObject
+count - the number of times the interval has run (if immediate is true, the first count is 0)
+paused - the paused state of the interval
+pauseTimeLeft - if paused, how much time is left once unpaused
+--*///+9.8
+	zim.interval = function(time, call, total, immediate) {
+		z_d("9.8");
+		if (zot(call)) return;
+		if (typeof call != 'function') return;
+		if (zot(time)) time = 1000;
+		if (zot(immediate)) immediate = false;
+		if (!zot(total) && (isNaN(total) || total<=0)) return;
+		var obj = {count:0, paused:false};
+		function interval() {
+			obj.startTime = Date.now();
+			obj.interval = getInterval(time);
+			obj.id = setTimeout(function() {
+				obj.rid = requestAnimationFrame(interval);
+				obj.count++;
+				(call)(obj);
+				checkTotal();
+			}, obj.interval);
+		}
+		interval();
+		function getInterval(time) {
+			if (Array.isArray(time)) {
+				if (time.length > 1) return zim.rand(time[0], time[1]);
+				else if (time.length == 1) return time[0];
+				else return 1000;
+			}
+			return time;
+		}
+		if (immediate) {
+			setTimeout(function() {
+				(call)(obj);
+				checkTotal();
+			}, 10);
+		}
+		function checkTotal() {
+			if (zot(total)) return;
+			if (obj.count >= (immediate?total-1:total)) obj.clear();
+		}
+		var pausedTimeout;
+		obj.pause = function(state) {
+			if (state) { // pausing
+				clearTimeout(pausedTimeout);
+				cancelAnimationFrame(obj.rid);
+				clearTimeout(obj.id);
+				obj.pauseTimeLeft = obj.interval - (Date.now()-obj.startTime);
+			} else { // unpausing
+					pausedTimeout = setTimeout(function() {
+						obj.count++;
+						(call)(obj);
+						interval();
+						checkTotal();
+					}, obj.pauseTimeLeft);
+				obj.pauseTimeLeft = null;
+			}
+			obj.paused = state;
+		}
+		obj.clear = function() {
+			clearTimeout(pausedTimeout);
+			cancelAnimationFrame(obj.rid);
+			clearTimeout(obj.id);
+			var count = obj.count;
+			for (var i in obj) {
+				delete obj[i];
+			}
+			obj.count = count;
+			obj.pause = function() {};
+			obj.clear = function() {};
+		}
+		return obj;
+	}//-9.8
 
 /*--
 zim.copy = function(obj)
@@ -3195,7 +3431,8 @@ obj - the object literal holding properties and values to animate (includes a sc
 	but you can specify these to override the default
 	The id of the main parameters is used for the whole series and cannot be overriden
 	The override parameter is set to false and cannot be overriden
-	All other parameters are available except rewind, sequence and from
+	All other main parameters are available except rewind, sequence and from
+	(rewind and from are available on the inner tweens - for sequence: the initial animation is considered)
 	You currently cannot nest animimation series
 time - the time for the tween in milliseconds 1000 ms = 1 second
 ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
@@ -4320,6 +4557,58 @@ RETURNS obj for chaining
 	}//-41.8
 
 /*--
+zim.siz = function(obj, width, height, only)
+
+siz
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Chainable convenience function to set width and height in one call.
+If you pass in just the width or height parameter, it keeps the aspect ratio.
+If you want to set only the width or height, then set only to true.
+If you pass in both the width and height then it sets both.
+Note: that width and height will adjust the scaleX and scaleY of the object.
+Also see zim.width, zim.height, zim.widthOnly, zim.heightOnly.
+
+EXAMPLE
+var rect = new zim.Rectangle(100,200,frame.blue).addTo(stage);
+rect.siz(200); // sets width to 200 and height to 400
+rect.siz(200, null, true); // sets width to 200 and leaves height at 200
+rect.siz(200, 100); // sets width to 200 and height to 100
+
+OR with pre ZIM 4TH function
+zim.siz(rect, 200);
+// etc.
+END EXAMPLE
+
+PARAMETERS
+obj - object to scale
+width - (default null) the width of the object
+	setting only the width will set the widht and keep the aspect ratio
+	unless the only parameter is set to true
+height - (default null) the height of the object
+	setting only the width will set the widht and keep the aspect ratio
+	unless the only parameter is set to true
+only - (default false) - defaults to keeping aspect ration when one dimension set
+ 	set to true to scale only a single dimension (like widthOnly and heightOnly properties)
+
+RETURNS obj for chaining
+--*///+41.85
+	zim.siz = function(obj, width, height, only) {
+		z_d("41.85");
+		if (zot(obj)) return;
+		if (zot(only)) only = false;
+		if (!zot(width) && !zot(height)) {
+			obj.widthOnly = width; obj.heightOnly = height;
+		} else if (!zot(width)) {
+			if (only) {obj.widthOnly = width;} else {obj.width = width;}
+		} else if (!zot(height)) {
+			if (only) {obj.heightOnly = height;} else {obj.height = height;}
+		}
+		return obj;
+	}//-41.85
+
+/*--
 zim.ske = function(obj, skewX, skewY)
 
 ske
@@ -5434,11 +5723,17 @@ RETURNS the object for chaining
 		rot:function(rotation) {
 			return zim.rot(this, rotation);
 		},
+		siz:function(width, height, only) {
+			return zim.siz(this, width, height, only);
+		},
 		ske:function(skewX, skewY) {
 			return zim.ske(this, skewX, skewY);
 		},
 		reg:function(regX, regY) {
 			return zim.reg(this, regX, regY);
+		},
+		sca:function(scale, scaleY) {
+			return zim.sca(this, scale, scaleY);
 		},
 		scale:function(scale, scaleY) {
 			return zim.scale(this, scale, scaleY);
@@ -5933,6 +6228,8 @@ You play the Sprite with the run() method.
 This animates the Sprite over a given time
 with various features like playing a labelled animation,
 playing animation series,
+SEE: http://zimjs.com/code/spritesheet/index.html
+AND: http://zimjs.com/code/spritesheet/skateboard.html
 wait, loop, rewind and call functions.
 This actually runs a ZIM animation and animates the frames.
 
@@ -6082,6 +6379,8 @@ run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopPa
 	rewindWait - (default 0) milliseconds to wait in the middle of the rewind
 	rewindCall - (default null) calls function at middle of rewind animation
 	rewindParams - (default target) parameters to send rewind function
+	startFrame - (default null - or 0) the frame to start on - will be overridden by a label with frames
+	endFrame - (default null - or totalFrames) the frame to end on - will be overridden by a label with frames
 	id - (default randomly assigned) an id you can use in other animations - available as sprite.id
 		use this id in other animations for pauseRun and stopRun to act on these as well
 	globalControl - (default true) pauseRun and stopRun will control other animations with same id
@@ -6183,8 +6482,6 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 
 			var obj;
 			var set;
-			var startFrame;
-			var endFrame;
 			if (zot(tweek)) tweek = 1;
 			if (!zot(id)) that.id = id;
 			if (!zot(globalControl)) that.globalControl = globalControl;
@@ -6244,11 +6541,23 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			}
 			function getFrames(label) {
 				var a = animations[label];
-				if (typeof a == "number") {
-					startFrame = endFrame = a;
-				} else {
-					startFrame = a[0];
-					endFrame = a[a.length-1];
+				makeStartEnd(a);
+				function makeStartEnd(a) {
+					if (typeof a == "number") {
+						startFrame = endFrame = a;
+					} else if (a.constructor == {}.constructor) {
+						if (zot(a.frames)) {
+							if (zon) zog("zim.Sprite() - run() does not support nested labels - see docs");
+							startFrame = 0;
+							endFrame = spriteSheet.getNumFrames() - 1;
+						} else {
+							makeStartEnd(a.frames);
+						}
+						startFrame = a.frames
+					} else {
+						startFrame = a[0];
+						endFrame = a[a.length-1];
+					}
 				}
 				return [startFrame, endFrame];
 			}
@@ -8139,10 +8448,10 @@ backing - (default null) a Display object for the backing of the button (eg. Sha
 fadeTime - (default 0) milliseconds to fade in and out
 
 METHODS
-show() - shows the pane
+show() - shows the pane (returns the pane for chaining)
 hide() - hides the pane
-toggle() - shows if hidden and hides if showing
-clone() - makes a copy with properties such as x, y, etc. also copied
+toggle() - shows if hidden and hides if showing (returns the pane for chaining)
+clone() - makes a copy with properties such as x, y, etc. also copied (returns the new pane for chaining)
 dispose() - removes all events
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -8340,6 +8649,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else {
 				if (container.getStage()) container.getStage().update();
 			}
+			return that;
 		}
 		function checkBounds(x,y) {
 			x = Math.max(width/2, Math.min(container.getBounds().width-width/2, x));
@@ -8349,6 +8659,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.toggle = function() {
 			if (container.contains(that)) {that.hide();} else {that.show();}
+			return that;
 		}
 
 		this.clone = function() {
@@ -8855,9 +9166,9 @@ shadow blur - (default 14) the blur of the shadow if shadow is set
 fadeTime - (default 0) milliseconds to fade in and out
 
 METHODS
-show() - shows the waiter
+show() - shows the waiter (returns the waiter for chaining)
 hide() - hides the waiter
-clone() - makes a copy with properties such as x, y, etc. also copied
+clone() - makes a copy with properties such as x, y, etc. also copied (returns the new waiter for chaining)
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -8976,6 +9287,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.alpha = 0;
 				that.animate({alpha:1}, fadeTime);
 			}
+			return that;
 		}
 
 		this.clone = function() {
@@ -12414,53 +12726,6 @@ The default is "mousedown" - if set to something else the component will act on 
 	//-73
 
 /*--
-zim.dashedLinesOn = function()
-
-dashedLinesOn
-zim function
-
-DESCRIPTION
-CreateJS now supports dashed lines in its graphics but keep here for legacy
-adds dashedLineTo(x1, y1, x2, y2, dashLen)
-and drawDashedRect(x, y, w, h, dashLen) methods to createjs Graphics
-https://gist.github.com/diverted247/9216242 - Ted Patrick
---*///+74
-	zim.dashedLinesOn = function() {
-		z_d("74");
-		if (zim.dashed) return; // only need to define once
-		zim.dashed = true;
-		createjs.Graphics.prototype.dashedLineTo = function(x1, y1, x2, y2, dashLen){
-			this.moveTo(x1, y1);
-
-			var dX = x2 - x1;
-			var dY = y2 - y1;
-			var dashes = Math.floor(Math.sqrt(dX*dX+dY*dY) / dashLen);
-			var dashX = dX / dashes;
-			var dashY = dY / dashes;
-
-			var q = 0;
-			while(q++ < dashes){
-				x1 += dashX;
-				y1 += dashY;
-				this[q % 2 == 0 ? 'moveTo' : 'lineTo'](x1, y1);
-			}
-			this[q % 2 == 0 ? 'moveTo' : 'lineTo'](x2, y2);
-			return this;
-		}
-		createjs.Graphics.prototype.drawDashedRect = function(x1, y1, w, h, dashLen){
-			this.moveTo(x1, y1);
-			var x2 = x1 + w;
-			var y2 = y1 + h;
-			this.dashedLineTo(x1, y1, x2, y1, dashLen);
-			this.dashedLineTo(x2, y1, x2, y2, dashLen);
-			this.dashedLineTo(x2, y2, x1, y2, dashLen);
-			this.dashedLineTo(x1, y2, x1, y1, dashLen);
-			return this;
-		}
-	}//-74
-
-
-/*--
 zim.Manager = function()
 
 Manager
@@ -12564,7 +12829,6 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		var that = this;
 		var stage;
 		var stageEvent;
-		zim.dashedLinesOn();
 
 		// make text boxes that show x and y
 		var boxW = 80;
@@ -12716,13 +12980,12 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 			if (vertical) {
 				g.c().s("rgba(0,255,255,.1)").ss(20).mt(0,0).lt(0,objH);
 				g.f().s("white").ss(2).mt(0,0).lt(0,objH);
-				g.s("#00c5af").ss(2).dashedLineTo(0,0,0,objH,20);
+				g.s("#00c5af").sd([20,20]).mt(0,0).lt(0,objH).sd();
 				line.cache(-10,0,20,objH);
 			} else {
 				g.c().s("rgba(255,0,255,.1)").ss(20).mt(0,0).lt(objW,0);
 				g.f().s("white").ss(2).mt(0,0).lt(objW, 0);
-				g.s("#d61fa0").ss(2).dashedLineTo(0,0,objW,0,20);
-
+				g.s("#d61fa0").sd([20,20]).mt(0,0).lt(objW, 0).sd();
 
 				line.cache(0,-10,objW,20);
 			}
@@ -13006,12 +13269,16 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		var objH;
 		var cached;
 		function drawGrid() {
-			gridCheck = true;
+			 gridCheck = true;
 
-			objW = obj.getBounds().width;
-			objH = obj.getBounds().height;
-			stage.mouseMoveOutside = true;
-			stage.enableMouseOver(10);
+			if (obj && obj.getBounds) {
+				objW = obj.getBounds().width;
+				objH = obj.getBounds().height;
+			}
+			if (stage) {
+				stage.mouseMoveOutside = true;
+				stage.enableMouseOver(10);
+			}
 
 			maxX = objW-boxW*2/3;
 			maxY = objH-boxH - boxH;
@@ -13087,7 +13354,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 			that.addChild(top);
 			that.addChild(left);
 
-			stage.update();
+		 	if (stage) stage.update();
 		}
 
 		Object.defineProperty(this, 'pixels', {
@@ -13314,7 +13581,6 @@ will fill up the rest of the height until they reach their maximum widths
 		if (zot(vertical)) vertical = true;
 		if (zot(backgroundColor)) backgroundColor = "";
 		if (zot(hideKey)) hideKey = "B";
-		zim.dashedLinesOn(); // turns on dashed lines for bounds
 		var backing = new createjs.Shape(); // holds any backing colors
 		var that = this;
 		this.active = true;
@@ -13451,7 +13717,7 @@ will fill up the rest of the height until they reach their maximum widths
 						maxGiven = s/p*boundsP;
 						if (maxGiven > boundsS) {
 							// maxed out so give back height
-							keepGoing=true;
+							// keepGoing=true;
 							// store this as maxGiven property
 							// might have to take it away if later minHeights are not met
 							r.maxGiven = p/s*boundsS * 100/bounds[primary]; // convert back to percentage
@@ -13463,7 +13729,8 @@ will fill up the rest of the height until they reach their maximum widths
 					}
 				}
 
-				if (!keepGoing) break;
+				// !keepGoing was missing when secondary affects primary so took check out
+				// if (!keepGoing) break;
 				if (allCheck) break;
 
 				// redistribute the extra stuff too all that are not maxed out and not with primary values
@@ -13589,7 +13856,7 @@ will fill up the rest of the height until they reach their maximum widths
 				else if (r.align == "right") r.object.x = f.bX+f.bWidth-f.width;
 				if (regionShape && regionShape.graphics) {
 					g.s("white").ss(2).r(f.bX,f.bY,f.bWidth,f.bHeight);
-					g.s("#ff8203").ss(2).drawDashedRect(f.bX,f.bY,f.bWidth,f.bHeight,20);
+					g.s("#ff8203").sd([20,20]).r(f.bX,f.bY,f.bWidth,f.bHeight).sd();
 				}
 
 				// draw any backing colors for region
@@ -14363,9 +14630,15 @@ align - (default "center") for fit and outside, the horizontal alignment "left",
 valign - (default "center") for fit and outside, the vertical alignment "top", "center/middle", "bottom"
 canvasID - (default "myCanvas") will be set to tagIDCanvas if a tagID is provided - eg. scaling=test, canvasID=testCanvas
 rollPerSecond - (default 20) times per second rollover is activated (if rollover parameter is true)
+delay - (default 500) time in milliseconds to resize ONCE MORE after a orientation change
+	unfortunately, some older devices may have a delay (after a window resize event) in reporting screen sizes
+	so a time of 500 or so might catch the dimension change then call the frame resize event with the proper dimensions
+	setting this may cause a flash on faster devices that do not need it - so it is a no win situation
+	this effects only full mode with the Layout class and they can always refresh a screen if it is not quite right in the changed orientation
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
+	frame gives the stage read only stage.width and stage.height properties
 canvas - a reference to the frame's canvas tag
 tag - the containing tag if scaling is set to an HTML tag id (else null)
 width - read only reference to the stage width - to change run remakeCanvas()
@@ -14373,7 +14646,7 @@ height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
 orientation - "vertical" or "horizontal" (updated live with orientation change)
 zil - reference to zil events that stop canvas from shifting
-colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple
+colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple, white, black, clear (0 alpha), faint (.01 alpha)
 
 METHODS
 loadAssets(file||[file, file, etc.], path, xhr)
@@ -14406,9 +14679,9 @@ EVENTS
 "keydown" - fires on keydown - just like the window keydown event with eventObject.keyCode, etc.
 "keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
 --*///+83
-	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay) {
 
-		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		this.cjsEventDispatcher_constructor();
@@ -14422,6 +14695,7 @@ EVENTS
 		if (zot(valign)) valign = "center";
 		if (zot(canvasID)) canvasID = "myCanvas";
 		if (zot(rollPerSecond)) rollPerSecond = 20;
+		if (zot(delay)) delay = 0;
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
@@ -14446,20 +14720,18 @@ EVENTS
 		if (document.readyState === 'interactive' || document.readyState === 'complete' ) { // DOM has loaded
 			setTimeout(function() {init();}, 200); // can't dispatch directly from a constructor
 		} else {
-			document.addEventListener('DOMContentLoaded', function() {
-				if (mobile) {
-					setTimeout(function() {init();}, 1500); // to catch delayed screen sizes
-				} else {
-					init();
-				}
-			});
+			document.addEventListener('DOMContentLoaded', init);
 		}
 
 		window.addEventListener('resize', function() {
 			sizeCanvas();
 			dispatchResize();
-			if (mobile) setTimeout(function() {sizeCanvas();}, 250);
-			if (mobile) setTimeout(function() {sizeCanvas(); dispatchResize();}, 500); // to catch delayed screen sizes
+			if (delay > 0) {
+				if (mobile) setTimeout(function() {
+					sizeCanvas();
+					dispatchResize();
+				}, delay); // to catch delayed screen sizes
+			}
 		});
 
 		function init() {
@@ -14480,14 +14752,24 @@ EVENTS
 			makeCanvas();
 			makeStage();
 
-			// for older mobile - pan hides the location bar
-			if (mobile && scrollTop) {setTimeout(function() {window.scrollTo(0, 0);}, 100);}
-
-			that.dispatchEvent("ready");
-			appReady = true;
-			dispatchResize();
-			if (mobile) setTimeout(function() {sizeCanvas();}, 250);
-			if (mobile) setTimeout(function() {sizeCanvas(); dispatchResize();}, 500); // to catch delayed screen sizes
+			if (mobile) {
+				// for older mobile - pan hides the location bar
+				if (scrollTop) {setTimeout(function() {window.scrollTo(0, 0);}, 50);}
+				setTimeout(function() {
+					// on all mobile devices
+					// note, this is a second sizing as there is a sizing in makeStage
+					sizeCanvas();
+					that.dispatchEvent("ready");
+					appReady = true;
+					dispatchResize();
+				}, 100);
+				// for extra delay
+				if (delay > 100) setTimeout(function() {sizeCanvas(); dispatchResize();}, delay); // to catch delayed screen sizes
+			} else {
+				that.dispatchEvent("ready");
+				appReady = true;
+				dispatchResize();
+			}
 		}
 
 		function makeCanvas() {
@@ -14497,14 +14779,9 @@ EVENTS
 
 			var canvas = that.canvas = document.createElement("canvas");
 			canvas.setAttribute("id", canvasID);
-			largest = Math.max(window.innerWidth, screen.width, window.innerHeight, screen.height);
-			// does not work on iOS6 in full screen if loading from icon unless keep canvas at device size
-			// thank you apple for this and many other days of hell
-
-			if (mobile != "ios") largest *= 3;
 			if (scaling == "full" || scaling == "tag") {
-				canvas.setAttribute("width", largest);
-				canvas.setAttribute("height", largest);
+				canvas.setAttribute("width", zim.windowWidth());
+				canvas.setAttribute("height", zim.windowHeight());
 			} else {
 				canvas.setAttribute("width", stageW);
 				canvas.setAttribute("height", stageH);
@@ -14517,14 +14794,17 @@ EVENTS
 			if (!zot(color)) canvas.style.backgroundColor = color;
 			if (scaling == "full" || scaling == "fit" || scaling == "outside") {
 				canvas.style.position = "absolute";
+				document.body.style.overflow = "hidden";
 			}
 		}
 
 		function makeStage() {
 			sizeCanvas();
-			if (types.indexOf(scaling) != -1) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.)
+			if (types.indexOf(scaling) != -1) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
 			stage = new createjs.Stage(canvasID);
 			stage.setBounds(0, 0, stageW, stageH);
+			stage.width = stageW;
+			stage.height = stageH;
 			if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
 			if (touch) createjs.Touch.enable(stage,true); // added for mobile
 		}
@@ -14539,45 +14819,58 @@ EVENTS
 				lastOrientation = appOrientation;
 				that.dispatchEvent("orientation");
 			}
+			if (mobile && scrollTop) {setTimeout(function() {window.scrollTo(0, 0);}, 100);}
 			if (!can) return;
 
 			if (scaling == "fit") {
 				// scales canvas to fit dimensions inside screen
 				that.scale = (w/h >= stageW/stageH) ? h/stageH : w/stageW;
-				newH = stageH * that.scale;
-				newW = stageW * that.scale;
 			} else if (scaling == "outside") {
 				// scales canvas so screen inside dimensions
-				document.body.style.overflow = "hidden";
 				that.scale = (w/h >= stageW/stageH) ? w/stageW : h/stageH;
-				newH = stageH * that.scale;
-				newW = stageW * that.scale;
 			} else if (scaling == "full") {
 				// does not scale canvas but sets width and height to screen
-				document.body.style.overflow = "hidden";
 				can.style.left = can.style.top = "0px";
-				stageW = w;
-				stageH = h;
-				if (stage) stage.setBounds(0,0,stageW,stageH); // need this
+				can.width = stageW = w;
+				can.height = stageH = h;
+				if (stage) {
+					stage.setBounds(0,0,stageW,stageH); // need this
+					stage.width = stageW;
+					stage.height = stageH;
+				}
 				return;
 			} else if (scaling == "tag") {
 				// does not scale canvas but sets width and height to tag
 				stageW = tag.offsetWidth;
 				stageH = tag.offsetHeight;
-				if (stage) stage.setBounds(0,0,stageW,stageH); // need this
+				if (stage) {
+					stage.setBounds(0,0,stageW,stageH); // need this
+					stage.width = stageW;
+					stage.height = stageH;
+				}
 				tag.style.overflow = "hidden";
 				can.style.left = can.style.top = "0px";
 				return;
 			} else if (scaling == "inline") {
 				// does not scale canvas but sets width and height
-				if (stage) stage.setBounds(0,0,stageW,stageH); // need this
+				if (stage) {
+					stage.setBounds(0,0,stageW,stageH); // need this
+					stage.width = stageW;
+					stage.height = stageH;
+				}
 				can.style.left = can.style.top = "0px";
 				return;
 			}
-
-			// scaling and positioning for fit and full
+			// scaling and positioning for fit and outside
+			newH = stageH * that.scale;
+			newW = stageW * that.scale;
 			can.style.width = newW + "px";
 			can.style.height = newH + "px";
+			// note, changing the canvas width and height and scaling the stage
+			// does not look as shart at smaller scales - so decided to scale with styles
+			// which is like scaling down an image
+			// scaling up does not look as good - so just make your canvas as big as you will scale
+
 			if (align=="left") this.x = 0;
 			else if (align=="right") this.x = (w-newW);
 			else this.x = ((w-newW)/2);
@@ -14594,7 +14887,6 @@ EVENTS
 		}
 
 		// ASSETS
-
 		this.assets = {}; // store asset Bitmap or play function for sound
 		this.loadAssets = function(arr, path, xhr) {
 			if (zot(arr)) return;
@@ -14682,9 +14974,9 @@ EVENTS
 			set: function(value) {
 				color = value;
 				if (!zot(value)) {
-					canvas.style.backgroundColor = color;
+					zid(canvasID).style.backgroundColor = color;
 				} else {
-					canvas.style.backgroundColor = "default";
+					zid(canvasID).style.backgroundColor = "default";
 				}
 			}
 		});
@@ -14737,7 +15029,10 @@ EVENTS
 		this.dark 		= "#333333";
 		this.darker 	= "#111111";
 		this.purple		= "#993399";
+		this.black 		= "#000000";
+		this.white		= "#FFFFFF";
 		this.clear 		= "rgba(0,0,0,0)";
+		this.faint 		= "rgba(0,0,0,.01)";
 
 		this.makeCircles = function(radius) {
 			if (zot(radius)) radius = 100;
