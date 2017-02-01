@@ -1,11 +1,11 @@
-// ZIM js Interactive Media modules http://zimjs.com by Dan Zen http://danzen.com (c) 2016
+// ZIM js Interactive Media framework http://zimjs.com by Dan Zen http://danzen.com (c) 2017
 // Also see http://zimjs.com/code/distill to minify only the functions in your app
 // free to use - donations welcome of course! http://zimjs.com/donate
 
 
 ////////////////  ZIM WRAP  //////////////
 
-// zimwrap.js creates global wrapper functions for less typing
+// Zim Wrap creates global wrapper functions for less typing
 
 // set var zon=true before calling zim scripts to show script comments
 if (typeof zon === "undefined") zon = false; // comments from zim scripts
@@ -442,7 +442,7 @@ var zim = function(zim) {
 
 ////////////////  ZIM CODE  //////////////
 
-// zimcode.js adds some general code functionality along with Browser and DOM code
+// Zim Code adds some general code functionality along with Browser and DOM code
 // some of these are common Web solutions over the years (sorry for lack of credit)
 
 /*--
@@ -2020,7 +2020,7 @@ if (typeof(createjs) == "undefined") {if (zon) {zog("ZIM >= 4.3.0 requires creat
 
 ////////////////  ZIM CREATE  //////////////
 
-// zimcreate.js adds functionality to CreateJS for digidos (Interactive Features)
+// Zim Create adds functionality to CreateJS for multies (Interactive Features)
 // functions in this module require createjs namespace to exist and in particular easel.js and tween.js
 // available at http://createjs.com
 
@@ -3429,11 +3429,13 @@ obj - the object literal holding properties and values to animate (includes a sc
 	but you can specify a target to override the default
 	The default time and tween are as provided in the main parameters
 	but you can specify these to override the default
-	The id of the main parameters is used for the whole series and cannot be overriden
-	The override parameter is set to false and cannot be overriden
+	The id of the main parameters is used for the whole series and cannot be overridden
+	The override parameter is set to false and cannot be overridden
 	All other main parameters are available except rewind, sequence and from
 	(rewind and from are available on the inner tweens - for sequence: the initial animation is considered)
 	You currently cannot nest animimation series
+	Note: if any of the series has a loop and loops forever (a loopCount of 0 or no loopCount)
+	then this will be the last of the series to run
 time - the time for the tween in milliseconds 1000 ms = 1 second
 ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
 call - (default null) the function to call when the animation is done
@@ -3599,7 +3601,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					duration = o.time;
 					if (o.rewind) duration = duration * 2 + (o.rewindWait?o.rewindWait:0);
 					if (o.loop) {
-						if (zot(o.loopCount)) o.loopCount = 2;
+						// if loopCount is 0 (forever) then prepare series makes this the last animation
 						duration *= o.loopCount;
 						duration += (o.loopCount-1) * (o.loopWait?o.loopWait:0);
 					}
@@ -3640,7 +3642,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						}
 						function goNext() {
 							for (var k=0; k<starts.objects.length; k++) {
-								starts.objects[k].set(starts.values[k]);
+								if (starts.objects[k].set) starts.objects[k].set(starts.values[k]);
 							}
 							if (props.loopCall && typeof props.loopCall == 'function') {(props.loopCall)(props.loopParams);}
 							runMaster();
@@ -3663,6 +3665,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (zot(o.target)) o.target = target;
 					if (zot(o.ease)) o.ease = ease;
 					if (zot(o.target)) continue;
+					if (o.loop && (zot(o.loopCount) || o.loopCount <= 0)) {
+						o.loopCount = 0;
+						// this object is looping forever so no point in keeping any next objects
+						obj.splice(i+1, obj.length); // obj.length may be too much but it works
+					}
 					if (!zot(o.obj.scale)) {
 						o.obj.scaleX = o.obj.scaleY = o.obj.scale;
 						delete o.obj.scale;
@@ -3827,7 +3834,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 				function tween1() {
 					var obj2 = getStart();
-					target.set(set);
+					if (target.set) target.set(set);
 					tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
 						.to(obj, t, createjs.Ease[ease])
 						.call(doRewindCall)
@@ -3845,7 +3852,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 				function tween2() {
 					var obj2 = getStart();
-					target.set(set);
+					if (target.set) target.set(set);
 					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, props)
 						.to(obj, t, createjs.Ease[ease])
 						.wait(wait2)
@@ -3862,7 +3869,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				tween3();
 			}
 			function tween3() {
-				target.set(set);
+				if (target.set) target.set(set);
 				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
 					.to(obj, t, createjs.Ease[ease])
 					.call(doneAnimating)
@@ -3895,17 +3902,18 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						return;
 					} else {
 						if (rewind) {
-							target.set(getStart());
+							if (target.set) target.set(getStart());
 						} else {
-							target.set(obj);
+							if (target.set) target.set(obj);
 						}
 					}
 				} else {
+					if (call3 && typeof call3 == 'function') {(call3)(params3);}
 					return;
 				}
 			}
-			if (call && typeof call == 'function') {(call)(params);}
 			endTween(id);
+			if (call && typeof call == 'function') {(call)(params);}
 		}
 		function getStart() {
 			// for rewind, we need to know the start value
@@ -4004,7 +4012,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			// store reference to ticker function in a closure
 			// as we may delete the zimTweens reference before the 200 ms is up
 			-function() {
-				var ticker = target.zimTweens[id].zimTicker;
+				var ticker = target.zimTweens[id].zimTicker
 				setTimeout(function(){
 					if (ticker) zim.Ticker.remove(ticker); ticker = null;
 				},200);
@@ -4016,7 +4024,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (paused == tween.zimPaused) return;
 			tween.zimPaused = paused;
 			if (paused) {
-				tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
+				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 			} else {
 				clearTimeout(tween.zimAnimateTimeout);
 				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, target.getStage());
@@ -4529,7 +4537,7 @@ RETURNS obj for chaining
 /*--
 zim.rot = function(obj, rotation)
 
-rotation
+rot
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
@@ -5384,7 +5392,7 @@ RETURNS the mask shape (different than the mask if using ZIM shapes)
 
 ////////////////  ZIM BUILD  //////////////
 
-// zimbuild.js adds common building classes for digidos (interactive media)
+// Zim Build adds common building classes for multies (interactive media)
 // classes in this module require createjs namespace to exist and in particular easel.js
 // available at http://createjs.com
 
@@ -5530,7 +5538,7 @@ prefix - (default "super") a prefix that will be followed by "_" and then the ov
 	if prefix is set to "Person" then this.Person_constructor() would call the super class constructor
 	the same system is used to call overridden files in override or prototype
 prototype - (default true) will search the subclass prototype for overriding methods
-	the overriden methods are then available as this.prefix_methodName()
+	the overridden methods are then available as this.prefix_methodName()
 	set to false to avoid searching the super class for methods overridden by the sub class prototype
 	just quickens the code minutely if there is no need
 
@@ -6280,7 +6288,6 @@ frame.on("complete", function() {
 	// by passing an array of label objects to the label parameter
 	// these each have a time so the master time is ignored
 	// they can also have any of the run() parameters
-	// but if they loop, they must have a loopCount
 	// if you provide an array of labels, you cannot rewind the overall animation
 	animation.run(null, [
 		{label:"mid", time:1000},
@@ -6367,6 +6374,8 @@ run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopPa
 		if this is an array holding label objects for example:
 		[{label:"run", time:1000}, {label:"stand", time:2000}]
 		then the sprite will play the series with the times given and ignore the master time
+		Note: if any of the series has a loop and loops forever (a loopCount of 0 or no loopCount)
+		then this will be the last of the series to run
 	call - (default null) the function to call when the animation is done
 	params - (default target) a single parameter for the call function (eg. use object literal or array)
 	wait - (default 0) milliseconds to wait before doing animation
@@ -6475,6 +6484,47 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 
 		if (zot(globalControl)) globalControl = true;
 		that.globalControl = globalControl;
+
+		this.parseFrames = function(label, startFrame, endFrame) {
+			var frames = [];
+			if (zot(label)) {
+				if (zot(startFrame)) startFrame = 0;
+				if (zot(endFrame)) endFrame = that.totalFrames-1;
+				addSequential(startFrame, endFrame);
+			} else {
+				if (zot(that.animations) || zot(that.animations[label])) return [];
+				var a = that.animations[label];
+				processAnimation(a);
+			}
+			function processAnimation(a) {
+				if (Array.isArray(a)) {
+					processArray(a);
+				} else if (a.constructor == {}.constructor) {
+					processObject(a);
+				} else if (!isNaN(a)) {
+					frames.push({f:Math.floor(a), s:1});
+				}
+			}
+			function processArray(a) {
+				addSequential(a[0], a[1], a[3]);
+				if (a[2] && !zot(that.animations[a[2]])) processAnimation(that.animations[a[2]]);
+			}
+			function processObject(a) {
+				if (zot(a.frames)) return;
+				if (zot(a.speed)) a.speed = 1;
+				for (var i=0; i<a.frames.length; i++) {
+					frames.push({f:a.frames[i], s:a.speed});
+				}
+				if (a.next && !zot(that.animations[a.next])) processAnimation(that.animations[a.next]);
+			}
+			function addSequential(start, end, speed) {
+				if (zot(speed)) speed = 1;
+				for (var i=start; i<=end; i++) {
+					frames.push({f:i, s:speed});
+				}
+			}
+			return frames;
+		}
 
 		this.run = function(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, tweek, id, globalControl) {
 			var sig = "time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, tweek, id, globalControl";
@@ -9146,7 +9196,7 @@ You do not need to add it to the stage - it adds itself centered.
 You can change the x and y (with origin and registration point in middle).
 
 EXAMPLE
-var waiter = new zim.Waiter();
+var waiter = new zim.Waiter(stage);
 waiter.show(); // show the waiter until assets load
 frame.loadAssets("greeting.mp3");
 frame.on("complete", function() {
@@ -11860,7 +11910,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 ////////////////  ZIM PAGES  //////////////
 
-// zimpages.js helps you layout and control flexive pages, click and swipe between pages and more
+// Zim Pages helps you layout and control flexive pages, click and swipe between pages and more
 // classes in this module require createjs namespace to exist and in particular easel.js
 // available at http://createjs.com
 
@@ -14232,12 +14282,16 @@ damp - allows you to dynamically change the damping
 zim.Scroller = function(backing, speed, direction, horizontal, gapFix)
 
 Scroller
-zim class
+zim class extends a createjs.EventDispatcher
 
 DESCRIPTION
 Scroller animates a backing either horizontally or vertically (not both).
 The Scroller object will create a clone of the backing
 and animate and swap the backgrounds when needed.
+
+NOTE: A scroller can be added to a zim.Accelerator object
+this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
+See http://zimjs.com/zide/index.html and http://zimjs.com/zide/index2.html
 
 EXAMPLE
 var one = new zim.Rectangle(1200, 400, "red");
@@ -14262,18 +14316,31 @@ horizontal - (default true) set to false to animate vertically
 gapFix - (default 0) if a thin line appears when changing speed - try setting to 1 or 2
 
 METHODS
+pause(state) - state defaults to true and pauses the scroller (sets speed to 0)
+	set state to false to unpause the scroller (sets speed to speed before pausing)
 dispose() - get rid of the event listeners - you need to remove the backings (see backing properties)
 
 PROPERTIES
 backing1 - the original backing passed in
 backing2 - the cloned backing made from the original backing
 speed - how fast the animation is going in pixels per frame
+baseSpeed - the scroller speed when it was first made (or can override)
+	used to determine percentage speed for percentSpeed property
+percentSpeed - get or set the percentage of the baseSpeed
+	this allows you to animate multiple scrollers relative to one another
+	See ScrollerManager class
 direction - either left or right if horizontal or up or down if not horizontal
+pause - read only - true if paused and false if not - must be set with pause() method
+
+EVENTS
+Dispatches a pause event when paused is complete (sometimes a delay to slow to pause)
 --*///+69
-	zim.Scroller = function(backing, speed, direction, horizontal, gapFix) {
-		var sig = "backing, speed, direction, horizontal, gapFix";
+	zim.Scroller = function(backing, speed, direction, horizontal, gapFix, stage, container) {
+		var sig = "backing, speed, direction, horizontal, gapFix, stage, container";
 		var duo; if (duo = zob(zim.Scroller, arguments, sig, this)) return duo;
+
 		z_d("69");
+		this.cjsEventDispatcher_constructor();
 		var b1 = this.backing1 = backing;
 		if (zot(b1) || !b1.getBounds) return;
 		var b2 = this.backing2 = backing.clone();
@@ -14284,6 +14351,7 @@ direction - either left or right if horizontal or up or down if not horizontal
 
 		// here are the public properties that can be changed
 		this.speed = (zot(speed)) ? 1 : speed;
+		var lastSpeed = this.baseSpeed = this.speed;
 		this.direction = (zot(direction)) ? 1 : direction;
 		var scale = horizontal ? b1.scaleX : b1.scaleY;
 
@@ -14291,16 +14359,19 @@ direction - either left or right if horizontal or up or down if not horizontal
 			zog("zim build - Scroller(): please setBounds() on backing objects");
 			return;
 		}
-		if (!b1.getStage()) {
-			zog("zim build - Scroller(): please add backing objects to stage to start");
+		if (!stage && !b1.getStage()) {
+			zog("zim build - Scroller(): please pass in stage parameter or add backing objects to stage to start");
 			return;
 		}
+		stage = stage||b1.getStage();
+		if (zot(container)) container = stage;
+		if (!container.getBounds()) {zog("zim build - Scroller(): please setBounds() on container or stage if no container"); return;}
 
 		var w = b1.getBounds().width*scale-gapFix;
 		var h = b1.getBounds().height*scale-gapFix;
 
-		var stageW;
-		var stageH;
+		var viewW;
+		var viewH;
 
 		if (horizontal) {
 			b2.x = w;
@@ -14308,14 +14379,13 @@ direction - either left or right if horizontal or up or down if not horizontal
 			b2.y = h;
 		}
 
-		var zimTicker = zim.Ticker.add(animate, b1.getStage());
+		var pausing = false; // for in the act of pausing
+		var zimTicker = zim.Ticker.add(animate, stage);
 
 		function animate(e) {
-			if (!b1.getStage()) return;
-			if (!b1.getStage().getBounds()) {zog("zim build - Scroller(): please setBounds() on stage"); return;}
-			if (!stageW) {
-				stageW = b1.getStage().getBounds().width;
-				stageH = b1.getStage().getBounds().height;
+			if (!viewW) {
+				viewW = container.getBounds().width;
+				viewH = container.getBounds().height;
 			}
 			// pausing the ticker does not really pause the ticker (weird)
 			if (that.speed == 0 || that.direction == 0) {return;}
@@ -14334,9 +14404,9 @@ direction - either left or right if horizontal or up or down if not horizontal
 						b2.x = b1.x + w;
 					}
 				} else {
-					if (b2.x > stageW && b2.x > b1.x) {
+					if (b2.x > viewW && b2.x > b1.x) {
 						b2.x = b1.x - w;
-					} else if (b1.x > stageW && b1.x > b2.x) {
+					} else if (b1.x > viewW && b1.x > b2.x) {
 						b1.x = b2.x - w;
 					}
 				}
@@ -14354,22 +14424,446 @@ direction - either left or right if horizontal or up or down if not horizontal
 						b2.y = b1.y + h;
 					}
 				} else {
-					if (b2.y > stageH && b2.y > b1.y) {
+					if (b2.y > viewH && b2.y > b1.y) {
 						b2.y = b1.y - h;
-					} else if (b1.y > stageH && b1.y > b2.y) {
+					} else if (b1.y > viewH && b1.y > b2.y) {
 						b1.y = b2.y - h;
 					}
 				}
 			}
 		}
 
+		this.paused = false;
+		this.pause = function(state, time) {
+			if (zot(state)) state = true;
+			if (zot(time)) time = 0;
+			if (state) {
+				lastSpeed = that.speed;
+				if (time > 0) {
+					pausing = true;
+					zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, time:time, call:function() {
+						that.speed = 0;
+						that.paused = true;
+						pausing = false;
+						that.dispatchEvent("pause");
+					}});
+				} else {
+					pausing = false;
+					that.speed = 0;
+					that.paused = true;
+					setTimeout(function() {that.dispatchEvent("pause");}, 10);
+				}
+			} else {
+				pausing = false;
+				if (time > 0) {
+					zim.animate({target:that, obj:{pausingSpeed:lastSpeed}, ticker:false, time:time, call:function() {
+						that.speed = lastSpeed;
+						that.paused = false;
+						pausing = false;
+					}});
+				} else {
+					that.speed = lastSpeed;
+					that.paused = false;
+				}
+			}
+			return that;
+		}
+
+		Object.defineProperty(that, 'percentSpeed', {
+			get: function() {
+				if (that.baseSpeed == 0) return NaN;
+				return that.speed / that.baseSpeed * 100;
+			},
+			set: function(percent) {
+				if (pausing || that.paused) return;
+				that.speed = that.baseSpeed * percent / 100;
+			}
+		});
+
+		Object.defineProperty(that, 'pausingSpeed', {
+			get: function() {
+				if (that.baseSpeed == 0) return NaN;
+				return that.speed / that.baseSpeed * 100;
+			},
+			set: function(percent) {
+				that.speed = that.baseSpeed * percent / 100;
+			}
+		});
+
 		this.dispose = function() {
 			if (zon) zog("bye from Scroller");
 			zim.Ticker.remove(zimTicker);
 			return true;
 		}
+	}
+	zim.extend(zim.Scroller, createjs.EventDispatcher, null, "cjsEventDispatcher");
+	//-69
 
-	}//-69
+
+/*--
+zim.Dynamo = function(sprite, speed, label, startFrame, endFrame, update, reversable)
+
+Dynamo
+zim class - extends a createjs EventDispatcher
+
+DESCRIPTION
+A Dynamo can run any zim.Sprite animation at varying speeds
+You pass in an optional label, or start and end frames to define the animation frames
+You can animate a Dynamo using speed or percentSpeed
+percentSpeed is handy for animating at speeds relative to other animations and scrollers
+You can control Dynamo speeds with mouse position - or in a Parallax object
+A Dynamo loops automatically - you can pause it (with optional slowing or optional frame) and unpause it (with optional quickening)
+You can also get or set its frame property at which point, it will loop from there (unless paused)
+A Dynamo dispatches a change event everytime the frame changes
+and a loop event everytime it loops to the start and a paused event when paused
+
+NOTE: A Dynamo can be added to a zim.Accelerator object
+this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
+See http://zimjs.com/zide/index.html and http://zimjs.com/zide/index2.html
+
+NOTE: Dynamo is an alternative to a zim.Sprite.run() where you provide a set time for animation
+but you can pause a Dynamo and then use run() and then unpause the Dynamo when the run is done
+If you are controlling the Dynamo in a zim.Ticker.add() function,
+then make sure to remove() the Ticker function when the Dynamo is paused
+
+EXAMPLE
+// we have a sprite of a guy and it has a "walk" animation
+// we can make this run faster and slower with an accelerator:
+// we pass in a speed of 30 fps and this becomes the baseSpeed
+
+var accelerator = new zim.Accelerator(sprite, 30, "walk");
+zim.Ticker.add(function() {
+	// the sprite will run at 0 speed when the cursor is at the left of the stage
+	// and get faster as the cursor moves to the right
+	// at the middle it will be 30 fps and at the right it will be 60 fps
+	accelerator.percentSpeed = stage.MouseX/stageW*100*2;
+}, stage);
+
+Here we apply damping and make the sprite play backwards at the left of half stage
+var accelerator = new zim.Accelerator(sprite, 30, "walk");
+zim.Ticker.add(function() {
+	// will play backwards at 30 fps at left and forwards at 30 fps at right
+	// it will stop at half the stage width
+	accelerator.percentSpeed = stage.MouseX/stageW*200 - 100;
+}, stage);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+sprite - the sprite to control
+speed - (default 30) the frames per second at which to animate the sprite
+label - (default null) the label of the sprite to play (see zim.Sprite)
+startFrame - (default 0) the frame to start the animation (ignored if a label is provided)
+endFrame - (default sprite.totalFrames) the frame to end the animation (ignored if a label is provided)
+update - (default false) set to true to update the stage (only do this if you are not already updating the stage!)
+reversable - (default true) will allow percentSpeed to be negative and reverse the animation.  Set to false to use absolute value.
+
+METHODS
+pause(state, time, frame) - the way to pause or unpause a Dynamo affecting the sprite animating
+	state - (default true) true pauses and setting the state to false will unpause the animation
+	time - (default 0) time in milliseconds to slow the animation down if pausing or speed it up if unpausing
+	frame - (default null) which frame to pause on - overrides time (unless you want to do the calculation...)
+dispose() - cancels the requestAnimationFrame
+
+PROPERTIES
+frames - an array of frame numbers the Dynamo is acting on according to label, or startFrame, endFrame
+frame - the current frame of the Dynamo - this is sequential relative to frames
+	whereas the actual Sprite frame may be different as labels can specify non-consecutive frame numbers
+totalFrames - the total frames in frames (may be different than the Sprite's total frames)
+percentSpeed - get or set the percentage of the baseSpeed
+	this is what you should animate to speed up and slow down the sprite
+	this allows you to set the speed relative to other Sprites and Scrollers
+speed - get or set the speed of the sprite in frames per second
+baseSpeed - the start speed given in frames per second unless changed with this property
+	this affects the percentSpeed so usually it is not adjusted - but it can be
+paused - read only - whether the Dynamo is paused or not (by using the pause() method)
+
+EVENTS
+dispatches a change event when the Dynamo changes frame
+dispatches a loop event when the Dynamo loops (possibly in reverse)
+dispatches a pause event when the Dynamo is paused - could be delayed
+--*///+69.2
+	zim.Dynamo = function(sprite, speed, label, startFrame, endFrame, update, reversable) {
+		var sig = "sprite, speed, label, startFrame, endFrame, update, reversable";
+		var duo; if (duo = zob(zim.Dynamo, arguments, sig, this)) return duo;
+
+		z_d("69.2");
+		this.cjsEventDispatcher_constructor();
+
+		var frames = this.frames = sprite.parseFrames(label, startFrame, endFrame);
+		if (frames.length == 0) return;
+		this.totalFrames = frames.length;
+		var _frame = 0; // frame for getter and setter methods
+		if (zot(speed)) speed = 30;
+		if (zot(reversable)) reversable = true;
+		var lastSpeed = this.baseSpeed = this.speed = speed;
+		if (zot(update)) update = false;
+
+		var that = this;
+		var requestID;
+		var speedFactor;
+		var lastTime = Date.now();
+		var currentTime;
+		var wait;
+		var endFrameRequest;
+		var pausing = false; // for in the act of pausing
+		function doDynamo() {
+			requestID = requestAnimationFrame(doDynamo);
+			speedFactor = frames[_frame].s;
+			if (that.speed == 0 || speedFactor == 0) return;
+			wait = 1000/Math.abs(that.speed)*speedFactor;
+			currentTime = Date.now();
+			if (currentTime - lastTime > wait) {
+				lastTime = currentTime;
+				var nextFrame = that.frame+((that.speed>0 || !reversable)?1:-1);
+				var loopCheck = false;
+				if (nextFrame >= frames.length) {loopCheck = true; nextFrame = 0;}
+				if (nextFrame < 0) {loopCheck = true; nextFrame = frames.length-1;}
+				that.frame = nextFrame;
+				if (loopCheck) that.dispatchEvent("loop");
+				that.dispatchEvent("change");
+				if (update && sprite.getStage()) sprite.getStage().update();
+				if (!zot(endFrameRequest) && endFrameRequest == that.frame) {
+					pausing = false;
+					that.speed = 0;
+					that.paused = true;
+					that.dispatchEvent("pause");
+				}
+			}
+		}
+		doDynamo();
+
+		this.paused = false;
+		this.pause = function(state, time, frame) {
+			if (zot(state)) state = true;
+			if (zot(time)) time = 0;
+			if (state) {
+				lastSpeed = that.speed;
+				if (zot(frame)) {
+					if (time > 0) {
+						pausing = true;
+						zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, time:time, call:function() {
+							pausing = false;
+							that.speed = 0;
+							that.paused = true;
+							that.dispatchEvent("pause");
+						}});
+					} else {
+						pausing = false;
+						that.speed = 0;
+						that.paused = true;
+						setTimeout(function() {that.dispatchEvent("pause");}, 10);
+					}
+				} else {
+					pausing = true;
+					endFrameRequest = frame;
+				}
+			} else {
+				endFrameRequest = null;
+				if (time > 0) {
+					pausing = true;
+					zim.animate({target:that, obj:{pausingSpeed:lastSpeed}, ticker:false, time:time, call:function() {
+						pausing = false;
+						that.speed = lastSpeed;
+						that.paused = false;
+					}});
+				} else {
+					pausing = false;
+					that.speed = lastSpeed;
+					that.paused = false;
+				}
+			}
+			return that;
+		}
+
+		Object.defineProperty(that, 'frame', {
+			get: function() {
+				return _frame;
+			},
+			set: function(frame) {
+				_frame = Math.round(frame) % frames.length;
+				var f = frames[_frame];
+				if (zot(f)) return;
+				sprite.frame = f.f;
+			}
+		});
+
+		Object.defineProperty(that, 'percentSpeed', {
+			get: function() {
+				if (that.baseSpeed == 0) return NaN;
+				return that.speed / that.baseSpeed * 100;
+			},
+			set: function(percent) {
+				if (pausing || that.paused) return;
+				that.speed = that.baseSpeed * percent / 100;
+			}
+		});
+
+		Object.defineProperty(that, 'pausingSpeed', {
+			get: function() {
+				if (that.baseSpeed == 0) return NaN;
+				return that.speed / that.baseSpeed * 100;
+			},
+			set: function(percent) {
+				that.speed = that.baseSpeed * percent / 100;
+			}
+		});
+
+		this.dispose = function() {
+			cancelAnimationFrame(requestID);
+		}
+	}
+	zim.extend(zim.Dynamo, createjs.EventDispatcher, null, "cjsEventDispatcher");
+	//-69.2
+
+/*--
+zim.Accelerator = function()
+
+Accelerator
+zim class extends a createjs.EventDispatcher
+
+DESCRIPTION
+An Accelerator lets you set percentSpeed properties of multiple objects
+such as zim.Scroller and zim.Dynamo objects
+A Dynamo object is a dynamic controller for a zim.Sprite object
+Both the Scroller and the Dynamo can be controlled with percentSpeed
+They can also be paused and paused over time
+An Accelerator object lets you control these from one place
+
+EXAMPLE
+// assuming we have scroller1, scroller2 and a sprite
+// each of these would have a speed set so the scene animates nicely
+var accelerator = new zim.Accelerator();
+accelerator.add([scroller1, scroller2, sprite]);
+
+// here we increase the speed then decrease the speed of the whole scene:
+zim.animate({target:accelerator, obj:{percentSpeed:200}, time:1000, rewind:true, ticker:false});
+
+// here we change the speed of the whole scene based on the x position of the mouse
+// at the very left, the speed is -200 percent and at the right the speed is 200 percent
+// in the center, the speed is 0 - damping is optional but always looks better!
+var damp = new zim.Damp(accelerator.percentSpeed);
+zim.Ticker.add(function() {
+	var newSpeed = (stage.mouseX-stageW/2)/(stageW/2)*100*2;
+	accelerator.percentSpeed = damp.convert(newSpeed);
+}, stage);
+END EXAMPLE
+
+
+METHODS
+add(objects) - registers a zim.Scroller or zim.Dynamo with the Accelerator object
+	pass in a single object or an array of multiple objects
+	returns the Accelerator object for chaining
+remove(objects) - unregisters a zim.Scroller or zim.Dynamo
+	pass in a single object or an array of multiple objects
+	returns the Accelerator object for chaining
+pause(state, time, frameNumber) - pause (default) or unpause all the objects added to the Accelerator
+	state - (default true) set to false to unpause the objects added to the Accelerator
+	time - (default 0) time in milliseconds to slow down to a speed of 0 and pause
+		the pause event and paused property will be set after the time has passed
+		time is ignored if a frameNumber is provided
+	frameNumber - (default null) get sprites to animate to the frameNumber (probably good for one sprite!)
+		setting this will make the scene ignore the time parameter above
+dispose() - calls dispose() on all the objects
+
+PROPERTIES
+percentSpeed - adjusts the speed relative to the baseSpeed of each items in the Accelerator
+	this can be dynamically changed to change all speeds relatively
+paused - whether the Accelerator is paused or not - only tracks if the pause() method is used
+items - an array of all objects added with add()
+--*///+69.3
+	zim.Accelerator = function() {
+		z_d("69.3");
+		this.cjsEventDispatcher_constructor();
+
+		var that = this;
+		this.paused = false;
+		this.items = [];
+		this.paused = false;
+		this._percentSpeed = 100;
+		this.add = function(objects) {
+			var list;
+			if (Array.isArray(objects)) {list = objects;} else {list = [objects];}
+			var ind;
+			for (var i=0; i<list.length; i++) {
+				ind = that.items.indexOf(list[i]);
+				if (ind < 0) that.items.push(list[i]);
+			}
+			return that;
+		}
+		this.remove = function(objects) {
+			var list;
+			if (Array.isArray(objects)) {list = objects;} else {list = [objects];}
+			var ind;
+			for (var i=0; i<list.length; i++) {
+				ind = that.items.indexOf(list[i]);
+				if (ind >= 0) that.items.splice(ind,1);
+			}
+			return that;
+		}
+		this.pause = function(state, time, frameNumber) {
+			if (zot(state)) state = true;
+			var pausingItems = [];
+			if (state) {
+				if (!zot(frameNumber)) time = null;
+				// if we pause the scene with a time delay or frameNumber
+				// then the pause may not happen right away
+				// so leave the other animations going like scrollers until the pause
+				var waiting = false;
+				for (var i=0; i<that.items.length; i++) {
+					// if time and not totalFrames and scroller - or - dynamo and (time or frameNumber)
+					if ((!zot(time) && zot(frameNumber) && !that.items[i].totalFrames) || that.items[i].totalFrames && (!zot(time) || !zot(frameNumber))) {
+						zog("waiting")
+						that.items[i].pause(true, time, frameNumber); // frameNumber ignored by scroller
+						waiting = true;
+						pausingItems[i] = 1;
+						that.items[i].on("pause", function(){
+							if (!that.paused) {
+								pauseAll(true);
+								that.paused = true;
+								that.dispatchEvent("pause");
+							}
+						}, null, true);
+					}
+				}
+				// not waiting so pause all
+				if (!waiting) {
+					pauseAll();
+					that.paused = true;
+					setTimeout(function() {that.dispatchEvent("pause");}, 10);
+				}
+			} else {
+				that.paused = false;
+				pauseAll();
+			}
+			function pauseAll(fromDelay) {
+				for (var i=0; i<that.items.length; i++) {
+					// pauseAll does not need to pause the ones we were waiting for and are now done...
+					if (pausingItems[i] != 1) {
+						that.items[i].pause(state);
+					}
+				}
+			}
+		}
+		Object.defineProperty(that, 'percentSpeed', {
+			get: function() {
+				return that._percentSpeed;
+			},
+			set: function(percent) {
+				that._percentSpeed = percent;
+				for (var i=0; i<that.items.length; i++) {
+					that.items[i].percentSpeed = percent;
+				}
+			}
+		});
+		this.dispose = function() {
+			for (var i=0; i<that.items.length; i++) {
+				that.items[i].dispose();
+			}
+			return true;
+		}
+	}
+	zim.extend(zim.Accelerator, createjs.EventDispatcher, null, "cjsEventDispatcher");
+	//-69.3
 
 /*--
 zim.Swiper = function(swipeOn, target, property, sensitivity, horizontal, min, max, damp, integer)
@@ -14548,7 +15042,7 @@ dispatches a swipeup event when swipe is ended
 
 ////////////////  ZIM FRAME  //////////////
 
-// zimframe.js provides code to help you set up your coding environment
+// Zim Frame provides code to help you set up your coding environment
 
 	if (zon) zog("ZIM FRAME");
 
@@ -14641,6 +15135,7 @@ stage - read only reference to the createjs stage - to change run remakeCanvas()
 	frame gives the stage read only stage.width and stage.height properties
 canvas - a reference to the frame's canvas tag
 tag - the containing tag if scaling is set to an HTML tag id (else null)
+isLoading - a Boolean to indicate whether loadAssets() is currently loading assets
 width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
@@ -14649,10 +15144,18 @@ zil - reference to zil events that stop canvas from shifting
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple, white, black, clear (0 alpha), faint (.01 alpha)
 
 METHODS
-loadAssets(file||[file, file, etc.], path, xhr)
+loadAssets(file||[file, file, etc.], path, xhr, time)
 	pass in an file (String) or an array of files to assets,
 	pass in an optional path to directory and XHR (default false)
 	asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
+	time defaults to 0 and is the minimum number of milliseconds for the complete event to trigger
+	use this for testing or to always have time to show a loading message
+	RETURNS: a zim.Queue object that can be used for control with multiple loadAssets calls
+	Each zim.Queue will trigger progress, assetload and complete events
+	Each zim.Queue will have a preload property to the CreateJS LoadQueue and an isLoading property
+	The frame also has these events and properties but acts for all loading - so be careful!
+	It is recommended to use the zim.Queue any time you use multiple LoadAssets() calls at the same time
+	You still access assets with frame.asset() as outlined below whether you use the zim.Queue or not
 asset(file) - access a loaded asset based on file string (not including path)
 	if the asset is an image then this is a zim.Bitmap and you add it to the stage
 	if the asset is a sound then use asset(file).play();
@@ -14871,14 +15374,14 @@ EVENTS
 			// which is like scaling down an image
 			// scaling up does not look as good - so just make your canvas as big as you will scale
 
-			if (align=="left") this.x = 0;
-			else if (align=="right") this.x = (w-newW);
-			else this.x = ((w-newW)/2);
-			if (valign=="top") this.y = 0;
-			else if (valign=="bottom") this.y = (h-newH);
-			else this.y = ((h-newH)/2);
-			can.style.left = this.x + "px";
-			can.style.top = this.y + "px";
+			if (align=="left") that.x = 0;
+			else if (align=="right") that.x = (w-newW);
+			else that.x = ((w-newW)/2);
+			if (valign=="top") that.y = 0;
+			else if (valign=="bottom") that.y = (h-newH);
+			else that.y = ((h-newH)/2);
+			can.style.left = that.x + "px";
+			can.style.top = that.y + "px";
 		}
 
 		function dispatchResize() {
@@ -14887,11 +15390,13 @@ EVENTS
 		}
 
 		// ASSETS
+		this.loadAssetsCount = 0;
 		this.assets = {}; // store asset Bitmap or play function for sound
-		this.loadAssets = function(arr, path, xhr) {
+		this.loadAssets = function(arr, path, xhr, time) {
 			if (zot(arr)) return;
 			if (zot(xhr)) xhr = false;
 			if (!Array.isArray(arr)) arr = [arr];
+			if (zot(time)) time = 0;
 			var soundCheck = false;
 			var manifest = [];
 			var a; var ext; var i; var j;
@@ -14902,16 +15407,19 @@ EVENTS
 				if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
 				manifest.push({src:a});
 			}
-			that.preload = new createjs.LoadQueue(xhr, path);
-			if (soundCheck) that.preload.installPlugin(createjs.Sound);
-			that.preload.on("progress", function(e) {that.dispatchEvent(e);});
-			that.preload.on("error", function(e) {that.dispatchEvent(e);});
-			that.preload.on("fileload", function(e) {
+			var queue = new zim.Queue();
+			that.loadAssetsCount++;
+			that.isLoading = true;
+			var preload = queue.preload = that.preload = new createjs.LoadQueue(xhr, path);
+			if (soundCheck) preload.installPlugin(createjs.Sound);
+			preload.on("progress", function(e) {queue.dispatchEvent(e); that.dispatchEvent(e);});
+			preload.on("error", function(e) {queue.dispatchEvent(e); that.dispatchEvent(e);});
+			preload.on("fileload", function(e) {
 				var item = e.item;
 				var type = e.item.type;
 				var ext = item.id.match(re);
 				var asset;
-				if (type == createjs.LoadQueue.SOUND) {
+				if (type && type == createjs.LoadQueue.SOUND) {
 					asset = that.assets[item.id] = {
                         type:"sound",
                         id:item.id,
@@ -14929,10 +15437,25 @@ EVENTS
 				var ev = new createjs.Event("assetload");
 				ev.item = item; // createjs preload item
 				ev.asset = asset;
+				queue.dispatchEvent(e);
 				that.dispatchEvent(ev);
 			});
-			that.preloadEvent = that.preload.on("complete", function(e) {that.dispatchEvent(e);});
-			that.preload.loadManifest(manifest);
+			// setting a time will force the preload to wait at least this amount of time
+			// this can be used for testing or if you always want time to show a loading message
+			var startLoad = Date.now();
+			that.preloadEvent = preload.on("complete", function(e) {
+				var endLoad = Date.now();
+				time = Math.max(0, time-(endLoad-startLoad));
+				setTimeout(function() {
+					that.loadAssetsCount--;
+					if (that.loadAssetsCount <= 0) that.isLoading = false;
+					queue.isLoading = false;
+					queue.dispatchEvent(e);
+					that.dispatchEvent(e);
+				}, time);
+			});
+			preload.loadManifest(manifest);
+			return queue;
 		}
 
 		this.asset = function(n) {
@@ -15051,6 +15574,13 @@ EVENTS
 
 	}
 	zim.extend(zim.Frame, createjs.EventDispatcher, "clone", "cjsEventDispatcher", false);
+
+	zim.Queue = function() {
+		// internal usage only by Frame
+		this.cjsEventDispatcher_constructor();
+		this.isLoading = true; // thanks Frank Los for the suggestion.
+	}
+	zim.extend(zim.Queue, createjs.EventDispatcher, null, "cjsEventDispatcher");
 	//-83
 
 
