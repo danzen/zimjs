@@ -3538,7 +3538,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override); // do not send from!
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000); // + ((wait)?wait:0); // wait only happens at start - no longer each time
@@ -3570,6 +3570,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(protect)) protect = false;
 		if (zot(from)) from = false;
 		if (zot(set)) set = {};
+		if (set.scale) {set.scaleX = set.scaleY = set.scale; delete set.scale}
 		if (!zot(override)) props.override = override;
 		var tween;
 		var idSet;
