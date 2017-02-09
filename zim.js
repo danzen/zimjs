@@ -2070,7 +2070,7 @@ Ticker
 zim static class
 
 DESCRIPTION
-A static class to let ZIM use one createjs Ticker.
+A static class to let ZIM use one animation function with a requestAnimationFrame
 If a function has been added to the Ticker queue then it will run in the order added
 along with a single stage update after all functions in queue have run.
 There are settings that can adjust when the Ticker updates so see Usage notes below.
@@ -2102,7 +2102,7 @@ zim.Ticker.alwaysOff(stage) - stops an always Ticker for a stage
 zim.Ticker.add(function, stage) - adds the function to the Ticker queue for a given stage and returns the function that was added
 zim.Ticker.remove(function) - removes the function from the Ticker queue
 zim.Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
-zim.Ticker.setFPS(30, 60) - (mobile, pc) default 30 frames per second mobile, 60 frames per second non mobile
+zim.Ticker.setFPS(30, 60) - (mobile, pc) default is set at natural requestAnimationFrame speed - this seems to be the smoothest
 zim.Ticker.dispose([stage]) - removes all functions from the queue removes and removes the list (optionally per stage)
 
 PROPERTIES (static)
@@ -2133,13 +2133,13 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 		list:new zim.Dictionary(),
 		setFPS: function(m, d) {
 			if (zot(m) && zot(d)) {
-				m = 30; d = 60;
+				m = 1000; d = 1000;
 			} else if (zot(m)) {
-				m = 30;
+				m = 1000;
 			} else if (zot(d)) {
 				d = m;
 			}
-			zim.Ticker.framerate = createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+			zim.Ticker.framerate = (zim.mobile()) ? m : d;
 		},
 		add: function(f, s) {
 			z_d("30");
@@ -2147,12 +2147,18 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) {zog("zim.Ticker.add() - needs stage parameter"); return;}
 			if (zot(f) || typeof f !== 'function') {zog("zim.Ticker.add() - only add functions"); return;}
-			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+			if (!t.ticker) {
+				t.lastTime = (window.performance) ? window.performance.now() : Date.now();
+				t.call();
+			}
 			if (t.list.at(s)) {t.list.at(s).push(f);} else {t.list.add(s, [f]);}
 			return f;
 		},
-		call: function() {
+		call: function(currentTime) {
 			var t = zim.Ticker;
+			t.ticker = requestAnimationFrame(t.call);
+			if (currentTime > t.lastTime && currentTime - t.lastTime < 1000 / t.framerate) return;
+			t.lastTime = currentTime;
 			var s, functions;
 			for (var i=0; i<t.list.length; i++) {
 				s = t.list.objects[i]; // stage
@@ -2182,7 +2188,10 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
 			t.alwaysList.add(s, true);
-			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
+			if (!t.ticker) {
+				t.lastTime = (window.performance) ? window.performance.now() : Date.now();
+				t.call();
+			}
 		},
 		alwaysOff: function(s) {
 			var t = zim.Ticker;
@@ -2203,7 +2212,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				count+=t.list.values[i].length;
 			}
 			if (t.alwaysList.length > 0) return;
-			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			if (count == 0) {cancelAnimationFrame(t.ticker); t.ticker = null;}
 		},
 		removeAll: function(s) {
 			var t = zim.Ticker;
@@ -2217,7 +2226,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				count+=t.list.values[i].length;
 			}
 			if (t.alwaysList.length > 0) return;
-			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			if (count == 0) {cancelAnimationFrame(t.ticker); t.ticker = null;}
 		},
 		dispose: function(s) {
 			var t = zim.Ticker;
@@ -2233,7 +2242,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				}
 			}
 			if (t.alwaysList.length > 0) return;
-			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+			if (count == 0) {cancelAnimationFrame(t.ticker); t.ticker = null;}
 			return true;
 		}
 	}
@@ -2247,7 +2256,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			if (typeof value != "boolean") value = null;
 			t.myUpdate = value;
 			if (t.myUpdate === false) {
-				 createjs.Ticker.off("tick", t.ticker);
+				 cancelAnimationFrame(t.ticker);
 				 // note, this overrides always()
 				 // but running always() will override update = false
 				 t.alwaysList = new zim.Dictionary();
@@ -8659,10 +8668,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				label.text = value;
-				if (center) {
-					label.x = -label.getBounds().width/2;
-					label.y = -label.getBounds().height/2;
-				}
 			}
 		});
 
@@ -14280,7 +14285,7 @@ damp - allows you to dynamically change the damping
 
 
 /*--
-zim.Scroller = function(backing, speed, direction, horizontal, gapFix)
+zim.Scroller = function(backing, speed, direction, horizontal, gapFix, stage, container)
 
 Scroller
 zim class extends a createjs.EventDispatcher
@@ -14292,7 +14297,7 @@ and animate and swap the backgrounds when needed.
 
 NOTE: A scroller can be added to a zim.Accelerator object
 this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
-See http://zimjs.com/zide/index.html and http://zimjs.com/zide/index2.html
+See http://zimjs.com/code/zide/
 
 EXAMPLE
 var one = new zim.Rectangle(1200, 400, "red");
@@ -14315,6 +14320,8 @@ horizontal - (default true) set to false to animate vertically
 	disposing just removes the ticker - you have to remove the backings
 	NOTE: the gapFix and ticker parameters have been removed - see zim.Ticker
 gapFix - (default 0) if a thin line appears when changing speed - try setting to 1 or 2
+stage - (default background.stage) if the backround is not on the stage then need to pass the stage it will be on
+container - (default stage) what bounds are used for wrapping the background
 
 METHODS
 pause(state) - state defaults to true and pauses the scroller (sets speed to 0)
@@ -14520,7 +14527,7 @@ and a loop event everytime it loops to the start and a paused event when paused
 
 NOTE: A Dynamo can be added to a zim.Accelerator object
 this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
-See http://zimjs.com/zide/index.html and http://zimjs.com/zide/index2.html
+See http://zimjs.com/code/zide/
 
 NOTE: Dynamo is an alternative to a zim.Sprite.run() where you provide a set time for animation
 but you can pause a Dynamo and then use run() and then unpause the Dynamo when the run is done
@@ -14532,20 +14539,20 @@ EXAMPLE
 // we can make this run faster and slower with an accelerator:
 // we pass in a speed of 30 fps and this becomes the baseSpeed
 
-var accelerator = new zim.Accelerator(sprite, 30, "walk");
+var dynamo = new zim.Dynamo(sprite, 30, "walk");
 zim.Ticker.add(function() {
 	// the sprite will run at 0 speed when the cursor is at the left of the stage
 	// and get faster as the cursor moves to the right
 	// at the middle it will be 30 fps and at the right it will be 60 fps
-	accelerator.percentSpeed = stage.MouseX/stageW*100*2;
+	dynamo.percentSpeed = stage.MouseX/stageW*100*2;
 }, stage);
 
 Here we apply damping and make the sprite play backwards at the left of half stage
-var accelerator = new zim.Accelerator(sprite, 30, "walk");
+var dynamo = new zim.Dynamo(sprite, 30, "walk");
 zim.Ticker.add(function() {
 	// will play backwards at 30 fps at left and forwards at 30 fps at right
 	// it will stop at half the stage width
-	accelerator.percentSpeed = stage.MouseX/stageW*200 - 100;
+	dynamo.percentSpeed = stage.MouseX/stageW*200 - 100;
 }, stage);
 END EXAMPLE
 
@@ -14717,7 +14724,7 @@ dispatches a pause event when the Dynamo is paused - could be delayed
 	//-69.2
 
 /*--
-zim.Accelerator = function()
+zim.Accelerator = function(objects)
 
 Accelerator
 zim class extends a createjs.EventDispatcher
@@ -14733,8 +14740,7 @@ An Accelerator object lets you control these from one place
 EXAMPLE
 // assuming we have scroller1, scroller2 and a sprite
 // each of these would have a speed set so the scene animates nicely
-var accelerator = new zim.Accelerator();
-accelerator.add([scroller1, scroller2, sprite]);
+var accelerator = new zim.Accelerator([scroller1, scroller2, sprite]);
 
 // here we increase the speed then decrease the speed of the whole scene:
 zim.animate({target:accelerator, obj:{percentSpeed:200}, time:1000, rewind:true, ticker:false});
@@ -14749,9 +14755,12 @@ zim.Ticker.add(function() {
 }, stage);
 END EXAMPLE
 
+PARAMETERS
+objects - (default null) registers zim.Scroller or zim.Dynamo objects the Accelerator
+	pass in a single object or an array of multiple objects
 
 METHODS
-add(objects) - registers a zim.Scroller or zim.Dynamo with the Accelerator object
+add(objects) - registers zim.Scroller or zim.Dynamo objects with the Accelerator
 	pass in a single object or an array of multiple objects
 	returns the Accelerator object for chaining
 remove(objects) - unregisters a zim.Scroller or zim.Dynamo
@@ -14772,7 +14781,7 @@ percentSpeed - adjusts the speed relative to the baseSpeed of each items in the 
 paused - whether the Accelerator is paused or not - only tracks if the pause() method is used
 items - an array of all objects added with add()
 --*///+69.3
-	zim.Accelerator = function() {
+	zim.Accelerator = function(objects) {
 		z_d("69.3");
 		this.cjsEventDispatcher_constructor();
 
@@ -14787,10 +14796,11 @@ items - an array of all objects added with add()
 			var ind;
 			for (var i=0; i<list.length; i++) {
 				ind = that.items.indexOf(list[i]);
-				if (ind < 0) that.items.push(list[i]);
+				if (ind < 0 && list[i].pause) that.items.push(list[i]);
 			}
 			return that;
 		}
+		if (objects) this.add(objects);
 		this.remove = function(objects) {
 			var list;
 			if (Array.isArray(objects)) {list = objects;} else {list = [objects];}
@@ -14813,7 +14823,6 @@ items - an array of all objects added with add()
 				for (var i=0; i<that.items.length; i++) {
 					// if time and not totalFrames and scroller - or - dynamo and (time or frameNumber)
 					if ((!zot(time) && zot(frameNumber) && !that.items[i].totalFrames) || that.items[i].totalFrames && (!zot(time) || !zot(frameNumber))) {
-						zog("waiting")
 						that.items[i].pause(true, time, frameNumber); // frameNumber ignored by scroller
 						waiting = true;
 						pausingItems[i] = 1;
