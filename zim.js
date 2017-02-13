@@ -759,6 +759,7 @@ paused - the paused state of the timeout
 		}
 		next();
 		obj.pause = function(state) {
+			if (zot(state)) state = true;
 			if (state) { // pausing
 				cancelAnimationFrame(obj.rid);
 			} else { // unpausing
@@ -896,6 +897,7 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 		}
 		var pausedTimeout;
 		obj.pause = function(state) {
+			if (zot(state)) state = true;
 			if (state) { // pausing
 				clearTimeout(pausedTimeout);
 				cancelAnimationFrame(obj.rid);
@@ -1093,6 +1095,9 @@ zim function
 DESCRIPTION
 Rounds number to the number of decimal places specified by places.
 Negative number places round to tens, hundreds, etc.
+If addZeros is true it fills up ends with zeros - if the places
+is negative with addZeros then it fills up the start with zeros
+and does not round to tens, hundreds, etc.  just adds zeros to start
 
 EXAMPLE
 var score = 1.234;
@@ -1100,12 +1105,17 @@ score = zim.decimals(score);
 zog(score); // 1.2
 zog(zim.decimals(1.8345, 2)); // 1.83
 zog(zim.decimals(123,-1)); // 120
+zog(zim.decimals(2.3,2,true)); // 2.30
+zog(zim.decimals(3,-2,true)); // 03
+zog(zim.decimals(11,-2,true)); // 11
+zog(zim.decimals(11,-3,true)); // 011
 END EXAMPLE
 
 PARAMETERS
 num - the Number to operate on
 places - (default 1) how many decimals to include (negative for left of decimal place)
 addZeros - (default false) set to true to add zeros to number of decimal places (and return String)
+	will not round if places is negative but rather add zeros to front
 
 RETURNS a rounded Number or a String if addZeros is true
 --*///+13
@@ -1114,6 +1124,13 @@ RETURNS a rounded Number or a String if addZeros is true
 		if (zot(num) || num==0) return 0;
 		if (zot(places)) places = 1;
 		if (zot(addZeros)) addZeros = false;
+		if (addZeros && places < 0) {
+			var place = String(num).indexOf(".");
+			var length = String(num).length;
+			var left = (place < 0) ? length : place;
+			for (var i=0; i<-places-left; i++) {num = "0" + num;}
+			return num;
+		}
 		var answer = Math.round(num*Math.pow(10, places))/Math.pow(10, places);
 		if (addZeros && places > 0 && answer != 0) {
 			var place = String(answer).indexOf(".");
@@ -1123,6 +1140,103 @@ RETURNS a rounded Number or a String if addZeros is true
 		}
 		return answer;
 	}//-13
+
+/*--
+zim.sign = function(num)
+
+sign
+zim function
+
+DESCRIPTION
+returns -1, 0 or 1 depending on whether the number is less than, equal to or greater than 0
+
+EXAMPLE
+var speed = 20;
+zog(zim.getSign(speed)); // 1
+var speed = 0;
+zog(zim.getSign(speed)); //
+var speed = -20;
+zog(zim.getSign(speed)); // -1
+END EXAMPLE
+
+PARAMETERS
+num - the Number to operate on
+
+RETURNS -1, 0 or 1
+--*///+13.1
+	zim.sign = function(num) {
+		z_d("13.1");
+		return num?num<0?-1:1:0;
+	}//-13.1
+
+
+/*--
+zim.constrain = function(num, min, max, negative)
+
+constrain
+zim function
+
+DESCRIPTION
+returns a number constrained to min and max
+
+EXAMPLE
+var cirle.x = zim.constrain(circle.radius, stageW-circle.radius);
+// circle.x will not be smaller than the radius or bigger than stageW-radius
+var speed = zim.constrain(minSpeed, maxSpeed, true);
+// will confine the speed between minSpeed and maxSpeed if speed is positive
+// and confine the speed between -maxSpeed and -minSpeed if the speed is negative
+END EXAMPLE
+
+PARAMETERS
+num - the number to be constrained
+min - (default 0) the minimum value of the return number
+max - (default Number.MAX_VALUE) the maximum value of the return number
+negative - (default false) allow the negative range of min and max when num is negative
+
+RETURNS num if between min and max otherwise returns min if less or max if greater (inclusive)
+RETURNS num between -max and -min if num is negative and negative parameter is set to true
+--*///+13.2
+	zim.constrain = function(num, min, max, negative) {
+		z_d("13.2");
+		if (zot(num)) return;
+		if (zot(min)) min = 0;
+		if (zot(max)) max = Number.MAX_VALUE;
+		if (max < min) {max2 = min; max = min; min = max2;} // ES6 Fix to come
+		if (zot(negative)) negative = false;
+		if (negative && num < 0) {
+			return Math.max(-max, Math.min(num, -min));
+		} else {
+			return Math.max(min, Math.min(num, max));
+		}
+	}//-13.2
+
+/*--
+zim.dist = function(x1, y1, x2, y2)
+
+dist
+zim function
+
+DESCRIPTION
+calculates the distance between two points.
+
+EXAMPLE
+var distance = zim.dist(stageW/2, stageH/2, stage.mouseX, stage.mouseY);
+// distance of mouse from center of stage
+END EXAMPLE
+
+PARAMETERS
+x1, y1 - first point x and y
+x2, y2 - (default 0, 0) second point x and y
+
+RETURNS a positive Number that is the distance (could be on an angle)
+--*///+13.3
+	zim.dist = function(x1, y1, x2, y2) {
+		z_d("13.3");
+		if (zot(x1) || zot(y1)) return;
+		if (zot(x2)) x2 = 0;
+		if (zot(y2)) y2 = 0;
+		return Math.sqrt((Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2)));
+	}//-13.3
 
 /*--
 zim.makeID = function(length, type, letterCase)
@@ -1167,17 +1281,17 @@ RETURNS a String id (even if type is number)
 			choices = nums.concat(lets);
 		}
 		var id = "";
-		var char;
+		var c; // character - note, char is a reserved word for compressor!
 		var rand;
 		for (var i=0; i<length; i++) {
-			char = choices[Math.floor(Math.random()*length)];
+			c = choices[Math.floor(Math.random()*length)];
 			rand = Math.random();
 			if (letterCase == "uppercase" || (letterCase == "mixed" && rand > .5)) {
-				if (char.toUpperCase) char = char.toUpperCase();
+				if (c.toUpperCase) c = c.toUpperCase();
 			} else {
-				if (char.toLowerCase) char = char.toLowerCase();
+				if (c.toLowerCase) c = c.toLowerCase();
 			}
-			id += String(char);
+			id += String(c);
 		}
 		return id;
 	}//-13.5
@@ -2103,6 +2217,10 @@ zim.Ticker.add(function, stage) - adds the function to the Ticker queue for a gi
 zim.Ticker.remove(function) - removes the function from the Ticker queue
 zim.Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
 zim.Ticker.setFPS(30, 60) - (mobile, pc) default is set at natural requestAnimationFrame speed - this seems to be the smoothest
+zim.Ticker.setTimingMode(mode) - (default "raf") RAF uses RequestAnimationFrame without framerate synching - gets screen synch (smooth) and background throttling
+	set to "synched" for framerate synching - but will add some variance between updates
+	set to "timeout" for setTimeout synching to framerate - no screen synch or background throttling (if RAF is not supported falls back to this mode)
+	see CreateJS docs: http://www.createjs.com/docs/tweenjs/classes/Ticker.html
 zim.Ticker.dispose([stage]) - removes all functions from the queue removes and removes the list (optionally per stage)
 
 PROPERTIES (static)
@@ -2133,13 +2251,18 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 		list:new zim.Dictionary(),
 		setFPS: function(m, d) {
 			if (zot(m) && zot(d)) {
-				m = 1000; d = 1000;
+				m = 30; d = 60;
 			} else if (zot(m)) {
-				m = 1000;
+				m = 30;
 			} else if (zot(d)) {
 				d = m;
 			}
-			zim.Ticker.framerate = (zim.mobile()) ? m : d;
+			zim.Ticker.framerate = createjs.Ticker.framerate = (zim.mobile()) ? m : d;
+		},
+		setTimingMode: function(mode) {
+			createjs.Ticker.timingMode = createjs.Ticker.RAF;
+			if (mode == "synched") createjs.Ticker.timingMode = createjs.Ticker.RAF_SYNCHED;
+			if (mode == "timeout") createjs.Ticker.timingMode = createjs.Ticker.TIMEOUT;
 		},
 		add: function(f, s) {
 			z_d("30");
@@ -2147,18 +2270,12 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) {zog("zim.Ticker.add() - needs stage parameter"); return;}
 			if (zot(f) || typeof f !== 'function') {zog("zim.Ticker.add() - only add functions"); return;}
-			if (!t.ticker) {
-				t.lastTime = (window.performance) ? window.performance.now() : Date.now();
-				t.call();
-			}
+			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
 			if (t.list.at(s)) {t.list.at(s).push(f);} else {t.list.add(s, [f]);}
 			return f;
 		},
 		call: function(currentTime) {
 			var t = zim.Ticker;
-			t.ticker = requestAnimationFrame(t.call);
-			if (currentTime > t.lastTime && currentTime - t.lastTime < 1000 / t.framerate) return;
-			t.lastTime = currentTime;
 			var s, functions;
 			for (var i=0; i<t.list.length; i++) {
 				s = t.list.objects[i]; // stage
@@ -2188,10 +2305,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) {zog("zim.Ticker.always(stage) - needs stage parameter"); return;}
 			t.alwaysList.add(s, true);
-			if (!t.ticker) {
-				t.lastTime = (window.performance) ? window.performance.now() : Date.now();
-				t.call();
-			}
+			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
 		},
 		alwaysOff: function(s) {
 			var t = zim.Ticker;
@@ -2212,7 +2326,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				count+=t.list.values[i].length;
 			}
 			if (t.alwaysList.length > 0) return;
-			if (count == 0) {cancelAnimationFrame(t.ticker); t.ticker = null;}
+			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
 		},
 		removeAll: function(s) {
 			var t = zim.Ticker;
@@ -2226,7 +2340,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				count+=t.list.values[i].length;
 			}
 			if (t.alwaysList.length > 0) return;
-			if (count == 0) {cancelAnimationFrame(t.ticker); t.ticker = null;}
+			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
 		},
 		dispose: function(s) {
 			var t = zim.Ticker;
@@ -2242,7 +2356,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 				}
 			}
 			if (t.alwaysList.length > 0) return;
-			if (count == 0) {cancelAnimationFrame(t.ticker); t.ticker = null;}
+			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
 			return true;
 		}
 	}
@@ -15397,6 +15511,7 @@ EVENTS
 		function dispatchResize() {
 			if (!appReady) return;
 			that.dispatchEvent("resize");
+			if (!zim.OPTIMIZE && stage && scaling == "full") stage.update();
 		}
 
 		// ASSETS
