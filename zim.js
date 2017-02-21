@@ -1152,11 +1152,13 @@ returns -1, 0 or 1 depending on whether the number is less than, equal to or gre
 
 EXAMPLE
 var speed = 20;
-zog(zim.getSign(speed)); // 1
+zog(zim.sign(speed)); // 1
+
 var speed = 0;
-zog(zim.getSign(speed)); //
+zog(zim.sign(speed)); // 0
+
 var speed = -20;
-zog(zim.getSign(speed)); // -1
+zog(zim.sSign(speed)); // -1
 END EXAMPLE
 
 PARAMETERS
@@ -1182,6 +1184,7 @@ returns a number constrained to min and max
 EXAMPLE
 var cirle.x = zim.constrain(circle.radius, stageW-circle.radius);
 // circle.x will not be smaller than the radius or bigger than stageW-radius
+
 var speed = zim.constrain(minSpeed, maxSpeed, true);
 // will confine the speed between minSpeed and maxSpeed if speed is positive
 // and confine the speed between -maxSpeed and -minSpeed if the speed is negative
@@ -1342,7 +1345,7 @@ damp - (default .1) the damp value with 1 being no damping and 0 being no moveme
 
 METHODS
 convert() - converts a value into a damped value
-immediate() - immediately goes to value
+immediate() - immediately goes to value and returns the Damp object
 
 PROPERTIES
 damp - can dynamically change the damping (usually just pass it in as a parameter to start)
@@ -1360,6 +1363,7 @@ lastValue - setting this would go immediately to this value (would not normally 
 	}
 	zim.Damp.prototype.immediate = function(desiredValue) {
 		this.lastValue = desiredValue;
+		return this;
 	}//-14
 
 /*--
@@ -1470,7 +1474,7 @@ targetRound (default false) set to true to round the converted number
 
 METHODS
 convert(input) - converts a base value to a target value
-immediate(input) - immediately sets the target value (no damping)
+immediate(input) - immediately sets the target value (no damping) and returns the ProportionDamp object
 dispose() - clears interval
 
 PROPERTIES
@@ -1539,6 +1543,7 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 			calculate();
 			lastAmount = targetAmount;
 			if (targetRound) {lastAmount = Math.round(lastAmount);}
+			return that;
 		}
 
 		this.convert = function(n) {
@@ -8676,7 +8681,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (zot(container) || !container.getBounds) {zog("zim build - Pane(): Please pass in a reference to a container with bounds set as first parameter");	return;}
 		if (!container.getBounds()) {zog("zim build - Pane(): Please give the container bounds using setBounds()"); return;}
-		if (zot(container.getStage)) {zog("zim build - Pane(): Please give the container that has a stage property"); return;}
+		if (zot(container.getStage)) {zog("zim build - Pane(): The container must have a stage property"); return;}
 
 		if (zot(width)) width=200;
 		if (zot(height)) height=200;
@@ -10420,7 +10425,7 @@ step - (default 0) 0 is continuous decimal - 1 would provide steps of 1, 2 would
 button - (default small button with no label) - a zim.Button
 barLength - (default 300) the length of the bar (the slider slides along its length)
 barWidth - (default 3) the width of the bar (how fat the bar is)
-color - (default "#666") the color of the bar (any CSS color)
+barColor - (default "#666") the color of the bar (any CSS color)
 vertical - (default false) set to true to make slider vertical
 useTicks - (default false) set to true to show small ticks for each step (step > 0)
 inside - (default false) set to true to fit button inside bar (need to manually adjust widths)
@@ -15067,25 +15072,25 @@ dispatches a swipeup event when swipe is ended
 		var stage;
 		this.target = target;
 		this.property = property;
+		var downEvent;
+		var moveEvent;
+		var upEvent;
 		if (container.canvas) {
-			var stagemousedownEvent;
-			var stagemousemoveEvent;
-			var stagemouseupEvent;
-			stagemousedownEvent = container.on("stagemousedown", function() {
+			downEvent = container.on("stagemousedown", function() {
 				downHandler();
-				stagemousemoveEvent = container.on("stagemousemove", pressHandler);
-				stagemouseupEvent = container.on("stagemouseup", function() {
-					container.off("stagemousemove", stagemousemoveEvent);
-					container.off("stagemouseup", stagemouseupEvent);
+				moveEvent = container.on("stagemousemove", pressHandler);
+				upEvent = container.on("stagemouseup", function() {
+					container.off("stagemousemove", moveEvent);
+					container.off("stagemouseup", upEvent);
 					that.dispatchEvent("swipeup");
 				});
 			});
 			stage = container;
 		} else {
 			stage = container.getStage();
-			var containermousedownEvent = container.on("mousedown", downHandler);
-			var containerpressmoveEvent = container.on("pressmove", pressHandler);
-			var containerpressupEvent = container.on("pressup", function() {
+			downEvent = container.on("mousedown", downHandler);
+			moveEvent = container.on("pressmove", pressHandler);
+			upEvent = container.on("pressup", function() {
 				that.dispatchEvent("swipeup");
 			});
 		}
@@ -15113,44 +15118,42 @@ dispatches a swipeup event when swipe is ended
 			that.desiredValue = desiredVal = val;
 		}
 
-		this._enabled = true;
+		var _enabled = true;
 		Object.defineProperty(that, 'enabled', {
 			get: function() {
-				return that._enabled;
+				return _enabled;
 			},
 			set: function(value) {
-				if (that._enabled == value) return;
+				if (_enabled == value) return;
 				if (value) {
 					enable();
 				} else {
 					disable();
 				}
-				that._enabled = Boolean(value);
+				_enabled = Boolean(value);
 			}
 		});
 
 		function disable() {
 			if (container.canvas) {
-				container.off("stagemousedown", stagemousedownEvent);
-				container.off("stagemousemove", stagemousemoveEvent);
-				container.off("stagemouseup", stagemouseupEvent);
+				container.off("stagemousedown", downEvent);
+				container.off("stagemousemove", moveEvent);
+				container.off("stagemouseup", upEvent);
 			} else {
-				container.off("mousedown", containermousedownEvent);
-				container.off("pressmove", containerpressmoveEvent);
-				container.off("pressup", containerpressupEvent);
+				container.off("mousedown", downEvent);
+				container.off("pressmove", moveEvent);
+				container.off("pressup", upEvent);
 			}
 			zim.Ticker.remove(ticker);
 		}
 
 		function enable() {
 			if (container.canvas) {
-				container.on("stagemousedown", stagemousedownEvent);
-				container.on("stagemousemove", stagemousemoveEvent);
-				container.on("stagemouseup", stagemouseupEvent);
+				container.on("stagemousedown", downEvent);
 			} else {
-				container.on("mousedown", containermousedownEvent);
-				container.on("pressmove", containerpressmoveEvent);
-				container.on("pressup", containerpressupEvent);
+				container.on("mousedown", downEvent);
+				container.on("pressmove", moveEvent);
+				container.on("pressup", upEvent);
 			}
 			zim.Ticker.add(ticker, stage);
 		}
@@ -15163,6 +15166,674 @@ dispatches a swipeup event when swipe is ended
 	zim.extend(zim.Swiper, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
 	//-69.5
 
+/*--
+zim.MotionController = function(container, target, type, speed, axis, rect, map, diagonal, damp, flip, moveThreshold, stickThreshold)
+
+MotionController
+zim class - extends a createjs EventDispatcher
+
+DESCRIPTION
+MotionController lets you control an object (target) in a container (like the stage)
+with "mousedown", "mousemove", "keydown", "gamebutton", "gamestick" or "manual" modes (types)
+For instance, you can control a player in a game or a butterfly in field
+
+EXAMPLE
+var circle = new zim.Circle(40, frame.green).center(stage);
+var controller = new zim.MotionController(stage, circle); // circle moves to mouse press position with damping
+
+var rect = new zim.Rectangle(50, 30, frame.green).centerReg(stage);
+var controller = new zim.MotionController({
+	container:stage,
+	target:rect,
+	type:"keydown",
+	diagonal:true,
+	damp:.1,
+	rotate:true
+});
+
+SEE: http://zimjs.com/code/controller for more examples
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+container - the Container the target is in - the stage is most likely fine
+	this must be on the stage (or be the stage) when the MotionController is made
+target - the object you want to control
+type - (default "mousedown") by default will move to where you press in the container
+	set to "mousemove" to have the target follow the mouse movement
+	set to "keydown" to use keys to control the target (see map parameter)
+	set to "gamebutton" to use gamepad buttons to control the target (see map parameter)
+	set to "gamestick" to use gamepad stick(s) to control the target (see map parameter)
+	set to "swipe" to use swipe to control the target
+	set to "manual" to set your own with myController.convert() or myController.x and myController.y properties
+speed - (default 7) pixels it will move each tick, keypress buttonpress, swipe, etc.
+axis - (default "both") or "horizontal" or "vertical" (see diagonal parameter)
+rect - (default null) a createjs.Rectangle or object with x, y, width and height properties
+	the registration point of the target will stay within these bounds
+map - (default null) an Array with left, right, up, down values (or array of values) as outlined below
+ 	- (default [[65,37], [68,39], [87,38], [83,40]] when type == "keydown") these are ADWS and arrows
+	- (default [14, 15, 12, 13] when type == "gamebutton") these are DPAD_LEFT, DPAD_RIGHT, DPAD_UP, DPAD_DOWN on a gamepad
+	- (default [14, 15, 7, 6] when type == "gamebutton" and firstPerson == true) these are DPAD_LEFT, DPAD_RIGHT, RT, LT on a gamepad
+	- (default [0, 0, 1, 1] when type == "gamestick") these are LSX, LSX, LSY, LSY on a gamepad
+	- (default [[0,2], [0,2], [1], [1]] when type == "gamestick" and firstPerson == true) turn with left or right stick X, advance with left stick Y
+		use [[0,2], [0,2], [1,3], [1,3]] for both sticks (first stick motion overrides second stick)
+		Note: MotionController will only use the 0 and the 2 index for speed as the sticks use -1 to 1 values
+		so you could not go only left with one stick and only right with another
+		Note: stick values may exceed -1 and 1 on occasion (see also stickThreshold)
+diagonal - (default true) set to false to lock movement to horizontal or vertical only
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
+flip - (default null) set to "horizontal", "vertical" or "both" to flip the target when in negative direction
+rotate - (default false) set to true to rotate - starts facing right and rotates in direction of movement
+constant - (default false) set to true to remove keyup or gamebutton up and always move in direction last key or button press
+firstPerson - (default false) set to true for keydown, gamebutton and gamecontroller to go to first person mode
+	in firstPerson, the direction starts facing up and by default up arrow is speed forward and left and right change rotation
+	speed will be damped by damp parameter - also, map parameter changes if in firstPerson mode - see map parameter
+turnSpeed - (default speed*.4) - the speed for turning in firstPerson mode - will be damped but damp parameter
+moveThreshold - (default 5) pixels negative or positive to treat damped motion as stopped
+stickThreshold - (default .2) gamepad stick axes values are from -1 to 1 but there is a lot of noise
+	so consider within +- stickThreshold as no motion 0
+
+
+METHODS
+immediate(x, y) - set the damping immediately to this value to avoid damping to value
+convert(x, y) - for manual mode, pass in x and y and damping and rotation will be calculated
+dispose() - remove listeners and Ticker, Swiper and GamePad, where applicable
+
+PROPERTIES
+target - the target for the property that you are controlling
+x - the desired x position of the target before damping is applied (use this for manual imput - or convert() method)
+y - the desired y position of the target before damping is applied (use this for manual imput - or convert() method)
+dirX - the x direction the player is moving
+dirY - the x direction the player is moving
+dampX - reference to the horizonal Damp object
+dampY - reference to the vertical Damp object
+speed - the speed setting which will be multiplied by direction
+turnSpeed - the turn speed for firstPerson mode
+axis - the axis (horizontal, vertical or both);
+moving - get Boolean as to whether the target is moving (within moveThreshold)
+movingX - get Boolean as to whether the target is moving in x direction (within moveThreshold)
+movingY - get Boolean as to whether the target is moving in y direction (within moveThreshold)
+gamepad - reference to GamePad object if applicable - allows you to use this for more events like jumping, shooting, etc.
+moveThreshold - the maximum value (+-) within which movement is considered stopped
+stickThreshold - the maximum value (+-) within which the gamepad stick axes values are considered 0
+enabled - set to false to disable or true to enable MotionController - can toggle with enabled = !enabled
+
+EVENTS
+dispatches a change event with dir as property of event object
+	that will hold "left", "right", "up", "down", null (no direction)
+--*///+69.7
+
+	zim.MotionController = function(container, target, type, speed, axis, rect, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold) {
+		var sig = "container, target, type, speed, axis, rect, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold";
+		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
+		z_d("69.7");
+
+		this.cjsEventDispatcher_constructor();
+		if (zot(container) || !container.getStage) {zog("zim Controller(): Please pass in a reference to a container as first parameter");	return;}
+		if (zot(container.getStage())) {zog("zim Controller(): The Container must be on the stage"); return;}
+		var stage = container.getStage();
+		if (zot(target)) {zog("zim Controller(): Please pass in a target object to control"); return;}
+		if (zot(speed)) speed = 7;
+		if (zot(type) || (type != "mousemove" && type != "keydown" && type != "gamebutton" && type != "gamestick" && type != "swipe" && type != "manual")) type = "mousedown";
+		if (zot(axis)) axis = "both"; // horizontal, vertical, both
+		if (type == "keydown" && zot(map)) map = [[65,37], [68,39], [87,38], [83,40]] // left right up down
+		if (type == "gamebutton" && zot(map)) {
+			if (firstPerson) {
+				map = [14, 15, zim.GamePad.RT, zim.GamePad.LT] // DPAD_LEFT, DPAD_RIGHT, RT, LT on gamepad
+			} else {
+				map = [14, 15, 12, 13] // DPAD_LEFT, DPAD_RIGHT, DPAD_UP, DPAD_DOWN on gamepad
+			}
+		}
+		if (type == "gamestick" && zot(map)) {
+			if (firstPerson) {
+				map = [[0,2], [0,2], [1], [1]]; // TURN: LSX or RSX, LSX or RSX, SPEED: LSY, LSY - on gamepad
+			} else {
+				map = [0, 0, 1, 1]; // LSX, LSX, LSY, LSY - Left Stick on gamepad
+			}
+		}
+
+		if (type == "gamestick" && zot(map)) map = [0, 0, 1, 1]; // LSX, LSX, LSY, LSY - Left Stick on gamepad
+		if (zot(diagonal)) diagonal = true;
+		if (axis == "horizontal" || axis == "vertical") diagonal = false;
+		if (zot(damp)) damp = (type=="keydown" || type=="gamebutton") ? 1:.1;
+		if (zot(firstPerson)) firstPerson = false;
+		if (zot(turnSpeed)) turnSpeed = speed * .4;
+		if (zot(moveThreshold)) moveThreshold = 4;
+		if (zot(stickThreshold)) stickThreshold = .2;
+
+		var that = this;
+		this.dirX = 0;
+		this.dirY = 0;
+		this.speed = speed;
+		this.turnSpeed = turnSpeed;
+		this.axis = axis;
+		this.target = target;
+		this.moveThreshold = moveThreshold;
+		this.stickThreshold = stickThreshold;
+
+		var speedX = that.speed; // speedX and speedY hold proportioned speed based on angle
+		var speedY = that.speed;
+		that.angle = 0; // holds the pre-damped angle of the target
+		that.x = this.target.x; // holds the pre-damped x and y position of the target
+		that.y = this.target.y;
+
+		// INPUTS
+		// set up collecting the desired x and y based on various inputs:
+		// keydown, gamebutton
+		// mousedown, mousemove
+		// gamestick
+		// swipe
+		// otherwise the setting is manual and MotionController x and y can be provided through calculate(x,y) method
+
+		if (type == "keydown" || type == "gamebutton") {
+
+			// which keys or buttons handle left, right, up, down are provided by the map parameter
+			// this can be either a number or an array of numbers
+			// so normalize this to always hold an array
+			for (var i=0; i<4; i++) {
+				if (!Array.isArray(map[i])) map[i] = [map[i]];
+			}
+			var down = [0,0,0,0];
+			var ord = []; // order the keys are pressed - so when we release, we can set to last currently pressed key
+			var way = ["X","X","Y","Y"];
+			var dir = [-1,1,-1,1];
+			var names = ["left","right","up","down"];
+			var rots = [-180,0,-90,90];
+			var d = {dirX:0, dirY:0}; // local directions for key and button - this.dirX and this.dirY are used in Ticker
+
+			if (type == "keydown") {
+				var keydownEvent = frame.on("keydown", doDown);
+			} else {
+				var gamepad = that.gamepad = new zim.GamePad();
+				var buttondownEvent = gamepad.on("buttondown", doDown);
+			}
+			function doDown(e) {
+				var key = type=="keydown"?e.keyCode:e.buttonCode;
+				var inOrd;
+				for (i=0; i<4; i++) {
+					if (map[i].indexOf(key) > -1) {
+						if (!diagonal && that.axis=="both") d.dirX = d.dirY = 0;
+						d["dir"+way[i]] = dir[i];
+						down[i] = 1;
+						inOrd = ord.indexOf(i);
+						if (inOrd == 0) return; // already last pressed
+						if (inOrd > 0) ord.splice(inOrd,1); // take key out if already down
+						ord.unshift(i); // add index to start of ord array
+						return;
+					}
+				}
+			}
+			if (zot(constant)) {
+				if (type == "keydown") {
+					var keyupEvent = frame.on("keyup", doUp);
+				} else {
+					var buttonupEvent = gamepad.on("buttonup", doUp);
+				}
+			}
+			function doUp(e) {
+				var key = type=="keydown"?e.keyCode:e.buttonCode;
+				var inOrd;
+				for (i=0; i<4; i++) {
+					if (map[i].indexOf(key) > -1) {
+						down[i] = 0;
+						inOrd = ord.indexOf(i);
+						if (inOrd >= 0) ord.splice(inOrd,1);
+						if (that.axis != "both" || diagonal) { // either just one direction or can have both dirX and dirY
+							d["dir"+way[i]] = -down[Math.floor(i/2)*2] +down[Math.floor(i/2)*2+1]; // the other might be down
+						} else { // only use last pressed key for dirX or dirY but not both
+							if (ord.length > 0) {
+								d["dir"+way[i]] = 0;
+								var iOrd = ord[0];
+								d["dir"+way[iOrd]] = dir[iOrd];
+							} else {
+								d.dirX = d.dirY = 0;
+							}
+						}
+						return;
+					}
+				}
+			}
+			// use a ticker to position the desired x and y properties
+			// we will then tween to these properties in the mainTicker later
+			var first = {rotation:0, speedX:that.speed, speedY:that.speed};
+			var keyTicker = zim.Ticker.add(function() {
+				if (firstPerson) {doFirstPerson(d); return;}
+				var sX = that.speed;
+				var sY = that.speed;
+				if (that.axis == "both" && d.dirX != 0 && d.dirY != 0) {
+					var trig = doTrig(d.dirX, d.dirY); // note - keys need to place desired x and y in a unit manner (or else target never goes anywhere)
+					sX = trig.speedX;
+					sY = trig.speedY;
+				}
+				if (that.axis == "horizontal" || that.axis == "both") {
+					that.x += sX * d.dirX;
+				}
+				if (that.axis == "vertical" || that.axis == "both") {
+					that.y += sY * d.dirY;
+				}
+				calculate();
+			}, stage);
+		} else if (type == "mousedown" || type == "mousemove") {
+			var mouseEvent = stage.on("stage" + type, function(){
+				var p = container.globalToLocal(stage.mouseX, stage.mouseY);
+				that.x = p.x; that.y = p.y;
+				calculate();
+			});
+		} else if (type == "gamestick") {
+			var gamepad = this.gamepad = new zim.GamePad();
+			for (var i=0; i<4; i++) { // make map hold arrays
+				if (!Array.isArray(map[i])) map[i] = [map[i]];
+			}
+			var first = {rotation:0, speedX:that.speed, speedY:that.speed};
+			var stickEvent = gamepad.on("data", function(e) {
+
+				var d = {dirX:0, dirY:0};
+				// map = [[0,2], [0,2], [1,3], [1,3]]
+				for (var i=0; i<map[0].length; i++) {
+					var a = e.axes[map[0][i]];
+					if (Math.abs(a) > that.stickThreshold) {
+						d.dirX = a;
+						break;
+					}
+				}
+				for (var i=0; i<map[2].length; i++) {
+					var a = e.axes[map[2][i]];
+					if (Math.abs(a) > that.stickThreshold) {
+						d.dirY = a;
+						break;
+					}
+				}
+
+				if (firstPerson) {doFirstPerson(d); return;}
+
+				that.x += that.speed*d.dirX;
+				that.y += that.speed*d.dirY;
+				calculate();
+			});
+		} else if (type == "swipe") {
+			var swiperX = new zim.Swiper(stage, that, "x", .8);
+			var swiperY = new zim.Swiper(stage, that, "y", .8, false);
+			var swiperEvent = swiperX.on("swipemove", function() {
+				calculate();
+			});
+		}
+
+		function doFirstPerson(d) {
+			first.rotation += d.dirX * that.turnSpeed;
+			that.angle = first.rotation;
+			first.speedX = Math.sin(first.rotation*Math.PI/180) * that.speed * -d.dirY;
+			first.speedY = - Math.cos(first.rotation*Math.PI/180) * that.speed * -d.dirY;
+			that.x += first.speedX;
+			that.y += first.speedY;
+			return;
+		}
+
+		// CALCULATE
+		// each input calls calculate to determine the angle of direction
+		// and the speed along each axis, speedX and speedY
+		function calculate() {
+
+			// trig() returns an object with speedX, speedY and rotation properties
+			var diffX = that.x-that.target.x;
+			var diffY = that.y-that.target.y;
+			var trig = doTrig(diffX, diffY);
+
+			speedX = trig.speedX;
+			speedY = trig.speedY;
+
+			if (!rotate) return;
+			that.angle = trig.angle;
+			if (zot(that.angle)) return; // when no motion purposely left null so stopped target keeps rotation
+
+			// make sure angle damps to shortest direction - this is tricky
+			var newR = normalizeAngle(that.angle);
+			var oldR = that.target.rotation = normalizeAngle(that.target.rotation);
+			if (Math.abs(newR-oldR) > 180) {
+				if (oldR > newR) {
+					oldR -= 360; // put current rotation behind new rotation so damps clockwise
+				} else {
+					newR -= 360; // put new rotation behind current rotation so damps counterclockwise
+				}
+			}
+			that.dampR.immediate(oldR); // required otherwise damping equation has mind of its own
+			that.target.rotation = oldR; // make sure to set this again as we may have changed oldR for proper rotational direction when damped
+			that.angle = newR;
+		}
+		function normalizeAngle(a) {
+			return (a % 360 + 360) % 360;
+		}
+		function doTrig(diffX, diffY) {
+			var sX = that.speed;
+			var sY = that.speed;
+			var sA; // keep angle null if no movement - so that last rotation during movement is kept when movement stops
+			var hyp = Math.sqrt(Math.pow(diffX, 2) + Math.pow(diffY, 2));
+			if (hyp > 0) {
+				sX = Math.abs(diffX) / hyp * that.speed;
+				sY = Math.abs(diffY) / hyp * that.speed;
+				sA = 90 - Math.atan2(diffX, diffY)*180/Math.PI;
+			}
+			return {speedX:sX, speedY:sY, angle:sA};
+		}
+
+
+		// TICKER FOR ALL
+		// damp movement and rotation to desired x and y
+
+		var tempX = this.x = this.target.x;
+		var tempY = this.y = this.target.y;
+		this.dampX = new zim.Damp(tempX, damp);
+		this.dampY = new zim.Damp(tempY, damp);
+		this.dampR = new zim.Damp(this.target.rotation, damp);
+		var lastDirX=0;
+		var lastDirY=0;
+
+		var mainTicker = zim.Ticker.add(function() {
+			if (rect) {
+				that.x = zim.constrain(that.x, rect.x, rect.x+rect.width);
+				that.y = zim.constrain(that.y, rect.y, rect.y+rect.height);
+			}
+			// tempX and tempY head towards the desired x and y
+			// at the speed set by calculate and in the direction it needs to go calculated here
+			// we then damp the actual motion using the dampX or dampY zim.Damp object's convert method
+			if (that.axis == "horizontal" || that.axis == "both") {
+				that.dirX = zim.sign(that.x-tempX);
+				if (Math.abs(that.x-tempX) < speedX) {
+					tempX = that.x;
+				} else {
+					tempX += that.dirX*speedX;
+				}
+				that.target.x = that.dampX.convert(tempX);
+			}
+			if (that.axis == "vertical" || that.axis == "both") {
+				that.dirY = zim.sign(that.y-tempY);
+				if (Math.abs(that.y-tempY) < speedY) {
+					tempY = that.y;
+				} else {
+					tempY += zim.sign(that.y-tempY)*speedY;
+				}
+				that.target.y = that.dampY.convert(tempY);
+			}
+
+			// check for last direction change and dispatch event and flip if necessary
+			if (that.dirX != lastDirX || that.dirY != lastDirY) {
+				var e = new createjs.Event("change");
+				if (that.dirX != lastDirX) {
+					var options = ["left", null, "right"];
+					e.dir = options[that.dirX+1];
+					lastDirX = that.dirX;
+					if (flip == "horizontal" || flip == "both") target.scaleX = that.dirX?Math.abs(target.scaleX)*that.dirX:target.scaleX;
+				} else {
+					var options = ["up", null, "down"];
+					e.dir = options[that.dirY+1];
+					lastDirY = that.dirY;
+					if (flip == "vertical" || flip == "both") target.scaleY = that.dirY?Math.abs(target.scaleY) * that.dirY:target.scaleY;
+				}
+				that.dispatchEvent(e);
+			}
+
+			// set moving properties
+			that.movingX = Math.abs(tempX-that.target.x) > that.moveThreshold;
+			that.movingY = Math.abs(tempY-that.target.y) > that.moveThreshold;
+			that.moving = that.movingX || that.movingY
+
+			// damp the rotation - but not if the angle is null which happens when no movement
+			// this keeps the last angle during movement rather than setting it to 0 which is not right
+			if (rotate && !zot(that.angle)) {
+				that.target.rotation = that.dampR.convert(that.angle);
+			}
+
+		}, stage);
+
+
+		this.immediate = function(x,y,r) {
+			if (!zot(x) && that.dampX) {
+				that.dampX.immediate(x);
+				that.x = that.target.x = tempX = x;
+				if (swiperX) swiperX.immediate(x);
+			}
+			if (!zot(y) && that.dampY) {
+				that.dampY.immediate(y);
+				that.y = that.target.y = tempY = y;
+				if (swiperY) swiperY.immediate(y);
+			}
+			if (!zot(r) && that.dampR) {
+				that.dampR.immediate(r);
+				that.angle = that.target.rotation = r;
+			}
+		}
+
+		this.convert = function(x,y) {
+			if (!zot(x)) that.x = x;
+			if (!zot(y)) that.y = y;
+			calculate();
+		}
+
+		var _enabled = true;
+		Object.defineProperty(that, 'enabled', {
+			get: function() {
+				return _enabled;
+			},
+			set: function(value) {
+				if (_enabled == value) return;
+				if (value) {
+					enable();
+				} else {
+					disable();
+				}
+				_enabled = Boolean(value);
+			}
+		});
+		function enable() {
+			if (type == "keydown") {
+				frame.on("keydown", keydownEvent);
+				frame.on("keyup", keyupEvent);
+				zim.Ticker.add(keyTicker, stage);
+			} else if (type == "gamebutton") {
+				gamepad.on("buttondown", buttondownEvent);
+				gamepad.on("buttonup", buttonupEvent);
+				zim.Ticker.add(keyTicker, stage);
+			} else if (type == "gamestick") {
+				gamepad.on("data", stickEvent);
+			} else if (type == "swipe") {
+				swiperX.enabled = true;
+				swiperY.enabled = true;
+				swiperX.on("swipemove", swiperEvent);
+			} else if (type == "mousedown" || type == "mousemove") {
+				stage.on("stage" + type, mouseEvent);
+			}
+			zim.Ticker.add(mainTicker, stage);
+		}
+		function disable() {
+			if (type == "keydown") {
+				frame.off("keydown", keydownEvent);
+				frame.off("keyup", keyupEvent);
+				zim.Ticker.remove(keyTicker);
+			} else if (type == "gamebutton") {
+				gamepad.off("buttondown", buttondownEvent);
+				gamepad.off("buttonup", buttonupEvent);
+				zim.Ticker.remove(keyTicker);
+			} else if (type == "gamestick") {
+				gamepad.off("data", stickEvent);
+			} else if (type == "swipe") {
+				swiperX.enabled = false;
+				swiperY.enabled = false;
+				swiperX.off("swipemove", swiperEvent);
+			} else if (type == "mousedown" || type == "mousemove") {
+				stage.off("stage" + type, mouseEvent);
+			}
+			zim.Ticker.remove(mainTicker);
+
+		}
+		this.dispose = function() {
+			disable();
+			if (gamepad) gamepad.dispose();
+			if (swiperX) swiperX.dispose();
+			if (swiperY) swiperX.dispose();
+		}
+
+	}
+	zim.extend(zim.MotionController, createjs.EventDispatcher, "enabled", "cjsEventDispatcher");
+	//-69.7
+
+/*--
+zim.GamePad = function()
+
+GamePad
+zim class - extends a createjs EventDispatcher
+
+DESCRIPTION
+GamePad connects to Game Controllers as inputs using the HTML navigator.getGamepads API
+Dispatches buttondown and buttonup events for the following common buttons:
+
+"A","B","X","Y", (or for Triangle, Circle, Cross and Square)
+"LB","RB","LT","RT", (for left bumper, right bumper, left trigger, right trigger)
+"BACK","START",
+"LS","RS", (for left stick press, right stick press)
+"DPAD_UP","DPAD_DOWN","DPAD_LEFT","DPAD_RIGHT"
+
+The event object will have a button property telling which button is pressed using the string values above
+Dispatches a data event constantly to get axes data for the sticks (and constant data for the buttons)
+The event object in this case will have axes and buttons properties
+The axes property is an array of four numbers for the left and right stick's x and y properies (-1 to 1)
+
+EXAMPLE
+var gamepad = new zim.GamePad();
+gamepad.on("buttondown", function(e) {
+	// only fires once per button press (unlike constant keydown event)
+	zog(e.button); // LT for instance for Left trigger
+	if (e.button == "LT") {
+		zog("left trigger is down");
+	}
+	zog(e.buttonCode); // 6
+	if (e.buttonCode == zim.GamePad.LT) {
+		zog("another way to do catch left trigger down");
+	}
+});
+
+gamepad.on("buttonup", function(e) {
+	zog(e.button); // LT for instance for Left trigger
+}
+
+gamepad.on("data", function(e) {
+	// fires constantly in a requestAnimationFrame
+	zog(e.axes[0]); // left stick x or horizontal data from -1 to 1 (lots of decimal noise)
+	zog(e.axes[zim.GamePad.LTX]); // another way of accessing left stick x
+	zog(e.buttons[9]); // true or false depending on if the START button is pressed
+	zog(e.buttons[zim.GamePad.START]); another way to find if the START button is pressed
+});
+END EXAMPLE
+
+METHODS
+dispose() - removes all listeners and cancels requestAnimationFrame
+
+PROPERTIES
+connected - Boolean true if connected and false if not connected (may need to press key, etc)
+currentIndex - get or set the index of the controller
+	gives multiple controller support - make two GameController objects and set different indexes
+data - object that holds buttons (raw data - slightly different than buttons below) and axes properties
+buttons - an array of Booleans as to whether the button is pressed
+	the order of the buttons match the order of the constants below
+constants: A,B,X,Y,LB,RB,LT,RT,BACK,START,LS,RS,DPAD_UP,DPAD_DOWN,DPAD_LEFT,DPAD_RIGHT
+	zim.GamePad.A == 0
+	zim.GamePad.B == 1, etc. up to
+	zim.GamePad.DPAD_RIGHT == 15
+axes - an array of four stick values from -1 to 1
+	for left x and y and right x and y values (or horizontal and vertical values)
+constants: LSX,LSY,RSX,RSY
+	zim.GamePad.LSX == 0
+	zim.GamePad.LSY == 1
+	zim.GamePad.RSX == 2
+	zim.GamePad.RSY == 3
+
+EVENTS
+dispatches a gamepadconnected and gamepaddisconnected when connected and disconnected
+	these have an event object with index and id properties - may not work in chrome
+dispatches a buttondown event with button and buttonCode properties
+dispatches a buttonup event with button and buttonCode properties
+dispatches a data event with axes and buttons array properties
+	these can be handled as outlined in the description and examples
+--*///+69.8
+
+	zim.GamePad = function() {
+		z_d("69.8");
+
+		this.cjsEventDispatcher_constructor();
+		if (!navigator.getGamepads) {this.error = true; if (zon) {zog("zim.GamePad() - no browswer support");} return;} // if no gamepad support
+		var processPad;
+		window.addEventListener("gamepadconnected", init);
+		this.currentIndex = 0;
+		var that = this;
+		function init(eventObject) {
+			that.connected = true;
+			dispatch("gamepadconnected", eventObject);
+			var startData = navigator.getGamepads()[that.currentIndex];
+			that.lastData = [];
+			for (var i=0; i<startData.buttons.length; i++) {
+				that.lastData[i] = startData.buttons[i].pressed;
+			}
+			function doPad() {
+				processPad = requestAnimationFrame(doPad);
+				that.data = navigator.getGamepads()[that.currentIndex];
+				var pressed = false;
+				var currentData = that.buttons = [];
+				for (var i=0; i<that.data.buttons.length; i++) {
+					currentData[i] = that.data.buttons[i].pressed;
+					if (currentData[i] != that.lastData[i]) {
+						that.lastData[i] = currentData[i];
+						if (currentData[i]) {
+							// button was up and now is down
+							// chose to dispatch only once unlike a keydown
+							// if we want constant data then use data event and e.buttons
+							var e = new createjs.Event("buttondown");
+						} else {
+							var e = new createjs.Event("buttonup");
+						}
+						e.buttonCode = i;
+						e.button = gamePadButtons[i];
+						that.dispatchEvent(e);
+					}
+				}
+				var e = new createjs.Event("data");
+				e.axes = that.axes = that.data.axes;
+				e.buttons = that.buttons;
+				that.dispatchEvent(e);
+			}
+			doPad();
+		}
+		var gamepadCheck = setInterval(function() { // for chrome
+			if (navigator.getGamepads && navigator.getGamepads()[0]) {
+				if (!that.connected) init();
+				clearInterval(gamepadCheck);
+			}
+		}, 500);
+		function dispatch(type, eventObject) {
+			var e = new createjs.Event(type);
+			e.index = eventObject.gamepad.index;
+			e.id = eventObject.gamepad.id;
+			e.buttons = eventObject.gamepad.buttons;
+			e.axes = eventObject.gamepad.axes;
+			that.dispatchEvent(e);
+		}
+		var disconnectEvent = window.addEventListener("gamepaddisconnected", function(e) {
+			if (e.gamepad.index == that.currentIndex) {
+				cancelAnimationFrame(processPad);
+				connected = false;
+				that.dispatchEvent("gamepaddisconnected");
+			}
+		});
+		this.dispose = function() {
+			window.removeEventListener("gamepadconnected", init);
+			window.addEventListener("gamepaddisconnected", disconnectEvent);
+			cancelAnimationFrame(processPad);
+			clearInterval(gamepadCheck);
+			that.connected = false;
+		}
+	}
+	var gamePadButtons = ["A","B","X","Y","LB","RB","LT","RT","BACK","START","LS","RS","DPAD_UP","DPAD_DOWN","DPAD_LEFT","DPAD_RIGHT"];
+	for (var i=0; i<gamePadButtons.length; i++) zim.GamePad[gamePadButtons[i]] = i;
+	var gamePadAxes = ["LSX","LSY","RSX","RSY"];
+	for (i=0; i<gamePadAxes.length; i++) zim.GamePad[gamePadAxes[i]] = i;
+	zim.extend(zim.GamePad, createjs.EventDispatcher, null, "cjsEventDispatcher");
+	//-69.8
 
 ////////////////  ZIM FRAME  //////////////
 
