@@ -7547,8 +7547,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else { // bottom align
 				yAdjust = -b.height;
 			}
-			obj.setBounds(b.x, yAdjust, b.width, b.height);
-			that.setBounds(b.x, yAdjust, b.width, b.height);
+			if (backing) {
+				var bb = backing.getBounds();
+				that.setBounds(bb.x, bb.y, bb.width, bb.height);
+				zim.center(obj, that);
+				obj.y += size/16; // backing often on capital letters without descenders
+			} else {
+				obj.setBounds(b.x, yAdjust, b.width, b.height);
+				that.setBounds(b.x, yAdjust, b.width, b.height);
+			}
 		}
 		setSize();
 
@@ -7559,7 +7566,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		} else {
 			this.backing = backing;
 		 	zim.center(backing, this, true, 0);
-			backing.y -= size/16; // backing often on capital letters without descenders
 		}
 
 		Object.defineProperty(that, 'text', {
@@ -7570,7 +7576,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				if (zot(value)) {value = " ";}
 				obj.text = String(value);
-				setSize();
+				if (align=="center") setSize();
 			}
 		});
 
@@ -7741,6 +7747,7 @@ enabled - default is true - set to false to disable
 rollPersist - default is false - set to true to keep rollover state when button is pressed even if rolling off
 color - get or set non-rolled on backing color (if no backing specified)
 rollColor - get or set rolled on backing color
+focus - get or set the focus property of the Button used for tabOrder
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
@@ -7785,6 +7792,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var that = this;
 		this.mouseChildren = false;
 		this.cursor = "pointer";
+		that.focus = false;
 
 		var buttonBacking;
 		if (zot(backing)) {
@@ -8060,7 +8068,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.removeChild(rollBacking);
 			that.removeChild(icon);
 			that.removeChild(that.label);
-			that.label.dispose();
+			if (that.label) that.label.dispose();
 			buttonBacking = null;
 			rollBacking = null;
 			icon = null;
@@ -9679,7 +9687,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-60
 
 /*--
-zim.Stepper = function(list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled)
+zim.Stepper = function(list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, press, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward)
 
 Stepper
 zim class - extends a zim.Container which extends a createjs.Container
@@ -9704,12 +9712,13 @@ color - (default "white") for the arrows and the text box
 borderColor - (default null) stroke color for the box
 label - (default null) which can be used to define custom text properties
 vertical - (default false) set to true if you want the numbers above and below the text
-arrows - (default true) - use keyboard arrows (will always show graphical arrows)
+arrows - (default true) - use graphical arrows (also see keyArrows to turn off keyboard arrows)
 corner - (default 10) is the radius of the text box corners - set to 0 for square corners
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
 shadowBlur - (default 14) value for shadow blur if shadow is set
 loop - (default false) set to true to loop around or go back past 0 index
 display - (default true) set to false just to just show the arrows and not the value
+press - (default true) will advance on label mousedown - set to false to not advance on mousedown
 hold - (default true) set to false to not step with extended press down
 holdDelay - (default 400 ms) time (milliseconds) to wait for first step with hold
 holdSpeed - (default 200 ms) time (milliseconds) between steps as holding
@@ -9727,6 +9736,9 @@ arrows2 - (default true if step2 different than step and type number - else fals
 	arrows2 will activate step2 above (only for number type)
 arrows2Scale - (default .5) the scale relative to the main arrows
 keyEnabled - (default true) set to false to disable keyboard search / number picker
+keyArrows - (default true) set to false to disable keyboard arrows
+rightForward - (default true) set to false to make left the forward direction in your list
+downForward - (default true except if type is "number" then default false) set to false to make up the forward direction in your list
 
 METHODS
 next() - goes to next
@@ -9776,9 +9788,10 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+61
-	zim.Stepper = function(list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled) {
+	zim.Stepper = function(list, width, color, borderColor, label, vertical, arrows, corner,
+			shadowColor, shadowBlur, loop, display, press, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward) {
 
-		var sig = "list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled";
+		var sig = "list, width, color, borderColor, label, vertical, arrows, corner, shadowColor, shadowBlur, loop, display, press, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward";
 		var duo; if (duo = zob(zim.Stepper, arguments, sig, this)) return duo;
 		z_d("61");
 		this.zimContainer_constructor();
@@ -9797,6 +9810,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(loop)) loop=false;
 		if (zot(display)) display=true;
 
+		if (zot(press)) press=true;
 		if (zot(hold)) hold=true;
 		if (zot(holdDelay)) holdDelay=400;
 		if (zot(holdSpeed)) holdSpeed=200;
@@ -9812,6 +9826,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(arrows2) && step2 != step && type == "number") arrows2=true;
 		if (zot(arrows2Scale)) arrows2Scale=.5;
 		if (zot(keyEnabled)) keyEnabled = true;
+		if (zot(keyArrows)) keyArrows = true;
+		if (zot(rightForward)) rightForward = true;
+		if (zot(downForward)) downForward = type=="number"?false:true;
 
 		var that = this;
 		var index;
@@ -9883,42 +9900,49 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		label.mouseChildren = false;
 		label.mouseEnabled = false;
 
-		var arrowBacking = new createjs.Shape();
-		arrowBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
-		arrowBacking.regX = height*1.5 / 2;
-		arrowBacking.regY = height*1.5 / 2 + boxSpacing/2;
-
-		var prev = this.prev = new zim.Container();
-		this.addChild(prev);
-		prev.hitArea = arrowBacking;
-
-		var arrowPrev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
-		if (shadowColor != -1 && shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
-		prev.addChild(arrowPrev);
-		prev.cursor = "pointer";
-
 		var holdCheck = false;
 		var delayTimeout;
 		var speedTimeout;
-		prev.on("mousedown", function(e) {
-			actualStep = step;
-			doStep(-1);
-			go(-1);
-		})
-		if (hold) prev.on("pressup", goEnd);
+		var roundTimeout;
+		var clickCheck = false;
+		var prev, arrowPrev, next, arrowNext, prev2, arrowPrev2, next2, arrowNext2;
+		if (arrows || arrows2) {
+			var arrowBacking = new createjs.Shape();
+			arrowBacking.graphics.f("rgba(255,255,255,.11)").r(0,0,height*1.5,height*1.5);
+			arrowBacking.regX = height*1.5 / 2;
+			arrowBacking.regY = height*1.5 / 2 + boxSpacing/2;
+		}
+		if (arrows) {
+			prev = this.prev = new zim.Container();
+			this.addChild(prev);
+			prev.hitArea = arrowBacking;
 
-		if (vertical) {
-			prev.rotation = 180;
-			prev.x = width/2;
-			if (display) {
-				prev.y = prev.height + boxSpacing + height + prev.height/2 + boxSpacing;
+			arrowPrev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, color);
+			if (shadowColor != -1 && shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			prev.addChild(arrowPrev);
+			prev.cursor = "pointer";
+
+			prev.on("mousedown", function(e) {
+				actualStep = step;
+				var val = vertical?(downForward?1:-1):(rightForward?-1:1);
+				doStep(val);
+				go(val);
+			})
+			if (hold) prev.on("pressup", goEnd);
+
+			if (vertical) {
+				prev.rotation = 180;
+				prev.x = width/2;
+				if (display) {
+					prev.y = prev.height + boxSpacing + height + prev.height/2 + boxSpacing;
+				} else {
+					prev.y = prev.height * 2;
+				}
 			} else {
-				prev.y = prev.height * 2;
+				prev.rotation = -90;
+				prev.x = prev.height/2;
+				prev.y = prev.width/2;
 			}
-		} else {
-			prev.rotation = -90;
-			prev.x = prev.height/2;
-			prev.y = prev.width/2;
 		}
 
 		if (display) {
@@ -9930,12 +9954,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			box.graphics.f(color).rr(0, 0, width, height, corner);
 			if (shadowColor != -1 && shadowBlur > 0) box.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 
-			if (vertical) {
-				box.y = arrowPrev.height + boxSpacing;
-			} else {
-				box.x = arrowPrev.height + boxSpacing;
+			if (arrows) {
+				if (vertical) {
+					if (arrows) box.y = arrowPrev.height + boxSpacing;
+				} else {
+					if (arrows) box.x = arrowPrev.height + boxSpacing;
+				}
 			}
-			// label
 
 			this.addChild(label);
 			if (list.length > 0) {
@@ -9945,63 +9970,64 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			label.x = 50+box.x+box.getBounds().width/2;
 			label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
+
+			box.on("mousedown", function(e) {
+				if (press) doStep(1);
+				go(1, true); // do decimals from box
+				if (type == "number") {
+					clearTimeout(roundTimeout);
+					clickCheck = true;
+					roundTimeout = setTimeout(function() {
+						clickCheck = false;
+					}, 200);
+				}
+			});
+			box.on("pressup", function() {
+				if (clickCheck) {
+					numVal = Math.round(numVal);
+					setLabel(numVal, numVal);
+					that.dispatchEvent("change");
+				}
+			});
 		} else {
 			if (list.length > 0) {
 				index = 0;
 			}
 		}
 
-		var next = this.next = new zim.Container();
-		this.addChild(next);
-		next.hitArea = arrowBacking.clone();
 
-		var arrowNext = this.arrowNext = new zim.Triangle(height, height*.8, height*.8, color);
-		if (shadowColor != -1 && shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
-		next.addChild(arrowNext);
-		next.cursor = "pointer";
+		if (arrows) {
+			next = this.next = new zim.Container();
+			this.addChild(next);
+			next.hitArea = arrowBacking.clone();
 
-		next.on("mousedown", function(e) {
-			actualStep = step;
-			doStep(1);
-			go(1);
-		});
-		var roundTimeout;
-		var clickCheck = false;
-		if (display) box.on("mousedown", function(e) {
-			go(1, true); // do decimals from box
-			if (type == "number") {
-				clearTimeout(roundTimeout);
-				clickCheck = true;
-				roundTimeout = setTimeout(function() {
-					clickCheck = false;
-				}, 200);
-			}
-		});
-		box.on("pressup", function() {
-			if (clickCheck) {
-				numVal = Math.round(numVal);
-				setLabel(numVal, numVal);
-				that.dispatchEvent("change");
-			}
-		});
-		if (hold) {
-			next.on("pressup", goEnd);
-			if (display) box.on("pressup", goEnd);
-			clearTimeout(roundTimeout);
-		}
+			arrowNext = this.arrowNext = new zim.Triangle(height, height*.8, height*.8, color);
+			if (shadowColor != -1 && shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+			next.addChild(arrowNext);
+			next.cursor = "pointer";
 
-		if (vertical) {
-			next.rotation = 0;
-			next.x = width/2;
-			next.y = next.getBounds().height/2;
-		} else {
-			next.rotation = 90;
-			if (display) {
-				next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
+			next.on("mousedown", function(e) {
+				actualStep = step;
+				var val = vertical?(downForward?-1:1):(rightForward?1:-1);
+				doStep(val);
+				go(val);
+			});
+
+			if (hold) next.on("pressup", goEnd);
+
+			if (vertical) {
+				next.rotation = 0;
+				next.x = width/2;
+				next.y = next.getBounds().height/2;
 			} else {
-				next.x = prev.x + prev.getBounds().width;
+				next.rotation = 90;
+				if (display) {
+					next.x = box.x + box.getBounds().width + next.getBounds().height/2 + boxSpacing;
+				} else {
+					next.x = prev.x + prev.getBounds().width;
+				}
+				next.y = next.getBounds().width/2;
 			}
-			next.y = next.getBounds().width/2;
 		}
 
 
@@ -10037,10 +10063,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 									if (diffX > diffY) {
 										actualStep = vertical?step2:step;
 										dragDir = rawX - holdX > 0 ? 1 : -1;
+										if (!rightForward) dragDir*-1;
 										dragInput = proportion.convert(Math.abs(holdX-rawX));
 									} else {
 										actualStep = vertical?step:step2;
-										dragDir = rawY - holdY > 0 ? -1 : 1;
+										dragDir = rawY - holdY > 0 ? 1 : -1;
+										if (!downForward) dragDir*-1;
 										dragInput = proportion.convert(Math.abs(holdY-rawY));
 									}
 								}
@@ -10054,6 +10082,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
+		if (hold && display) box.on("pressup", goEnd);
+
 		function goEnd() {
 			holdCheck = false;
 			clearTimeout(delayTimeout);
@@ -10062,31 +10092,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (arrows2) { // step2 arrows
 
-			var prev2 = this.prev2 = new zim.Container();
+			prev2 = this.prev2 = new zim.Container();
 			prev2.hitArea = arrowBacking.clone();
-			var arrowPrev2 = this.arrowPrev2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", color, 2);
+			arrowPrev2 = this.arrowPrev2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", color, 2);
 			prev2.addChild(arrowPrev2);
 			prev2.cursor = "pointer";
 			prev2.scale(arrows2Scale);
 			prev2.alpha = .5;
 			prev2.on("mousedown", function(e) {
 				actualStep = step2;
-				doStep(-1);
-				go(-1, null, true);
+				var val = vertical?(rightForward?-1:1):(downForward?1:-1);
+				doStep(val);
+				go(val, null, true);
 			});
 			if (hold) prev2.on("pressup", goEnd);
 
-			var next2 = this.next2 = new zim.Container();
+			next2 = this.next2 = new zim.Container();
 			next2.hitArea = arrowBacking.clone();
-			var arrowNext2 = this.arrowNext2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", color, 2);
+			arrowNext2 = this.arrowNext2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", color, 2);
 			next2.addChild(arrowNext2);
 			next2.cursor = "pointer";
 			next2.scale(arrows2Scale);
 			next2.alpha = .5;
 			next2.on("mousedown", function(e) {
 				actualStep = step2;
-				doStep(1);
-				go(1, null, true);
+				var val = vertical?(rightForward?1:-1):(downForward?-1:1);
+				doStep(val);
+				go(val, null, true);
 			});
 			if (hold) next2.on("pressup", goEnd);
 
@@ -10192,7 +10224,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else {
 					if (list.indexOf(value) > -1) {
 						value = list.indexOf(value);
-					}
+					} else {return;}
 					if (value == that.currentIndex) return;
 					index=value;
 					setLabel(list[index], index);
@@ -10259,7 +10291,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (display) label.mouseChildren = false;
 					if (display) label.mouseEnabled = false;
 				}
-				if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();
+				if (next && (!zim.OPTIMIZE && next.getStage())) {
+					next.getStage().update();
+				} else if (label && (!zim.OPTIMIZE && label.getStage())) {
+					label.getStage().update();
+				}
 			}
 		});
 
@@ -10275,34 +10311,42 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				label.x = box.x+box.getBounds().width/2;
 				label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
 			}
-			prev.alpha = 1;
-			arrowPrev.color = color;
-			prev.cursor = "pointer";
-			next.alpha = 1;
-			arrowNext.color = color;
-			next.cursor = "pointer";
-			if (!loop) {
-				if (type == "number") {
-					if (index == min) {
-						if (numDir > 0) {greyPrev();} else {greyNext()};
+			if (arrows) {
+				prev.alpha = 1;
+				arrowPrev.color = color;
+				prev.cursor = "pointer";
+				next.alpha = 1;
+				arrowNext.color = color;
+				next.cursor = "pointer";
+				if (!loop) {
+					if (type == "number") {
+						if (index == min) {
+							if (numDir > 0) {greyPrev();} else {greyNext()};
+						}
+						if (index == max) {
+							if (numDir > 0) {greyNext();} else {greyPrev()};
+						}
+					} else {
+						if (index == 0) greyPrev();
+						if (index == list.length-1) greyNext();
 					}
-					if (index == max) {
-						if (numDir > 0) {greyNext();} else {greyPrev()};
-					}
-				} else {
-					if (index == 0) greyPrev();
-					if (index == list.length-1) greyNext();
 				}
 			}
-			if (!zim.OPTIMIZE && next.getStage()) next.getStage().update();
+			if (next && (!zim.OPTIMIZE && next.getStage())) {
+				next.getStage().update();
+			} else if (label && (!zim.OPTIMIZE && label.getStage())) {
+				label.getStage().update();
+			}
 		}
 
 		function greyPrev() {
+			if (!arrows) return;
 			prev.alpha = .8;
 			arrowPrev.color = "#aaa";
 			prev.cursor = "default";
 		}
 		function greyNext() {
+			if (!arrows) return;
 			next.alpha = .8;
 			arrowNext.color = "#aaa";
 			next.cursor = "default";
@@ -10322,17 +10366,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (zim.focus != that) return;
 			if (!e) e = event;
 			var k = e.keyCode;
-			if (arrows) {
+			if (keyArrows) {
 				if (k >= 37 && k <= 40) {
-					if (k == 38 || k == 39) {
-						if ((vertical && k == 38) || (!vertical && k == 39)) {
+					var forwardVertical = downForward?40:38;
+					var forwardHorizontal = rightForward?39:37;
+					var backwardVertical = downForward?38:40;
+					var backwardHorizontal = rightForward?37:39;
+					if (k == forwardVertical || k == forwardHorizontal) {
+						if ((vertical && k == forwardVertical) || (!vertical && k == forwardHorizontal)) {
 							actualStep = step;
 						} else {
 							actualStep = step2;
 						}
 						doStep(1);
-					} else if (k == 37 || k == 40) {
-						if ((vertical && k == 40) || (!vertical && k == 37)) {
+					} else if (k == backwardVertical || k == backwardHorizontal) {
+						if ((vertical && k == backwardVertical) || (!vertical && k == backwardHorizontal)) {
 							actualStep = step;
 						} else {
 							actualStep = step2;
@@ -10373,7 +10421,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						that.currentValue = Number(Math.floor(Number(label.text)) + String(num));
 						that.dispatchEvent("change");
 					}
+				} else {
+					var lastValue = that.currentValue;
+					that.currentValue = String.fromCharCode(e.keyCode);
+					if (that.currentValue != lastValue) that.dispatchEvent("change");
 				}
+
 			}
 		}
 		window.addEventListener("keydown", this.keyDownEvent);
@@ -10387,13 +10440,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Stepper(list, width, color, borderColor, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, loop, display, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled));
+			return that.cloneProps(new zim.Stepper(list, width, color, borderColor, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, loop, display, press, hold, holdDelay, holdSpeed, drag, dragSensitivity, dragRange, type, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward));
 		}
 
 		this.dispose = function() {
 			that.removeAllEventListeners();
 			window.removeEventListener("keydown", that.keyDownEvent);
-			stage.off(rawEvent);
+			if (that.getStage()) that.getStage().off(rawEvent);
 			return true;
 		}
 	}
@@ -14671,7 +14724,7 @@ var dynamo = new zim.Dynamo(sprite, 30, "walk");
 zim.Ticker.add(function() {
 	// will play backwards at 30 fps at left and forwards at 30 fps at right
 	// it will stop at half the stage width
-	dynamo.percentSpeed = stage.MouseX/stageW*200 - 100;
+	dynamo.percentSpeed = stage.mouseX/stageW*200 - 100;
 }, stage);
 END EXAMPLE
 
@@ -15924,6 +15977,8 @@ delay - (default 500) time in milliseconds to resize ONCE MORE after a orientati
 	so a time of 500 or so might catch the dimension change then call the frame resize event with the proper dimensions
 	setting this may cause a flash on faster devices that do not need it - so it is a no win situation
 	this effects only full mode with the Layout class and they can always refresh a screen if it is not quite right in the changed orientation
+handleTabs - (default true) prevents default behaviour from the tab key so that frame.tabOrder overrides browser tabbing.
+	setting to false will still allow frame.tabOrder to work but will not prevent default tab action
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -15935,6 +15990,11 @@ width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
 orientation - "vertical" or "horizontal" (updated live with orientation change)
+tabOrder - get or set an array with the order in which components will receive focus if component uses keys
+	this is new and currently works with Steppers and Tabs
+	currently, there is no way to see that a component has focus - options for this may be added in the future
+	there is no screen reader support as of yet but is under consideration
+	apps made with ZIM are often very visual so support for visually impared is perhaps less needed
 zil - reference to zil events that stop canvas from shifting
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple, white, black, clear (0 alpha), faint (.01 alpha)
 
@@ -15977,9 +16037,9 @@ EVENTS
 "keydown" - fires on keydown - just like the window keydown event with eventObject.keyCode, etc.
 "keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
 --*///+83
-	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs) {
 
-		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		this.cjsEventDispatcher_constructor();
@@ -15994,6 +16054,7 @@ EVENTS
 		if (zot(canvasID)) canvasID = "myCanvas";
 		if (zot(rollPerSecond)) rollPerSecond = 20;
 		if (zot(delay)) delay = 0;
+		if (zot(handleTabs)) handleTabs = true;
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
@@ -16300,6 +16361,16 @@ EVENTS
 			}
 		});
 
+		var _tabOrder = [];
+		Object.defineProperty(this, 'tabOrder', {
+			get: function() {
+				return _tabOrder;
+			},
+			set: function(array) {
+				_tabOrder = array;
+			}
+		});
+
 		this.remakeCanvas = function(width, height) {
 			if (scaling == "full") return;
 			if (zot(width)) width = stageW;
@@ -16315,6 +16386,22 @@ EVENTS
 		this.eventRemove = eDown.remove;
 		window.addEventListener("keydown", function(e) {
 			e.remove = that.eventRemove;
+			if (e.keyCode==9) {
+				for (var i=0; i<_tabOrder.length; i++) {
+					var t = _tabOrder[i];
+					if (t.focus) {
+						t.focus = false;
+						if (e.shiftKey) {
+							i--;
+						} else {
+							i++;
+						}
+						_tabOrder[(i+_tabOrder.length)%_tabOrder.length].focus = true;
+						break;
+					}
+				}
+				if (handleTabs) e.preventDefault();
+			}
 			that.dispatchEvent(e);
 		});
 		window.addEventListener("keyup", function(e) {
@@ -16600,8 +16687,13 @@ wid - string with your company wonder ID for example z14i46m3z29
 	  NOTE: recording to a non-registered wid on the ZIM server will not work and there is no error message
 client - the client the app is for - if it is for your company, just put your company
 app - the app or site the Wonder stats are for
+server - a server with zim Wonder running
+	Note: the default value for the server parameter has been removed as it risks being out-of-date
+	If you have signed up for ZIM Wonder at http://zimjs.com/code/wonder/ then
+	import http://d309knd7es5f10.cloudfront.net/zimserver_url.js in your code (script tag up top)
+	this gives a global zimWonderURL variable to pass into the server parameter
+	the zimserver_url.js script will always hold the latest domain:port for the zim server
 notes - (default null) any extra notes like any user data (limit 256 characters as it is stored each record)
-server - (default the ZIM Wonder server - where you signed up - if you signed up) a server with zim Wonder running
 
 METHODS
 count(keyword) - sends a line to the server script with the given keyword as well as date and time
@@ -16628,7 +16720,7 @@ dispose() - clear any event listeners, etc.
 		var duo; if (duo = zob(zim.Wonder, arguments, sig, this)) return duo;
 		z_d("82");
 		if (zot(wid)) {zog("zim.Wonder() - please provide Wonder ID (see http://zimjs.com/code/wonder/)"); return;}
-		if (zot(server)) server = "http://54.165.135.152:3001/wonder"; // adjust to amazon server
+		if (zot(server)) server = "http://54.237.229.197:3001/wonder"; // adjust to amazon server
 		var that = this;
 		if (zot(zim.wonderSession)) zim.wonderSession = "W"+zim.rand(100000,999999); // session id
 		var data = [];
