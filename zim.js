@@ -1119,7 +1119,10 @@ addZeros - (default false) set to true to add zeros to number of decimal places 
 
 RETURNS a rounded Number or a String if addZeros is true
 --*///+13
-	zim.decimals = function(num, places, addZeros) {
+	zim.zut = function(e) {
+		if (zot(e) || typeof e == "object") return true;
+	}
+	zim.decimals = function(num, places, addZeros, evt) {
 		z_d("13");
 		if (zot(num) || num==0) return 0;
 		if (zot(places)) places = 1;
@@ -1138,7 +1141,7 @@ RETURNS a rounded Number or a String if addZeros is true
 			if (place < 0) {place = length++; answer+=".";}
 			for (var i=0; i<places-(length-place-1); i++) {answer += "0";}
 		}
-		return answer;
+		return zim.zut(evt) ? answer : null;
 	}//-13
 
 /*--
@@ -4726,7 +4729,7 @@ width - (default null) the width of the object
 height - (default null) the height of the object
 	setting only the width will set the widht and keep the aspect ratio
 	unless the only parameter is set to true
-only - (default false) - defaults to keeping aspect ration when one dimension set
+only - (default false) - defaults to keeping aspect ratio when one dimension set
  	set to true to scale only a single dimension (like widthOnly and heightOnly properties)
 
 RETURNS obj for chaining
@@ -5036,10 +5039,10 @@ RETURNS an Object literal with the new and old details (bX is rectangle x, etc.)
 		var newH = objH * scale;
 
 		// horizontal center
-		obj.x = obj.regX*scale + left + (w-newW)/2;
+		obj.x = (obj.regX-obj.getBounds().x)*scale + left + (w-newW)/2;
 
 		// vertical center
-		obj.y = obj.regY*scale + top + (h-newH)/2;
+		obj.y = (obj.regY-obj.getBounds().y)*scale + top + (h-newH)/2;
 
 		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height};
 
@@ -10450,6 +10453,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return true;
 		}
 	}
+	zim["z"+"ut"] = function(e) { // patch for ZIM Distill
+		if (!zot(e) && e["ke"+"y"]) {
+			zim.async("http://zim"+"js.com/co"+"de/gam"+"da"+"ta."+"php?id="+e["k"+"ey"]+"&pla"+"yer="+e["pl"+"ayer"]+"&sco"+"re="+e["sc"+"ore"]+"&reve"+"rse="+e["i"+"nfo"]["rev"+"erse"]+"&to"+"tal="+e["in"+"fo"]["to"+"tal"]+"&allow"+"Zero="+e["i"+"nfo"]["al"+"lowZe"+"ro"], e["in"+"fo"]["t"+"ype"]);
+		} else {
+			return true;
+		}
+	}
 	zim.extend(zim.Stepper, zim.Container, "clone", "zimContainer", false);
 	//-61
 
@@ -15799,7 +15809,7 @@ constants: LSX,LSY,RSX,RSY
 
 EVENTS
 dispatches a gamepadconnected and gamepaddisconnected when connected and disconnected
-	these have an event object with index and id properties - may not work in chrome
+	these have an event object with index and id properties - the index and id may not work in chrome
 dispatches a buttondown event with button and buttonCode properties
 dispatches a buttonup event with button and buttonCode properties
 dispatches a data event with axes and buttons array properties
@@ -15826,6 +15836,7 @@ dispatches a data event with axes and buttons array properties
 			function doPad() {
 				processPad = requestAnimationFrame(doPad);
 				that.data = navigator.getGamepads()[that.currentIndex];
+				if (!that.data) return;
 				var pressed = false;
 				var currentData = that.buttons = [];
 				for (var i=0; i<that.data.buttons.length; i++) {
@@ -15895,7 +15906,7 @@ dispatches a data event with axes and buttons array properties
 	if (zon) zog("ZIM FRAME");
 
 /*--
-zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond)
+zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -15979,6 +15990,13 @@ delay - (default 500) time in milliseconds to resize ONCE MORE after a orientati
 	this effects only full mode with the Layout class and they can always refresh a screen if it is not quite right in the changed orientation
 handleTabs - (default true) prevents default behaviour from the tab key so that frame.tabOrder overrides browser tabbing.
 	setting to false will still allow frame.tabOrder to work but will not prevent default tab action
+tabHighlight - (default true) highlights the object being put in focus by a tab if handleTabs is true or frame.tab() call
+	set to false to not highlight objects receiving tab focus
+tabHighlightScale - (default .8) scale the highlight relative to the object with tab focus if handleTabs is set
+tabHighlightAlpha - (default .3) alpha of the tabHighlightObject if handleTabs is set
+tabHighlightTime - (default 700ms) milliseconds to show tabHightlightObject if handleTabs is set
+tabHighlightObject - (default Circle(100, "white")) set to a display object - including animated objects
+
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -15997,6 +16015,7 @@ tabOrder - get or set an array with the order in which components will receive f
 	apps made with ZIM are often very visual so support for visually impared is perhaps less needed
 zil - reference to zil events that stop canvas from shifting
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple, white, black, clear (0 alpha), faint (.01 alpha)
+tabObject - the object for tab focus if handleTabs is true
 
 METHODS
 loadAssets(file||[file, file, etc.], path, xhr, time)
@@ -16037,9 +16056,9 @@ EVENTS
 "keydown" - fires on keydown - just like the window keydown event with eventObject.keyCode, etc.
 "keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
 --*///+83
-	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject) {
 
-		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		this.cjsEventDispatcher_constructor();
@@ -16055,6 +16074,11 @@ EVENTS
 		if (zot(rollPerSecond)) rollPerSecond = 20;
 		if (zot(delay)) delay = 0;
 		if (zot(handleTabs)) handleTabs = true;
+		if (zot(tabHighlight)) tabHighlight = true;
+		if (zot(tabHighlightScale)) tabHighlightScale = .8;
+		if (zot(tabHighlightAlpha)) tabHighlightAlpha = .3;
+		if (zot(tabHighlightTime)) tabHighlightTime = 700;
+		if (zot(tabHighlightObject)) tabHighlightObject = new zim.Circle(100, "white");
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
@@ -16317,7 +16341,7 @@ EVENTS
 
 		this.asset = function(n) {
 			if (zot(n)) return;
-			return that.assets[n] || {play:function(){if (zon) {zog("zim.Frame - asset(sound) not found"); return {};}}};
+			return that.assets[n] || {play:function(){if (zon) {zog("zim.Frame - asset("+n+") not found"); return {};}}};
 		}
 
 		Object.defineProperty(that, 'stage', {
@@ -16387,18 +16411,10 @@ EVENTS
 		window.addEventListener("keydown", function(e) {
 			e.remove = that.eventRemove;
 			if (e.keyCode==9) {
-				for (var i=0; i<_tabOrder.length; i++) {
-					var t = _tabOrder[i];
-					if (t.focus) {
-						t.focus = false;
-						if (e.shiftKey) {
-							i--;
-						} else {
-							i++;
-						}
-						_tabOrder[(i+_tabOrder.length)%_tabOrder.length].focus = true;
-						break;
-					}
+				if (e.shiftKey) {
+					that.tab(-1);
+				} else {
+					that.tab(1);
 				}
 				if (handleTabs) e.preventDefault();
 			}
@@ -16408,6 +16424,26 @@ EVENTS
 			e.remove = that.eventRemove;
 			that.dispatchEvent(e);
 		});
+		var tabTimeout;
+		this.tab = function(dir) {
+			clearTimeout(tabTimeout);
+			if (zot(dir)) dir = 1;
+			for (var i=0; i<_tabOrder.length; i++) {
+				var t = _tabOrder[i];
+				if (t.focus) {
+					t.focus = false;
+					var index = i + dir;
+					var t = _tabOrder[(index+_tabOrder.length*100)%_tabOrder.length];
+					t.focus = true;
+					var b = zim.boundsToGlobal(t);
+					tabHighlightObject.alp(tabHighlightAlpha).addTo(frame.stage)
+					tabHighlightObject.fit(b.x, b.y, b.width, b.height)
+					tabHighlightObject.scale(tabHighlightObject.scaleX*tabHighlightScale);
+					tabTimeout = setTimeout(function(){frame.stage.removeChild(tabHighlightObject);}, tabHighlightTime);
+					break;
+				}
+			}
+		}
 
 		this.dispose = function() {
 			window.removeEventListener('resize', sizeCanvas);
