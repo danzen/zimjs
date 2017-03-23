@@ -6841,7 +6841,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				return spriteSheet.getNumFrames();
 			},
 			set: function(value) {
-				zog("zim.Sprite - totalFrames is readOnly");
+				zog("zim.Sprite - totalFrames is read only");
 			}
 		});
 
@@ -7772,7 +7772,7 @@ borderColor - (default null) the color of the border
 borderWidth - (default null) thickness of the border
 corner - (default 20) the round of the corner (set to 0 for no corner)
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
-shadow blur - (default 14) how blurred the shadow is if the shadow is set
+shadowBlur - (default 14) how blurred the shadow is if the shadow is set
 hitPadding - (default 0) adds extra hit area to the button (good for mobile)
 gradient - (default 0) 0 to 1 (try .3) adds a gradient to the button
 gloss - (default 0) 0 to 1 (try .1) adds a gloss to the button
@@ -8704,7 +8704,7 @@ modal - (default true) pane will close when user clicks off the pane - set to fa
 corner - (default 20) is the corner radius - set to 0 for no corner
 backingAlpha - (default .14) the darkness of the background that fills the stage
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
-shadow blur - (default 20) how blurred the shadow is if shadow is set
+shadowBlur - (default 20) how blurred the shadow is if shadow is set
 center - (default true) centers the pane
 	if center is false you will have to set x and y for the pane
 	the registration point and the origin inside the pane is in the center
@@ -9426,7 +9426,7 @@ color - (default "orange") the backing color
 circleColor - (default "white") the dot color
 corner - (default 14) the corner radius of the waiter box
 shadowColor - (defaults rgba(0,0,0,.3)) set to -1 for no shadow
-shadow blur - (default 14) the blur of the shadow if shadow is set
+shadowBlur - (default 14) the blur of the shadow if shadow is set
 fadeTime - (default 0) milliseconds to fade in and out
 
 METHODS
@@ -10741,9 +10741,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var p = checkBounds(point.x-diffX, point.y-diffY, rect);
 			if (vertical) {
 				button.x = p.x;
-				myValue = snap((p.y-rect.y) / rect.height * (max - min));
-				button.y = rect.y + myValue * rect.height / (max - min);
-				myValue += min;
+				myValue = snap((p.y-rect.y) / rect.height * (min - max));
+				button.y = rect.y + myValue * rect.height / (min - max);
+				myValue += max;
 				if (button.y != lastValue) {
 					that.dispatchEvent("change");
 				}
@@ -10788,7 +10788,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 				myValue = value = snap(value);
 				if (vertical) {
-					button.y = (value - min) / (max - min) * rect.height + start;
+					button.y = (value - max) / (min - max) * rect.height + start;
 					lastValue = button.y;
 				} else {
 					button.x = (value - min) / (max - min) * rect.width + start;
@@ -11723,7 +11723,7 @@ startColor - (default the last color in color array) the starting color
 drag - (default true) whether you can drag the component - set to false to not drag
 	a small grip under the color text shows if draggable
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
-shadow blur - (default 14) the blur of the shadow if shadow is set
+shadowBlur - (default 14) the blur of the shadow if shadow is set
 buttonBar - (default true) set to false to hide the button bar with OK and X (close)
 circles - (default false) set to true to show colors in circles rather than squares
 indicator - (default true) set to false to remove indicator from currentColor
@@ -11772,8 +11772,9 @@ This component is affected by the general zim.ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
-dispatches a "change" event when the OK button is activated and the color is different than before
-dispatches a "set" event when a different color is selected and updated in the picker if the buttonBar is showing
+dispatches a "set" event when a different color or alpha is selected and updated in the picker if the buttonBar is showing
+dispatches a "change" event when the OK button is activated and the color or alpha is different than before
+	or if buttonBar is false dispatches "change" when a new color or alpha is selected
 dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
 
 ALSO: See the CreateJS Easel Docs for Container events, such as:
@@ -11944,7 +11945,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (swatch) {
 					swatch.alpha = myAlpha = slider.currentValue;
 				}
-				that.dispatchEvent("change");
+				if (buttonBar) {
+					that.dispatchEvent("set");
+				} else {
+					that.dispatchEvent("change");
+				}
 				if (that.getStage()) that.getStage().update();
 			});
 			lastHeight += alpha.height-margin;
@@ -12221,7 +12226,7 @@ borderColor - (default rgba(0,0,0,.3)) the color of the border
 borderWidth - (default 1) thickness of the border
 corner - (default 0) the round of the corner (set to 0 for no corner)
 shadowColor - (default "rgba(0,0,0,.3)") set to -1 for no shadow
-shadow blur - (default 14) how blurred the shadow is if the shadow is set
+shadowBlur - (default 14) how blurred the shadow is if the shadow is set
 hitPadding - (default 0) adds extra hit area to the button (good for mobile)
 gradient - (default 0) 0 to 1 (try .3) adds a gradient to the button
 gloss - (default 0) 0 to 1 (try .1) adds a gloss to the button
@@ -12241,7 +12246,7 @@ toggleEvent - (default mousedown for mobile and click for not mobile) what event
 dashed - (default true) set to false to turn off the dashed for the border
 
 PROPERTIES
-uploadTag - the HTML input tag of type file - used for uploading
+tag - the HTML input tag of type file - used for uploading
 
 zim.Button properties:
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
@@ -12276,8 +12281,9 @@ resize() - call the resize event if the scale or position of the Loader is chang
 save(content, x, y, width, height, url, cached, cachedBounds) - save a picture (supports ZIM DUO)
 	content - the Display object to be saved such as a Container, Bitmap, etc.
 	x, y, width, height - the cropping bounds on that object otherwise defaults to 0,0,stageW,stageH
-	url - an optional url to save the file to for instance, a php page to save the file to a server
-		currently untested - the script should return (ie. echo) "zim.async.loaderReply('success')" // or 'fail' or 'filename', etc.
+	cached - (default false) set to true if the object is currently already cached
+	cachedBounds - if you are saving a different bounds than was previously cached
+		setting the bounds here (createjs.Rectangle) will restore the cache to the previous bounds
 
 zim.Button methods:
 setBackings(newBacking, newRollBacking) - dynamically set backing and rollBacking on button (both default to null and if empty, removes backings)
@@ -12314,7 +12320,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var sig = "frame, width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent, dashed";
 		var duo; if (duo = zob(zim.Loader, arguments, sig, this)) return duo;
-		z_d("70");
+		z_d("68");
 
 		if (zot(frame)) {if (zon) {zog("zim.Loader - please provide a reference to zim Frame");} return;}
 		if (zot(width)) width = 250;
@@ -12334,7 +12340,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var stage = frame.stage;
 		label = that.label;
 
-		var uploadTag = that.uploadTag = document.createElement("input");
+		var uploadTag = that.tag = document.createElement("input");
 		document.body.appendChild(uploadTag);
 		uploadTag.setAttribute("type", "file");
 		uploadTag.setAttribute("multiple", "multiple");
@@ -12443,7 +12449,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.clone = function() {
-			zog(label);
 			var u = new zim.Loader(
 				frame, width, height, !zot(label)?label.clone():null, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom,
 				!zot(backing)?backing.clone():null,
@@ -12465,7 +12470,209 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 	}
 	zim.extend(zim.Loader, zim.Button, ["clone", "dispose"], "zimButton", false);
-	// 68
+	//-68
+
+/*--
+zim.TextArea = function(frame, width, height, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly)
+
+TextArea
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+TextArea creates an input text field by overlaying an HTML TextArea.
+The TextArea is then overlayed with the createjs DOMElement
+and scaled and positioned with ZIM code. This can also be used if selectable text is required
+Access to the HTML tag is provided with the TextArea tag property.
+So CSS Styles can be applied to the HTML tag as with any HTML textarea tag
+The TextArea comes with a ZIM Rectangle in behind that you can adjust with parameters
+or remove completely if you so desire using the TextArea backing property
+ie. myTextArea.backing.alpha=0; or myTextArea.removeChild(myTextArea.backing)
+Due to the HTML tag being overlayed, the TextArea.resize() must be called if it is moved
+(This is called automatically when the stage is resized)
+
+EXAMPLE
+var textArea = new zim.TextArea(frame, 300, 200);
+textArea.center(stage);
+
+var label = new zim.Label({text:""}).addTo(stage).pos(20,20);
+textArea.on("input", function() {
+	label.text = textArea.text;
+	stage.update();
+});
+
+// if manually scaled or positioned (or container is scaled or positioned)
+// then the TextArea must be resized with the resize method
+textArea.sca(.5).mov(200);
+textArea.resize();
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+frame - a reference to the zim.Frame (required to scale and position the HTML input tag)
+width - (default 250) the width of the TextArea backing (the textarea field will be that less the padding*2)
+height - (default 70) the height of the TextArea backing (the textarea field will be that less the padding*2)
+size - (default 20) a Number for the font-size of the TextArea (do not use px on the end)
+	to change the font, use CSS on the tag property: textArea.tag.style.fontFamily = "courier";
+padding - (default 5) the pixels between the backing border and the HTML textarea
+color - (default "rgba(0,0,0,.05)") backing color of button (any CSS color)
+backingColor - (default "rgba(0,0,0,.1)") rollover color of button
+borderColor - (default rgba(0,0,0,.1)) the color of the border
+borderWidth - (default 1) thickness of the border
+corner - (default 0) the round of the corner (set to 0 for no corner)
+shadowColor - (default null) the shadow color (css color) of a drop shadow
+shadowBlur - (default null) pixels of how blurred the shadow is if the shadow is set - eg. 10
+dashed - (default true) set to false to turn off the dashed for the border
+id - (default null) a string id for the HTML textarea tag for CSS styling, etc.
+placeholder - (default null) a string that is used for the HTML textarea tag placeholder parameter
+readOnly - (default false) set to true to make TextArea read only (still selectable)
+
+PROPERTIES
+currentValue - get or set the text content of the TextArea
+text - the same as currentValue - for convenience...
+readOnly - set to true to not be able to edit or to false to be able to edit (always can select)
+tag - the HTML textarea tag - just a regular HMTL form tag which can be styled
+backing - access to the zim.Rectangle() used for the backing
+	you can remove this with yourTextArea.backing.removeFrom(yourTextArea);
+	or adjust it dynamically with any of the Rectangle properties like color
+
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, compositeOperation, etc.
+
+METHODS
+resize() - call the resize event if the scale or position of the TextArea is changed
+	this will sync the location of the HTML textarea tag
+	resize() is only needed if the scale or x, y of the TextArea (or its container) is changed
+	it is not needed for general window resizing - the TextArea handles this
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - to get rid of the textarea tag
+
+ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+EVENTS
+focus, blur and change are dispatched - just sends the html events on through.
+
+ALSO: See the CreateJS Easel Docs for Container events, such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+--*///+69
+
+	zim.TextArea = function(frame, width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly) {
+
+		var sig = "frame, width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly";
+		var duo; if (duo = zob(zim.TextArea, arguments, sig, this)) return duo;
+		z_d("69");
+
+		if (zot(frame)) {if (zon) {zog("zim.TextArea - please provide a reference to zim Frame");} return;}
+		if (zot(width)) width = 250;
+		if (zot(height)) height = 70;
+		if (zot(size)) size = 20;
+		if (zot(padding)) padding = 5;
+		if (zot(color)) color = "#666";
+		if (zot(backingColor)) backingColor = "rgba(256,256,256,.1)";
+		if (zot(borderColor)) borderColor = "rgba(0,0,0,.1)";
+		if (zot(corner)) corner = 0;
+		if (!zot(shadowBlur) && zot(shadowColor)) shadowColor="rgba(0,0,0,.3)";
+		if (!zot(shadowColor) && zot(shadowBlur)) shadowBlur=10;
+
+		this.zimContainer_constructor(width, height);
+		var that = this;
+		var stage = frame.stage;
+
+		var backing = this.backing = new zim.Rectangle(width, height, backingColor, borderColor, borderWidth, corner, null, dashed);
+		if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+		that.addChild(backing);
+		var textareaTag = that.tag = document.createElement("textarea");
+		document.body.appendChild(textareaTag);
+		if (!zot(id)) {
+			textareaTag.setAttribute("id", id);
+			textareaTag.setAttribute("name", id);
+		}
+		if (readOnly) textareaTag.readOnly = true;
+		if (!zot(placeholder)) textareaTag.setAttribute("placeholder", placeholder);
+		textareaTag.style.cssText = "background-color:transparent; color:"+color+"; "
+			 + "resize:none; z-index:3; width:"+(width-padding*2)+"px; height:"+(height-padding*2)+"px; overflow:hidden; outline:none;"
+			 + "font-size:"+size+"px; font-family:verdana; border:none; position:absolute; left:0px; top:0px; display:none;"
+
+		textareaTag.addEventListener('change', function() {that.dispatchEvent("change")});
+		textareaTag.addEventListener('input', function() {that.dispatchEvent("input")});
+		textareaTag.addEventListener('focus', function() {
+			window.removeEventListener("keydown", frame.zil[0]);
+			that.dispatchEvent("focus")
+		});
+		textareaTag.addEventListener('blur', function() {
+			window.addEventListener("keydown", frame.zil[0]);
+			that.dispatchEvent("blur")
+		});
+		var textarea = new createjs.DOMElement(textareaTag);
+		textarea.alpha = 0;
+
+		this.resize = function() {
+			if (!that.getStage()) return;
+			setTimeout(function() {
+				var point = that.localToGlobal(padding, padding);
+				textarea.x = frame.x + point.x * frame.scale;
+				textarea.y = frame.y + point.y * frame.scale;
+				zim.scale(textarea, frame.scale*that.scaleX, frame.scale*that.scaleY);
+				textarea.alpha = 1;
+				stage.update();
+			}, 50);
+		}
+		this.resize();
+		that.on("added", function() {
+			stage.addChild(textarea);
+			textareaTag.style.display = "block";
+			that.resize();
+		});
+		that.on("removed", function() {
+			stage.removeChild(textarea);
+			textareaTag.style.display = "none";
+		});
+		frame.on("resize", that.resize);
+
+		Object.defineProperty(this, 'currentValue', {
+			get: function() {
+				return textareaTag.value;
+			},
+			set: function(value) {
+				textareaTag.value = value;
+			}
+		});
+
+		Object.defineProperty(this, 'text', {
+			get: function() {
+				return textareaTag.value;
+			},
+			set: function(value) {
+				textareaTag.value = value;
+			}
+		});
+
+		Object.defineProperty(this, 'readOnly', {
+			get: function() {
+				return textareaTag.readOnly;
+			},
+			set: function(value) {
+				textareaTag.readOnly = value;
+			}
+		});
+
+		this.clone = function() {
+			var u = new zim.Loader(frame, width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly);
+			return that.cloneProps(u);
+		}
+		this.dispose = function() {
+		 	that.removeAllEventListeners();
+			that.removeChild(textarea);
+			document.body.removeChild(textareaTag);
+			return true;
+		}
+	}
+	zim.extend(zim.TextArea, zim.Container, ["clone", "dispose"], "zimContainer", false);
+	//-69
 
 	// function to set enabled of components
 	function zenable(t,v) {
