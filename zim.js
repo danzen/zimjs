@@ -235,7 +235,7 @@ The arrows, etc, still work but just not their default window behaviour.
 
 EXAMPLE
 // at the top of your code
-var listenersArray = zill();
+var listenersArray = zil();
 // key and mousewheel arrows, spacebar, etc.
 // will have their default actions stopped until you remove the listeners:
 // window.removeEventListener("keydown", listenersArray[0]); // etc.
@@ -7592,8 +7592,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.addChild(obj);
 
 		function setSize() {
-			// when clearing setBounds(null) works will add that here
-			// so that changing text updates the bounds
 			var b = obj.getBounds();
 			var yAdjust;
 			if (valign == "top") {
@@ -7610,24 +7608,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (backing) {
 				var bb = backing.getBounds();
 				that.setBounds(bb.x, bb.y, bb.width, bb.height);
-				zim.center(obj, that);
-				obj.y += size/16; // backing often on capital letters without descenders
-				if (obj2) {
-					zim.center(obj2, that);
-					obj2.y += size/16;
-				}
 			} else {
-				obj.setBounds(b.x, yAdjust, b.width, b.height);
 				that.setBounds(b.x, yAdjust, b.width, b.height);
+				hitArea.graphics.c().f("black").r(that.getBounds().x, that.getBounds().y, that.getBounds().width, that.getBounds().height);
 			}
+			zim.center(obj, that);
+			obj.y += size/32; // backing often on capital letters without descenders - was /16
+			if (obj2) {
+				zim.center(obj2, that,0);
+				obj2.y += size/32;
+			}
+		}
+		if (zot(backing)) {
+			var hitArea = new createjs.Shape();
+			that.hitArea = hitArea;
 		}
 		setSize();
 
-		if (zot(backing)) {
-			var hitArea = new createjs.Shape();
-			hitArea.graphics.f("black").r(obj.getBounds().x, obj.getBounds().y, obj.getBounds().width, obj.getBounds().height);
-			this.hitArea = hitArea;
-		} else {
+		if (!zot(backing)) {
 			this.backing = backing;
 		 	zim.center(backing, this, true, 0);
 		}
@@ -7638,10 +7636,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return t;
 			},
 			set: function(value) {
-				if (zot(value)) {value = " ";}
+				if (zot(value) || value === "") {value = " ";}
 				obj.text = String(value);
 				if (obj2) obj2.text = String(value);
-				if (align=="center") setSize();
+				setSize();
 			}
 		});
 
@@ -8946,7 +8944,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-58
 
 /*--
-zim.Window = function(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical)
+zim.Window = function(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp)
 
 Window
 zim class - extends a zim.Container which extends a createjs.Container
@@ -9000,11 +8998,15 @@ shadowColor - (default rgba(0,0,0,.3)) the color of the shadow
 shadowBlur - (default 20) set shadowBlur to -1 for no drop shadow
 paddingHorizontal - (default padding) places content in from top bottom
 paddingVertical - (default padding) places content in from left and right
+scrollWheel - (default true) scroll vertically with scrollWheel
+damp - (default null) set to .1 for instance to damp the scrolling
 
 METHODS
 add(obj) - adds obj to content container of window (at padding) must have bounds set
 	it is best to position and size obj first before adding
 	otherwise if adjusting to outside current content size then call update()
+resize(width, height) - resizes the Window without scaling the content (also calls update() for scroll update)
+	width and height are optional
 update() - resets window scrolling if perhaps the content gets bigger or smaller
 clone(recursive) - makes a copy with properties such as x, y, etc. also copied
 	recursive (default true) clones the window content as well (set to false to not clone content)
@@ -9019,6 +9021,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
+** see also the resize(width, height) method to resize the window without resizing the content
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
@@ -9027,7 +9030,8 @@ backing - CreateJS Shape used for backing of Window
 content - ZIM Container used to hold added content
 indicator - data object that holds the following properties (with defaults):
 	you can set after object is made...
-	indicator.size = 6;
+	indicator.size = 6; // the width if vertical or the height if horizontal
+	indicator.minSize = 12; // for the height if vertical or the width if horizontal
 	indicator.spacing = 3 + size + borderWidth / 2;
 	indicator.margin = 0; // adds extra space only at end by scrollbars
 	indicator.corner = indicator.size / 2;
@@ -9050,9 +9054,9 @@ dispatches a "hoverout" event when not hovering due to movement or mouseout on t
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.1
-	zim.Window = function(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical) {
+	zim.Window = function(width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp) {
 
-		var sig = "width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical";
+		var sig = "width, height, color, borderColor, borderWidth, padding, corner, swipe, indicatorActive, indicatorDrag, indicatorColor, indicatorAlpha, indicatorFade, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp";
 		var duo; if (duo = zob(zim.Window, arguments, sig, this)) return duo;
 		z_d("58.1");
 		this.zimContainer_constructor();
@@ -9079,18 +9083,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(shadowBlur)) shadowBlur=20;
 		if (zot(paddingVertical)) paddingVertical=padding;
 		if (zot(paddingHorizontal)) paddingHorizontal=padding;
-
+		if (zot(scrollWheel)) scrollWheel = true;
 
 		var that = this;
 		this.scrollX = this.scrollY = this.scrollXMax = this.scrollYMax = 0;
-		this.setBounds(0,0,width,height);
-		this.setBounds(0,0,width,height);
 
 		var backing = this.backing = new createjs.Shape();
-		var g = backing.graphics;
-		g.f(color).rr(0,0,width,height,corner);
 		this.addChild(backing);
-		if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
 
 		var mask = new createjs.Shape();
 		var mg = mask.graphics;
@@ -9106,22 +9105,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			// hitArea makes the whole window draggable
 			// but then you can't interact with the content inside the window
 			var hitArea = new createjs.Shape();
-			hitArea.graphics.f("red").dr(0,0,width,height);
-			content.hitArea = hitArea;
 		}
-
 		if (borderWidth > 0) {
 			var border = new createjs.Shape();
-			g = border.graphics;
-			g.s(borderColor).ss(borderWidth).rr(0,0,width,height,corner);
 			this.addChild(border);
 		}
+
+		// we call this function at start and when resize() is called to resize the window without scaling content
+		function sizeWindow() {
+
+			that.setBounds(0,0,width,height);
+
+			backing.graphics.f(color).rr(0,0,width,height,corner);
+			if (shadowColor != -1 && shadowBlur > 0) backing.shadow = new createjs.Shadow(shadowColor, 8, 8, shadowBlur);
+
+			if (borderWidth > 0) {
+				border.graphics.c().s(borderColor).ss(borderWidth).rr(0,0,width,height,corner);
+			}
+		}
+		sizeWindow();
+
 
 		// indicators are the little scroll bars
 		// this exposes an indicator data object so creators can adjust indicator properties
 		// note that these properties are set dynamically in the update function
 		var indicator = this.indicator = {}; // data object to expose indicator properties
 		indicator.size = 6;
+		indicator.minSize = indicator.size*2; // if vertical scroll, this is vertical minSize where size is horizontal size
 		indicator.spacing = 3.5 + borderWidth / 2;
 		indicator.margin = 0;
 		indicator.corner = indicator.size / 2;
@@ -9150,6 +9160,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var contentWidth;
 		var contentHeight;
 
+		var hEvent;
+		var vEvent;
+		var dTimeout;
+
 		this.update = function() {
 			if (indicatorActive) {
 				// clear the indicators and remake anytime this function is called
@@ -9174,7 +9188,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			// set mask dynamically as indicators may come and go affecting the mask size slightly
 			mg.clear();
-			mg.f("rgba(0,0,0,.01)").rr(borderWidth/2,borderWidth/2,width-((vCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(vCheck?0:borderWidth),height-((hCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(hCheck?0:borderWidth),corner);
+			var xx = borderWidth/2;
+			var yy = borderWidth/2;
+			var ww = width-((vCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(vCheck?0:borderWidth);
+			var hh = height-((hCheck && indicatorActive)?indicator.size+indicator.spacing*2:0)-(hCheck?0:borderWidth);
+			mg.f("rgba(0,0,0,.01)").rr(xx,yy,ww,hh,corner);
+
+			if (!interactive) {
+				hitArea.graphics.c().f("red").dr(xx,yy,ww,hh);
+				content.hitArea = hitArea;
+			}
 
 			var edgeAdjust = Math.max(corner, Math.min(indicator.corner, indicator.spacing));
 			var edgeLeft = edgeAdjust + borderWidth/2;
@@ -9183,7 +9206,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var edgeBottom = edgeAdjust + (hCheck?gap:0) + borderWidth/2;
 
 			if (hCheck && indicatorActive) {
-				indicatorLength = Math.max(20, (width-edgeLeft-edgeRight) * (width-edgeLeft-edgeRight) / (contentWidth + paddingHorizontal + indicator.margin));
+				indicatorLength = Math.max(indicator.minSize, (width-edgeLeft-edgeRight) * (width-edgeLeft-edgeRight) / (contentWidth + paddingHorizontal + indicator.margin));
 				hg.f(indicatorColor).rr(0,0,indicatorLength,indicator.size,indicator.corner);
 				hIndicator.x = edgeLeft;
 				hIndicator.y = height-indicator.size-indicator.spacing;
@@ -9199,14 +9222,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					hIndicator.proportion = new zim.Proportion(
 						rect.x, rect.x+rect.width, 0, -that.scrollXMax
 					);
-					hIndicator.on("pressmove", function() {
+					hIndicator.off("pressmove", hEvent);
+					hEvent = hIndicator.on("pressmove", function() {
 						content.x = hIndicator.proportion.convert(hIndicator.x);
 					});
 				}
 			}
 
 			if (vCheck && indicatorActive) {
-				indicatorLength = Math.max(20, (height-edgeTop-edgeBottom) * (height-edgeTop-edgeBottom) / (contentHeight + paddingVertical + indicator.margin));
+				indicatorLength = Math.max(indicator.minSize, (height-edgeTop-edgeBottom) * (height-edgeTop-edgeBottom) / (contentHeight + paddingVertical + indicator.margin));
 				vg.f(indicatorColor).rr(0,0,indicator.size,indicatorLength,indicator.corner);
 				vIndicator.x = width-indicator.size-indicator.spacing;
 				vIndicator.y = edgeTop;
@@ -9222,17 +9246,31 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					vIndicator.proportion = new zim.Proportion(
 						rect.y, rect.y+rect.height, 0, -that.scrollYMax
 					);
-					vIndicator.on("pressmove", function() {
-						content.y = vIndicator.proportion.convert(vIndicator.y);
+					vIndicator.off("pressmove", vEvent);
+					vEvent = vIndicator.on("pressmove", function() {
+						desiredY = content.y = vIndicator.proportion.convert(vIndicator.y);
 					});
 				}
 			}
+			moveIndicators();
+			clearTimeout(dTimeout);
+			dTimeout = setTimeout(function(){setDragRect();}, 300);
+		}
 
-			setTimeout(function(){setDragRect();}, 300);
+		this.resize = function(w, h) {
+			if (zot(w)) w = width;
+			if (zot(h)) h = height;
+			width = w;
+			height = h;
+			sizeWindow();
+			that.update();
+			desiredY = content.y;
+			if (damp) dampY.immediate(desiredY);
 		}
 
 		// METHODS to add and remove content from Window
 		this.add = function(c) {
+			makeDamp(c);
 			if (!c.getBounds()) {zog("SwipeBox.add() - please add content with bounds set"); return;}
 			content.addChild(c);
 			if (c.x == 0) c.x = paddingHorizontal;
@@ -9249,15 +9287,31 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			zim.dragRect(content, new createjs.Rectangle(0, 0, hCheck?-that.scrollXMax:0, vCheck?-that.scrollYMax:0));
 		}
 
+		var swipeCheck = false;
 		if (swipe) {
 			content.on("mousedown", function() {
-				if (indicatorActive) zim.Ticker.add(moveIndicators, content.stage);
+				if (!swipeCheck) zim.Ticker.add(swipeMoveIndicators, content.stage);
+				swipeCheck = true;
 				if (hCheck && indicatorActive) if (indicatorFade) zim.animate(hIndicator, {alpha:indicatorAlpha}, indicator.showTime);
 				if (vCheck && indicatorActive) if (indicatorFade) zim.animate(vIndicator, {alpha:indicatorAlpha}, indicator.showTime);
 			});
 		}
 
+		function swipeMoveIndicators() {
+			// this is being called by the swipe which has its own damping
+			// so we need to set the desiredY and then move the indicators
+			// as the moveIndicators needs to run independently - so both types of damp can controll it
+			desiredY = content.y;
+			if (damp) dampY.immediate(desiredY);
+			if (indicatorActive) moveIndicators();
+		}
+
 		function moveIndicators() {
+			if (hitArea) {
+				// move hitarea to display box
+				hitArea.x = -content.x;
+				hitArea.y = -content.y;
+			}
 			if (hCheck && indicatorActive) hIndicator.x = hProportion.convert(content.x);
 			if (vCheck && indicatorActive) vIndicator.y = vProportion.convert(content.y);
 		}
@@ -9265,6 +9319,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		// may add content before adding Window to stage...
 		this.on("added", setDrag, null, true);
 		function setDrag() {
+			makeDamp(that);
 			if (!swipe) return;
 			zim.drag({
 				obj:content,
@@ -9287,12 +9342,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function stageUp(e) {
-			if (hitArea) {
-				// move hitarea to display box
-				hitArea.x = -content.x;
-				hitArea.y = -content.y;
-			}
-			zim.Ticker.remove(moveIndicators);
+			zim.Ticker.remove(swipeMoveIndicators);
+			swipeCheck = false;
 			if (hCheck) if (indicatorFade) zim.animate(hIndicator, {alpha:0}, indicator.fadeTime);
 			if (vCheck) if (indicatorFade) zim.animate(vIndicator, {alpha:0}, indicator.fadeTime);
 		}
@@ -9355,6 +9406,38 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
+		var scrollEvent1;
+		var scrollEvent2;
+		desiredY = that.scrollY;
+		if (scrollWheel) {
+			scrollEvent1 = window.addEventListener("mousewheel", scrollWindow);
+			scrollEvent2 = window.addEventListener("DOMMouseScroll", scrollWindow);
+			function scrollWindow(e) {
+				if (vCheck) {
+					if (zot(e)) e = event;
+					var delta = e.detail ? e.detail*(-19) : e.wheelDelta;
+					desiredY += delta;
+					desiredY = Math.max(-that.scrollYMax, Math.min(0, desiredY))
+					if (!damp) {
+						that.scrollY = desiredY;
+						content.stage.update();
+					}
+				}
+			}
+		}
+		var dampCheck = false;
+		var dampY;
+		function makeDamp(obj) {
+			if (damp && !dampCheck && obj.getStage()) {
+				dampCheck = true;
+				dampY = new zim.Damp(that.scrollY, damp);
+				zim.Ticker.add(function() {
+					if (swipeCheck) return;
+					if (!zot(desiredY)) that.scrollY = dampY.convert(desiredY);
+				}, obj.getStage());
+			}
+		}
+
 		Object.defineProperty(that, 'scrollX', {
 			get: function() {
 				return content.x;
@@ -9386,10 +9469,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.dispose = function() {
-			this.removeAllEventListeners();
+			if (scrollWheel) {
+				window.removeEventListener("mousewheel", scrollEvent1);
+				window.removeEventListener("DOMMouseScroll", scrollEvent2);
+			}
+			that.removeAllEventListeners();
+			hIndicator.off("pressmove", hEvent);
+			vIndicator.off("pressmove", vEvent);
 			content.removeAllEventListeners();
 			zim.Ticker.remove(timeMouse);
-			zim.Ticker.remove(moveIndicators);
+			zim.Ticker.remove(swipeMoveIndicators);
 			zim.noDrag(content);
 			return true;
 		}
@@ -11528,7 +11617,7 @@ PARAMETERS supports DUO - parameters or single object with properties below
 width - (default 150) overall width of pad (ZIM divides the width across cols and spacing)
 cols - (default 3) the columns in the pad
 rows - (default cols) the rows in the pad
-keys - (default [1,2,3,4,5,6,7,8,9]) an array of key objects with the following properties available:
+keys - (default an Array for cols x rows) an array of key objects with the following properties available:
 	any key specific properties will override the default values from other parameters
 	[{label:"String", width:200, color:"Red", rollColor:"pink", offColor:"grey"}, {etc.}]
 	the label can be a String or a zim.Label object - default text color is white
@@ -11599,7 +11688,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(width)) width = 150;
 		if (zot(cols)) cols = 3;
 		if (zot(rows)) rows = cols;
-		if (zot(keys)) keys = [1,2,3,4,5,6,7,8,9];
+		if (zot(keys)) {keys = []; for (var i=1; i<=rows*cols; i++){keys.push(i);}}
 		if (zot(currentEnabled)) currentEnabled = true;
 		if (zot(spacing)) spacing = 1;
 
@@ -12332,7 +12421,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(dashed)) dashed = true;
 		if (zot(corner)) corner = 0;
 		if (zot(label)) label = new zim.Label({
-			text:"UPLOAD PIC", color:"rgba(0,0,0,.4)"
+			text:"UPLOAD PIC", color:"rgba(0,0,0,.4)", valign:"center", align:"center"
 		});
 
 		this.zimButton_constructor(width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent, dashed);
@@ -12513,8 +12602,8 @@ height - (default 70) the height of the TextArea backing (the textarea field wil
 size - (default 20) a Number for the font-size of the TextArea (do not use px on the end)
 	to change the font, use CSS on the tag property: textArea.tag.style.fontFamily = "courier";
 padding - (default 5) the pixels between the backing border and the HTML textarea
-color - (default "rgba(0,0,0,.05)") backing color of button (any CSS color)
-backingColor - (default "rgba(0,0,0,.1)") rollover color of button
+color - (default "#666") text color (any CSS color)
+backingColor - (default "rgba(256,256,256,.1)") backing color of box
 borderColor - (default rgba(0,0,0,.1)) the color of the border
 borderWidth - (default 1) thickness of the border
 corner - (default 0) the round of the corner (set to 0 for no corner)
@@ -12554,7 +12643,10 @@ on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispat
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
 
 EVENTS
-focus, blur and change are dispatched - just sends the html events on through.
+focus, blur are dispatched when the text area gains and loses focus
+input is dispatched when the text area is typed or pasted into
+change is dispatched when the text area is different after losing focus
+These are just the html events passed on through - note the difference between input and change!
 
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
@@ -16698,14 +16790,38 @@ EVENTS
 			document.addEventListener('DOMContentLoaded', init);
 		}
 
+		// Firefox has a glitch when setting the canvas to a new dimension
+		// this only happens in full mode if a Ticker is updating the stage
+		// so set the Ticker update to false - unfortunately for 500ms
+		// which means animations will pause a little during resize
+		// the resize event triggers pretty quickly and that will update the stage
+		var lastTicker;
+		var pauseTicker = false;
+		var checkResize = (scaling == "full" && typeof InstallTrigger !== 'undefined'); // firefox check
 		window.addEventListener('resize', function() {
-			sizeCanvas();
-			dispatchResize();
-			if (delay > 0) {
-				if (mobile) setTimeout(function() {
-					sizeCanvas();
-					dispatchResize();
-				}, delay); // to catch delayed screen sizes
+			if (checkResize) {
+				if (!pauseTicker) {
+					pauseTicker = true;
+					lastTicker = zim.Ticker.update;
+					zim.Ticker.update = false;
+					setTimeout(function() {
+						pauseTicker = false;
+						zim.Ticker.update = lastTicker;
+					}, 40);
+					setTimeout(function() {
+						sizeCanvas();
+						dispatchResize();
+					}, 20);
+				}
+			} else {
+				sizeCanvas();
+				dispatchResize();
+				if (delay > 0) {
+					if (mobile) setTimeout(function() {
+						sizeCanvas();
+						dispatchResize();
+					}, delay); // to catch delayed screen sizes
+				}
 			}
 		});
 
