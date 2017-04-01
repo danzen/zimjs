@@ -1223,7 +1223,7 @@ dist
 zim function
 
 DESCRIPTION
-calculates the distance between two points.
+Calculates the distance between two points.
 
 EXAMPLE
 var distance = zim.dist(stageW/2, stageH/2, stage.mouseX, stage.mouseY);
@@ -1243,6 +1243,39 @@ RETURNS a positive Number that is the distance (could be on an angle)
 		if (zot(y2)) y2 = 0;
 		return Math.sqrt((Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2)));
 	}//-13.3
+
+/*--
+zim.angle = function(x1, y1, x2, y2)
+
+angle
+zim function
+
+DESCRIPTION
+Calculates the angle between two points relative to the positive x axis
+
+EXAMPLE
+var angle = zim.angle(stageW/2, stageH/2, stageW/2+100, stageH/2+100); // 45
+// angle from center of stage to 100, 100 to the right and down from the center of the stage
+
+var angle2 = zim.angle(stageW/2, stageH/2, stageW/2-100, stageH/2+100); // 135
+
+var angle3 = zim.angle(stageW/2, stageH/2, stageW/2+100, stageH/2-100); // 315
+END EXAMPLE
+
+PARAMETERS
+x1, y1 - first point x and y
+	unless no second point in which case x1, y1 will be second point and first point will be 0, 0
+x2, y2 - second point x and y
+
+RETURNS a positive Number that is the angle between first and second point relative to positive x axis
+--*///+13.4
+	zim.angle = function(x1, y1, x2, y2) {
+		z_d("13.4");
+		if (zot(x1) || zot(y1)) return;
+		if (zot(x2)) {x2 = x1; x1 = 0};
+		if (zot(y2)) {y2 = y1; y1 = 0};
+		return (Math.atan2(y2-y1, x2-x1)*180/Math.PI+360)%360;
+	}//-13.4
 
 /*--
 zim.makeID = function(length, type, letterCase)
@@ -5378,12 +5411,59 @@ RETURNS undefined
 		z_d("49");
 		if (zot(obj)) return;
 		if (zot(id)) id = "obj";
-		function report() {zog(id+".x = " + Math.round(obj.x) +  "; "+id+".y = " + Math.round(obj.y) + ";");}
+		function report() {
+			zog(id+".x = " + Math.round(obj.x) +  "; "+id+".y = " + Math.round(obj.y) + ";");
+			zog(id+".pos(" + Math.round(obj.x) +  ", " + Math.round(obj.y) + ");");
+		}
 		zim.drag({obj:obj, currentTarget:true, dragCursor:"crosshair"});
 		zog("place "+id+" - to get new position");
 		obj.on("click", report);
 	}//-49
 
+/*--
+zim.placeReg = function(obj, id)
+
+placeReg
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Gives draggable indicator to position a registration point in an object
+This is for when building and when positioned, look at the console
+for registration code and delete the placeReg call.
+
+EXAMPLE
+myContainer.placeReg("myContainer"); // lets you drag an indicator around - then see console
+
+OR with pre ZIM 4TH function
+zim.placeReg(myContainer, "myContainer");
+END EXAMPLE
+
+PARAMETERS
+obj - object to place the registration point on
+id - (default null) the name of the object so that the log gives you complete code
+
+RETURNS undefined
+--*///+49.5
+	zim.placeReg = function(obj, id) {
+		z_d("49.5");
+		if (zot(obj)) return;
+		var stage = obj.getStage();
+		if (zot(stage)) {zog("zim.placeReg() - add object to stage before calling placeReg()");	return;}
+		if (zot(id)) id = "obj";
+		function report() {
+			var p = obj.globalToLocal(cursor.x, cursor.y);
+			zog(id+".regX = " + Math.round(p.x) +  "; "+id+".regY = " + Math.round(p.y) + ";");
+			zog(id+".reg(" + Math.round(p.x) +  ", " + Math.round(p.y) + ");");
+		}
+		var p = obj.parent.localToGlobal(obj.x, obj.y);
+		var cursor = new zim.Shape(-25, -25, 50, 50).addTo(stage).pos(p.x, p.y);
+		cursor.graphics.s("white").mt(-25,0).lt(25,0).mt(0,-25).lt(0,20);
+		cursor.compositeOperation = "difference";
+		cursor.expand(0);
+		zim.drag({obj:cursor});
+		zog("place cursor to get new registration point location");
+		stage.on("stagemouseup", report);
+	}//-49.5
 /*--
 zim.expand = function(obj, padding, paddingVertical)
 
@@ -5761,6 +5841,8 @@ BUT... the native CreateJS display objects do not.
 When we import assets from Adobe Animate, these are native CreateJS objects.
 So we can use addDisplayMembers to add these members to a CreateJS Shape, Container, etc.
 
+NOTE: zimify(CreateJSObject); is a global shortcut to zim.addDisplayMembers(CreateJSObject);
+
 ZIM uses addDisplayMembers internally to add the members
 to the ZIM shapes and components (Rectangle, Circle, Triangle, Label, Button, etc.)
 as applied through the ZIM Container inheritance
@@ -5908,6 +5990,9 @@ RETURNS the object for chaining
 		},
 		place:function(id) {
 			return zim.place(this, id);
+		},
+		placeReg:function(id) {
+			return zim.placeReg(this, id);
 		},
 		expand:function(padding, paddingVertical) {
 			return zim.expand(this, padding, paddingVertical);
@@ -6112,6 +6197,7 @@ removeFrom(container)
 centerReg(container, add, index)
 center(container, add, index)
 place(id)
+placeReg(id)
 expand(padding, paddingVertical)
 setMask(mask)
 
@@ -6238,7 +6324,7 @@ clone(recursive) - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
 drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
-addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+addTo(), removeFrom(), loop(), outline(), place(), placeReg(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
 addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
@@ -7931,7 +8017,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.setBounds(0,0,width,height);
 		this.addChild(label);
 		label.center(this);
-		label.y+=2;
+		label.y+=1;
 		this.label = label;
 
 		var pressCheck = false;
@@ -8045,7 +8131,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				label.text = value;
 				label.center(this);
-				label.y+=2;
+				label.y+=1;
 			}
 		});
 
@@ -9408,12 +9494,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var scrollEvent1;
 		var scrollEvent2;
-		desiredY = that.scrollY;
+		var desiredY = that.scrollY;
 		if (scrollWheel) {
 			scrollEvent1 = window.addEventListener("mousewheel", scrollWindow);
 			scrollEvent2 = window.addEventListener("DOMMouseScroll", scrollWindow);
 			function scrollWindow(e) {
-				if (vCheck) {
+				if (vCheck && that.getStage() && that.hitTestPoint(that.getStage().mouseX, that.getStage().mouseY)) {
 					if (zot(e)) e = event;
 					var delta = e.detail ? e.detail*(-19) : e.wheelDelta;
 					desiredY += delta;
@@ -9610,7 +9696,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				end();
 			}
 			function end() {
-				container.removeChild(that);
+				if (that.parent) that.parent.removeChild(that);
 				container.getStage().update();
 			}
 		}
@@ -13118,6 +13204,7 @@ you can define multiple pages objects add and remove pages objects as needed
 		for (var i=0; i<pages.length; i++) {
 			data = pages[i];
 			data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
+			if (data.page.parent) data.page.parent.removeChild(data.page);
 		}
 		this.addChild(currentPage);
 
@@ -13161,6 +13248,8 @@ you can define multiple pages objects add and remove pages objects as needed
 			if (!currentPage) {
 				currentPage = that.page = data.page;
 				that.addChild(currentPage);
+			} else {
+				if (data.page.parent) data.page.parent.removeChild(data.page);
 			}
 		}
 
@@ -13185,7 +13274,9 @@ you can define multiple pages objects add and remove pages objects as needed
 			if (paused) that.go(pauseInfo[0], pauseInfo[1], pauseInfo[2], pauseInfo[3], pauseInfo[4]);
 		}
 
+		var goCheck = true;
 		this.go = function(newPage, direction, trans, ms, fromSwipe) {
+
 			// newPage holds a page or a string command
 			setTimeout(function() {paused = false;},200);
 			var slides = [{x:hW},{x:-hW},{y:hH},{y:-hH}];
@@ -13221,6 +13312,9 @@ you can define multiple pages objects add and remove pages objects as needed
 				if (zot(direction)) direction="right";
 				var dirIndex = directions.indexOf(direction);
 
+				if (!goCheck) return;
+				goCheck = false;
+
 				function transEnd(pages) {
 					pages[0].uncache();
 					pages[1].uncache();
@@ -13228,6 +13322,7 @@ you can define multiple pages objects add and remove pages objects as needed
 					that.removeChild(that.lastPage);
 					that.removeChild(black);
 					that.removeChild(white);
+					goCheck = true;
 				}
 
 				function transEndHalf(pages) {
@@ -13282,6 +13377,7 @@ you can define multiple pages objects add and remove pages objects as needed
 				} else {
 					that.addChild(newPage);
 					that.removeChild(currentPage);
+					goCheck = true;
 					// that.dispatchEvent("pagetransitioned"); // hmmm... no
 				}
 
@@ -16694,7 +16790,6 @@ scale - read only returns the scale of the canvas - will return 1 for full and t
 orientation - "vertical" or "horizontal" (updated live with orientation change)
 tabOrder - get or set an array with the order in which components will receive focus if component uses keys
 	this is new and currently works with Steppers and Tabs
-	currently, there is no way to see that a component has focus - options for this may be added in the future
 	there is no screen reader support as of yet but is under consideration
 	apps made with ZIM are often very visual so support for visually impared is perhaps less needed
 zil - reference to zil events that stop canvas from shifting
@@ -17186,7 +17281,7 @@ EVENTS
 
 		this.makeCircles = function(radius) {
 			if (zot(radius)) radius = 100;
-			var colors = [that.wrap, that.code, that.create, that.build, that.pages, that.bits];
+			var colors = [that.orange, that.green, that.pink, that.blue, that.brown, that.dark];
 			var c = new zim.Shape();
 			var g = c.graphics;
 			c.radius = radius;
