@@ -434,6 +434,88 @@ function zob(func, args, sig, scope) {
 	}
 }//-7
 
+/*--
+zik(Array|function|object)  ~ pick
+
+zik
+global function
+
+DESCRIPTION
+Receives what is called a ZIM VEE value which is a way of providing options.
+zik() will then randomly pick from the options and return a value.
+The ZIM VEE value can be the following:
+1. an Array of values to pick from - eg. ["red", "green", "blue"]
+2. a Function that returns a value - eg. function(){return Date.now();}
+3. a ZIM RAND object literal - eg. {min:10, max:20, integer:true, negative:true} max is required
+4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
+5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
+NOTE: zik() cannot be used when an Array, Function, or Object with a max property are required as a final value
+NOTE: the ZIM RAND object gets passed to zim.rand() directly so read about params there - integer defaults to false for zik()
+
+Think of zik() as a random option filter that can be passed as a parameter and executed later
+This is different than executing right away although you can use zik() directly for that
+Used by zim.interval, zim.move, zim.animate and zim.Emitter
+zik() is recursive so it will zik() the answer from an Array or Function
+
+EXAMPLE
+var loopCount = [1,2,3];
+loopCount = zik(loopCount); // loopCount is 1, 2, or 3
+// if just simple like this, could use loopCount = zim.shuffle(loopCount)[0];
+// but then would have to check first if loopCount is an array rather than single value
+
+var rotation = {min:10, max:20, integer:false, negative:true};
+// an example of a RAND object - this will give values between -20 and -10 or 10 and 20
+// rotation now holds an object as to how to pick its value
+// this can be passed into a zim.Emitter() for instance
+// which will make multiple copies and rotate them based on zik()
+// or this can be passed into an animation object
+// and then into zim.Emitter() for the animate parameter
+
+var emitter = new zim.Emitter({
+	obj:new zim.Rectangle(),
+	random:[rotation:rotation] // the emitter will use zik() to pick a rotation each particle
+});
+
+function age() {
+	// assuming user.age is some input value that exists
+	if (user.age >= 18) return ["a", "b", ["c","d"]];
+	else return ["e", "f"];
+}
+// below will be a, b, c or d if user is 18+ with a and b having more of a chance
+// or e or f if not over 18
+var show = zik(age);
+END EXAMPLE
+
+PARAMETERS
+value - an Array to randomly pick from or a Function yielding a return value
+ 	or an Object literal to pick a random number as follows:
+	{min:0, max:20, integer:false, negative:false} - this RAND object is passes through to zim.rand()
+	See zim.rand() for defaults and parameter descriptions
+	NOTE: one change in defaults: the RAND object integer parameter defaults to false where zim.rand() defaults to true
+
+RETURNS a random element from the Array or a Function result if a function is passed in
+or a Number from Object instructions or the value that was given
+and the value from an Array or Function is passed through zik() again, etc. until a single value is returned
+--*///+7.5
+function zik(v) {
+	z_d("7.5");
+	if (zot(v)) return;
+	if ((v.constructor === {}.constructor) || Array.isArray(v) || typeof v == "function") {
+		if (Array.isArray(v)) {
+			var val = v[Math.floor(Math.random()*(v.length))];
+			return zik(val); // recursive
+		} else if (v.constructor === {}.constructor) {
+			if (zot(v.max)) return v;
+			if (zot(v.integer)) v.integer = false;
+			var val = zim.rand(v.min, v.max, v.integer, v.negative);
+			return val;
+		} else if (typeof v == "function") {
+			return zik((v)()); // recursive
+		}
+	}
+	return v;
+}//-7.5
+
 // the above functions are global for quick usage
 // start the zim module pattern - from here on, everything is stored on the zim namespace
 
@@ -531,6 +613,7 @@ RETURNS a Number
 --*///+9
 	zim.rand = function(a, b, integer, negative) {
 		z_d("9");
+		if (zot(a) && zot(b)) return Math.random();
 		if (zot(a) || isNaN(a)) a = 0;
 		if (zot(b) || isNaN(b)) b = 0;
 		if (a%1!=0 || b%1!=0) integer = false;
@@ -539,7 +622,7 @@ RETURNS a Number
 		if (integer) if (a>b) {a++;} else if (b>a) {b++;}
 		var r;
 		if (a == 0 && b == 0) {
-			return Math.random();
+			return 0;
 		} else if (b == 0) {
 			r = Math.random()*a;
 		} else {
@@ -726,7 +809,9 @@ button.on("click", function() {
 END EXAMPLE
 
 PARAMETERS
-time - milliseconds to wait until function is called
+time - |ZIM VEE| milliseconds to wait until function is called
+	or pass in a ZIM VEE value and zik() will pick a time
+	ZIM VEE value is an Array of choices or a Function or an Object literal with min, max, integer properties (RAND object)
 call - function to call when the time passes - will receive the id object as a single parameter
 
 RETURNS a ZIM timeoutObject to pause and clear the timeout with the following methods and properties:
@@ -740,24 +825,14 @@ time - the time in milliseconds that has lapsed
 paused - the paused state of the timeout
 --*///+9.7
 	zim.timeout = function(time, call) {
+
 		z_d("9.7");
 		if (zot(call)) return;
 		if (typeof call != 'function') return;
 		if (zot(time)) time = 1000;
+		time = zik(time);
 		var obj = {startTime:Date.now(), time:0, paused:false};
 		var lastTime = obj.startTime;
-		function next() {
-			var now = Date.now()
-			obj.time += now - lastTime;
-			lastTime = now;
-			if (obj.time >= time) {
-				(call)(obj);
-				obj.clear();
-				return;
-			}
-			obj.rid = requestAnimationFrame(next);
-		}
-		next();
 		obj.pause = function(state) {
 			if (zot(state)) state = true;
 			if (state) { // pausing
@@ -775,6 +850,18 @@ paused - the paused state of the timeout
 			obj.pause = function() {};
 			obj.clear = function() {};
 		}
+		function next() {
+			var now = Date.now()
+			obj.time += now - lastTime;
+			lastTime = now;
+			if (obj.time >= time) {
+				(call)(obj);
+				obj.clear();
+				return;
+			}
+			obj.rid = requestAnimationFrame(next);
+		}
+		next();
 		return obj;
 	}//-9.7
 
@@ -828,13 +915,18 @@ var interval = zim.interval(1000, function() {
 var button = new zim.Button({label:"STOP", toggle:"START"}).center(stage);
 button.on("click", function(){interval.pause(button.toggled);});
 
-RANDOM intervals
-zim.interval([200, 800], dropBombs); // bombs will fall at different rates between 200ms and 800ms
+RANDOM intervals with zik()
+zim.interval({min:200, max:800}, dropBombs); // bombs will fall at different rates between 200ms and 800ms
+zim.interval([1000, 2000], dropBombs); // bombs will fall at either 1000 or 2000 ms
+var count = 1;
+function increase() {return ++count*1000}
+zim.interval(increase, dropBombs); // bombs will fall at 1000, then again after 2000 more ms and 3000 ms more after that, etc.
 END EXAMPLE
 
 PARAMETERS
-time - (default 1000) milliseconds for the interval (delay until the function runs - again and again)
-	pass in an Array of two times to vary the interval randomly between the two numbers
+time - |ZIM VEE| (default 1000) milliseconds for the interval (delay until the function runs - again and again)
+	or pass in a ZIM VEE value and zik() will pick a time
+	ZIM VEE value is an Array of choices or a Function or an Object literal with min, max, integer properties (RAND object)
 call - function to call when the interval passes
 	Will be passed a ZIM intervalObject as a single parameter
 	This is the same as the return object from zim.animate()
@@ -865,26 +957,19 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 		if (zot(time)) time = 1000;
 		if (zot(immediate)) immediate = false;
 		if (!zot(total) && (isNaN(total) || total<=0)) return;
-		var obj = {count:0, paused:false};
+		var obj = {count:0, paused:false, time:time};
+
 		function interval() {
 			obj.startTime = Date.now();
-			obj.interval = getInterval(time);
+			obj.interval = zik(obj.time);
 			obj.id = setTimeout(function() {
-				obj.rid = requestAnimationFrame(interval);
+				if (!obj.paused) obj.rid = requestAnimationFrame(interval);
 				obj.count++;
 				(call)(obj);
 				checkTotal();
 			}, obj.interval);
 		}
 		interval();
-		function getInterval(time) {
-			if (Array.isArray(time)) {
-				if (time.length > 1) return zim.rand(time[0], time[1]);
-				else if (time.length == 1) return time[0];
-				else return 1000;
-			}
-			return time;
-		}
 		if (immediate) {
 			setTimeout(function() {
 				(call)(obj);
@@ -897,11 +982,12 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 		}
 		var pausedTimeout;
 		obj.pause = function(state) {
+
 			if (zot(state)) state = true;
 			if (state) { // pausing
 				clearTimeout(pausedTimeout);
-				cancelAnimationFrame(obj.rid);
 				clearTimeout(obj.id);
+				cancelAnimationFrame(obj.rid);
 				obj.pauseTimeLeft = obj.interval - (Date.now()-obj.startTime);
 			} else { // unpausing
 					pausedTimeout = setTimeout(function() {
@@ -937,7 +1023,7 @@ zim function
 
 DESCRIPTION
 Copies arrays and basic objects:
-http://stackoverflow.com/users/35881/a-levy
+modified http://stackoverflow.com/users/35881/a-levy
 If you have var obj = {prop:"val"};
 and then try and copy obj to obj2 like so: obj2 = obj;
 then obj2 and obj refer to the same object.
@@ -952,23 +1038,42 @@ cop.hair = "green";
 zog(obj.hair, obj.cop); // blue, green
 obj.cars.push("vw");
 zog(obj.cars.length, cop.cars.length); // 3, 2
+
+// copy with clone for cloneable objects
+// without the second parameter as true these obj[0] and obj2[0] would be the same
+// and when we do the second addTo it would just move the circle to the second position
+var obj = [
+	new zim.Circle(20,frame.green),
+	new zim.Rectangle(30,30,frame.green),
+	new zim.Triangle(40,40,40,frame.green)
+];
+var obj2 = zim.copy(obj, true); // copy and clone
+obj[0].addTo(stage).pos(100, 200);
+obj2[0].addTo(stage).pos(300, 400);
 END EXAMPLE
 
 PARAMETERS
 obj - the object to copy
+clone - (default false) set to true to clone any cloneable object while copying
 
 RETURNS a new Object
 --*///+10
-	zim.copy = function(obj) {
+	zim.copy = function(obj, clone) {
 		z_d("10");
-		if (obj==null || typeof obj != 'object') return obj;
+		if (zot(clone)) clone = false;
+		if (obj==null || !(obj instanceof Array || obj.constructor == {}.constructor)) return clone?(obj.clone?obj.clone():obj):obj;
 		if (obj instanceof Array) {
-			return obj.slice(0);
+			var array = [];
+			for (var i=0; i<obj.length; i++) {
+				array[i] = zim.copy(obj[i], clone);
+			}
+			return array;
 		}
-		if (obj instanceof Object) {
-			copy = {};
+		if (obj.constructor == {}.constructor) {
+			var copy = {};
 			for (var attr in obj) {
-				if (obj.hasOwnProperty(attr)) copy[attr] = zim.copy(obj[attr]);
+				var answer = zim.copy(obj[attr], clone);
+				if (obj.hasOwnProperty(attr)) copy[attr] = answer;
 			}
 			return copy;
 		}
@@ -2245,6 +2350,9 @@ zim.Ticker.remove(tryMe);
 // OR with function literal, use the return value
 var tickerFunction = zim.Ticker.add(function(){circle.x++;}, stage);
 zim.Ticker.remove(tickerFunction);
+
+// Check to see if a function is in the Ticker for that stage:
+zog(zim.Ticker.has(stage, tickerFunction)); // false at the moment until added again
 END EXAMPLE
 
 USAGE
@@ -2257,6 +2365,7 @@ zim.Ticker.alwaysOff(stage) - stops an always Ticker for a stage
 zim.Ticker.add(function, stage) - adds the function to the Ticker queue for a given stage and returns the function that was added
 zim.Ticker.remove(function) - removes the function from the Ticker queue
 zim.Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
+zim.Ticker.has(stage, function) - returns a Boolean true if function is currently added to the Ticker for the stage - or false if not currently added
 zim.Ticker.setFPS(30, 60) - (mobile, pc) default is set at natural requestAnimationFrame speed - this seems to be the smoothest
 zim.Ticker.setTimingMode(mode) - (default "raf") RAF uses RequestAnimationFrame without framerate synching - gets screen synch (smooth) and background throttling
 	set to "synched" for framerate synching - but will add some variance between updates
@@ -2271,6 +2380,7 @@ zim.Ticker.update = null (default) - only updates if there is a function in queu
 zim.Ticker.list - a ZIM Dictionary holding arrays with the functions in the Ticker queue for each stage
 zim.Ticker.list.objects - the array of stages in the Ticker
 zim.Ticker.list.values - the array holding an array of functions for each stage in the Ticker
+zim.Ticker.framerate - read only - use setFPS() to set
 
 the Ticker is used internally by zim functions like move(), animate(), drag(), Scroller(), Parallax()
 you are welcome to add functions - make sure to pass the stage in as a second parameter to the add() method
@@ -2382,6 +2492,9 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			}
 			if (t.alwaysList.length > 0) return;
 			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
+		},
+		has: function(s,f) {
+			return zim.Ticker.list && zim.Ticker.list.at(s) && zim.Ticker.list.at(s).indexOf(f) >= 0;
 		},
 		dispose: function(s) {
 			var t = zim.Ticker;
@@ -3389,7 +3502,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id)
+zim.move = function(target, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id)
 
 move
 zim function - and Display object method under ZIM 4TH
@@ -3410,6 +3523,8 @@ var circle = new zim.Circle(50, "red");
 circle.center(stage);
 circle.move(100, 100, 700, "backOut");
 
+// see zim.animate for more complex examples
+
 OR with pre ZIM 4TH function
 zim.center(circle, stage);
 zim.move(circle, 100, 100, 700, "backOut");
@@ -3417,22 +3532,34 @@ zim.move(circle, 100, 100, 700, "backOut");
 END EXAMPLE
 
 PARAMETERS - supports DUO - parameters or single object with properties below
-target - the target object to tween
-x and y - the absolute positions to tween to
-time - the time for the tween in milliseconds 1000 ms = 1 second
-ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
+** some parameters below support ZIM VEE values that use zik() to pick a random option
+The ZIM VEE value can be the following:
+1. an Array of values to pick from - eg. ["red", "green", "blue"]
+2. a Function that returns a value - eg. function(){return Date.now();}
+3. a ZIM RAND object literal - eg. {min:10, max:20, integer:true, negative:true} max is required
+4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
+5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
+
+target - |ZIM VEE| the target object to tween
+x and y - |ZIM VEE| the absolute positions to tween to
+time - |ZIM VEE| the time for the tween in milliseconds 1000 ms = 1 second
+ease - |ZIM VEE| (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
 call - (default null) the function to call when the animation is done
 params - (default target) a single parameter for the call function (eg. use object literal or array)
-wait - (default 0) milliseconds to wait before doing animation
+wait - |ZIM VEE| (default 0) milliseconds to wait before doing animation
 loop - (default false) set to true to loop animation
-loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
-loopWait - (default 0) milliseconds to wait before looping (post animation wait)
-loopCall - (default null) calls function after loop is done (not including last loop)
-loopParams - (default target) parameters to send loop function
-rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
-rewindWait (default 0) milliseconds to wait in the middle of the rewind
-rewindCall (default null) calls function at middle of rewind animation
-rewindParams - (default target) parameters to send rewind function
+loopCount - |ZIM VEE| (default 0) if loop is true how many times it will loop (0 is forever)
+loopWait - |ZIM VEE| (default 0) milliseconds to wait before looping (post animation wait)
+loopCall - (default null) calls function after loop and loopWait (not including last loop)
+loopParams - (default target) parameters to send loopCall function
+loopWaitCall - (default null) calls function after at the start of loopWait
+loopWaitParams - (default target) parameters to send loopWaitCall function
+rewind - |ZIM VEE| (default false) set to true to rewind (reverse) animation (doubles animation time)
+rewindWait - |ZIM VEE| (default 0) milliseconds to wait in the middle of the rewind
+rewindCall - (default null) calls function at middle of rewind after rewindWait
+rewindParams - (default target) parameters to send rewindCall function
+rewindWaitCall (default null) calls function at middle of rewind before rewindWait
+rewindWaitParams - (default target) parameters to send rewindCall function
 sequence - (default 0) the delay time in milliseconds to run on children of a container or an array of target animations
 	for example, target = container or target = [a,b,c] and sequence = 1000
 	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
@@ -3441,15 +3568,15 @@ sequence - (default 0) the delay time in milliseconds to run on children of a co
 	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 sequenceCall - (default null) the function that will be called when the sequence ends
 sequenceParams - (default null) a parameter sent to the sequenceCall function
-sequenceReverse - (default false) set to true to sequence through container or array backwards
+sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
 props - (default {override: true}) legacy - allows you to pass in TweenJS props
 protect - (default false) protects animation from being interrupted before finishing
  	unless manually interrupted with stopZimMove()
 	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
-from - (default false) set to true to animate from obj properties to the current properties set on target
-set - (default null) an object of properties to set on the target to start (but after the wait time)
+from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
+set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
 id - (default randomly created) set to String for id to pause or stop Tween
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
@@ -3457,18 +3584,18 @@ NOTE: call is now triggered once after all loops and rewinds are done
 
 RETURNS the target for chaining
 --*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id) {
-		var sig = "target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id";
+	zim.move = function(target, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id) {
+		var sig = "target, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id";
 		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
 		z_d("44");
 		if (zot(x) && zot(y)) return;
-		var obj = {x:x, y:y};
-		if (zot(x)) {obj = {y:y};} else if (zot(y)) {obj = {x:x};}
-		return zim.animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, null, protect, override, from, set, id);
+		var obj = {x:zik(x), y:zik(y)};
+		if (zot(x)) {obj = {y:zik(y)};} else if (zot(y)) {obj = {x:zik(x)};}
+		return zim.animate(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, null, protect, override, from, set, id);
 	}//-44
 
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
+zim.animate = function(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
 
 animate
 zim function - and Display object method under ZIM 4TH
@@ -3508,7 +3635,6 @@ circle.animate({obj:{alpha:0, scale:0}, time:700, from:true});
 // An extra advantage of this is that you can use the zim.ANIMATE constant to skip animations while building
 // See the http://zimjs.com/code/ornamate.html example
 
-
 // pulse circle
 var circle = new zim.Circle(50, "red");
 circle.center(stage);
@@ -3526,6 +3652,12 @@ function done(target) {
 	// target is circle if params is not set
 	zim.drag(target);
 }
+END EXAMPLE
+
+EXAMPLE
+// using ZIM VEE value:
+// this will animate the alpha to between .5 and 1 in either 1000ms or 2000ms
+circle.animate({alpha:{min:.5, max:1}}, [1000, 2000]);
 END EXAMPLE
 
 EXAMPLE
@@ -3584,9 +3716,18 @@ zim.animate({
 END EXAMPLE
 
 PARAMETERS - supports DUO - parameters or single object with properties below
-target - the target object to tween
+** some parameters below support ZIM VEE values that use zik() to pick a random option
+The ZIM VEE value can be the following:
+1. an Array of values to pick from - eg. ["red", "green", "blue"]
+2. a Function that returns a value - eg. function(){return Date.now();}
+3. a ZIM RAND object literal - eg. {min:10, max:20, integer:true, negative:true} max is required
+4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
+5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
+
+target - |ZIM VEE| the target object to tween
 obj - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
-	if you pass in an array, then this will run an animation series
+	|ZIM VEE| - each obj property value optionally accepts a ZIM VEE value for zik() to pick randomly from (except calls and params)
+	ANIMATION SERIES: if you pass in an array for the obj value, then this will run an animation series
 	The array must hold animate configuration objects:
 	[{obj:{scale:2}, time:1000, rewind:true}, {target:different, obj:{x:100}}, etc.]
 	If you run animate as a method on an object then this is the default object for the series
@@ -3600,20 +3741,26 @@ obj - the object literal holding properties and values to animate (includes a sc
 	You currently cannot nest animimation series
 	Note: if any of the series has a loop and loops forever (a loopCount of 0 or no loopCount)
 	then this will be the last of the series to run
-time - the time for the tween in milliseconds 1000 ms = 1 second
-ease - (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
+time - |ZIM VEE| the time for the tween in milliseconds 1000 ms = 1 second
+ease - |ZIM VEE| (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
 call - (default null) the function to call when the animation is done
 params - (default target) a single parameter for the call function (eg. use object literal or array)
-wait - (default 0) milliseconds to wait before doing animation
+wait - |ZIM VEE| (default 0) milliseconds to wait before doing animation
+waitedCall - (default null) calls function after wait is done if there is a wait
+waitedParams - (default target) parameters to send waitedCall function
 loop - (default false) set to true to loop animation
-loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
-loopWait - (default 0) milliseconds to wait before looping (post animation wait)
-loopCall - (default null) calls function after loop is done (not including last loop)
-loopParams - (default target) parameters to send loop function
-rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
-rewindWait (default 0) milliseconds to wait in the middle of the rewind
-rewindCall (default null) calls function at middle of rewind animation
-rewindParams - (default target) parameters to send rewind function
+loopCount - |ZIM VEE| (default 0) if loop is true how many times it will loop (0 is forever)
+loopWait - |ZIM VEE| (default 0) milliseconds to wait before looping
+loopCall - (default null) calls function after loop and loopWait (not including last loop)
+loopParams - (default target) parameters to send loopCall function
+loopWaitCall - (default null) calls function after at the start of loopWait
+loopWaitParams - (default target) parameters to send loopWaitCall function
+rewind - |ZIM VEE| (default false) set to true to rewind (reverse) animation (doubles animation time)
+rewindWait - |ZIM VEE| (default 0) milliseconds to wait in the middle of the rewind
+rewindCall - (default null) calls function at middle of rewind after rewindWait
+rewindParams - (default target) parameters to send rewindCall function
+rewindWaitCall - (default null) calls function at middle of rewind before rewindWait
+rewindWaitParams - (default target) parameters to send rewindCall function
 sequence - (default 0) the delay time in milliseconds to run on children of a container or an array of target animations
 	for example, target = container or target = [a,b,c] and sequence = 1000
 	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
@@ -3622,7 +3769,7 @@ sequence - (default 0) the delay time in milliseconds to run on children of a co
 	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 sequenceCall - (default null) the function that will be called when the sequence ends
 sequenceParams - (default null) a parameter sent to the sequenceCall function
-sequenceReverse - (default false) set to true to sequence through container or array backwards
+sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
 ticker - (default true) set to false to not use an automatic zim.Ticker function
 props - (default {override: true}) legacy - allows you to pass in TweenJS props
 css - (default false) set to true to animate CSS properties in HTML
@@ -3640,8 +3787,8 @@ protect - (default false) protects animation from being interrupted before finis
 	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
-from - (default false) set to true to animate from obj properties to the current properties set on target
-set - (default null) an object of properties to set on the target to start (but after the wait time)
+from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
+set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
 id - (default null) set to String to use with zimPauseTween(state, id) and zimStopTween(id)
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
@@ -3649,12 +3796,15 @@ NOTE: call is now triggered once after all loops and rewinds are done
 
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id) {
-		var sig = "target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id";
+	zim.animate = function(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id) {
+		var sig = "target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
 		if (zim.ANIMATE == false) return;
+
+		// zik supports passing array of options or an object with min, max, integer, negative properties and zik will pick or calculate a random value
+		target = zik(target); time = zik(time); ease = zik(ease); wait = zik(wait); loopCount = zik(loopCount); loopWait = zik(loopWait); rewind = zik(rewind); rewindWait = zik(rewindWait); sequenceReverse = zik(sequenceReverse); from = zik(from); set = zik(set);
 
 		// PROPS
 		// convert loop and rewind properties into the legacy props object
@@ -3663,11 +3813,15 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (!zot(loopCount)) newProps.count = loopCount; // note prop is count
 		if (!zot(loopWait)) newProps.loopWait = loopWait;
 		if (!zot(loopCall)) newProps.loopCall = loopCall;
+		if (!zot(loopWaitParams)) newProps.loopWaitParams = loopWaitParams;
+		if (!zot(loopWaitCall)) newProps.loopWaitCall = loopWaitCall;
 		if (!zot(loopParams)) newProps.loopParams = loopParams;
 		if (!zot(rewind)) newProps.rewind = rewind;
 		if (!zot(rewindWait)) newProps.rewindWait = rewindWait;
 		if (!zot(rewindCall)) newProps.rewindCall = rewindCall;
 		if (!zot(rewindParams)) newProps.rewindParams = rewindParams;
+		if (!zot(rewindWaitCall)) newProps.rewindWaitCall = rewindWaitCall;
+		if (!zot(rewindWaitParams)) newProps.rewindWaitParams = rewindWaitParams;
 		if (!zot(props)) newProps = zim.merge(newProps, props); // props to overwrite
 		props = newProps;
 
@@ -3702,7 +3856,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id); // do not send from!
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000); // + ((wait)?wait:0); // wait only happens at start - no longer each time
@@ -3774,6 +3928,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						target:o.target,
 						obj:zim.copy(o.obj),
 						wait:lastEnd+w,
+						waitedCall:o.waitedCall,
+						waitedParams:o.waitedParams,
 						time:o.time,
 						ease:o.ease,
 						from:o.from,
@@ -3782,8 +3938,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						params:o.params,
 						loop:o.loop, loopCount:o.loopCount, loopWait:o.loopWait,
 						loopCall:o.loopCall, loopParams:o.loopParams,
+						loopWaitCall:o.loopWaitCall, loopWaitParams:o.loopWaitParams,
 						rewind:o.rewind, rewindWait:o.rewindWait,
 						rewindCall:o.rewindCall, rewindParams:o.rewindParams,
+						rewindWaitCall:o.rewindWaitCall, rewindWaitParams:o.rewindWaitParams,
 						set:o.set,
 						override:false,
 						id:id
@@ -3800,6 +3958,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 				if (props.loop && (!props.count || currentCount < props.count)) {
 					currentObj.call = function() {
+						if (props.loopCall && typeof props.loopCall == 'function') {(props.loopCall)(props.loopParams);}
 						if (props.loopWait) {
 							tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(props.loopWait).call(goNext);
 						} else {
@@ -3809,7 +3968,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							for (var k=0; k<starts.objects.length; k++) {
 								if (starts.objects[k].set) starts.objects[k].set(starts.values[k]);
 							}
-							if (props.loopCall && typeof props.loopCall == 'function') {(props.loopCall)(props.loopParams);}
+							if (props.loopWaitCall && typeof props.loopWaitCall == 'function') {(props.loopWaitCall)(props.loopWaitParams);}
 							runMaster();
 						}
 					}
@@ -3905,6 +4064,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (protect || props.loop || props.rewind) addZimBusy();
 
 		// IDS and IDSETS
+		// this is for ids and idSets on this target
+		// a single tween for an id does not get an idSet
+		// a second tween for the same id gets an idSet
+		// the original id is the id for the idSet
 		prepareIds();
 		function prepareIds() {
 			if (zot(id)) {
@@ -3914,11 +4077,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				providedID = id;
 			}
 			if (zot(target.zimIdSets)) target.zimIdSets = {};
-			if (!zot(target.zimIdSets[id])) {
+			if (!zot(target.zimIdSets[id])) { // already an idSet
 				idSet = id;
 				id = zim.makeID(10);
 				target.zimIdSets[idSet].push(id);
-			} else if (!zot(target.zimTweens[id])) {
+			} else if (!zot(target.zimTweens[id])) { // not an idSet but already a tween so make an idSet
 				idSet = id;
 				id = zim.makeID(10);
 				target.zimIdSets[idSet] = [idSet]; // add original into set
@@ -3927,12 +4090,31 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			} // else nothing - id is not currently part of idSet
 		}
 
+		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
+		for (var i in obj) obj[i] = zik(obj[i]);
+		for (i in set) set[i] = zik(set[i]);
+		for (i in props) {
+			if (i=="waitedCall" || i=="waitedParams" || i=="loopCall" || i=="rewindCall" || i=="loopWaitCall" || i=="rewindWaitCall") continue;
+			props[i] = zik(props[i]);
+		}
+
+		// PREPARE RELATIVE VALUES PASSED IN AS STRINGS
+		for (i in obj) {
+			if (typeof obj[i] == "string") {
+				obj[i] = target[i] + Number(obj[i].replace(/\s/g,""));
+			}
+		}
+		for (i in set) {
+			if (typeof set[i] == "string") {
+				set[i] = target[i] + Number(set[i].replace(/\s/g,""));
+			}
+		}
 
 		// PREPARE START VALUES
 		if (from) obj = getFroms(target, obj, set, true);
 		function getFroms(target, obj, set, update) {
 			var newObj = {};
-			for (var i in obj) {
+			for (i in obj) {
 				if (set && !zot(set[i])) {
 					newObj[i] = set[i];
 				} else {
@@ -3942,6 +4124,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 			return newObj;
 		}
+
 
 		// LOOP AND REWIND SETUP
 		var count = 0;
@@ -3967,6 +4150,22 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			params3 = props.loopParams;
 			delete props.loopParams;
 		}
+		function doLoopCall() {
+			if (call3 && typeof call3 == 'function') {(call3)(params3);}
+		}
+		var call4;
+		if (props.loopWaitCall) {
+			call4 = props.loopWaitCall;
+			delete props.loopWaitCall;
+		}
+		var params4 = target;
+		if (props.loopWaitParams) {
+			params4 = props.loopWaitParams;
+			delete props.loopWaitParams;
+		}
+		function doLoopWaitCall() {
+			if (call4 && typeof call4 == 'function') {(call4)(params4);}
+		}
 
 		// TWEENS FOR REWIND, LOOP and NORMAL
 		if (props.rewind) {
@@ -3988,59 +4187,69 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				wait2 = props.rewindWait;
 				delete props.rewindWait; // not a createjs prop so delete
 			}
+
+			var call2;
 			if (props.rewindCall) {
-				var call2 = props.rewindCall;
+				call2 = props.rewindCall;
 				var params2 = props.rewindParams;
 				if (zot(params2)) params2 = target;
 				delete props.rewindCall;
 				delete props.rewindParams;
-				if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(tween1);
-				} else {
-					tween1();
-				}
-				function tween1() {
-					var obj2 = getStart();
-					if (target.set) target.set(set);
-					tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
-						.to(obj, t, createjs.Ease[ease])
-						.call(doRewindCall)
-						.wait(wait2)
-						.to(obj2, t, createjs.Ease[ease2])
-						.call(doneAnimating)
-						.wait(wait3);
-					setZimTweenProps();
-				}
-			} else {
-				if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target).wait(wait, {override:props.override}).call(tween2);
-				} else {
-					tween2();
-				}
-				function tween2() {
-					var obj2 = getStart();
-					if (target.set) target.set(set);
-					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, props)
-						.to(obj, t, createjs.Ease[ease])
-						.wait(wait2)
-						.to(obj2, t, createjs.Ease[ease2])
-						.call(doneAnimating)
-						.wait(wait3);
-					setZimTweenProps();
-				}
 			}
+			function doRewindCall() {
+				if (call2 && typeof call2 == 'function') {(call2)(params2);}
+			}
+			var call5;
+			if (props.rewindWaitCall) {
+				call5 = props.rewindWaitCall;
+				var params5 = props.rewindWaitParams;
+				if (zot(params5)) params5 = target;
+				delete props.rewindWaitCall;
+				delete props.rewindWaitParams;
+			}
+			function doRewindWaitCall() {
+				if (call5 && typeof call5 == 'function') {(call5)(params5);}
+			}
+
+			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
+				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(function(){
+					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
+					tween1();
+				});
+			} else {
+				tween1();
+			}
+			function tween1() {
+				var obj2 = getStart();
+				if (target.set && !from) target.set(set);
+				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
+					.to(obj, t, createjs.Ease[ease])
+					.call(doRewindWaitCall)
+					.wait(wait2)
+					.call(doRewindCall)
+					.to(obj2, t, createjs.Ease[ease2])
+					.call(doneAnimating)
+					.wait(wait3)
+					.call(doLoopCall);
+				setZimTweenProps();
+			}
+
 		} else {
 			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(tween3);
+				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(function(){
+					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
+					tween2();
+				});
 			} else {
-				tween3();
+				tween2();
 			}
-			function tween3() {
-				if (target.set) target.set(set);
+			function tween2() {
+				if (target.set && !from) {target.set(set);}
 				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
 					.to(obj, t, createjs.Ease[ease])
 					.call(doneAnimating)
-					.wait(wait3);
+					.wait(wait3)
+					.call(doLoopCall);
 				setZimTweenProps();
 			}
 		}
@@ -4064,7 +4273,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (props.loop) {
 				if (count > 0) {
 					if (currentCount < count) {
-						if (call3 && typeof call3 == 'function') {(call3)(params3);}
+						doLoopWaitCall();
 						currentCount++;
 						return;
 					} else {
@@ -4075,7 +4284,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						}
 					}
 				} else {
-					if (call3 && typeof call3 == 'function') {(call3)(params3);}
+					doLoopWaitCall();
 					return;
 				}
 			}
@@ -4088,13 +4297,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			var startObj = {}
 			for (var i in obj) {
 				if (css) {
-					if (!zot(set[i])) {
+					if (!zot(set[i]) && !from) {
 						startObj[i] = set[i];
 					} else {
 						startObj[i] = target.style[i];
 					}
 				} else {
-					if (!zot(set[i])) {
+					if (!zot(set[i]) && !from) {
 						startObj[i] = set[i];
 					} else {
 						startObj[i] = target[i];
@@ -4102,9 +4311,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 			}
 			return startObj
-		}
-		function doRewindCall() {
-			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}
 		function removeBusy(obj) {
 			if (!target.zimBusy) return;
@@ -4168,8 +4374,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					// leave zim.idSets alone
 			} else {
 				if (zim.idSets && zim.idSets[idSet?idSet:id]) {
-					delete zim.idSets[idSet?idSet:id];
-					if (zim.isEmpty(zim.idSets)) delete zim.idSets;
+					zim.idSets[idSet?idSet:id]
+					var targetIndex = zim.idSets[idSet?idSet:id].indexOf(target);
+					if (targetIndex >= 0)  zim.idSets[idSet?idSet:id].splice(targetIndex, 1);
+					if (zim.idSets[idSet?idSet:id].length <= 0) {
+						delete zim.idSets[idSet?idSet:id];
+						if (zim.isEmpty(zim.idSets)) delete zim.idSets;
+					}
 				}
 			}
 		}
@@ -4211,7 +4422,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		// METHODS ADDED TO TARGET
-		if (!target.stopZimAnimate) {
+		if (!target.stopZimAnimate || !target.stopZimAnimate.real) { // empty method gets added by default
 	        target.stopZimAnimate = function(ids, include) {
 				if (zot(include)) include = true;
 				if (zot(ids)) {
@@ -4237,6 +4448,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 				return target;
 	        }
+			target.stopZimAnimate.real = true; // record this as real method instead of empty method
 	        target.pauseZimAnimate = function(paused, ids, include) {
 	            if (zot(paused)) paused = true;
 				if (zot(include)) include = true;
@@ -4313,7 +4525,8 @@ RETURNS null if run as zim.stopZimAnimate() or the obj if run as obj.stopZimAnim
 		for (var j=0; j<ids.length; j++) {
 			var idSet = ids[j];
 			if (zim.idSets[idSet]) {
-				for (var i=zim.idSets[idSet].length-1; i>=0; i--) {
+				var idLength = zim.idSets[idSet].length-1;
+				for (var i=idLength; i>=0; i--) {
 					zim.idSets[idSet][i].stopZimAnimate(idSet);
 				}
 			}
@@ -4387,6 +4600,78 @@ RETURNS null if run as zim.pauseZimAnimate() or the obj if run as obj.pauseZimAn
 			}
 		}
 	}//-45.2
+
+/*--
+zim.wiggle = function(target, property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id)
+
+wiggle
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Wiggles the property of the target object between a min and max amount to either side of the base amount
+in a time between the min and max time.
+Uses zim.animate() so to pause or stop the wiggle use zim.pauseZimAnimate and zim.stopZimAnimate
+either on the object or using an id that you pass in as a parameter
+
+NOTE: calling zim.pauseZimAnimate(true, id) pauses tweens with this id on all objects
+calling target.pauseZimAnimate(true, id) pauses tweens with this id on the target object
+
+EXAMPLE
+var ball = new zim.Circle().centerReg(stage);
+ball.wiggle("x", ball.x, 10, 30, 300, 1000);
+// wiggles the ball 10-30 pixels to the left and right of center taking 300-1000 ms each time
+
+ball.pauseZimAnimate(); // will pause the wiggle
+END EXAMPLE
+
+PARAMETERS
+target - the object to wiggle
+property - the property name as a String that will be width-indicatorLength-edgeLeft-edgeRight
+baseAmount - the center amount for the wiggle - wiggle will go to each side of this center
+minAmount - the min amount to change to a side of center
+maxAmount - (default minAmount) the max amount to change to a side of center
+minTime - (default 1000 ms) the min time in milliseconds to go from one side to the other
+maxTime - (default minTime) the max time in milliseconds to go from one side to the other
+ease - (default "quadInOut") the ease to apply to the animation
+integer - (default false) tween to an integer value between min and max amounts
+id - (default random id) the id to use for zim.pauseZimAnimate() or zim.stopZimAnimate()
+
+RETURNS target for chaining
+--*///+45.25
+	zim.wiggle = function(target, property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id) {
+		var sig = "target, property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id";
+		var duo; if (duo = zob(zim.wiggle, arguments, sig)) return duo;
+		z_d("45.25");
+		if (zot(target) || zot(baseAmount) || zot(minAmount)) return target;
+		if (zot(maxAmount)) maxAmount = minAmount;
+		if (zot(minTime)) minTime = 1000;
+		if (zot(maxTime)) maxTime = minTime;
+		if (zot(ease)) ease = "quadInOut";
+		if (zot(integer)) integer = false;
+		if (zot(id)) id = zim.makeID();
+
+		var results = {};
+		var count = 0;
+		var lastWiggle;
+		function wiggleMe() {
+			var time = zim.rand(minTime, maxTime);
+			var obj = {};
+			if (count == 0) {
+				// to start go from center
+				var wiggle = zim.rand(minAmount,maxAmount,integer,true); // negative or positive
+				time = time/2;
+				obj[property]=baseAmount+wiggle;
+			} else {
+				var wiggle = zim.rand(minAmount,maxAmount,integer)*zim.sign(lastWiggle)*-1;
+				obj[property]=baseAmount+wiggle;
+			}
+			lastWiggle = wiggle;
+			count++;
+			target.animate({obj:obj, ease:ease, time:time, override:false, call:wiggleMe, id:id});
+		}
+		wiggleMe();
+		return target;
+	}//-45.25
 
 /*--
 zim.loop = function(obj, call, reverse, step, start, end)
@@ -4927,13 +5212,13 @@ RETURNS obj for chaining
 	}//-42
 
 /*--
-zim.scaleTo = function(obj, boundObj, percentX, percentY, type)
+zim.scaleTo = function(obj, boundObj, percentX, percentY, type, boundsOnly)
 
 scaleTo
 zim function - and Display object method under ZIM 4TH
 
 DESCRIPTION
-Scales object to a percentage of another object's bounds.
+Scales object to a percentage of another object's bounds and scale
 Percentage is from 0 - 100 (not 0-1).
 Also see zim.scale(), zim.fit() and zim.Layout().
 
@@ -4955,12 +5240,13 @@ type - (default "smallest") to fit inside or outside or stretch to bounds
 	smallest: uses the smallest scaling keeping proportion (fit)
 	biggest: uses the largest scaling keeping proportion (outside)
 	both: keeps both x and y scales - may stretch object (stretch)
+boundsOnly - (default false) set to true to scale to the boundObj's bounds only - ignoring current boundObj scale
 
 RETURNS obj for chaining
 --*///+43
-	zim.scaleTo = function(obj, boundObj, percentX, percentY, type) {
+	zim.scaleTo = function(obj, boundObj, percentX, percentY, type, boundsOnly) {
 
-		var sig = "obj, boundObj, percentX, percentY, type";
+		var sig = "obj, boundObj, percentX, percentY, type, boundsOnly";
 		var duo; if (duo = zob(zim.scaleTo, arguments, sig)) return duo;
 		z_d("43");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim create - scaleTo(): please provide an object (with setBounds) to scale"); return;}
@@ -4969,8 +5255,9 @@ RETURNS obj for chaining
 		if (zot(percentY)) percentY = -1;
 		if (percentX == -1 && percentY == -1) percentX = percentY = 100;
 		if (zot(type)) type = "smallest";
-		var w = boundObj.getBounds().width * percentX / 100;
-		var h = boundObj.getBounds().height * percentY / 100;
+		if (zot(boundsOnly)) boundsOnly = false;
+		var w = boundObj.getBounds().width * percentX / 100 * (boundsOnly?1:boundObj.scaleX);
+		var h = boundObj.getBounds().height * percentY / 100 * (boundsOnly?1:boundObj.scaleY);
 		if ((percentX == -1 || percentY == -1) && type != "both" && type != "stretch") {
 			if (percentX == -1) {
 				zim.scale(obj, h/obj.getBounds().height);
@@ -5259,6 +5546,53 @@ RETURNS obj for chaining
 	}//-47.6
 
 /*--
+zim.added = function(obj, call, interval, maxTime)
+
+added
+zim function - and Display object method under ZIM 4TH
+
+DESCRIPTION
+Calls callback function when object is added to the stage
+CreateJS has an "added" event that triggers when an object is added to another container
+but this container may not be on the stage.
+added polls with a setInterval every 100ms to see if the object has a stage property
+Once it does then it calls the callback and removes the interval
+
+EXAMPLE
+var circle = new zim.Circle(50, "red");
+circle.added(function() {zog("has stage");});
+
+zim.interval(1000, function() {
+	circle.centerReg(stage); // will trigger "has stage" message within 100ms
+});
+END EXAMPLE
+
+PARAMETERS
+obj - the object to check to see if it has been added to stage or its container has been added
+call - the function to call when added - will call right away if object is already added
+	call will receive a reference to the stage and the object as parameters
+interval - (default 100) time in ms to check - keeps repeating until stage is there or maxTime is reached
+maxTime - (default null) time in ms to keep checking or forever if not provided
+
+RETURNS id of interval so clearInterval(id) will stop added() from checking for stage
+--*///+47.7
+	zim.added = function(obj, call, interval, maxTime) {
+		z_d("47.7");
+		if (zot(obj) || zot(call) || typeof call != "function") return;
+		if (zot(interval)) interval = 100;
+		if (obj.getStage()) {(call)(obj.getStage(), obj); return;}
+		var startTime = Date.now();
+		var id = setInterval(function() {
+			if (maxTime > 0 && startTime-Date.now()>maxTime) clearInterval(id);
+			if (obj.getStage()) {
+				(call)(obj.getStage(), obj);
+				clearInterval(id);
+			}
+		}, interval);
+		return id;
+	}//-47.7
+
+/*--
 zim.centerReg = function(obj, container, add, index)
 
 centerReg
@@ -5342,9 +5676,9 @@ RETURNS obj for chaining
 		var oB = obj.getBounds();
 		var cB = container.getBounds();
 
-		if (zot(add)) add = true;
+	 	if (zot(add)) add = true;
 		if (add && container.addChild) {
-            if (zot(index) || Number.isNaN(index)) {
+            if (zot(index) || (typeof index === 'number' && isNaN(index))) {
                 container.addChild(obj);
             } else {
                 container.addChildAt(obj, index);
@@ -5921,13 +6255,19 @@ RETURNS the object for chaining
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		move:function(x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id) {
+		move:function(x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
-			else {return zim.move(this, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id);}
+			else {return zim.move(this, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id);}
 		},
-		animate:function(obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id) {
+		animate:function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id);}
+			else {return zim.animate(this, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id);}
+		},
+		pauseZimAnimate:function(){},
+		stopZimAnimate:function(){},
+		wiggle:function(property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id) {
+			if (isDUO(arguments)) {arguments[0].target = this; return zim.wiggle(arguments[0]);}
+			else {return zim.wiggle(this, property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id);}
 		},
 		loop:function(call, reverse, step, start, end) {
 			return zim.loop(this, call, reverse, step, start, end);
@@ -5962,9 +6302,9 @@ RETURNS the object for chaining
 		scale:function(scale, scaleY) {
 			return zim.scale(this, scale, scaleY);
 		},
-		scaleTo:function(boundObj, percentX, percentY, type) {
+		scaleTo:function(boundObj, percentX, percentY, type, boundsOnly) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
-			else {return zim.scaleTo(this, boundObj, percentX, percentY, type);}
+			else {return zim.scaleTo(this, boundObj, percentX, percentY, type, boundsOnly);}
 		},
 		fit:function(left, top, width, height, inside) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.fit(arguments[0]);}
@@ -5979,6 +6319,9 @@ RETURNS the object for chaining
 		},
 		removeFrom:function(container) {
 			return zim.removeFrom(this, container);
+		},
+		added:function(call, interval, maxTime) {
+			return zim.added(this, call, interval, maxTime);
 		},
 		centerReg:function(container, add, index) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.centerReg(arguments[0]);}
@@ -6002,6 +6345,7 @@ RETURNS the object for chaining
 		},
 		cloneProps:function(clone) { // from CreateJS DisplayObject
 			clone.alpha = this.alpha;
+			clone.rotation = this.rotation;
 			clone.mouseEnabled = this.mouseEnabled;
 			clone.tickEnabled = this.tickEnabled;
 			clone.name = this.name;
@@ -6181,19 +6525,21 @@ hitTestCircle(b, num)
 hitTestBounds(b, boundsShape)
 boundsToGlobal(rect, flip)
 hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
-move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override, from, id)
-animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override, from, id)
+move(target, x, y, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindWaitCall, rewindWaitParams, rewindParams, sequence, sequenceCall, sequenceParams, props, protect, override, from, id)
+animate(target, obj, time, ease, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindWaitCall, rewindWaitParams, rewindParams, sequence, sequenceCall, sequenceParams, props, css, protect, override, from, id)
 loop(call, reverse, step, start, end)
+wiggle(target, property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id)
 copyMatrix(source)
 pos(x, y)
 alp(alpha)
 rot(rotation)
 scale(scale)
-scaleTo(boundObj, percentX, percentY, type)
+scaleTo(boundObj, percentX, percentY, type, boundsOnly)
 fit(left, top, width, height, inside)
 outline(color, size)
 addTo(container, index)
 removeFrom(container)
+added()
 centerReg(container, add, index)
 center(container, add, index)
 place(id)
@@ -6580,7 +6926,7 @@ id - (default randomly assigned) an id you can use in other animations - availab
 globalControl - (default true) pauseRun and stopRun will control other animations with same id
 
 METHODS
-run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, spriteID)
+run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindWaitCall, rewindWaitParams, startFrame, endFrame, spriteID)
 	The run() method animates the Sprite over an amount of time
 	Would recommend this method over the CreateJS play() and gotoAndPlay()
 	methods because the framerate for these get overwritten by other stage.update() calls
@@ -6599,15 +6945,21 @@ run(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopPa
 	call - (default null) the function to call when the animation is done
 	params - (default target) a single parameter for the call function (eg. use object literal or array)
 	wait - (default 0) milliseconds to wait before doing animation
+	waitedCall - (default null) call the function after a wait time if there is one
+	waitedParams - (default null) parameters to pass to the waitedCall function
 	loop - (default false) set to true to loop animation
 	loopCount - (default 0) if loop is true how many times it will loop (0 is forever)
 	loopWait - (default 0) milliseconds to wait before looping (post animation wait)
-	loopCall - (default null) calls function after loop is done (including last loop)
-	loopParams - (default target) parameters to send loop function
+	loopCall - (default null) calls function after loop and loopWait (not including last loop)
+	loopParams - (default target) parameters to send loopCall function
+	loopWaitCall - (default null) calls function after at the start of loopWait
+	loopWaitParams - (default target) parameters to send loopWaitCall function
 	rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
-	rewindWait - (default 0) milliseconds to wait in the middle of the rewind
-	rewindCall - (default null) calls function at middle of rewind animation
-	rewindParams - (default target) parameters to send rewind function
+	rewindWait (default 0) milliseconds to wait in the middle of the rewind
+	rewindCall (default null) calls function at middle of rewind after rewindWait
+	rewindParams - (default target) parameters to send rewindCall function
+	rewindWaitCall (default null) calls function at middle of rewind before rewindWait
+	rewindWaitParams - (default target) parameters to send rewindCall function
 	startFrame - (default null - or 0) the frame to start on - will be overridden by a label with frames
 	endFrame - (default null - or totalFrames) the frame to end on - will be overridden by a label with frames
 	id - (default randomly assigned) an id you can use in other animations - available as sprite.id
@@ -6746,8 +7098,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			return frames;
 		}
 
-		this.run = function(time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, tweek, id, globalControl) {
-			var sig = "time, label, call, params, wait, loop, loopCount, loopWait, loopCall, loopParams, rewind, rewindWait, rewindCall, rewindParams, startFrame, endFrame, tweek, id, globalControl";
+		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl) {
+			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl";
 			var duo; if (duo = zob(this.run, arguments, sig)) return duo;
 
 			var obj;
@@ -6875,12 +7227,14 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				ease:"linear",
 				call:localCall,
 				params:params,
-				wait:wait,
+				wait:wait, wait:waitedCall, wait:waitedParams,
 				override:false,
 				loop:loop, loopCount:loopCount, loopWait:loopWait,
 				loopCall:loopCall, loopParams:loopParams,
+				loopWaitCall:loopWaitCall, loopWaitParams:loopWaitParams,
 				rewind:rewind, rewindWait:rewindWait, // rewind is ignored by animation series
 				rewindCall:rewindCall, rewindParams:rewindParams,
+				rewindWaitCall:rewindWaitCall, rewindWaitParams:rewindWaitParams,
 				id:that.id
 			});
 			that.runPaused = false;
@@ -7171,7 +7525,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 		this.clone = function() {
-			return that.cloneProps(new zim.Circle(radius, color, borderColor, borderWidth, dashed));
+			return that.cloneProps(new zim.Circle(that.radius, that.color, that.borderColor, that.borderWidth, dashed));
 		}
 	}
 	zim.extend(zim.Circle, zim.Container, "clone", "zimContainer", false);
@@ -7333,7 +7687,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 		this.clone = function() {
-			return that.cloneProps(new zim.Rectangle(width, height, color, borderColor, borderWidth, corner, flatBottom, dashed));
+			return that.cloneProps(new zim.Rectangle(width, height, that.color, that.borderColor, that.borderWidth, corner, flatBottom, dashed));
 		}
 	}
 	zim.extend(zim.Rectangle, zim.Container, "clone", "zimContainer", false);
@@ -7503,7 +7857,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			if (center) {
 				that.regX = width/2;
-				that.regY = height/2+adjust;
+				that.regY = height/2;
+			}
+			if (adjust) {
+				that.shape.y+=adjust;
 			}
 		}
 
@@ -7544,8 +7901,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 		});
+
 		this.clone = function() {
-			return that.cloneProps(new zim.Triangle(a, b, c, color, borderColor, borderWidth, center, adjust, dashed));
+			return that.cloneProps(new zim.Triangle(a, b, c, that.color, that.borderColor, that.borderWidth, center, adjust, dashed));
 		}
 	}
 	zim.extend(zim.Triangle, zim.Container, "clone", "zimContainer");
@@ -13845,7 +14203,6 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		if (zot(pixelKey)) pixelKey = "P";
 
 		var that = this;
-		var stage;
 		var stageEvent;
 
 		// make text boxes that show x and y
@@ -13882,23 +14239,8 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 			return box;
 		}
 
-		// get stage and apply stagemousemove to move text boxes
-		// the added event was added in the 2014 createjs
-		// found the added did not reliably get a stage property
-		// still had to wait a few microseconds
-		// so resorting to interval
-		// this.on("added", added);
-		var addedInterval = setInterval(function() {
-			if (obj == "stage") {
-				if (that && that.getStage()) {
-					added();
-				}
-			} else {
-				if (obj && obj.getStage()) {
-					added();
-				}
-			}
-		},100);
+		var stage;
+		zim.added(that, added);
 
 		var guideCheck = false;
 		var objW;
@@ -13906,7 +14248,6 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		var line;
 		var dragBounds;
 		function added() {
-			clearInterval(addedInterval);
 			if (obj == "stage") {
 				stage =	that.getStage();
 				obj = stage;
@@ -14175,7 +14516,6 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		if (zot(pixelKey)) pixelKey = "P";
 
 		var that = this;
-		var stage;
 		var pixels = 10; // for grid
 		var stageEvent;
 
@@ -14220,25 +14560,8 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		top.label.text = "x:0";
 		left.label.text = "y:0";
 
-
-		// get stage and apply stagemousemove to move text boxes
-		// the added event was added in the 2014 createjs
-		// found the added did not reliably get a stage property
-		// still had to wait a few microseconds
-		// so resorting to interval
-		// this.on("added", added);
-		var addedInterval = setInterval(function() {
-			if (obj == "stage") {
-				if (that && that.getStage()) {
-					added();
-				}
-			} else {
-				if (obj && obj.getStage()) {
-					added();
-				}
-
-			}
-		},100);
+		var stage;
+		zim.added(that, added);
 
 		var gridCheck = false;
 		function added() {
@@ -16678,6 +17001,601 @@ dispatches a data event with axes and buttons array properties
 	for (i=0; i<gamePadAxes.length; i++) zim.GamePad[gamePadAxes[i]] = i;
 	zim.extend(zim.GamePad, createjs.EventDispatcher, null, "cjsEventDispatcher");
 	//-69.8
+
+/*--
+zim.Emitter = function(obj, interval, num, life, fade, shrink, decayTime, minAngle, maxAngle, minForce, maxForce, gravity, wind, layers, animation, random, width, height, horizontal, vertical, sink, sinkForce, cache, events, startPaused)
+
+Emitter
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+A particle emitter - so this makes and animates display objects like shapes or bitmaps
+Particle emitters are often used for things like fireworks, fire, smoke, sparks, falling objects, etc.
+The zim.Emitter is filled with options so have a look at the doc parameters
+Here are some examples:
+http://zimjs.com/code/particles/
+
+NOTE: consider the Emitter as somewhat experimental and pushing the bounds of the canvas
+In future versions we will look into addin CreateJS StageGL (WebGL) examples / support (it might work already)
+The Emitter certainly can make excellent and workable effects
+But it can also bog the browser if pushed to extremes or sometimes if left going
+This possibly means there are memory leaks - we have been doing our best to track things down
+The Emitter is reporting an expected number of children so any leaks might be beyond ZIM control
+
+NOTE: each particle starts at the center of the container width and height
+If the trace parameter is true then the particle is put in a container that does not move
+and the particle moves inside that container as the container is cached with the source-over composite operation
+The currentParticle property and all the event objects' particle parameter is the moving particle
+However, the children of the Emitter, will be slightly different in each case:
+when trace is false, the children of the Emitter container are any active particles
+when trace is true, the children of the Emitter container are the containers that hold the active particles
+If you have moved, scaled or rotated the Emitter or its container,
+then you will want to use var point = myEmitter.localToGlobal(particle.x, particle.y)
+and get point.x and point.y to find the location of the particle relative to the stage coordinates
+
+EXAMPLE
+// eg.1 make a bunch of spewing pink circles affected by gravity
+var emitter = new zim.Emitter(new zim.Circle(5, frame.pink))
+	.centerReg(stage);
+
+// eg.2 use a sink to attract the particles
+var sink = new zim.Circle(10, frame.pink).centerReg(stage).alp(0);
+// make one of three types of particles and randomize the colors
+var particles = new zim.Emitter({
+	obj:[
+		new zim.Circle(20,null,frame.darker,2),
+		new zim.Rectangle(30,30,null,frame.darker,2),
+		new zim.Triangle(40,40,40,null,frame.darker,2)
+	],
+	random:{color:[frame.blue, frame.green, frame.pink, frame.yellow, frame.orange]},
+	interval:20, // default
+	life:5000,
+	decayTime:1000, // default
+	sink:sink,
+	sinkForce:.5,
+	gravity:0,
+	minForce:1,
+	maxForce:1
+	cache:zim.mobile(), // default
+})
+	.centerReg(stage)
+	.scale(2);
+
+// see more examples at http://zimjs.com/code/particles
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+** some parameters below support ZIM VEE values that use zik() to pick a random option
+The ZIM VEE value can be the following:
+1. an Array of values to pick from - eg. ["red", "green", "blue"]
+2. a Function that returns a value - eg. function(){return Date.now();}
+3. a ZIM RAND object literal - eg. {min:10, max:20, integer:true, negative:true} max is required
+4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
+5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
+
+obj - |ZIM VEE| a display object to clone - eg. new zim.Circle(10, frame.green);
+	can also specify a shape config object with the following properties to draw inside a shape as an alternative to the trace property
+	{type:"shape", s:"white", ss:1, f:"red", sd:[20, 10], offset:3}
+	the parameters accept ZIM VEE values except the type and sd as it requires an array as a final value
+	type:"shape" is required.  s is setStroke, ss is setStrokeStyle, sd and offset are setStrokeDash in CreateJS
+	line thickness (ss) is currently not staying in the latest CDN CreateJS - this is working in the NEXT build
+width - (default 300) the width of the Emitter container - used as cache bounds for trace if trace is true
+height - (default 300) the height of the Emitter container - used as cache bounds for trace if trace is true
+	these dimensions will affect performance if the trace parameter is true so use carefully
+	also see the traceShiftX and traceShiftY to specify the caching rectangle position
+interval - |ZIM VEE| (default 300) the time in ms between imitting particles
+num - |ZIM VEE| (default 1) the number of particles emitted each interval
+life - (default 1000) the time in ms the particle will exist
+fade - (default true) Boolean to fade the particle (alpha 0) - set to false to not fade out the particle over the decayTime
+shrink - (default true unless trace is true) Boolean to shrink the particle (scale 0) - set to false to not shrink the particle over the decayTime
+decayTime - (default 1000) time in ms to fade and / or shrink the particle - ends animation at the life time unless decayStart is set
+decayStart - (default null) time in ms to start the decayTime otherwise decay (fade and shrink) ends at the end of life time
+trace - (default false) Boolean set to true to leave trails by caching each particle with source-over composite operation
+traceFadeTime - (default decayTime) time in ms to fade out traced particle to 0 alpha at the end of the particle life time
+traceShiftX - (default 0) x amount to shift the cache rectangle for the traced particle
+traceShiftY - (default 0) y amount to shift the cache rectangle for the traced particle
+	the particle starts centered in the width and height of the Emitter container
+	if you have particles falling - for instance fireworks, you can shift the cache rectangle down to see more trails
+	and then place the Emitter up higher on the stage
+minAngle - (default 0) the minimum angle the particle will emit (0 is along the positive x axis)
+maxAngle - (default 360) the maximum angle the particle will emit (0 is along the positive x axis)
+	if you want something shooting up on either side of the y axis you can use:
+	minAngle = -90-20; maxAngle = -90+20; this may be easier to visualize
+minForce - (default 0) the smallest force for the emitter to shoot the partice at an angle
+maxForce - (default 10) the largest force for the emitter to shoot the particle at an angle
+gravity - (default 9.8) the force of gravity going down - can be negative to make particles float up
+wind - (default 0) a force you can apply in the horizontal direction either negaitive for left or positive for right
+layers - (default "top") where to place the current particle being emitted - values are "top", "bottom", "random"
+animation - |ZIM VEE| (default null) a zim animate config object to apply to the particle
+	This is the whole zim DUO object to pass to animate - including an obj parameter that holds the animation object (different than the animate object)
+random - (default null) an object holding properties to animate, each property holding a zim RAND object for zik to pick from per particle
+	eg: {color:["red", "white", "green"], scale:{min:1, max:2}} // scale is a convienence property for both scaleX and scaleY
+horizontal - (default false) start the particles across the emitter's width at the top of the emitter (unless vertical is set to true)
+vertical - (default false) start the particles across the emitter's height at the left of the emitter (unless horizontal is set to true)
+sink - (default null) an object with x and y properties (can be a display object) that the particles will be pulled to (or pushed if sinkForce is negative)
+sinkForce - (default 10 if sink) the force particles are moved towards the sink location
+cache - (default zim.mobile()) Boolean to cache each particle - helpful if complex shape or text (do not use for Bitmap)
+events - (default false) Boolean - set to true to receive events from Emitter
+startPaused - (default false) Boolean - set to true to start the Emitter in the paused state
+
+METHODS
+spurt(num, time) - shoots particles (usually would pause Emitter before doing this)
+	supports ZIM DUO config object
+	num - |ZIM VEE| (default null) number of particles to emit according to Emitter settings
+	time - |ZIM VEE| (default null) alternatively, time to emit particles according to Emitter settings
+		if both num and time are provided the faster one will stop the emitting
+		dispatches three different spurt events - see events
+pause(state, restart, freeze) - pause or unpause the Emitter
+	state (default true) will pause the emitter or set to false to unpause the emitter
+		this will set the read only paused property to true or false accordingly
+	restart (default false) set to true to restart the particles when unpaused
+		otherwise continues the particles from where they were
+	freeze (default false) set to true to freeze the particles
+		othewise pause just stops emitting and existing particles continue their life
+resize(width, height) - resizes the Emitter container and any cache bounds for new particles
+clone() - makes a copy with properties such as x, y, etc. also copied
+	all current properties will be cloned except for startPaused for which the initial paramter value is cloned
+dispose() - removes event listeners from Window and content and removes any Ticker functions
+
+ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+** All the PARAMETERS are available as PROPERTIES to get and set (except for the cache parameter - and width and height act differently)
+paused - read only Boolean as to whether the Emitter is paused or not - see also pause() method
+currentParticle - the latest particle emitted
+	if trace is false then this is myEmitter.getChildAt(myEmitter.numChildren-1);
+	if trace is true then this is myEmitter.getChildAt(myEmitter.numChildren-1).getChildAt(0);
+particlesEmitted - the number of particles that have been made / emitted
+spurtNum - total number of particles to spurt (when spurt() is called)
+spurtCount - number of particles spurted so far (when spurt() is called)
+zimInterval - the interval used to create particles
+zimTicker - the ticker used to animate particles
+** CHILD PROPERTIES - each child has a particle (if trace is true) or is a particle (if trace is false)
+particle -  a reference to the particle for the child (could be to itself)
+particleNormal - true or false if particle is not decaying or fizzing
+particleDecaying - true or false if decaying - particle is currently animating to either scale 0 or alpha 0
+particleFizzing - true or false if fizzing - trace container is currently animating to alpha 0
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
+** these will not remake the cache bounds, etc. - they just scale the Emitter - see resize()
+width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
+height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
+widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
+heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, compositeOperation, etc.
+
+EVENTS
+** the below events all have a particle property that gives access to the particle (not the particle container for a traced particle - ask for the particle.parent for that)
+dispatches a "spurted" event once the spurt() method is finished emitting particles
+dispatches a "spurtdecayed" event once the last spurted particle decays (fade / shrink)
+dispatches a "spurtfizzed" event once the last spurted particle's life ends
+** the below events only trigger if the events parameter is set to true (default is false for slight performance edge)
+dispatches an "emitted" event when a particle is made
+dispatches a "decayed" event when the particle's decayStart + decayTime ms has elapsed
+dispatches a "fizzed" event when the particle's life ms has elapsed
+
+ALSO: See the CreateJS Easel Docs for Container events, such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+--*///+69.9
+	zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, minAngle, maxAngle, minForce, maxForce, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused) {
+	    var sig = "obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, minAngle, maxAngle, minForce, maxForce, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused";
+	    var duo; if (duo = zob(zim.Emitter, arguments, sig, this)) return duo;
+		z_d("69.9");
+
+	    if (zot(obj)) obj = [];
+		if (zot(width)) width = 300;
+		if (zot(height)) height = 300;
+	    if (zot(interval)) interval = 20;
+	    if (typeof interval == "number") interval = Math.max(10, interval);
+		if (zot(num)) num = 1;
+		if (zot(trace)) trace = false;
+		if (zot(traceFadeTime)) traceFadeTime = decayTime;
+		if (zot(traceShiftX)) traceShiftX = 0;
+		if (zot(traceShiftY)) traceShiftY = 0;
+	    if (zot(life)) life = 1000;
+	    if (zot(fade)) fade = true;
+		if (zot(shrink)) shrink = trace?false:true;
+	    if (zot(decayTime)) decayTime = 1000;
+	    if (zot(minAngle)) minAngle = 0;
+	    if (zot(maxAngle)) maxAngle = 360;
+	    if (zot(minForce)) minForce = 0;
+	    if (zot(maxForce)) maxForce = 10;
+	    if (zot(gravity)) gravity = 9.8
+	    if (zot(wind)) wind = 0;
+	    if (zot(layers)) layers = "top"; // bottom, random
+	    if (zot(width)) width = 100;
+	    if (zot(height)) height = 100;
+	    if (zot(horizontal)) horizontal = false;
+	    if (zot(vertical)) vertical = false;
+	    if (!zot(sink) && zot(sinkForce)) sinkForce = 10;
+	    if (zot(cache)) cache = zim.mobile();
+		if (zot(events)) events = false;
+		if (zot(startPaused)) startPaused = false;
+
+	    this.zimContainer_constructor(width, height);
+	    var that = this;
+
+	    // might want many of these as dynamic properties - sigh.
+	    that.obj = obj; that.interval = interval; that.num = num;
+	    that.life = life; that.fade = fade; that.shrink = shrink;
+		that.decayTime = decayTime;  that.decayStart = decayStart;
+		that.trace = trace; that.traceFadeTime = traceFadeTime,
+		that.traceShiftX = traceShiftX; that.traceShiftY = traceShiftY;
+	    that.minAngle = minAngle; that.maxAngle = maxAngle; that.minForce = minForce; that.maxForce = maxForce;
+		that.gravity = gravity; that.wind = wind;
+	    that.layers = layers; that.animation = animation; that.random = random;
+		that.horizontal = horizontal; that.vertical = vertical;
+	    that.sink = sink; that.sinkForce = sinkForce;
+		that.events = events; that.startPaused = startPaused;
+
+		that.particlesEmitted = 0;
+		var stage;
+		zim.added(that, addedToStage);
+	    function addedToStage(s) {
+	        stage = s;
+			if (cache) stage.snapToPixelEnabled = true;
+	        if (stage) {
+				if (!horizontal && !vertical) that.centerReg();
+
+				////////////  INTERVAL
+
+	            that.zimInterval = zim.interval(that.interval, function() {
+					if (that.startPaused) {that.pause(); return;}
+					// want to leave that.obj as it was provided
+					// but for creation we will normalize it as an Array
+					obj = Array.isArray(that.obj)?that.obj:[that.obj];
+	                if (obj.length <= 0) return;
+					zim.loop(zik(that.num), function() {
+		                if (that.decayTime > 0) {
+		                    var decay = {};
+		                    if (that.shrink) decay.scale=0;
+		                    if (that.fade) decay.alpha=0;
+		                }
+
+						var container;
+						if (that.trace) {
+							container = new zim.Container(width,height);
+							container.trace = true;
+						}
+
+		                var template = zik(zim.shuffle(obj)[0]);
+						if (template.type == "shape") { // shape needs to be top left whereas others need to be centerReg
+							var t = template;
+							// {type:"shape", s:"white", ss:2, f:null, sd:[20, 10], offset:3}
+							// line thickness is currently not staying in the latest CDN CreateJS - this is working in the NEXT build
+							var particle = new zim.Shape(1,1);
+							particle.emitShape = true;
+							particle.graphics.s(t.s?zik(t.s):null).ss(t.ss?zik(t.ss):null).sd(t.sd?zik(t.sd):null, t.offset?zik(t.offset):null);
+							if (that.trace) {
+								particle.addTo(container)
+							} else {
+								if (that.layers == "top") {
+									particle.addTo(that);
+				                } else {
+									particle.addTo(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+				                }
+							}
+						} else { // others need to be centerReg
+							var particle = template.clone();
+							if (!particle.centerReg) zimify(particle);
+							if (that.trace) {
+								particle.centerReg(container).pos(-1000,-1000); // cache was drawing this in center - perhaps missing an update so just move it away
+							} else {
+								if (that.layers == "top") {
+									particle.centerReg(that);
+				                } else {
+									particle.centerReg(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+				                }
+							}
+						}
+
+						if (that.trace) { // still need to add the container if there is one
+							if (that.layers == "top") {
+								container.addTo(that);
+							} else {
+								container.addTo(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+							}
+						}
+						if (that.trace) container.cache(traceShiftX,traceShiftY,width,height);
+
+
+						that.currentParticle = particle;
+						that.particlesEmitted++;
+						if (!that.trace) container = particle;
+						container.particle = particle;
+
+						container.particleNormal = true;
+						container.particleDecaying = false;
+						container.particleFizzing = false;
+
+						var angle = zim.rand(that.minAngle, that.maxAngle, false);
+		                var speed = zim.rand(that.minForce, that.maxForce, false);
+		                var speedX = speed*Math.cos(angle*Math.PI/180);
+		                var speedY = speed*Math.sin(angle*Math.PI/180);
+		                particle.info = {
+		                    position: {x:width/2, y:height/2},
+		                    velocity: {x:speedX, y:speedY},
+		                }
+						if (that.horizontal) particle.info.position = {x:zim.rand(0, width), y:that.vertical?height/2:0};
+		                if (that.vertical) particle.info.position = {x:that.horizontal?width/2:0, y:zim.rand(0, height)};
+						if (particle.emitShape) {
+							particle.graphics.mt(particle.info.position.x, particle.info.position.y);
+						} else {
+							particle.pos(particle.info.position.x, particle.info.position.y);
+						}
+
+						if (that.random) {
+		                    // {color:[frame.blue, frame.pink, frame.yellow, frame.orange]}
+		                    zim.loop(that.random, function(property, options) {
+		                        val = zik(options);
+		                        if (property == "scale") {
+		                            particle.scale(val);
+		                        } else {
+									if (property == "x") {
+										particle.info.position.x = val;
+									} else if (property == "y") {
+										particle.info.position.y = val;
+									}
+		                            particle[property] = val;
+									if (particle.emitShape) particle.pos(0,0); // just adjust info for x and y of shape
+		                        }
+		                    });
+		                }
+
+				        if (cache && !particle.emitShape) particle.cache(particle.getBounds().x-10,particle.getBounds().y-10,particle.getBounds().width+20,particle.getBounds().height+20);
+
+						/////////////  DECAY, FADE, SHRINK, FIZZ
+
+		                if (that.decayTime > 0 && (that.fade || that.shrink || (that.trace && that.traceFadeTime > 0))) {
+
+							if (that.trace && that.traceFadeTime > 0) {
+								container.animate({
+									obj:{alpha:0},
+									time:that.traceFadeTime,
+									wait:that.life-that.traceFadeTime,
+									waitedCall:function(t) {
+										t.particleNormal = false;
+										t.particleFizzing = true;
+									},
+									call:fizz,
+									override:false,
+									id:"decay"
+								});
+							}
+							if (that.fade || that.shrink) {
+			                    particle.animate({obj:{
+									alpha:that.fade?0:particle.alpha,
+									scaleX:that.shrink?0:particle.scaleX,
+									scaleY:that.shrink?0:particle.scaleY},
+									time:that.decayTime,
+									wait:zot(that.decayStart)?that.life-that.decayTime:that.decayStart,
+									waitedCall:function(t) {
+										if (t.parent != that) t = t.parent; // access container if there is one
+										t.particleNormal = false;
+										t.particleDecaying = true;
+									},
+									call:function(t) {
+										if (that.events) sendEvent("decayed", t);
+										if (t.endSpurt) sendEvent("spurtDecayed", t);
+										if (!(that.trace && that.traceFadeTime > 0)) {
+											if (zot(that.decayStart) || that.decayStart+that.decayTime>that.life) {
+												fizz(t.parent.trace?t.parent:t); // only want to call fizz once
+											} else {
+												-function() {
+						                            var c = container;
+						                            zim.timeout(that.life-(that.decayStart+that.decayTime), function(){fizz(c);})
+						                        }();
+											}
+										}
+									},
+									override:false,
+									id:"decay"
+								});
+							}
+		                } else {
+		                    if (that.life > 0) {
+		                        -function() {
+		                            var c = container;
+		                            zim.timeout(that.life, function(){fizz(c);})
+		                        }();
+		                    }
+		               	}
+						if (that.events) sendEvent("emitted", container);
+						spurtCheck(particle);
+		                if (that.animation) {
+							var a = zik(that.animation);
+		                    if (zot(a.override)) a.override = false;
+		                    particle.animate(zim.copy(a));
+		                }
+					});
+	            }, null, true); // true for immediate
+
+
+				//////////  TICKER
+
+				var framerate = 0; // need a Ticker before can get the framerate so set this after Ticker
+	            this.zimTicker = zim.Ticker.add(function() {
+	                zim.loop(that, function(particle) {
+						if (particle.trace) {
+							var particleContainer = particle;
+							particle = particle.getChildAt(0);
+						}
+	                    var p = particle.info;
+	                    var sinkX = 0;
+	                    var sinkY = 0;
+	                    // will add multiple sinks in the future
+	                    // also - try sink with negative force to deflect
+	                    if (!zot(that.sink)) {
+	                        var b = that.localToGlobal(p.position.x, p.position.y);
+	                        var s = that.sink.parent.localToGlobal(that.sink.x, that.sink.y);
+	                        var sinkAngle = zim.angle(b.x, b.y, s.x, s.y);
+	                        var sinkX = that.sinkForce*Math.cos(sinkAngle*Math.PI/180)
+	                        var sinkY = that.sinkForce*Math.sin(sinkAngle*Math.PI/180)
+	                    }
+	                    var ax = that.wind + sinkX;
+	                    var ay = that.gravity + sinkY;
+	                    p.velocity.x += ax*frameRate;
+	                    p.velocity.y += ay*frameRate;
+						p.position.x += p.velocity.x*frameRate*100;
+	                   	p.position.y += p.velocity.y*frameRate*100;
+						if (particle.emitShape) {
+							particle.graphics.lt(p.position.x, p.position.y);
+						} else {
+		                    particle.x = p.position.x;
+		                    particle.y = p.position.y;
+						}
+						if (that.trace && particleContainer) particleContainer.updateCache(particle.emitShape?null:"source-over");
+
+					});
+	            }, stage);
+	            frameRate = 1 / zim.Ticker.framerate;
+	        }
+	    };
+
+		////////////  FUNCTIONS
+
+		function fizz(p) {
+			that.removeChild(p);
+			if (that.trace) p.uncache();
+			if (that.events) sendEvent("fizzed", p);
+			if (p.trace?p.getChildAt(0).endSpurt:p.endSpurt) {
+				sendEvent("spurtFizzed", p);
+				that.spurting = false;
+			}
+			p = null;
+		}
+
+		function sendEvent(type, object) {
+			var e = new createjs.Event(type);
+			e.particle = object.trace?object.getChildAt(0):object;
+			that.dispatchEvent(e);
+		}
+
+		function spurtCheck(p) {
+			if (zot(that.spurtCount) && zot(that.spurtNum)) return;
+			that.spurtCount++;
+			if (that.spurtCount >= that.spurtNum) {
+				lastSpurt(p);
+			}
+		}
+
+		function lastSpurt(p) {
+			that.pause();
+			that.spurtCount = that.spurtNum = null;
+			sendEvent("spurted", p);
+			p.endSpurt = true;
+		}
+
+		//////////  PROPERTIES
+
+		Object.defineProperty(that, 'interval', {
+			get: function() {
+				return interval;
+			},
+			set: function(theInterval) {
+				interval = theInterval;
+				if (that.zimInterval) that.zimInterval.time = interval;
+			}
+		});
+
+		////////////  METHODS
+
+		this.spurting = false;
+		this.spurt = function(num, time) {
+			var sig = "num, time";
+	   	 	var duo; if (duo = zob(that.spurt, arguments, sig)) return duo;
+			that.pause(false, true);
+			if (!zot(time)) {
+				zim.timeout(zik(time), function() {
+					lastSpurt(that.currentParticle);
+				});
+				that.spurting = true;
+			}
+			if (!zot(num)) {
+				// handled by checkSpurt() function
+				that.spurtNum = zik(num);
+				that.spurtCount = 0;
+				that.spurting = true;
+			}
+		}
+
+		if (!that.startPaused) this.paused = false; // do not set to false - as it will be done below if needed
+		this.pause = function(state, restart, freeze) {
+			that.startPaused = null;
+			if (zot(state)) state = true;
+			if (zot(restart)) restart = false;
+			if (zot(freeze)) freeze = false;
+			if (state) { // pausing
+				if (that.paused) return that;
+				if (freeze) {
+					if (that.zimTicker) zim.Ticker.remove(that.zimTicker);
+			        zim.loop(that, function(particle) {
+			            particle.pauseZimAnimate();
+						if (particle.trace) particle.getChildAt(0).pauseZimAnimate();
+			        });
+				}
+		        that.zimInterval.pause();
+				that.paused = true;
+			} else { // unpausing
+				if (!that.paused) return that;
+				if (restart) {
+					zim.loop(that, function(particle) {
+			            particle.stopZimAnimate();
+						if (particle.trace) particle.getChildAt(0).pauseZimAnimate();
+			        });
+					that.removeAllChildren();
+				}
+				if (stage && that.zimTicker && !zim.Ticker.has(stage, that.zimTicker)) {
+					zim.Ticker.add(that.zimTicker, stage);
+			        zim.loop(that, function(particle) {
+			            particle.pauseZimAnimate(false);
+						if (particle.trace) particle.getChildAt(0).pauseZimAnimate(false);
+			        });
+				}
+		        that.zimInterval.pause(false);
+				that.paused = false;
+			}
+			return that;
+		}
+
+		this.resize = function(w, h) {
+			if (!zot(w)) width = w;
+			if (!zot(h)) height = h;
+			that.setBounds(0,0,width,height);
+			if (!horizontal && !vertical) that.centerReg();
+		}
+
+	    this.clone = function() {
+			var objClone;
+			if (Array.isArray(that.obj) || that.obj.constructor == {}.constructor) {
+				objClone = zim.copy(that.obj);
+			} else if (that.obj.clone) {
+				objClone = that.obj.clone();
+			} else {
+				objClone = that.obj;
+			}
+			// note that all will clone the current property except for startPaused which clones the initial parameter value
+			return that.cloneProps(new zim.Emitter(objClone, width, height, that.interval, that.num, that.life, that.fade, that.shrink, that.decayTime, that.decayStart, that.trace, that.traceFadeTime, that.traceShiftX, that.traceShiftY, that.minAngle, that.maxAngle, that.minForce, that.maxForce, that.gravity, that.wind, that.layers, that.animation, zim.copy(that.random), that.horizontal, that.vertical, that.sink, that.sinkForce, cache, that.events, startPaused));
+	    }
+
+	    this.dispose = function() {
+	        if (that.zimTicker) zim.Ticker.remove(that.zimTicker);
+	        zim.loop(that, function(particle) {
+	            particle.stopZimAnimate();
+	        });
+	        that.zimInterval.clear();
+	        return true;
+	    }
+	}
+	zim.extend(zim.Emitter, zim.Container, "clone", "zimContainer", false);
+	//-69.9
 
 ////////////////  ZIM FRAME  //////////////
 
