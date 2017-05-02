@@ -7980,8 +7980,8 @@ var specifiedBlob = new zim.Blob({
 		// 2. the location of the first control rectangle x and y
 		// 3. the location of the second control rectangle x and y
 		// then an optional specific type of control that overrides the controlType parameter (or the default type of "straight")
-		[-100,-100,0,0,-100,100,100,-100,"mirror"], // this will be type "mirror"
-		[100,-100,0,0,100,0,-50,0], // this will be type "free" because controlType parameter
+		[-100,-100,-100,100,100,-100,0,0,"mirror"], // this will be type "mirror"
+		[100,-100,100,0,-50,0], // this will be type "free" because controlType parameter
 		[100,100], // these will be type "none" because no dimensions (or dimensions 0) specified for controls
 		[-100,100]
 	]
@@ -7998,12 +7998,13 @@ points - (default 4) a number of points to start with around a circle OR an arra
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
 		can access a control at an index by using blob.points[index][0]
 		animating the controlX and controlY will move the circle and rectangles together
-	circleX and circleY - (default 0) the x and y location of the circle relative to the control location (usually 0, 0)
-		can access a circle at an index by using blob.points[index][1]
-		animating the circle will move the circle independently of the control rectangles
 	rect1X, rect1Y, rect2X, rect2Y - (default 0) the x and y location of the control rectangles relative to the control location
 		can access a rectangle at an index by using blob.points[index][2] or blob.points[index][3]
 		animating a rectangle will move the rectangle independently of the circle and other control rectangle
+	circleX and circleY - (default 0) the x and y location of the circle relative to the control location (usually 0, 0)
+		can access a circle at an index by using blob.points[index][1]
+		animating the circle will move the circle independently of the control rectangles
+	controlType - (default main controlType parameter or "straight" if not controlType parameter) the point's controlType "none", "mirror", "straight" or "free"
 radius - (default 100) the default radius of the circle used to create the blob (also specifies the blob's bounds(-radius, -radius, radius*2, radius*2))
 controlLength - (default radius*numPoints/4) specify a Number to override the calculated default
 controlType - (default "straight") one of four String values as follows:
@@ -8026,6 +8027,9 @@ record(popup) - returns an array of with the same format as the points parameter
 	popup - (default false) set to true to open a zim Pane with the points in a zim TextArea (click off to close)
 	NOTE: the TextArea output uses JSON.stringify() - to add the points to the points parameter of the Blob use JSON.parse(output);
 	NOTE: using zog(JSON.stringify(blob.record()))... the console will remove the quotes from the controlTypes so those would have to be manually put back in before parse() will work
+changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) - change a control type and properties at an index
+	accepts ZIM DUO normal parameters or configuration object literal with parameter names as propterties
+	passing in null as the index will change all points to the specified properties
 update() - update the Blob if animating control points, etc. would do this in a Ticker
 showControls() - shows the controls (and returns blob) - or use blob.controls = true property
 hideControls() - hides the controls (and returns blob) - or use blob.controls = false property
@@ -8046,17 +8050,18 @@ borderColor - get and set the stroke color
 borderWidth - get and set the stroke size in pixels
 points - array access to the control point data with the following format:
 	NOTE: this format is different than the points parameter which is related but holds the x and y positions rather than the actual point objects found in the points property:
-	[[set, circle, rect1, rect2, controlType], [etc.]]
+	[[set, rect1, rect2, circle, controlType], [etc.]]
 	set - the container for the control that holds the circle and rectangles set
-	circle - the control point circle
 	rect1 - the first control point rectangle
 	rect2 - the second control point rectangle
-	NOTE: set, circle, rect1, rect2 can be positioned or animated
+	circle - the control point circle
+	NOTE: set, rect1, rect2 and circle can be positioned or animated
 	NOTE: the update() method must be called if manually changing the controls - do this in a zim.Ticker.add(function(){blob.update();})
 	controlType - get or set the control type: default is "straight" (or null) and there is also "mirror", "free" and "none"
 	and the controlType can be dynamically set (also double clicking the circle changes the control point)
 sets - access to the container that holds the sets
 sticks - access to the container that holds the control sticks
+types - get or set the array for the types ["mirror", "straight", "free", "none"]
 controls - Boolean to get or set the visibility of the controls (or use showControls() and hideControls() methods)
 lockControls - Boolean to lock controls from being adjusted or not
 dblclick - Boolean to get or set bouble clicking to show and hide controls and drag when controls are hidden
@@ -8113,7 +8118,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var that = this;
 
-		var types = ["mirror", "straight", "free", "none"];
+		var types = this.types = ["mirror", "straight", "free", "none"];
 
 		var _color = color;
 		var _borderColor = borderColor;
@@ -8130,7 +8135,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var sets = this.sets = new zim.Container().addTo(this).drag(); // sets - a set contains a ball and two rects
 		this.points = [];
 
-		var angle, point, temp, set, ball, rect1, type, setData;
+		var angle, point, temp, set, rect1, rect2, ball, type, setData;
 
 		for (var i=0; i<num; i++) {
 			set = new zim.Container().addTo(sets);
@@ -8161,16 +8166,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				ball.y = ballPoint.y;
 				ball.addTo(set);
 				var rect1Point = temp.localToLocal(rect1.x, rect1.y, sets);
-				rect1.x = rect1Point.x-ball.x;
-				rect1.y = rect1Point.y-ball.y;
+				rect1.x = controlType=="none"?0:rect1Point.x-ball.x;
+				rect1.y = controlType=="none"?0:rect1Point.y-ball.y;
 				rect1.addTo(set);
 				var rect2Point = temp.localToLocal(rect2.x, rect2.y, sets);
-				rect2.x = rect2Point.x-ball.x;
-				rect2.y = rect2Point.y-ball.y;
+				rect2.x = controlType=="none"?0:rect2Point.x-ball.x;
+				rect2.y = controlType=="none"?0:rect2Point.y-ball.y;
 				rect2.addTo(set);
 				set.pos(ball.x, ball.y);
 				ball.x = 0;
 				ball.y = 0;
+				if (controlType=="none") ball.addTo(set); // on top
 
 			} else { // passing in set data
 
@@ -8182,13 +8188,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				set = new zim.Container().addTo(sets).pos(setData[0], setData[1]);
 				ball = new zim.Circle(ballS, frame.light, frame.dark, 2)
 					.centerReg(set)
-					.pos(setData[2],setData[3]);
+					.pos(setData[6],setData[7]);
 				rect1 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
 					.centerReg(set, true, 0)
-					.pos(setData[4],setData[5]);
+					.pos(setData[2],setData[3]);
 				rect2 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
 					.centerReg(set, true, 0)
-					.pos(setData[6],setData[7]);
+					.pos(setData[4],setData[5]);
 			}
 
 			ball.set = set;
@@ -8206,8 +8212,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (type == "none") {
 					ball.parent.addChildAt(ball, 0);
 				}
-				// modulus going backwards needs to add the lenght so it does not go negative
-				type = types[(types.indexOf(type)+(frame.shiftKey?-1:1)+types.length)%types.length];
+				// modulus going backwards needs to add the length so it does not go negative
+				type = that.types[(that.types.indexOf(type)+(frame.shiftKey?-1:1)+that.types.length)%that.types.length];
 				if (type == "none") {
 					ball.rect1.x =  ball.rect1.y =  ball.rect2.x =  ball.rect2.y = 0;
 					ball.parent.addChild(ball);
@@ -8230,7 +8236,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				rect2.expand();
 			}
 
-			point = [set, ball, rect1, rect2, setData?setData[8]:controlType];
+			point = [set, rect1, rect2, ball, setData?setData[8]:controlType];
 			that.points.push(point);
 		}
 
@@ -8252,7 +8258,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 			var set = that.points[0][0];
-			var ballPoint = set.localToLocal(that.points[0][1].x, that.points[0][1].y, shape);
+			var ballPoint = set.localToLocal(that.points[0][3].x, that.points[0][3].y, shape);
 			g.mt(ballPoint.x, ballPoint.y);
 
 			s.c().s(frame.darker).ss(1)
@@ -8263,14 +8269,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var nextIndex = (i+1)%that.points.length;
 
 				var set = that.points[currentIndex][0];
-				var ball = that.points[currentIndex][1];
-				var control1 = that.points[currentIndex][2];
-				var control2 = that.points[currentIndex][3];
+				var ball = that.points[currentIndex][3];
+				var control1 = that.points[currentIndex][1];
+				var control2 = that.points[currentIndex][2];
 
 				var nextSet = that.points[nextIndex][0];
-				var nextBall = that.points[nextIndex][1];
-				var nextControl1 = that.points[nextIndex][2];
-				var nextControl2 = that.points[nextIndex][3];
+				var nextBall = that.points[nextIndex][3];
+				var nextControl1 = that.points[nextIndex][1];
+				var nextControl2 = that.points[nextIndex][2];
 
 				var control2Point = set.localToLocal(control2.x, control2.y, shape);
 				var nextControl1Point = nextSet.localToLocal(nextControl1.x, nextControl1.y, shape);
@@ -8372,6 +8378,35 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			that.dispatchEvent("change");
 		});
+
+		this.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) {
+			var sig = "index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY";
+			var duo; if (duo = zob(that.changeControl, arguments, sig)) return duo;
+			if (zot(index)) {
+				for (var i=0; i<that.points.length; i++) {
+					that.changeControl(i, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY);
+				}
+				return;
+			}
+			var point = that.points[index];
+			point[4] = type;
+			if (type == "none") {
+				if (!zot(circleX)) point[3].x = circleX;
+				if (!zot(circleY)) point[3].y = circleY;
+				point[1].pos(point[3].x, point[3].y);
+				point[2].pos(point[3].x, point[3].y);
+				point[3].parent.addChild(point[3]);
+			} else {
+				if (!zot(rect1X)) point[1].x = rect1X;
+				if (!zot(rect1Y)) point[1].y = rect1Y;
+				if (!zot(rect2X)) point[2].x = rect2X;
+				if (!zot(rect2Y)) point[2].y = rect2Y;
+				if (!zot(circleX)) point[3].x = circleX;
+				if (!zot(circleY)) point[3].y = circleY;
+				point[3].parent.addChildAt(point[3], 0);
+			}
+			if (that.getStage()) that.getStage().update();
+		}
 
 		this.update = function() {
 			drawShape();
