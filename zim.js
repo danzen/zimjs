@@ -2160,6 +2160,46 @@ RETURNS a Boolean indicating success
 	}//-27
 
 /*--
+zim.convertColor = function(color, hexToWord)
+
+convertColor
+zim function
+
+DESCRIPTION
+Converts HTML String colors to hex numbers or hex numbers to HTML String colors (if it matches) else black
+
+EXAMPLE
+var color = zim.convertColor("red"); // color is "#ff0000"
+var color = zim.convertColor("#ff0000", true); // color is "red"
+var color = zim.convertColor("f00", true); // color is "red" - note missing # okay and can use three digits
+END EXAMPLE
+
+PARAMETERS
+color - (default black) the HTML string or hex color (case insensitive) (does not work with "rgba()")
+hexToWord - (default false) set to true to convert a hex value to the HMTL string
+
+RETURNS a String with the converted color or black or #000000 if a match is not found
+--*///+27.5
+	zim.convertColor = function(color, hexToWord) {
+		if (zot(hexToWord)) hexToWord = false;
+		if (hexToWord) {
+			color = color.replace("#","");
+			if (color.length == 3) {
+				color = color.charAt(0)+color.charAt(0)+color.charAt(1)+color.charAt(1)+color.charAt(2)+color.charAt(2);
+			}
+		} else {
+			if (color.charAt(0)=="#") return color; // already hex
+		}
+		var colors = ['black','aliceblue','antiquewhite','aqua','aquamarine','azure','beige','bisque','blanchedalmond','blue','blueviolet','brown','burlywood','cadetblue','chartreuse','chocolate','coral','cornflowerblue','cornsilk','crimson','cyan','darkblue','darkcyan','darkgoldenrod','darkgray','darkgrey','darkgreen','darkkhaki','darkmagenta','darkolivegreen','darkorange','darkorchid','darkred','darksalmon','darkseagreen','darkslateblue','darkslategray','darkslategrey','darkturquoise','darkviolet','deeppink','deepskyblue','dimgray','dimgrey','dodgerblue','firebrick','floralwhite','forestgreen','fuchsia','gainsboro','ghostwhite','gold','goldenrod','gray','grey','green','greenyellow','honeydew','hotpink','indianred','indigo','ivory','khaki','lavender','lavenderblush','lawngreen','lemonchiffon','lightblue','lightcoral','lightcyan','lightgoldenrodyellow','lightgray','lightgrey','lightgreen','lightpink','lightsalmon','lightseagreen','lightskyblue','lightslategray','lightslategrey','lightsteelblue','lightyellow','lime','limegreen','linen','magenta','maroon','mediumaquamarine','mediumblue','mediumorchid','mediumpurple','mediumseagreen','mediumslateblue','mediumspringgreen','mediumturquoise','mediumvioletred','midnightblue','mintcream','mistyrose','moccasin','navajowhite','navy','oldlace','olive','olivedrab','orange','orangered','orchid','palegoldenrod','palegreen','paleturquoise','palevioletred','papayawhip','peachpuff','peru','pink','plum','powderblue','purple','rebeccapurple','red','rosybrown','royalblue','saddlebrown','salmon','sandybrown','seagreen','seashell','sienna','silver','skyblue','slateblue','slategray','slategrey','snow','springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet','wheat','white','whitesmoke','yellow','yellowgreen'];
+		var hex = ['000000','f0f8ff','faebd7','00ffff','7fffd4','f0ffff','f5f5dc','ffe4c4','ffebcd','0000ff','8a2be2','a52a2a','deb887','5f9ea0','7fff00','d2691e','ff7f50','6495ed','fff8dc','dc143c','00ffff','00008b','008b8b','b8860b','a9a9a9','a9a9a9','006400','bdb76b','8b008b','556b2f','ff8c00','9932cc','8b0000','e9967a','8fbc8f','483d8b','2f4f4f','2f4f4f','00ced1','9400d3','ff1493','00bfff','696969','696969','1e90ff','b22222','fffaf0','228b22','ff00ff','dcdcdc','f8f8ff','ffd700','daa520','808080','808080','008000','adff2f','f0fff0','ff69b4','cd5c5c','4b0082','fffff0','f0e68c','e6e6fa','fff0f5','7cfc00','fffacd','add8e6','f08080','e0ffff','fafad2','d3d3d3','d3d3d3','90ee90','ffb6c1','ffa07a','20b2aa','87cefa','778899','778899','b0c4de','ffffe0','00ff00','32cd32','faf0e6','ff00ff','800000','66cdaa','0000cd','ba55d3','9370db','3cb371','7b68ee','00fa9a','48d1cc','c71585','191970','f5fffa','ffe4e1','ffe4b5','ffdead','000080','fdf5e6','808000','6b8e23','ffa500','ff4500','da70d6','eee8aa','98fb98','afeeee','db7093','ffefd5','ffdab9','cd853f','ffc0cb','dda0dd','b0e0e6','800080','663399','ff0000','bc8f8f','4169e1','8b4513','fa8072','f4a460','2e8b57','fff5ee','a0522d','c0c0c0','87ceeb','6a5acd','708090','708090','fffafa','00ff7f','4682b4','d2b48c','008080','d8bfd8','ff6347','40e0d0','ee82ee','f5deb3','ffffff','f5f5f5','ffff00','9acd32'];
+		if (hexToWord) {
+			return colors[hex.indexOf(color.toLowerCase())!=-1?hex.indexOf(color):0];
+		} else {
+			return "#"+hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0];
+		}
+	}//-27.5
+
+/*--
 zim.mobile = function(orientation)
 
 mobile
@@ -6820,7 +6860,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.7
 
 /*--
-zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl)
+zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet)
 
 Sprite
 zim class - extends a createjs.Sprite
@@ -6954,6 +6994,7 @@ json - (default null) a JSON string for a CreateJS SpriteSheet
 id - (default randomly assigned) an id you can use in other animations - available as sprite.id
 	use this id in other animations for pauseRun and stopRun to act on these as well
 globalControl - (default true) pauseRun and stopRun will control other animations with same id
+spriteSheet - (default null) pass in a CreateJS SpriteSheet to build a Sprite from that
 
 METHODS
 time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl
@@ -7035,14 +7076,14 @@ EVENTS
 See the CreateJS Easel Docs for Sprite events, such as:
 animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.8
-	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl) {
-		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl";
+	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet) {
+		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet";
 		var duo; if (duo = zob(zim.Sprite, arguments, sig, this)) return duo;
 
 		z_d("50.8");
 
 		var that = this;
-
+		var sheet;
 		if (zot(json) && !zot(image)) {
 			if (zot(cols)) cols = 1;
 			if (zot(rows)) rows = 1;
@@ -7075,13 +7116,16 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				frames:frames,
 				animations:animations
 			};
-			spriteSheet = new createjs.SpriteSheet(spriteData);
+			sheet = new createjs.SpriteSheet(spriteData);
+		} else if (spriteSheet) {
+			sheet = spriteSheet;
+			animations = sheet.animations;
 		} else {
 			animations = json.animations;
-			spriteSheet = new createjs.SpriteSheet(json);
+			sheet = new createjs.SpriteSheet(json);
 		}
 		this.animations = animations;
-		this.cjsSprite_constructor(spriteSheet);
+		this.cjsSprite_constructor(sheet);
 
 		if (zot(id)) id = zim.makeID();
 		this.id = id;
@@ -7155,7 +7199,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 						startFrame = frames[0];
 						endFrame = frames[1];
 					} else if (!zot(innerLabel.startFrame) || !zot(innerLabel.endFrame)) {
-						if (zot(innerLabel.endFrame)) innerLabel.endFrame = spriteSheet.getNumFrames() - 1;
+						if (zot(innerLabel.endFrame)) innerLabel.endFrame = sheet.getNumFrames() - 1;
 						if (zot(innerLabel.startFrame)) innerLabel.startFrame = 0;
 						startFrame = innerLabel.startFrame;
 						endFrame = innerLabel.endFrame;
@@ -7203,7 +7247,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 						if (zot(a.frames)) {
 							if (zon) zog("zim.Sprite() - run() does not support nested labels - see docs");
 							startFrame = 0;
-							endFrame = spriteSheet.getNumFrames() - 1;
+							endFrame = sheet.getNumFrames() - 1;
 						} else {
 							makeStartEnd(a.frames);
 						}
@@ -7223,7 +7267,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				if (zot(label) || zot(animations) || zot(animations[label])) {
 					label = null;
 					if (zot(startFrame)) startFrame = 0;
-					if (zot(endFrame)) endFrame = spriteSheet.getNumFrames() - 1; // DUO might re-run function losing scope of this
+					if (zot(endFrame)) endFrame = sheet.getNumFrames() - 1; // DUO might re-run function losing scope of this
 				} else { // we do have a label and it is in animations
 					var frames = getFrames(label);
 					startFrame = frames[0];
@@ -7310,7 +7354,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 
 		Object.defineProperty(this, 'totalFrames', {
 			get: function() {
-				return spriteSheet.getNumFrames();
+				return sheet.getNumFrames();
 			},
 			set: function(value) {
 				zog("zim.Sprite - totalFrames is read only");
@@ -7318,7 +7362,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		});
 
 		this.clone = function() {
-			return this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, spriteSheet));
+			return this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet));
 		}
 	}
 	zim.extend(zim.Sprite, createjs.Sprite, "clone", "cjsSprite", false);
@@ -14886,9 +14930,15 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		z_d("76");
 		this.zimContainer_constructor();
 
-		if (zot(obj)) obj = "stage";
+		if (zot(obj)) {
+			if (zimDefaultFrame) {
+				obj = zimDefaultFrame.stage;
+			} else {
+				obj = "stage";
+			}
+		}
 		if (zot(vertical)) vertical = true;
-		if (obj != "stage" && (!obj.getBounds || !obj.getBounds())) {zog ("zim pages - Guide(): Please provide bounds for the obj (setBounds())"); return;}
+		if (obj != "stage" && (!obj.addChild || !obj.getBounds || !obj.getBounds())) {zog ("zim pages - Guide(): Please provide container with bounds for the obj (setBounds())"); return;}
 		if (zot(percent)) percent = true;
 		if (zot(hideKey)) hideKey = "G";
 		if (zot(pixelKey)) pixelKey = "P";
@@ -14931,7 +14981,8 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		}
 
 		var stage;
-		zim.added(that, added);
+		if (obj != "stage") obj.addChild(that);
+		var addedInterval = zim.added(that, added);
 
 		var guideCheck = false;
 		var objW;
@@ -14945,6 +14996,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 			} else {
 				stage =	obj.getStage();
 			}
+			obj.addChild(that);
 			objW = obj.getBounds().width;
 			objH = obj.getBounds().height;
 			if (vertical) {
@@ -15199,9 +15251,15 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		z_d("78");
 		this.zimContainer_constructor();
 
-		if (zot(obj)) obj = "stage";
+		if (zot(obj)) {
+			if (zimDefaultFrame) {
+				obj = zimDefaultFrame.stage;
+			} else {
+				obj = "stage";
+			}
+		}
 		if (zot(color)) color = "black";
-		if (obj != "stage" && (!obj.getBounds || !obj.getBounds())) {zog ("zim pages - Grid(): Please provide bounds for the obj (setBounds())"); return;}
+		if (obj != "stage" && (!obj.addChild || !obj.getBounds || !obj.getBounds())) {zog ("zim pages - Grid(): Please provide container with bounds for the obj (setBounds())"); return;}
 		if (zot(percent)) percent = true;
 		if (zot(hideKey)) hideKey = "G";
 		if (zot(pixelKey)) pixelKey = "P";
@@ -15252,11 +15310,11 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		left.label.text = "y:0";
 
 		var stage;
-		zim.added(that, added);
+		if (obj != "stage") obj.addChild(that);
+		var addedInterval = zim.added(that, added);
 
 		var gridCheck = false;
 		function added() {
-			clearInterval(addedInterval);
 			if (obj == "stage") {
 				stage =	that.getStage();
 				obj = stage;
@@ -17751,6 +17809,28 @@ var particles = new zim.Emitter({
 	.centerReg(stage)
 	.scale(2);
 
+// eg. 3 use a StageGL Frame and createjs.SpriteSheetBuilder for circles:
+var frame = new zim.Frame({scale:"fit", width:1024, height:768, gpu:true});
+frame.on("ready", function() {
+	var stage = frame.stage;
+	// if we pass in just a zim.Circle then we would have to turn on cache
+	// and cache on WebGL counts as an image for each one
+	// whereas a SpriteSheet just counts as an image for all of the particles
+	// so build a SpriteSheet from the Circle
+	var builder = new createjs.SpriteSheetBuilder();
+	builder.addFrame(new zim.Circle(50, frame.purple));
+	builder.build();
+	var emitter = new zim.Emitter({
+		obj:new zim.Sprite({spriteSheet:builder.spriteSheet}),
+		num:10, // ten Sprites made every 20 ms for about 1000 particles
+		life:2000,
+		interval:20,
+		gravity:0,
+		force:2
+	}).centerReg(stage);
+});
+
+
 // see more examples at http://zimjs.com/code/particles
 END EXAMPLE
 
@@ -17805,7 +17885,7 @@ horizontal - (default false) start the particles across the emitter's width at t
 vertical - (default false) start the particles across the emitter's height at the left of the emitter (unless horizontal is set to true)
 sink - (default null) an object with x and y properties (can be a display object) that the particles will be pulled to (or pushed if sinkForce is negative)
 sinkForce - (default 10 if sink) the force particles are moved towards the sink location
-cache - (default zim.mobile()) Boolean to cache each particle - helpful if complex shape or text (do not use for Bitmap)
+cache - (default zim.mobile() or false if gpu) Boolean to cache each particle - helpful if complex shape or text (do not use for Bitmap or SpriteSheet)
 events - (default false) Boolean - set to true to receive events from Emitter
 startPaused - (default false) Boolean - set to true to start the Emitter in the paused state
 pool - (default true) Boolean if true, makes as many particles as it needs before recycling particles
@@ -17915,7 +17995,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	    if (zot(horizontal)) horizontal = false;
 	    if (zot(vertical)) vertical = false;
 	    if (!zot(sink) && zot(sinkForce)) sinkForce = 10;
-	    if (zot(cache)) cache = zim.mobile();
 		if (zot(events)) events = false;
 		if (zot(startPaused)) startPaused = false;
 		if (zot(pool)) pool = true;
@@ -17943,11 +18022,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var poolIndex = 0;
 		var poolCount = 0;
 
-		//
 		var stage;
 		zim.added(that, addedToStage);
 	    function addedToStage(s) {
 	        stage = s;
+			if (zot(cache)) {
+				if (stage.isWebGL) {
+					cache = false;
+				} else {
+					cache = zim.mobile();
+				}
+			}
 			if (cache) stage.snapToPixelEnabled = true;
 	        if (stage) {
 				if (!horizontal && !vertical) that.centerReg();
@@ -18372,7 +18457,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	if (zon) zog("ZIM FRAME");
 
 /*--
-zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject)
+zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject, canvasCheck, gpu, gpuObj, nextFrame, nextStage)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -18424,6 +18509,8 @@ frame.on("ready", function() {
 	}); // end asset complete
 
 }); // end of ready
+
+
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -18463,6 +18550,13 @@ tabHighlightAlpha - (default .3) alpha of the tabHighlightObject if handleTabs i
 tabHighlightTime - (default 700ms) milliseconds to show tabHightlightObject if handleTabs is set
 tabHighlightObject - (default Circle(100, "white")) set to a display object - including animated objects
 canvasCheck - (default true) check to see if there is canvas support - uses !!window.HTMLCanvasElement
+gpu - (default false) set to true to use a CreateJS StageGL stage for GPU renderer
+ 	See: http://blog.createjs.com/stagegl-faster-better-stronger-webgl-update-easeljs/
+	Can use http://d309knd7es5f10.cloudfront.net/createjs-2017.05.02.min.js (CreateJS NEXT version made for ZIM)
+gpuObj - (default null) object with following properties (with defaults) See CreateJS docs on GITHUB:
+	preserveBuffer (false), antialias (false), transparent (false), premultiply (false), autoPurge (1200)
+nextFrame - (default null) set to zim Frame object of Frame underneath current Frame to pass events to nextFrame
+nextStage - (default null) alternative to nextFrame if the stage beneath current Frame is not a ZIM Frame but just a CreateJS Stage
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -18485,7 +18579,6 @@ altKey - true if the alt key is being pressed otherwise false
 ctrlKey - true if the ctrl key is being pressed otherwise false
 metaKey - true if the meta key (⌘ command on Mac or ⊞ windows key) is being pressed otherwise false
 shiftKey - true if the shift key is being pressed otherwise false
-
 
 METHODS
 loadAssets(file||[file, file, etc.], path, xhr, time)
@@ -18528,9 +18621,9 @@ EVENTS
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
 "keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
 --*///+83
-	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject, canvasCheck) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject, canvasCheck, gpu, gpuObj, nextFrame, nextStage) {
 
-		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject, canvasCheck";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, handleTabs, tabHighlight, tabHighlightScale, tabHighlightAlpha, tabHighlightTime, tabHighlightObject, canvasCheck, gpu, gpuObj, nextFrame, nextStage";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		this.cjsEventDispatcher_constructor();
@@ -18570,6 +18663,7 @@ EVENTS
 		if (zot(tabHighlightAlpha)) tabHighlightAlpha = .3;
 		if (zot(tabHighlightTime)) tabHighlightTime = 700;
 		if (zot(tabHighlightObject)) tabHighlightObject = new zim.Circle(100, "white");
+		if (zot(gpu)) gpu = false;
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
@@ -18612,7 +18706,8 @@ EVENTS
 					zim.Ticker.update = false;
 					setTimeout(function() {
 						pauseTicker = false;
-						zim.Ticker.update = lastTicker;
+						// only have one Frame set this...
+						if (stage == zimDefaultFrame.stage) zim.Ticker.update = lastTicker;
 					}, 40);
 					setTimeout(function() {
 						sizeCanvas();
@@ -18698,12 +18793,15 @@ EVENTS
 		function makeStage() {
 			sizeCanvas();
 			if (types.indexOf(scaling) != -1) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
-			stage = new createjs.Stage(canvasID);
+			stage = gpu?new createjs.StageGL(canvasID, gpuObj):new createjs.Stage(canvasID);
+			if (!zot(color) && gpu) stage.setClearColor(zim.convertColor(color));
 			stage.setBounds(0, 0, stageW, stageH);
 			stage.width = stageW;
 			stage.height = stageH;
 			if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
 			if (touch) createjs.Touch.enable(stage,true); // added for mobile
+			if (nextFrame) stage.nextStage = nextFrame.stage;
+			if (nextStage) stage.nextStage = nextStage;
 		}
 
 		function sizeCanvas() {
@@ -18734,6 +18832,7 @@ EVENTS
 					stage.setBounds(0,0,stageW,stageH); // need this
 					stage.width = stageW;
 					stage.height = stageH;
+					if (gpu) stage.updateViewport(stageW, stageH);
 				}
 				return;
 			} else if (scaling == "tag") {
@@ -18744,6 +18843,7 @@ EVENTS
 					stage.setBounds(0,0,stageW,stageH); // need this
 					stage.width = stageW;
 					stage.height = stageH;
+					if (gpu) stage.updateViewport(stageW, stageH);
 				}
 				tag.style.overflow = "hidden";
 				can.style.left = can.style.top = "0px";
@@ -18754,6 +18854,7 @@ EVENTS
 					stage.setBounds(0,0,stageW,stageH); // need this
 					stage.width = stageW;
 					stage.height = stageH;
+					if (gpu) stage.updateViewport(stageW, stageH);
 				}
 				can.style.left = can.style.top = "0px";
 				return;
@@ -18893,6 +18994,7 @@ EVENTS
 				color = value;
 				if (!zot(value)) {
 					zid(canvasID).style.backgroundColor = color;
+					if (!zot(color) && gpu) stage.setClearColor(zim.convertColor(color));
 				} else {
 					zid(canvasID).style.backgroundColor = "default";
 				}
@@ -18932,18 +19034,18 @@ EVENTS
 				}
 				if (handleTabs) e.preventDefault();
 			}
-			frame.altKey = e.altKey;
-			frame.ctrlKey = e.ctrlKey;
-			frame.metaKey = e.metaKey;
-			frame.shiftKey = e.shiftKey;
+			that.altKey = e.altKey;
+			that.ctrlKey = e.ctrlKey;
+			that.metaKey = e.metaKey;
+			that.shiftKey = e.shiftKey;
 			that.dispatchEvent(e);
 		});
 		window.addEventListener("keyup", function(e) {
 			e.remove = that.eventRemove;
-			frame.altKey = e.altKey;
-			frame.ctrlKey = e.ctrlKey;
-			frame.metaKey = e.metaKey;
-			frame.shiftKey = e.shiftKey;
+			that.altKey = e.altKey;
+			that.ctrlKey = e.ctrlKey;
+			that.metaKey = e.metaKey;
+			that.shiftKey = e.shiftKey;
 			that.dispatchEvent(e);
 		});
 		var tabTimeout;
