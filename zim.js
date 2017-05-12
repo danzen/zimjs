@@ -833,23 +833,6 @@ paused - the paused state of the timeout
 		time = zik(time);
 		var obj = {startTime:Date.now(), time:0, paused:false};
 		var lastTime = obj.startTime;
-		obj.pause = function(state) {
-			if (zot(state)) state = true;
-			if (state) { // pausing
-				cancelAnimationFrame(obj.rid);
-			} else { // unpausing
-				next();
-			}
-			obj.paused = state;
-		}
-		obj.clear = function() {
-			if (obj) cancelAnimationFrame(obj.rid);
-			for (var i in obj) {
-				delete obj[i];
-			}
-			obj.pause = function() {};
-			obj.clear = function() {};
-		}
 		function next() {
 			var now = Date.now()
 			obj.time += now - lastTime;
@@ -862,6 +845,27 @@ paused - the paused state of the timeout
 			obj.rid = requestAnimationFrame(next);
 		}
 		next();
+
+		obj.pause = function(state) {
+			if (zot(state)) state = true;
+			if (state) { // pausing
+				cancelAnimationFrame(obj.rid);
+			} else { // unpausing
+				lastTime = Date.now();
+				next();
+			}
+			obj.paused = state;
+		}
+
+		obj.clear = function() {
+			if (obj) cancelAnimationFrame(obj.rid);
+			for (var i in obj) {
+				delete obj[i];
+			}
+			obj.pause = function() {};
+			obj.clear = function() {};
+		}
+
 		return obj;
 	}//-9.7
 
@@ -4095,7 +4099,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(target.zimTweens)) target.zimTweens = {};
 		if (ticker && (zot(target.getStage) || zot(target.getStage()))) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
 		if (!zot(obj.scale)) {
-			obj.scaleX = obj.scaleY = obj.scale;
+			obj.scaleX = obj.scaleY = zik(obj.scale);
 			delete obj.scale;
 		}
 
@@ -18040,20 +18044,38 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				//-------------   INTERVAL
 
 	            that.zimInterval = zim.interval(that.interval, function() {
+					// zog(that.numChildren)
 					if (that.startPaused) {that.pause(); return;}
 					// want to leave that.obj as it was provided
 					// but for creation we will normalize it as an Array
 					obj = Array.isArray(that.obj)?that.obj:[that.obj];
 	                if (obj.length <= 0) return;
+
+					var minInterval; // used to calculate max pool
+					var maxNum;
+					function sortNumber(a,b) {return a - b;}
+					if (Array.isArray(that.interval)) {
+						that.interval.sort(sortNumber);
+						minInterval = that.interval[0];
+					} else {
+						minInterval = that.interval;
+					}
+					if (Array.isArray(that.num)) {
+						that.num.sort(sortNumber);
+						maxNum = that.num[that.num.length-1];
+					} else {
+						maxNum = that.num;
+					}
+
 					zim.loop(zik(that.num), function() {
 		                if (that.decayTime > 0) {
 		                    var decay = {};
 		                    if (that.shrink) decay.scale=0;
 		                    if (that.fade) decay.alpha=0;
 		                }
-
-						if (that.pool && poolList.length > 0 && poolCount >= Math.max(that.poolMin, (that.life/that.interval+5)*num)) { // USE POOL... throw in an extra 5 for good measure
+						if (that.pool && poolList.length > 0 && poolCount >= Math.max(that.poolMin, (that.life/minInterval+5)*maxNum)) { // USE POOL... throw in an extra 5 for good measure
 							var container = poolList[(poolIndex++)%poolList.length];
+							container.visible = true;
 							var particle = container.trace?container.getChildAt(0):container;
 							if (particle.emitShape) {
 								var t = particle.template;
@@ -18061,9 +18083,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 							}
 							if (container.trace) container.updateCache();
 							if (that.layers == "top") {
-								container.addTo(that);
+								if (particle.emitShape) container.addTo(that);
+								else container.centerReg(that);
 							} else {
-								container.addTo(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+								if (particle.emitShape) container.addTo(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+								else container.centerReg(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
 							}
 							container.alpha = 1;
 							container.scale(1);
@@ -18107,7 +18131,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 									if (that.layers == "top") {
 										particle.centerReg(that);
 									} else {
-
 										particle.centerReg(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
 									}
 								}
@@ -18119,8 +18142,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								} else {
 									container.addTo(that, that.layers=="bottom"?0:zim.rand(that.numChildren));
 								}
+								container.cache(traceShiftX,traceShiftY,width,height);
 							}
-							if (that.trace) container.cache(traceShiftX,traceShiftY,width,height);
 
 							if (!that.trace) container = particle;
 							container.particle = particle;
@@ -18180,6 +18203,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		                if (that.decayTime > 0 && (that.fade || shrinkMe || (that.trace && that.traceFadeTime > 0))) {
 
+
 							if (that.trace && that.traceFadeTime > 0) {
 								container.animate({
 									obj:{alpha:0},
@@ -18195,10 +18219,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								});
 							}
 							if (that.fade || shrinkMe) {
-			                    particle.animate({obj:{
-									alpha:that.fade?0:particle.alpha,
-									scaleX:shrinkMe?0:particle.scaleX,
-									scaleY:shrinkMe?0:particle.scaleY},
+								var o = {};
+								if (that.fade) o.alpha = 0;
+								if (shrinkMe) {
+									o.scaleX = 0;
+									o.scaleY = 0;
+								}
+			                    particle.animate({
+									obj:o,
 									time:that.decayTime,
 									wait:zot(that.decayStart)?that.life-that.decayTime:that.decayStart,
 									waitedCall:function(t) {
@@ -18228,7 +18256,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		                    if (that.life > 0) {
 		                        -function() {
 		                            var c = container;
-		                            zim.timeout(that.life, function(){fizz(c);})
+		                            c.timeOut = zim.timeout(that.life, function(){fizz(c);})
 		                        }();
 		                    }
 		               	}
@@ -18299,15 +18327,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.spurting = false;
 			}
 			if (that.pool) {
-				if (p.pooled) return;
 				if (p.pooled == "end") {
-					// go through to remove child - don't want in pool
+					// already removed from poolList by clearPool
+					// go through and removeChild
 				} else if (p.pooled) { // already in the pool
-					that.removeChild(p)
+					p.visible = false;
 					return;
 				} else { // add to pool and return so does not get removed
 					p.pooled = true;
 					poolList.push(p);
+					p.visible = false;
 					return;
 				}
 			}
@@ -18373,8 +18402,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.clearPool = function() {
-			zim.loop(that, function(p){p.pooled="end"});
+			zim.loop(that, function(p) {
+				p.pooled="end";
+				if (!p.visible) that.removeChild(p);
+			},true);
 			poolCount = 0;
+			poolIndex = 0;
 			poolList = [];
 		}
 
@@ -18391,6 +18424,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			        zim.loop(that, function(particle) {
 			            particle.pauseZimAnimate();
 						if (particle.trace) particle.getChildAt(0).pauseZimAnimate();
+						if (particle.timeOut) {
+							particle.timeOut.pause();
+						}
 			        });
 				}
 		        that.zimInterval.pause();
@@ -18400,6 +18436,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (restart) {
 					zim.loop(that, function(particle) {
 			            particle.stopZimAnimate();
+						if (particle.timeOut) particle.timeOut.clear();
 						if (particle.trace) particle.getChildAt(0).pauseZimAnimate();
 			        });
 					that.removeAllChildren();
@@ -18408,6 +18445,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					zim.Ticker.add(emitterTicker, stage);
 			        zim.loop(that, function(particle) {
 			            particle.pauseZimAnimate(false);
+						if (particle.timeOut) particle.timeOut.pause(false);
 						if (particle.trace) particle.getChildAt(0).pauseZimAnimate(false);
 			        });
 				}
