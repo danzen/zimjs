@@ -951,6 +951,7 @@ pause(state, immediate) - (default true) will pause the interval - set to false 
 clear() - will clear the interval
 
 PROPERTIES - of ZIM intervalObject
+time - |ZIM VEE| the time for the interval (see time parameter)
 count - the number of times the interval has run (if immediate is true, the first count is 0)
 paused - the paused state of the interval
 pauseTimeLeft - if paused, how much time is left once unpaused
@@ -4737,9 +4738,9 @@ RETURNS target for chaining
 			lastWiggle = wiggle;
 			count++;
 			if (type == "negative" || type == "positive") {
-				target.animate({obj:obj, set:set, ease:ease, time:time*2, rewind:true, override:false, call:wiggleMe, id:id});
+				zim.animate({target:target, obj:obj, set:set, ease:ease, time:time*2, rewind:true, override:false, call:wiggleMe, id:id, ticker:(target.getStage?true:false)});
 			} else {
-				target.animate({obj:obj, ease:ease, time:time, override:false, call:wiggleMe, id:id});
+				zim.animate({target:target, obj:obj, ease:ease, time:time, override:false, call:wiggleMe, id:id, ticker:(target.getStage?true:false)});
 			}		}
 		wiggleMe();
 		return target;
@@ -8054,7 +8055,8 @@ points - (default 4) a number of points to start with around a circle OR an arra
 		animating the circle will move the circle independently of the control rectangles
 	controlType - (default main controlType parameter or "straight" if not controlType parameter) the point's controlType "none", "mirror", "straight" or "free"
 radius - (default 100) the default radius of the circle used to create the blob (also specifies the blob's bounds(-radius, -radius, radius*2, radius*2))
-controlLength - (default radius*numPoints/4) specify a Number to override the calculated default
+controlLength - |ZIM VEE| (default radius*numPoints/4) specify a Number to override the calculated default
+	or pass in a ZIM VEE value and zik will assign a random option for each controlLength of the blob
 controlType - (default "straight") one of four String values as follows:
 	none - there are no control rectangles (they are actually set at 0,0).  This makes a corner at the circle point.
 	mirror - the control rectangles reflect one another about the point circle - lengths are kept even
@@ -8197,17 +8199,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				// afterwards, adjust controls in set Container so origin and registration is at ball
 				// then move the set Container so it matches this adjustment
 				// (or could have calculated all positions to start with aTan2, sin, cos etc.)
-				temp = new zim.Container(controlLength, radius).reg(controlLength/2, radius).addTo(this);
+				var length = zik(controlLength);
+				temp = new zim.Container(length, radius).reg(length/2, radius).addTo(this);
 				temp.rotation = i/num * 360;
 				ball = new zim.Circle(ballS, frame.light, frame.dark, 2)
 					.centerReg(temp)
-					.pos(controlLength/2,0);
+					.pos(length/2,0);
 				rect1 = new zim.Rectangle(rectS, rectS, getColor(controlType), frame.dark, 2)
 					.centerReg(temp)
 					.pos(0,0);
 				rect2 = new zim.Rectangle(rectS, rectS, getColor(controlType), frame.dark, 2)
 					.centerReg(temp)
-					.pos(controlLength,0);
+					.pos(length,0);
 
 				var ballPoint = temp.localToLocal(ball.x, ball.y, sets);
 				ball.x = ballPoint.x;
@@ -9857,6 +9860,7 @@ container - container for the pane (usually the stage)
 width - (default 200) width of pane
 height - (default 200) height of pane
 label - (default null) an optional ZIM Label (or text for default label properties)
+color - (default "white") a css color for the background of the Pane
 drag - (default false) pass in true to drag the pane
 resets - (default true) resets position to start on re-open - set to false to keep last position
 modal - (default true) pane will close when user clicks off the pane - set to false to keep pane open
@@ -12543,6 +12547,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var num = tabs.length;
 		var tabW = (width - spacing*(num-1))/num;
 
+		zog(width)
+
 		if (typeof tabs[0] == "number" || typeof tabs[0] == "string") { // change to objects with labels
 			for (var i=0; i<tabs.length; i++) {
 				tabs[i] = {label:String((tabs[i]!=null))?tabs[i]:"1"};
@@ -12566,14 +12572,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		} else if (Math.round(total) < Math.round(width - spacing*(num-1))) {
 			// go back and readjust the average of non specified widths
 			if (nonSpecifiedCount > 0) {
-				newTabW = (total-nonSpecifiedCount*tabW)/nonSpecifiedCount;
+				newTabW = (num*tabW-(total-nonSpecifiedCount*tabW))/nonSpecifiedCount;
 				for (i=0; i<tabs.length; i++) {
 					t = tabs[i];
 					t.width = ((zot(t.width))?newTabW:t.width);
 				}
 			} else {
 				if (zon) zog("ZIM Tabs - total less than width");
-				this.width = total + spacing*(num-1);
+				width = total + spacing*(num-1);
 			}
 		}
 
@@ -12600,6 +12606,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			lastX = button.x + button.width + spacing;
 			if (i==0 && !currentEnabled) button.enabled = false;
 		};
+
+		zog(this.width)
 
 		this.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
 			change(e.target.znum);
@@ -17117,6 +17125,7 @@ PARAMETERS supports DUO - parameters or single object with properties below
 container - the Container the target is in - the stage is most likely fine
 	this must be on the stage (or be the stage) when the MotionController is made
 target - the object you want to control
+	if you only want data from the MotionController you can leave the target parameter as null (don't include it)
 type - (default "mousedown") by default will move to where you press in the container
 	set to "mousemove" to have the target follow the mouse movement
 	set to "keydown" to use keys to control the target (see map parameter)
@@ -17163,6 +17172,9 @@ x - the desired x position of the target before damping is applied (use this for
 y - the desired y position of the target before damping is applied (use this for manual imput - or convert() method)
 dirX - the x direction the player is moving
 dirY - the x direction the player is moving
+rotation - read only rotation of the player in degrees
+scaleX - read only scaleX of player (to get flip data if only using controller for data)
+scaleY - read only scaleY of player (to get flip data if only using controller for data)
 dampX - reference to the horizonal Damp object
 dampY - reference to the vertical Damp object
 speed - the speed setting which will be multiplied by direction
@@ -17190,7 +17202,7 @@ dispatches a change event with dir as property of event object
 		if (zot(container) || !container.getStage) {zog("zim Controller(): Please pass in a reference to a container as first parameter");	return;}
 		if (zot(container.getStage())) {zog("zim Controller(): The Container must be on the stage"); return;}
 		var stage = container.getStage();
-		if (zot(target)) {zog("zim Controller(): Please pass in a target object to control"); return;}
+		if (zot(target)) {target = new zim.Container(1,1);} // make a surrogate if only wanting controller data
 		if (zot(speed)) speed = 7;
 		if (zot(type) || (type != "mousemove" && type != "keydown" && type != "gamebutton" && type != "gamestick" && type != "swipe" && type != "manual")) type = "mousedown";
 		if (zot(axis)) axis = "both"; // horizontal, vertical, both
@@ -17231,9 +17243,13 @@ dispatches a change event with dir as property of event object
 
 		var speedX = that.speed; // speedX and speedY hold proportioned speed based on angle
 		var speedY = that.speed;
-		that.angle = 0; // holds the pre-damped angle of the target
+		var flipRotation = 0; // records if we need to adjust rotation if flipped
+		that.rotation = 0; // holds the pre-damped angle of the target
 		that.x = this.target.x; // holds the pre-damped x and y position of the target
 		that.y = this.target.y;
+
+		var originalScaleX = that.scaleX = target.scaleX;
+		var originalScaleY = that.scaleY = target.scaleY;
 
 		// INPUTS
 		// set up collecting the desired x and y based on various inputs:
@@ -17378,7 +17394,7 @@ dispatches a change event with dir as property of event object
 
 		function doFirstPerson(d) {
 			first.rotation += d.dirX * that.turnSpeed;
-			that.angle = first.rotation;
+			that.rotation = first.rotation;
 			first.speedX = Math.sin(first.rotation*Math.PI/180) * that.speed * -d.dirY;
 			first.speedY = - Math.cos(first.rotation*Math.PI/180) * that.speed * -d.dirY;
 			that.x += first.speedX;
@@ -17400,11 +17416,16 @@ dispatches a change event with dir as property of event object
 			speedY = trig.speedY;
 
 			if (!rotate) return;
-			that.angle = trig.angle;
-			if (zot(that.angle)) return; // when no motion purposely left null so stopped target keeps rotation
+			that.rotation = trig.angle;
+			if (zot(that.rotation)) {
+				that.rotation = that.target.rotation;
+				return; // when no motion purposely left null so stopped target keeps rotation
+			}
+
+			that.rotation += flipRotation; // if flipped we need to add 180 to rotation
 
 			// make sure angle damps to shortest direction - this is tricky
-			var newR = normalizeAngle(that.angle);
+			var newR = normalizeAngle(that.rotation);
 			var oldR = that.target.rotation = normalizeAngle(that.target.rotation);
 			if (Math.abs(newR-oldR) > 180) {
 				if (oldR > newR) {
@@ -17415,7 +17436,7 @@ dispatches a change event with dir as property of event object
 			}
 			that.dampR.immediate(oldR); // required otherwise damping equation has mind of its own
 			that.target.rotation = oldR; // make sure to set this again as we may have changed oldR for proper rotational direction when damped
-			that.angle = newR;
+			that.rotation = newR;
 		}
 		function normalizeAngle(a) {
 			return (a % 360 + 360) % 360;
@@ -17479,12 +17500,27 @@ dispatches a change event with dir as property of event object
 					var options = ["left", null, "right"];
 					e.dir = options[that.dirX+1];
 					lastDirX = that.dirX;
-					if (flip == "horizontal" || flip == "both") target.scaleX = that.dirX?Math.abs(target.scaleX)*that.dirX:target.scaleX;
+					if (flip == "horizontal" || flip == "both") {
+						that.scaleX = target.scaleX = that.dirX?Math.abs(target.scaleX)*that.dirX:target.scaleX;
+						if (originalScaleX != 0 && Math.round(that.scaleX/originalScaleX) == -1) {
+							flipRotation = 180;
+						} else {
+							flipRotation = 0;
+						}
+					}
 				} else {
 					var options = ["up", null, "down"];
 					e.dir = options[that.dirY+1];
 					lastDirY = that.dirY;
-					if (flip == "vertical" || flip == "both") target.scaleY = that.dirY?Math.abs(target.scaleY) * that.dirY:target.scaleY;
+					if (flip == "vertical" || flip == "both") {
+						that.scaleY = target.scaleY = that.dirY?Math.abs(target.scaleY) * that.dirY:target.scaleY;
+						// not sure why this breaks flip?
+						// if (originalScaleY != 0 && Math.round(that.scaleY/originalScaleY) == -1) {
+						// 	flipRotation = 180;
+						// } else {
+						// 	flipRotation = 0;
+						// }
+					}
 				}
 				that.dispatchEvent(e);
 			}
@@ -17496,8 +17532,8 @@ dispatches a change event with dir as property of event object
 
 			// damp the rotation - but not if the angle is null which happens when no movement
 			// this keeps the last angle during movement rather than setting it to 0 which is not right
-			if (rotate && !zot(that.angle)) {
-				that.target.rotation = that.dampR.convert(that.angle);
+			if (rotate && !zot(that.rotation)) {
+				that.target.rotation = that.dampR.convert(that.rotation);
 			}
 
 		}, stage);
@@ -17516,7 +17552,7 @@ dispatches a change event with dir as property of event object
 			}
 			if (!zot(r) && that.dampR) {
 				that.dampR.immediate(r);
-				that.angle = that.target.rotation = r;
+				that.rotation = that.target.rotation = r;
 			}
 		}
 
@@ -18057,12 +18093,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (Array.isArray(that.interval)) {
 						that.interval.sort(sortNumber);
 						minInterval = that.interval[0];
+					} else if (that.interval.constructor == {}.constructor){
+						minInterval = that.interval.min;
 					} else {
 						minInterval = that.interval;
 					}
 					if (Array.isArray(that.num)) {
 						that.num.sort(sortNumber);
 						maxNum = that.num[that.num.length-1];
+					} else if (that.num.constructor == {}.constructor){
+						maxNum = that.num.max;
 					} else {
 						maxNum = that.num;
 					}
