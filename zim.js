@@ -2597,8 +2597,8 @@ outline(color, size)
 addTo(container, index)
 removeFrom(container)
 added()
-centerReg(container, add, index)
-center(container, add, index)
+centerReg(container, index, add)
+center(container, index, add)
 place(id)
 placeReg(id)
 expand(padding, paddingVertical)
@@ -2636,6 +2636,7 @@ width - gets or sets the width. Setting the width will scale the height to keep 
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+blendMode - the same as compositeOperation with values such as "difference", "multiply", etc. see CreateJS compositeOperation
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
@@ -4223,10 +4224,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					.centerReg(set)
 					.pos(setData[6],setData[7]);
 				rect1 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
-					.centerReg(set, true, 0)
+					.centerReg(set, 0)
 					.pos(setData[2],setData[3]);
 				rect2 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
-					.centerReg(set, true, 0)
+					.centerReg(set, 0)
 					.pos(setData[4],setData[5]);
 			}
 
@@ -4761,7 +4762,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			zim.center(obj, that);
 			obj.y += size/32; // backing often on capital letters without descenders - was /16
 			if (obj2) {
-				zim.center(obj2, that,0);
+				zim.center(obj2, that, 0);
 				obj2.y += size/32;
 			}
 		}
@@ -4773,7 +4774,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (!zot(backing)) {
 			this.backing = backing;
-		 	zim.center(backing, this, true, 0);
+		 	zim.center(backing, this, 0);
 		}
 
 		Object.defineProperty(that, 'text', {
@@ -5838,7 +5839,7 @@ pane.show(); // pressing anywhere will close pane (see parameters for options)
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - container for the pane (usually the stage)
+container - (default - the default stage) container for the pane
 width - (default 200) width of pane
 height - (default 200) height of pane
 label - (default null) an optional ZIM Label (or text for default label properties)
@@ -5913,9 +5914,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		z_d("58");
 		this.zimContainer_constructor();
 
-		if (zot(container) || !container.getBounds) {zog("zim build - Pane(): Please pass in a reference to a container with bounds set as first parameter");	return;}
-		if (!container.getBounds()) {zog("zim build - Pane(): Please give the container bounds using setBounds()"); return;}
-		if (zot(container.getStage)) {zog("zim build - Pane(): The container must have a stage property"); return;}
+		var mess = "zim build - Pane(): Please pass in a reference to a container with bounds set as first parameter";
+		if (zot(container)) {
+			if (zimDefaultFrame) {
+				container = zimDefaultFrame.stage;
+			} else {
+				zog(mess);
+				return;
+			}
+		} else if (!container.getBounds) {
+			zog(mess);
+			return;
+		} else if (zot(container.getStage)) {
+			zog("zim build - Pane(): The container must have a stage property");
+			return;
+		}
 
 		if (zot(width)) width=200;
 		if (zot(height)) height=200;
@@ -8225,7 +8238,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		}
 
-		var stepsTotal = (max - min) / step;
+		var stepsTotal = Math.abs(max - min) / step;
 		if (useTicks && step != 0) {
 			ticks = this.ticks = new zim.Container();
 			this.addChild(ticks);
@@ -8529,8 +8542,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var num = tabs.length;
 		var tabW = (width - spacing*(num-1))/num;
 
-		zog(width)
-
 		if (typeof tabs[0] == "number" || typeof tabs[0] == "string") { // change to objects with labels
 			for (var i=0; i<tabs.length; i++) {
 				tabs[i] = {label:String((tabs[i]!=null))?tabs[i]:"1"};
@@ -8588,8 +8599,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			lastX = button.x + button.width + spacing;
 			if (i==0 && !currentEnabled) button.enabled = false;
 		};
-
-		zog(this.width)
 
 		this.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
 			change(e.target.znum);
@@ -9614,7 +9623,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		upload.alpha = 0;
 
 		this.resize = function() {
-			if (!that.getStage()) return;
+			if (!that.getStage()) {
+				uploadTag.style.display = "none";
+				return;
+			}
+			uploadTag.style.display = "block";
 			setTimeout(function() {
 				var point = that.localToGlobal(0, 0);
 				upload.x = frame.x + point.x * frame.scale;
@@ -9960,10 +9973,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 
 /*--
-zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds)
+obj.drag = function(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds)
 
 drag
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Adds drag and drop to an object with a variety of options.
@@ -9999,7 +10012,6 @@ circle.drag(dragBounds); // drag within stage
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - the object to drag
 rect - (default null) a createjs.Rectangle object for the bounds of dragging
 	if surround is true then it will make sure the obj surrounds the rect rather than stays within it
 	this rectangle is relative to the stage (global)
@@ -10356,10 +10368,10 @@ RETURNS obj for chaining
 	}//-31
 
 /*--
-zim.noDrag = function(obj)
+obj.noDrag = function()
 
 noDrag
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Removes drag function from an object.
@@ -10373,9 +10385,6 @@ circle.noDrag();
 // OR with pre ZIM 4TH function
 zim.noDrag(circle);
 END EXAMPLE
-
-PARAMETERS
-obj - the object to make not draggable
 
 RETURNS obj for chaining
 --*///+32
@@ -10395,10 +10404,10 @@ RETURNS obj for chaining
 	}//-32
 
 /*--
-zim.dragRect = function(obj, rect)
+obj.dragRect = function(rect)
 
 dragRect
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Dynamically changes or adds a bounds rectangle to the object being dragged with zim.drag().
@@ -10412,7 +10421,6 @@ zim.dragRect(circle, dragBounds);
 END EXAMPLE
 
 PARAMETERS
-obj - an object that currently has its zim.drag() set
 rect - is a createjs.Rectangle for the bounds - the local / global does not change from the original drag
 
 RETURNS obj for chaining
@@ -10428,10 +10436,10 @@ RETURNS obj for chaining
 	}//-33
 
 /*--
-zim.setSwipe = function(obj, swipe)
+obj.setSwipe = function(swipe)
 
 setSwipe
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Sets whether we want to swipe an object or not using ZIM Swipe.
@@ -10445,7 +10453,6 @@ zim.swipe(circle, false);
 END EXAMPLE
 
 PARAMETERS
-obj - a display object
 swipe - (default true) set to false to not swipe object
 
 RETURNS obj for chaining
@@ -10470,10 +10477,10 @@ RETURNS obj for chaining
 	}//-34
 
 /*--
-zim.hitTestPoint = function(obj, x, y)
+obj.hitTestPoint = function(x, y)
 
 hitTestPoint
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 See if shape of obj is hitting the global point x and y on the stage.
@@ -10502,8 +10509,7 @@ if (zim.hitTestPoint(circle, stageW/2, stageH/2)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
-obj - the obj whose shape we are testing
-x and y - the point we are testing to see if it hits the shape
+x and y - the point we are testing to see if it hits the shape of the object
 
 RETURNS a Boolean true if hitting, false if not
 --*///+35
@@ -10521,13 +10527,13 @@ RETURNS a Boolean true if hitting, false if not
 	}//-35
 
 /*--
-zim.hitTestReg = function(a, b)
+obj.hitTestReg = function(other)
 
 hitTestReg
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
-See if shape (a) is hitting the registration point of object (b).
+See if the shape shape of an object is hitting the registration point of object (other).
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
@@ -10549,8 +10555,7 @@ if (zim.hitTestReg(circle, rect)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
-a - the object whose shape we are testing
-b - the object whose registration point we are checking against
+other - the object whose registration point we are checking against
 
 RETURNS a Boolean true if hitting, false if not
 --*///+36
@@ -10568,14 +10573,14 @@ RETURNS a Boolean true if hitting, false if not
 	}//-36
 
 /*--
-zim.hitTestRect = function(a, b, num)
+obj.hitTestRect = function(other, num)
 
 hitTestRect
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
-See if a shape (a) is hitting points on a rectangle.
-The rectangle is based on the position, registration and bounds of object (b).
+See if a shape of an object is hitting points on a rectangle of another object.
+The rectangle is based on the position, registration and bounds of object (other).
 num is how many points on the edge of the rectangle we test - default is 0.
 The four corners are always tested as well as the very middle of the rectangle.
 
@@ -10599,8 +10604,7 @@ if (zim.hitTestRect(circle, rect)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
-a - the object whose shape we are testing
-b - the object whose bounding rectangle we are checking against
+other - the object whose bounding rectangle we are checking against
 num - (default 0) the number of points along each edge to checking
 	1 would put a point at the middle of each edge
 	2 would put two points at 1/3 and 2/3 along the edge, etc.
@@ -10649,14 +10653,14 @@ RETURNS a Boolean true if hitting, false if not
 	}//-37
 
 /*--
-zim.hitTestCircle = function(a, b, num)
+obj.hitTestCircle = function(other, num)
 
 hitTestCircle
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
-See if a shape (a) is hitting points on a circle.
-The circle is based on the position, registration and bounds of object (b).
+See if the shape of an object is hitting points on a circle of another object.
+The circle is based on the position, registration and bounds of object (other).
 num is how many points around the circle we test - default is 8
 Also checks center of circle hitting.
 
@@ -10680,8 +10684,7 @@ if (zim.hitTestCircle(triangle, circle)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
-a - the object whose shape we are testing
-b - the object whose circle based on the bounding rect we are using
+other - the object whose circle based on the bounding rect we are using
 num - (default 8) the number of points evenly distributed around the circle
 	and one point in the middle of the circle
 
@@ -10717,13 +10720,13 @@ RETURNS a Boolean true if hitting, false if not
 	}//-38
 
 /*--
-zim.hitTestBounds = function(a, b, boundsShape)
+obj.hitTestBounds = function(other, boundsShape)
 
 hitTestBounds
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
-See if a.getBounds() is hitting b.getBounds().
+See if obj.getBounds() is hitting other.getBounds().
 Pass in a boundsShape shape if you want a demonstration of where the bounds are.
 
 EXAMPLE
@@ -10746,8 +10749,7 @@ if (zim.hitTestBounds(circle, rect)) {} // etc.
 END EXAMPLE
 
 PARAMETERS
-a - an object whose rectanglular bounds we are testing
-b - another object whose rectanglular bounds we are testing
+other - another object whose rectanglular bounds we are testing
 boundsShape - (default null) an empty zim.Shape or createjs.Shape
 	you would need to add the boundsShape to the stage
 
@@ -10793,10 +10795,10 @@ RETURNS a Boolean true if hitting, false if not
 	}//-39
 
 /*--
-zim.boundsToGlobal = function(obj, rect, flip)
+obj.boundsToGlobal = function(rect, flip)
 
 boundsToGlobal
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Returns a createjs Rectangle of the bounds of object projected onto the stage.
@@ -10814,7 +10816,6 @@ zog(zim.boundsToGlobal(circle).width); // global width of circle)
 END EXAMPLE
 
 PARAMETERS
-obj - an object for which you would like global bounds projected
 rect - a rect inside an object which you would like mapped to global
 flip - (default false) make a global rect ported to local values
 
@@ -10858,10 +10859,10 @@ RETURNS a Boolean true if hitting, false if not
 	}//-40
 
 /*--
-zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+obj.hitTestGrid = function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
 
 hitTestGrid
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Converts an x and y point to an index in a grid.
@@ -10879,7 +10880,6 @@ END EXAMPLE
 offsetX, offsetY, spacingX, spacingY, local, type
 
 PARAMETERS
-obj - the object that contains the grid
 width and height - the overall dimensions
 cols and rows - how many of each (note it is cols and then rows)
 x and y - where you are in the grid (eg. stage.mouseX and stage.mouseY)
@@ -10928,10 +10928,10 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-zim.move = function(target, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id)
+obj.move = function(x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id)
 
 move
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 wraps createjs.Tween
 
 DESCRIPTION
@@ -10966,7 +10966,9 @@ The ZIM VEE value can be the following:
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
 
+NOTE: if using move as a zim function the first parameter is:
 target - |ZIM VEE| the target object to tween
+
 x and y - |ZIM VEE| the absolute positions to tween to
 	RELATIVE VALUES: you can pass in relative values by putting the numbers as strings
 	x:"100" will animate the object 100 pixels to the right of the current x position
@@ -11024,10 +11026,10 @@ RETURNS the target for chaining
 	}//-44
 
 /*--
-zim.animate = function(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
+obj.animate = function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
 
 animate
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 wraps createjs.Tween
 
 DESCRIPTION
@@ -11157,7 +11159,9 @@ The ZIM VEE value can be the following:
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
 
+NOTE: if using move as a zim function the first parameter is:
 target - |ZIM VEE| the target object to tween
+
 obj - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
 	|ZIM VEE| - each obj property value optionally accepts a ZIM VEE value for zik() to pick randomly from (except calls and params)
 	RELATIVE VALUES: you can pass in relative values by putting the numbers as strings
@@ -11908,7 +11912,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 	}//-45
 
 /*--
-zim.stopZimAnimate = function(ids)
+obj.stopZimAnimate = function(ids)
 
 stopZimAnimate
 zim function - and Display object function
@@ -11971,7 +11975,7 @@ RETURNS null if run as zim.stopZimAnimate() or the obj if run as obj.stopZimAnim
 	}//-45.1
 
 /*--
-zim.pauseZimAnimate = function(state, ids)
+obj.pauseZimAnimate = function(state, ids)
 
 pauseZimAnimate
 zim function - and Display object function
@@ -12039,10 +12043,10 @@ RETURNS null if run as zim.pauseZimAnimate() or the obj if run as obj.pauseZimAn
 	}//-45.2
 
 /*--
-zim.wiggle = function(target, property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id, type)
+obj.wiggle = function(property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id, type)
 
 wiggle
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Wiggles the property of the target object between a min and max amount to either side of the base amount
@@ -12062,7 +12066,10 @@ ball.pauseZimAnimate(); // will pause the wiggle
 END EXAMPLE
 
 PARAMETERS
+
+NOTE: if using move as a zim function the first parameter is:
 target - the object to wiggle
+
 property - the property name as a String that will be width-indicatorLength-edgeLeft-edgeRight
 baseAmount - the center amount for the wiggle - wiggle will go to each side of this center
 minAmount - the min amount to change to a side of center
@@ -12123,10 +12130,10 @@ RETURNS target for chaining
 	}//-45.25
 
 /*--
-zim.loop = function(obj, call, reverse, step, start, end)
+obj.loop = function(call, reverse, step, start, end)
 
 loop
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 NOTE: overrides earlier loop function with added container loop
 so that we can use earlier loop function without createjs
 
@@ -12195,7 +12202,6 @@ zim.loop(container, function(child, i) { // gets passed the child, index, total,
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - a Number of times to loop or an Array or a Container with children to loop through
 call - the function to call
 	the function will receive (as its final parameters) the index, total, start, end, obj
 		where the index is the current index, total is how many times the loop will run
@@ -12296,10 +12302,10 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 	}//-45.3
 
 /*--
-zim.copyMatrix = function(obj, source)
+obj.copyMatrix = function(source)
 
 copyMatrix
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Copies the transformation properties from the source to the obj
@@ -12318,7 +12324,6 @@ zim.copyMatrix(circle, circle2);
 END EXAMPLE
 
 PARAMETERS
-obj - object to receive the new transform values
 source - object from which the transform properties are being copied
 
 RETURNS obj for chaining
@@ -12338,10 +12343,10 @@ RETURNS obj for chaining
 	}//-45.5
 
 /*--
-zim.pos = function(obj, x, y)
+obj.pos = function(x, y)
 
 pos
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to position x and y
@@ -12355,7 +12360,6 @@ zim.pos(circle, 100, 100);
 END EXAMPLE
 
 PARAMETERS
-obj - object to position
 x - (default null) the x position
 y - (default null) the y position
 
@@ -12370,10 +12374,10 @@ RETURNS obj for chaining
 	}//-41.5
 
 /*--
-zim.mov = function(obj, x, y)
+obj.mov = function(x, y)
 
 mov
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Move the object over in the x and/or y
@@ -12391,7 +12395,6 @@ zim.mov(circle, 50);
 END EXAMPLE
 
 PARAMETERS
-obj - object to shift
 x - (default 0) the distance in x to move (can be negative)
 y - (default 0) the distance in y to move (can be negative)
 
@@ -12406,10 +12409,10 @@ RETURNS obj for chaining
 	}//-41.6
 
 /*--
-zim.alp = function(obj, alpha)
+obj.alp = function(alpha)
 
 alp
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to set the alpha
@@ -12423,7 +12426,6 @@ zim.alp(circle, .5);
 END EXAMPLE
 
 PARAMETERS
-obj - object to scale
 alpha - default(null) the alpha between 0 and 1
 
 RETURNS obj for chaining
@@ -12436,10 +12438,10 @@ RETURNS obj for chaining
 	}//-41.7
 
 /*--
-zim.rot = function(obj, rotation)
+obj.rot = function(rotation)
 
 rot
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to set the rotation
@@ -12453,7 +12455,6 @@ zim.rot(rect, 180);
 END EXAMPLE
 
 PARAMETERS
-obj - object to scale
 rotation - (default null) the rotation in degrees
 
 RETURNS obj for chaining
@@ -12466,10 +12467,10 @@ RETURNS obj for chaining
 	}//-41.8
 
 /*--
-zim.siz = function(obj, width, height, only)
+obj.siz = function(width, height, only)
 
 siz
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to set width and height in one call.
@@ -12491,7 +12492,6 @@ zim.siz(rect, 200);
 END EXAMPLE
 
 PARAMETERS
-obj - object to scale
 width - (default null) the width of the object
 	setting only the width will set the widht and keep the aspect ratio
 	unless the only parameter is set to true
@@ -12518,10 +12518,10 @@ RETURNS obj for chaining
 	}//-41.85
 
 /*--
-zim.ske = function(obj, skewX, skewY)
+obj.ske = function(skewX, skewY)
 
 ske
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to skewX and skewY (slant)
@@ -12535,7 +12535,6 @@ zim.ske(circle, 20);
 END EXAMPLE
 
 PARAMETERS
-obj - object to position
 skewX - (default null) the x skew
 skewY - (default null) the y skew
 
@@ -12550,10 +12549,10 @@ RETURNS obj for chaining
 	}//-41.9
 
 /*--
-zim.reg = function(obj, regX, regY)
+obj.reg = function(regX, regY)
 
 reg
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to regX and regY (registration point)
@@ -12570,7 +12569,6 @@ zim.reg(circle, 200, 200);
 END EXAMPLE
 
 PARAMETERS
-obj - object on which to set registration point
 regX - (default null) the x registration
 regY - (default null) the y registration
 
@@ -12585,10 +12583,10 @@ RETURNS obj for chaining
 	}//-41.95
 
 /*--
-zim.sca = function(obj, scale, scaleY)
+obj.sca = function(scale, scaleY)
 
 sca
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to do scaleX and scaleY in one call.
@@ -12607,7 +12605,6 @@ zim.sca(circle, .5, 2);
 END EXAMPLE
 
 PARAMETERS
-obj - object to scale
 scale - the scale (1 being full scale, 2 being twice as big, etc.)
 scaleY - (default null) pass this in to scale x and y independently
 
@@ -12623,10 +12620,10 @@ RETURNS obj for chaining
 	}//-41.97
 
 /*--
-zim.scale = function(obj, scale, scaleY)
+obj.scale = function(scale, scaleY)
 
 scale
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience function to do scaleX and scaleY in one call.
@@ -12645,7 +12642,6 @@ zim.scale(circle, .5, 2);
 END EXAMPLE
 
 PARAMETERS
-obj - object to scale
 scale - the scale (1 being full scale, 2 being twice as big, etc.)
 scaleY - (default null) pass this in to scale x and y independently
 
@@ -12661,10 +12657,10 @@ RETURNS obj for chaining
 	}//-42
 
 /*--
-zim.scaleTo = function(obj, boundObj, percentX, percentY, type, boundsOnly)
+obj.scaleTo = function(boundObj, percentX, percentY, type, boundsOnly)
 
 scaleTo
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Scales object to a percentage of another object's bounds and scale
@@ -12680,7 +12676,6 @@ zim.scaleTo(circle, stage, 100, 100, "both"); // make an oval touch all stage ed
 END EXAMPLE
 
 PARAMETERS - supports DUO - parameters or single object with properties below
-obj - object to scale
 boundObj - the object that we are scaling to with percents below
 percentX - (default no scaling) the scale in the x
 percentY - (default no scaling) the scale in the y
@@ -12729,10 +12724,10 @@ RETURNS obj for chaining
 	}//-43
 
 /*--
-zim.fit = function(obj, left, top, width, height, inside)
+obj.fit = function(left, top, width, height, inside)
 
 fit
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Scale an object to fit inside (or outside) a rectangle and center it.
@@ -12747,7 +12742,6 @@ zim.fit(circle); // fits circle and centers on stage
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - the object to fit to the rectangle
 left, top, width, height - (default stage dimensions) the rectangle to fit
 inside - (default true) fits the object inside the rectangle
 	if inside is false then it fits the object around the bounds
@@ -12820,10 +12814,10 @@ RETURNS an Object literal with the new and old details (bX is rectangle x, etc.)
 	}//-46
 
 /*--
-zim.outline = function(obj, color, size)
+obj.outline = function(color, size)
 
 outline
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 For testing purposes.
@@ -12846,7 +12840,6 @@ zim.outline(circle);
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - the object to outline (can be transformed - scaled or rotated)
 color - (default brown) the color of the outline
 size - (default 2) the stroke size of the outline
 
@@ -12911,10 +12904,10 @@ RETURNS the shape if you want to remove it: obj.parent.removeChild(returnedShape
 	}//-47
 
 /*--
-zim.addTo = function(obj, container, index)
+obj.addTo = function(container, index)
 
 addTo
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 A wrapper function for addChild() / addChildAt() to add the obj to the container.
@@ -12941,7 +12934,6 @@ zim.addTo(circle, stage); // etc.
 END EXAMPLE
 
 PARAMETERS
-obj - the object to add
 container - the container to add to
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
 
@@ -12961,10 +12953,10 @@ RETURNS obj for chaining
 	}//-47.5
 
 /*--
-zim.removeFrom = function(obj, container)
+obj.removeFrom = function(container)
 
 removeFrom
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 A wrapper function for removeChild() that removes the obj from the container
@@ -12982,7 +12974,6 @@ zim.removeFrom(circle, stage); // etc.
 END EXAMPLE
 
 PARAMETERS
-obj - the object to remove
 container - the container to remove the object from
 
 RETURNS obj for chaining
@@ -12997,10 +12988,10 @@ RETURNS obj for chaining
 	}//-47.6
 
 /*--
-zim.added = function(obj, call, interval, maxTime)
+obj.added = function(call, interval, maxTime)
 
 added
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Calls callback function when object is added to the stage
@@ -13019,7 +13010,6 @@ zim.interval(1000, function() {
 END EXAMPLE
 
 PARAMETERS
-obj - the object to check to see if it has been added to stage or its container has been added
 call - the function to call when added - will call right away if object is already added
 	call will receive a reference to the stage and the object as parameters
 interval - (default 100) time in ms to check - keeps repeating until stage is there or maxTime is reached
@@ -13044,10 +13034,10 @@ RETURNS id of interval so clearInterval(id) will stop added() from checking for 
 	}//-47.7
 
 /*--
-zim.centerReg = function(obj, container, add, index)
+obj.centerReg = function(container, index, add)
 
 centerReg
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Centers the registration point on the bounds - obj must have bounds set.
@@ -13066,30 +13056,30 @@ zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:tru
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - the object to set the regX and regY to the center
 container - (default null) centers the object on and adds to the container
-add - (default true) set to false to only center the object on the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
+add - (default true) set to false to only center the object on the container
+
 
 RETURNS obj for chaining
 --*///+48
-	zim.centerReg = function(obj, container, add, index) {
+	zim.centerReg = function(obj, container, index, add) {
 
-		var sig = "obj, container, add, index";
+		var sig = "obj, container, index, add";
 		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
 		z_d("48");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim create - centerReg(): please provide object with bounds set"); return;}
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
-		return (container) ? zim.center(obj, container, add, index) : obj;
+		return (container) ? zim.center(obj, container, index, add) : obj;
 	}//-48
 
 /*--
-zim.center = function(obj, container, add, index)
+obj.center = function(container, index, add)
 
 center
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Centers the object on the container.
@@ -13109,16 +13099,15 @@ zim.animate({target:rect, obj:{rotation:360}, time:1000, ease:"linear", loop:tru
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - the object to center
 container - centers the object on and adds to the container
 add - (default true) set to false to only center and not add the object to the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
 
 RETURNS obj for chaining
 --*///+48.1
-	zim.center = function(obj, container, add, index) {
+	zim.center = function(obj, container, index, add) {
 
-		var sig = "obj, container, add, index";
+		var sig = "obj, container, index, add";
 		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
 		z_d("48.1");
 		if (zot(obj) || !obj.getBounds) {zog("zim.center(): please provide object with bounds"); return;}
@@ -13168,10 +13157,10 @@ RETURNS obj for chaining
 	}//-48.1
 
 /*--
-zim.place = function(obj, id)
+obj.place = function(id)
 
 place
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Sets the object to drag and logs to the console the x and y.
@@ -13187,7 +13176,6 @@ zim.place(circle, "circle");
 END EXAMPLE
 
 PARAMETERS
-obj - object to place
 id - (default null) the name of the object so that the log gives you complete code
 
 RETURNS undefined
@@ -13206,10 +13194,10 @@ RETURNS undefined
 	}//-49
 
 /*--
-zim.placeReg = function(obj, id)
+obj.placeReg = function(id)
 
 placeReg
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Gives draggable indicator to position a registration point in an object
@@ -13224,7 +13212,6 @@ zim.placeReg(myContainer, "myContainer");
 END EXAMPLE
 
 PARAMETERS
-obj - object to place the registration point on
 id - (default null) the name of the object so that the log gives you complete code
 
 RETURNS undefined
@@ -13250,10 +13237,10 @@ RETURNS undefined
 		stage.on("stagemouseup", report);
 	}//-49.5
 /*--
-zim.expand = function(obj, padding, paddingVertical)
+obj.expand = function(padding, paddingVertical)
 
 expand
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Adds a createjs hitArea to an object with an extra padding of padding.
@@ -13271,7 +13258,6 @@ zim.expand(circle);
 END EXAMPLE
 
 PARAMETERS
-obj - object on which you wish to expand the hit area
 padding - (default 20) how many pixels to expand bounds
 paddingVertical - (default null) the vertical padding (making padding for horizontal)
 
@@ -13290,10 +13276,10 @@ RETURNS obj for chaining
 	}//-50
 
 /*--
-zim.setMask = function(obj, mask)
+obj.setMask = function(mask)
 
 setMask
-zim function - and Display object method under ZIM 4TH
+zim DisplayObject method
 
 DESCRIPTION
 Specifies a mask for an object - the object can be any display object.
@@ -13362,7 +13348,6 @@ mask.x += 100;
 END EXAMPLE
 
 PARAMETERS
-obj - the object to mask
 mask - the object whose shape will be the mask
 
 NOTE: use setMask(obj, null) or obj.setMask(null) to clear the mask
@@ -13549,7 +13534,7 @@ zim.Ticker.alwaysOff(stage) - stops an always Ticker for a stage
 zim.Ticker.add(function, stage) - adds the function to the Ticker queue for a given stage and returns the function that was added
 zim.Ticker.remove(function) - removes the function from the Ticker queue
 zim.Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
-zim.Ticker.has(stage, function) - returns a Boolean true if function is currently added to the Ticker for the stage - or false if not currently added
+zim.Ticker.has(function, stage) - returns a Boolean true if function is currently added to the Ticker for the stage - or false if not currently added
 zim.Ticker.setFPS(30, 60) - (mobile, pc) default is set at natural requestAnimationFrame speed - this seems to be the smoothest
 zim.Ticker.setTimingMode(mode) - (default "raf") RAF uses RequestAnimationFrame without framerate synching - gets screen synch (smooth) and background throttling
 	set to "synched" for framerate synching - but will add some variance between updates
@@ -13602,6 +13587,7 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 		add: function(f, s) {
 			z_d("30");
 			var t = zim.Ticker;
+			if (t.has(f, s)) return f; // don't let the same function be added twice
 			if (!t.framerate) t.setFPS();
 			if (zot(s) || !s.update) s = zimDefaultFrame.stage;
 			if (zot(f) || typeof f !== 'function') {zog("zim.Ticker.add() - only add functions"); return;}
@@ -13677,7 +13663,8 @@ then set zim.OPTIMIZE = false and then set zim.Ticker.update = false
 			if (t.alwaysList.length > 0) return;
 			if (count == 0) {createjs.Ticker.off("tick", t.ticker); t.ticker = null;}
 		},
-		has: function(s,f) {
+		has: function(f,s) { // swapped params in zim 5.3.1
+			if (zot(s) || !s.update) s = zimDefaultFrame.stage;
 			return zim.Ticker.list && zim.Ticker.list.at(s) && zim.Ticker.list.at(s).indexOf(f) >= 0;
 		},
 		dispose: function(s) {
@@ -13888,7 +13875,6 @@ var hide = new zim.Rectangle(stageW, stageH, "green");
 var find = new zim.Rectangle(stageW, stageH, "yellow");
 
 var pages = new zim.Pages({
-	holder:stage,
 	pages:[
 		// imagine pages to the left, right, up and down
 		// swipe:["to page on left", "to page on right", etc.s]
@@ -13929,8 +13915,8 @@ stage.update();
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-holder - where are we putting the pages (eg. stage) (used for setting transition properties)
-pages - (default null) an array of page objects - for example:
+pages - (default null) an array of pages or page objects - for example:
+	[home, hide] assuming home and hide Containers are made OR if swipe data is desired then use page object format:
 	[{page:home, swipe:[null,"info",hide,find]},{page:hide, swipe:[null,null,null,home]}]
 	the pages should be containers - it helps to give them each a name property
 	the optional swipe array holds mappings to swipe events ["right", "left", "down", "up"]
@@ -13940,12 +13926,14 @@ transition - (default "none") the type of transition "none", "reveal", "slide", 
 speed - (default 200) speed in milliseconds of the transition if set
 transitionTable - (default none) an array to override general transitions with following format:
 	[[fromPage, toPage, "transition", ms(optional)], etc.]
+holder - (default the default stage) where are we putting the pages (used for setting transition properties)
 
 METHODS
 addPage() - lets you alternatively add pages after you create the object
 removePage() - lets you remove a page (if on this page, call a go() first and remove on the page event)
 setSwipe() - lets you set the swipe array for a page
 go(newPage, direction, trans, ms) - lets you go to a page for events other than swipe events
+	newPage can be a reference to the page or an index matching the pages array order
 	direction is which way the pages is relative to the current page
 	trans and ms are optional and will override any previously set transitions (speed in ms)
 resize() - call to resize transitions - not the pages themselves (use layouts)
@@ -13961,6 +13949,7 @@ PROPERTIES
 speed - of transitions in ms
 transitionTable - [[fromPage, toPage, "transition", ms(optional)], etc.] overrides default transition
 page - the current page object (read)
+pages - the page array initially passed as a parameter including any updates if using addPage or removePage methods
 lastPage - the last page before transition (read)
 direction - direction of transition (read)
 active - default true, boolean to have swipes active (good for layered Pages objects)
@@ -14007,19 +13996,25 @@ if this is the case, call puff() and make adjustments
 call settle() when done - or pass in a time in ms to puff to auto settle after that time
 you can define multiple pages objects add and remove pages objects as needed
 --*///+71
-	zim.Pages = function(holder, pages, transition, speed, transitionTable) {
+	zim.Pages = function(pages, transition, speed, transitionTable, holder) {
 
-		var sig = "holder, pages, transition, speed, transitionTable";
+		var sig = "pages, transition, speed, transitionTable, holder";
 		var duo; if (duo = zob(zim.Pages, arguments, sig, this)) return duo;
 		z_d("71");
 		this.zimContainer_constructor();
 
-		if (zot(holder) || !holder.getBounds || !holder.getBounds()) {zog("zim pages - Pages():\nobject must have bounds set"); return;}
 		if (zot(pages)) pages = []; // can add pages with addPages
+		this.pages = pages;
 		if (zot(transition)) transition = "none";
 		if (zot(speed)) speed = 200;
 		if (zot(transitionTable)) transitionTable = [];
 		this.transitionTable = transitionTable;
+
+
+		if (zot(holder)) {
+			if (zimDefaultFrame) holder = zimDefaultFrame.stage;
+		}
+		if (!holder.getBounds || !holder.getBounds()) {zog("zim pages - Pages():\nholder object must have bounds set"); return;}
 
 		this.speed = speed;
 		this.active = true;
@@ -14027,8 +14022,6 @@ you can define multiple pages objects add and remove pages objects as needed
 
 		var hW = holder.getBounds().width;
 		var hH = holder.getBounds().height;
-
-		var currentPage = this.page = pages[0] ? pages[0].page : null;
 
 		var black; var white;
 		if (transition!="none" || transitionTable!=[]) makeTransitionAssets();
@@ -14047,9 +14040,11 @@ you can define multiple pages objects add and remove pages objects as needed
 
 		for (var i=0; i<pages.length; i++) {
 			data = pages[i];
+			if (data.constructor !== {}.constructor) data = pages[i] = {page:pages[i]}; // accept an array of only pages
 			data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
 			if (data.page.parent) data.page.parent.removeChild(data.page);
 		}
+		var currentPage = this.page = pages[0] ? pages[0].page : null;
 		this.addChild(currentPage);
 
 		this.swipe = new zim.Swipe(holder);
@@ -14120,6 +14115,12 @@ you can define multiple pages objects add and remove pages objects as needed
 
 		var goCheck = true;
 		this.go = function(newPage, direction, trans, ms, fromSwipe) {
+
+			if (typeof newPage == "number") {
+				var np = that.pages[newPage];
+				if (zot(np)) return;
+				newPage = np.page;
+			}
 
 			// newPage holds a page or a string command
 			setTimeout(function() {paused = false;},200);
@@ -14623,7 +14624,7 @@ and in future perhaps OutlineManager
 
 
 /*--
-zim.Guide = function(obj, vertical, percent, hideKey, pixelKey)
+zim.Guide = function(vertical, percent, hideKey, pixelKey, obj)
 
 Guide Class
 extends a zim.Container which extends a createjs.Container
@@ -14641,16 +14642,16 @@ EXAMPLE
 // simple form for a vertical guide
 // use the distance from the guide to your cursor to measure
 // so you only need one vertical guide for horizontal measurement
-var guide = new zim.Guide(stage);
+var guide = new zim.Guide();
 
 // better to add guides to a GuideManager
 var manager = new zim.GuideManager();
-manager.add(new zim.Guide(stage));
-manager.add(new zim.Guide(stage, false));
+manager.add(new zim.Guide());
+manager.add(new zim.Guide(false));
 
 // or with pixels
-// manager.add(new zim.Guide(stage, true, false));
-// manager.add(new zim.Guide(stage, false, false));
+// manager.add(new zim.Guide(true, false));
+// manager.add(new zim.Guide(false, false));
 
 // then you can remove all guides with
 // manager.dispose();
@@ -14661,11 +14662,11 @@ frame.on("resize", function() {manager.resize();})
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - object to add guide to for example the stage
 vertical - (default true) set to false for horizontal guide
 percent - (default true) set to false to show pixels
 hideKey - (default G) key to press to hide guide
 pixelKey - (default P) key to press to swap percent and pixels
+obj - (default the default stage) object to add guide to for example a Container
 
 METHODS
 resize() - resizes the guide if the container size changes (put in frame resize event)
@@ -14674,9 +14675,9 @@ dispose() - removes keyboard event listeners and guide
 PROPERTIES
 pixels - boolean - set to true to change to pixels, false to go to percent
 --*///+76
-	zim.Guide = function(obj, vertical, percent, hideKey, pixelKey) {
+	zim.Guide = function(vertical, percent, hideKey, pixelKey, obj) {
 
-		var sig = "obj, vertical, percent, hideKey, pixelKey";
+		var sig = "vertical, percent, hideKey, pixelKey, obj";
 		var duo; if (duo = zob(zim.Guide, arguments, sig, this)) return duo;
 		z_d("76");
 		this.zimContainer_constructor();
@@ -14914,12 +14915,12 @@ GuideManager keeps track of the guides and lets you update or dispose of them on
 
 EXAMPLE
 var manager = new zim.GuideManager();
-manager.add(new zim.Guide(stage));
-manager.add(new zim.Guide(stage, false));
+manager.add(new zim.Guide());
+manager.add(new zim.Guide(false));
 
 // or with pixels
-// manager.add(new zim.Guide(stage, true, false));
-// manager.add(new zim.Guide(stage, false, false));
+// manager.add(new zim.Guide(true, false));
+// manager.add(new zim.Guide(false, false));
 
 // then you can remove all guides with
 // manager.dispose();
@@ -14951,7 +14952,7 @@ disposing will remove the G, P key listener and the guide
 	//-77
 
 /*--
-zim.Grid = function(obj, color, percent, hideKey, pixelKey)
+zim.Grid = function(color, percent, hideKey, pixelKey, obj)
 
 Grid
 zim class - extends a zim.Container which extends a createjs.Container
@@ -14964,14 +14965,14 @@ Use the P key to toggle percent and pixels.
 Make sure you remove the grid for your final version (dispose).
 
 EXAMPLE
-var grid = new zim.Grid(stage);
+var grid = new zim.Grid();
 
 // better to add grids to a GridManager
 var manager = new zim.GridManager();
-manager.add(new zim.Grid(stage));
+manager.add(new zim.Grid());
 
 // or with pixels
-// manager.add(new zim.Grid(stage, null, false));
+// manager.add(new zim.Grid(null, false));
 
 // then you can remove all grids with
 // grid.dispose();
@@ -14982,11 +14983,11 @@ frame.on("resize", function() {manager.resize();})
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-obj - the object to add grid to (for example the stage)
 color - (default black) the color of the grid
 percent - (default true) set to false to show pixels
 hideKey - (default G) key to press to hide grid
 pixelKey - (default P) key to press to swap percent and pixels
+obj - (default the default stage) the object to add grid to (for example a Container)
 
 METHODS
 resize() - resize the grid if the container changes size (eg. put in frame resize event)
@@ -14995,9 +14996,9 @@ dispose() - clears keyboard events and grid
 PROPERTIES
 pixels - boolean - set to true to change to pixels, false to go to percent
 --*///+78
-	zim.Grid = function(obj, color, percent, hideKey, pixelKey) {
+	zim.Grid = function(color, percent, hideKey, pixelKey, obj) {
 
-		var sig = "obj, color, percent, hideKey, pixelKey";
+		var sig = "color, percent, hideKey, pixelKey, obj";
 		var duo; if (duo = zob(zim.Grid, arguments, sig, this)) return duo;
 		z_d("78");
 		this.zimContainer_constructor();
@@ -15272,10 +15273,10 @@ GridManager keeps track of the grids and lets you update or dispose of them on c
 
 EXAMPLE
 var manager = new zim.GridManager();
-manager.add(new zim.Grid(stage));
+manager.add(new zim.Grid());
 
 // or with pixels
-// manager.add(new zim.Grid(stage, null, false));
+// manager.add(new zim.Grid(null, false));
 
 // then you can remove all grids with
 // grid.dispose();
@@ -17866,7 +17867,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								else container.centerReg(that);
 							} else {
 								if (particle.emitShape) container.addTo(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
-								else container.centerReg(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+								else container.centerReg(that, that.layers=="bottom"?0:zim.rand(that.numChildren));
 							}
 							container.alpha = 1;
 							container.scale(1);
@@ -17910,7 +17911,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 									if (that.layers == "top") {
 										particle.centerReg(that);
 									} else {
-										particle.centerReg(that, true, that.layers=="bottom"?0:zim.rand(that.numChildren));
+										particle.centerReg(that, that.layers=="bottom"?0:zim.rand(that.numChildren));
 									}
 								}
 							}
@@ -18335,7 +18336,9 @@ calculate() - returns an array of amplitudes at various frequencies from low to 
 
 PROPERTIES
 num - read only num of frequency data
-analyser - the HTML analyser object
+smoothing - a decimal range for smoothing with 0 being choppy and .9 being slow to respond, etc.
+analyser - the HTML analyser object https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode
+	with minDecibels, maxDecibels, smoothingTimeConstant and some others - see link
 
 EVENTS
 dispatches a ready event when the sound source is connectedc and the calculate() method is ready
@@ -18363,6 +18366,15 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 		analyser.minDecibels = min;
 		analyser.maxDecibels = max;
 		analyser.smoothingTimeConstant = smoothing;
+
+		Object.defineProperty(this, 'smoothing', {
+			get: function() {
+				return analyser.smoothingTimeConstant;
+			},
+			set: function(s) {
+				analyser.smoothingTimeConstant = s;
+			}
+		});
 
 		if (input == "mic") {
 			navigator.getUserMedia = (navigator.getUserMedia ||
@@ -18422,7 +18434,6 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 
 			that.calculate = function() {
 				analyser.getByteFrequencyData(dataArray);
-				zog(dataArray)
 				var adjustedArray = dataArray.map(operation);
 				if (steps == 1) return adjustedArray;
 				var array = [];
@@ -18849,6 +18860,8 @@ EVENTS
 					if (gpu) stage.updateViewport(stageW, stageH);
 				}
 				tag.style.overflow = "hidden";
+				can.width = stageW;
+				can.height = stageH;
 				can.style.left = can.style.top = "0px";
 				return;
 			} else if (scaling == "inline") {
@@ -19401,13 +19414,13 @@ function zimify(obj) {
 		added:function(call, interval, maxTime) {
 			return zim.added(this, call, interval, maxTime);
 		},
-		centerReg:function(container, add, index) {
+		centerReg:function(container, index, add) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.centerReg(arguments[0]);}
-			else {return zim.centerReg(this, container, add, index);}
+			else {return zim.centerReg(this, container, index, add);}
 		},
-		center:function(container, add, index) {
+		center:function(container, index, add) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.center(arguments[0]);}
-			else {return zim.center(this, container, add, index);}
+			else {return zim.center(this, container, index, add);}
 		},
 		place:function(id) {
 			return zim.place(this, id);
@@ -19512,6 +19525,15 @@ function zimify(obj) {
 			if (zot(b) || b.height==0) {zog("heightOnly needs bounds set with setBounds()"); return;}
 			var s = value/b.height;
 			this.scaleY = s;
+		}
+	});
+	Object.defineProperty(obj, 'blendMode', {
+		enumerable: true,
+		get: function() {
+			return this.compositeOperation;
+		},
+		set: function(value) {
+			this.compositeOperation = value;
 		}
 	});
 	return obj;
