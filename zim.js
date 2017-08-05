@@ -844,7 +844,6 @@ paused - the paused state of the timeout
 			}
 			obj.rid = requestAnimationFrame(next);
 		}
-		next();
 
 		obj.pause = function(state) {
 			if (zot(state)) state = true;
@@ -865,7 +864,7 @@ paused - the paused state of the timeout
 			obj.pause = function() {};
 			obj.clear = function() {};
 		}
-
+		next(); // thanks StevenWarren for the glitch fix!
 		return obj;
 	}//-9.7
 
@@ -951,10 +950,11 @@ pause(state, immediate) - (default true) will pause the interval - set to false 
 clear() - will clear the interval
 
 PROPERTIES - of ZIM intervalObject
-time - |ZIM VEE| the time for the interval (see time parameter)
-count - the number of times the interval has run (if immediate is true, the first count is 0)
-paused - the paused state of the interval
-pauseTimeLeft - if paused, how much time is left once unpaused
+time - |ZIM VEE| get or set the time for the interval (see time parameter)
+count - get the number of times the interval has run (if immediate is true, the first count is 0)
+total - get or set the number of times the interval will run if the total parameter is set - otherwise -1 for infinite
+paused - get the paused state of the interval (see pause() method)
+pauseTimeLeft - if paused, get how much time is left once unpaused
 --*///+9.8
 	zim.interval = function(time, call, total, immediate) {
 		z_d("9.8");
@@ -963,20 +963,22 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 		if (zot(time)) time = 1000;
 		if (zot(immediate)) immediate = false;
 		if (!zot(total) && (isNaN(total) || total<=0)) return;
-		var obj = {count:0, paused:false, time:time};
+		if (zot(total)) total = -1;
+		var obj = {count:0, total:total, paused:false, time:time, active:true};
+
 
 		function interval() {
 			obj.startTime = Date.now();
 			obj.interval = zik(obj.time);
 			obj.id = setTimeout(function() {
 				if (obj.paused) return;
+				if (!obj.active) return;
 				obj.rid = requestAnimationFrame(interval);
 				obj.count++;
 				(call)(obj);
 				checkTotal();
 			}, obj.interval);
 		}
-		interval();
 		if (immediate) {
 			setTimeout(function() {
 				(call)(obj);
@@ -984,8 +986,8 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 			}, 10);
 		}
 		function checkTotal() {
-			if (zot(total)) return;
-			if (obj.count >= (immediate?total-1:total)) obj.clear();
+			if (total == -1) return;
+			if (obj.count >= (immediate?obj.total-1:obj.total)) obj.clear();
 		}
 		var pausedTimeout;
 		obj.pause = function(state, immediate) {
@@ -1007,6 +1009,7 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 			obj.paused = state;
 		}
 		obj.clear = function() {
+			obj.active = false;
 			clearTimeout(pausedTimeout);
 			cancelAnimationFrame(obj.rid);
 			clearTimeout(obj.id);
@@ -1014,10 +1017,12 @@ pauseTimeLeft - if paused, how much time is left once unpaused
 			for (var i in obj) {
 				delete obj[i];
 			}
+			obj.active = false;
 			obj.count = count;
 			obj.pause = function() {};
 			obj.clear = function() {};
 		}
+		interval();
 		return obj;
 	}//-9.8
 
@@ -1198,7 +1203,7 @@ RETURNS a new Object
 	}//-12
 
 /*--
-zim.decimals = function(num, places, addZeros)
+zim.decimals = function(num, places, addZeros, includeZero, time)
 
 decimals
 zim function
@@ -1220,38 +1225,63 @@ zog(zim.decimals(2.3,2,true)); // 2.30
 zog(zim.decimals(3,-2,true)); // 03
 zog(zim.decimals(11,-2,true)); // 11
 zog(zim.decimals(11,-3,true)); // 011
+zog(zim.decimals(12,-1,true,time)); // 0:12
 END EXAMPLE
 
 PARAMETERS
 num - the Number to operate on
 places - (default 1) how many decimals to include (negative for left of decimal place)
-addZeros - (default false) set to true to add zeros to number of decimal places (and return String)
-	will not round if places is negative but rather add zeros to front
+addZeros - (default 0) set to number of places to fill in zeros after decimal (and return String)
+addZerosBefore - (default 0) set to number of places to fill in zeros before decimal (and return String)
+includeZero - (default true) set to false to always have zero just be 0 without any extra zeros
+time - (default false) just a quick swap of : for . to handle minutes and seconds (not hours)
 
-RETURNS a rounded Number or a String if addZeros is true
+RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 --*///+13
 	zim.zut = function(e) {
 		if (zot(e) || typeof e == "object") return true;
 	}
-	zim.decimals = function(num, places, addZeros, evt) {
+	zim.decimals = function(num, places, addZeros, addZerosBefore, includeZero, time, evt) {
 		z_d("13");
-		if (zot(num) || num==0) return 0;
+		if (zot(num)) return 0;
 		if (zot(places)) places = 1;
-		if (zot(addZeros)) addZeros = false;
-		if (addZeros && places < 0) {
-			var place = String(num).indexOf(".");
-			var length = String(num).length;
-			var left = (place < 0) ? length : place;
-			for (var i=0; i<-places-left; i++) {num = "0" + num;}
-			return num;
-		}
+		if (zot(addZeros)) addZeros = 0;
+		if (zot(addZerosBefore)) addZerosBefore = 0;
+		if (zot(addZerosBefore)) addZerosBefore = 0;
+		if (zot(includeZero)) includeZero = true;
+		if (zot(time)) time = false;
+		// if (addZeros && places < 0) {
+		// 	var place = String(num).indexOf(".");
+		// 	var length = String(num).length;
+		// 	var left = (place < 0) ? length : place;
+		// 	for (var i=0; i<-places-left; i++) {num = "0" + num;}
+		// 	return num;
+		// }
 		var answer = Math.round(num*Math.pow(10, places))/Math.pow(10, places);
-		if (addZeros && places > 0 && answer != 0) {
+
+		// if (addZeros && places > 0 && answer != 0) {
+		// 	var place = String(answer).indexOf(".");
+		// 	var length = String(answer).length;
+		// 	if (place < 0) {place = length++; answer+=".";}
+		// 	for (var i=0; i<places-(length-place-1); i++) {answer += "0";}
+		// }
+		var sign = zim.sign(answer);
+		if (addZeros > 0) {
 			var place = String(answer).indexOf(".");
 			var length = String(answer).length;
 			if (place < 0) {place = length++; answer+=".";}
-			for (var i=0; i<places-(length-place-1); i++) {answer += "0";}
+			for (var i=0; i<addZeros-(length-place-1); i++) {answer += "0";}
 		}
+		if (addZerosBefore > 0) {
+			if (sign == -1) answer = answer.substr(1,answer.length-1);
+			var place = String(answer).indexOf(".");
+			var length = String(answer).length;
+			var left = (place < 0) ? length : place;
+			for (var i=0; i<addZerosBefore-left; i++) {answer = "0" + answer;}
+			if (sign == -1) answer = "-" + answer;
+		}
+		if ((addZeros + addZerosBefore > 0) && !includeZero && Number(answer) == 0) answer = 0;
+		if (time) answer = String(answer).replace(".", ":");
 		return zim.zut(evt) ? answer : null;
 	}//-13
 
@@ -2623,7 +2653,7 @@ circle.drag({slide:true});
 END EXAMPLE
 
 METHODS, CONT'D
-clone() - clones all the container, its properties and all its children
+clone() - clones the container, its properties and all its children
 
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -3477,7 +3507,9 @@ shape - gives access to the circle shape
 color - get and set the fill color
 borderColor - get and set the stroke color
 borderWidth - get and set the stroke size in pixels
-radius - gets or sets the radius.  Setting just sets width and height to twice the radius
+radius - gets or sets the radius.
+	The radius is independent of scaling and can be different than the width/2
+	Setting the radius redraws the circle but any current scaling is kept
 ** setting widths, heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
@@ -5838,6 +5870,15 @@ var pane = new zim.Pane(stage, 300, 200, "Watch out!", "#CCC");
 pane.show(); // pressing anywhere will close pane (see parameters for options)
 END EXAMPLE
 
+EXAMPLE
+var pane = new zim.Pane({width:600, height:250, modal:false, displayClose:false});
+var cancel = new zim.Button(220, 100, "CANCEL", "red").center(pane).mov(-130);
+var confirm = new zim.Button(220, 100, "CONFIRM", "green").center(pane).mov(130);
+cancel.on("click", function() {pane.hide();});
+confirm.on("click", function() {zgo("http://zimjs.com")});
+pane.show(); // pressing anywhere will close pane (see parameters for options)
+END EXAMPLE
+
 PARAMETERS supports DUO - parameters or single object with properties below
 container - (default - the default stage) container for the pane
 width - (default 200) width of pane
@@ -5857,7 +5898,7 @@ center - (default true) centers the pane
 	you can adjust the label placement by changing its x and y or registration point
 displayClose - (default true) closes the Pane if display backing is pressed
 	if drag is set to true, displayClose will automatically be set to false
-backing - (default null) a Display object for the backing of the button (eg. Shape, Bitmap, Container, Sprite)
+backing - (default null) a Display object for the backing of the pane (eg. Shape, Bitmap, Container, Sprite)
 	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 fadeTime - (default 0) milliseconds to fade in and out
 
@@ -8989,7 +9030,7 @@ greyPicker - (default true) shows an extra 16 greys (set to false to hide these)
 alphaPicker - (default true) shows an alpha slider (set to false to hide this)
 	the swatch has a black, grey and white backing underneath to show multiple alpha effects
 startColor - (default the last color in color array) the starting color
-drag - (default true) whether you can drag the component - set to false to not drag
+drag - (default true (false if no buttonBar)) whether you can drag the component - set to false to not drag
 	a small grip under the color text shows if draggable
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no drop shadow
 shadowBlur - (default 14) the blur of the shadow if shadow is set
@@ -9062,10 +9103,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(spacing)) spacing = 2;
 		if (zot(alphaPicker)) alphaPicker = true;
 		if (zot(greyPicker)) greyPicker = true;
-		if (zot(drag)) drag = true;
 		if (zot(shadowColor)) shadowColor = "rgba(0,0,0,.3)";
 		if (zot(shadowBlur)) shadowBlur = 14;
 		if (zot(buttonBar)) buttonBar = true;
+		if (zot(drag)) {
+			if (buttonBar) {
+				drag = true;
+			} else {
+				drag = false;
+			}
+		}
 		if (zot(circles)) circles = false;
 		if (zot(indicator)) {
 			indicator = false;
@@ -9584,13 +9631,13 @@ loaded - is dispatched when the image(s) are uploaded - the event object comes w
 
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
---*///+68
+--*///+67.5
 
 	zim.Loader = function(frame, width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent, dashed) {
 
 		var sig = "frame, width, height, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent, dashed";
 		var duo; if (duo = zob(zim.Loader, arguments, sig, this)) return duo;
-		z_d("68");
+		z_d("67.5");
 
 		if (zot(frame)) {if (zon) {zog("zim.Loader - please provide a reference to zim Frame");} return;}
 		if (zot(width)) width = 250;
@@ -9745,7 +9792,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 	}
 	zim.extend(zim.Loader, zim.Button, ["clone", "dispose"], "zimButton", false);
-	//-68
+	//-67.5
 
 /*--
 zim.TextArea = function(frame, width, height, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly)
@@ -9836,13 +9883,13 @@ These are just the html events passed on through - note the difference between i
 
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
---*///+69
+--*///+67.6
 
 	zim.TextArea = function(frame, width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly) {
 
 		var sig = "frame, width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly";
 		var duo; if (duo = zob(zim.TextArea, arguments, sig, this)) return duo;
-		z_d("69");
+		z_d("67.6");
 
 		if (zot(frame)) {if (zon) {zog("zim.TextArea - please provide a reference to zim Frame");} return;}
 		if (zot(width)) width = 250;
@@ -9950,7 +9997,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 	}
 	zim.extend(zim.TextArea, zim.Container, ["clone", "dispose"], "zimContainer", false);
-	//-69
+	//-67.6
 
 	// function to set enabled of components
 	function zenable(t,v) {
@@ -10118,7 +10165,10 @@ RETURNS obj for chaining
 
 		var dragObject;
 
+		obj.pointers = {};
 		obj.zimDown = obj.on("mousedown", function(e) {
+			var id = "id"+Math.abs(e.pointerID+1);
+			obj.pointers[id] = true; // keep track of multitouch to keep object ticker alive
 			// e.stageX and e.stageY are global
 			// e.target.x and e.target.y are relative to e.target's parent
 			// bring stageX and stageY into the parent's frame of reference
@@ -10243,6 +10293,8 @@ RETURNS obj for chaining
 		obj.zimPosition = positionObject;
 
 		obj.zimUp = obj.on("pressup", function(e) {
+			var id = "id"+Math.abs(e.pointerID+1);
+			delete obj.pointers[id];
 			if (!downCheck) return;
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
 			if (slide) {
@@ -10255,8 +10307,13 @@ RETURNS obj for chaining
 				dampX.immediate(dragObject.x);
 				dampY.immediate(dragObject.y);
 			} else {
-				if (obj.zimDragTicker) zim.Ticker.remove(obj.zimDragTicker);
+				var pointerCount = 0;
+				for (var o in obj.pointers) {
+					pointerCount++;
+				}
+				if (pointerCount == 0) zim.Ticker.remove(obj.zimDragTicker);
 			}
+			if (obj.getStage()) obj.getStage().update();
 		}, true);
 
 		// the bounds check for registration inside the bounds
@@ -12043,7 +12100,7 @@ RETURNS null if run as zim.pauseZimAnimate() or the obj if run as obj.pauseZimAn
 	}//-45.2
 
 /*--
-obj.wiggle = function(property, baseAmount, minAmount, maxAmount, minTime, maxTime, ease, integer, id, type)
+obj.wiggle = function(property, baseAmount, minAmount, maxAmount, minTime, maxTime, type, ease, integer, id)
 
 wiggle
 zim DisplayObject method
@@ -12067,7 +12124,7 @@ END EXAMPLE
 
 PARAMETERS
 
-NOTE: if using move as a zim function the first parameter is:
+NOTE: if using wiggle as a zim function the first parameter is:
 target - the object to wiggle
 
 property - the property name as a String that will be width-indicatorLength-edgeLeft-edgeRight
@@ -13100,8 +13157,8 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 container - centers the object on and adds to the container
-add - (default true) set to false to only center and not add the object to the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
+add - (default true) set to false to only center and not add the object to the container
 
 RETURNS obj for chaining
 --*///+48.1
@@ -13922,7 +13979,7 @@ pages - (default null) an array of pages or page objects - for example:
 	the optional swipe array holds mappings to swipe events ["right", "left", "down", "up"]
 	in other words, these could be pages to the left, right, top and bottom of the current page
 	or they can call commands as strings
-transition - (default "none") the type of transition "none", "reveal", "slide", "fade", "black", "white"
+transition - (default "none") the type of transition "none", "reveal", "slide", "fade", "clear", "black", "white"
 speed - (default 200) speed in milliseconds of the transition if set
 transitionTable - (default none) an array to override general transitions with following format:
 	[[fromPage, toPage, "transition", ms(optional)], etc.]
@@ -13952,6 +14009,7 @@ page - the current page object (read)
 pages - the page array initially passed as a parameter including any updates if using addPage or removePage methods
 lastPage - the last page before transition (read)
 direction - direction of transition (read)
+transitioning - read only Boolean as to whether the pages are transitioning
 active - default true, boolean to have swipes active (good for layered Pages objects)
 swipe - the ZIM Swipe object used for pages (can tweak distance to percentage if rescaling)
 
@@ -14019,6 +14077,7 @@ you can define multiple pages objects add and remove pages objects as needed
 		this.speed = speed;
 		this.active = true;
 		var that = this;
+		that.transitioning = false;
 
 		var hW = holder.getBounds().width;
 		var hH = holder.getBounds().height;
@@ -14163,6 +14222,7 @@ you can define multiple pages objects add and remove pages objects as needed
 				function transEnd(pages) {
 					pages[0].uncache();
 					pages[1].uncache();
+					that.transitioning = false;
 					that.dispatchEvent("pagetransitioned");
 					that.removeChild(that.lastPage);
 					that.removeChild(black);
@@ -14179,6 +14239,7 @@ you can define multiple pages objects add and remove pages objects as needed
 				newPage.y = 0;
 				newPage.alpha = 1;
 
+				that.transitioning = true;
 				if (trans == "slide") {
 					newPage.x = -(slides[dirIndex].x | 0);
 					newPage.y = -(slides[dirIndex].y | 0);
@@ -14210,6 +14271,14 @@ you can define multiple pages objects add and remove pages objects as needed
 					black.alpha = 0;
 					that.addChild(black);
 					zim.animate(black, {alpha:1}, that.speed/2, null, transEndHalf, [black, currentPage, newPage]);
+				} else if (trans == "clear") {
+					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
+					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
+					newPage.alpha = 0;
+					that.addChild(newPage);
+					that.addChild(currentPage);
+					zim.animate(currentPage, {alpha:0}, that.speed/2);
+					zim.animate(newPage, {alpha:1}, that.speed/2, null, transEnd, [currentPage, newPage], that.speed/2);
 				} else if (trans == "white") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
@@ -14220,6 +14289,7 @@ you can define multiple pages objects add and remove pages objects as needed
 					that.addChild(white);
 					zim.animate(white, {alpha:1}, that.speed/2, null, transEndHalf, [white, currentPage, newPage]);
 				} else {
+					that.transitioning = false;
 					that.addChild(newPage);
 					that.removeChild(currentPage);
 					goCheck = true;
@@ -17802,6 +17872,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var poolIndex = 0;
 		var poolCount = 0;
 
+		var emitterTicker;
 		var stage;
 		zim.added(that, addedToStage);
 	    function addedToStage(s) {
@@ -17820,7 +17891,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				//-------------   INTERVAL
 
 	            that.zimInterval = zim.interval(that.interval, function() {
-					// zog(that.numChildren)
+
 					if (that.startPaused) {that.pause(); return;}
 					// want to leave that.obj as it was provided
 					// but for creation we will normalize it as an Array
@@ -18054,7 +18125,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				//-------------  TICKER
 
 				var framerate = 0; // need a Ticker before can get the framerate so set this after Ticker
-				var emitterTicker = this.emitterTicker = zim.Ticker.add(function() {
+				emitterTicker = that.emitterTicker = zim.Ticker.add(function() {
 	                zim.loop(that, function(particle) {
 						if (particle.trace) {
 							var particleContainer = particle;
@@ -18257,7 +18328,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	    }
 
 	    this.dispose = function() {
-	        if (emitterTicker) zim.Ticker.remove(emitterTicker);
+	        if (emitterTicker) {
+				zim.Ticker.remove(emitterTicker);
+			}
 	        zim.loop(that, function(particle) {
 	            particle.stopZimAnimate();
 	        });
@@ -18813,10 +18886,11 @@ EVENTS
 			stage.width = stageW;
 			stage.height = stageH;
 			if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
-			if (touch) createjs.Touch.enable(stage,true); // added for mobile
+			if (touch) createjs.Touch.enable(stage); // added for mobile
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
 		}
+
 
 		function sizeCanvas() {
 			var can = zid(canvasID);
