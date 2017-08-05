@@ -14694,7 +14694,7 @@ and in future perhaps OutlineManager
 
 
 /*--
-zim.Guide = function(vertical, percent, hideKey, pixelKey, obj)
+zim.Guide = function(obj, vertical, percent, hideKey, pixelKey)
 
 Guide Class
 extends a zim.Container which extends a createjs.Container
@@ -14716,12 +14716,12 @@ var guide = new zim.Guide();
 
 // better to add guides to a GuideManager
 var manager = new zim.GuideManager();
-manager.add(new zim.Guide());
-manager.add(new zim.Guide(false));
+manager.add(new zim.Guide(stage));
+manager.add(new zim.Guide(stage, false));
 
 // or with pixels
-// manager.add(new zim.Guide(true, false));
-// manager.add(new zim.Guide(false, false));
+// manager.add(new zim.Guide(stage, true, false));
+// manager.add(new zim.Guide(stage, false, false));
 
 // then you can remove all guides with
 // manager.dispose();
@@ -14732,11 +14732,11 @@ frame.on("resize", function() {manager.resize();})
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
+obj - (default the default stage) object to add guide to for example a Container
 vertical - (default true) set to false for horizontal guide
 percent - (default true) set to false to show pixels
 hideKey - (default G) key to press to hide guide
 pixelKey - (default P) key to press to swap percent and pixels
-obj - (default the default stage) object to add guide to for example a Container
 
 METHODS
 resize() - resizes the guide if the container size changes (put in frame resize event)
@@ -14745,9 +14745,9 @@ dispose() - removes keyboard event listeners and guide
 PROPERTIES
 pixels - boolean - set to true to change to pixels, false to go to percent
 --*///+76
-	zim.Guide = function(vertical, percent, hideKey, pixelKey, obj) {
+	zim.Guide = function(obj, vertical, percent, hideKey, pixelKey) {
 
-		var sig = "vertical, percent, hideKey, pixelKey, obj";
+		var sig = "obj, vertical, percent, hideKey, pixelKey";
 		var duo; if (duo = zob(zim.Guide, arguments, sig, this)) return duo;
 		z_d("76");
 		this.zimContainer_constructor();
@@ -15022,7 +15022,7 @@ disposing will remove the G, P key listener and the guide
 	//-77
 
 /*--
-zim.Grid = function(color, percent, hideKey, pixelKey, obj)
+zim.Grid = function(obj, color, percent, hideKey, pixelKey)
 
 Grid
 zim class - extends a zim.Container which extends a createjs.Container
@@ -15053,11 +15053,11 @@ frame.on("resize", function() {manager.resize();})
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
+obj - (default the default stage) the object to add grid to (for example a Container)
 color - (default black) the color of the grid
 percent - (default true) set to false to show pixels
 hideKey - (default G) key to press to hide grid
 pixelKey - (default P) key to press to swap percent and pixels
-obj - (default the default stage) the object to add grid to (for example a Container)
 
 METHODS
 resize() - resize the grid if the container changes size (eg. put in frame resize event)
@@ -15066,9 +15066,9 @@ dispose() - clears keyboard events and grid
 PROPERTIES
 pixels - boolean - set to true to change to pixels, false to go to percent
 --*///+78
-	zim.Grid = function(color, percent, hideKey, pixelKey, obj) {
+	zim.Grid = function(obj, color, percent, hideKey, pixelKey) {
 
-		var sig = "color, percent, hideKey, pixelKey, obj";
+		var sig = "obj, color, percent, hideKey, pixelKey";
 		var duo; if (duo = zob(zim.Grid, arguments, sig, this)) return duo;
 		z_d("78");
 		this.zimContainer_constructor();
