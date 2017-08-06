@@ -2605,6 +2605,8 @@ drag(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, sur
 noDrag()
 dragRect(rect)
 setSwipe(swipe)
+gesture(move, scale, rotate, rect, minScale, maxScale, snapRotate)
+noGesture(move, scale, rotate)
 hitTestPoint(x, y)
 hitTestReg(b)
 hitTestRect(b, num)
@@ -10532,6 +10534,328 @@ RETURNS obj for chaining
 		}
 		return obj;
 	}//-34
+
+
+/*--
+obj.gesture = function(move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect)
+
+gesture
+zim DisplayObject method
+
+DESCRIPTION
+Sets multi-touch pan, pinch and rotate for position, scale and rotation
+Handles scaled and rotated containers
+Scale and rotation occur from registration point
+Note - gesture() only works on the currentTarget - not a container's children (like drag() can)
+ZIM Frame should have touch set to true (which is the default for mobile)
+ALSO: see the noGesture() method to remove some or all gestures
+ALSO: see the gestureRect() method to set or reset the bound rectangle dynamically
+
+EXAMPLE
+rectangle.gesture(); // move, scale and rotate with no bounds
+
+OR with pre ZIM 4TH function
+zim.gesture(rectangle);
+END EXAMPLE
+
+EXAMPLE
+rect.gesture({
+	rotate:false,
+	rect:new createjs.Rectangle(0,0,stageW,stageH),
+	minScale:.5,
+	maxScale:3,
+	slide:true
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+move - (default true) move the object with average of fingers
+scale - (default true) scale the object with first two fingers' pinch
+rotate - (default true) rotate the object with first two fingers' rotation
+rect - (default null) bounding CreateJS Rectangle(x,y,w,h) to contain registration point
+minScale - (default null) a minimum scale
+maxScale - (default null) a maximum scale
+snapRotate - (default 1) degrees to snap rotation to
+localBounds - (default false) set to true to make rect for bounds local rather than global
+slide - (default false) will let you throw the object and dispatch a slidestop event when done
+slideEffect - (default 5) how much slide with 0 being no slide and then longer slide times and distance like 10, etc.
+
+EVENTS
+Adds move, scale and rotate events to obj (when associated gesture parameters are set to true)
+If slide is true, obj dispatches a slidestop event when sliding stops
+
+RETURNS obj for chaining
+--*///+34.5
+	zim.gesture = function(obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect) {
+
+		var sig = "obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect";
+		var duo; if (duo = zob(zim.gesture, arguments, sig)) return duo;
+		z_d("34.5");
+
+		if (zot(obj) || !obj.on) return;
+		if (zot(move)) move = true;
+		if (zot(scale)) scale = true;
+		if (zot(rotate)) rotate = true;
+		if (zot(localBounds)) localBounds = false;
+		if (zot(snapRotate)) snapRotate = 1;
+		if (zot(slide)) slide = false;
+		if (zot(slideEffect)) slideEffect = 5;
+
+		var slideData;
+		var slideCount;
+
+		if (!obj.zimTouch) {
+
+			obj.zimTouch = {
+				move:move, // store settings on object to control with noGesture()
+				scale:scale,
+				rotate:rotate,
+				pointers:{}, // holds the current pointer data
+				checkBounds:function(x, y) { // used locally and by zim.gestureRect
+					if (obj.zimTouch.rect) {
+						var rect = obj.zimTouch.rect;
+						// convert the desired drag position to a global point
+						// note that we want the position of the object in its parent
+						// so we use the parent as the local frame
+						var point = obj.parent.localToGlobal(x,y);
+						// r is the bounds rectangle on the global stage
+						// r is set during mousedown to allow for global scaling when in localBounds mode
+						// if you scale in localBounds==false mode, you will need to reset bounds with dragRect()
+						x = Math.max(rect.x, Math.min(rect.x+rect.width, point.x));
+						y = Math.max(rect.y, Math.min(rect.y+rect.height, point.y));
+						// now that the point has been checked on the global scale
+						// convert the point back to the obj parent frame of reference
+						point = obj.parent.globalToLocal(x, y);
+						x = point.x;
+						y = point.y;
+					}
+					return {x:x,y:y}
+				}
+			};
+
+			if (rect) {
+				obj.zimTouch.rect = rect;
+				if (localBounds) obj.zimTouch.rect = zim.boundsToGlobal(obj.parent, rect);
+				var result = obj.zimTouch.checkBounds(obj.x, obj.y); // set in bounds to start
+				obj.x = result.x;
+				obj.y = result.y;
+			}
+
+			if (slide) {
+				slideSlice = 10;
+				slideTotal = 5;
+				slideCount = 0;
+				slideData = [];
+				obj.zimTouch.slideInterval = zim.interval(slideSlice,function() {
+					slideData[slideCount++%slideTotal] = [obj.x, obj.y];
+				});
+				obj.zimTouch.slideInterval.pause();
+				obj.move(obj.x, obj.y, 10, "quadOut"); // for some reason, first throw is smoother if already animated
+			}
+
+			obj.zimTouch.mousedown = obj.on("mousedown", function(e) {
+				var id = "id"+Math.abs(e.pointerID+1); // some pointers have negative ids
+				// convert all pointer x and y to the parent container of the obj
+				var local = obj.parent.globalToLocal(e.stageX, e.stageY);
+				// we compare current pointer to start pointer (rather than increment as we go)
+				obj.zimTouch.pointers[id] = {
+					startX:local.x, startY:local.y,
+					x:local.x, y:local.y
+				};
+				if (obj.zimTouch.move) {
+					obj.zimTouch.total = 0;
+					zim.loop(obj.zimTouch.pointers, function(id) {
+						obj.zimTouch.total++;
+					});
+				}
+				if (slide && obj.zimTouch.total == 1) obj.zimTouch.slideInterval.pause(false);
+				setTouches();
+			})
+
+			obj.zimTouch.pressmove = obj.on("pressmove", function(e) {
+				var id = "id"+Math.abs(e.pointerID+1);
+				var local = obj.parent.globalToLocal(e.stageX, e.stageY);
+				// update our pointer data with new x and y
+				obj.zimTouch.pointers[id].x = local.x;
+				obj.zimTouch.pointers[id].y = local.y;
+
+				if (obj.zimTouch.move) {
+					// average the pointers' movement
+					var newX = 0;
+					var newY = 0;
+					zim.loop(obj.zimTouch.pointers, function(id, pointer) {
+						newX += pointer.x - pointer.startX;
+						newY += pointer.y - pointer.startY;
+					});
+					newX = obj.zimTouch.startX + newX / obj.zimTouch.total;
+					newY = obj.zimTouch.startY + newY / obj.zimTouch.total;
+
+					var result = obj.zimTouch.checkBounds(newX, newY); // es6 opportunity
+					obj.x = result.x;
+					obj.y = result.y;
+					obj.dispatchEvent("move");
+				}
+
+				// if we have multitouch as determined by setTouches()
+				if (obj.zimTouch.pair.length == 2) {
+					var point1 = obj.zimTouch.pair[0];
+					var point2 = obj.zimTouch.pair[1];
+					if (obj.zimTouch.scale) {
+						// use ration of distance between fingers to start and then current distance between fingers
+						var startDistance = Math.sqrt(Math.pow((point2.startX-point1.startX),2) + Math.pow((point2.startY-point1.startY),2));
+						var currentDistance = Math.sqrt(Math.pow((point2.x-point1.x),2) + Math.pow((point2.y-point1.y),2));
+						var newScaleX = obj.zimTouch.startSX + (currentDistance / startDistance - 1);
+						var newScaleY = obj.zimTouch.startSY + (currentDistance / startDistance - 1);
+
+						// do not scale if either scaleX or scaleY would be outside min and max range
+						if (!((!zot(minScale) && Math.min(newScaleX, newScaleY) < minScale)
+						|| (!zot(maxScale) && Math.max(newScaleX, newScaleY) > maxScale))) {
+							obj.scaleX = obj.zimTouch.startSX + (currentDistance / startDistance - 1);
+							obj.scaleY = obj.zimTouch.startSY + (currentDistance / startDistance - 1);
+						}
+						obj.dispatchEvent("scale");
+					}
+					if (obj.zimTouch.rotate) {
+						// rotate based on the difference of angle between the fingers at start and at current
+						var startAngle = Math.atan2((point1.startY - point2.startY), (point1.startX - point2.startX)) * (180 / Math.PI);
+						var currentAngle = Math.atan2((point1.y - point2.y), (point1.x - point2.x)) * (180 / Math.PI);
+						obj.rotation = obj.zimTouch.startR + (currentAngle - startAngle);
+						if (snapRotate > 0) {
+							obj.rotation = Math.round(obj.rotation/snapRotate)*snapRotate;
+						} else if (snapRotate == 0) {
+							obj.rotation = Math.round(obj.rotation);
+						}
+						obj.dispatchEvent("rotate");
+					}
+				}
+				if (obj.getStage && obj.getStage()) obj.getStage().update();
+			});
+
+			obj.zimTouch.pressup = obj.on("pressup", function(e) {
+				var id = "id"+Math.abs(e.pointerID+1);
+				// remove touch data for pointer
+				delete obj.zimTouch.pointers[id];
+				if (obj.zimTouch.move) obj.zimTouch.total--;
+				if (slide && obj.zimTouch.total == 0) {
+					obj.zimTouch.slideInterval.pause();
+					var startSlide = slideData[(slideCount+1)%slideData.length];
+					var currentSlide = slideData[(slideCount)%slideData.length];
+					var newX = obj.x + (startSlide[0]-currentSlide[0]) * slideEffect;
+					var newY = obj.y + (startSlide[1]-currentSlide[1]) * slideEffect;
+					var result = obj.zimTouch.checkBounds(newX, newY); // es6 opportunity
+					// if it is being thrown past the bounds, need to reduce time by percentage of blocked movement
+					var newT = slideTotal*slideSlice*slideEffect * Math.min((obj.x-result.x)/(obj.x-newX)||1, (obj.y-result.y)/(obj.y-newY)||1);
+					obj.move(result.x, result.y, newT, "quadOut", function(){obj.dispatchEvent("slidestop");});
+				}
+				setTouches();
+			});
+			function setTouches() {
+				// anytime we add or remove a pointer we reset the start positions
+				// this handles cases where single touch would change the start position
+				// and handles removing of one of the active pairs of pointers
+				// to be replaced with another current pointer
+				obj.zimTouch.pair = [];
+				zim.loop(obj.zimTouch.pointers, function(id, pointer, i) {
+					pointer.startX = pointer.x;
+					pointer.startY = pointer.y;
+					// just record the first two pointers
+					// keep looping as mov uses all pointers
+					if (i <= 1) obj.zimTouch.pair.push(pointer);
+				});
+				// record the start position, scale and rotation
+				obj.zimTouch.startX = obj.x;
+				obj.zimTouch.startY = obj.y;
+				obj.zimTouch.startSX = obj.scaleX;
+				obj.zimTouch.startSY = obj.scaleY;
+				obj.zimTouch.startR = obj.rotation;
+			}
+		}
+		return obj;
+	}//-34.5
+
+/*--
+obj.noGesture = function(move, scale, rotate)
+
+noGesture
+zim DisplayObject method
+
+DESCRIPTION
+Removes multi-touch pan, pinch and rotation gestures from an object.
+If all three are removed then deletes the zimTouch object and touch events from obj
+
+EXAMPLE
+rectangle.noGesture(); // removes all gestures
+// or
+rectangle.noGesture(true, true, false); // would leave rotation
+// or with ZIM DUO
+rectangle.noGesture({rotation:false}); // would leave rotation
+
+// OR with pre ZIM 4TH function
+zim.noGesture(rectangle);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+move - (default true) - set to false not to remove move gesture
+scale - (default true) - set to false not to remove scale gesture
+rotate - (default true) - set to false not to remove rotate gesture
+
+RETURNS obj for chaining
+--*///+34.6
+	zim.noGesture = function(obj, move, scale, rotate) {
+
+		var sig = "obj, move, scale, rotate";
+		var duo; if (duo = zob(zim.noGesture, arguments, sig)) return duo;
+		z_d("34.6");
+
+		if (zot(obj) || !obj.on || !obj.zimTouch) return;
+		if (zot(move)) move = true;
+		if (zot(scale)) scale = true;
+		if (zot(rotate)) rotate = true;
+		obj.zimTouch.move = !move;
+		obj.zimTouch.scale = !scale;
+		obj.zimTouch.rotate = !rotate;
+		if (!obj.zimTouch.move && !obj.zimTouch.scale && !obj.zimTouch.rotate) {
+			obj.off("mousedown", obj.zimTouch.mousedown);
+			obj.off("pressmove", obj.zimTouch.pressmove);
+			obj.off("pressup", obj.zimTouch.pressup);
+			delete obj.zimTouch;
+		}
+
+		return obj;
+	}//-34.6
+
+/*--
+obj.gestureRect = function(rect)
+
+gestureRect
+zim DisplayObject method
+
+DESCRIPTION
+Dynamically changes or adds a bounds rectangle to the object being dragged with zim.gesture().
+
+EXAMPLE
+var dragBounds = new createjs.Rectangle(100,100,500,400); // x,y,w,h
+circle.gestureRect(dragBounds);
+
+OR pre ZIM 4TH
+zim.gestureRect(circle, dragBounds);
+END EXAMPLE
+
+PARAMETERS
+rect - is a createjs.Rectangle for the bounds - the local / global does not change from the original gesture setting
+
+RETURNS obj for chaining
+--*///+34.7
+	zim.gestureRect = function(obj, rect) {
+		z_d("34.7");
+		if (zot(obj) || !obj.on) return;
+		if (zot(rect) || !obj.zimTouch) return;
+		obj.zimTouch.rect = rect;
+		var result = obj.zimTouch.checkBounds(obj.x, obj.y);
+		obj.x = result.x;
+		obj.y = result.y;
+		return obj;
+	}//-34.7
 
 /*--
 obj.hitTestPoint = function(x, y)
@@ -19398,6 +19722,17 @@ function zimify(obj) {
 		},
 		setSwipe:function(swipe) {
 			return zim.setSwipe(this, swipe);
+		},
+		gesture:function(move, scale, rotate, rect, minScale, maxScale, snapRotate, slide, slideDamp) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.gesture(arguments[0]);}
+			else {return zim.gesture(this, move, scale, rotate, rect, minScale, maxScale, snapRotate, slide, slideDamp);}
+		},
+		noGesture:function(move, scale, rotate) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noGesture(arguments[0]);}
+			else {zim.noGesture(this, move, scale, rotate);}
+		},
+		gestureRect:function(rect) {
+			return zim.gestureRect(this, rect);
 		},
 		hitTestPoint:function(x, y) {
 			return zim.hitTestPoint(this, x, y);
