@@ -19962,7 +19962,7 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 	if (zon) zog("ZIM FRAME");
 
 /*--
-zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage)
+zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -20056,6 +20056,8 @@ gpuObj - (default null) object with following properties (with defaults) See Cre
 	preserveBuffer (false), antialias (false), transparent (false), premultiply (false), autoPurge (1200)
 nextFrame - (default null) set to zim Frame object of Frame underneath current Frame to pass events to nextFrame
 nextStage - (default null) alternative to nextFrame if the stage beneath current Frame is not a ZIM Frame but just a CreateJS Stage
+allowDefault - (default false) set to true to allow default mouse, key and scrollwheel events on canvas
+	see also the zil property of frame that allows you to add and remove these events dynamically (except for mouse swipe scroll and zoom on mobile)
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -20067,7 +20069,9 @@ width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
 orientation - "vertical" or "horizontal" (updated live with orientation change)
-zil - reference to zil events that stop canvas from shifting
+zil - reference to zil events that stop canvas from shifting or scrolling - also see allowDefaults parameter
+	can set allowDefault property to false then allow specific defaults by removing zil events - see zil global function
+	example: window.removeEventListener("keydown", listenersArray[0]); removes keydown preventions (for page up, page down, home, end, etc)
 colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple, white, black, clear (0 alpha), faint (.01 alpha)
 altKey - true if the alt key is being pressed otherwise false
 ctrlKey - true if the ctrl key is being pressed otherwise false
@@ -20115,9 +20119,9 @@ EVENTS
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
 "keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
 --*///+83
-	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault) {
 
-		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		this.cjsEventDispatcher_constructor();
@@ -20152,6 +20156,7 @@ EVENTS
 		if (zot(rollPerSecond)) rollPerSecond = 20;
 		if (zot(delay)) delay = 0;
 		if (zot(gpu)) gpu = false;
+		if (zot(allowDefault)) allowDefault = false;
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
@@ -20282,14 +20287,14 @@ EVENTS
 
 		function makeStage() {
 			sizeCanvas();
-			if (types.indexOf(scaling) != -1) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
+			if (types.indexOf(scaling) != -1 && !allowDefault) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
 			stage = gpu?new createjs.StageGL(canvasID, gpuObj):new createjs.Stage(canvasID);
 			if (!zot(color) && gpu) stage.setClearColor(zim.convertColor(color));
 			stage.setBounds(0, 0, stageW, stageH);
 			stage.width = stageW;
 			stage.height = stageH;
 			if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
-			if (touch) createjs.Touch.enable(stage); // added for mobile
+			if (touch) createjs.Touch.enable(stage, false, allowDefault); // added for mobile
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
 		}
