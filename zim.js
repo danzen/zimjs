@@ -449,7 +449,7 @@ The ZIM VEE value can be the following:
 3. a ZIM RAND object literal - eg. {min:10, max:20, integer:true, negative:true} max is required
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-NOTE: zik() cannot be used when an Array, Function, or Object with a max property are required as a final value
+6. an object literal with a property of noZik and a value such as an Array or Function that zik will not process
 NOTE: the ZIM RAND object gets passed to zim.rand() directly so read about params there - integer defaults to false for zik()
 
 Think of zik() as a random option filter for a parameter that can be passed and then picked later with zik()
@@ -484,6 +484,9 @@ function age() {
 // below will be a, b, c or d if user is 18+ with a and b having more of a chance
 // or e or f if not over 18
 var show = zik(age);
+
+// here we pass an array through without processing the array with zik:
+zik({noZik:[1,2,3,4,5]}); // result is [1,2,3,4,5]
 END EXAMPLE
 
 PARAMETERS
@@ -492,6 +495,7 @@ value - an Array to randomly pick from or a Function yielding a return value
 	{min:0, max:20, integer:false, negative:false} - this RAND object is passes through to zim.rand()
 	See zim.rand() for defaults and parameter descriptions
 	NOTE: one change in defaults: the RAND object integer parameter defaults to false where zim.rand() defaults to true
+	if you just want an array or function to pass through unprocessed, use {noZik:value} where the value is the array or function
 
 RETURNS a random element from the Array or a Function result if a function is passed in
 or a Number from Object instructions or the value that was given
@@ -505,6 +509,7 @@ function zik(v) {
 			var val = v[Math.floor(Math.random()*(v.length))];
 			return zik(val); // recursive
 		} else if (v.constructor === {}.constructor) {
+			if (!zot(v.noZik)) return v.noZik; // a passthrough for arrays and functions
 			if (zot(v.max)) return v;
 			if (zot(v.integer)) v.integer = false;
 			var val = zim.rand(v.min, v.max, v.integer, v.negative);
@@ -3123,6 +3128,7 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 		then the sprite will play the series with the times given and ignore the master time
 		Note: if any of the series has a loop and loops forever (a loopCount of 0 or no loopCount)
 		then this will be the last of the series to run
+		rewind is not available on the outside series but is available on an inside series
 	call - (default null) the function to call when the animation is done
 	params - (default target) a single parameter for the call function (eg. use object literal or array)
 	wait - (default 0) milliseconds to wait before doing animation
@@ -3135,7 +3141,7 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 	loopParams - (default target) parameters to send loopCall function
 	loopWaitCall - (default null) calls function after at the start of loopWait
 	loopWaitParams - (default target) parameters to send loopWaitCall function
-	rewind - (default false) set to true to rewind (reverse) animation (doubles animation time)
+	rewind - (default false) set to true to rewind (reverse) animation (doubles animation time) (not available on label series)
 	rewindWait (default 0) milliseconds to wait in the middle of the rewind
 	rewindCall (default null) calls function at middle of rewind after rewindWait
 	rewindParams - (default target) parameters to send rewindCall function
@@ -3244,8 +3250,12 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		if (zot(globalControl)) globalControl = true;
 		that.globalControl = globalControl;
 
-		this.parseFrames = function(label, startFrame, endFrame) {
+		var _normalizedFrame = 0;
+		var _normalizedFrames;
+		this.parseFrames = function(label, startFrame, endFrame, fromDynamo) {
 			var frames = [];
+			var minSpeed = Number.MAX_VALUE;
+			var maxSpeed = 0;
 			if (zot(label)) {
 				if (zot(startFrame)) startFrame = 0;
 				if (zot(endFrame)) endFrame = that.totalFrames-1;
@@ -3272,6 +3282,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				if (zot(a.frames)) return;
 				if (zot(a.speed)) a.speed = 1;
 				for (var i=0; i<a.frames.length; i++) {
+					if (a.speed < minSpeed) minSpeed = a.speed;
+					if (a.speed > maxSpeed) maxSpeed = a.speed;
 					frames.push({f:a.frames[i], s:a.speed});
 				}
 				if (a.next && !zot(that.animations[a.next])) processAnimation(that.animations[a.next]);
@@ -3279,10 +3291,34 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			function addSequential(start, end, speed) {
 				if (zot(speed)) speed = 1;
 				for (var i=start; i<=end; i++) {
+					if (speed < minSpeed) minSpeed = speed;
+					if (speed > maxSpeed) maxSpeed = speed;
 					frames.push({f:i, s:speed});
 				}
 			}
-			return frames;
+			if (fromDynamo) return frames;
+			// run() uses an array of frame numbers (normalized to speed) where dynamo uses the speed
+
+			// normalize up to 1/10 - as in if put at .1 then have to multiply all others speeds by 10
+			minSpeed = zim.constrain(zim.decimals(minSpeed), .1);
+			maxSpeed = zim.constrain(zim.decimals(maxSpeed), .1);
+
+			// normalize speed:
+			var framesNormalized = [];
+			var normalize = (minSpeed != maxSpeed);
+			var fr;
+			for (var i=0; i<frames.length; i++) {
+				fr = frames[i];
+				if (normalize) {
+					// if minSpeed less than 1 then divide all others by minSpeed otherwise use speed - and need to round to a number that is at least .1
+					for (var j=0; j<zim.constrain(Math.round(minSpeed<1?fr.s/minSpeed:fr.s), .1); j++) {
+						framesNormalized.push(fr.f);
+					}
+				} else {
+					framesNormalized.push(fr.f);
+				}
+			}
+			return framesNormalized;
 		}
 
 		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl) {
@@ -3291,6 +3327,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 
 			var obj;
 			var set;
+			var lookup;
 			if (zot(tweek)) tweek = 1;
 			if (!zot(id)) that.id = id;
 			if (!zot(globalControl)) that.globalControl = globalControl;
@@ -3303,27 +3340,15 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				var extraTime = 0;
 				var firstStartFrame;
 				for (var i=0; i<label.length; i++) {
-					innerLabel = label[i];
+					innerLabel = label[i]; // {label:"first", time:1000, etc}
 
-					if (!zot(innerLabel.label) && !zot(animations) && !zot(animations[innerLabel.label])) {
-						var frames = getFrames(innerLabel.label);
-						startFrame = frames[0];
-						endFrame = frames[1];
-					} else if (!zot(innerLabel.startFrame) || !zot(innerLabel.endFrame)) {
-						if (zot(innerLabel.endFrame)) innerLabel.endFrame = sheet.getNumFrames() - 1;
-						if (zot(innerLabel.startFrame)) innerLabel.startFrame = 0;
-						startFrame = innerLabel.startFrame;
-						endFrame = innerLabel.endFrame;
-					} else {
-						if (zon) zog("zim.Sprite - run() - bad multiple label format - see docs");
-						continue;
-					}
-
+					innerLabel.lookup = that.parseFrames(innerLabel.label, innerLabel.startFrame, innerLabel.endFrame);
+					if (i==0) firstStartFrame = innerLabel.lookup[0];
 					delete innerLabel.startFrame;
 					delete innerLabel.endFrame;
 
-					innerLabel.obj = zim.merge(innerLabel.obj, {frame:endFrame});
-					innerLabel.set = zim.merge(innerLabel.set, {frame:startFrame});
+					innerLabel.obj = zim.merge(innerLabel.obj, {normalizedFrame:innerLabel.lookup.length-1});
+					innerLabel.set = zim.merge(innerLabel.set, {normalizedFrames:{noZik:innerLabel.lookup}, normalizedFrame:0});
 
 					// based on previous frames
 					if (zot(innerLabel.wait)) innerLabel.wait = extraTime*tweek;
@@ -3338,54 +3363,26 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					var tt = zot(innerLabel.time)?time:innerLabel.time;
 					if (endFrame-startFrame > 0) extraTime = tt / (endFrame-startFrame) / 2; // slight cludge - seems to look better?
 
-					if (i==0) firstStartFrame = startFrame;
+					// if (i==0) firstStartFrame = startFrame;
 				}
-				startFrame = firstStartFrame;
+				//startFrame = firstStartFrame;
 				if (obj.length == 0) return this;
-				if (obj.length == 1) {
+				if (obj.length == 1) { // just one label in list ;-)
 					time = obj[0].time;
 					label = lastLabel;
-					obj = null;
+					setSingle();
+				} else {
+					that.gotoAndStop(firstStartFrame);
 				}
-			}
-			function getFrames(label) {
-				var a = animations[label];
-				makeStartEnd(a);
-				function makeStartEnd(a) {
-					if (typeof a == "number") {
-						startFrame = endFrame = a;
-					} else if (a.constructor == {}.constructor) {
-						if (zot(a.frames)) {
-							if (zon) zog("zim.Sprite() - run() does not support nested labels - see docs");
-							startFrame = 0;
-							endFrame = sheet.getNumFrames() - 1;
-						} else {
-							makeStartEnd(a.frames);
-						}
-						startFrame = a.frames
-					} else {
-						startFrame = a[0];
-						endFrame = a[a.length-1];
-					}
-				}
-				return [startFrame, endFrame];
+			} else { // single label
+				setSingle();
 			}
 
-			// note, label might have been set back to normal if it was an array of one label
-			// normal single label
-			if (!Array.isArray(label)) {
-
-				if (zot(label) || zot(animations) || zot(animations[label])) {
-					label = null;
-					if (zot(startFrame)) startFrame = 0;
-					if (zot(endFrame)) endFrame = sheet.getNumFrames() - 1; // DUO might re-run function losing scope of this
-				} else { // we do have a label and it is in animations
-					var frames = getFrames(label);
-					startFrame = frames[0];
-					endFrame = frames[1];
-				}
-				obj = {frame:endFrame};
-				set = {frame:startFrame};
+			function setSingle() {
+				_normalizedFrames = that.parseFrames(label, startFrame, endFrame);
+				that.gotoAndStop(_normalizedFrames[_normalizedFrame]);
+				startFrame = endFrame = null;
+				obj = {normalizedFrame:_normalizedFrames.length-1};
 			}
 
 			if (zot(time)) time = 1000;
@@ -3399,7 +3396,6 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				if (zot(loopWait)) {loopWait = extraTime*tweek};
 				if (zot(rewindWait)) {rewindWait = extraTime*tweek};
 			}
-			that.frame = startFrame;
 
 			// locally override call to add running status after animation done
 			var localCall = function() {
@@ -3437,6 +3433,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			} else {
 				that.pauseZimAnimate(paused, that.id);
 			}
+			return that;
 		}
 		this.stopRun = function() {
 			that.runPaused = true;
@@ -3446,6 +3443,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			} else {
 				that.stopZimAnimate(that.id);
 			}
+			return that;
 		}
 
 		Object.defineProperty(this, 'frame', {
@@ -3453,13 +3451,31 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				return this.currentFrame;
 			},
 			set: function(value) {
-				if (zot(value)) value = 0;
 				value = Math.round(value);
 				if (this.paused) {
 					this.gotoAndStop(value);
 				} else {
 					this.gotoAndPlay(value);
 				}
+			}
+		});
+
+		Object.defineProperty(this, 'normalizedFrame', {
+			get: function() {
+				return _normalizedFrame;
+			},
+			set: function(value) {
+				_normalizedFrame = Math.round(value);
+				this.gotoAndStop(_normalizedFrames[_normalizedFrame]);
+			}
+		});
+
+		Object.defineProperty(this, 'normalizedFrames', {
+			get: function() {
+				return _normalizedFrames;
+			},
+			set: function(value) {
+				_normalizedFrames = value;
 			}
 		});
 
@@ -3473,7 +3489,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		});
 
 		this.clone = function() {
-			return this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet));
+			return this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, null, globalControl, spriteSheet));
 		}
 	}
 	zim.extend(zim.Sprite, createjs.Sprite, "clone", "cjsSprite", false);
@@ -9928,13 +9944,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var currentTemp = that.selectedIndex;
 				if (e.keyCode == 37 || e.keyCode == 40) {
 					currentTemp--;
+					changeMe();
 				} else if (e.keyCode == 38 || e.keyCode == 39){
 					currentTemp++;
+					changeMe();
 				}
-				if (currentTemp < 0) currentTemp = that.colors.length-1;
-				if (currentTemp > that.colors.length-1) currentTemp = 0;
-				that.selectedIndex = currentTemp;
-				if (that.getStage()) that.getStage().update();
+				function changeMe() {
+					if (currentTemp < 0) currentTemp = that.colors.length-1;
+					if (currentTemp > that.colors.length-1) currentTemp = 0;
+					that.selectedIndex = currentTemp;
+					that.dispatchEvent("change");
+					if (that.getStage()) that.getStage().update();
+				}
 			}
 		}
 		window.addEventListener("keydown", this.keyDownEvent);
@@ -12284,7 +12305,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						rewind:o.rewind, rewindWait:o.rewindWait,
 						rewindCall:o.rewindCall, rewindParams:o.rewindParams,
 						rewindWaitCall:o.rewindWaitCall, rewindWaitParams:o.rewindWaitParams,
-						set:o.set,
+						set:zim.copy(o.masterSet),
 						override:false,
 						id:id
 					}
@@ -12369,6 +12390,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					var newEntry = zim.merge(starts.at(o.target), startProps);
 					starts.remove(o.target);
 					starts.add(o.target, newEntry);
+					o.masterSet = zim.copy(o.set);
 				}
 				if (zot(target.zimTweens)) target.zimTweens = {};
 			} // end prepareSeries
@@ -15097,6 +15119,15 @@ Dispatches a "change" event when the screen reader is about to talk
 		// function to set aria false
 		function setAriaFalse() {
 			_aria = false;
+			var item;
+			var obj;
+			var tag;
+			for (var i=0; i<_tabOrder.length; i++) {
+				item = _tabOrder[i];
+				obj = item.obj;
+				tag = obj.zimTabTag;
+				tag.disabled = false;
+			}
 			removeAriaCheck();
 			if (alwaysHighlight) moveTagsOffstage();
 		}
@@ -15298,7 +15329,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				tabTag.style.top = frame.y+"px";
 			}
 			tabTag.style.overflow = "hidden"
-			tabTag.style.zIndex = "-5";
+			tabTag.style.zIndex = "5";
 			tabTag.style.fontSize = "20px";
 
 			tabTags.push(tabTag);
@@ -16516,7 +16547,7 @@ and in future perhaps OutlineManager
 zim.ResizeManager = function()
 
 ResizeManager
-zim class extends zim.ResizeManager abstract class
+zim class extends zim.Manager abstract class
 
 DESCRIPTION
 Add objects with a resize() method to a ResizeManager object and call a single resize() on the ResizeManager object
@@ -16527,7 +16558,9 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 var resizeManager = new zim.ResizeManager();
-resizeManager.add(loader, textArea, accessibility); // where these three objects have already been made
+resizeManager.add([pages, layout, accessibility]);
+// where these three objects have already been made
+// *** Note that the Loader and TextArea are already resized if added to an Accessibility object that is resized
 frame.on("resize", function() {
 	resizeManager.resize(); // without ResizeManager you would make three different resize() calls
 })
@@ -16535,6 +16568,7 @@ END EXAMPLE
 
 METHODS
 add(obj) - adds objects or an array of objects to the ResizeManager
+	*** Note that the Loader and TextArea are already resized if added to an Accessibility object that is resized
 remove(obj) - removes objects or an array of objects to the ResizeManager
 resize() - calls the resize() method of any object in the ResizeManager
 dispose() - disposes the objects in the ResizeManager and the ResizeManager itself
@@ -18335,7 +18369,7 @@ dispatches a pause event when the Dynamo is paused - could be delayed
 		z_d("69.2");
 		this.cjsEventDispatcher_constructor();
 
-		var frames = this.frames = sprite.parseFrames(label, startFrame, endFrame);
+		var frames = this.frames = sprite.parseFrames(label, startFrame, endFrame, true); // last true is fromDynamo
 		if (frames.length == 0) return;
 		this.totalFrames = frames.length;
 		var _frame = 0; // frame for getter and setter methods
@@ -20237,7 +20271,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-69.9
 
 /*--
-zim.SoundWave = function(num, input, include, smoothing, min, max, operation)
+zim.SoundWave = function(num, input, include, smoothing, min, max, operation, baseline, magnify, reduce)
 
 SoundWave
 zim class - extends a CreateJS EventDispatcher
@@ -20290,12 +20324,16 @@ operation - (default function below) a function that is applied to each result i
 	the natural results are very bass heavy with roughly a straight line heading down as frequency gets higher
 	the default function reduces the bass by half and slowly rises towards the original values for higher frequency
 		function(amplitude, i) {
-			return amplitude * (.5+i*1/Math.pow(zim.SoundWave.bufferLength, .9));
+			return amplitude * (.5+i*1/Math.pow(zim.SoundWave.bufferLength, .95));
 		})
 	you can pass in a different function to take the place of the default function
 	the function receives the original amplitude and index as parameters
 	you can use zim.SoundWave.bufferLength to get the total number of values in the original data (1024)
 	Note: the data returned by the calculate() method will be only the included range - eg. .117 of the total original values (starting at low frequency)
+baseline - (default 30) removes this amount of amplitude from each data point (after operation is applied)
+magnify - (default 10) multiplies the data point by this much (after the baseline is removed)
+	by removing the baseline amount and multiplying what's left the difference in wave data is increased
+reduce - (default 0) subtracts this amount from each data point (after magnified)
 
 METHODS
 calculate() - returns an array of amplitudes at various frequencies from low to high
@@ -20309,12 +20347,15 @@ num - read only num of frequency data
 smoothing - a decimal range for smoothing with 0 being choppy and .9 being slow to respond, etc.
 analyser - the HTML analyser object https://developer.mozilla.org/en-US/docs/Web/API/AnalyserNode
 	with minDecibels, maxDecibels, smoothingTimeConstant and some others - see link
+baseline - removes this amount of amplitude from each data point (after operation is applied)
+magnify - multiplies the data point by this much (after the baseline is removed)
+reduce - subtracts this amount from each data point (after magnified)
 
 EVENTS
 dispatches a ready event when the sound source is connectedc and the calculate() method is ready
 --*///+69.95
-	zim.SoundWave = function(num, input, include, smoothing, min, max, operation) {
-		var sig = "num, input, include, smoothing, min, max, operation";
+	zim.SoundWave = function(num, input, include, smoothing, min, max, operation, baseline, magnify, reduce) {
+		var sig = "num, input, include, smoothing, min, max, operation, baseline, magnify, reduce";
 		var duo; if (duo = zob(zim.SoundWave, arguments, sig, this)) return duo;
 		z_d("69.95");
 
@@ -20325,11 +20366,18 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 		if (zot(min)) min = input=="mic"?-80:-100;
 		if (zot(max)) max = input=="mic"?-40:-10;
 		if (zot(operation)) operation = function(amplitude, i) {
-			return amplitude * (.5+i*1/Math.pow(zim.SoundWave.bufferLength, .9));
+			return amplitude * (.5+i*1/Math.pow(zim.SoundWave.bufferLength, .95));
 		}
+		if (zot(baseline)) baseline = 30; // subtracts this much from value
+		if (zot(magnify)) magnify = 10; // multiplies amount by this much
+		if (zot(reduce)) reduce = 0; // after calculating, subtract this much
+
 		zim.SoundWave.bufferLength = 1024;
-		this.num = num;
+		_num = num;
 		var that = this;
+		that.baseline = baseline;
+		that.magnify = magnify;
+		that.reduce = reduce;
 
 		var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 		var analyser = that.analyser = audioCtx.createAnalyser();
@@ -20343,6 +20391,17 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 			},
 			set: function(s) {
 				analyser.smoothingTimeConstant = s;
+			}
+		});
+
+		Object.defineProperty(this, 'num', {
+			get: function() {
+				return _num;
+			},
+			set: function(n) {
+				_num = n;
+				steps = Math.floor(include*zim.SoundWave.bufferLength / _num);
+				if (steps < 1) zog("ZIM SoundWave: num is too big");
 			}
 		});
 
@@ -20391,14 +20450,14 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 			}
 			connectSource(source)
 		}
-
+		var steps;
 		function connectSource(source) {
 			source.connect(analyser);
 			if (input != "mic") analyser.connect(audioCtx.destination);
 
 			analyser.fftSize = zim.SoundWave.bufferLength*2;
-			var steps = Math.floor(include*zim.SoundWave.bufferLength / num);
-			if (steps < 1) {zog("ZIM SoundWave: inlcude param is too small or num param is too big"); return;}
+			steps = Math.floor(include*zim.SoundWave.bufferLength / _num);
+			if (steps < 1) {zog("ZIM SoundWave: include param is too small or num param is too big"); return;}
 			var bufferLength = analyser.frequencyBinCount;
 			var dataArray = new Uint8Array(bufferLength);
 
@@ -20408,19 +20467,21 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 				if (steps == 1) return adjustedArray;
 				var array = [];
 				var tot = 0;
-				for (var i=0; i<include*zim.SoundWave.bufferLength; i++) {
-					tot += dataArray[i];
+				for (var i=0; i<=include*zim.SoundWave.bufferLength; i++) {
+					tot += adjustedArray[i];
 					if (i==0) continue;
 					if (i%steps==0) {
-						array.push(tot/steps);
+						array.push((tot/steps-that.baseline)*that.magnify-that.reduce);
 						tot = 0;
 					}
 				}
-				array.push(tot/steps);
+				// array.push((tot/steps-30)*10);
 				if (input != "mic") {
 					array[0] *= .75;
-					array[1] *= .9;
-					array[2] *= .95;
+					array[1] *= .85;
+					array[2] *= .9;
+					array[array.length-2] *= .8;
+					array[array.length-1] *= .75;
 				}
 				array[array.length-1] *= 1.3;
 				array[array.length-2] *= 1.2;
@@ -20429,6 +20490,7 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 			}
 			setTimeout(function(){that.dispatchEvent("ready");}, 50);
 		}
+
 	}
 
 	zim.extend(zim.SoundWave, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
