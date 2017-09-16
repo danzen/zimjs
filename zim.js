@@ -1511,6 +1511,606 @@ RETURNS a String id (even if type is number)
 	}//-13.5
 
 /*--
+zim.smoothStep = function(min, max, value)
+
+smoothStep
+zim function
+
+DESCRIPTION
+smoothStep takes an input value and outputs a value between 0 and 1
+that represents a transition between the min and max with easing at both ends.
+If you want the easing to be more pronounced, then reduce difference between min and max.
+If the value falls outside the min or max then it is set to the min or max.
+Remember the return value is between 0 and 1 so you can multiply by max-min and add it to min
+to get a value at the original scale.
+Used to make blobs with zim.Noise(): http://zimjs.com/code/noise/blobs.html
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// here we use smoothStep to make a gradient between black and white
+// not an even one right across but a gradient across a transition zone of 40-100
+
+// create an empty Bitmap size 200, 200 and center it on the stage
+var bmp = new Bitmap(null, 200, 200).center(stage);
+
+// we need to loop and get a value for each pixel
+// normally we loop across the rows and then do each column
+// but here we are making a horizontal gradient
+// so we will loop across the x and get the desired value
+// then when we loop across the y in the inner loop, we just use that same value
+for (var x = 0; x < bmp.width; x++) {
+	// making gradient in x only so calculate smoothStep here
+	// x will be from 0 to the width of 200
+	// we pass in a min of 40 and a max of 100
+	// the result of smoothStep is between 0 and 1
+	// so from 0 to 40 the return of smoothStep will be 0
+	// and from 100 to 200 the return of smoothStep will be 1
+	// In between, the return value starts off close to 0, then speeds up
+	// and then slows down to 1 in a curve that is somewhat like the letter f
+	// When we multiply by 255 and apply that result to each color,
+	// we get black and then a range of greys and then white
+	var value = smoothStep(40, 100, x)*255;
+
+	// now we loop down the column for the x position
+	for (var y = 0; y < bmp.height; y++) {
+		// imageData is four values per pixel
+		// the red, green, blue and alpha
+		// in one big long array - each value will be constrained to between 0 and 255
+		// this i value will increase by 4 each time
+		// then we write the same value for red, green, blue to get a shade of grey
+		var i = (x + y * bmp.width) * 4;
+		bmp.imageData.data[i] = value; // red (0-255)
+		bmp.imageData.data[i + 1] = value; // green (0-255)
+		bmp.imageData.data[i + 2] = value; // blue (0-255)
+		bmp.imageData.data[i + 3] = 255; // alpha (0-255)
+	}
+}
+bmp.drawImageData(); // draw the imageData to the Bitmap
+END EXAMPLE
+
+PARAMETERS
+min - the lower edge for smoothStep (often termed edge0) - anything smaller will be set to min
+max - the upper edge for smoothStep (often termed edge1) - anything bigger will be set to max
+input - the input value with respect to min and max
+
+RETURNS a number between 0 and 1 that represents a transition factor
+--*///+13.7
+	zim.smoothStep = function(min, max, input) {
+		z_d("13.7");
+	    var x = zim.constrain((input - min)/(max - min), 0, 1);
+	    return x*x*x*(x*(x*6 - 15) + 10); // Perlin
+	}//-13.7
+
+/*--
+zim.Noise = function(seed)
+
+Noise
+zim class
+
+DESCRIPTION
+Noise creates OpenSimplex Noise: https://en.wikipedia.org/wiki/OpenSimplex_noise
+Converted from https://www.npmjs.com/package/open-simplex-noise
+See examples at http://zimjs.com/code/noise/
+In general, this is special noise where the pixels relate to one another in a complex way.
+This connection, lets us do things like create terrains or blobs, etc. that look organic.
+There is 1D, 2D, 3D, and 4D noise where we pass in one value, two values, three values and four values.
+We always get back a number between -1 and 1 and this result relates to the results around it.
+
+1D - we can plot 1D by drawing line segments across the stage (x) and setting the y value to the result of simplex1D(x)
+This makes a 2D mountain-like terrain across the stage
+
+2D - if we keep the plot from the 1D but use 2D and change the second parameter, we can animate the line.
+We just need to adjust the second parameter by a very small amount each time such as .005.
+Or we can plot put the return value of simplex2D onto its x,y matching location in a Bitmap
+mapping it to a greyscale to make a traditional noise pattern.
+We can adjust the "size" of the noise by dividing the x and y values (frequency).
+If we use the ZIM smoothStep() function we can smoothen these to make blobs.
+We can also use the return value as height for 3D terrain.
+
+3D - if we keep the traditional noise/blob pattern from the 2D but use simplex3D and animate the third parameter,
+we can animate the 2D noise in time which looks great when we animate blobs!
+This plotting is thousands of computations and will bog the computer if too big.
+
+4D - will allow us to animate 3D values, etc.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// 1D Noise to make a jagged line across the stage
+var noise = new Noise();
+var shape = new Shape(stageW, stageH).addTo(stage);
+shape.graphics.s("black").ss(2).mt(0, stageH/2);
+loop(stageW/50, function(i) {
+	shape.graphics.lt((i+1)*50, stageH/2 + noise.simplex1D(i)*200);
+});
+// the above can be animated by using simplex2D and animating the second number by small amounts
+END EXAMPLE
+
+EXAMPLE
+// 2D noise
+// create a Noise object:
+var noise = new zim.Noise();
+
+// create an empty Bitmap size 200, 200 into which to draw the noise
+var bmp = new Bitmap(null, 200, 200).center(stage);
+
+// we fill the bitmap starting from top left going across in the inner loop,
+// then down, then across, etc. until we get to bottom right.
+for (var y = 0; y < bmp.height; y++) {
+	for (var x = 0; x < bmp.width; x++) {
+		// the noise methods return a number from -1 to 1
+		// by adding 1 we get a number between 0 and 2 and we divide by 2 to get 0-1
+		// and we multiply this by 255 to get a number between 0 and 255
+		var value = (noise.simplex2D(x,y)+1)/2 * 255;
+		// imageData is one big array with four values per pixel
+		// the red, green, blue and alpha
+		// each value will constrained to between 0 and 255
+		// the i value is how many on the current row plus the columns from the previous rows
+		// and we set it to increase by 4 each time giving us a place for each color and alpha
+		// We write the same value for red, green, blue to get a shade of grey
+		var i = (x + y * bmp.width) * 4;
+		bmp.imageData.data[i] = value; // red (0-255)
+		bmp.imageData.data[i + 1] = value; // green (0-255)
+		bmp.imageData.data[i + 2] = value; // blue (0-255)
+		bmp.imageData.data[i + 3] = 255; // alpha (0-255)
+	}
+}
+bmp.drawImageData(); // this draws the imageData to the Bitmap
+
+// Here is the same example to get blobs using smoothStep:
+
+var f = 25; // try changing this number around
+for (var y = 0; y < bmp.height; y++) {
+	for (var x = 0; x < bmp.width; x++) {
+		var value = noise.simplex2D(x/f, y/f)+1)/2; // 0-1
+		// smoothStep sets less than .3 to 0 and greater than .35 to 1
+		// and transitions between using an easing formula in the shape of an f
+		var value = zim.smoothStep(.3, .35, value) * 255;
+		var i = (x + y * bmp.width) * 4;
+		bmp.imageData.data[i] = value; // red (0-255)
+		bmp.imageData.data[i + 1] = value; // green (0-255)
+		bmp.imageData.data[i + 2] = value; // blue (0-255)
+		bmp.imageData.data[i + 3] = 255; // alpha (0-255)
+	}
+}
+bmp.drawImageData();
+END EXAMPLE
+
+PARAMETERS
+seed - (default Math.random()*1000000) keeping the same seed can remake a pattern the same
+
+METHODS
+simplex1D(x) - returns a noise value between -1 and 1
+	In each method, the noise value relates to its neighbor rather than a completely random value
+simplex2D(x,y) - returns a noise value between -1 and 1
+simplex3D(x,y,z) - returns a noise value between -1 and 1
+simplex4D(x,y,z,w) - returns a noise value between -1 and 1
+
+PROPERTIES
+seed - read only - the seed that was used for the Noise object
+--*///+13.9
+	zim.Noise = function(seed) {
+		"use strict";
+		z_d("13.9");
+
+		if (zot(seed)) seed = Math.random()*1000000;
+		var clientSeed = seed;
+		this.seed = seed;
+
+		var that = this;
+
+		var con = {}; // holds the constants
+		con.NORM_2D = 1.0 / 47.0;
+		con.NORM_3D = 1.0 / 103.0;
+		con.NORM_4D = 1.0 / 30.0;
+		con.SQUISH_2D = (Math.sqrt(2 + 1) - 1) / 2;
+		con.SQUISH_3D = (Math.sqrt(3 + 1) - 1) / 3;
+		con.SQUISH_4D = (Math.sqrt(4 + 1) - 1) / 4;
+		con.STRETCH_2D = (1 / Math.sqrt(2 + 1) - 1) / 2;
+		con.STRETCH_3D = (1 / Math.sqrt(3 + 1) - 1) / 3;
+		con.STRETCH_4D = (1 / Math.sqrt(4 + 1) - 1) / 4;
+		con.base2D = [
+			[1, 1, 0, 1, 0, 1, 0, 0, 0],
+			[1, 1, 0, 1, 0, 1, 2, 1, 1]
+		];
+		con.base3D = [
+			[0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1],
+			[2, 1, 1, 0, 2, 1, 0, 1, 2, 0, 1, 1, 3, 1, 1, 1],
+			[1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 2, 1, 1, 0, 2, 1, 0, 1, 2, 0, 1, 1]
+		];
+		con.base4D = [
+			[0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1],
+			[3, 1, 1, 1, 0, 3, 1, 1, 0, 1, 3, 1, 0, 1, 1, 3, 0, 1, 1, 1, 4, 1, 1, 1, 1],
+			[
+				1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 2, 1, 1, 0, 0, 2, 1, 0, 1, 0, 2, 1, 0, 0, 1, 2, 0, 1, 1,
+				0, 2, 0, 1, 0, 1, 2, 0, 0, 1, 1
+			],
+			[
+				3, 1, 1, 1, 0, 3, 1, 1, 0, 1, 3, 1, 0, 1, 1, 3, 0, 1, 1, 1, 2, 1, 1, 0, 0, 2, 1, 0, 1, 0, 2, 1, 0, 0, 1, 2, 0, 1, 1,
+				0, 2, 0, 1, 0, 1, 2, 0, 0, 1, 1
+			]
+		];
+		con.gradients2D = [5, 2, 2, 5, -5, 2, -2, 5, 5, -2, 2, -5, -5, -2, -2, -5];
+		con.gradients3D = [
+			-11, 4, 4, -4, 11, 4, -4, 4, 11,
+			11, 4, 4, 4, 11, 4, 4, 4, 11,
+			-11, -4, 4, -4, -11, 4, -4, -4, 11,
+			11, -4, 4, 4, -11, 4, 4, -4, 11,
+			-11, 4, -4, -4, 11, -4, -4, 4, -11,
+			11, 4, -4, 4, 11, -4, 4, 4, -11,
+			-11, -4, -4, -4, -11, -4, -4, -4, -11,
+			11, -4, -4, 4, -11, -4, 4, -4, -11
+		];
+		con.gradients4D = [
+			3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 3, 1, 1, 1, 1, 3,
+			-3, 1, 1, 1, -1, 3, 1, 1, -1, 1, 3, 1, -1, 1, 1, 3,
+			3, -1, 1, 1, 1, -3, 1, 1, 1, -1, 3, 1, 1, -1, 1, 3,
+			-3, -1, 1, 1, -1, -3, 1, 1, -1, -1, 3, 1, -1, -1, 1, 3,
+			3, 1, -1, 1, 1, 3, -1, 1, 1, 1, -3, 1, 1, 1, -1, 3,
+			-3, 1, -1, 1, -1, 3, -1, 1, -1, 1, -3, 1, -1, 1, -1, 3,
+			3, -1, -1, 1, 1, -3, -1, 1, 1, -1, -3, 1, 1, -1, -1, 3,
+			-3, -1, -1, 1, -1, -3, -1, 1, -1, -1, -3, 1, -1, -1, -1, 3,
+			3, 1, 1, -1, 1, 3, 1, -1, 1, 1, 3, -1, 1, 1, 1, -3,
+			-3, 1, 1, -1, -1, 3, 1, -1, -1, 1, 3, -1, -1, 1, 1, -3,
+			3, -1, 1, -1, 1, -3, 1, -1, 1, -1, 3, -1, 1, -1, 1, -3,
+			-3, -1, 1, -1, -1, -3, 1, -1, -1, -1, 3, -1, -1, -1, 1, -3,
+			3, 1, -1, -1, 1, 3, -1, -1, 1, 1, -3, -1, 1, 1, -1, -3,
+			-3, 1, -1, -1, -1, 3, -1, -1, -1, 1, -3, -1, -1, 1, -1, -3,
+			3, -1, -1, -1, 1, -3, -1, -1, 1, -1, -3, -1, 1, -1, -1, -3,
+			-3, -1, -1, -1, -1, -3, -1, -1, -1, -1, -3, -1, -1, -1, -1, -3
+		];
+		con.lookupPairs2D = [0, 1, 1, 0, 4, 1, 17, 0, 20, 2, 21, 2, 22, 5, 23, 5, 26, 4, 39, 3, 42, 4, 43, 3];
+		con.lookupPairs3D = [
+			0, 2, 1, 1, 2, 2, 5, 1, 6, 0, 7, 0, 32, 2, 34, 2, 129, 1, 133, 1, 160, 5, 161, 5, 518, 0, 519, 0, 546, 4, 550, 4, 645,
+			3, 647, 3, 672, 5, 673, 5, 674, 4, 677, 3, 678, 4, 679, 3, 680, 13, 681, 13, 682, 12, 685, 14, 686, 12, 687, 14, 712,
+			20, 714, 18, 809, 21, 813, 23, 840, 20, 841, 21, 1198, 19, 1199, 22, 1226, 18, 1230, 19, 1325, 23, 1327, 22, 1352, 15,
+			1353, 17, 1354, 15, 1357, 17, 1358, 16, 1359, 16, 1360, 11, 1361, 10, 1362, 11, 1365, 10, 1366, 9, 1367, 9, 1392, 11,
+			1394, 11, 1489, 10, 1493, 10, 1520, 8, 1521, 8, 1878, 9, 1879, 9, 1906, 7, 1910, 7, 2005, 6, 2007, 6, 2032, 8, 2033,
+			8, 2034, 7, 2037, 6, 2038, 7, 2039, 6
+		];
+		con.lookupPairs4D = [
+			0, 3, 1, 2, 2, 3, 5, 2, 6, 1, 7, 1, 8, 3, 9, 2, 10, 3, 13, 2, 16, 3, 18, 3, 22, 1, 23, 1, 24, 3, 26, 3, 33, 2, 37, 2,
+			38, 1, 39, 1, 41, 2, 45, 2, 54, 1, 55, 1, 56, 0, 57, 0, 58, 0, 59, 0, 60, 0, 61, 0, 62, 0, 63, 0, 256, 3, 258, 3, 264,
+			3, 266, 3, 272, 3, 274, 3, 280, 3, 282, 3, 2049, 2, 2053, 2, 2057, 2, 2061, 2, 2081, 2, 2085, 2, 2089, 2, 2093, 2,
+			2304, 9, 2305, 9, 2312, 9, 2313, 9, 16390, 1, 16391, 1, 16406, 1, 16407, 1, 16422, 1, 16423, 1, 16438, 1, 16439, 1,
+			16642, 8, 16646, 8, 16658, 8, 16662, 8, 18437, 6, 18439, 6, 18469, 6, 18471, 6, 18688, 9, 18689, 9, 18690, 8, 18693,
+			6, 18694, 8, 18695, 6, 18696, 9, 18697, 9, 18706, 8, 18710, 8, 18725, 6, 18727, 6, 131128, 0, 131129, 0, 131130, 0,
+			131131, 0, 131132, 0, 131133, 0, 131134, 0, 131135, 0, 131352, 7, 131354, 7, 131384, 7, 131386, 7, 133161, 5, 133165,
+			5, 133177, 5, 133181, 5, 133376, 9, 133377, 9, 133384, 9, 133385, 9, 133400, 7, 133402, 7, 133417, 5, 133421, 5,
+			133432, 7, 133433, 5, 133434, 7, 133437, 5, 147510, 4, 147511, 4, 147518, 4, 147519, 4, 147714, 8, 147718, 8, 147730,
+			8, 147734, 8, 147736, 7, 147738, 7, 147766, 4, 147767, 4, 147768, 7, 147770, 7, 147774, 4, 147775, 4, 149509, 6,
+			149511, 6, 149541, 6, 149543, 6, 149545, 5, 149549, 5, 149558, 4, 149559, 4, 149561, 5, 149565, 5, 149566, 4, 149567,
+			4, 149760, 9, 149761, 9, 149762, 8, 149765, 6, 149766, 8, 149767, 6, 149768, 9, 149769, 9, 149778, 8, 149782, 8,
+			149784, 7, 149786, 7, 149797, 6, 149799, 6, 149801, 5, 149805, 5, 149814, 4, 149815, 4, 149816, 7, 149817, 5, 149818,
+			7, 149821, 5, 149822, 4, 149823, 4, 149824, 37, 149825, 37, 149826, 36, 149829, 34, 149830, 36, 149831, 34, 149832,
+			37, 149833, 37, 149842, 36, 149846, 36, 149848, 35, 149850, 35, 149861, 34, 149863, 34, 149865, 33, 149869, 33,
+			149878, 32, 149879, 32, 149880, 35, 149881, 33, 149882, 35, 149885, 33, 149886, 32, 149887, 32, 150080, 49, 150082,
+			48, 150088, 49, 150098, 48, 150104, 47, 150106, 47, 151873, 46, 151877, 45, 151881, 46, 151909, 45, 151913, 44,
+			151917, 44, 152128, 49, 152129, 46, 152136, 49, 152137, 46, 166214, 43, 166215, 42, 166230, 43, 166247, 42, 166262,
+			41, 166263, 41, 166466, 48, 166470, 43, 166482, 48, 166486, 43, 168261, 45, 168263, 42, 168293, 45, 168295, 42,
+			168512, 31, 168513, 28, 168514, 31, 168517, 28, 168518, 25, 168519, 25, 280952, 40, 280953, 39, 280954, 40, 280957,
+			39, 280958, 38, 280959, 38, 281176, 47, 281178, 47, 281208, 40, 281210, 40, 282985, 44, 282989, 44, 283001, 39,
+			283005, 39, 283208, 30, 283209, 27, 283224, 30, 283241, 27, 283256, 22, 283257, 22, 297334, 41, 297335, 41, 297342,
+			38, 297343, 38, 297554, 29, 297558, 24, 297562, 29, 297590, 24, 297594, 21, 297598, 21, 299365, 26, 299367, 23,
+			299373, 26, 299383, 23, 299389, 20, 299391, 20, 299584, 31, 299585, 28, 299586, 31, 299589, 28, 299590, 25, 299591,
+			25, 299592, 30, 299593, 27, 299602, 29, 299606, 24, 299608, 30, 299610, 29, 299621, 26, 299623, 23, 299625, 27,
+			299629, 26, 299638, 24, 299639, 23, 299640, 22, 299641, 22, 299642, 21, 299645, 20, 299646, 21, 299647, 20, 299648,
+			61, 299649, 60, 299650, 61, 299653, 60, 299654, 59, 299655, 59, 299656, 58, 299657, 57, 299666, 55, 299670, 54,
+			299672, 58, 299674, 55, 299685, 52, 299687, 51, 299689, 57, 299693, 52, 299702, 54, 299703, 51, 299704, 56, 299705,
+			56, 299706, 53, 299709, 50, 299710, 53, 299711, 50, 299904, 61, 299906, 61, 299912, 58, 299922, 55, 299928, 58,
+			299930, 55, 301697, 60, 301701, 60, 301705, 57, 301733, 52, 301737, 57, 301741, 52, 301952, 79, 301953, 79, 301960,
+			76, 301961, 76, 316038, 59, 316039, 59, 316054, 54, 316071, 51, 316086, 54, 316087, 51, 316290, 78, 316294, 78,
+			316306, 73, 316310, 73, 318085, 77, 318087, 77, 318117, 70, 318119, 70, 318336, 79, 318337, 79, 318338, 78, 318341,
+			77, 318342, 78, 318343, 77, 430776, 56, 430777, 56, 430778, 53, 430781, 50, 430782, 53, 430783, 50, 431000, 75,
+			431002, 72, 431032, 75, 431034, 72, 432809, 74, 432813, 69, 432825, 74, 432829, 69, 433032, 76, 433033, 76, 433048,
+			75, 433065, 74, 433080, 75, 433081, 74, 447158, 71, 447159, 68, 447166, 71, 447167, 68, 447378, 73, 447382, 73,
+			447386, 72, 447414, 71, 447418, 72, 447422, 71, 449189, 70, 449191, 70, 449197, 69, 449207, 68, 449213, 69, 449215,
+			68, 449408, 67, 449409, 67, 449410, 66, 449413, 64, 449414, 66, 449415, 64, 449416, 67, 449417, 67, 449426, 66,
+			449430, 66, 449432, 65, 449434, 65, 449445, 64, 449447, 64, 449449, 63, 449453, 63, 449462, 62, 449463, 62, 449464,
+			65, 449465, 63, 449466, 65, 449469, 63, 449470, 62, 449471, 62, 449472, 19, 449473, 19, 449474, 18, 449477, 16,
+			449478, 18, 449479, 16, 449480, 19, 449481, 19, 449490, 18, 449494, 18, 449496, 17, 449498, 17, 449509, 16, 449511,
+			16, 449513, 15, 449517, 15, 449526, 14, 449527, 14, 449528, 17, 449529, 15, 449530, 17, 449533, 15, 449534, 14,
+			449535, 14, 449728, 19, 449729, 19, 449730, 18, 449734, 18, 449736, 19, 449737, 19, 449746, 18, 449750, 18, 449752,
+			17, 449754, 17, 449784, 17, 449786, 17, 451520, 19, 451521, 19, 451525, 16, 451527, 16, 451528, 19, 451529, 19,
+			451557, 16, 451559, 16, 451561, 15, 451565, 15, 451577, 15, 451581, 15, 451776, 19, 451777, 19, 451784, 19, 451785,
+			19, 465858, 18, 465861, 16, 465862, 18, 465863, 16, 465874, 18, 465878, 18, 465893, 16, 465895, 16, 465910, 14,
+			465911, 14, 465918, 14, 465919, 14, 466114, 18, 466118, 18, 466130, 18, 466134, 18, 467909, 16, 467911, 16, 467941,
+			16, 467943, 16, 468160, 13, 468161, 13, 468162, 13, 468163, 13, 468164, 13, 468165, 13, 468166, 13, 468167, 13,
+			580568, 17, 580570, 17, 580585, 15, 580589, 15, 580598, 14, 580599, 14, 580600, 17, 580601, 15, 580602, 17, 580605,
+			15, 580606, 14, 580607, 14, 580824, 17, 580826, 17, 580856, 17, 580858, 17, 582633, 15, 582637, 15, 582649, 15,
+			582653, 15, 582856, 12, 582857, 12, 582872, 12, 582873, 12, 582888, 12, 582889, 12, 582904, 12, 582905, 12, 596982,
+			14, 596983, 14, 596990, 14, 596991, 14, 597202, 11, 597206, 11, 597210, 11, 597214, 11, 597234, 11, 597238, 11,
+			597242, 11, 597246, 11, 599013, 10, 599015, 10, 599021, 10, 599023, 10, 599029, 10, 599031, 10, 599037, 10, 599039,
+			10, 599232, 13, 599233, 13, 599234, 13, 599235, 13, 599236, 13, 599237, 13, 599238, 13, 599239, 13, 599240, 12,
+			599241, 12, 599250, 11, 599254, 11, 599256, 12, 599257, 12, 599258, 11, 599262, 11, 599269, 10, 599271, 10, 599272,
+			12, 599273, 12, 599277, 10, 599279, 10, 599282, 11, 599285, 10, 599286, 11, 599287, 10, 599288, 12, 599289, 12,
+			599290, 11, 599293, 10, 599294, 11, 599295, 10
+		];
+		con.p2D = [0, 0, 1, -1, 0, 0, -1, 1, 0, 2, 1, 1, 1, 2, 2, 0, 1, 2, 0, 2, 1, 0, 0, 0];
+		con.p3D = [
+			0, 0, 1, -1, 0, 0, 1, 0, -1, 0, 0, -1, 1, 0, 0, 0, 1, -1, 0, 0, -1, 0, 1, 0, 0, -1, 1, 0, 2, 1, 1, 0, 1, 1, 1, -1, 0,
+			2, 1, 0, 1, 1, 1, -1, 1, 0, 2, 0, 1, 1, 1, -1, 1, 1, 1, 3, 2, 1, 0, 3, 1, 2, 0, 1, 3, 2, 0, 1, 3, 1, 0, 2, 1, 3, 0, 2,
+			1, 3, 0, 1, 2, 1, 1, 1, 0, 0, 2, 2, 0, 0, 1, 1, 0, 1, 0, 2, 0, 2, 0, 1, 1, 0, 0, 1, 2, 0, 0, 2, 2, 0, 0, 0, 0, 1, 1,
+			-1, 1, 2, 0, 0, 0, 0, 1, -1, 1, 1, 2, 0, 0, 0, 0, 1, 1, 1, -1, 2, 3, 1, 1, 1, 2, 0, 0, 2, 2, 3, 1, 1, 1, 2, 2, 0, 0,
+			2, 3, 1, 1, 1, 2, 0, 2, 0, 2, 1, 1, -1, 1, 2, 0, 0, 2, 2, 1, 1, -1, 1, 2, 2, 0, 0, 2, 1, -1, 1, 1, 2, 0, 0, 2, 2, 1,
+			-1, 1, 1, 2, 0, 2, 0, 2, 1, 1, 1, -1, 2, 2, 0, 0, 2, 1, 1, 1, -1, 2, 0, 2, 0
+		];
+		con.p4D = [
+			0, 0, 1, -1, 0, 0, 0, 1, 0, -1, 0, 0, 1, 0, 0, -1, 0, 0, -1, 1, 0, 0, 0, 0, 1, -1, 0, 0, 0, 1, 0, -1, 0, 0, -1, 0, 1,
+			0, 0, 0, -1, 1, 0, 0, 0, 0, 1, -1, 0, 0, -1, 0, 0, 1, 0, 0, -1, 0, 1, 0, 0, 0, -1, 1, 0, 2, 1, 1, 0, 0, 1, 1, 1, -1,
+			0, 1, 1, 1, 0, -1, 0, 2, 1, 0, 1, 0, 1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 0, 2, 0, 1, 1, 0, 1, -1, 1, 1, 0, 1, 0, 1, 1, -1,
+			0, 2, 1, 0, 0, 1, 1, 1, -1, 0, 1, 1, 1, 0, -1, 1, 0, 2, 0, 1, 0, 1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, 0, 2, 0, 0, 1, 1,
+			1, -1, 0, 1, 1, 1, 0, -1, 1, 1, 1, 4, 2, 1, 1, 0, 4, 1, 2, 1, 0, 4, 1, 1, 2, 0, 1, 4, 2, 1, 0, 1, 4, 1, 2, 0, 1, 4, 1,
+			1, 0, 2, 1, 4, 2, 0, 1, 1, 4, 1, 0, 2, 1, 4, 1, 0, 1, 2, 1, 4, 0, 2, 1, 1, 4, 0, 1, 2, 1, 4, 0, 1, 1, 2, 1, 2, 1, 1,
+			0, 0, 3, 2, 1, 0, 0, 3, 1, 2, 0, 0, 1, 2, 1, 0, 1, 0, 3, 2, 0, 1, 0, 3, 1, 0, 2, 0, 1, 2, 0, 1, 1, 0, 3, 0, 2, 1, 0,
+			3, 0, 1, 2, 0, 1, 2, 1, 0, 0, 1, 3, 2, 0, 0, 1, 3, 1, 0, 0, 2, 1, 2, 0, 1, 0, 1, 3, 0, 2, 0, 1, 3, 0, 1, 0, 2, 1, 2,
+			0, 0, 1, 1, 3, 0, 0, 2, 1, 3, 0, 0, 1, 2, 2, 3, 1, 1, 1, 0, 2, 1, 1, 1, -1, 2, 2, 0, 0, 0, 2, 3, 1, 1, 0, 1, 2, 1, 1,
+			-1, 1, 2, 2, 0, 0, 0, 2, 3, 1, 0, 1, 1, 2, 1, -1, 1, 1, 2, 2, 0, 0, 0, 2, 3, 1, 1, 1, 0, 2, 1, 1, 1, -1, 2, 0, 2, 0,
+			0, 2, 3, 1, 1, 0, 1, 2, 1, 1, -1, 1, 2, 0, 2, 0, 0, 2, 3, 0, 1, 1, 1, 2, -1, 1, 1, 1, 2, 0, 2, 0, 0, 2, 3, 1, 1, 1, 0,
+			2, 1, 1, 1, -1, 2, 0, 0, 2, 0, 2, 3, 1, 0, 1, 1, 2, 1, -1, 1, 1, 2, 0, 0, 2, 0, 2, 3, 0, 1, 1, 1, 2, -1, 1, 1, 1, 2,
+			0, 0, 2, 0, 2, 3, 1, 1, 0, 1, 2, 1, 1, -1, 1, 2, 0, 0, 0, 2, 2, 3, 1, 0, 1, 1, 2, 1, -1, 1, 1, 2, 0, 0, 0, 2, 2, 3, 0,
+			1, 1, 1, 2, -1, 1, 1, 1, 2, 0, 0, 0, 2, 2, 1, 1, 1, -1, 0, 1, 1, 1, 0, -1, 0, 0, 0, 0, 0, 2, 1, 1, -1, 1, 0, 1, 1, 0,
+			1, -1, 0, 0, 0, 0, 0, 2, 1, -1, 1, 1, 0, 1, 0, 1, 1, -1, 0, 0, 0, 0, 0, 2, 1, 1, -1, 0, 1, 1, 1, 0, -1, 1, 0, 0, 0, 0,
+			0, 2, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, 0, 0, 0, 0, 0, 2, 1, -1, 0, 1, 1, 1, 0, -1, 1, 1, 0, 0, 0, 0, 0, 2, 1, 1, 1, -1,
+			0, 1, 1, 1, 0, -1, 2, 2, 0, 0, 0, 2, 1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 2, 2, 0, 0, 0, 2, 1, 1, -1, 0, 1, 1, 1, 0, -1, 1,
+			2, 2, 0, 0, 0, 2, 1, 1, 1, -1, 0, 1, 1, 1, 0, -1, 2, 0, 2, 0, 0, 2, 1, -1, 1, 1, 0, 1, 0, 1, 1, -1, 2, 0, 2, 0, 0, 2,
+			1, -1, 1, 0, 1, 1, 0, 1, -1, 1, 2, 0, 2, 0, 0, 2, 1, 1, -1, 1, 0, 1, 1, 0, 1, -1, 2, 0, 0, 2, 0, 2, 1, -1, 1, 1, 0, 1,
+			0, 1, 1, -1, 2, 0, 0, 2, 0, 2, 1, -1, 0, 1, 1, 1, 0, -1, 1, 1, 2, 0, 0, 2, 0, 2, 1, 1, -1, 0, 1, 1, 1, 0, -1, 1, 2, 0,
+			0, 0, 2, 2, 1, -1, 1, 0, 1, 1, 0, 1, -1, 1, 2, 0, 0, 0, 2, 2, 1, -1, 0, 1, 1, 1, 0, -1, 1, 1, 2, 0, 0, 0, 2, 3, 1, 1,
+			0, 0, 0, 2, 2, 0, 0, 0, 2, 1, 1, 1, -1, 3, 1, 0, 1, 0, 0, 2, 0, 2, 0, 0, 2, 1, 1, 1, -1, 3, 1, 0, 0, 1, 0, 2, 0, 0, 2,
+			0, 2, 1, 1, 1, -1, 3, 1, 1, 0, 0, 0, 2, 2, 0, 0, 0, 2, 1, 1, -1, 1, 3, 1, 0, 1, 0, 0, 2, 0, 2, 0, 0, 2, 1, 1, -1, 1,
+			3, 1, 0, 0, 0, 1, 2, 0, 0, 0, 2, 2, 1, 1, -1, 1, 3, 1, 1, 0, 0, 0, 2, 2, 0, 0, 0, 2, 1, -1, 1, 1, 3, 1, 0, 0, 1, 0, 2,
+			0, 0, 2, 0, 2, 1, -1, 1, 1, 3, 1, 0, 0, 0, 1, 2, 0, 0, 0, 2, 2, 1, -1, 1, 1, 3, 1, 0, 1, 0, 0, 2, 0, 2, 0, 0, 2, -1,
+			1, 1, 1, 3, 1, 0, 0, 1, 0, 2, 0, 0, 2, 0, 2, -1, 1, 1, 1, 3, 1, 0, 0, 0, 1, 2, 0, 0, 0, 2, 2, -1, 1, 1, 1, 3, 3, 2, 1,
+			0, 0, 3, 1, 2, 0, 0, 4, 1, 1, 1, 1, 3, 3, 2, 0, 1, 0, 3, 1, 0, 2, 0, 4, 1, 1, 1, 1, 3, 3, 0, 2, 1, 0, 3, 0, 1, 2, 0,
+			4, 1, 1, 1, 1, 3, 3, 2, 0, 0, 1, 3, 1, 0, 0, 2, 4, 1, 1, 1, 1, 3, 3, 0, 2, 0, 1, 3, 0, 1, 0, 2, 4, 1, 1, 1, 1, 3, 3,
+			0, 0, 2, 1, 3, 0, 0, 1, 2, 4, 1, 1, 1, 1, 3, 3, 2, 1, 0, 0, 3, 1, 2, 0, 0, 2, 1, 1, 1, -1, 3, 3, 2, 0, 1, 0, 3, 1, 0,
+			2, 0, 2, 1, 1, 1, -1, 3, 3, 0, 2, 1, 0, 3, 0, 1, 2, 0, 2, 1, 1, 1, -1, 3, 3, 2, 1, 0, 0, 3, 1, 2, 0, 0, 2, 1, 1, -1,
+			1, 3, 3, 2, 0, 0, 1, 3, 1, 0, 0, 2, 2, 1, 1, -1, 1, 3, 3, 0, 2, 0, 1, 3, 0, 1, 0, 2, 2, 1, 1, -1, 1, 3, 3, 2, 0, 1, 0,
+			3, 1, 0, 2, 0, 2, 1, -1, 1, 1, 3, 3, 2, 0, 0, 1, 3, 1, 0, 0, 2, 2, 1, -1, 1, 1, 3, 3, 0, 0, 2, 1, 3, 0, 0, 1, 2, 2,
+			1, -1, 1, 1, 3, 3, 0, 2, 1, 0, 3, 0, 1, 2, 0, 2, -1, 1, 1, 1, 3, 3, 0, 2, 0, 1, 3, 0, 1, 0, 2, 2, -1, 1, 1, 1, 3, 3,
+			0, 0, 2, 1, 3, 0, 0, 1, 2, 2, -1, 1, 1, 1
+		];
+
+		// helper classes
+
+		function shuffleSeed(seed) {
+			var newSeed = new Uint32Array(1);
+			newSeed[0] = seed[0] * 1664525 + 1013904223;
+			return newSeed;
+		}
+
+		function Contribution2(multiplier, xsb, ysb) {
+			this.dx = -xsb - multiplier * con.SQUISH_2D;
+			this.dy = -ysb - multiplier * con.SQUISH_2D;
+			this.xsb = xsb;
+			this.ysb = ysb;
+		}
+
+		function Contribution3(multiplier, xsb, ysb, zsb) {
+			this.dx = -xsb - multiplier * con.SQUISH_3D;
+			this.dy = -ysb - multiplier * con.SQUISH_3D;
+			this.dz = -zsb - multiplier * con.SQUISH_3D;
+			this.xsb = xsb;
+			this.ysb = ysb;
+			this.zsb = zsb;
+		}
+
+		function Contribution4(multiplier, xsb, ysb, zsb, wsb) {
+			this.dx = -xsb - multiplier * con.SQUISH_4D;
+			this.dy = -ysb - multiplier * con.SQUISH_4D;
+			this.dz = -zsb - multiplier * con.SQUISH_4D;
+			this.dw = -wsb - multiplier * con.SQUISH_4D;
+			this.xsb = xsb;
+			this.ysb = ysb;
+			this.zsb = zsb;
+			this.wsb = wsb;
+		}
+
+		// initialize
+
+		var contributions2D = [];
+		for (var i = 0; i < con.p2D.length; i += 4) {
+			var baseSet = con.base2D[con.p2D[i]];
+			var previous = null;
+			var current = null;
+			for (var k = 0; k < baseSet.length; k += 3) {
+				current = new Contribution2(baseSet[k], baseSet[k + 1], baseSet[k + 2]);
+				if (previous === null)
+					contributions2D[i / 4] = current;
+				else
+					previous.next = current;
+				previous = current;
+			}
+			current.next = new Contribution2(con.p2D[i + 1], con.p2D[i + 2], con.p2D[i + 3]);
+		}
+		this.lookup2D = [];
+		for (var i = 0; i < con.lookupPairs2D.length; i += 2) {
+			this.lookup2D[con.lookupPairs2D[i]] = contributions2D[con.lookupPairs2D[i + 1]];
+		}
+		var contributions3D = [];
+		for (var i = 0; i < con.p3D.length; i += 9) {
+			var baseSet = con.base3D[con.p3D[i]];
+			var previous = null;
+			var current = null;
+			for (var k = 0; k < baseSet.length; k += 4) {
+				current = new Contribution3(baseSet[k], baseSet[k + 1], baseSet[k + 2], baseSet[k + 3]);
+				if (previous === null)
+					contributions3D[i / 9] = current;
+				else
+					previous.next = current;
+				previous = current;
+			}
+			current.next = new Contribution3(con.p3D[i + 1], con.p3D[i + 2], con.p3D[i + 3], con.p3D[i + 4]);
+			current.next.next = new Contribution3(con.p3D[i + 5], con.p3D[i + 6], con.p3D[i + 7], con.p3D[i + 8]);
+		}
+		this.lookup3D = [];
+		for (var i = 0; i < con.lookupPairs3D.length; i += 2) {
+			this.lookup3D[con.lookupPairs3D[i]] = contributions3D[con.lookupPairs3D[i + 1]];
+		}
+		var contributions4D = [];
+		for (var i = 0; i < con.p4D.length; i += 16) {
+			var baseSet = con.base4D[con.p4D[i]];
+			var previous = null;
+			var current = null;
+			for (var k = 0; k < baseSet.length; k += 5) {
+				current = new Contribution4(baseSet[k], baseSet[k + 1], baseSet[k + 2], baseSet[k + 3], baseSet[k + 4]);
+				if (previous === null)
+					contributions4D[i / 16] = current;
+				else
+					previous.next = current;
+				previous = current;
+			}
+			current.next = new Contribution4(con.p4D[i + 1], con.p4D[i + 2], con.p4D[i + 3], con.p4D[i + 4], con.p4D[i + 5]);
+			current.next.next = new Contribution4(con.p4D[i + 6], con.p4D[i + 7], con.p4D[i + 8], con.p4D[i + 9], con.p4D[i + 10]);
+			current.next.next.next = new Contribution4(con.p4D[i + 11], con.p4D[i + 12], con.p4D[i + 13], con.p4D[i + 14], con.p4D[i + 15]);
+		}
+		this.lookup4D = [];
+		for (var i = 0; i < con.lookupPairs4D.length; i += 2) {
+			this.lookup4D[con.lookupPairs4D[i]] = contributions4D[con.lookupPairs4D[i + 1]];
+		}
+
+		// end initialize
+
+		this.perm = new Uint8Array(256);
+		this.perm2D = new Uint8Array(256);
+		this.perm3D = new Uint8Array(256);
+		this.perm4D = new Uint8Array(256);
+		var source = new Uint8Array(256);
+		for (var i = 0; i < 256; i++)
+			source[i] = i;
+		var seed = new Uint32Array(1);
+		seed[0] = clientSeed;
+		seed = shuffleSeed(shuffleSeed(shuffleSeed(seed)));
+		for (var i = 255; i >= 0; i--) {
+			seed = shuffleSeed(seed);
+			var r = new Uint32Array(1);
+			r[0] = (seed[0] + 31) % (i + 1);
+			if (r[0] < 0)
+				r[0] += (i + 1);
+			this.perm[i] = source[r[0]];
+			this.perm2D[i] = this.perm[i] & 0x0E;
+			this.perm3D[i] = (this.perm[i] % 24) * 3;
+			this.perm4D[i] = this.perm[i] & 0xFC;
+			source[r[0]] = source[i];
+		}
+
+		this.simplex1D = function(x) {
+			return that.simplex2D(x, 1);
+		}
+
+		this.simplex2D = function (x, y) {
+			var stretchOffset = (x + y) * con.STRETCH_2D;
+			var _a = [x + stretchOffset, y + stretchOffset], xs = _a[0], ys = _a[1];
+			var _b = [Math.floor(xs), Math.floor(ys)], xsb = _b[0], ysb = _b[1];
+			var squishOffset = (xsb + ysb) * con.SQUISH_2D;
+			var _c = [x - (xsb + squishOffset), y - (ysb + squishOffset)], dx0 = _c[0], dy0 = _c[1];
+			var _d = [xs - xsb, ys - ysb], xins = _d[0], yins = _d[1];
+			var inSum = xins + yins;
+			var hashVals = new Uint32Array(4);
+			hashVals[0] = xins - yins + 1;
+			hashVals[1] = inSum;
+			hashVals[2] = inSum + yins;
+			hashVals[3] = inSum + xins;
+			var hash = hashVals[0] | (hashVals[1] << 1) | (hashVals[2] << 2) | (hashVals[3] << 4);
+			var c = that.lookup2D[hash];
+			var value = 0.0;
+			while (typeof c !== 'undefined') {
+				var _e = [dx0 + c.dx, dy0 + c.dy], dx = _e[0], dy = _e[1];
+				var attn = 2 - dx * dx - dy * dy;
+				if (attn > 0) {
+					var _f = [xsb + c.xsb, ysb + c.ysb], px = _f[0], py = _f[1];
+					var i = that.perm2D[(that.perm[px & 0xFF] + py) & 0xFF];
+					var valuePart = con.gradients2D[i] * dx + con.gradients2D[i + 1] * dy;
+					attn *= attn;
+					value += attn * attn * valuePart;
+				}
+				c = c.next;
+			}
+			return value * con.NORM_2D;
+		};
+
+		this.simplex3D = function (x, y, z) {
+			var stretchOffset = (x + y + z) * con.STRETCH_3D;
+			var _a = [x + stretchOffset, y + stretchOffset, z + stretchOffset], xs = _a[0], ys = _a[1], zs = _a[2];
+			var _b = [Math.floor(xs), Math.floor(ys), Math.floor(zs)], xsb = _b[0], ysb = _b[1], zsb = _b[2];
+			var squishOffset = (xsb + ysb + zsb) * con.SQUISH_3D;
+			var _c = [x - (xsb + squishOffset), y - (ysb + squishOffset), z - (zsb + squishOffset)], dx0 = _c[0], dy0 = _c[1], dz0 = _c[2];
+			var _d = [xs - xsb, ys - ysb, zs - zsb], xins = _d[0], yins = _d[1], zins = _d[2];
+			var inSum = xins + yins + zins;
+			var hashVals = new Uint32Array(7);
+			hashVals[0] = yins - zins + 1;
+			hashVals[1] = xins - yins + 1;
+			hashVals[2] = xins - zins + 1;
+			hashVals[3] = inSum;
+			hashVals[4] = inSum + zins;
+			hashVals[5] = inSum + yins;
+			hashVals[6] = inSum + xins;
+			var hash = hashVals[0] | hashVals[1] << 1 | hashVals[2] << 2 | hashVals[3] << 3 | hashVals[4] << 5 |
+				hashVals[5] << 7 | hashVals[6] << 9;
+			var c = that.lookup3D[hash];
+			var value = 0.0;
+			while (typeof c !== 'undefined') {
+				var _e = [dx0 + c.dx, dy0 + c.dy, dz0 + c.dz], dx = _e[0], dy = _e[1], dz = _e[2];
+				var attn = 2 - dx * dx - dy * dy - dz * dz;
+				if (attn > 0) {
+					var _f = [xsb + c.xsb, ysb + c.ysb, zsb + c.zsb], px = _f[0], py = _f[1], pz = _f[2];
+					var i = that.perm3D[(that.perm[(that.perm[px & 0xFF] + py) & 0xFF] + pz) & 0xFF];
+					var valuePart = con.gradients3D[i] * dx + con.gradients3D[i + 1] * dy + con.gradients3D[i + 2] * dz;
+					attn *= attn;
+					value += attn * attn * valuePart;
+				}
+				c = c.next;
+			}
+			return value * con.NORM_3D;
+		};
+
+		this.simplex4D = function (x, y, z, w) {
+			var stretchOffset = (x + y + z + w) * con.STRETCH_4D;
+			var _a = [x + stretchOffset, y + stretchOffset, z + stretchOffset, w + stretchOffset], xs = _a[0], ys = _a[1], zs = _a[2], ws = _a[3];
+			var _b = [Math.floor(xs), Math.floor(ys), Math.floor(zs), Math.floor(ws)], xsb = _b[0], ysb = _b[1], zsb = _b[2], wsb = _b[3];
+			var squishOffset = (xsb + ysb + zsb + wsb) * con.SQUISH_4D;
+			var dx0 = x - (xsb + squishOffset);
+			var dy0 = y - (ysb + squishOffset);
+			var dz0 = z - (zsb + squishOffset);
+			var dw0 = w - (wsb + squishOffset);
+			var _c = [xs - xsb, ys - ysb, zs - zsb, ws - wsb], xins = _c[0], yins = _c[1], zins = _c[2], wins = _c[3];
+			var inSum = xins + yins + zins + wins;
+			var hashVals = new Uint32Array(11);
+			hashVals[0] = zins - wins + 1;
+			hashVals[1] = yins - zins + 1;
+			hashVals[2] = yins - wins + 1;
+			hashVals[3] = xins - yins + 1;
+			hashVals[4] = xins - zins + 1;
+			hashVals[5] = xins - wins + 1;
+			hashVals[6] = inSum << 6;
+			hashVals[7] = inSum + wins;
+			hashVals[8] = inSum + zins;
+			hashVals[9] = inSum + yins;
+			hashVals[10] = inSum + xins;
+			var hash = hashVals[0] | hashVals[1] << 1 | hashVals[2] << 2 | hashVals[3] << 3 | hashVals[4] << 4 | hashVals[5] << 5 |
+				hashVals[6] << 6 | hashVals[7] << 8 | hashVals[8] << 11 | hashVals[9] << 14 | hashVals[10] << 17;
+			var c = that.lookup4D[hash];
+			var value = 0.0;
+			while (typeof c !== 'undefined') {
+				var _d = [dx0 + c.dx, dy0 + c.dy, dz0 + c.dz, dw0 + c.dw], dx = _d[0], dy = _d[1], dz = _d[2], dw = _d[3];
+				var attn = 2 - dx * dx - dy * dy - dz * dz - dw * dw;
+				if (attn > 0) {
+					var _e = [xsb + c.xsb, ysb + c.ysb, zsb + c.zsb, wsb + c.wsb], px = _e[0], py = _e[1], pz = _e[2], pw = _e[3];
+					var i = that.perm4D[(that.perm[(that.perm[(that.perm[px & 0xFF] + py) & 0xFF] + pz) & 0xFF] + pw) & 0xFF];
+					var valuePart = con.gradients4D[i] * dx + con.gradients4D[i + 1] * dy + con.gradients4D[i + 2] * dz + con.gradients4D[i + 3] * dw;
+					attn *= attn;
+					value += attn * attn * valuePart;
+				}
+				c = c.next;
+			}
+			return value * con.NORM_4D;
+		};
+
+	}//-13.9
+
+/*--
 zim.Damp = function(startValue, damp)
 
 Damp
@@ -2899,7 +3499,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.6
 
 /*--
-zim.Bitmap = function(image, id)
+zim.Bitmap = function(image, width, height, id)
 
 Bitmap
 zim class - extends a createjs.Bitmap
@@ -2925,11 +3525,21 @@ frame.on("ready", function() {
 });
 END EXAMPLE
 
+EXAMPLE
+// fill a Bitmap with noise:
+var
+
+bmp.drawImageData(); // draw the imageData to the Bitmap
+END EXAMPLE
+
 PARAMETERS
 image - an HTML image URL (may not load right away - see zim.Frame loadAssets)
+width - (default 100) used with putImageData to draw a Bitmap otherwise ignored
+height - (default 100) used with putImageData to draw a Bitmap otherwise ignored
 id - an optional id
 
 METHODS
+putImageData(data, x, y, sourceX ,srcY, srcWidth, srcHeight)
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -2958,13 +3568,38 @@ EVENTS
 See the CreateJS Easel Docs for Bitmap events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.7
-	zim.Bitmap = function(image, id) {
+	zim.Bitmap = function(image, width, height, id) {
 		z_d("50.7");
+
 		this.cjsBitmap_constructor(image);
+		var that = this;
 		this.type = "Bitmap";
 		this.id = id;
+		if (!zot(width) && !zot(height)) that.setBounds(0,0,width,height);
+		if (zot(width)) width = 100;
+		if (zot(height)) height = 100;
+		this.imageData = new ImageData(width, height);
+		this.drawImageData = function(x, y, sourceX, sourceY, sourceWidth, sorceHeight) {
+			if (zot(x)) x = 0;
+			if (zot(y)) y = 0;
+			if (zot(sourceX)) sourceX = 0;
+			if (zot(sourceY)) sourceY = 0;
+			if (zot(sourceWidth)) sourceWidth = width;
+			if (zot(sorceHeight)) sorceHeight = height;
+			if (!that.proxyCanvas) {
+				var c = that.proxyCanvas = document.createElement("canvas");
+				c.setAttribute("width", width);
+				c.setAttribute("height", height);
+				that.proxyContext = c.getContext('2d');
+				image = that.image = c;
+			}
+			if (that.proxyContext) {
+				that.proxyContext.putImageData(that.imageData, x, y, sourceX, sourceY, sourceWidth, sorceHeight);
+			}
+		}
+
 		this.clone = function() {
-			return this.cloneProps(new zim.Bitmap(image, id));
+			return this.cloneProps(new zim.Bitmap(image, width, height, id));
 		}
 	}
 	zim.extend(zim.Bitmap, createjs.Bitmap, "clone", "cjsBitmap", false);
@@ -2989,24 +3624,19 @@ AND: http://zimjs.com/code/spritesheet/skateboard.html
 wait, loop, rewind and call functions.
 This actually runs a ZIM animation and animates the frames.
 
-NOTE: A ZIM Sprite handles an evenly tiled spritesheet.
-For an un-evenly tiled spritesheet use the json parameter
-which loads a CreateJS SpriteSheet.
+NOTE: A ZIM Sprite handles both an evenly tiled spritesheet - use cols and rows
+and an un-evenly tiled spritesheet - use the json parameter.
 The json can come from TexturePacker for instance exported for EaselJS/CreateJS
 CreateJS Easel Sprite and SpriteSheet docs:
 http://www.createjs.com/docs/easeljs/classes/Sprite.html
 http://www.createjs.com/docs/easeljs/classes/SpriteSheet.html
-You can optionally pass in JSON data for a createjs.SpriteSheet as a parameter.
+You can optionally pass in an existing createjs.SpriteSheet as a parameter.
 When you do so, all other parameters are ignored.
 
 NOTE: You can use CreateJS gotoAndPlay(), play(), etc.
 but we found the framerate could not be kept
 with other animations or Ticker events running.
 So we recommend using the ZIM Sprite run() method.
-
-NOTE: The run() method handles single frame and consecutive labels
-but does not handle non-consective frame labels or nested labels.
-run() can however play series of labels.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -3027,6 +3657,7 @@ frame.on("complete", function() {
 		cols:8,
 		rows:6,
 		animations:{mid:[10,20], end:[30,40]} // optional animations with labels
+		// see CreateJS SpriteSheet docs for the various animation format as there are a few different ones!
 	});
 	animation.center(stage);
 	animation.run(2000); // plays the frames of the Sprite over 2 seconds (master time)
@@ -3084,6 +3715,9 @@ frame.loadAssets(["robot.json", "robot.png"]);
 // ... same as before
 var animation = new zim.Sprite({json:frame.asset("robot.json")});
 // ... same as before
+
+// see CreateJS SpriteSheet docs for the format of the JSON file
+// including various animation formats
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -3101,10 +3735,13 @@ animations - (default null) an object literal of labels holding frames to play
 	{label:3, another:[4,10]}
 	run(1000, "label") would play frame 3 for a second
 	run(1000, "another") would play frames 4 to 10 for a second
-	You can combine play with the wait parameter:
-	run(1000, "label").run({time:1000, label:"another", wait:1000});
+	{unordered:{frames:[1,2,3,22,23,24,"anotherLabel",5,6], next:prevLabel}}
+	There are also ways to set speeds - but would recommend dividing into simple labels
+	and using the label series technique available with the run() method
 json - (default null) a JSON string for a CreateJS SpriteSheet
 	If you pass in a json parameter, all other parameters are ignored
+	NOTE: remember that JSON needs quotes around the animation properties above:
+	{"label":3, "another":[4,10]}
 id - (default randomly assigned) an id you can use in other animations - available as sprite.id
 	use this id in other animations for pauseRun and stopRun to act on these as well
 globalControl - (default true) pauseRun and stopRun will control other animations with same id
@@ -3155,6 +3792,7 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 	globalControl - (default true) pauseRun and stopRun will control other animations with same id
 pauseRun(state) - pause or unpause the animation (including an animation series)
 	state - (default true) when true the animation is paused - set to false to unpause
+	returns object for chaining
 stopRun() - stop the sprite from animating
 clone() - makes a copy with properties such as x, y, etc. also copied
 
@@ -3168,6 +3806,9 @@ on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 PROPERTIES
 id - an id that you can use in other animations to also be controlled by pauseRun() and stopRun()
 frame - get and set the current frame of the Sprite
+normalizedFrame - if animations have CreateJS speeds applied, zim handles these by making extra frames
+	for example, if a speed is given of .5 then two frames are made (min resulution is .1)
+normalizedFrames - an array of total frames after being normalized - really for internal usage
 totalFrames - get the total frames of the Sprite - read only
 animations - the animations data with labels of frames to animate
 running - is the sprite animation being run (includes both paused and unpaused) - read only
@@ -4438,7 +5079,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					ball.rect1.color = getColor(type);
 					ball.rect2.color = getColor(type);
 					drawShape();
-					ball.getStage().update();
+					ball.stage.update();
 				});
 
 				rect1.ball = ball;
@@ -4621,7 +5262,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (!zot(circleY)) point[3].y = circleY;
 					point[3].parent.addChildAt(point[3], 0);
 				}
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 			}
 
 			that.update = function() {
@@ -4648,8 +5289,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.on("click", function() {
 				if (!that.ctrlclick) return;
 				if (zimDefaultFrame.ctrlKey) {
-					that.clone().addTo(that.getStage().stage).mov(100);
-					that.getStage().stage.update();
+					that.clone().addTo(that.stage.stage).mov(100);
+					that.stage.stage.update();
 				}
 			});
 
@@ -4657,7 +5298,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				sets.visible = false;
 				sticks.visible = false;
 				_controls = false;
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 				return that;
 			}
 			if (!showControls) that.hideControls();
@@ -4668,7 +5309,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				sets.pos(shape.x, shape.y);
 				sticks.pos(shape.x, shape.y);
 				that.addChildAt(shape,0); // put to bottom incase dragged
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 				return that;
 			}
 
@@ -4696,7 +5337,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (popup) {
 					if (!pane) {
 						var pane = new zim.Pane({
-							container:that.getStage(),
+							container:that.stage,
 							width:500,
 							height:500,
 							drag:true
@@ -5015,7 +5656,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (rollColor == color) rollColor = value;
 				color = value;
 				obj.color = color;
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -5026,7 +5667,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				outlineColor = value;
 				if (obj2) obj2.color = outlineColor;
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -5048,7 +5689,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zenable(that, value);
 				obj.color = color;
 				that.mouseChildren = false;
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -5059,7 +5700,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else {
 				obj.color = color;
 			}
-			if (that.getStage()) that.getStage().update();
+			if (that.stage) that.stage.update();
 		}
 
 		this.on("mouseover", function(e) {that.showRollColor();});
@@ -5340,7 +5981,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 			that.label.showRollColor();
-			if (that.getStage()) that.getStage().update();
+			if (that.stage) that.stage.update();
 		}
 
 		this.on("mouseout", buttonOff); // thanks Maxime Riehl
@@ -5380,7 +6021,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 			that.label.showRollColor(false);
-			if (that.getStage()) that.getStage().update();
+			if (that.stage) that.stage.update();
 		}
 
 		this.toggled = false;
@@ -5398,7 +6039,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		function setToggled() {
 			if (typeof toggle == "string") { // change label text
 				that.text = that.toggled?toggle:originalText;
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			} else if (!zot(icon)) { // change icons
 				that.setIcons(that.toggled?toggle:icon, that.toggled?rollToggle:rollIcon);
 			} else { // change backings
@@ -5429,7 +6070,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else {
 					if (zon) zog("zim.Button - backing has no color property");
 				}
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -5451,7 +6092,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zenable(that, value);
 				that.mouseChildren = false;
 				label.color = label.color;
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -5483,7 +6124,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that[objRollName].x = width/2;
 				that[objRollName].y = height/2;
 			}
-			if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			if (!zim.OPTIMIZE && that.stage) that.stage.update();
 		}
 
 		this.toggle = function(state) {
@@ -5686,7 +6327,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				if (label) {
 					label.text = value;
-					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					if (!zim.OPTIMIZE && that.stage) that.stage.update();
 				};
 			}
 		});
@@ -5706,7 +6347,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				check.x = size/2;
 				check.y = size/2;
 				if (myChecked) that.addChild(check);
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -5743,7 +6384,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else {
 				that.removeChild(check);
 			}
-			if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			if (!zim.OPTIMIZE && that.stage) that.stage.update();
 		}
 
 		this.clone = function() {
@@ -6014,7 +6655,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.label = currentObject.label;
 				if (that.label) that.text = that.label.text;
 			}
-			if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			if (!zim.OPTIMIZE && that.stage) that.stage.update();
 		}
 
 		// getter setter methods
@@ -6225,7 +6866,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var htmlList = new zim.Dictionary(true);
 		function closePane(e) {
 			removePane();
-			container.getStage().update();
+			container.stage.update();
 			that.dispatchEvent("close");
 			e.stopImmediatePropagation();
 		};
@@ -6279,12 +6920,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						ch.resize();
 					}
 				}
-				container.getStage().update();
+				container.stage.update();
 			});
 
 			this.on("pressup", function(e) {
 				display.cursor = "pointer";
-				container.getStage().update();
+				container.stage.update();
 			});
 		}
 
@@ -6329,7 +6970,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						that.removeChild(ch);
 					}
 				}
-				if (!zim.OPTIMIZE) container.getStage().update();
+				if (!zim.OPTIMIZE) container.stage.update();
 				if (resets) {
 					if (!isNaN(that.resetX)) that.x = that.resetX;
 					if (!isNaN(that.resetY)) that.y = that.resetY;
@@ -6361,7 +7002,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.alpha = 0;
 				that.animate({alpha:1}, fadeTime);
 			} else {
-				if (container.getStage()) container.getStage().update();
+				if (container.stage) container.stage.update();
 			}
 			if (that.zimAccessibility) {
 				var a = that.zimAccessibility;
@@ -6846,7 +7487,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var thresh = 2;
 			var hoverOutCalled = false;
 			function timeMouse() {
-				if (!content.getStage()) {
+				if (!content.stage) {
 					if (!hoverOutCalled) {
 						that.dispatchEvent("hoverout");
 						hoverOutCalled = true;
@@ -6884,7 +7525,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			scrollEvent1 = window.addEventListener("mousewheel", scrollWindow);
 			scrollEvent2 = window.addEventListener("DOMMouseScroll", scrollWindow);
 			function scrollWindow(e) {
-				if (vCheck && that.getStage() && that.hitTestPoint(that.getStage().mouseX, that.getStage().mouseY)) {
+				if (vCheck && that.stage && that.hitTestPoint(that.stage.mouseX, that.stage.mouseY)) {
 					if (zot(e)) e = event;
 					var delta = e.detail ? e.detail*(-19) : e.wheelDelta;
 					desiredY += delta;
@@ -6899,13 +7540,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var dampCheck = false;
 		var dampY;
 		function makeDamp(obj) {
-			if (damp && !dampCheck && obj.getStage()) {
+			if (damp && !dampCheck && obj.stage) {
 				dampCheck = true;
 				dampY = new zim.Damp(that.scrollY, damp);
 				zim.Ticker.add(function() {
 					if (swipeCheck) return;
 					if (!zot(desiredY)) that.scrollY = dampY.convert(desiredY);
-				}, obj.getStage());
+				}, obj.stage);
 			}
 		}
 
@@ -7099,7 +7740,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			function end() {
 				if (that.parent) that.parent.removeChild(that);
-				container.getStage().update();
+				container.stage.update();
 				if (that.zimAccessibility) {
 					var a = that.zimAccessibility;
 					a.resize(that);
@@ -7126,7 +7767,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					counter++;
 				}, i*speed/numDots);
 			}
-			that.ticker = createjs.Ticker.on("tick", function() {container.getStage().update();});
+			that.ticker = createjs.Ticker.on("tick", function() {container.stage.update();});
 
 			that.x = (container.getBounds().width) /2;
 			that.y = (container.getBounds().height) /2;
@@ -7330,7 +7971,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			if (that.zimAccessibility) that.zimAccessibility.changeTitle(that);
 
-			if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			if (!zim.OPTIMIZE && that.stage) that.stage.update();
 		}
 
 		Object.defineProperty(this, 'selectedIndex', {
@@ -7576,8 +8217,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (drag) {
 			this.on("mousedown", function() {
 				if (that.zimAccessibility && that.zimAccessibility.aria) return;
-				this.getStage().mouseMoveOutside = true;
-				rawEvent = this.getStage().on("stagemousemove", function(e){
+				this.stage.mouseMoveOutside = true;
+				rawEvent = this.stage.on("stagemousemove", function(e){
 					rawX = e.rawX;
 					rawY = e.rawY;
 				})
@@ -7727,8 +8368,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		// pressdown and move mouse changes speed and direction of stepper
 		function go(dir, both, dec) {
 			if (hold) {
-				holdX = that.getStage().mouseX;
-				holdY = that.getStage().mouseY;
+				holdX = that.stage.mouseX;
+				holdY = that.stage.mouseY;
 				if (holdX == 0) holdX = 1;
 				if (holdY == 0) holdY = 1;
 				if (!drag) dragSensitivity = 1;
@@ -7994,10 +8635,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (display) label.mouseChildren = false;
 					if (display) label.mouseEnabled = false;
 				}
-				if (next && (!zim.OPTIMIZE && next.getStage())) {
-					next.getStage().update();
-				} else if (label && (!zim.OPTIMIZE && label.getStage())) {
-					label.getStage().update();
+				if (next && (!zim.OPTIMIZE && next.stage)) {
+					next.stage.update();
+				} else if (label && (!zim.OPTIMIZE && label.stage)) {
+					label.stage.update();
 				}
 			}
 		});
@@ -8035,10 +8676,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					}
 				}
 			}
-			if (next && (!zim.OPTIMIZE && next.getStage())) {
-				next.getStage().update();
-			} else if (label && (!zim.OPTIMIZE && label.getStage())) {
-				label.getStage().update();
+			if (next && (!zim.OPTIMIZE && next.stage)) {
+				next.stage.update();
+			} else if (label && (!zim.OPTIMIZE && label.stage)) {
+				label.stage.update();
 			}
 			if (that.zimAccessibility) that.zimAccessibility.changeTitle(that, null, true);
 		}
@@ -8151,7 +8792,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.dispose = function() {
 			that.removeAllEventListeners();
 			window.removeEventListener("keydown", that.keyDownEvent);
-			if (that.getStage()) that.getStage().off(rawEvent);
+			if (that.stage) that.stage.off(rawEvent);
 			return true;
 		}
 	}
@@ -8360,7 +9001,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var point = that.globalToLocal(e.stageX, e.stageY);
 			diffX = point.x - button.x;
 			diffY = point.y - button.y;
-			if (that.getStage()) that.getStage().mouseMoveOutside = true;
+			if (that.stage) that.stage.mouseMoveOutside = true;
 		});
 
 		button.on("pressmove", function(e) {
@@ -8389,7 +9030,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				lastValue = button.x;
 			}
 			setAccessibility();
-			if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			if (!zim.OPTIMIZE && that.stage) that.stage.update();
 		};
 
 		function setAccessibility() {
@@ -8431,7 +9072,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					lastValue = button.x;
 				}
 				setAccessibility();
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -8702,13 +9343,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.on("mousedown", function() {
 			if (that.zimAccessibility && that.zimAccessibility.aria) return;
 			lastAngle = indicator.rotation;
-			var p = that.parent.globalToLocal(that.getStage().mouseX, that.getStage().mouseY);
+			var p = that.parent.globalToLocal(that.stage.mouseX, that.stage.mouseY);
 			var dX = p.x-that.x;
 			var dY = that.y-p.y;
 			startAngle = Math.atan2(dX,dY)*180/Math.PI;
 			var pressTime = new Date().getTime();
 			moveEvent = that.on("pressmove", function() {
-				p = that.parent.globalToLocal(that.getStage().mouseX, that.getStage().mouseY);
+				p = that.parent.globalToLocal(that.stage.mouseX, that.stage.mouseY);
 				dX = p.x-that.x;
 				dY = that.y-p.y;
 				var angle = lastAngle + Math.atan2(dX,dY)*180/Math.PI - startAngle;
@@ -8724,7 +9365,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			upEvent = this.on("pressup", function() {
 				var deltaTime = new Date().getTime()-pressTime;
 				if (deltaTime < 200) {
-					p = that.parent.globalToLocal(that.getStage().mouseX, that.getStage().mouseY);
+					p = that.parent.globalToLocal(that.stage.mouseX, that.stage.mouseY);
 					dX = p.x-that.x;
 					dY = that.y-p.y;
 					var angle = Math.atan2(dX,dY)*180/Math.PI;
@@ -8758,7 +9399,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				lastValue = v;
 				myValue = v + min;
 				that.dispatchEvent("change");
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 			setAccessibility();
 		}
@@ -8786,7 +9427,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				lastValue = value - min;
 				lastA = indicator.rotation;
 				setAccessibility();
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -9045,7 +9686,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			button.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
 				change(e.currentTarget.znum);
 				that.dispatchEvent("change");
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			});
 			button.znum = i;
 			t.label.znum = i;
@@ -9082,7 +9723,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					change((++next>tabs.length-1)?0:next);
 				}
 				that.dispatchEvent("change");
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 				e.preventDefault();
 			}
 		});
@@ -9103,7 +9744,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				// change(Math.min(Math.max(value, 0), tabs.length-1));
 				change(value);
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -9113,7 +9754,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				change(Math.min(Math.max(value, 0), tabs.length-1));
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -9125,7 +9766,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				color = value;
 				if (zot(tabs[myIndex].color)) {
 					buttons[myIndex].color = color;
-					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					if (!zim.OPTIMIZE && that.stage) that.stage.update();
 				}
 			}
 		});
@@ -9155,7 +9796,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						buttons[i].color = offColor;
 					}
 				}
-				if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
 
@@ -9370,7 +10011,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			r.selectedIndex = s; // restore selected
 			myIndex = r.znum * cols + s; // calculate pad selected
 			that.dispatchEvent("change");
-			if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+			if (!zim.OPTIMIZE && that.stage) that.stage.update();
 		}
 
 		Object.defineProperty(this, 'selectedIndex', {
@@ -9413,6 +10054,95 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	}
 	zim.extend(zim.Pad, zim.Container, "clone", "zimContainer", false);
 	//-66
+
+/*--
+zim.Tile = function(obj, cols, rows, spacingH, spacingV, mirrorH, mirrorV)
+
+Tile
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+Creates a tile using clones of the object specified for the columns and rows specified.
+Was intended to tile a single object but you can pass in a ZIM VEE value to tile multiple objects.
+Can also mirror alternate tiles.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var circle = new zim.Circle();
+var tile = new zim.Tile(circle, 20, 10).center(stage);
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj, cols, rows, spacingH, spacingV, mirrorH, mirrorV
+
+METHODS
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
+drag(), hitTestRect(), move(), animate(), scale(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
+width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
+height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
+widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
+heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+--*///+66.5
+	zim.Tile = function(obj, cols, rows, spacingH, spacingV, mirrorH, mirrorV) {
+		var sig = "obj, cols, rows, spacingH, spacingV, mirrorH, mirrorV";
+		var duo; if (duo = zob(zim.Tile, arguments, sig, this)) return duo;
+		z_d("66.5");
+		this.zimContainer_constructor();
+		this.type = "Tile";
+
+		if (zot(cols)) cols = 1;
+		if (zot(rows)) rows = 1;
+		if (zot(spacingH)) spacingH = 0;
+		if (zot(spacingV)) spacingV = 0;
+		if (zot(mirrorH)) mirrorH = false;
+		if (zot(mirrorV)) mirrorV = false;
+
+		var that = this;
+		var tile;
+		var width = obj.width;
+		var height = obj.height;
+		if (!width || !height) {if (zon) {zog("ZIM Display: Tile() obj must have width and height");} return;}
+		for (var j=0; j<rows; j++) {
+			for (var i=0; i<cols; i++) {
+				tile = (i+j==0) ? zik(obj) : zik(obj).clone();
+				this.addChild(tile);
+				if (mirrorH && i%2==1) {
+					tile.scaleX = -tile.scaleX;
+					tile.x = i*(width+spacingH)+width;
+				} else {
+					tile.x = i*(width+spacingH);
+				}
+				if (mirrorV && j%2==1) {
+					tile.scaleY = -tile.scaleY;
+					tile.y = j*(height+spacingV)+height;
+				} else {
+					tile.y = j*(height+spacingV);
+				}
+			}
+		}
+		this.clone = function() {
+			return that.cloneProps(new zim.Tile(obj, cols, rows, spacingH, spacingV, mirrorH, mirrorV));
+		}
+	}
+	zim.extend(zim.Tile, zim.Container, "clone", "zimContainer", false);
+	//-66.5
 
 /*--
 zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startColor, drag, shadowColor, shadowBlur, buttonBar, circles, indicator, backingColor, keyArrows)
@@ -9692,7 +10422,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else {
 					that.dispatchEvent("change");
 				}
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 			});
 			lastHeight += alpha.height-margin;
 		}
@@ -9776,7 +10506,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						greys[i] = lastColors[i];
 						g.f(backing.color).r(rX-1,rY-1,w+2,w+2).f(lastColors[i]).r(rX,rY,w,w);
 					}
-					if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+					if (!zim.OPTIMIZE && that.stage) that.stage.update();
 				}
 				lastColor = myColor;
 				lastAlpha = myAlpha;
@@ -9797,11 +10527,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			backing.on("pressmove", function(e) {
 				that.x = e.stageX-diffX;
 				that.y = e.stageY-diffY;
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 			});
 			backing.on("pressup", function(e) {
 				backing.cursor = "default";
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 			});
 		}
 
@@ -9812,7 +10542,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var greyH = greyRows*(w+spacing);
 		}
 		box.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {
-			var index = zim.hitTestGrid(box, gridW, gridH, cols, rows, that.getStage().mouseX, that.getStage().mouseY, 0, 0, spacing, spacing);
+			var index = zim.hitTestGrid(box, gridW, gridH, cols, rows, that.stage.mouseX, that.stage.mouseY, 0, 0, spacing, spacing);
 			if (!zot(index)) {
 				myColor = colors[index];
 				if (buttonBar) {
@@ -9827,7 +10557,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (greyPicker) {
 				// note greyW not gridW
 				index = null;
-				index = zim.hitTestGrid(box, greyW, greyH, greyCols, greyRows, that.getStage().mouseX, that.getStage().mouseY, 0, gridH, spacing, spacing);
+				index = zim.hitTestGrid(box, greyW, greyH, greyCols, greyRows, that.stage.mouseX, that.stage.mouseY, 0, gridH, spacing, spacing);
 
 				if (!zot(index)) {
 					myColor = greys[index];
@@ -9843,10 +10573,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			if (indicator) positionIndicator(colors.indexOf(myColor));
 			if (buttonBar) {
-				if (that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
 			} else if (indicator) {
-				if (that.getStage()) that.getStage().update();
-				// if (!zim.OPTIMIZE && that.getStage()) that.getStage().update();
+				if (that.stage) that.stage.update();
+				// if (!zim.OPTIMIZE && that.stage) that.stage.update();
 			}
 			setAccessibility();
 		});
@@ -9861,7 +10591,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					swatch.color = myColor;
 					swatchText.text = myColor;
 					zim.centerReg(swatchText);
-					if (that.getStage()) that.getStage().update();
+					if (that.stage) that.stage.update();
 				}
 				if (indicator) positionIndicator(colors.indexOf(myColor));
 				setAccessibility();
@@ -9899,7 +10629,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					swatch.color = myColor;
 					swatchText.text = myColor;
 					zim.centerReg(swatchText);
-					if (that.getStage()) that.getStage().update();
+					if (that.stage) that.stage.update();
 				}
 				if (indicator) positionIndicator(colors.indexOf(myColor));
 				setAccessibility();
@@ -9919,7 +10649,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					lastAlpha = slider.currentValue = value;
 					if (swatch) swatch.alpha = lastAlpha;
 					if (alphaText) alphaText.text = "Alpha: " + decimals(slider.currentValue);
-					if (that.getStage()) that.getStage().update();
+					if (that.stage) that.stage.update();
 				}
 			}
 		});
@@ -9954,7 +10684,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (currentTemp > that.colors.length-1) currentTemp = 0;
 					that.selectedIndex = currentTemp;
 					that.dispatchEvent("change");
-					if (that.getStage()) that.getStage().update();
+					if (that.stage) that.stage.update();
 				}
 			}
 		}
@@ -10166,7 +10896,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		upload.alpha = 0;
 
 		this.resize = function() {
-			if (!that.getStage()) {
+			if (!that.stage) {
 				uploadTag.setAttribute("aria-hidden", true);
 				uploadTag.hidden = true;
 				uploadTag.style.display = "none";
@@ -10459,7 +11189,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				textarea.y = frame.y + point.y * frame.scale;
 				zim.scale(textarea, frame.scale*that.scaleX, frame.scale*that.scaleY);
 				textarea.alpha = 1;
-				if (that.getStage()) stage.update();
+				if (that.stage) stage.update();
 			}, 50);
 		}
 		this.resize();
@@ -10692,12 +11422,12 @@ RETURNS obj for chaining
 			dragObject = (currentTarget)?e.currentTarget:e.target;
 			if (obj.zimDragRect && !dragObject.getBounds()) {zog("zim.drag() - drag object needs bounds set"); return;}
 			downCheck = true;
-			obj.getStage().mouseMoveOutside = true;
+			obj.stage.mouseMoveOutside = true;
 
 			// add a function to the Ticker queue (remove it if there first)
 			if (!slide) { // slide has a persistent Ticker function
 				if (obj.zimDragTicker) zim.Ticker.remove(obj.zimDragTicker);
-				obj.zimDragTicker = zim.Ticker.add(function(){}, obj.getStage());
+				obj.zimDragTicker = zim.Ticker.add(function(){}, obj.stage);
 			}
 
 			if (removeTweens) createjs.Tween.removeTweens(dragObject);
@@ -10749,7 +11479,7 @@ RETURNS obj for chaining
 			// or returns a position so that object o surrounds the bounds if surround is true
 			// firstly, convert the global x and y to a point relative to the object's parent
 			if (!o.parent) return;
-			if (!o.getStage()) return;
+			if (!o.stage) return;
 
 			if (zot(x) || zot(y)) {
 				// so zim.dragRect can use this to position on rect change
@@ -10829,7 +11559,7 @@ RETURNS obj for chaining
 				}
 				if (pointerCount == 0) zim.Ticker.remove(obj.zimDragTicker);
 			}
-			if (obj.getStage()) obj.getStage().update();
+			if (obj.stage) obj.stage.update();
 		}, true);
 
 		// the bounds check for registration inside the bounds
@@ -10888,7 +11618,7 @@ RETURNS obj for chaining
 		// if it snaps then the object is allowed to go past the bounds and damp back
 		// if it is not snapping then the object stops at the bounds when it is slid
 		function setUpSlide() {
-			var stage = obj.getStage();
+			var stage = obj.stage;
 			obj.zimDragTicker = function() {
 				if (!dragObject) dragObject = obj; // could be risky if intending to drag children
 				if (downCheck) {
@@ -11262,7 +11992,7 @@ RETURNS obj for chaining
 						obj.dispatchEvent("rotate");
 					}
 				}
-				if (obj.getStage && obj.getStage()) obj.getStage().update();
+				if (obj.getStage && obj.stage) obj.stage.update();
 			});
 
 			obj.zimTouch.pressup = obj.on("pressup", function(e) {
@@ -11288,7 +12018,7 @@ RETURNS obj for chaining
 					var newT = slideTotal*slideSlice*slideEffect * Math.min((obj.x-result.x)/(obj.x-newX)||1, (obj.y-result.y)/(obj.y-newY)||1);
 					obj.move(result.x, result.y, newT, "quadOut", function(){obj.dispatchEvent("slidestop");});
 				}
-				if (obj.getStage && obj.getStage()) obj.getStage().update();
+				if (obj.getStage && obj.stage) obj.stage.update();
 				setTouches();
 			});
 			function setTouches() {
@@ -11702,7 +12432,7 @@ RETURNS a Boolean true if hitting, false if not
 			g.r(adjustedA.x, adjustedA.y, adjustedA.width, adjustedA.height);
 			g.s("green");
 			g.r(adjustedB.x, adjustedB.y, adjustedB.width, adjustedB.height);
-			boundsShape.getStage().update();
+			boundsShape.stage.update();
 		}
 
 		return rectIntersect(adjustedA, adjustedB);
@@ -12402,7 +13132,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(target)) return;
 		if (css) ticker = false;
 		if (zot(target.zimTweens)) target.zimTweens = {};
-		if (ticker && (zot(target.getStage) || zot(target.getStage()))) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
+		if (ticker && (zot(target.getStage) || zot(target.stage))) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = zik(obj.scale);
 			delete obj.scale;
@@ -12627,9 +13357,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					zim.copyMatrix(target.zimMask, target);
 					target.zimMask.regX = target.regX;
 					target.zimMask.regY = target.regY;
-				}, target.getStage());
+				}, target.stage);
 			} else {
-				zimTicker = zim.Ticker.add(function(){}, target.getStage());
+				zimTicker = zim.Ticker.add(function(){}, target.stage);
 			}
 		}
 
@@ -12716,7 +13446,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		function endTween(id) {
 			if (zot(target.zimTweens) || zot(target.zimTweens[id])) return;
 			removeBusy(target.zimTweens[id].zimObj);
-			target.zimTweens[id].setPaused(true);
+			target.zimTweens[id].paused = true;
 			endTicker(id);
 			var idSet = target.zimTweens[id].zimIdSet;
 			if (!zot(idSet) && target.zimIdSets) {
@@ -12763,14 +13493,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 		function pauseTicker(id, paused) {
 			var tween = target.zimTweens[id];
-			tween.setPaused(paused);
+			tween.paused = paused;
 			if (paused == tween.zimPaused) return;
 			tween.zimPaused = paused;
 			if (paused) {
 				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 			} else {
 				clearTimeout(tween.zimAnimateTimeout);
-				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, target.getStage());
+				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, target.stage);
 			}
 		}
 		function expandIds(ids) {
@@ -13689,16 +14419,16 @@ RETURNS an Object literal with the new and old details (bX is rectangle x, etc.)
 			return;
 		}
 		if (zot(left)) {
-			if (!obj.getStage()) {
+			if (!obj.stage) {
 				zog("zim methods - fit(): please add boundary dimensions or add obj to stage first");
 				return;
 			}
-			if (!obj.getStage().getBounds()) {
+			if (!obj.stage.getBounds()) {
 				zog("zim methods - fit(): please add boundary dimensions or add obj with bounds to stage first");
 				return;
 			}
-			var stageW = obj.getStage().getBounds().width;
-			var stageH = obj.getStage().getBounds().height;
+			var stageW = obj.stage.getBounds().width;
+			var stageH = obj.stage.getBounds().height;
 			left = 0; top = 0;
 			width = stageW; height = stageH;
 		}
@@ -13827,7 +14557,7 @@ RETURNS the shape if you want to remove it: obj.parent.removeChild(returnedShape
 		obj.parent.addChild(shapeC);
 		shape.mouseEnabled = false;
 		shapeC.mouseEnabled = false;
-		if (obj.getStage()) obj.getStage().update();
+		if (obj.stage) obj.stage.update();
 		return obj;
 	}//-47
 
@@ -13949,12 +14679,12 @@ RETURNS id of interval so clearInterval(id) will stop added() from checking for 
 		z_d("47.7");
 		if (zot(obj) || zot(call) || typeof call != "function") return;
 		if (zot(interval)) interval = 100;
-		if (obj.getStage()) {(call)(obj.getStage(), obj); return;}
+		if (obj.stage) {(call)(obj.stage, obj); return;}
 		var startTime = Date.now();
 		var id = setInterval(function() {
 			if (maxTime > 0 && startTime-Date.now()>maxTime) clearInterval(id);
-			if (obj.getStage()) {
-				(call)(obj.getStage(), obj);
+			if (obj.stage) {
+				(call)(obj.stage, obj);
 				clearInterval(id);
 			}
 		}, interval);
@@ -14076,7 +14806,7 @@ RETURNS obj for chaining
 		obj.x = cB.x + cB.width/2 - loc.width/2  + (reg.x-loc.x);
 		obj.y = cB.y + cB.height/2 - loc.height/2  + (reg.y-loc.y);
 
-		if (!add && container.getStage && container.getStage() && obj.parent) {
+		if (!add && container.getStage && container.stage && obj.parent) {
 			var p = container.localToLocal(obj.x, obj.y, obj.parent);
 			obj.x = p.x;
 			obj.y = p.y;
@@ -14147,7 +14877,7 @@ RETURNS undefined
 	zim.placeReg = function(obj, id) {
 		z_d("49.5");
 		if (zot(obj)) return;
-		var stage = obj.getStage();
+		var stage = obj.stage;
 		if (zot(stage)) {zog("zim.placeReg() - add object to stage before calling placeReg()");	return;}
 		if (zot(id)) id = "obj";
 		function report() {
@@ -14981,7 +15711,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				} else {
 					if (num != _tabIndex) clearOld();
 					var obj = _tabOrder[num].obj;
-					if (obj.getStage()) {
+					if (obj.stage) {
 						_tabIndex = num;
 						obj.focus = true;
 						tabFocus = true;
@@ -15255,7 +15985,7 @@ Dispatches a "change" event when the screen reader is about to talk
 			if (item && (obj.type == "TextArea" || obj.type == "Loader")) {
 				var tabTag = obj.tag;
 				tabTag.setAttribute("aria-label", title);
-				if (obj) tabTag.setAttribute("aria-hidden", !obj.getStage());
+				if (obj) tabTag.setAttribute("aria-hidden", !obj.stage);
 				if (place == "before") {
 					targetTag.parentNode.insertBefore(tabTag, targetTag);
 				} else {
@@ -15308,7 +16038,7 @@ Dispatches a "change" event when the screen reader is about to talk
 			tabTag.setAttribute("id", id);
 			tabTag.setAttribute("tabindex", 0);
 			tabTag.setAttribute("aria-label", title);
-			if (obj) tabTag.setAttribute("aria-hidden", !obj.getStage());
+			if (obj) tabTag.setAttribute("aria-hidden", !obj.stage);
 
 			if (place == "before") {
 				targetTag.parentNode.insertBefore(tabTag, targetTag);
@@ -15359,7 +16089,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				if (e.keyCode==13) {
 					var item = _tabOrder[that.tabIndex];
 					var obj = item.obj;
-					if (item && obj.getStage()) {
+					if (item && obj.stage) {
 						var downEvent = new createjs.Event("mousedown");
 						var clickEvent = new createjs.Event("click");
 						downEvent.fromEnter = clickEvent.fromEnter = true;
@@ -15448,7 +16178,7 @@ Dispatches a "change" event when the screen reader is about to talk
 					var attempts = 0;
 					var badTabs = false;
 					// keep looking if the object t is not on the stage or is not enabled (or parent is not enabled if it has one)
-					while(!(obj.getStage() && ((!obj.zimTabParent && (zot(obj.enabled) || obj.enabled)) || (obj.zimTabParent && (zot(obj.zimTabParent.enabled) || obj.zimTabParent.enabled))))) {
+					while(!(obj.stage && ((!obj.zimTabParent && (zot(obj.enabled) || obj.enabled)) || (obj.zimTabParent && (zot(obj.zimTabParent.enabled) || obj.zimTabParent.enabled))))) {
 						attempts++;
 						index = index + dir;
 						normalizedIndex = (index+_tabOrder.length*100)%_tabOrder.length;
@@ -15525,7 +16255,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				if (target < 0) return;
 				var item = _tabOrder[target];
 				var obj = item.obj;
-				if (!obj.getStage() && currentHighlight && obj==that.currentObject) {
+				if (!obj.stage && currentHighlight && obj==that.currentObject) {
 					frame.stage.removeChild(currentHighlight);
 					frame.stage.update();
 				}
@@ -15549,8 +16279,8 @@ Dispatches a "change" event when the screen reader is about to talk
 					tabTag.style.width = (bounds.width * frame.scale)+"px"
 					tabTag.style.height = (bounds.height * frame.scale)+"px"
 				}
-				tabTag.setAttribute("aria-hidden", !obj.getStage());
-				tabTag.hidden = !obj.getStage();
+				tabTag.setAttribute("aria-hidden", !obj.stage);
+				tabTag.hidden = !obj.stage;
 			}
 		}
 
@@ -15988,7 +16718,7 @@ you can define multiple pages objects add and remove pages objects as needed
 		this.removePage = function(page) {
 			if (that.currentPage == page) {
 				that.removeChild(page);
-				if (holder.getStage()) holder.getStage().update(); // works even if holder is stage
+				if (holder.stage) holder.stage.update(); // works even if holder is stage
 			}
 			page.zimSwipeArray = null;
 		}
@@ -16136,7 +16866,7 @@ you can define multiple pages objects add and remove pages objects as needed
 				that.fromSwipe = fromSwipe;
 				that.dispatchEvent("page");
 				currentPage = newPage;
-				if (holder.getStage()) holder.getStage().update();
+				if (holder.stage) holder.stage.update();
 			}
 		}
 
@@ -16709,10 +17439,10 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		var dragBounds;
 		function added() {
 			if (obj == "stage") {
-				stage =	that.getStage();
+				stage =	that.stage;
 				obj = stage;
 			} else {
-				stage =	obj.getStage();
+				stage =	obj.stage;
 			}
 			obj.addChild(that);
 			objW = obj.getBounds().width;
@@ -17041,10 +17771,10 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		var gridCheck = false;
 		function added() {
 			if (obj == "stage") {
-				stage =	that.getStage();
+				stage =	that.stage;
 				obj = stage;
 			} else {
-				stage =	obj.getStage();
+				stage =	obj.stage;
 			}
 			if (!gridCheck) {
 				drawGrid();
@@ -17707,7 +18437,7 @@ will fill up the rest of the height until they reach their maximum widths
 			if (regionShape) {
 				if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // B
 					regionShape.visible = !regionShape.visible;
-					if (regionShape.getStage()) regionShape.getStage().update();
+					if (regionShape.stage) regionShape.stage.update();
 				}
 			}
 		}
@@ -18137,11 +18867,11 @@ Dispatches a pause event when paused is complete (sometimes a delay to slow to p
 			zog("zim display - Scroller(): please setBounds() on backing objects");
 			return;
 		}
-		if (!stage && !b1.getStage()) {
+		if (!stage && !b1.stage) {
 			zog("zim display - Scroller(): please pass in stage parameter or add backing objects to stage to start");
 			return;
 		}
-		stage = stage||b1.getStage();
+		stage = stage||b1.stage;
 		if (zot(container)) container = stage;
 		if (!container.getBounds()) {zog("zim display - Scroller(): please setBounds() on container or stage if no container"); return;}
 
@@ -18401,7 +19131,7 @@ dispatches a pause event when the Dynamo is paused - could be delayed
 				that.frame = nextFrame;
 				if (loopCheck) that.dispatchEvent("loop");
 				that.dispatchEvent("change");
-				if (update && sprite.getStage()) sprite.getStage().update();
+				if (update && sprite.stage) sprite.stage.update();
 				if (!zot(endFrameRequest) && endFrameRequest == that.frame) {
 					pausing = false;
 					that.speed = 0;
@@ -18714,7 +19444,7 @@ dispatches a swipeup event when swipe is ended
 
 		this.cjsEventDispatcher_constructor();
 
-		if (zot(swipeOn) || !swipeOn.getStage || !swipeOn.getStage()) {zog("zim.Swiper() - please provide container on stage"); return;}
+		if (zot(swipeOn) || !swipeOn.getStage || !swipeOn.stage) {zog("zim.Swiper() - please provide container on stage"); return;}
 		if (zot(target)) return;
 		if (zot(sensitivity)) sensitivity = 1;
 		if (zot(horizontal)) horizontal = true;
@@ -18744,7 +19474,7 @@ dispatches a swipeup event when swipe is ended
 			});
 			stage = container;
 		} else {
-			stage = container.getStage();
+			stage = container.stage;
 			downEvent = container.on("mousedown", downHandler);
 			moveEvent = container.on("pressmove", pressHandler);
 			upEvent = container.on("pressup", function() {
@@ -18932,8 +19662,8 @@ dispatches a change event with dir as property of event object
 
 		this.cjsEventDispatcher_constructor();
 		if (zot(container) || !container.getStage) {zog("zim Controller(): Please pass in a reference to a container as first parameter");	return;}
-		if (zot(container.getStage())) {zog("zim Controller(): The Container must be on the stage"); return;}
-		var stage = container.getStage();
+		if (zot(container.stage)) {zog("zim Controller(): The Container must be on the stage"); return;}
+		var stage = container.stage;
 		if (zot(target)) {target = new zim.Container(1,1);} // make a surrogate if only wanting controller data
 		if (zot(speed)) speed = 7;
 		if (zot(type) || (type != "mousemove" && type != "keydown" && type != "gamebutton" && type != "gamestick" && type != "swipe" && type != "manual")) type = "mousedown";
@@ -19870,7 +20600,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								else container.centerReg(that, that.layers=="bottom"?0:zim.rand(that.numChildren));
 							}
 							container.alpha = 1;
-							container.scale(1);
+							container.scaleX = 1;
+							container.scaleY = 1;
 							particle.alpha = particle.originalAlpha;
 							particle.scaleX = particle.originalScaleX;
 							particle.scaleY = particle.originalScaleY;
@@ -20591,8 +21322,10 @@ delay - (default 500) time in milliseconds to resize ONCE MORE after a orientati
 	this effects only full mode with the Layout class and they can always refresh a screen if it is not quite right in the changed orientation
 canvasCheck - (default true) check to see if there is canvas support - uses !!window.HTMLCanvasElement
 gpu - (default false) set to true to use a CreateJS StageGL stage for GPU renderer
- 	See: http://blog.createjs.com/stagegl-faster-better-stronger-webgl-update-easeljs/
-	Can use http://d309knd7es5f10.cloudfront.net/createjs-2017.05.02.min.js (CreateJS NEXT version made for ZIM)
+ 	See: http://blog.createjs.com/stagegl-faster-better-stronger-webgl-update-easeljs/ (written before version 1 release)
+	Use CreateJS 1.0.0 or later to get StageGL.
+	https://github.com/CreateJS/Combined/tree/master/builds/1.0.0
+	Can use http://d309knd7es5f10.cloudfront.net/createjs.min.js (CreateJS 1.0.0 until they host it on their CDN)
 gpuObj - (default null) object with following properties (with defaults) See CreateJS docs on GITHUB:
 	preserveBuffer (false), antialias (false), transparent (false), premultiply (false), autoPurge (1200)
 nextFrame - (default null) set to zim Frame object of Frame underneath current Frame to pass events to nextFrame
@@ -20954,7 +21687,7 @@ EVENTS
 				var type = e.item.type;
 				var ext = item.id.match(re);
 				var asset;
-				if (type && type == createjs.LoadQueue.SOUND) {
+				if (type && type == "sound") {
 					asset = that.assets[item.id] = {
                         type:"sound",
                         id:item.id,
@@ -20964,8 +21697,8 @@ EVENTS
                             return instance;
                         }
                     };
-				} else if (type == createjs.LoadQueue.IMAGE) {
-					asset = that.assets[item.id] = new zim.Bitmap(e.result, item.id);
+				} else if (type == "image") {
+					asset = that.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, item.id);
 				} else {
 					asset = that.assets[item.id] = e.result;
 				}
