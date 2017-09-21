@@ -3527,9 +3527,33 @@ END EXAMPLE
 
 EXAMPLE
 // fill a Bitmap with noise:
-var
-
-bmp.drawImageData(); // draw the imageData to the Bitmap
+var noise = new zim.Noise();
+// empty Bitmap size 200, 200
+var bmp = new Bitmap(null,200,200).center(stage);
+// we fill the bitmap starting from top left going across in the inner loop,
+// then down, then across, etc. until we get to bottom right.
+var f = 50; // used to make noise bigger or smaller - see the blob comment below
+for (var y = 0; y < bmp.height; y++) {
+	for (var x = 0; x < bmp.width; x++) {
+		// the noise methods return a number from -1 to 1
+		// by adding 1 we get a number between 0 and 2 then divide by 2
+		// and we multiply this by 255 to get a number between 0 and 255
+		value = (noise.simplex2D(x, y)+1)/2 * 255;
+		// or get blobs by smoothing and adjusting frequency:
+		// var value = zim.smoothStep(.3,.35, (noise.simplex2D(x/f, y/f)+1)/2) * 255;
+		// imageData is four values per pixel
+		// the red, green, blue and alpha
+		// in one big long array - each value will be constrained to between 0 and 255
+		// this i value will increase by 4 each time
+		// then we write the same value for red, green, blue to get a shade of grey
+		var i = (x + y * bmp.width) * 4;
+		bmp.imageData.data[i] = value; // red (0-255)
+		bmp.imageData.data[i + 1] = value; // green (0-255)
+		bmp.imageData.data[i + 2] = value; // blue (0-255)
+		bmp.imageData.data[i + 3] = 255; // alpha (0-255)
+	}
+}
+bmp.drawImageData();
 END EXAMPLE
 
 PARAMETERS
@@ -3539,7 +3563,11 @@ height - (default 100) used with putImageData to draw a Bitmap otherwise ignored
 id - an optional id
 
 METHODS
-putImageData(data, x, y, sourceX ,srcY, srcWidth, srcHeight)
+drawImageData(x, y, sourceX ,srcY, srcWidth, srcHeight) - draws the Bitmap's imageData data to the Bitmap
+	NOTE: This is only used when dynamically drawing a Bitmap with data - not for your normal picture
+	See the imageData property which should be set before using the drawImageData() method
+	ZIM calls a putImageData method for the HTML Canvas and then transfers this to the Bitmap
+	See also https://www.w3schools.com/tags/canvas_putimagedata.asp - but let ZIM do the work...
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under zim.Container (see above), such as:
@@ -3550,6 +3578,12 @@ on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
 PROPERTIES
 type - holds the class name as a String
+imageData - data for the pixels stored in a data property of an ImageData object
+	NOTE: This is only used when dynamically drawing a Bitmap with data - not for your normal picture
+	The data property is an one dimensional Array with consecutive red, green, blue, alpha values (0-255) for each pixels
+	eg. 0,0,0,255,255,255,255,255 is a white pixel with 1 alpha and a black pixel with 1 alpha
+	You set this before calling the Bitmap drawImageData() method
+ 	See also https://developer.mozilla.org/en-US/docs/Web/API/ImageData - but let ZIM do the work
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
@@ -3597,6 +3631,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.proxyContext.putImageData(that.imageData, x, y, sourceX, sourceY, sourceWidth, sorceHeight);
 			}
 		}
+		if (zot(image)) that.drawImageData();
 
 		this.clone = function() {
 			return this.cloneProps(new zim.Bitmap(image, width, height, id));
@@ -6634,7 +6669,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (zot(value)) value = -1;
 			if (value != -1 && !buttonContainer.getChildAt(value)) return;
 			var but;
-			for (var i=0; i<buttonContainer.getNumChildren(); i++) {
+			for (var i=0; i<buttonContainer.numChildren; i++) {
 				but = buttonContainer.getChildAt(i);
 				but.removeChild(but.check);
 			}
@@ -7753,7 +7788,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var accessibilityClicker;
 		this.show = function() {
 			var dot; var counter=0;
-			for (var i=0; i<circles.getNumChildren(); i++) {
+			for (var i=0; i<circles.numChildren; i++) {
 				that.alpha = 0;
 				createjs.Tween.get(that,{override:true})
 						.to({alpha:1}, 300);
@@ -11766,7 +11801,7 @@ RETURNS obj for chaining
 		obj.zimNoSwipe = (swipe) ? null : true;
 		if (obj instanceof createjs.Container) dig(obj);
 		function dig(container) {
-			var num = container.getNumChildren();
+			var num = container.numChildren;
 			var temp;
 			for (var i=0; i<num; i++) {
 				temp = container.getChildAt(i);
@@ -13132,7 +13167,15 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(target)) return;
 		if (css) ticker = false;
 		if (zot(target.zimTweens)) target.zimTweens = {};
-		if (ticker && (zot(target.getStage) || zot(target.stage))) {if (zon) {zog("zim.move(), zim.animate() - please add target to stage before animating")}; return};
+
+		var stage;
+		if (!target.stage) {
+			if (zimDefaultFrame) stage = zimDefaultFrame.stage;
+			else return;
+		} else {
+			stage = target.stage;
+		}
+
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = zik(obj.scale);
 			delete obj.scale;
@@ -13357,9 +13400,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					zim.copyMatrix(target.zimMask, target);
 					target.zimMask.regX = target.regX;
 					target.zimMask.regY = target.regY;
-				}, target.stage);
+				}, stage);
 			} else {
-				zimTicker = zim.Ticker.add(function(){}, target.stage);
+				zimTicker = zim.Ticker.add(function(){}, stage);
 			}
 		}
 
@@ -13500,7 +13543,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 			} else {
 				clearTimeout(tween.zimAnimateTimeout);
-				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, target.stage);
+				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, stage);
 			}
 		}
 		function expandIds(ids) {
@@ -14958,9 +15001,10 @@ var label = new zim.Label("BIG", 200, null, "white");
 label.center(stage);
 var rect = new zim.Rectangle(200,100,"black");
 rect.center(stage).alpha = 0;
-var label = new zim.Label("BIG", 200, null, "white");
-label.center(stage).drag().setMask(rect);
-// not sure we really recommend such dramatic chaining...
+var label = new zim.Label("BIG", 200, null, "white")
+	.center(stage)
+	.drag();
+label.setMask(rect); // remember setMask should not be chained
 
 OR with pre ZIM 4TH function
 zim.center(label, stage);
@@ -16471,7 +16515,7 @@ this can be used to snap back to an original location
 	//-70
 
 /*--
-zim.Pages = function(holder, pages, transition, speed, transitionTable)
+zim.Pages = function(pages, transition, speed, transitionTable, holder)
 
 Pages
 zim class - extends a zim.Container which extends a createjs.Container
@@ -16632,7 +16676,6 @@ you can define multiple pages objects add and remove pages objects as needed
 		if (zot(transitionTable)) transitionTable = [];
 		this.transitionTable = transitionTable;
 
-
 		if (zot(holder)) {
 			if (zimDefaultFrame) holder = zimDefaultFrame.stage;
 		}
@@ -16665,6 +16708,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			data = pages[i];
 			if (data.constructor !== {}.constructor) data = pages[i] = {page:pages[i]}; // accept an array of only pages
 			data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
+			data.page.zimOriginalAlpha = data.page.alpha;
 			if (data.page.parent) data.page.parent.removeChild(data.page);
 		}
 		var currentPage = this.page = pages[0] ? pages[0].page : null;
@@ -16707,6 +16751,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			if (zot(swipeArray)) swipeArray = [];
 			var data = {page:page, swipe:swipeArray};
 			data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
+			data.page.zimOriginalAlpha = data.page.alpha;
 			if (!currentPage) {
 				currentPage = that.page = data.page;
 				that.addChild(currentPage);
@@ -16801,7 +16846,7 @@ you can define multiple pages objects add and remove pages objects as needed
 
 				newPage.x = 0;
 				newPage.y = 0;
-				newPage.alpha = 1;
+				newPage.alpha = newPage.zimOriginalAlpha;
 
 				that.transitioning = true;
 				if (trans == "slide") {
@@ -21061,8 +21106,8 @@ operation - (default function below) a function that is applied to each result i
 	the function receives the original amplitude and index as parameters
 	you can use zim.SoundWave.bufferLength to get the total number of values in the original data (1024)
 	Note: the data returned by the calculate() method will be only the included range - eg. .117 of the total original values (starting at low frequency)
-baseline - (default 30) removes this amount of amplitude from each data point (after operation is applied)
-magnify - (default 10) multiplies the data point by this much (after the baseline is removed)
+baseline - (default 0 for mic and 30 for sound) removes this amount of amplitude from each data point (after operation is applied)
+magnify - (default 1 for mic and 10 for sound) multiplies the data point by this much (after the baseline is removed)
 	by removing the baseline amount and multiplying what's left the difference in wave data is increased
 reduce - (default 0) subtracts this amount from each data point (after magnified)
 
@@ -21099,8 +21144,8 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 		if (zot(operation)) operation = function(amplitude, i) {
 			return amplitude * (.5+i*1/Math.pow(zim.SoundWave.bufferLength, .95));
 		}
-		if (zot(baseline)) baseline = 30; // subtracts this much from value
-		if (zot(magnify)) magnify = 10; // multiplies amount by this much
+		if (zot(baseline)) baseline = (input=="mic"?0:30); // subtracts this much from value
+		if (zot(magnify)) magnify = (input=="mic"?1:10); // multiplies amount by this much
 		if (zot(reduce)) reduce = 0; // after calculating, subtract this much
 
 		zim.SoundWave.bufferLength = 1024;
@@ -21202,7 +21247,7 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 					tot += adjustedArray[i];
 					if (i==0) continue;
 					if (i%steps==0) {
-						array.push((tot/steps-that.baseline)*that.magnify-that.reduce);
+						array.push(Math.max(0,(tot/steps-that.baseline)*that.magnify-that.reduce));
 						tot = 0;
 					}
 				}
@@ -21962,7 +22007,7 @@ function z_d(n) {if (zim && zim.DISTILL) zim.distillery.push(n);}
 // internal global function for adding DisplayMembers to zim Display Objects
 
 /*--
-zimify = function(obj)
+zimify = function(obj, list)
 
 zimify
 global function
@@ -22126,9 +22171,10 @@ function zimify(obj, list) {
 		sca:function(scale, scaleY) {
 			return zim.sca(this, scale, scaleY);
 		},
-		scale:function(scale, scaleY) {
-			return zim.scale(this, scale, scaleY);
-		},
+		// not sure what is happening here - perhaps conflicting with CreateJS Shape and Canvas scale() method?
+		// scale:function(scale, scaleY) {
+		// 	return zim.scale(this, scale, scaleY);
+		// },
 		scaleTo:function(boundObj, percentX, percentY, type, boundsOnly) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
 			else {return zim.scaleTo(this, boundObj, percentX, percentY, type, boundsOnly);}
@@ -22208,7 +22254,6 @@ function zimify(obj, list) {
 		}
 		return list;
 	}
-
 	for (var i in displayMethods) {
 		if (displayMethods.hasOwnProperty(i)) {
 			obj[i] = displayMethods[i];
