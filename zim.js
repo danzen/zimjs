@@ -3790,8 +3790,8 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 	methods because the framerate for these get overwritten by other stage.update() calls
 	With run() you get other nice ZIM animate features as well as follows:
 	Returns the object for chaining
-	Can be paused with pauseZimAnimate(true) or unpaused with pauseZimAnimate(false)
-	Can be stopped with stopZimAnimate() on the Sprite
+	Can be paused with pauseAnimate(true) or unpaused with pauseAnimate(false)
+	Can be stopped with stopAnimate() on the Sprite
 	supports DUO - parameters or single object with properties below
 	time (default 1) - the time in milliseconds to run the animations (the master time)
 	label (default null) - a label specified in the Sprite animations parameter
@@ -3848,7 +3848,7 @@ totalFrames - get the total frames of the Sprite - read only
 animations - the animations data with labels of frames to animate
 running - is the sprite animation being run (includes both paused and unpaused) - read only
 runPaused - is the sprite animation paused (also returns paused if not running) - read only
-	note: this only syncs to pauseRun() and stopRun() not pauseZimAnimate() and stopZimAnimate()
+	note: this only syncs to pauseRun() and stopRun() not pauseAnimate() and stopAnimate()
 	note: CreateJS has paused, etc. but use that only if running the CreateJS methods
 	such as gotoAndPlay(), gotoAndStop(), play(), stop()
 ** bounds must be set first for these to work
@@ -4063,7 +4063,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 
 			if (zot(time)) time = 1000;
 			// if already running the sprite then stop the last run
-			if (that.running) that.stopZimAnimate(that.id);
+			if (that.running) that.stopAnimate(that.id);
 			that.running = true;
 
 			if (!Array.isArray(obj)) {
@@ -4086,7 +4086,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				ease:"linear",
 				call:localCall,
 				params:params,
-				wait:wait, wait:waitedCall, wait:waitedParams,
+				wait:wait, waitedCall:waitedCall, waitedParams:waitedParams,
 				loop:loop, loopCount:loopCount, loopWait:loopWait,
 				loopCall:loopCall, loopParams:loopParams,
 				loopWaitCall:loopWaitCall, loopWaitParams:loopWaitParams,
@@ -4105,9 +4105,9 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			if (zot(paused)) paused = true;
 			that.runPaused = paused;
 			if (that.globalControl) {
-				zim.pauseZimAnimate(paused, that.id);
+				zim.pauseAnimate(paused, that.id);
 			} else {
-				that.pauseZimAnimate(paused, that.id);
+				that.pauseAnimate(paused, that.id);
 			}
 			return that;
 		}
@@ -4115,9 +4115,9 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			that.runPaused = true;
 			that.running = false;
 			if (that.globalControl) {
-				zim.stopZimAnimate(that.id);
+				zim.stopAnimate(that.id);
 			} else {
-				that.stopZimAnimate(that.id);
+				that.stopAnimate(that.id);
 			}
 			return that;
 		}
@@ -11417,7 +11417,7 @@ RETURNS obj for chaining
 				positionObject(obj, point.x, point.y);
 			}
 			if (slide) {
-				obj.zimDragMoving = true;
+				obj.zimDragMoving = true; // causing obj to go to 0,0 if positioned after drag()
 				setUpSlide();
 			}
 		}
@@ -12630,7 +12630,7 @@ Also see the more general zim.animate()
 (which this function calls after consolidating x an y into an object).
 
 NOTE: to temporarily prevent animations from starting set zim.ANIMATE to false
-NOTE: see zim.pauseZimAnimate(state, ids) and zim.stopZimAnimate(ids) for controlling tweens when running
+NOTE: see zim.pauseAnimate(state, ids) and zim.stopAnimate(ids) for controlling tweens when running
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
@@ -12728,7 +12728,7 @@ Also see the more specific zim.move() to animate position x, y
 although you can animate x an y just fine with zim.animate.
 
 NOTE: to temporarily prevent animations from starting set zim.ANIMATE to false
-NOTE: see zim.pauseZimAnimate(state, ids) and zim.stopZimAnimate(ids) for controlling tweens when running
+NOTE: see zim.pauseAnimate(state, ids) and zim.stopAnimate(ids) for controlling tweens when running
 
 EXAMPLE
 var circle = new zim.Circle(50, "red");
@@ -12816,7 +12816,7 @@ var circle = new zim.Circle({color:frame.purple}) // chaining the rest
 	var paused = false;
 	stage.on("stagemousedown", function() {
 			paused = !paused;
-			zim.pauseZimAnimate(paused, "square");
+			zim.pauseAnimate(paused, "square");
 	});
 END EXAMPLE
 
@@ -12911,7 +12911,7 @@ css - (default false) set to true to animate CSS properties in HTML
 		zim.animate(zid("tagID"), {opacity:0}, 2000); // etc.
 	</script>
 protect - (default false) protects animation from being interrupted before finishing
- 	unless manually interrupted with stopZimAnimate()
+ 	unless manually interrupted with stopAnimate()
 	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
@@ -13463,7 +13463,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		setZimTweenProps();
 		function setZimTweenProps() {
 			// used to keep track of tweens for various ids
-			// for pauseZimAnimate() and stopZimAnimate() down below
+			// for pauseAnimate() and stopAnimate() down below
 			tween.zimObj = obj;
 			tween.zimTicker = zimTicker;
 			tween.zimPaused = zimPaused;
@@ -13501,7 +13501,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 			}
 			delete target.zimTweens[id];
-			if (zim.isEmpty(target.zimTweens)) target.stopZimAnimate();
+			if (zim.isEmpty(target.zimTweens)) target.stopAnimate();
 
 			// handle zim.idSets
 			// very tricky - the originating id for an idSet does not get an idSet
@@ -13560,8 +13560,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		// METHODS ADDED TO TARGET
-		if (!target.stopZimAnimate || !target.stopZimAnimate.real) { // empty method gets added by default
-	        target.stopZimAnimate = function(ids, include) {
+		if (!target.stopAnimate || !target.stopAnimate.real) { // empty method gets added by default
+	        target.stopAnimate = function(ids, include) {
 				if (zot(include)) include = true;
 				if (zot(ids)) {
 					if (!include) return; // would be exclude all ids
@@ -13586,8 +13586,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 				return target;
 	        }
-			target.stopZimAnimate.real = true; // record this as real method instead of empty method
-	        target.pauseZimAnimate = function(paused, ids, include) {
+			target.stopAnimate.real = true; // record this as real method instead of empty method
+	        target.pauseAnimate = function(paused, ids, include) {
 	            if (zot(paused)) paused = true;
 				if (zot(include)) include = true;
 				if (zot(ids) && !include) return; // would be exclude all ids
@@ -13609,9 +13609,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 	}//-45
 
 /*--
-obj.stopZimAnimate = function(ids)
+obj.stopAnimate = function(ids)
 
-stopZimAnimate
+stopAnimate
 zim function - and Display object function
 
 DESCRIPTION
@@ -13619,10 +13619,12 @@ Stops tweens with the passed in id or array of ids.
 If no id is passed then this will stop all tweens.
 The id is set as a zim.animate, zim.move, zim.Sprite parameter
 An animation series will have the same id for all the animations inside.
-See also zim.pauseZimAnimate
+See also zim.pauseAnimate
 
-NOTE: calling zim.stopZimAnimate(id) stops tweens with this id on all objects
-calling object.stopZimAnimate(id) stops tweens with this id on the target object
+NOTE: formerly stopZimAnimate - which still works but is depreciated
+
+NOTE: calling zim.stopAnimate(id) stops tweens with this id on all objects
+calling object.stopAnimate(id) stops tweens with this id on the target object
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -13636,26 +13638,26 @@ var rect = new zim.Rectangle(200, 200, frame.pink)
 	.animate({obj:{scale:2}, time:2000, loop:true, rewind:true, id:"scale"})
 	.animate({obj:{rotation:360}, time:4000, loop:true, ease:"linear", override:false});
 rect.cursor = "pointer";
-rect.on("click", function() {rect.stopZimAnimate()}); // will stop all tweens on rect
+rect.on("click", function() {rect.stopAnimate()}); // will stop all tweens on rect
 // OR
-rect.on("click", function() {rect.stopZimAnimate("scale");}); // will stop scaling tween
+rect.on("click", function() {rect.stopAnimate("scale");}); // will stop scaling tween
 
-zim.stopZimAnimate("scale") // will stop tweens with the scale id on all objects
+zim.stopAnimate("scale") // will stop tweens with the scale id on all objects
 
-zim.stopZimAnimate(); // will stop all animations
+zim.stopAnimate(); // will stop all animations
 END EXAMPLE
 
 PARAMETERS
 ids - (default null) pass in an id or an array of ids specified in zim.animate, zim.move and zim.Sprite
 
-RETURNS null if run as zim.stopZimAnimate() or the obj if run as obj.stopZimAnimate()
---*///+45.1
-	zim.stopZimAnimate = function(ids) {
-		z_d("45.1");
+RETURNS null if run as zim.stopAnimate() or the obj if run as obj.stopAnimate()
+--*///+45.15
+	zim.stopAnimate = function(ids) {
+		z_d("45.15");
 		if (zot(ids)) {
 			if (zim.animatedObjects) {
 				for (var i=zim.animatedObjects.length-1; i>=0; i--) {
-					zim.animatedObjects.objects[i].stopZimAnimate();
+					zim.animatedObjects.objects[i].stopAnimate();
 				}
 			}
 			return;
@@ -13667,16 +13669,24 @@ RETURNS null if run as zim.stopZimAnimate() or the obj if run as obj.stopZimAnim
 			if (zim.idSets[idSet]) {
 				var idLength = zim.idSets[idSet].length-1;
 				for (var i=idLength; i>=0; i--) {
-					zim.idSets[idSet][i].stopZimAnimate(idSet);
+					zim.idSets[idSet][i].stopAnimate(idSet);
 				}
 			}
 		}
+	}//-45.15
+
+/*
+The replaced by stopAnimate
+--*///+45.1
+	zim.stopZimAnimate = function(ids) {
+		z_d("45.1");
+		zim.stopAnimate(ids);
 	}//-45.1
 
 /*--
-obj.pauseZimAnimate = function(state, ids)
+obj.pauseAnimate = function(state, ids)
 
-pauseZimAnimate
+pauseAnimate
 zim function - and Display object function
 
 DESCRIPTION
@@ -13684,10 +13694,12 @@ Pauses or unpauses tweens with the passed in id or array of ids.
 If no id is passed then this will pause or unpause all tweens.
 The id is set as a zim.animate, zim.move, zim.Sprite parameter.
 An animation series will have the same id for all the animations inside.
-See also zim.stopZimAnimate
+See also zim.stopAnimate
 
-NOTE: calling zim.pauseZimAnimate(true, id) pauses tweens with this id on all objects
-calling object.pauseZimAnimate(true, id) pauses tweens with this id on the target object
+NOTE: formerly pauseZimAnimate - which still works but is depreciated
+
+NOTE: calling zim.pauseAnimate(true, id) pauses tweens with this id on all objects
+calling object.pauseAnimate(true, id) pauses tweens with this id on the target object
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -13701,32 +13713,32 @@ var rect = new zim.Rectangle(200, 200, frame.pink)
 	.animate({obj:{scale:2}, time:2000, loop:true, rewind:true, id:"scale"})
 	.animate({obj:{rotation:360}, time:4000, loop:true, ease:"linear", override:false});
 rect.cursor = "pointer";
-rect.on("click", function() {rect.pauseZimAnimate()}); // will pause all tweens on rect
+rect.on("click", function() {rect.pauseAnimate()}); // will pause all tweens on rect
 // OR
 var paused = false;
 rect.on("click", function() {
 	paused = !paused;
-	rect.pauseZimAnimate(paused, "scale");
+	rect.pauseAnimate(paused, "scale");
 }); // will toggle the pausing of the scaling tween
 
-zim.pauseZimAnimate(false, "scale") // will unpause tweens with the scale id on all objects
+zim.pauseAnimate(false, "scale") // will unpause tweens with the scale id on all objects
 
-zim.pauseZimAnimate(); // will pause all animations
+zim.pauseAnimate(); // will pause all animations
 END EXAMPLE
 
 PARAMETERS
 state - (default true) will pause tweens - set to false to unpause tweens
 ids - (default null) pass in an id or an array of ids specified in zim.animate, zim.move and zim.Sprite
 
-RETURNS null if run as zim.pauseZimAnimate() or the obj if run as obj.pauseZimAnimate()
---*///+45.2
-	zim.pauseZimAnimate = function(state, ids) {
-		z_d("45.2");
+RETURNS null if run as zim.pauseAnimate() or the obj if run as obj.pauseAnimate()
+--*///+45.25
+	zim.pauseAnimate = function(state, ids) {
+		z_d("45.25");
 		if (zot(state)) state = true;
 		if (zot(ids)) {
 			if (zim.animatedObjects) {
 				for (var i=zim.animatedObjects.length-1; i>=0; i--) {
-					zim.animatedObjects.objects[i].pauseZimAnimate(state);
+					zim.animatedObjects.objects[i].pauseAnimate(state);
 				}
 			}
 			return;
@@ -13737,10 +13749,18 @@ RETURNS null if run as zim.pauseZimAnimate() or the obj if run as obj.pauseZimAn
 			var idSet = ids[j];
 			 if (zim.idSets[idSet]) {
 				for (var i=zim.idSets[idSet].length-1; i>=0; i--) {
-					zim.idSets[idSet][i].pauseZimAnimate(state, idSet);
+					zim.idSets[idSet][i].pauseAnimate(state, idSet);
 				}
 			}
 		}
+	}//-45.25
+
+/*
+The replaced bu pauseAnimate
+--*///+45.2
+	zim.pauseZimAnimate = function(state, ids) {
+		z_d("45.2");
+		zim.pauseAnimate(state, ids);
 	}//-45.2
 
 /*--
@@ -13752,18 +13772,18 @@ zim DisplayObject method
 DESCRIPTION
 Wiggles the property of the target object between a min and max amount to either side of the base amount
 in a time between the min and max time.
-Uses zim.animate() so to pause or stop the wiggle use zim.pauseZimAnimate and zim.stopZimAnimate
+Uses zim.animate() so to pause or stop the wiggle use zim.pauseAnimate and zim.stopAnimate
 either on the object or using an id that you pass in as a parameter
 
-NOTE: calling zim.pauseZimAnimate(true, id) pauses tweens with this id on all objects
-calling target.pauseZimAnimate(true, id) pauses tweens with this id on the target object
+NOTE: calling zim.pauseAnimate(true, id) pauses tweens with this id on all objects
+calling target.pauseAnimate(true, id) pauses tweens with this id on the target object
 
 EXAMPLE
 var ball = new zim.Circle().centerReg(stage);
 ball.wiggle("x", ball.x, 10, 30, 300, 1000);
 // wiggles the ball 10-30 pixels to the left and right of center taking 300-1000 ms each time
 
-ball.pauseZimAnimate(); // will pause the wiggle
+ball.pauseAnimate(); // will pause the wiggle
 END EXAMPLE
 
 PARAMETERS - supports DUO - parameters or single object with properties below
@@ -13779,7 +13799,7 @@ minTime - (default 1000 ms) the min time in milliseconds to go from one side to 
 maxTime - (default minTime) the max time in milliseconds to go from one side to the other
 ease - (default "quadInOut") the ease to apply to the animation
 integer - (default false) tween to an integer value between min and max amounts
-id - (default random id) the id to use for zim.pauseZimAnimate() or zim.stopZimAnimate()
+id - (default random id) the id to use for zim.pauseAnimate() or zim.stopAnimate()
 type - (default "both") set to "positive" to wiggle only the positive side of the base or "negative" for negative side (or "both" for both)
 
 RETURNS target for chaining
@@ -15064,7 +15084,7 @@ RETURNS the mask shape (different than the mask if using ZIM shapes)
 			zim.copyMatrix(m, mask);
 			m.regX = mask.regX;
 			m.regY = mask.regY;
-			if (!m.centerReg) zimify(m);
+			if (!m.centerReg) zimify(m, null, false); // solve for new CreateJS 1.0 only if other interactivity - weird
 			mask.addChildAt(m,0);
 			m.alpha = 0;
 		} else {
@@ -15073,8 +15093,6 @@ RETURNS the mask shape (different than the mask if using ZIM shapes)
 		obj.mask = m; // set the createjs mask
 		return m;
 	}//-50.1
-
-
 
 
 ////////////////  ZIM CONTROLS  //////////////
@@ -20978,8 +20996,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (freeze) {
 					if (emitterTicker) zim.Ticker.remove(emitterTicker);
 			        zim.loop(that, function(particle) {
-			            particle.pauseZimAnimate();
-						if (particle.trace) particle.getChildAt(0).pauseZimAnimate();
+			            particle.pauseAnimate();
+						if (particle.trace) particle.getChildAt(0).pauseAnimate();
 						if (particle.timeOut) {
 							particle.timeOut.pause();
 						}
@@ -20991,18 +21009,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (!that.paused) return that;
 				if (restart) {
 					zim.loop(that, function(particle) {
-			            particle.stopZimAnimate();
+			            particle.stopAnimate();
 						if (particle.timeOut) particle.timeOut.clear();
-						if (particle.trace) particle.getChildAt(0).pauseZimAnimate();
+						if (particle.trace) particle.getChildAt(0).pauseAnimate();
 			        });
 					that.removeAllChildren();
 				}
 				if (stage && emitterTicker && !zim.Ticker.has(stage, emitterTicker)) {
 					zim.Ticker.add(emitterTicker, stage);
 			        zim.loop(that, function(particle) {
-			            particle.pauseZimAnimate(false);
+			            particle.pauseAnimate(false);
 						if (particle.timeOut) particle.timeOut.pause(false);
-						if (particle.trace) particle.getChildAt(0).pauseZimAnimate(false);
+						if (particle.trace) particle.getChildAt(0).pauseAnimate(false);
 			        });
 				}
 		        that.zimInterval.pause(false, immediate);
@@ -21037,7 +21055,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zim.Ticker.remove(emitterTicker);
 			}
 	        zim.loop(that, function(particle) {
-	            particle.stopZimAnimate();
+	            particle.stopAnimate();
 	        });
 	        that.zimInterval.clear();
 	        return true;
@@ -21865,6 +21883,8 @@ EVENTS
 		this.blue   	= "#50c4b7";
 		this.brown  	= "#d1a170";
 		this.yellow   	= "#ebcb35";
+		this.purple		= "#993399";
+		this.red 		= "#fb4758"; // dedicated to Alexa
 		this.silver		= "#999999";
 		this.tin		= "#777777";
 		this.grey   	= "#555555"
@@ -21873,7 +21893,6 @@ EVENTS
 		this.light 		= "#cccccc";
 		this.dark 		= "#333333";
 		this.darker 	= "#111111";
-		this.purple		= "#993399";
 		this.black 		= "#000000";
 		this.white		= "#FFFFFF";
 		this.clear 		= "rgba(0,0,0,0)";
@@ -22078,8 +22097,10 @@ list - used internally by zimplify to exclude zim methods (makes zimify return l
 RETURNS - obj for chaining
 --*///+83.3
 
-function zimify(obj, list) {
+function zimify(obj, list, scale) {
 	z_d("83.3");
+
+	if (zot(scale)) scale = true;
 
 	var displayMethods = {
 		drag:function(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens) {
@@ -22135,8 +22156,8 @@ function zimify(obj, list) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
 			else {return zim.animate(this, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id);}
 		},
-		pauseZimAnimate:function(){},
-		stopZimAnimate:function(){},
+		pauseAnimate:function(){},
+		stopAnimate:function(){},
 		wiggle:function(property, baseAmount, minAmount, maxAmount, minTime, maxTime, type, ease, integer, id) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.wiggle(arguments[0]);}
 			else {return zim.wiggle(this, property, baseAmount, minAmount, maxAmount, minTime, maxTime, type, ease, integer, id);}
@@ -22171,10 +22192,6 @@ function zimify(obj, list) {
 		sca:function(scale, scaleY) {
 			return zim.sca(this, scale, scaleY);
 		},
-		// not sure what is happening here - perhaps conflicting with CreateJS Shape and Canvas scale() method?
-		// scale:function(scale, scaleY) {
-		// 	return zim.scale(this, scale, scaleY);
-		// },
 		scaleTo:function(boundObj, percentX, percentY, type, boundsOnly) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
 			else {return zim.scaleTo(this, boundObj, percentX, percentY, type, boundsOnly);}
@@ -22247,6 +22264,15 @@ function zimify(obj, list) {
 			return clone;
 		}
 	}
+	if (scale) {
+		// for some reason, the scale method is not working with a Shape
+		// perhaps conflicting with CreateJS Shape and Canvas scale() method?
+		// so scale is available elsewhere - or use sca() for shapes
+		displayMethods.scale = function(scale, scaleY) {
+			return zim.scale(this, scale, scaleY);
+		}
+	}
+
 	if (!zot(list)) {
 		var list = []
 		for (var m in displayMethods) {
@@ -22362,7 +22388,7 @@ function zimplify(exclude) {
 	if (zot(exclude)) exclude = [];
 	if (!Array.isArray(exclude)) exclude = [exclude];
 	var methods = zimify(null, true); // get list of zim methods
-	var exceptions = ["loop", "stopZimAnimate", "pauseZimAnimate", "animate"]
+	var exceptions = ["loop", "stopAnimate", "pauseAnimate", "animate"]
 	for (var command in zim) {
 		if ((methods.indexOf(command) == -1 || exceptions.indexOf(command) >= 0) && exclude.indexOf(command) == -1) {
 			window[command] = zim[command];
