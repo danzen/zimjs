@@ -3380,7 +3380,7 @@ zim.Container = function(a, b, c, d) {
 			return this.cloneChildren(this.cloneProps(new zim.Container(boundsX, boundsY, width, height)));
 		}
 	}
-	zimify(zim.Container.prototype);
+	zimify(zim.Container.prototype, null, true);
 	zim.extend(zim.Container, createjs.Container, "clone", "cjsContainer", false);
 
 	//-50.5
@@ -3495,7 +3495,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 	}
 	zim.extend(zim.Shape, createjs.Shape, "clone", "cjsShape", false);
-	zimify(zim.Shape.prototype);
+	zimify(zim.Shape.prototype, null, true);
 	//-50.6
 
 /*--
@@ -3638,7 +3638,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 	}
 	zim.extend(zim.Bitmap, createjs.Bitmap, "clone", "cjsBitmap", false);
-	zimify(zim.Bitmap.prototype);
+	zimify(zim.Bitmap.prototype, null, true);
 	//-50.7
 
 /*--
@@ -4169,7 +4169,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		}
 	}
 	zim.extend(zim.Sprite, createjs.Sprite, "clone", "cjsSprite", false);
-	zimify(zim.Sprite.prototype);
+	zimify(zim.Sprite.prototype, null, true);
 	//-50.8
 
 /*--
@@ -4253,7 +4253,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 	}
 	zim.extend(zim.MovieClip, createjs.MovieClip, "clone", "cjsMovieClip", false);
-	zimify(zim.MovieClip.prototype);
+	zimify(zim.MovieClip.prototype, null, true);
 	//-50.9
 
 /*--
@@ -11774,6 +11774,776 @@ RETURNS obj for chaining
 	}//-33
 
 /*--
+obj.transform = function(obj, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation)
+
+transform
+zim DisplayObject method
+
+DESCRIPTION
+The transform method adds transform controls to a display object.
+The controls allow the user to move, scale, stretch, rotate and change the registration point.
+Parameters are available to choose which of these transformations are available.
+By default, all the transformations are available to use but
+only the scale and registration point controls are showing.
+The others work as the user rolls over the edges or the outer corners.
+You can optionally set these to be visible as boxes on the sides and circles on the outer corners.
+
+NOTE: works with the ZIM TransformManager() class to handle multiple transforms and saving data for persistence.
+
+DOUBLE CLICK turns off and on the controls if dblclick parameter (default false) is set to true
+If you use the TransformManager for multiple objects, the dblclick is automatically set to true
+SHIFT rotate snaps to 45
+Dropping the registration point will snap to corners or center if close enough - unless CTRL is down
+CTRL scale will scale about the registration point
+CTRL DBLCLICK will reset scale to 1 and rotation to 0
+
+EXAMPLE
+rectangle.transform(); // shows handles for tranformations
+
+OR with pre ZIM 4TH function
+zim.transform(rectangle);
+END EXAMPLE
+
+EXAMPLE
+rect.transform({ // scale and stretch only
+	move:false,
+	rotate:false
+});
+
+// hide the rectangle's bottom stretch control so only can stretch from top
+// note - transform() expects there to be a control so do not remove a control
+// also, the controls have a hitArea so setting alpha to 0 will not work
+rect.transformControls.stretchYControls.getChildAt(1).sca(0);
+// or set its visible to false
+rect.transformControls.stretchYControls.getChildAt(1).visible = false;
+
+// Record the transforms and remake transforms when page reloads
+// Or see the TransformManager
+if (localStorage && localStorage.data) rect.transformControls.set(localStorage.data, true);
+rect.on("transformed", function() {
+	if (localStorage) localStorage.data = rect.transformControls.record(true);
+});
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+move - (default true) let user move object
+stretchX - (default true) let user stretch object from left and right sides
+stretchY - (default true) let user stretch object from top and bottom
+scale - (default true) let user scale object from corners
+rotate - (default true) let user rotate object
+dblclick - (default false) let user hide and show controls with double click (double tap)
+visible - (default true) show the controls to start
+onTop - (default true) set to false to not move the selected shape to the top of its container
+showStretch - (default false) show side boxes for stretching - a cursor will always show if stretchX or stretchY is true
+showRotate - (default false) show circles at corners for rotation - a cursor will always show if rotation is true
+showScale - (default true) show corner boxes for scaling - a cursor will always show if scale is set to true
+showReg - (default true) show round circle for draggable registration point - rotates around registration point
+showBorder - (default true) show rectangle border
+borderColor - (default brown) any border color (CSS)
+borderWidth - (default 1) the width of the border
+dashed - (default false) set to true for dashed border
+customCursors - (default true) set to false for system cursors (system cursors will not be rotated)
+handleSize - (default 20 mobile - 10 desktop) the size of the control squares and circles
+regSize - (default 16) the size of the registration point circle
+snapDistance - (default 10) registration point will snap to corners and center if within this distance (and CTRL key not down)
+snapRotation - (default 5) rotation will snap to angles divisible by this value
+	holding CTRL will avoid snapping
+	holding SHIFT will rotate only multiples of 45 degrees
+
+TRANSFORM CONTROL OBJECT
+When tranform() is set on an object, the object receives a transformControls property
+This holds the following:
+
+PROPERTIES:
+visible - read only whether the controls are visible
+scaleControls - reference to the Container that holds the corner boxes for scaling
+stretchXControls - reference to the Container that holds the left and right boxes for stretching
+stretchYControls - reference to the Container that holds the top and bottom boxes for stretching
+rotateControls - reference to the Container that holds the outer circles for rotating
+
+METHODS:
+hide() - hides the controls - returns object for chaining
+show() - shows the controls - returns object for chaining
+record(toJSON) - returns an object with x, y, scaleX, scaleY, rotation, skewX, skewY, visible PROPERTIES
+	if toJSON (default false) is set to true, the return value is a JSON string
+set(data, fromJSON) - sets the properties to match the data object passed in - this should come from record()
+	if fromJSON (default false) is set to true, it will assume a JSPN string is passed in as data
+	returns object for chaining
+remove() - removes the controls and turns off the dblclick
+add() - adds the controls back if then have been removed and sets the dblclick to its starting value
+dblclickOn() - sets the show / hide controls on with dblclick
+dblclickOff() - removes the show / hide controls on with dblclick
+disable() - may show the controls if visible but cannot use them
+enable() - turns the using of the controls back on
+resize() - call resize if the object is transformed in ways other than with the controls
+
+EVENTS
+Adds a transformed event to obj that is dispatched when pressup on any of the controls or on dblclick
+Adds transformshow and transformhide events for when double click to hide or show controls
+
+RETURNS obj for chaining
+--*///+33.5
+	zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation) {
+
+		var sig = "obj, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation";
+		var duo; if (duo = zob(zim.transform, arguments, sig)) return duo;
+		z_d("33.5");
+
+		if (zot(obj) || !obj.getBounds) {zog("zim methods - transform(): please provide object with bounds set"); return obj;}
+		if (!obj.getBounds()) {zog("zim methods - transform(): please setBounds() on object");	return obj;}
+		if (!obj.parent) {zog("zim methods - transform(): object should be on stage first"); return obj;}
+
+		if (zot(move)) move = true;
+		if (zot(stretchX)) stretchX = true;
+		if (zot(stretchY)) stretchY = true;
+		if (zot(scale)) scale = true;
+		if (zot(rotate)) rotate = true;
+
+		if (zot(dblclick)) dblclick = false;
+		if (zot(visible)) visible = true;
+		if (zot(onTop)) onTop = true;
+		if (zot(showStretch)) showStretch = false;
+		if (zot(showRotate)) showRotate = false;
+		if (zot(showScale)) showScale = true;
+		if (zot(showReg)) showReg = true;
+		if (zot(showBorder)) showBorder = true;
+		if (zot(borderColor)) borderColor = "brown";
+		if (zot(borderWidth)) borderWidth = 1;
+		if (zot(customCursors)) customCursors = true;
+		if (zot(handleSize)) handleSize = zim.mobile()?20:10;
+		if (zot(regSize)) regSize = 16;
+		if (zot(snapDistance)) snapDistance = 10;
+		if (zot(snapRotation)) snapRotation = 5;
+
+		var stage;
+		if (!obj.stage) {
+			if (zimDefaultFrame) stage = zimDefaultFrame.stage;
+			else return obj;
+		} else {
+			stage = obj.stage;
+		}
+		if (!frame) {
+			if (zimDefaultFrame) frame = zimDefaultFrame;
+			else return obj;
+		}
+
+		var oB = obj.getBounds();
+		var shape = new zim.Shape(); // bound rect
+		var shapeR = new zim.Shape(); // registration point
+		var p = obj.parent;
+		var g = shape.graphics;
+		var gR = shapeR.graphics;
+		var pTL;
+		var pTR;
+		var pBR;
+		var pBL;
+		var pR;
+		var cur;
+		var corners;
+		var controls = new zim.Container();
+		var squares = new zim.Container();
+		var sidesH = new zim.Container();
+		var sidesV = new zim.Container();
+		var rotators = new zim.Container();
+		var totalRotation;
+		var totalScaleX;
+		var totalScaleY;
+		var totalSkewX;
+		var totalSkewY;
+
+		if (customCursors) {
+			var moveCursor = new Container();
+			var transformCursor = new Container();
+			makeCursor(moveCursor);
+			makeCursor(transformCursor);
+			function makeCursor(type) {
+				if (type==moveCursor) new Triangle(16,12,12,"white").addTo(type).mov(0,-13.5);
+				new Triangle(16,12,12,"white").addTo(type).mov(13.5).rot(90);
+				if (type==moveCursor) new Triangle(16,12,12,"white").addTo(type).mov(0,13.5).rot(180);
+				new Triangle(16,12,12,"white").addTo(type).mov(-13.5).rot(-90);
+				if (type==moveCursor) new Triangle(10,7,7,"black").addTo(type).mov(0,-13);
+				new Triangle(10,7,7,"black").addTo(type).mov(13).rot(90);
+				if (type==moveCursor) new Triangle(10,7,7,"black").addTo(type).mov(0,13).rot(180);
+				new Triangle(10,7,7,"black").addTo(type).mov(-13).rot(-90);
+				type.cache(-20,-20,40,40)
+			}
+			var ccData = {"nw-resize":45, "ne-resize":-45, "n-resize":90, "e-resize":0};
+		}
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// get total existing transforms
+		function getTotals() {
+			var temp = obj;
+			totalRotation = 0;
+			totalScaleX = 1;
+			totalScaleY = 1;
+			totalSkewX = 0;
+			totalSkewY = 0;
+			while(temp.parent) {
+				totalRotation += temp.rotation;
+				totalScaleX *= temp.scaleX;
+				totalScaleY *= temp.scaleY;
+				totalSkewX += temp.skewX;
+				totalSkewY += temp.skewY;
+				temp = temp.parent;
+			}
+		}
+		getTotals();
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// make control shapes
+
+		// corners
+		var cursors = ["nw-resize","ne-resize","nw-resize","ne-resize"];
+		var opposites = [2,3,0,1];
+		for (var i=0; i<4; i++) {
+			var rect = new zim.Rectangle(handleSize, handleSize, showScale?"#e472c4":"rgba(0,0,0,0)", showScale?"#333":"rgba(0,0,0,0)", 2);
+			rect.centerReg(squares);
+			rect.expand(0);
+			rect.rotation = totalRotation;
+			cur = customCursors?"none":cursors[i];
+			rect.drag({overCursor:cur, dragCursor:cur, onTop:false});
+			rect.controlType = "corner";
+			rect.cu = cursors[i];
+		}
+		// run again now that we have all the squares for the opposites
+		for (var i=0; i<opposites.length; i++) {
+			squares.getChildAt(i).op = squares.getChildAt(opposites[i]);
+		}
+
+		// edges
+		var cursorsSide = ["n-resize","e-resize","n-resize","e-resize"];
+		opposites = [1,1,0,0];
+		for (var i=0; i<4; i++) {
+			var w = i%2==0?obj.width/2:handleSize;
+			var h = i%2==0?handleSize:obj.height/2;
+			if (showStretch) {
+				var rect = new zim.Rectangle(handleSize, handleSize, "#AAA", "#333", 2);
+			} else {
+				var rect = new zim.Rectangle(w, h, "rgba(0,0,0,0)");
+			}
+			rect.centerReg(i%2==0?sidesV:sidesH);
+			rect.rotation = totalRotation;
+			rect.expand(0);
+			cur = customCursors?"none":cursorsSide[i];
+			rect.drag({overCursor:cur, dragCursor:cur, onTop:false});
+			rect.controlType = "side";
+			rect.cu = cursorsSide[i];
+		}
+		for (var i=0; i<opposites.length; i++) {
+			var whichSide = i%2==0?sidesV:sidesH;
+			whichSide.getChildAt(Math.floor(i/2)).op = whichSide.getChildAt(opposites[i]);
+		}
+
+		// rotators
+		var cursorsRotators = ["ne-resize","nw-resize","ne-resize","nw-resize"];
+		for (var i=0; i<4; i++) {
+			var rect = new zim.Circle(handleSize, showRotate?"#e472c4":"rgba(0,0,0,0)");
+			rect.addTo(rotators);
+			rect.expand(0);
+			cur = customCursors?"none":cursorsRotators[i];
+			rect.drag({overCursor:cur, dragCursor:cur, onTop:false});
+			rect.controlType = "rotate";
+			rect.cu = cursorsRotators[i];
+		}
+		var offSet = 1.8;
+		rotators.alpha = .5;
+		setRotators();
+		function setRotators() {
+			var shiftRX = handleSize*offSet*zim.sign(totalScaleX);
+			var shiftRY = handleSize*offSet*zim.sign(totalScaleY)
+			rotators.getChildAt(0).reg(shiftRX, shiftRY);
+			rotators.getChildAt(1).reg(-shiftRX, shiftRY);
+			rotators.getChildAt(2).reg(-shiftRX, -shiftRY);
+			rotators.getChildAt(3).reg(shiftRX, -shiftRY);
+			stage.update();
+		}
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// draw / redraw controls
+
+		function makeControls() {
+			g.c();
+			gR.c();
+			pTL = obj.localToGlobal(oB.x, oB.y);
+			pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
+			pBR = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height);
+			pBL = obj.localToGlobal(oB.x, oB.y+oB.height);
+
+			pTM = obj.localToGlobal(oB.x+oB.width/2, oB.y);
+			pRM = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height/2);
+			pBM = obj.localToGlobal(oB.x+oB.width/2, oB.y+oB.height);
+			pLM = obj.localToGlobal(oB.x, oB.y+oB.height/2);
+
+			pR = obj.localToGlobal(obj.regX, obj.regY);
+			pMid = obj.localToGlobal(oB.x+oB.width/2, oB.y+oB.height/2);
+			corners = [pTL, pTR, pBR, pBL];
+			mids = [pTM, pRM, pBM, pLM];
+
+			if (showBorder) {
+				g.s(borderColor);
+				if (dashed) g.sd([10, 5], 0);
+				g.ss(borderWidth)
+					.mt(pTL.x, pTL.y)
+					.lt(pTR.x, pTR.y)
+					.lt(pBR.x, pBR.y)
+					.lt(pBL.x, pBL.y)
+					.lt(pTL.x, pTL.y)
+					.cp();
+			}
+			shape.setBounds(pTL.x, pTL.y, pTR.x-pTL.x, pBL.y-pTL.y);
+
+			// circle at registration point
+			if (showReg) {
+				gR.s("#eee").ss(borderWidth).f("rgba(0,0,0,.1)").dc(0,0,regSize);
+				gR.s("#222").ss(borderWidth).dc(0,0,regSize*.3);
+			}
+
+			getTotals(); // rotate, scales, etc.
+
+			var skX = Math.min(50,Math.abs(totalSkewX))*zim.sign(totalSkewX);
+			var skY = Math.min(50,Math.abs(totalSkewY))*zim.sign(totalSkewY);
+			var ro = (totalRotation)*zim.sign(totalScaleX*totalScaleY)
+
+			for (var i=0; i<corners.length; i++) {
+				var c = corners[i];
+				squares.getChildAt(i)
+					.pos(c.x, c.y)
+					.ske(skX, skY)
+					.rot(ro);
+				rotators.getChildAt(i)
+					.pos(c.x, c.y)
+					.rot(ro);
+				var m = mids[i];
+				var whichSide = i%2==0?sidesV:sidesH;
+				whichSide.getChildAt(Math.floor(i/2))
+					.pos(m.x, m.y)
+					.ske(skX, skY)
+					.rot(ro);
+				if (!showStretch) {
+					whichSide.getChildAt(Math.floor(i/2)).sca(i%2==0?totalScaleX/2:1, i%2==0?1:totalScaleY/2);
+				}
+			}
+			shapeR.pos(pR.x,pR.y);
+		}
+		makeControls();
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// dragger
+		var dragger = new zim.Shape(1000,1000);
+		function drawDragger() {
+			dragger.pos(0,0);
+			dragger.graphics
+				.c()
+				.f("rgba(0,0,0,.01)")
+				.mt(pTL.x, pTL.y)
+				.lt(pTR.x, pTR.y)
+				.lt(pBR.x, pBR.y)
+				.lt(pBL.x, pBL.y)
+				.lt(pTL.x, pTL.y)
+				.cp();
+			dragger.reg(pR.x, pR.y)
+			dragger.pos(pR.x, pR.y)
+		}
+		drawDragger();
+
+		obj.on("dblclick", double);
+		dragger.on("dblclick", double);
+		function double() {
+			if (frame.ctrlKey && obj.transformControls.visible) {
+				obj.scaleX = 1;
+				obj.scaleY = 1;
+				obj.rotation = 0;
+				if (customCursors) moveCursor.rot(obj.rotation);
+				makeControls();
+				drawDragger();
+				stage.update();
+			} else {
+				if (dblclick) {
+					if (obj.transformControls.visible) {
+						obj.transformControls.hide();
+						obj.dispatchEvent("transformhide");
+					} else {
+						obj.transformControls.show();
+						obj.dispatchEvent("transformshow");
+						if (move) {
+							frame.canvas.style.cursor = "none";
+							draggerOver();
+						}
+					}
+				}
+			}
+			pressUp();
+		}
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// scaling
+		var startX; // target start x
+		var startY; // target start y
+		var startR; // rotation of object to start
+		var startAngle; // angle of mouse down to x axis
+		var diffX;
+		var diffY;
+		var cornerPoint;
+		var objStartX; // start object x in parent frame
+		var objStartY; // start object x in parent frame
+		var objRX; // start object x in global frame
+		var objRY; // start object y in global frame
+		var rotateCheck = false;
+		var mousePress = false;
+		var mousemoveEvent;
+
+		var carrier = new Circle(30, "rgba(0,0,0,0)").expand(20);
+		if (customCursors) {
+			carrier.mouseEnabled = false;
+			carrier.mouseChildren = false;
+			carrier.addChild(transformCursor);
+			squares.on("mouseover", showCustomCursor);
+			squares.on("mouseout", hideCustomCursor);
+			sidesH.on("mouseover", showCustomCursor);
+			sidesH.on("mouseout", hideCustomCursor);
+			sidesV.on("mouseover", showCustomCursor);
+			sidesV.on("mouseout", hideCustomCursor);
+			rotators.on("mouseover", showCustomCursor);
+			rotators.on("mouseout", hideCustomCursor);
+			var carrier2 = new Circle(30, "rgba(0,0,0,0)").expand(20);
+			carrier2.cursor = "none";
+		}
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// scale corners
+		squares.on("mousedown", transformMousedown);
+		squares.on("pressmove", scalePressmove);
+		squares.on("pressup", pressUp);
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// scale sides
+		sidesH.on("mousedown", transformMousedown);
+		sidesH.on("pressmove", scalePressmove);
+		sidesH.on("pressup", pressUp);
+		sidesV.on("mousedown", transformMousedown);
+		sidesV.on("pressmove", scalePressmove);
+		sidesV.on("pressup", pressUp);
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// rotate
+		rotators.on("mousedown", transformMousedown);
+		rotators.on("pressmove", rotatePressmove);
+		rotators.on("pressup", pressUp);
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// transform functions
+
+		function transformMousedown(e) {
+			mousePress = true;
+			if (onTop) {
+				obj.parent.setChildIndex(obj, obj.parent.numChildren-1);
+				stage.addChild(controls);
+			}
+			if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
+			startX = e.target.x;
+			startY = e.target.y;
+			objStartX = obj.x;
+			objStartY = obj.y;
+			startSX = obj.scaleX;
+			startSY = obj.scaleY;
+			if (e.target.controlType == "rotate") {
+				rotateCheck = true;
+				startR = obj.rotation;
+				var startRX = stage.mouseX;
+				var startRY = stage.mouseY;
+				var point = p.localToGlobal(objStartX, objStartY);
+				objRX = point.x;
+				objRY = point.y;
+				startAngle = Math.atan2(startRY-objRY, startRX-objRX)*180/Math.PI;
+			}
+			if (frame.ctrlKey || e.target.controlType == "rotate") { // ctrl scale and rotation happen around
+				diffX = Math.abs(startX-obj.x);
+				diffY = Math.abs(startY-obj.y);
+			} else {
+				diffX = Math.abs(startX-e.target.op.x);
+				diffY = Math.abs(startY-e.target.op.y);
+			}
+			if (e.target.controlType != "rotate") cornerPoint = {x:e.target.op.x, y:e.target.op.y};
+			carrier.addTo(stage).pos(stage.mouseX, stage.mouseY);
+			carrier.cursor = customCursors?"none":e.target.cu;
+			if (customCursors) {
+				transformCursor.rotation = obj.rotation * zim.sign(totalScaleX*totalScaleY) + ccData[e.target.cu];
+				if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
+				carrier2.addTo(stage, 1).pos(stage.mouseX, stage.mouseY);
+			}
+			dragger.visible = false;
+		};
+
+		function scalePressmove(e) {
+			var scale;
+			if (frame.ctrlKey && e.target.controlType == "corner") { // relative to registration point
+				scale = (diffX > diffY) ? (e.target.x - objStartX) / (startX-objStartX) : (e.target.y - objStartY) / (startY-objStartY);
+			} else { // relative to opposite corner
+				scale = (diffX > diffY) ? (e.target.x - e.target.op.x) / (startX-e.target.op.x) : (e.target.y - e.target.op.y) / (startY-e.target.op.y);
+			}
+			if (e.target.controlType == "corner") {
+				obj.scaleX = scale * startSX;
+				obj.scaleY = scale * startSY;
+			} else {
+				obj.scaleX = (e.target.cu == "e-resize") ? scale * startSX : startSX;
+				obj.scaleY = (e.target.cu == "n-resize") ? scale * startSY : startSY;
+			}
+			makeControls();
+			carrier.pos(stage.mouseX, stage.mouseY);
+			if (customCursors) carrier2.pos(stage.mouseX, stage.mouseY);
+			if (!frame.ctrlKey || e.target.controlType == "side") { // keep opposite corner at same location
+				var newCornerPoint = {x:e.target.op.x, y:e.target.op.y};
+				obj.x -= (newCornerPoint.x-cornerPoint.x) * zim.sign(totalScaleX) * zim.sign(obj.scaleX); // adjust for - scale outside
+				obj.y -= (newCornerPoint.y-cornerPoint.y) * zim.sign(totalScaleY) * zim.sign(obj.scaleY);
+			}
+			makeControls();
+		};
+
+		function rotatePressmove(e) {
+			var angle = Math.atan2(stage.mouseY-objRY, stage.mouseX-objRX)*180/Math.PI;
+			if (frame.shiftKey) {
+				obj.rot(Math.round((startR + (angle - startAngle) * zim.sign(totalScaleX) * zim.sign(obj.scaleX))/45)*45);
+			} else {
+				obj.rot(startR + (angle - startAngle) * zim.sign(totalScaleX) * zim.sign(obj.scaleX));
+			}
+			makeControls();
+			carrier.pos(stage.mouseX, stage.mouseY);
+			if (customCursors) {
+				transformCursor.rotation = obj.rotation * zim.sign(totalScaleX*totalScaleY) + ccData[e.target.cu];
+				if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
+				carrier2.pos(stage.mouseX, stage.mouseY);
+			}
+			makeControls();
+		};
+
+		function pressUp(e) {
+			setRotators();
+			carrier2.removeFrom(stage);
+			if (dragger.hitTestPoint(stage.mouseX, stage.mouseY) || squares.hitTestPoint(stage.mouseX, stage.mouseY) || sidesH.hitTestPoint(stage.mouseX, stage.mouseY) || sidesV.hitTestPoint(stage.mouseX, stage.mouseY) || rotators.hitTestPoint(stage.mouseX, stage.mouseY)) {
+			 	if (mousemoveEvent) stage.on("stagemousemove", mousemoveEvent);
+			} else {
+				carrier.removeFrom(stage);
+				frame.canvas.style.cursor = "default";
+			}
+			stage.update();
+			obj.dispatchEvent("transformed");
+		}
+
+		function showCustomCursor(e) {
+			if (mousePress) return;
+			carrier.addTo(stage);
+			carrier2.addTo(stage, 1);
+			carrier.pos(stage.mouseX, stage.mouseY);
+			carrier2.pos(stage.mouseX, stage.mouseY);
+			transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY) + ccData[e.target.cu];
+			if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
+			stage.update();
+			mousemoveEvent = stage.on("stagemousemove", function(e) {
+				carrier.pos(stage.mouseX, stage.mouseY);
+				stage.update();
+			});
+		}
+
+		function hideCustomCursor(e) {
+			stage.off("stagemousemove", mousemoveEvent);
+			if (mousePress) return;
+			carrier.removeFrom(stage);
+			carrier2.removeFrom(stage);
+			stage.update();
+		}
+
+		function upTop() {
+			if (onTop) {
+				obj.parent.setChildIndex(obj, obj.parent.numChildren-1);
+				stage.addChild(controls);
+			}
+		}
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// drag registration point
+
+		shapeR.drag();
+		shapeR.on("mousedown", upTop);
+		shapeR.on("pressup", function() {
+			// snap to corners unless the ctrl key is down
+			if (!frame.ctrlKey) {
+				for (var i=0; i<corners.length; i++) {
+					if (zim.dist(shapeR.x, shapeR.y, corners[i].x, corners[i].y) < snapDistance) {
+						shapeR.x = corners[i].x;
+						shapeR.y = corners[i].y;
+						break;
+					}
+				}
+				if (zim.dist(shapeR.x, shapeR.y, pMid.x, pMid.y) < snapDistance) {
+					shapeR.x = pMid.x;
+					shapeR.y = pMid.y;
+				}
+			}
+			var originalRotation = obj.rotation;
+			var point = obj.globalToLocal(shapeR.x, shapeR.y);
+			var rPoint = p.globalToLocal(shapeR.x, shapeR.y);
+			obj.reg(point.x, point.y);
+			obj.rotation = 0;
+			obj.pos(obj.x + rPoint.x-obj.x, obj.y + rPoint.y-obj.y);
+			obj.rotation = originalRotation;
+
+			makeControls();
+			drawDragger();
+			pressUp();
+			stage.update()
+		});
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		//  dragger functions
+		cur = customCursors ? "none" : "move";
+		dragger.drag({overCursor:cur, dragCursor:cur, onTop:false});
+		if (customCursors) {
+			dragger.on("mouseover", draggerOver);
+			dragger.on("mouseout", function() {
+				stage.off("stagemousemove", mousemoveEvent);
+				if (mousePress) return;
+				moveCursor.removeFrom(controls);
+				stage.update();
+			});
+		}
+		function draggerOver(e) {
+			if (mousePress) return;
+			moveCursor
+				.addTo(controls)
+				.rot(obj.rotation*zim.sign(totalScaleX*totalScaleY))
+				.pos(stage.mouseX, stage.mouseY);
+			stage.update();
+			mousemoveEvent = stage.on("stagemousemove", function(e) {
+				moveCursor.pos(stage.mouseX, stage.mouseY);
+				stage.update();
+			});
+		}
+		dragger.on("mousedown", upTop);
+		dragger.on("pressmove", function() {
+			var point = p.globalToLocal(dragger.x, dragger.y);
+			obj.x = point.x;
+			obj.y = point.y;
+			makeControls();
+		});
+		dragger.on("pressup", pressUp);
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// Stage Mouse Up
+		stage.on("stagemouseup", function() {
+			mousePress = false;
+			dragger.visible = true;
+			if (rotateCheck) {
+				if (!frame.ctrlKey && snapRotation > 1) { // snap if not control
+					obj.rotation = Math.round(obj.rotation/snapRotation)*snapRotation;
+					makeControls();
+				}
+			}
+			drawDragger();
+			rotateCheck = false;
+			stage.update();
+		});
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// add controls to controls container
+
+		controls.addChild(shape);
+		if (move) controls.addChild(dragger);
+		if (scale) controls.addChild(squares);
+		if (stretchX) controls.addChild(sidesH);
+		if (stretchY) controls.addChild(sidesV);
+		if (rotate) controls.addChild(rotators);
+		controls.addChild(shapeR);
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// control object
+
+		var dblclickStart = dblclick;
+		obj.transformControls = {
+			visible:visible,
+			show:function() {
+				if (onTop) obj.parent.setChildIndex(obj, obj.parent.numChildren-1);
+				stage.addChild(controls);
+				obj.transformControls.visible = true;
+				stage.update();
+				return obj;
+			},
+			hide:function() {
+				stage.removeChild(controls);
+				obj.transformControls.visible = false;
+				stage.update();
+				return obj;
+			},
+			remove:function() {
+				obj.transformControls.hide();
+				dblclick = false;
+			},
+			add:function() {
+				obj.transformControls.show();
+				dblclick = dblclickStart;
+			},
+			dblclickOn:function() {
+				dblclick = dblclickStart = true;
+			},
+			dblclickOff:function() {
+				dblclick = dblclickStart = false;
+			},
+			disable:function() {
+				controls.mouseChildren = false;
+				controls.mouseEnabled = false;
+			},
+			enable:function() {
+				controls.mouseChildren = true;
+				controls.mouseEnabled = true;
+			},
+			record:function(toJSON) {
+				var data = { // ES6 would help...
+					x:obj.x, y:obj.y,
+					scaleX:obj.scaleX,
+					scaleY:obj.scaleY,
+					rotation:obj.rotation,
+					skewX:obj.skewX,
+					skewY:obj.skewY,
+					regX:obj.regX,
+					regY:obj.regY,
+					controls:obj.transformControls.visible
+				}
+				return toJSON ? JSON.stringify(data) : data;
+			},
+			set:function(data, fromJSON) {
+				if (zot(data)) return;
+				if (fromJSON) data = JSON.parse(data);
+				var visible = data.controls;
+				delete data.controls;
+				for (var i in data) {
+					obj[i] = data[i];
+				}
+				makeControls();
+				drawDragger();
+				setRotators();
+				if (visible) obj.transformControls.show();
+				else obj.transformControls.hide();
+				return obj;
+			},
+			resize:function() {
+				makeControls();
+				drawDragger();
+				setRotators();
+				return obj;
+			},
+			scaleControls:squares,
+			stretchXControls:sidesH,
+			stretchYControls:sidesV,
+			rotateControls:rotators
+		}
+
+		if (visible) obj.transformControls.show();
+
+		return obj;
+
+	}//-33.5
+
+/*--
 obj.setSwipe = function(swipe)
 
 setSwipe
@@ -12208,8 +12978,8 @@ RETURNS a Boolean true if hitting, false if not
 		var point = obj.globalToLocal(x,y);
 		var bounds = obj.getBounds();
 		if (bounds) { // faster to check if point is in bounds first
-			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return;
-			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return;
+			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return false;
+			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return false;
 		}
 		return obj.hitTest(point.x, point.y);
 	}//-35
@@ -12254,8 +13024,8 @@ RETURNS a Boolean true if hitting, false if not
 		var point = b.localToLocal(b.regX,b.regY,a);
 		var bounds = a.getBounds();
 		if (bounds) { // faster to check if point is in bounds first
-			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return;
-			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return;
+			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return false;
+			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return false;
 		}
 		return a.hitTest(point.x, point.y);
 	}//-36
@@ -12312,7 +13082,7 @@ RETURNS a Boolean true if hitting, false if not
 			return;
 		}
 		var bounds2 = a.getBounds();
-		if (bounds2 && !zim.hitTestBounds(a,b)) return; // bounds not hitting
+		if (bounds2 && !zim.hitTestBounds(a,b)) return false; // bounds not hitting
 
 		var centerX = bounds.x+bounds.width/2;
 		var centerY = bounds.y+bounds.height/2;
@@ -12380,7 +13150,7 @@ RETURNS a Boolean true if hitting, false if not
 --*///+38
 	zim.hitTestCircle = function(a, b, num) {
 		z_d("38");
-		if (!a.stage || !b.stage) return false;
+		if (!a.stage || !b.stage) return;
 		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
 		if (zot(num)) num = 8;
 		var bounds = b.getBounds();
@@ -12389,7 +13159,7 @@ RETURNS a Boolean true if hitting, false if not
 			return;
 		}
 		var bounds2 = a.getBounds();
-		if (bounds2 && !zim.hitTestBounds(a,b)) return; // bounds not hitting
+		if (bounds2 && !zim.hitTestBounds(a,b)) return false; // bounds not hitting
 
 		var centerX = bounds.x+bounds.width/2;
 		var centerY = bounds.y+bounds.height/2;
@@ -12445,7 +13215,7 @@ RETURNS a Boolean true if hitting, false if not
 --*///+39
 	zim.hitTestBounds = function(a, b, boundsShape) {
 		z_d("39");
-		if (!a.stage || !b.stage) return false;
+		if (!a.stage || !b.stage) return;
 		if (zot(a) || zot(b) || !a.getBounds || !b.getBounds) return;
 		var boundsCheck = false;
 		if (boundsShape && boundsShape.graphics) boundsCheck=true;
@@ -12690,7 +13460,7 @@ sequenceParams - (default null) a parameter sent to the sequenceCall function
 sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
 props - (default {override: true}) legacy - allows you to pass in TweenJS props
 protect - (default false) protects animation from being interrupted before finishing
- 	unless manually interrupted with stopZimMove()
+ 	unless manually interrupted with stopAnimate()
 	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
@@ -13651,9 +14421,9 @@ PARAMETERS
 ids - (default null) pass in an id or an array of ids specified in zim.animate, zim.move and zim.Sprite
 
 RETURNS null if run as zim.stopAnimate() or the obj if run as obj.stopAnimate()
---*///+45.15
+--*///+45.12
 	zim.stopAnimate = function(ids) {
-		z_d("45.15");
+		z_d("45.12");
 		if (zot(ids)) {
 			if (zim.animatedObjects) {
 				for (var i=zim.animatedObjects.length-1; i>=0; i--) {
@@ -13673,10 +14443,13 @@ RETURNS null if run as zim.stopAnimate() or the obj if run as obj.stopAnimate()
 				}
 			}
 		}
-	}//-45.15
+	}//-45.12
 
-/*
-The replaced by stopAnimate
+/*--
+obj.stopZimAnimate = function(ids)
+
+stopZimAnimate
+This is replaced by stopAnimate()
 --*///+45.1
 	zim.stopZimAnimate = function(ids) {
 		z_d("45.1");
@@ -13731,9 +14504,9 @@ state - (default true) will pause tweens - set to false to unpause tweens
 ids - (default null) pass in an id or an array of ids specified in zim.animate, zim.move and zim.Sprite
 
 RETURNS null if run as zim.pauseAnimate() or the obj if run as obj.pauseAnimate()
---*///+45.25
+--*///+45.22
 	zim.pauseAnimate = function(state, ids) {
-		z_d("45.25");
+		z_d("45.22");
 		if (zot(state)) state = true;
 		if (zot(ids)) {
 			if (zim.animatedObjects) {
@@ -13753,10 +14526,13 @@ RETURNS null if run as zim.pauseAnimate() or the obj if run as obj.pauseAnimate(
 				}
 			}
 		}
-	}//-45.25
+	}//-45.22
 
-/*
-The replaced bu pauseAnimate
+/*--
+obj.pauseZimAnimate = function(state, ids)
+
+pauseZimAnimate
+This is replaced by pauseAnimate()
 --*///+45.2
 	zim.pauseZimAnimate = function(state, ids) {
 		z_d("45.2");
@@ -14571,9 +15347,9 @@ RETURNS the shape if you want to remove it: obj.parent.removeChild(returnedShape
 		var sig = "obj, color, size";
 		var duo; if (duo = zob(zim.outline, arguments, sig)) return duo;
 		z_d("47");
-		if (zot(obj) || !obj.getBounds) {zog("zim methods - outline(): please provide object with bounds set"); return;}
-		if (!obj.getBounds()) {zog("zim methods - outline(): please setBounds() on object");	return;}
-		if (!obj.parent) {zog("zim methods - outline(): object should be on stage first"); return;}
+		if (zot(obj) || !obj.getBounds) {zog("zim methods - outline(): please provide object with bounds set"); return obj;}
+		if (!obj.getBounds()) {zog("zim methods - outline(): please setBounds() on object");	return obj;}
+		if (!obj.parent) {zog("zim methods - outline(): object should be on stage first"); return obj;}
 		if (zot(color)) color = "brown";
 		if (zot(size)) size = 2;
 		var oB = obj.getBounds();
@@ -14594,7 +15370,8 @@ RETURNS the shape if you want to remove it: obj.parent.removeChild(returnedShape
 			.lt(pTR.x, pTR.y)
 			.lt(pBR.x, pBR.y)
 			.lt(pBL.x, pBL.y)
-			.lt(pTL.x, pTL.y);
+			.lt(pTL.x, pTL.y)
+			.cp();
 
 		// subtract a scaled top left bounds from the top left point
 		// zero = {x:pTL.x-oB.x*obj.scaleX, y:pTL.y-oB.y*obj.scaleY};
@@ -14789,7 +15566,7 @@ RETURNS obj for chaining
 		var sig = "obj, container, index, add";
 		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
 		z_d("48");
-		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim methods - centerReg(): please provide object with bounds set"); return;}
+		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim methods - centerReg(): please provide object with bounds set"); return obj;}
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
@@ -14986,7 +15763,7 @@ RETURNS obj for chaining
 --*///+50
 	zim.expand = function(obj, padding, paddingVertical) {
 		z_d("50");
-		if (zot(obj) || !obj.getBounds) {zog("zim methods - expand(): please provide object with bounds set"); return;}
+		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim methods - expand(): please provide object with bounds set"); return obj;}
 		if (zot(padding)) padding = 20;
 		if (zot(paddingVertical)) paddingVertical = padding;
 		var oB = obj.getBounds();
@@ -17307,12 +18084,12 @@ and in future perhaps OutlineManager
 		var that = this;
 		this.items = [];
 		this.add = function(obj) {
-			if (Array.isArray(obj)) that.items.concat(obj);
+			if (Array.isArray(obj)) that.items = that.items.concat(obj);
 			else that.items.push(obj);
 		}
 		this.remove = function(obj) {
 			if (zot(obj)) {that.items = []; return;}
-			if (!Array.isArray(obj)) obj = [];
+			if (!Array.isArray(obj)) obj = [obj];
 			var o;
 			for (var i=0; i<obj.length; i++) {
 				o = obj[i];
@@ -17324,6 +18101,7 @@ and in future perhaps OutlineManager
 			if (!that) return;
 			for (var i=0; i<that.items.length; i++) {
 				if (!that.items[i].resize) that.items.splice(i); // was disposed
+				else that.items[i].resize();
 			}
 		}
 		this.dispose = function() {
@@ -17360,9 +18138,9 @@ frame.on("resize", function() {
 END EXAMPLE
 
 METHODS
-add(obj) - adds objects or an array of objects to the ResizeManager
+add(obj) - adds object or an array of objects to the ResizeManager
 	*** Note that the Loader and TextArea are already resized if added to an Accessibility object that is resized
-remove(obj) - removes objects or an array of objects to the ResizeManager
+remove(obj) - removes object or an array of objects from the ResizeManager
 resize() - calls the resize() method of any object in the ResizeManager
 dispose() - disposes the objects in the ResizeManager and the ResizeManager itself
 
@@ -17377,6 +18155,178 @@ items - get or set an array of objects currently in the Manager
 	zim.ResizeManager.prototype = new zim.Manager();
 	zim.ResizeManager.prototype.constructor = zim.ResizeManager;
 	//-75.5
+
+/*--
+zim.TransformManager = function(unique)
+
+TransformManager
+zim class
+
+DESCRIPTION
+Manages multiple objects with transform() methods set.
+Defaults to allow only one transform at a time but can set to not apply this limit.
+Can use to show, hide, hideAll, add, remove and resize transform controls.
+Can be used to automatically save any transforms and reload them again on refresh of Browser / App.
+This uses localStorage.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var rect = new zim.Rectangle(300, 200, frame.green)
+	.centerReg(stage)
+	.mov(-200)
+	.transform();
+
+var circ = new zim.Circle(100, frame.red)
+	.centerReg(stage)
+	.mov(200)
+	.transform();
+
+var tm = new zim.TransformManager();
+tm.add([rect, circ]);
+tm.persist("sample"); // now when a user comes back to page the transforms will be saved
+END EXAMPLE
+
+PARAMETERS
+unique - (default true) only lets one set of transform() controls be set at a time
+
+METHODS
+add(obj) - adds object or an array of objects to the TransformManager - first object will get visible controls
+remove(obj) - removes object or an array of objects to the TransformManager
+show(obj) - show controls for an object that has a transform() set
+hide(obj) - hides controls for an object that has a transform() set - still available with dblclick
+hideAll() - hides all controls - still available with dblclick
+resize() - calls the resize() method of any object in the ResizeManager
+persist(id) - save data after every change and reload transforms when done - must provide an id
+clearPersist(id) - clear persisting data - do this before adding shapes - must provide an id
+savePersist() - with persist() already set, this will force a saving even without a transform event being captured
+	if resize() after non-transform movement is called, then this is not needed
+stopPersist() - no longer save data
+
+PROPERTIES
+items - get or set (set not recommended) an array of objects currently in the TransformManager
+
+--*///+75.7
+	zim.TransformManager = function(unique) {
+		if (zot(unique)) unique = true;
+		var that = this;
+		this.items = [];
+		function setControls(e) {
+			that.hideAll();
+			that.show(e.target);
+		}
+		function setPersist() {
+			if (!localStorage) return;
+			that.savePersist();
+		}
+		this.add = function(obj) {
+			if (Array.isArray(obj)) that.items = that.items.concat(obj);
+			else that.items.push(obj);
+			if (unique) {
+				that.hideAll();
+				var it;
+				for (var i=0; i<that.items.length; i++) {
+					it = that.items[i];
+					if (!it.transformControls || !it.transformControls.resize) {
+						that.items.splice(i); // was disposed
+					} else {
+						it.transformControls.dblclickOn();
+						if (!it.transformshowEvent) it.transformshowEvent = it.on("transformshow", setControls);
+					}
+				}
+				that.show(that.items[0]);
+			}
+		}
+		this.remove = function(obj) {
+			if (zot(obj)) {that.items = []; return;}
+			if (!Array.isArray(obj)) obj = [obj];
+			var o;
+			for (var i=0; i<obj.length; i++) {
+				o = obj[i];
+				if (unique && o.transformshowEvent) {
+					o.off("transformshow", o.transformshowEvent);
+					o.transformshowEvent = null;
+				}
+				if (o.transformedEvent) {
+					o.off("transformed", o.transformedEvent);
+					o.transformedEvent = null;
+				}
+				o.transformControls.remove();
+				var index = that.items.indexOf(o);
+				if (index != -1) that.items.splice(index, 1);
+			}
+			if (persistID) {
+				that.savePersist();
+			}
+		}
+		this.show = function(obj) {
+			if (zot(obj) || !obj.transformControls) return;
+			obj.transformControls.show();
+		}
+		this.hide = function(obj) {
+			if (zot(obj) || !obj.transformControls) return;
+			obj.transformControls.hide();
+		}
+		this.hideAll = function() {
+			for (var i=0; i<that.items.length; i++) {
+				if (!that.items[i].transformControls || !that.items[i].transformControls.resize) that.items.splice(i); // was disposed
+				else {that.items[i].transformControls.hide();}
+			}
+		}
+		this.resize = function() {
+			if (!that) return;
+			for (var i=0; i<that.items.length; i++) {
+				if (!that.items[i].transformControls || !that.items[i].transformControls.resize) that.items.splice(i); // was disposed
+				else that.items[i].transformControls.resize();
+			}
+			if (persistID) that.savePersist();
+		}
+		var persistID
+		var sorry = "TransformManager persist(id) - sorry, must provide id";
+		this.persist = function(id) {
+			if (zot(id)) {
+				if (zon) {zog(sorry); return;}
+			}
+			persistID = id;
+			if (localStorage && localStorage[persistID]) {
+				var data = JSON.parse(localStorage[persistID]);
+				if (data.length == that.items.length) {
+					for (var i=0; i<that.items.length; i++) {
+						if (data[i]) that.items[i].transformControls.set(data[i]);
+					}
+				}
+			}
+			var it;
+			for (var i=0; i<that.items.length; i++) {
+				it = that.items[i];
+				if (!it.transformedEvent) it.transformedEvent = it.on("transformed", setPersist);
+			}
+		}
+		this.savePersist = function() {
+			var data = [];
+			for (var i=0; i<that.items.length; i++) {
+				it = that.items[i];
+				if (it.transformControls && it.transformControls.record) data.push(it.transformControls.record());
+			}
+			localStorage[persistID] = JSON.stringify(data);
+		}
+		this.clearPersist = function(id) {
+			if (zot(id)) {
+				if (zon) {zog(sorry); return;}
+			}
+			if (localStorage) localStorage.removeItem(id);
+		}
+		this.stopPersist = function() {
+			for (var i=0; i<that.items.length; i++) {
+				it = that.items[i];
+				if (it.transformedEvent) {
+					it.off("transformed", it.transformedEvent);
+					it.transformedEvent = null;
+				}
+			}
+		}
+	}
+	//-75.7
 
 /*--
 zim.Guide = function(obj, vertical, percent, hideKey, pixelKey)
@@ -20698,7 +21648,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								}
 							} else { // others need to be centerReg
 								var particle = template.clone();
-								if (!particle.centerReg) zimify(particle);
+								if (!particle.centerReg) zimify(particle, null, false);
 								if (that.trace) {
 									particle.centerReg(container).pos(-1000,-1000); // cache was drawing this in center - perhaps missing an update so just move it away
 								} else {
@@ -21409,7 +22359,7 @@ orientation - "vertical" or "horizontal" (updated live with orientation change)
 zil - reference to zil events that stop canvas from shifting or scrolling - also see allowDefaults parameter
 	can set allowDefault property to false then allow specific defaults by removing zil events - see zil global function
 	example: window.removeEventListener("keydown", listenersArray[0]); removes keydown preventions (for page up, page down, home, end, etc)
-colors: orange, green, pink, blue, brown, yellow, silver, tin, grey, lighter, light, dark, darker, purple, white, black, clear (0 alpha), faint (.01 alpha)
+colors: orange, green, pink, blue, brown, yellow, red, purple, silver, tin, grey, lighter, light, dark, darker, white, black, clear (0 alpha), faint (.01 alpha)
 altKey - true if the alt key is being pressed otherwise false
 ctrlKey - true if the ctrl key is being pressed otherwise false
 metaKey - true if the meta key (⌘ command on Mac or ⊞ windows key) is being pressed otherwise false
@@ -21632,6 +22582,7 @@ EVENTS
 			stage.height = stageH;
 			if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
 			if (touch) createjs.Touch.enable(stage, false, allowDefault); // added for mobile
+			if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
 		}
@@ -22026,7 +22977,7 @@ function z_d(n) {if (zim && zim.DISTILL) zim.distillery.push(n);}
 // internal global function for adding DisplayMembers to zim Display Objects
 
 /*--
-zimify = function(obj, list)
+zimify = function(obj, list, scale)
 
 zimify
 global function
@@ -22093,6 +23044,8 @@ END EXAMPLE
 PARAMETERS
 obj - the object to add the methods and properties to (probably a CreateJS display object)
 list - used internally by zimplify to exclude zim methods (makes zimify return list of methods)
+scale - (default false) add scale() method to object.  Depreciating scale() in favour of sca()
+	scale is conflicing perhaps with the canvas scale() method when applying to new CreateJS shapes
 
 RETURNS - obj for chaining
 --*///+83.3
@@ -22100,7 +23053,7 @@ RETURNS - obj for chaining
 function zimify(obj, list, scale) {
 	z_d("83.3");
 
-	if (zot(scale)) scale = true;
+	if (zot(scale)) scale = false;
 
 	var displayMethods = {
 		drag:function(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens) {
@@ -22112,6 +23065,10 @@ function zimify(obj, list, scale) {
 		},
 		dragRect:function(rect) {
 			return zim.dragRect(this, rect);
+		},
+		transform:function(move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.transform(arguments[0]);}
+			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation);}
 		},
 		setSwipe:function(swipe) {
 			return zim.setSwipe(this, swipe);
