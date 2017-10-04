@@ -12192,6 +12192,7 @@ RETURNS obj for chaining
 		var rotateCheck = false;
 		var mousePress = false;
 		var mousemoveEvent;
+		var objCursor = obj.cursor;
 
 		var carrier = new Circle(30, "rgba(0,0,0,0)").expand(20);
 		if (customCursors) {
@@ -12273,6 +12274,8 @@ RETURNS obj for chaining
 				carrier2.addTo(stage, 1).pos(stage.mouseX, stage.mouseY);
 			}
 			dragger.visible = false;
+			objCursor = obj.cursor;
+			obj.cursor = "none";
 		};
 
 		function scalePressmove(e) {
@@ -12319,12 +12322,20 @@ RETURNS obj for chaining
 
 		function pressUp(e) {
 			setRotators();
+			var type = e ? e.target.controlType : "move";
 			carrier2.removeFrom(stage);
-			if (dragger.hitTestPoint(stage.mouseX, stage.mouseY) || squares.hitTestPoint(stage.mouseX, stage.mouseY) || sidesH.hitTestPoint(stage.mouseX, stage.mouseY) || sidesV.hitTestPoint(stage.mouseX, stage.mouseY) || rotators.hitTestPoint(stage.mouseX, stage.mouseY)) {
+			if (
+				(type == "move" && dragger.hitTestPoint(stage.mouseX, stage.mouseY)) ||
+				(type == "corner" && squares.hitTestPoint(stage.mouseX, stage.mouseY)) ||
+				(type == "side" && sidesH.hitTestPoint(stage.mouseX, stage.mouseY)) ||
+				(type == "side" && sidesV.hitTestPoint(stage.mouseX, stage.mouseY)) ||
+				(type == "rotate" && rotators.hitTestPoint(stage.mouseX, stage.mouseY))
+			) {
 			 	if (mousemoveEvent) stage.on("stagemousemove", mousemoveEvent);
 			} else {
 				carrier.removeFrom(stage);
 				frame.canvas.style.cursor = "default";
+				obj.cursor = objCursor;
 			}
 			stage.update();
 			obj.dispatchEvent("transformed");
@@ -12398,6 +12409,7 @@ RETURNS obj for chaining
 		//  dragger functions
 		cur = customCursors ? "none" : "move";
 		dragger.drag({overCursor:cur, dragCursor:cur, onTop:false});
+		dragger.controlType = "move";
 		if (customCursors) {
 			dragger.on("mouseover", draggerOver);
 			dragger.on("mouseout", function() {
@@ -12498,6 +12510,7 @@ RETURNS obj for chaining
 			},
 			record:function(toJSON) {
 				var data = { // ES6 would help...
+					index:p.getChildIndex(obj),
 					x:obj.x, y:obj.y,
 					scaleX:obj.scaleX,
 					scaleY:obj.scaleY,
@@ -12515,12 +12528,16 @@ RETURNS obj for chaining
 				if (fromJSON) data = JSON.parse(data);
 				var visible = data.controls;
 				delete data.controls;
+				var index = data.index;
+				if (zot(index)) index = 0;
+				delete data.index;
 				for (var i in data) {
 					obj[i] = data[i];
 				}
 				makeControls();
 				drawDragger();
 				setRotators();
+				p.setChildIndex(obj, index);
 				if (visible) obj.transformControls.show();
 				else obj.transformControls.hide();
 				return obj;
