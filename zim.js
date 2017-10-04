@@ -12103,7 +12103,7 @@ RETURNS obj for chaining
 
 			var skX = Math.min(50,Math.abs(totalSkewX))*zim.sign(totalSkewX);
 			var skY = Math.min(50,Math.abs(totalSkewY))*zim.sign(totalSkewY);
-			var ro = (totalRotation)*zim.sign(totalScaleX*totalScaleY)
+			var ro = (totalRotation)*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY);
 
 			for (var i=0; i<corners.length; i++) {
 				var c = corners[i];
@@ -12163,12 +12163,17 @@ RETURNS obj for chaining
 					if (obj.transformControls.visible) {
 						obj.transformControls.hide();
 						obj.dispatchEvent("transformhide");
+						frame.canvas.style.cursor = "default";
 					} else {
 						obj.transformControls.show();
 						obj.dispatchEvent("transformshow");
 						if (move) {
-							frame.canvas.style.cursor = "none";
-							draggerOver();
+							if (customCursors) {
+								frame.canvas.style.cursor = "none";
+								draggerOver();
+							} else {
+								frame.canvas.style.cursor = "move";
+							}
 						}
 					}
 				}
@@ -12191,6 +12196,7 @@ RETURNS obj for chaining
 		var objRY; // start object y in global frame
 		var rotateCheck = false;
 		var mousePress = false;
+		var mouseEvent
 		var mousemoveEvent;
 		var objCursor = obj.cursor;
 
@@ -12269,12 +12275,11 @@ RETURNS obj for chaining
 			carrier.addTo(stage).pos(stage.mouseX, stage.mouseY);
 			carrier.cursor = customCursors?"none":e.target.cu;
 			if (customCursors) {
-				transformCursor.rotation = obj.rotation * zim.sign(totalScaleX*totalScaleY) + ccData[e.target.cu];
+				transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu];
 				if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
 				carrier2.addTo(stage, 1).pos(stage.mouseX, stage.mouseY);
 			}
 			dragger.visible = false;
-			objCursor = obj.cursor;
 			obj.cursor = "none";
 		};
 
@@ -12313,7 +12318,7 @@ RETURNS obj for chaining
 			makeControls();
 			carrier.pos(stage.mouseX, stage.mouseY);
 			if (customCursors) {
-				transformCursor.rotation = obj.rotation * zim.sign(totalScaleX*totalScaleY) + ccData[e.target.cu];
+				transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu];
 				if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
 				carrier2.pos(stage.mouseX, stage.mouseY);
 			}
@@ -12323,7 +12328,7 @@ RETURNS obj for chaining
 		function pressUp(e) {
 			setRotators();
 			var type = e ? e.target.controlType : "move";
-			carrier2.removeFrom(stage);
+			if (customCursors) carrier2.removeFrom(stage);
 			if (
 				(type == "move" && dragger.hitTestPoint(stage.mouseX, stage.mouseY)) ||
 				(type == "corner" && squares.hitTestPoint(stage.mouseX, stage.mouseY)) ||
@@ -12347,7 +12352,7 @@ RETURNS obj for chaining
 			carrier2.addTo(stage, 1);
 			carrier.pos(stage.mouseX, stage.mouseY);
 			carrier2.pos(stage.mouseX, stage.mouseY);
-			transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY) + ccData[e.target.cu];
+			transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu];
 			if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
 			stage.update();
 			mousemoveEvent = stage.on("stagemousemove", function(e) {
@@ -12412,22 +12417,24 @@ RETURNS obj for chaining
 		dragger.controlType = "move";
 		if (customCursors) {
 			dragger.on("mouseover", draggerOver);
-			dragger.on("mouseout", function() {
-				stage.off("stagemousemove", mousemoveEvent);
-				if (mousePress) return;
-				moveCursor.removeFrom(controls);
-				stage.update();
-			});
+			dragger.on("mouseout", draggerOut);
 		}
-		function draggerOver(e) {
+		function draggerOut() {
+			stage.off("stagemousemove", mousemoveEvent);
 			if (mousePress) return;
+			moveCursor.removeFrom(controls);
+			stage.update();
+		};
+		function draggerOver(e) {
+			if (mousePress || !customCursors) return;
 			moveCursor
 				.addTo(controls)
-				.rot(obj.rotation*zim.sign(totalScaleX*totalScaleY))
+				.rot(obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY))
 				.pos(stage.mouseX, stage.mouseY);
 			stage.update();
 			mousemoveEvent = stage.on("stagemousemove", function(e) {
 				moveCursor.pos(stage.mouseX, stage.mouseY);
+				if (!dragger.hitTestPoint(stage.mouseX, stage.mouseY)) draggerOut();
 				stage.update();
 			});
 		}
@@ -12483,6 +12490,13 @@ RETURNS obj for chaining
 			hide:function() {
 				stage.removeChild(controls);
 				obj.transformControls.visible = false;
+				obj.cursor = objCursor;
+				if (customCursors) {
+					if (mouseEvent) stage.off("stagemousemove", mousemoveEvent);
+					mousePress = false;
+					carrier.removeFrom(stage);
+					carrier2.removeFrom(stage);
+				}
 				stage.update();
 				return obj;
 			},
@@ -20840,7 +20854,7 @@ dispatches a change event with dir as property of event object
 				calculate();
 			}, stage);
 		} else if (type == "mousedown" || type == "mousemove") {
-			var mouseEvent = stage.on("stage" + type, function(){
+			mouseEvent = stage.on("stage" + type, function(){
 				var p = container.globalToLocal(stage.mouseX, stage.mouseY);
 				that.x = p.x; that.y = p.y;
 				calculate();
