@@ -19714,7 +19714,7 @@ items - an array of all Layout objects added with add()
 	}//-81
 
 /*--
-zim.Parallax = function(stage, damp, layers, auto)
+zim.Parallax = function(layers, damp, auto, stage)
 
 Parallax
 zim class
@@ -19743,18 +19743,16 @@ var front = new zim.Circle(60, "red");
 front.center(stage).y += 80;
 
 // make Parallax object - here we move with stage mouseX and mouseY
-var parallax = new zim.Parallax(stage, .1, [
+var parallax = new zim.Parallax([
 	{obj:backing, prop:"x", propChange:50}, {obj:backing, prop:"y", propChange:40, input:"mouseY"},
 	{obj:mid, prop:"x", propChange:100}, {obj:mid, prop:"y", propChange:80, input:"mouseY"},
 	{obj:front, prop:"x", propChange:150}, {obj:front, prop:"y", propChange:100, input:"mouseY"}
-]);
+], .1);
 
 stage.update();
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-stage - the stage
-damp - (default .1) the damp value with 1 being no damping and 0 being no movement
 layers - (default null) an array of layer objects, the format as below
 	Example: to move an obj 200 px in the x as the window scrolls from 100 to 300 px in the y
 		[{obj:obj, prop:"x", propChange:200, input:"scrollY", inMin:100, inMax:300, factor:1, integer:false}, etc.]
@@ -19766,13 +19764,15 @@ layers - (default null) an array of layer objects, the format as below
 	inMax - (default stageW (for x prop) stageH (for y prop)) maximum input range
 	factor - (default 1) set factor to -1 to change in the opposite direction
 	integer - (default false) set to true to round the value to an integer
-	split - (default true for mouseX, false for others) centers input so half is on one side and half on the other
+	split - (default true for mouseX, false for others) centers input so half output is on one side and half on the other
 	Example 2: a traditional mouse move parallax for one object
 		[{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
 	you would probably have more objects to follow
 	or you can add these one at a time with the p.addLayer({layer object properties});
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
 auto - (default true) uses the specified input
 	if auto is set to false, you must make your own Ticker and use the step(input) method
+stage - (default the default frame's stage) the stage - specify this if multiple stages
 NOTE: ticker and fps parameters have been removed - see zim.Ticker to set
 
 METHODS
@@ -19785,13 +19785,21 @@ dispose() - removes listeners
 PROPERTIES
 damp - allows you to dynamically change the damping
 --*///+68
-	zim.Parallax = function(stage, damp, layers, auto) {
+	zim.Parallax = function(layers, damp, auto, stage) {
 
-		var sig = "stage, damp, layers, auto";
+		var sig = "layers, damp, auto, stage";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
 		z_d("68");
-		if (zot(stage) || !stage.getBounds) {zog("zim display - Parallax(): please pass in the stage with bounds as first parameter"); return;}
-		if (!stage.getBounds()) {zog("zim display - Parallax(): Please give the stage bounds using setBounds()");	return;}
+
+		if (zot(stage)) {
+			if (layers && layers[0] && layers[0].obj && layers[0].obj.stage) {
+				stage = layers[0].obj.stage;
+			} else if (zimDefaultFrame) {
+				stage = zimDefaultFrame.stage;
+			} else {
+				return;
+			}
+		}
 		if (zot(auto)) auto = true;
 
 		var stageW = stage.getBounds().width;
