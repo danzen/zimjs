@@ -2618,11 +2618,7 @@ RETURNS a Number
 			if (navindex != -1 || browser=='Safari') {
 				var safari = 1;
 			}
-			if (!safari && document.compatMode == 'CSS1Compat') {
-				return document.documentElement["scroll"+side];
-			} else {
-				return document.body["scroll"+side];
-			}
+			return (document.documentElement && document.documentElement["scroll"+side]) || document.body["scroll"+side];
 		} else if (zot(time)) {
 			window.scrollTo(zim["scroll"+perpend](), num);
 		} else {
@@ -5026,7 +5022,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var ballS = 8;
 			var rectS = 10;
 
-			var sets = that.sets = new zim.Container().addTo(that).drag(); // sets - a set contains a ball and two rects
+			var mobile = zim.mobile();
+
+			var sets = that.sets = new zim.Container().addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
 			_points = [];
 			balls = [];
 
@@ -5098,29 +5096,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				ball.rect1 = rect1;
 				ball.rect2 = rect2;
 				ball.index = i;
-				ball.on("dblclick", function(e) {
-					if (that.lockControlType) return;
-					var ball = e.target;
-					// cycle through the types
-					var type = _points[ball.index][4] ? _points[ball.index][4] : controlType;
-					if (Math.abs(ball.rect1.x) <= 2 && Math.abs(ball.rect1.y) <= 2 && Math.abs(ball.rect2.x) <= 2 && Math.abs(ball.rect2.y) <= 2) {
-						type = "none"
-					}
-					if (type == "none") {
-						ball.parent.addChildAt(ball, 0);
-					}
-					// modulus going backwards needs to add the length so it does not go negative
-					type = that.types[(that.types.indexOf(type)+(frame.shiftKey?-1:1)+that.types.length)%that.types.length];
-					if (type == "none") {
-						ball.rect1.x =  ball.rect1.y =  ball.rect2.x =  ball.rect2.y = 0;
-						ball.parent.addChild(ball);
-					}
-					_points[ball.index][4] = type;
-					ball.rect1.color = getColor(type);
-					ball.rect2.color = getColor(type);
-					drawShape();
-					ball.stage.update();
-				});
+
+				if (mobile) {
+					ball.on("mousedown", mobileDouble);
+				} else {
+					ball.on("dblclick", double);
+				}
 
 				rect1.ball = ball;
 				rect1.other = rect2;
@@ -5136,6 +5117,46 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				point = [set, rect1, rect2, ball, setData?setData[8]:controlType];
 				_points.push(point);
 			}
+
+
+			var tappedTwice = false;
+			function mobileDouble(e) {
+				if (!tappedTwice) {
+					tappedTwice = true;
+					setTimeout(function() {
+						tappedTwice = false;
+					}, 300);
+				} else {
+					e.preventDefault();
+					double(e);
+				}
+			}
+
+			function double(e) {
+				if (that.lockControlType) return;
+				var ball = e.target;
+				// cycle through the types
+				var type = _points[ball.index][4] ? _points[ball.index][4] : controlType;
+				if (Math.abs(ball.rect1.x) <= 2 && Math.abs(ball.rect1.y) <= 2 && Math.abs(ball.rect2.x) <= 2 && Math.abs(ball.rect2.y) <= 2) {
+					type = "none"
+				}
+				if (type == "none") {
+					ball.parent.addChildAt(ball, 0);
+				}
+				// modulus going backwards needs to add the length so it does not go negative
+				type = that.types[(that.types.indexOf(type)+(frame.shiftKey?-1:1)+that.types.length)%that.types.length];
+				if (type == "none") {
+					ball.rect1.x =  ball.rect1.y =  ball.rect2.x =  ball.rect2.y = 0;
+					ball.parent.addChild(ball);
+					e.stopImmediatePropagation();
+				}
+				_points[ball.index][4] = type;
+				ball.rect1.color = getColor(type);
+				ball.rect2.color = getColor(type);
+				drawShape();
+				ball.stage.update();
+			};
+
 
 			function getColor(type) {
 				var colors = {mirror:frame.purple, free:frame.yellow, none:frame.blue};
@@ -5310,7 +5331,26 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return that;
 			}
 
-			shape.on("dblclick", function() {
+			if (mobile) {
+				shape.on("mousedown", shapeDouble)
+			} else {
+				shape.on("dblclick", doubleShape);
+			}
+
+			var tappedTwice = false;
+			function shapeDouble(e) {
+				if (!tappedTwice) {
+					tappedTwice = true;
+					setTimeout(function() {
+						tappedTwice = false;
+					}, 300);
+				} else {
+					e.preventDefault();
+					doubleShape(e);
+				}
+			}
+
+			function doubleShape(e) {
 				if (!that.dblclick) return;
 				that.controls = !that.controls;
 				if (that.dblclickDrag) {
@@ -5320,7 +5360,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						that.drag({currentTarget:true, onTop:onTop});
 					}
 				}
-			});
+			};
+
 			that.controls = showControls;
 			if (that.dblclick && that.dblclickDrag && !that.controls) {
 				that.drag({currentTarget:true, onTop:onTop});
@@ -11857,15 +11898,15 @@ rotate - (default true) let user rotate object
 dblclick - (default false) let user hide and show controls with double click (double tap)
 visible - (default true) show the controls to start
 onTop - (default true) set to false to not move the selected shape to the top of its container
-showStretch - (default false) show side boxes for stretching - a cursor will always show if stretchX or stretchY is true
-showRotate - (default false) show circles at corners for rotation - a cursor will always show if rotation is true
+showStretch - (default false - true on mobile) show side boxes for stretching - a cursor will always show if stretchX or stretchY is true
+showRotate - (default false - true on mobile) show circles at corners for rotation - a cursor will always show if rotation is true
 showScale - (default true) show corner boxes for scaling - a cursor will always show if scale is set to true
 showReg - (default true) show round circle for draggable registration point - rotates around registration point
 showBorder - (default true) show rectangle border
 borderColor - (default brown) any border color (CSS)
 borderWidth - (default 1) the width of the border
 dashed - (default false) set to true for dashed border
-customCursors - (default true) set to false for system cursors (system cursors will not be rotated)
+customCursors - (default true - false on mobile) set to false for system cursors (system cursors will not be rotated)
 handleSize - (default 20 mobile - 10 desktop) the size of the control squares and circles
 regSize - (default 16) the size of the registration point circle
 snapDistance - (default 10) registration point will snap to corners and center if within this distance (and CTRL key not down)
@@ -11923,23 +11964,24 @@ RETURNS obj for chaining
 		if (zot(scale)) scale = true;
 		if (zot(rotate)) rotate = true;
 
+		var mobile = zim.mobile();
+
 		if (zot(dblclick)) dblclick = false;
 		if (zot(visible)) visible = true;
 		if (zot(onTop)) onTop = true;
-		if (zot(showStretch)) showStretch = false;
-		if (zot(showRotate)) showRotate = false;
+		if (zot(showStretch)) showStretch = mobile?true:false;
+		if (zot(showRotate)) showRotate = mobile?true:false;
 		if (zot(showScale)) showScale = true;
 		if (zot(showReg)) showReg = true;
 		if (zot(showBorder)) showBorder = true;
 		if (zot(borderColor)) borderColor = "brown";
 		if (zot(borderWidth)) borderWidth = 1;
-		if (zot(customCursors)) customCursors = true;
+		if (zot(customCursors)) customCursors = mobile?false:true;
 		if (zot(handleSize)) handleSize = zim.mobile()?20:10;
 		if (zot(regSize)) regSize = 16;
 		if (zot(snapDistance)) snapDistance = 10;
 		if (zot(snapRotation)) snapRotation = 5;
 		if (zot(cache)) cache = true;
-
 
 		var stage;
 		if (!obj.stage) {
@@ -12176,8 +12218,26 @@ RETURNS obj for chaining
 		}
 		drawDragger();
 
-		obj.on("dblclick", double);
-		dragger.on("dblclick", double);
+
+		if (mobile) {
+			obj.on("mousedown", mobileDouble);
+			dragger.on("mousedown", mobileDouble);
+		} else {
+			obj.on("dblclick", double);
+			dragger.on("dblclick", double);
+		}
+		var tappedTwice = false;
+		function mobileDouble(e) {
+			if (!tappedTwice) {
+				tappedTwice = true;
+				setTimeout(function() {
+					tappedTwice = false;
+				}, 300);
+			} else {
+				e.preventDefault();
+				double();
+			}
+		}
 		function double() {
 			if (frame.ctrlKey && obj.transformControls.visible) {
 				obj.scaleX = 1;
@@ -19706,6 +19766,7 @@ layers - (default null) an array of layer objects, the format as below
 	inMax - (default stageW (for x prop) stageH (for y prop)) maximum input range
 	factor - (default 1) set factor to -1 to change in the opposite direction
 	integer - (default false) set to true to round the value to an integer
+	split - (default true for mouseX, false for others) centers input so half is on one side and half on the other
 	Example 2: a traditional mouse move parallax for one object
 		[{obj:obj, prop:"x", propChange:100}, {obj:obj, prop:"y", propChange:50, input:"mouseY"}, etc.]
 	you would probably have more objects to follow
@@ -19749,7 +19810,7 @@ damp - allows you to dynamically change the damping
 		// and also stores the desired amounts on the layer objects themselves
 		// finally, the layer object is added to the myLayers private property
 		// the timer then loops through these layers and handles things from there
-		// obj, distanceX, distanceY, minX, minY, maxX, maxY, factor, targetRound
+		// obj, distanceX, distanceY, minX, minY, maxX, maxY, factor, integer, split
 		this.addLayer = function(layer) {
 			//{obj, prop, propChange, input, inMin, inMax, factor, integer}
 			if (zot(layer.obj) || zot(layer.prop) || zot(layer.propChange)) return;
@@ -19757,9 +19818,10 @@ damp - allows you to dynamically change the damping
 			obj[obj.prop] = layer.propChange;
 			if (zot(layer.input)) layer.input = "mouseX";
 			obj.input = layer.input;
+			obj.split = zot(layer.split) ? (layer.input == "mouseX" ? true : false) : layer.split;
 
 			var inMin = (zot(layer.inMin)) ? 0 : layer.inMin;
-			var inMax = (zot(layer.inMax)) ? stageW : layer.inMax;
+			var inMax = (zot(layer.inMax)) ? ((layer.input == "mouseX" || layer.input == "scrollX") ? stageW : stageH) : layer.inMax;
 			var factor = (zot(layer.factor)) ? 1 : layer.factor;
 			var integer = (zot(layer.integer)) ? false : layer.integer;
 
@@ -19837,7 +19899,8 @@ damp - allows you to dynamically change the damping
 				} else {
 					o.obj[o.prop] = o["s_"+o.prop] + o["p_"+o.prop].convert(input);
 					// for x on mouseX we split the destination range in two for a centered parallax
-					if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
+					// if (o.input == "mouseX" && auto) o.obj[o.prop] -= o[o.prop] / 2;
+					if (o.split) o.obj[o.prop] -= o[o.prop] / 2;
 				}
 			}
 		}
@@ -22366,6 +22429,24 @@ frame.on("ready", function() {
 
 }); // end of ready
 
+END EXAMPLE
+
+EXAMPLE
+
+	// With multiple loadAsset() calls you can assign the results to a variable
+	// and use that variable for the events independently
+	// Warning, each of these will still call a frame complete event
+	// so usually you would use one or the other but not both
+
+	var first = frame.loadAssets("image.png");
+	first.on("complete", function() {
+		var image = frame.asset("image.png").center(stage);
+	}
+
+	var second = frame.loadAssets("sound.mp3");
+	second.on("complete", function() {
+		var sound = frame.asset("sound.mp3").play();
+	}
 
 END EXAMPLE
 
@@ -22864,7 +22945,6 @@ EVENTS
 			},
 			set: function(value) {
 				_outerColor = value;
-				zog(value)
 				zet("body").css({backgroundColor:_outerColor});
 			}
 		});
