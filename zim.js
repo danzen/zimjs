@@ -10772,6 +10772,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-67
 
 /*--
+zim.Loader = function(width, height, drop, label, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, backing, rollBacking, rollPersist, icon, rollIcon, toggle, rollToggle, toggleEvent, dashed, frame)
 
 Loader
 zim class - extends a zim.Button which extends a createjs.Container
