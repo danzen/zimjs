@@ -8,8 +8,8 @@
 // Zim Wrap creates global wrapper functions for less typing
 
 // set var zon=true before calling zim scripts to show script comments
-if (typeof zon === "undefined") zon = false; // comments from zim scripts
-
+if (typeof zon == "undefined") zon = false; // comments from zim scripts
+if (typeof zns == 'undefined') zns = false; // require zim namespace
 /*--
 zog(item1, item2, etc.)         ~ log
 
@@ -6751,7 +6751,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-57
 
 /*--
-zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing, fadeTime)
+zim.Pane = function(width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container)
 
 Pane
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6779,7 +6779,6 @@ pane.show(); // pressing anywhere will close pane (see parameters for options)
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - (default - the default stage) container for the pane
 width - (default 200) width of pane
 height - (default 200) height of pane
 label - (default null) an optional ZIM Label (or text for default label properties)
@@ -6797,9 +6796,11 @@ center - (default true) centers the pane
 	you can adjust the label placement by changing its x and y or registration point
 displayClose - (default true) closes the Pane if display backing is pressed
 	if drag is set to true, displayClose will automatically be set to false
+backdropClose - (default true) closes the Pane if backdrop is pressed
 backing - (default null) a Display object for the backing of the pane (eg. Shape, Bitmap, Container, Sprite)
 	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 fadeTime - (default 0) milliseconds to fade in and out
+container - (default - the default stage) container for the pane
 
 METHODS
 show() - shows the pane (returns the pane for chaining)
@@ -6849,9 +6850,9 @@ dispatches a "close" event when closed by clicking on backing
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58
-		zim.Pane = function(container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing, fadeTime) {
+		zim.Pane = function(width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container) {
 
-		var sig = "container, width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backing, fadeTime";
+		var sig = "width, height, label, color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container";
 		var duo; if (duo = zob(zim.Pane, arguments, sig, this)) return duo;
 		z_d("58");
 		this.zimContainer_constructor();
@@ -6888,6 +6889,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(center)) center=true;
 		if (zot(displayClose)) displayClose=true;
 		if (drag) displayClose = false;
+		if (zot(backdropClose)) backdropClose=true;
 		if (zot(fadeTime)) fadeTime=0;
 
 		var backdrop = this.backdrop = new createjs.Shape();
@@ -6901,7 +6903,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		backdrop.alpha = backingAlpha;
 		var that = this;
-		backdrop.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", closePane);
+		backdrop.on((zim.ACTIONEVENT=="mousedown")?"mousedown":"click", backdropClose?closePane:function(e){e.stopImmediatePropagation();});
 		var htmlList = new zim.Dictionary(true);
 		function closePane(e) {
 			removePane();
@@ -7065,7 +7067,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.clone = function() {
 			var lX = label.x; // new Panes automatically center the label
 			var lY = label.y;
-			var p2 = that.cloneProps(new zim.Pane(container, width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, zot(backing)?backing.clone():null, fadeTime));
+			var p2 = that.cloneProps(new zim.Pane(width, height, label.clone(), color, drag, resets, modal, corner, backingAlpha, shadowColor, shadowBlur, center, displayClose, backdropClose, zot(backing)?backing.clone():null, fadeTime, container));
 			p2.label.x = lX;
 			p2.label.y = lY;
 			return p2;
@@ -16891,7 +16893,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				} else {
 					targetTag.parentNode.insertBefore(tabTag, targetTag.nextSibling);
 				}
-				tabTag.style.zIndex = "5";
+				tabTag.style.zIndex = -5;
 				tabTag.zimObject = obj;
 				item.obj.zimTabTag = tabTag;
 				tabTags.push(tabTag);
@@ -16958,8 +16960,8 @@ Dispatches a "change" event when the screen reader is about to talk
 				tabTag.style.left = -1000+"px";
 				tabTag.style.top = frame.y+"px";
 			}
-			tabTag.style.overflow = "hidden"
-			tabTag.style.zIndex = "5";
+			tabTag.style.overflow = "hidden";
+			tabTag.style.zIndex = -5;
 			tabTag.style.fontSize = "20px";
 
 			tabTags.push(tabTag);
@@ -17209,7 +17211,7 @@ Dispatches a "change" event when the screen reader is about to talk
 		this.dispose = function() {
 			that.tabOrder = [];
 			for (var i=0; i<tabTags.length; i++) {
-				tabTags[i].outerHTML = "";
+				if (tabTags[i].outerHTML) tabTags[i].outerHTML = "";
 			}
 			that.removeAllEventListeners();
 			frame.off("keydown", tabFrameEvent);
@@ -22447,7 +22449,7 @@ canvas - a reference to the frame's canvas tag
 color - the color of the frame background - any css color
 outerColor - the color of the body of the HTML page - set with styles
 tag - the containing tag if scaling is set to an HTML tag id (else null)
-isLoading - a Boolean to indicate whether loadAssets() is currently loading assets
+isLoading - a Boolean to indicate whether loadAssets() is currently loading assets (also, each queue has an isLoading property)
 width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
@@ -22466,7 +22468,18 @@ loadAssets(file||[file, file, etc.], path, xhr, time)
 	pass in an file (String) or an array of files to assets,
 	pass in an optional path to directory and XHR (default false)
 	asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
-	time defaults to 0 and is the minimum number of milliseconds for the complete event to trigger
+	asset can also be a font object:
+		{font:name, src:url, type:string, weight:string, style:string} // with last three properties being optional
+		eg.
+		{font: "wildwood", src:"ChurchintheWildwood-Regular.ttf", type:"OpenType"} // type is not needed
+		{font: "regu", src:"regul-bold.woff", weight:"bold"}
+		{src:"https://fonts.googleapis.com/css?family=Roboto"}
+		For google fonts you add extra information to the url so the font (family), type, weight and style are ignored
+		If absolute src is used, path parameter is ignored - otherwise path is added to start of src
+		After loading, can just use:
+			var label = new zim.Label("hello", 30, "wildwood") // or whatever the font property is
+	xhr (default false) set to true to load text and WebAdio (not needed for normal sound mp3, wav, etc.)
+	time (default 0) is the minimum number of milliseconds for the complete event to trigger
 	use this for testing or to always have time to show a loading message
 	RETURNS: a zim.Queue object that can be used for control with multiple loadAssets calls
 	Each zim.Queue will trigger progress, assetload and complete events
@@ -22492,8 +22505,8 @@ dispose() - removes canvas, resize listener and stage
 EVENTS
 "ready" - fired when the stage is made
 "failed" - fired if no canvas support (and canvasCheck parameter is set to true - which is the default)
-"progress" - fires constantly as assets are loaded with loadAssets() to represent overall load progress
-"assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object - with type and id properties)
+"progress" - fires constantly as assets are loaded with loadAssets() to represent overall load progress (fonts not included)
+"assetload" - fired when an asset loaded with loadAssets() has loaded (use asset property of event object - with type and id properties) (fonts not included)
 "complete" - fired when all assets loaded with loadAssets() are loaded (then use frame.asset())
 "error" - fired when there is a problem loading an asset with loadAssets()
 "resize" - fired on resize of screen
@@ -22776,65 +22789,128 @@ EVENTS
 			if (zot(arr)) return;
 			if (zot(xhr)) xhr = false;
 			if (!Array.isArray(arr)) arr = [arr];
+			if (arr.length == 0) return;
 			if (zot(time)) time = 0;
 			var soundCheck = false;
 			var manifest = [];
 			var a; var ext; var i; var j;
 			var re = /\.([^.]+)$/i; // get extension
+			var fonts = [];
+			var googleFonts = [];
+			var nonFontCount = 0;
 			for (i=0; i<arr.length; i++) {
 				a = arr[i];
-				ext = a.match(re);
-				if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
-				manifest.push({src:a});
+				if (a.constructor == {}.constructor) {
+					if (a.src.match(/fonts\.googleapis\.com/)) googleFonts.push(a);
+					else fonts.push(a);
+				} else {
+					nonFontCount++;
+					ext = a.match(re);
+					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
+					manifest.push({src:a});
+				}
 			}
-			var queue = new zim.Queue();
 			that.loadAssetsCount++;
 			that.isLoading = true;
-			var preload = queue.preload = that.preload = new createjs.LoadQueue(xhr, path);
-			if (soundCheck) preload.installPlugin(createjs.Sound);
-			preload.on("progress", function(e) {queue.dispatchEvent(e); that.dispatchEvent(e);});
-			preload.on("error", function(e) {queue.dispatchEvent(e); that.dispatchEvent(e);});
-			preload.on("fileload", function(e) {
-				var item = e.item;
-				var type = e.item.type;
-				var ext = item.id.match(re);
-				var asset;
-				if (type && type == "sound") {
-					asset = that.assets[item.id] = {
-                        type:"sound",
-                        id:item.id,
-                        play:function(added){
-                            var instance = createjs.Sound.play(item.id, added);
-                            instance.getStage = function(){return stage;}
-                            return instance;
-                        }
-                    };
-				} else if (type == "image") {
-					asset = that.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, item.id);
-				} else {
-					asset = that.assets[item.id] = e.result;
+			var queue = new zim.Queue();
+			queue.isLoading = true;
+			queue.loadAssetsCount = 0;
+
+			if (fonts.length > 0) { // there are fonts to load
+				// create manual list - which seems to always work
+				var fontObjects = []
+				var fontObject;
+				var fontData;
+				for (var i=0; i<fonts.length; i++) {
+					fontData = fonts[i];
+					fontObject = {
+						src: "url("+(fontData.src.match(/^http/i)?"":(path?path:""))+fontData.src+")" + (fontData.type?" format('"+fontData.type+"')":""),
+						family: fontData.font
+					}
+					if (fontData.weight) fontObject.weight = fontData.weight;
+					if (fontData.style) fontObject.style = fontData.style;
+					fontObjects.push(fontObject);
 				}
-				var ev = new createjs.Event("assetload");
-				ev.item = item; // createjs preload item
-				ev.asset = asset;
-				queue.dispatchEvent(e);
-				that.dispatchEvent(ev);
-			});
-			// setting a time will force the preload to wait at least this amount of time
-			// this can be used for testing or if you always want time to show a loading message
+				var fontLoader = new createjs.FontLoader({src:fontObjects}, true);
+				fontLoader.on("complete", function(e) {
+					queue.loadAssetsCount--;
+					if (queue.loadAssetsCount == 0) endAssetLoad();
+				});
+			    fontLoader.load();
+				queue.loadAssetsCount++;
+			}
+			if (googleFonts.length > 0) { // there are google fonts to load
+				queue.loadAssetsCount++; // each google font gets its own loader
+				var fontLoader;
+				for (var i=0; i<googleFonts.length; i++) {
+					fontData = googleFonts[i];
+					fontObject = {
+						src: fontData.src,
+						type: "fontcss"
+					}
+					fontLoader = new createjs.FontLoader(fontObject, true);
+					fontLoader.on("complete", function(e) {
+						queue.loadAssetsCount--;
+						if (queue.loadAssetsCount == 0) endAssetLoad();
+					});
+				    fontLoader.load();
+				}
+			}
 			var startLoad = Date.now();
-			that.preloadEvent = preload.on("complete", function(e) {
+			var completeEventObject = new createjs.Event("complete");
+			if (nonFontCount > 0) { // files other than fonts
+				queue.loadAssetsCount++;
+				var preload = queue.preload = that.preload = new createjs.LoadQueue(xhr, path);
+				if (soundCheck) preload.installPlugin(createjs.Sound);
+				preload.on("progress", function(e) {queue.dispatchEvent(e); that.dispatchEvent(e);});
+				preload.on("error", function(e) {queue.dispatchEvent(e); that.dispatchEvent(e);});
+				preload.on("fileload", function(e) {
+					var item = e.item;
+					var type = e.item.type;
+					var ext = item.id.match(re);
+					var asset;
+					if (type && type == "sound") {
+						asset = that.assets[item.id] = {
+	                        type:"sound",
+	                        id:item.id,
+	                        play:function(added){
+	                            var instance = createjs.Sound.play(item.id, added);
+	                            instance.getStage = function(){return stage;}
+	                            return instance;
+	                        }
+	                    };
+					} else if (type == "image") {
+						asset = that.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, item.id);
+					} else {
+						asset = that.assets[item.id] = e.result;
+					}
+					var ev = new createjs.Event("assetload");
+					ev.item = item; // createjs preload item
+					ev.asset = asset;
+					queue.dispatchEvent(e);
+					that.dispatchEvent(ev);
+				});
+				that.preloadEvent = preload.on("complete", function(e) {
+					completeEventObject = e;
+					queue.loadAssetsCount--;
+					if (queue.loadAssetsCount == 0) endAssetLoad();
+				});
+				preload.loadManifest(manifest);
+			}
+
+			function endAssetLoad() {
+				// setting a time will force the preload to wait at least this amount of time
+				// this can be used for testing or if you always want time to show a loading message
 				var endLoad = Date.now();
 				time = Math.max(0, time-(endLoad-startLoad));
 				setTimeout(function() {
 					that.loadAssetsCount--;
 					if (that.loadAssetsCount <= 0) that.isLoading = false;
 					queue.isLoading = false;
-					queue.dispatchEvent(e);
-					that.dispatchEvent(e);
+					queue.dispatchEvent(completeEventObject);
+					that.dispatchEvent(completeEventObject);
 				}, time);
-			});
-			preload.loadManifest(manifest);
+			}
 			return queue;
 		}
 
