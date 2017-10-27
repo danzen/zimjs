@@ -384,7 +384,7 @@ Replace yourFunction with a reference to your function but keep arguments as is.
 
 EXAMPLE
 function test(a,b,c){
-	var duo; if (duo = zob(yourFunction, arguments)) return duo;
+	var duo; if (duo = zob(test, arguments)) return duo;
 };
 test(1,null,3); // traditional parameters in order
 test({a:1,c:3}); // configuration object with zob
@@ -395,8 +395,10 @@ add a string version of the signature of your function above the duo call
 then pass the signature in as a parameter to zob()
 
 EXAMPLE
-var sig = "a,b,c";
-var duo; if (duo = zob(yourFunction, arguments, sig)) return duo;
+function test(a,b,c){
+	var sig = "a,b,c";
+	var duo; if (duo = zob(test, arguments, sig)) return duo;
+};
 END EXAMPLE
 
 NOTE: if you are running the function as a constructor with the new keyword
@@ -2689,6 +2691,62 @@ RETURNS a Number
 	}//-22
 
 /*--
+zim.getQueryString = function(string)
+
+getQueryString
+zim function
+
+DESCRIPTION
+Turns the HTML query string into a object.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// currentHTML page myPage.html?party=true&toys=many
+var details = zim.getQueryString();
+zog(details.party); // "true"
+zog(details.toys); // "many"
+loop(details, function(key, val, i) {
+	zog(key, val, i);
+});
+// outputs:
+// party true 0
+// toys many 1
+END EXAMPLE
+
+EXAMPLE
+// an array of values is created if a query string has multiple properties with the same name:
+var collection = zim.getQueryString("type=dog&age=10&age=20&age=30");
+zog(collection.age); // [10,20,30]
+END EXAMPLE
+
+PARAMETERS
+string - (default null) null will get string from end of HTML page after ?
+	set the key value pairs (without question mark) to parse a custom string
+	eg. party=true&toys=many
+
+RETURNS an object literal with properties matching the keys and values matching the values (or undefined if no query string)
+--*///+22.5
+	zim.getQueryString = function(s) {
+		z_d("22.5");
+		if (zot(s)) s = location.search.replace("?","");
+		if (s == "") return;
+		var vars = s.split("&");
+		var obj = {};
+		for (var i=0; i<vars.length; i++) {
+			var pair = vars[i].split("=");
+			if (typeof obj[pair[0]] == "undefined") {
+				obj[pair[0]] = decodeURIComponent(pair[1]);
+			} else if (typeof obj[pair[0]] == "string") {
+				obj[pair[0]] = [obj[pair[0]], decodeURIComponent(pair[1])];
+			} else {
+				obj[pair[0]].push(decodeURIComponent(pair[1]));
+			}
+		}
+		return obj;
+	}//-22.5
+
+/*--
 zim.urlEncode = function(string)
 
 urlEncode
@@ -2917,7 +2975,7 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 if (zim.mobile()) {
-	var pane = new zim.Pane(stage, 300, 200, "Desktop Only");
+	var pane = new zim.Pane(300, 200, "Desktop Only");
 	pane.show();
 }
 END EXAMPLE
@@ -4769,7 +4827,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-53
 
 /*--
-zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, dblclick, dblclickDrag, ctrlclick, dashed, onTop)
+zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop)
 
 Blob
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4843,17 +4901,28 @@ controlType - (default "straight") one of four String values as follows:
 lockControlType - (default false) set to true to disable doubleClicking of point circles to change controlType
 showControls - (default true) set to false to start with controls not showing - can change this after with control property or showControls() method
 lockControls - (default false) set to true to lock the editing of controls - can't move the points or handles - but can see them if showControls is set to true
-dblclick - (default false) set true to let double click toggle between showing and hiding controls and also drag the blob when controls not showing
-dblclickDrag - (default true) set to false to disable dragging when dblClick is true.  Dragging when controls are showing can be done but requires a proxy drag object
+handleSize - (default 20 mobile 10 for non-mobile) the size of control boxes and affects the circles too proportionally
+toggle - (default true) set false to let turn off clicks showing and hiding controls
+move - (default true) set to false to disable dragging when controls are showing
 ctrlclick - (default false) set to true to let ctrl click copy the Blob with its current shape (adds to same holder container - use holder.getChildAt(holder.numChildren-1) to access)
 dashed - (default false) set to true for dashed border (if borderWidth or borderColor set)
 onTop - (default true) set to false to not bring shape to top of container when dragging
 
 METHODS
-record(popup) - returns an array with the same format as the points parameter (see parameter docs)
+**** NOTE: in ZIM 6.4.1, record() was changed to recordPoints() and new record() and set() methods have been added
+record(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with set() method
+   if toJSON (default false) is set to true, the return value is a JSON string
+   the points data comes from recordPoints()
+set(data, fromJSON) - sets the properties to match the data object passed in - this should come from record()
+  if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
+  the points data is parsed with the set setPoints()
+  returns object for chaining
+recordPoints(popup) - returns an array with the same format as the points parameter (see parameter docs)
 	popup - (default false) set to true to open a zim Pane with the points in a zim TextArea (click off to close)
 	NOTE: the TextArea output uses JSON.stringify() - to add the points to the points parameter of the Blob use JSON.parse(output);
 	NOTE: using zog(JSON.stringify(blob.record()))... the console will remove the quotes from the controlTypes so those would have to be manually put back in before parse() will work
+setPoints(data) - sets the Blob points to the data from recordPoints
+	This does not remake the Blob but rather shifts the controls so the number of points should be the same
 changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) - change a control type and properties at an index
 	accepts ZIM DUO normal parameters or configuration object literal with parameter names as propterties
 	passing in null as the index will change all points to the specified properties
@@ -4892,8 +4961,8 @@ sticks - access to the container that holds the control sticks
 types - get or set the array for the types ["mirror", "straight", "free", "none"]
 controls - Boolean to get or set the visibility of the controls (or use showControls() and hideControls() methods)
 lockControls - Boolean to lock controls from being adjusted or not
-dblclick - Boolean to get or set bouble clicking to show and hide controls and drag when controls are hidden
-dblclickDrag - Boolean to drag or not drag Blob if controls are hidden and dblclick is true
+toggle - Boolean to get or set clicking to show and hide controls
+move - Boolean to drag or not drag Blob when controls are showing
 lockControlType - Boolean to lock the type of the controls in their current state or not
 ctrlclick - Boolean to let users ctrl click the Blob to duplicate it (clone) or not
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
@@ -4910,12 +4979,13 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 EVENTS
 dispatches a change event for when the bezier controls are adjusted (pressup only)
 	if monitoring constant change is needed add a pressmove event to Blob.sets
+dispatches controlsshow and controlshide events when clicked off and on and toggle is true
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.5
-	zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, dblclick, dblclickDrag, ctrlclick, dashed, onTop) {
+	zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop) {
 
-		var sig = "color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, dblclick, dblclickDrag, ctrlclick, dashed, onTop";
+		var sig = "color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop";
 		var duo; if (duo = zob(zim.Blob, arguments, sig, this)) return duo;
 
 		z_d("53.5");
@@ -4938,11 +5008,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(lockControlType)) lockControlType = false;
 		if (zot(showControls)) showControls = true;
 		if (zot(lockControls)) lockControls = false;
-		if (zot(dblclick)) dblclick = false;
-		if (zot(dblclickDrag)) dblclickDrag = true;
+		if (zot(handleSize)) handleSize = zim.mobile()?20:10;
+		if (zot(toggle)) toggle = true;
+		if (zot(move)) move = true;
 		if (zot(ctrlclick)) ctrlclick = false;
-		this.dblclick = dblclick;
-		this.dblclickDrag = dblclickDrag;
+		this.toggle = toggle;
+		this.move = move;
 		this.lockControlType = lockControlType;
 		this.ctrlclick = ctrlclick;
 
@@ -4962,23 +5033,27 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var borderDashedObj;
 
 		var balls;
+		var shape;
+		var moveDownEvent;
+		var movePressEvent;
+		var moveUpEvent;
 
-		init()
+		init();
 		function init() {
 
 			num = typeof points == "number" ? points : points.length;
 			if (num <= 0) return;
 			controlLength = radius * 4 / num;
 
-			var shape = that.shape = new zim.Shape().addTo(that);
+			shape = that.shape = new zim.Shape().addTo(that);
 			var sticks = that.sticks = new zim.Shape().addTo(that);
 			var g = shape.graphics;
 			g.c();
 			var s = sticks.graphics;
 			s.c();
 
-			var ballS = 8;
-			var rectS = 10;
+			var ballS = handleSize/10*8;
+			var rectS = handleSize;
 
 			var mobile = zim.mobile();
 
@@ -5066,7 +5141,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				rect2.ball = ball;
 				rect2.other = rect1;
 
-				if (zim.mobile()) {
+				if (mobile) {
 					ball.expand();
 					rect1.expand();
 					rect2.expand();
@@ -5075,7 +5150,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				point = [set, rect1, rect2, ball, setData?setData[8]:controlType];
 				_points.push(point);
 			}
-
 
 			var tappedTwice = false;
 			function mobileDouble(e) {
@@ -5289,47 +5363,59 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return that;
 			}
 
-			if (mobile) {
-				shape.on("mousedown", shapeDouble)
-			} else {
-				shape.on("dblclick", doubleShape);
-			}
-
-			var tappedTwice = false;
-			function shapeDouble(e) {
-				if (!tappedTwice) {
-					tappedTwice = true;
-					setTimeout(function() {
-						tappedTwice = false;
-					}, 300);
-				} else {
-					e.preventDefault();
-					doubleShape(e);
-				}
-			}
-
-			function doubleShape(e) {
-				if (!that.dblclick) return;
-				that.controls = !that.controls;
-				if (that.dblclickDrag) {
-					if (that.controls) {
-						that.noDrag();
-					} else {
-						that.drag({currentTarget:true, onTop:onTop});
-					}
-				}
-			};
-
 			that.controls = showControls;
-			if (that.dblclick && that.dblclickDrag && !that.controls) {
-				that.drag({currentTarget:true, onTop:onTop});
+			shape.drag({onTop:false});
+			moveDownEvent = shape.on("mousedown", upTop);
+			movePressEvent = shape.on("pressmove", function() {
+				sets.x = shape.x;
+				sets.y = shape.y;
+				sticks.x = shape.x;
+				sticks.y = shape.y;
+			});
+			moveUpEvent = shape.on("pressup", function() {
+				that.x += shape.x;
+				that.y += shape.y;
+				sets.x = sets.y = sticks.x = sticks.y = shape.x = shape.y = 0;
+				that.dispatchEvent("change");
+				that.stage.update();
+			});
+
+			if (!move) stopDragging();
+
+			function upTop() {
+				if (onTop) {
+					that.parent.setChildIndex(that, that.parent.numChildren-1);
+				}
 			}
+
+			var toggleEvent = that.on("mousedown", function() {
+				if (!that.toggle) return;
+				if (!sets.visible) {
+					that.showControls();
+					that.dispatchEvent("controlsshow");
+				}
+			});
+
+			var toggleStageEvent;
+			that.added(function() {
+				toggleStageEvent = that.stage.on("stagemousedown", function() {
+					if (!that.toggle) return;
+					if (sets.visible && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY)) {
+						that.hideControls();
+						that.dispatchEvent("controlshide");
+					}
+				});
+			});
 
 			that.on("click", function() {
 				if (!that.ctrlclick) return;
 				if (zimDefaultFrame.ctrlKey) {
-					that.clone().addTo(that.stage.stage).mov(100);
-					that.stage.stage.update();
+					setTimeout(function() { // give time for record to work if drag with ctrl down
+						that.clone().addTo(that.stage).mov(100);
+						if (that.toggle) that.hideControls();
+						that.dispatchEvent("change");
+						that.stage.update();
+					}, 50);
 				}
 			});
 
@@ -5338,21 +5424,69 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				sticks.visible = false;
 				_controls = false;
 				if (that.stage) that.stage.update();
+				if (!that.toggle && that.move) stopDragging();
+				that.dispatchEvent("change");
 				return that;
 			}
 			if (!showControls) that.hideControls();
 			that.showControls = function() {
+				// if call this with code then will not trigger a change event - not good for TransformManager.persist()
 				sets.visible = true;
 				sticks.visible = true;
 				_controls = true;
 				sets.pos(shape.x, shape.y);
 				sticks.pos(shape.x, shape.y);
 				that.addChildAt(shape,0); // put to bottom incase dragged
+				if (that.move && !that.toggle) startDragging();
 				if (that.stage) that.stage.update();
 				return that;
 			}
 
-			that.record = function(popup) {
+			that.record = function(toJSON) {
+				if (zot(toJSON)) toJSON = false;
+				var obj = {
+					type:"Blob",
+					index:that.parent?that.parent.getChildIndex(that):-1,
+					x:that.x, y:that.y,
+					points:that.recordPoints(),
+					color:that.color,
+					borderColor:that.borderColor,
+					borderWidth:that.borderWidth,
+					move:that.move,
+					toggle:that.toggle,
+					controls:that.controls
+				}
+				if (toJSON) return JSON.stringify(obj);
+				return obj;
+			}
+
+			that.set = function(data, fromJSON) {
+				if (zot(data)) return;
+				if (fromJSON) {
+					try{
+					  data = JSON.parse(data);
+					} catch(e) {
+					  return;
+				  	}
+				}
+				var index = data.index;
+				if (zot(index)) index = -1;
+				delete data.index;
+
+				var pointData = data.points;
+				if (!zot(pointData)) that.setPoints(pointData);
+				delete data.points;
+
+				for (var d in data) {
+					that[d] = data[d];
+				}
+				if (that.parent) {
+					that.parent.setChildIndex(that, index);
+				}
+				return that;
+			}
+
+			that.recordPoints = function(popup) {
 				// balls are relative to blob but handles are relative to ball
 				// points is an array of [[ballX, ballY, handleX, handleY, handle2X, handle2Y, type], etc.]
 				if (zot(popup)) popup = false;
@@ -5390,10 +5524,81 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return points;
 			}
 
+			that.setPoints = function(points) {
+				// adjust blob to match points passed in from recordPoints
+				var p;
+				var p2;
+				for (var i=0; i<points.length; i++) {
+					p = _points[i];
+					p2 = points[i];
+					if (zot(p)) continue;
+					p[0].x = p2[0];
+					p[0].y = p2[1];
+					p[1].x = p2[2];
+					p[1].y = p2[3];
+					p[2].x = p2[4];
+					p[2].y = p2[5];
+					p[3].x = p2[6];
+					p[3].y = p2[7];
+					p[4] = p2[8];
+				}
+				that.update();
+			}
+
 			that.clone = function() {
-				return that.cloneProps(new zim.Blob(that.color, that.borderColor, that.borderWidth, that.record(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, that.dblclick, that.dblclickDrag, that.ctrlclick, dashed));
+				return that.cloneProps(new zim.Blob(that.color, that.borderColor, that.borderWidth, that.record(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.toggle, that.move, that.ctrlclick, dashed));
 			}
 		} // end of init()
+
+		Object.defineProperty(that, 'move', {
+			get: function() {
+				return move;
+			},
+			set: function(value) {
+				if (move != value) {
+					move = value;
+					if (value) {
+						startDragging();
+					} else {
+						stopDragging();
+					}
+				}
+			}
+		});
+
+		Object.defineProperty(that, 'toggle', {
+			get: function() {
+				return toggle;
+			},
+			set: function(value) {
+				if (toggle != value) {
+					toggle = value;
+					if (toggle) {
+						if (that.move) startDragging();
+					} else {
+						if (!that.controls && that.move) stopDragging();
+					}
+				}
+			}
+		});
+
+		var draggingCheck = that.move;
+		function startDragging() {
+			if (draggingCheck) return;
+			draggingCheck = true;
+			shape.drag({onTop:false});
+			shape.on("mousedown", moveDownEvent);
+			shape.on("pressmove", movePressEvent);
+			shape.on("pressup", moveUpEvent);
+		}
+		function stopDragging() {
+			if (!draggingCheck) return;
+			draggingCheck = false;
+			shape.noDrag();
+			shape.off("mousedown", moveDownEvent);
+			shape.off("pressmove", movePressEvent);
+			shape.off("pressup", moveUpEvent);
+		}
 
 		var _controls = showControls;
 		Object.defineProperty(that, 'controls', {
@@ -5498,6 +5703,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.shape.removeAllEventListeners();
 			that.sets.removeAllEventListeners();
 			that.removeAllEventListeners();
+			if (toggleStageEvent) that.stage.off("stagemousedown", toggleStageEvent);
 			return
 		}
 	}
@@ -6765,7 +6971,7 @@ You can change the x and y (the origin and registration point are in the middle)
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-var pane = new zim.Pane(stage, 300, 200, "Watch out!", "#CCC");
+var pane = new zim.Pane(300, 200, "Watch out!", "#CCC");
 pane.show(); // pressing anywhere will close pane (see parameters for options)
 END EXAMPLE
 
@@ -11491,6 +11697,7 @@ RETURNS obj for chaining
 
 		obj.pointers = {};
 		obj.zimDown = obj.on("mousedown", function(e) {
+			if (!obj.stage) return;
 			var id = "id"+Math.abs(e.pointerID+1);
 			obj.pointers[id] = true; // keep track of multitouch to keep object ticker alive
 			// e.stageX and e.stageY are global
@@ -11817,7 +12024,7 @@ RETURNS obj for chaining
 	}//-33
 
 /*--
-obj.transform = function(obj, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache)
+obj.transform = function(obj, move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache)
 
 transform
 zim DisplayObject method
@@ -11833,8 +12040,8 @@ You can optionally set these to be visible as boxes on the sides and circles on 
 
 NOTE: works with the ZIM TransformManager() class to handle multiple transforms and saving data for persistence.
 
-DOUBLE CLICK turns off and on the controls if dblclick parameter (default false) is set to true
-If you use the TransformManager for multiple objects, the dblclick is automatically set to true
+CLICK turns off and on the controls if toggle parameter is set to true (default is true)
+If you use the TransformManager for multiple objects, the toggle is automatically set to true
 SHIFT rotate snaps to 45
 Dropping the registration point will snap to corners or center if close enough - unless CTRL is down
 CTRL scale will scale about the registration point
@@ -11874,7 +12081,7 @@ stretchX - (default true) let user stretch object from left and right sides
 stretchY - (default true) let user stretch object from top and bottom
 scale - (default true) let user scale object from corners
 rotate - (default true) let user rotate object
-dblclick - (default false) let user hide and show controls with double click (double tap)
+toggle - (default true) let user hide and show controls with click - set to false not to let user hide controls
 visible - (default true) show the controls to start
 onTop - (default true) set to false to not move the selected shape to the top of its container
 showStretch - (default false - true on mobile) show side boxes for stretching - a cursor will always show if stretchX or stretchY is true
@@ -11908,28 +12115,28 @@ rotateControls - reference to the Container that holds the outer circles for rot
 METHODS:
 hide() - hides the controls - returns object for chaining
 show() - shows the controls - returns object for chaining
-record(toJSON) - returns an object with x, y, scaleX, scaleY, rotation, skewX, skewY, visible PROPERTIES
+record(toJSON) - returns an object with type, x, y, scaleX, scaleY, rotation, skewX, skewY, visible PROPERTIES
 	if toJSON (default false) is set to true, the return value is a JSON string
 set(data, fromJSON) - sets the properties to match the data object passed in - this should come from record()
-	if fromJSON (default false) is set to true, it will assume a JSPN string is passed in as data
+	if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
 	returns object for chaining
 remove() - removes the controls and turns off the dblclick
 add() - adds the controls back if then have been removed and sets the dblclick to its starting value
-dblclickOn() - sets the show / hide controls on with dblclick
-dblclickOff() - removes the show / hide controls on with dblclick
+toggleOn() - sets the show / hide controls on with click
+toggleOff() - removes the show / hide controls on with click
 disable() - may show the controls if visible but cannot use them
 enable() - turns the using of the controls back on
 resize() - call resize if the object is transformed in ways other than with the controls
 
 EVENTS
-Adds a transformed event to obj that is dispatched when pressup on any of the controls or on dblclick
-Adds transformshow and transformhide events for when double click to hide or show controls
+Adds a transformed event to obj that is dispatched when pressup on any of the controls or on click
+Adds transformshow and transformhide events for when click to hide or show controls
 
 RETURNS obj for chaining
 --*///+33.5
-	zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
+	zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
 
-		var sig = "obj, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache";
+		var sig = "obj, move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache";
 		var duo; if (duo = zob(zim.transform, arguments, sig)) return duo;
 		z_d("33.5");
 
@@ -11945,7 +12152,7 @@ RETURNS obj for chaining
 
 		var mobile = zim.mobile();
 
-		if (zot(dblclick)) dblclick = false;
+		if (zot(toggle)) toggle = true;
 		if (zot(visible)) visible = true;
 		if (zot(onTop)) onTop = true;
 		if (zot(showStretch)) showStretch = mobile?true:false;
@@ -12061,6 +12268,7 @@ RETURNS obj for chaining
 
 		// edges
 		var cursorsSide = ["n-resize","e-resize","n-resize","e-resize"];
+		// var cursorsSide = ["pointer","pointer","pointer","pointer"];
 		opposites = [1,1,0,0];
 		for (var i=0; i<4; i++) {
 			var w = i%2==0?obj.width/2:handleSize;
@@ -12197,27 +12405,7 @@ RETURNS obj for chaining
 		}
 		drawDragger();
 
-
-		if (mobile) {
-			obj.on("mousedown", mobileDouble);
-			dragger.on("mousedown", mobileDouble);
-		} else {
-			obj.on("dblclick", double);
-			dragger.on("dblclick", double);
-		}
-		var tappedTwice = false;
-		function mobileDouble(e) {
-			if (!tappedTwice) {
-				tappedTwice = true;
-				setTimeout(function() {
-					tappedTwice = false;
-				}, 300);
-			} else {
-				e.preventDefault();
-				double();
-			}
-		}
-		function double() {
+		controls.on("dblclick", function() {
 			if (frame.ctrlKey && obj.transformControls.visible) {
 				obj.scaleX = 1;
 				obj.scaleY = 1;
@@ -12226,27 +12414,45 @@ RETURNS obj for chaining
 				makeControls();
 				drawDragger();
 				stage.update();
-			} else {
-				if (dblclick) {
-					if (obj.transformControls.visible) {
-						obj.transformControls.hide();
-						obj.dispatchEvent("transformhide");
-						frame.canvas.style.cursor = "default";
-					} else {
-						obj.transformControls.show();
-						obj.dispatchEvent("transformshow");
-						if (move) {
-							if (customCursors) {
-								frame.canvas.style.cursor = "none";
-								draggerOver();
-							} else {
-								frame.canvas.style.cursor = "move";
-							}
-						}
-					}
-				}
 			}
 			pressUp();
+		});
+
+		var toggleControlsEvent = controls.on("mousedown", toggleCheck);
+		var toggleObjEvent = obj.on("mousedown", toggleCheck);
+		function toggleCheck() {
+			if (obj.hitTestPoint(stage.mouseX, stage.mouseY)) {
+				if (!obj.transformControls.visible) {
+					if (customCursors) {
+						dragReady = false; // wait until the first pressup to show custom cursor
+						dragger.mouseEnabled = false;
+					} else {
+						frame.canvas.style.cursor = "move";
+					}
+					obj.transformControls.show();
+					obj.dispatchEvent("transformshow");
+				}
+			} else {
+				if (obj.transformControls.visible && !controls.hitTestPoint(stage.mouseX, stage.mouseY)) {
+					obj.transformControls.hide();
+					obj.dispatchEvent("transformhide");
+					obj.dispatchEvent("transformed");
+					//frame.canvas.style.cursor = "default";
+				}
+			}
+		}
+		var toggleStageEvent = stage.on("stagemousedown", function() {
+			if (obj.transformControls.visible && !controls.hitTestPoint(stage.mouseX, stage.mouseY)) {
+				obj.transformControls.hide();
+				obj.dispatchEvent("transformhide");
+				obj.dispatchEvent("transformed");
+				//frame.canvas.style.cursor = "default";
+			}
+		});
+		if (!toggle) {
+			controls.off("mousedown", toggleControlsEvent);
+			obj.off("mousedown", toggleObjEvent);
+			stage.off("stagemousedown", toggleStageEvent);
 		}
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12264,14 +12470,16 @@ RETURNS obj for chaining
 		var objRY; // start object y in global frame
 		var rotateCheck = false;
 		var mousePress = false;
-		var mouseEvent
 		var mousemoveEvent;
+		var dragmoveEvent;
 		var objCursor = obj.cursor;
 
 		var carrier = new Circle(30, "rgba(0,0,0,0)").expand(20);
 		if (customCursors) {
 			carrier.mouseEnabled = false;
 			carrier.mouseChildren = false;
+
+			// these should be removed when transform is hidden!
 			carrier.addChild(transformCursor);
 			squares.on("mouseover", showCustomCursor);
 			squares.on("mouseout", hideCustomCursor);
@@ -12404,6 +12612,7 @@ RETURNS obj for chaining
 				(type == "side" && sidesV.hitTestPoint(stage.mouseX, stage.mouseY)) ||
 				(type == "rotate" && rotators.hitTestPoint(stage.mouseX, stage.mouseY))
 			) {
+				if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
 			 	if (mousemoveEvent) stage.on("stagemousemove", mousemoveEvent);
 			} else {
 				carrier.removeFrom(stage);
@@ -12414,7 +12623,7 @@ RETURNS obj for chaining
 			obj.dispatchEvent("transformed");
 		}
 
-		function showCustomCursor(e) {
+		function showCustomCursor(e) { // not drag
 			if (mousePress) return;
 			carrier.addTo(stage);
 			carrier2.addTo(stage, 1);
@@ -12423,13 +12632,14 @@ RETURNS obj for chaining
 			transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu];
 			if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
 			stage.update();
+			if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
 			mousemoveEvent = stage.on("stagemousemove", function(e) {
 				carrier.pos(stage.mouseX, stage.mouseY);
 				stage.update();
 			});
 		}
 
-		function hideCustomCursor(e) {
+		function hideCustomCursor(e) { // not drag
 			stage.off("stagemousemove", mousemoveEvent);
 			if (mousePress) return;
 			obj.cursor = objCursor;
@@ -12481,6 +12691,7 @@ RETURNS obj for chaining
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		//  dragger functions
+		var dragReady = true;
 		cur = customCursors ? "none" : "move";
 		dragger.drag({overCursor:cur, dragCursor:cur, onTop:false});
 		dragger.controlType = "move";
@@ -12489,21 +12700,21 @@ RETURNS obj for chaining
 			dragger.on("mouseout", draggerOut);
 		}
 		function draggerOut() {
-			stage.off("stagemousemove", mousemoveEvent);
+			stage.off("stagemousemove", dragmoveEvent);
 			if (mousePress) return;
 			moveCursor.removeFrom(controls);
 			stage.update();
 		};
 		function draggerOver(e) {
-			if (mousePress || !customCursors) return;
+			if (mousePress || !customCursors || !dragReady) return;
 			moveCursor
 				.addTo(controls)
 				.rot(obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY))
 				.pos(stage.mouseX, stage.mouseY);
 			stage.update();
-			mousemoveEvent = stage.on("stagemousemove", function(e) {
+			if (dragmoveEvent) stage.off("stagemousemove", dragmoveEvent);
+			dragmoveEvent = stage.on("stagemousemove", function(e) {
 				moveCursor.pos(stage.mouseX, stage.mouseY);
-				if (!dragger.hitTestPoint(stage.mouseX, stage.mouseY)) draggerOut();
 				stage.update();
 			});
 		}
@@ -12520,6 +12731,9 @@ RETURNS obj for chaining
 		// Stage Mouse Up
 		stage.on("stagemouseup", function() {
 			mousePress = false;
+			dragger.mouseEnabled = true;
+			if (!dragReady) obj.dispatchEvent("transformed");
+			dragReady = true;
 			dragger.visible = true;
 			if (rotateCheck) {
 				if (!frame.ctrlKey && snapRotation > 1) { // snap if not control
@@ -12528,6 +12742,7 @@ RETURNS obj for chaining
 				}
 			}
 			drawDragger();
+			dragger.mouseEnabled = true;
 			rotateCheck = false;
 			stage.update();
 		});
@@ -12543,56 +12758,95 @@ RETURNS obj for chaining
 		if (rotate) controls.addChild(rotators);
 		controls.addChild(shapeR);
 
+		var pressmoveEvent;
+		if (move) {
+			obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
+			pressmoveEvent = obj.on("pressmove", function() {
+				makeControls();
+				drawDragger();
+				setRotators();
+			});
+		}
+
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// control object
 
-		var dblclickStart = dblclick;
+		var toggleStart = toggle;
 		obj.transformControls = {
 			visible:visible,
+
 			show:function() {
 				if (onTop) obj.parent.setChildIndex(obj, obj.parent.numChildren-1);
 				stage.addChild(controls);
 				obj.transformControls.visible = true;
+				if (move) {
+					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
+					obj.on("pressmove", pressmoveEvent);
+				}
 				stage.update();
 				return obj;
 			},
 			hide:function() {
 				stage.removeChild(controls);
 				obj.transformControls.visible = false;
-				obj.cursor = objCursor;
 				if (customCursors) {
-					if (mouseEvent) stage.off("stagemousemove", mousemoveEvent);
+					if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
+					if (dragmoveEvent) stage.off("stagemousemove", dragmoveEvent);
 					mousePress = false;
 					carrier.removeFrom(stage);
 					carrier2.removeFrom(stage);
 				}
+				if (!move) obj.cursor = objCursor;
 				stage.update();
 				return obj;
 			},
 			remove:function() {
 				obj.transformControls.hide();
-				dblclick = false;
+				toggle = false;
+				if (move) {
+					obj.noDrag();
+					obj.off("pressmove", pressmoveEvent);
+				}
 			},
 			add:function() {
 				obj.transformControls.show();
-				dblclick = dblclickStart;
+				toggle = toggleStart;
+				if (move) {
+					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
+					obj.on("pressmove", pressmoveEvent);
+				}
 			},
-			dblclickOn:function() {
-				dblclick = dblclickStart = true;
+			toggleOn:function() {
+				toggle = toggleStart = true;
+				controls.on("mousedown", toggleControlsEvent);
+				obj.on("mousedown", toggleObjEvent);
+				stage.on("stagemousedown", toggleStageEvent);
 			},
-			dblclickOff:function() {
-				dblclick = dblclickStart = false;
+			toggleOff:function() {
+				toggle = toggleStart = false;
+				controls.off("mousedown", toggleControlsEvent);
+				obj.off("mousedown", toggleObjEvent);
+				stage.off("stagemousedown", toggleStageEvent);
 			},
 			disable:function() {
 				controls.mouseChildren = false;
 				controls.mouseEnabled = false;
+				if (move) {
+					obj.noDrag();
+					obj.off("pressmove", pressmoveEvent);
+				}
 			},
 			enable:function() {
 				controls.mouseChildren = true;
 				controls.mouseEnabled = true;
+				if (move) {
+					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
+					obj.on("pressmove", pressmoveEvent);
+				}
 			},
 			record:function(toJSON) {
 				var data = { // ES6 would help...
+					type:obj.type,
 					index:p.getChildIndex(obj),
 					x:obj.x, y:obj.y,
 					scaleX:obj.scaleX,
@@ -15563,10 +15817,6 @@ Once it does then it calls the callback and removes the interval
 EXAMPLE
 var circle = new zim.Circle(50, "red");
 circle.added(function() {zog("has stage");});
-
-zim.interval(1000, function() {
-	circle.centerReg(stage); // will trigger "has stage" message within 100ms
-});
 END EXAMPLE
 
 PARAMETERS
@@ -15908,6 +16158,17 @@ mask.x += 100;
 // rect.move(rect.x+100, rect.y, 700); will work
 END EXAMPLE
 
+EXAMPLE
+// masking with a Blob - tricky because shape inside Blob is what is dragged
+var image = frame.asset("pic.jpg").centerReg(stage);
+var blob = new zim.Blob({color:frame.faint}).center(stage); // this is draggable by default
+image.setMask(blob);
+blob.on("pressmove", function() {
+	image.setMask(blob); // blob changes so constantly set mask here
+	image.pos(blob.x+blob.shape.x, blob.y+blob.shape.y); // match shape inside if dragging blob
+});
+END EXAMPLE
+
 PARAMETERS
 mask - the object whose shape will be the mask
 
@@ -15924,9 +16185,12 @@ RETURNS the mask shape (different than the mask if using ZIM shapes)
 			zim.copyMatrix(m, mask);
 			m.regX = mask.regX;
 			m.regY = mask.regY;
-			if (!m.centerReg) zimify(m); // solve for new CreateJS 1.0 only if other interactivity - weird
+			if (!m.centerReg) zimify(m);
 			mask.addChildAt(m,0);
 			m.alpha = 0;
+			if (mask.type == "Blob") {
+			 	m.pos(mask.x+mask.shape.x, mask.y+mask.shape.y)
+			}
 		} else {
 			m = mask;
 		}
@@ -18257,8 +18521,8 @@ METHODS
 add(obj) - adds object or an array of objects to the TransformManager - first object will get visible controls
 remove(obj) - removes object or an array of objects to the TransformManager
 show(obj) - show controls for an object that has a transform() set
-hide(obj) - hides controls for an object that has a transform() set - still available with dblclick
-hideAll() - hides all controls - still available with dblclick
+hide(obj) - hides controls for an object that has a transform() set - still available with click
+hideAll() - hides all controls - still available with click
 resize() - calls the resize() method of any object in the ResizeManager
 persist(id) - save data after every change and reload transforms when done - must provide an id
 clearPersist(id) - clear persisting data - do this before adding shapes - must provide an id
@@ -18275,10 +18539,6 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 		if (zot(unique)) unique = true;
 		var that = this;
 		this.items = [];
-		function setControls(e) {
-			that.hideAll();
-			that.show(e.target);
-		}
 		function setPersist() {
 			if (!localStorage) return;
 			that.savePersist();
@@ -18288,17 +18548,24 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 			else that.items.push(obj);
 			if (unique) {
 				that.hideAll();
-				var it;
+				var o;
 				for (var i=0; i<that.items.length; i++) {
-					it = that.items[i];
-					if (!it.transformControls || !it.transformControls.resize) {
-						that.items.splice(i); // was disposed
+					o = that.items[i];
+					if (o.type == "Blob") {
+						if (!o || !o.update) {
+							that.items.splice(i); // was disposed
+						} else {
+							o.toggle = true;
+						}
 					} else {
-						it.transformControls.dblclickOn();
-						if (!it.transformshowEvent) it.transformshowEvent = it.on("transformshow", setControls);
+						if (!o.transformControls || !o.transformControls.resize) {
+							that.items.splice(i); // was disposed
+						} else {
+							o.transformControls.toggleOn();
+						}
 					}
 				}
-				that.show(that.items[0]);
+				// that.show(that.items[0]);
 			}
 		}
 		this.remove = function(obj) {
@@ -18307,15 +18574,12 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 			var o;
 			for (var i=0; i<obj.length; i++) {
 				o = obj[i];
-				if (unique && o.transformshowEvent) {
-					o.off("transformshow", o.transformshowEvent);
-					o.transformshowEvent = null;
-				}
 				if (o.transformedEvent) {
 					o.off("transformed", o.transformedEvent);
 					o.transformedEvent = null;
 				}
-				o.transformControls.remove();
+				if (o.type == "Blob") o.controls = false;
+				else o.transformControls.remove();
 				var index = that.items.indexOf(o);
 				if (index != -1) that.items.splice(index, 1);
 			}
@@ -18324,24 +18588,58 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 			}
 		}
 		this.show = function(obj) {
-			if (zot(obj) || !obj.transformControls) return;
-			obj.transformControls.show();
+			if (zot(obj)) return;
+			if (obj.type == "Blob") {
+				if (!obj.controls) obj.controls = true;
+			} else {
+				var transObj = obj.transformControls;
+				if (!transObj || transObj.visible) return;
+				transObj.show();
+			}
 		}
 		this.hide = function(obj) {
-			if (zot(obj) || !obj.transformControls) return;
-			obj.transformControls.hide();
+			if (zot(obj)) return;
+			if (obj.type == "Blob") {
+				if (obj.controls) obj.controls = false;
+			} else {
+				var transObj = obj.transformControls;
+				if (!transObj || transObj.visible) return;
+				transObj.hide();
+			}
 		}
-		this.hideAll = function() {
+		this.hideAll = function(exception) {
+			var transObj;
+			var o;
 			for (var i=0; i<that.items.length; i++) {
-				if (!that.items[i].transformControls || !that.items[i].transformControls.resize) that.items.splice(i); // was disposed
-				else {that.items[i].transformControls.hide();}
+				o = that.items[i];
+				if (!o || !(o.transformControls || o.update)) {
+					that.items.splice(i); // was disposed
+				} else {
+					if (that.items[i]==exception) continue;
+					if (o.type == "Blob") {
+						if (o.controls) o.controls = false;
+					} else {
+						transObj = that.items[i].transformControls;
+						if (transObj.visible) transObj.hide();
+					}
+				}
 			}
 		}
 		this.resize = function() {
 			if (!that) return;
+			var o;
 			for (var i=0; i<that.items.length; i++) {
-				if (!that.items[i].transformControls || !that.items[i].transformControls.resize) that.items.splice(i); // was disposed
-				else that.items[i].transformControls.resize();
+				o = that.items[i];
+				if (!o || !(o.transformControls || o.update)) {
+					that.items.splice(i); // was disposed
+				} else {
+					if (that.items[i]==exception) continue;
+					if (o.type == "Blob") {
+						o.update();
+					} else {
+						o.transformControls.resize();
+					}
+				}
 			}
 			if (persistID) that.savePersist();
 		}
@@ -18356,21 +18654,35 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 				var data = JSON.parse(localStorage[persistID]);
 				if (data.length == that.items.length) {
 					for (var i=0; i<that.items.length; i++) {
-						if (data[i]) that.items[i].transformControls.set(data[i]);
+						if (data[i] && data[i].type == "Blob") {
+							that.items[i].set(data[i]);
+						} else if (data[i]) {
+							that.items[i].transformControls.set(data[i]);
+						}
 					}
 				}
 			}
 			var it;
 			for (var i=0; i<that.items.length; i++) {
 				it = that.items[i];
-				if (!it.transformedEvent) it.transformedEvent = it.on("transformed", setPersist);
+				if (!it.transformedEvent) {
+					if (it.type == "Blob") {
+						it.transformedEvent = it.on("change", setPersist);
+					} else {
+						it.transformedEvent = it.on("transformed", setPersist);
+					}
+				}
 			}
 		}
 		this.savePersist = function() {
 			var data = [];
 			for (var i=0; i<that.items.length; i++) {
 				it = that.items[i];
-				if (it.transformControls && it.transformControls.record) data.push(it.transformControls.record());
+				if (it.type == "Blob") {
+					if (it.record) data.push(it.record());
+				} else {
+					if (it.transformControls && it.transformControls.record) data.push(it.transformControls.record());
+				}
 			}
 			localStorage[persistID] = JSON.stringify(data);
 		}
@@ -18384,7 +18696,11 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 			for (var i=0; i<that.items.length; i++) {
 				it = that.items[i];
 				if (it.transformedEvent) {
-					it.off("transformed", it.transformedEvent);
+					if (it.type == "Blob") {
+						it.off("change", it.transformedEvent);
+					} else {
+						it.off("transformed", it.transformedEvent);
+					}
 					it.transformedEvent = null;
 				}
 			}
@@ -22323,7 +22639,7 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 	if (zon) zog("ZIM FRAME");
 
 /*--
-zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor)
+zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor, loadFailObj)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -22439,8 +22755,12 @@ gpuObj - (default null) object with following properties (with defaults) See Cre
 nextFrame - (default null) set to zim Frame object of Frame underneath current Frame to pass events to nextFrame
 nextStage - (default null) alternative to nextFrame if the stage beneath current Frame is not a ZIM Frame but just a CreateJS Stage
 allowDefault - (default false) set to true to allow default mouse, key and scrollwheel events on canvas
-	see also the zil property of frame that allows you to add and remove these events dynamically (except for mouse swipe scroll and zoom on mobile)
+	See also the zil property of frame that allows you to add and remove these events dynamically (except for mouse swipe scroll and zoom on mobile)
 outerColor - (default null) the body color of the HTML page - null will not adjust it
+loadFailObj - (default result of frame.makeCircles) object that shows if asset() does not exist or did not load withing loadTimeout
+	This will be given a type property of "EmptyAsset"
+	Set the loadFailObj property below to null to set no object - but this will yield errors unless each resulting asset() is tested
+	Set to new zim.Container() to show nothing (but avoid errors) - or new zim.Rectangle(10, 10) to show little black square, etc.
 
 PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
@@ -22462,25 +22782,29 @@ altKey - true if the alt key is being pressed otherwise false
 ctrlKey - true if the ctrl key is being pressed otherwise false
 metaKey - true if the meta key (⌘ command on Mac or ⊞ windows key) is being pressed otherwise false
 shiftKey - true if the shift key is being pressed otherwise false
+loadFailObj - the object that shows if images are broken - will be given a type property of "EmptyAsset"
 
 METHODS
-loadAssets(file||[file, file, etc.], path, xhr, time)
-	pass in an file (String) or an array of files to assets,
-	pass in an optional path to directory and XHR (default false)
-	asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
-	asset can also be a font object:
-		{font:name, src:url, type:string, weight:string, style:string} // with last three properties being optional
-		eg.
-		{font: "wildwood", src:"ChurchintheWildwood-Regular.ttf", type:"OpenType"} // type is not needed
-		{font: "regu", src:"regul-bold.woff", weight:"bold"}
-		{src:"https://fonts.googleapis.com/css?family=Roboto"}
-		For google fonts you add extra information to the url so the font (family), type, weight and style are ignored
-		If absolute src is used, path parameter is ignored - otherwise path is added to start of src
-		After loading, can just use:
-			var label = new zim.Label("hello", 30, "wildwood") // or whatever the font property is
+loadAssets(assets, path, xhr, time, loadTimeout) // also accepts ZIM DUO configuration object as single parameter
+	assets - a file (url String) or files in an Array
+		each asset String is how you then access the asset with the asset() method of Frame
+		asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
+		asset can also be a font object:
+			{font:name, src:url, type:string, weight:string, style:string} // with last three properties being optional
+			eg.
+			{font: "wildwood", src:"ChurchintheWildwood-Regular.ttf", type:"OpenType"} // type is not needed
+			{font: "regu", src:"regul-bold.woff", weight:"bold"}
+			{src:"https://fonts.googleapis.com/css?family=Roboto"}
+			For google fonts you add extra information to the url so the font (family), type, weight and style are ignored
+			If absolute src is used, path parameter is ignored - otherwise path is added to start of src
+			After loading, can just use:
+				var label = new zim.Label("hello", 30, "wildwood") // or whatever the font property is
+	path - pass in an optional path String that gets prepended to the asset
+		when accessing the asset with the asset() method you do NOT include the path
 	xhr (default false) set to true to load text and WebAdio (not needed for normal sound mp3, wav, etc.)
 	time (default 0) is the minimum number of milliseconds for the complete event to trigger
-	use this for testing or to always have time to show a loading message
+		use this for testing or to always have time to show a loading message
+	loadTimeout (default 8000) is how many ms to wait for asset before error and a complete fires even though asset not loaded
 	RETURNS: a zim.Queue object that can be used for control with multiple loadAssets calls
 	Each zim.Queue will trigger progress, assetload and complete events
 	Each zim.Queue will have a preload property to the CreateJS LoadQueue and an isLoading property
@@ -22515,9 +22839,9 @@ EVENTS
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
 "keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
 --*///+83
-	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor) {
+	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor, loadFailObj) {
 
-		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor";
+		var sig = "scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor, loadFailObj";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		this.cjsEventDispatcher_constructor();
@@ -22553,6 +22877,8 @@ EVENTS
 		if (zot(delay)) delay = 0;
 		if (zot(gpu)) gpu = false;
 		if (zot(allowDefault)) allowDefault = false;
+		if (zot(loadFailObj)) loadFailObj = "circles";
+		this.loadFailObj = loadFailObj;
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
@@ -22785,12 +23111,15 @@ EVENTS
 		// ASSETS
 		this.loadAssetsCount = 0;
 		this.assets = {}; // store asset Bitmap or play function for sound
-		this.loadAssets = function(arr, path, xhr, time) {
-			if (zot(arr)) return;
+		this.loadAssets = function(assets, path, xhr, time, loadTimeout) {
+			var sig = "assets, path, xhr, time, loadTimeout";
+			var duo; if (duo = zob(that.loadAssets, arguments, sig)) return duo;
+			if (zot(assets)) return;
 			if (zot(xhr)) xhr = false;
-			if (!Array.isArray(arr)) arr = [arr];
-			if (arr.length == 0) return;
+			if (!Array.isArray(assets)) assets = [assets];
+			if (assets.length == 0) return;
 			if (zot(time)) time = 0;
+			if (zot(loadTimeout)) loadTimeout = 8000;
 			var soundCheck = false;
 			var manifest = [];
 			var a; var ext; var i; var j;
@@ -22798,8 +23127,8 @@ EVENTS
 			var fonts = [];
 			var googleFonts = [];
 			var nonFontCount = 0;
-			for (i=0; i<arr.length; i++) {
-				a = arr[i];
+			for (i=0; i<assets.length; i++) {
+				a = assets[i];
 				if (a.constructor == {}.constructor) {
 					if (a.src.match(/fonts\.googleapis\.com/)) googleFonts.push(a);
 					else fonts.push(a);
@@ -22807,7 +23136,7 @@ EVENTS
 					nonFontCount++;
 					ext = a.match(re);
 					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
-					manifest.push({src:a});
+					manifest.push({src:a, loadTimeout:loadTimeout});
 				}
 			}
 			that.loadAssetsCount++;
@@ -22916,7 +23245,15 @@ EVENTS
 
 		this.asset = function(n) {
 			if (zot(n)) return;
-			return that.assets[n] || {play:function(){if (zon) {zog("zim.Frame - asset("+n+") not found"); return {};}}};
+			if (that.assets[n]) return that.assets[n];
+			if (that.loadFailObj == "circles") var empty = frame.makeCircles(14);
+			else var empty = that.loadFailObj;
+			if (empty) {
+				empty.type = "EmptyAsset";
+				empty.id = n;
+				empty.play = function(){if (zon) {zog("zim.Frame - asset("+n+") not found"); return {};}};
+			}
+			return empty;
 		}
 
 		Object.defineProperty(that, 'stage', {
@@ -23248,9 +23585,9 @@ function zimify(obj, list) {
 		dragRect:function(rect) {
 			return zim.dragRect(this, rect);
 		},
-		transform:function(move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
+		transform:function(move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.transform(arguments[0]);}
-			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, dblclick, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache);}
+			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache);}
 		},
 		setSwipe:function(swipe) {
 			return zim.setSwipe(this, swipe);
@@ -23494,6 +23831,7 @@ DESCRIPTION
 Removes requirement to use the zim namespace in code
 Puts the ZIM code, display and controls into the global namespace
 Does not put methods in the namespace as using methods as functions is discouraged
+With the exception of loop, stopAnimate, pauseAnimate, animate, wiggle
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
