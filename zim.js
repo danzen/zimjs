@@ -4311,7 +4311,11 @@ PROPERTIES
 type - holds the class name as a String
 shape - gives access to the circle shape
 color - get and set the fill color
+colorCommand - access to the CreateJS fill command for bitmap, linearGradient and radialGradient fills
+	eg. shape.colorCommand.linearGradient([frame.green, frame.blue ,frame.green], [.2, .5, .8], 0, 0, shape.width, 0)
+	See: https://www.createjs.com/docs/easeljs/classes/Graphics.Fill.html
 borderColor - get and set the stroke color
+borderColorCommand - access to the CreateJS stroke command for bitmap, linearGradient and radialGradient strokes
 borderWidth - get and set the stroke size in pixels
 radius - gets or sets the radius.
 	The radius is independent of scaling and can be different than the width/2
@@ -4368,14 +4372,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		drawShape();
 		function drawShape() {
 			g.c();
-			colorObj =g.f(_color).command;
+			that.colorCommand = colorObj = g.f(_color).command;
 			// border of 0 or a string value still draws a border in CreateJS
 			if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
 				if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
 					if (zot(_borderColor)) _borderColor = "black";
-					borderColorObj = g.s(_borderColor).command;
-					borderWidthObj = g.ss(_borderWidth).command;
-					if (dashed) borderDashedObj = g.sd([10, 10], 5).command;
+					that.borderColorCommand = borderColorObj = g.s(_borderColor).command;
+					that.borderWidthCommand = borderWidthObj = g.ss(_borderWidth).command;
+					if (dashed) that.borderDashedCommand = borderDashedObj = g.sd([10, 10], 5).command;
 				}
 			}
 			g.dc(0,0,_radius);
@@ -4483,7 +4487,11 @@ PROPERTIES
 type - holds the class name as a String
 shape - gives access to the rectangle shape
 color - get and set the fill color
+colorCommand - access to the CreateJS fill command for bitmap, linearGradient and radialGradient fills
+	eg. shape.colorCommand.linearGradient([frame.green, frame.blue ,frame.green], [.2, .5, .8], 0, 0, shape.width, 0)
+	See: https://www.createjs.com/docs/easeljs/classes/Graphics.Fill.html
 borderColor - get and set the stroke color
+borderColorCommand - access to the CreateJS stroke command for bitmap, linearGradient and radialGradient strokes
 borderWidth - get and set the stroke size in pixels
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -4538,14 +4546,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		drawShape();
 		function drawShape() {
 			g.c();
-			colorObj =g.f(_color).command;
+			that.colorCommand = colorObj =g.f(_color).command;
 			// border of 0 or a string value still draws a border in CreateJS
 			if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
 				if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
 					if (zot(_borderColor)) _borderColor = "black";
-					borderColorObj = g.s(_borderColor).command;
-					borderWidthObj = g.ss(_borderWidth).command;
-					if (dashed) borderDashedObj = g.sd([10, 10], 5).command;
+					that.borderColorCommand = borderColorObj = g.s(_borderColor).command;
+					that.borderWidthCommand = borderWidthObj = g.ss(_borderWidth).command;
+					if (dashed) that.borderDashedCommand = borderDashedObj = g.sd([10, 10], 5).command;
 				}
 			}
 			if (flatBottom) {
@@ -4659,7 +4667,11 @@ PROPERTIES
 type - holds the class name as a String
 shape - gives access to the triangle shape
 color - get and set the fill color
+colorCommand - access to the CreateJS fill command for bitmap, linearGradient and radialGradient fills
+	eg. shape.colorCommand.linearGradient([frame.green, frame.blue ,frame.green], [.2, .5, .8], 0, 0, shape.width, 0)
+	See: https://www.createjs.com/docs/easeljs/classes/Graphics.Fill.html
 borderColor - get and set the stroke color
+borderColorCommand - access to the CreateJS stroke command for bitmap, linearGradient and radialGradient strokes
 borderWidth - get and set the stroke size in pixels
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -4729,14 +4741,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		drawShape();
 		function drawShape() {
 			g.c();
-			colorObj =g.f(_color).command;
+			that.colorCommand = colorObj =g.f(_color).command;
 			// border of 0 or a string value still draws a border in CreateJS
 			if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
 				if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
 					if (zot(_borderColor)) _borderColor = "black";
-					borderColorObj = g.s(_borderColor).command;
-					borderWidthObj = g.ss(_borderWidth).command;
-					if (dashed) borderDashedObj = g.sd([10, 10], 5).command;
+					that.borderColorCommand = borderColorObj = g.s(_borderColor).command;
+					that.borderWidthCommand = borderWidthObj = g.ss(_borderWidth).command;
+					if (dashed) that.borderDashedCommand = borderDashedObj = g.sd([10, 10], 5).command;
 				}
 			}
 			g.mt(0,0);
@@ -4911,12 +4923,12 @@ onTop - (default true) set to false to not bring shape to top of container when 
 METHODS
 **** NOTE: in ZIM 6.4.1, record() was changed to recordPoints() and new record() and set() methods have been added
 record(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with set() method
-   if toJSON (default false) is set to true, the return value is a JSON string
-   the points data comes from recordPoints()
+	if toJSON (default false) is set to true, the return value is a JSON string
+	the points data comes from recordPoints()
 set(data, fromJSON) - sets the properties to match the data object passed in - this should come from record()
-  if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
-  the points data is parsed with the set setPoints()
-  returns object for chaining
+	if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
+	the points data is parsed with the set setPoints()
+	returns object for chaining
 recordPoints(popup) - returns an array with the same format as the points parameter (see parameter docs)
 	popup - (default false) set to true to open a zim Pane with the points in a zim TextArea (click off to close)
 	NOTE: the TextArea output uses JSON.stringify() - to add the points to the points parameter of the Blob use JSON.parse(output);
@@ -4943,7 +4955,11 @@ PROPERTIES
 type - holds the class name as a String
 shape - gives access to the shape of the blob
 color - get and set the fill color
+colorCommand - access to the CreateJS fill command for bitmap, linearGradient and radialGradient fills
+	eg. shape.colorCommand.linearGradient([frame.green, frame.blue ,frame.green], [.2, .5, .8], shape.width/2, 0, shape.width/2, 0)
+	See: https://www.createjs.com/docs/easeljs/classes/Graphics.Fill.html
 borderColor - get and set the stroke color
+borderColorCommand - access to the CreateJS stroke command for bitmap, linearGradient and radialGradient strokes
 borderWidth - get and set the stroke size in pixels
 points - get or set array of control point data with the following format:
 	NOTE: this format is different than the points parameter which is related but holds the x and y positions rather than the actual point objects found in the points property:
@@ -4979,6 +4995,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 EVENTS
 dispatches a change event for when the bezier controls are adjusted (pressup only)
 	if monitoring constant change is needed add a pressmove event to Blob.sets
+	the change event object has a transformType property with values of "move", "bezierPoint", "bezierHandle", "bezierSwitch"
 dispatches controlsshow and controlshide events when clicked off and on and toggle is true
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
@@ -5000,6 +5017,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			borderColor = "black";
 		}
 		if (zot(color)) color = borderWidth>0?"rgba(0,0,0,0)":frame.green;
+		if (color.style) {this.colorCommand = color; color = "black";}
+		if (borderColor.style) {this.borderColorCommand = borderColor; borderColor = "black";}
 		if (zot(points)) points = 4;
 		var num = typeof points == "number" ? points : points.length;
 
@@ -5020,7 +5039,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(onTop)) onTop = true;
 
 		var that = this;
-
 		var types = this.types = ["mirror", "straight", "free", "none"];
 
 		var _points;
@@ -5186,6 +5204,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				ball.rect1.color = getColor(type);
 				ball.rect2.color = getColor(type);
 				drawShape();
+				var ev = new createjs.Event("change");
+				ev.controlType = "bezierSwitch";
+				that.dispatchEvent(ev);
 				ball.stage.update();
 			};
 
@@ -5197,14 +5218,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			function drawShape() {
 				g.c();
-				colorObj = g.f(_color).command;
+				if (!that.colorCommand) that.colorCommand = colorObj = g.f(_color).command;
 				// border of 0 or a string value still draws a border in CreateJS
 				if (zot(_borderWidth) || _borderWidth > 0) { // no border specified or a border > 0
 					if (!zot(_borderColor) || !zot(_borderWidth)) { // either a border color or thickness
 						if (zot(_borderColor)) _borderColor = "black";
-						borderColorObj = g.s(_borderColor).command;
-						borderWidthObj = g.ss(_borderWidth).command;
-						if (dashed) borderDashedObj = g.sd([10, 10], 5).command;
+						if (!that.borderColorCommand) that.borderColorCommand = borderColorObj = g.s(_borderColor).command;
+						if (!that.borderWidthCommand) that.borderWidthCommand = borderWidthObj = g.ss(_borderWidth).command;
+						if (dashed) {
+							if (!that.borderDashedCommand) that.borderDashedCommand = borderDashedObj = g.sd([10, 10], 5).command;
+						}
 					}
 				}
 				var set = _points[0][0];
@@ -5245,11 +5268,19 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					s.mt(ballPoint.x, ballPoint.y).lt(control1Point.x, control1Point.y);
 					s.mt(ballPoint.x, ballPoint.y).lt(control2Point.x, control2Point.y);
 				}
+				g.append(that.colorCommand);
+				if (dashed) g.append(that.borderDashedCommand);
+				g.append(that.borderWidthCommand);
+				g.append(that.borderColorCommand);
+
+
 			}
 			drawShape();
 
+			var startPosition;
 			sets.on("mousedown", function(e) {
 				if (that.lockControls) return;
+				startPosition = {x:e.target.x, y:e.target.y};
 				if (e.target.rect1) { // then mousedown on ball
 					var ball = e.target;
 					ball.startX = ball.x;
@@ -5310,9 +5341,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			sets.on("pressup", function(e) {
 				if (that.lockControls) return;
+				var moveControlCheck = (e.target.x != startPosition.x || e.target.y != startPosition.y);
+				var ev = new createjs.Event("change");
 				if (e.target.rect1) { // pressup on ball
 					// move ball back to origin and move set accordingly
 					// so if we animate the set it will behave as expected
+					ev.controlType = "bezierPoint";
 					var ball = e.target;
 					var set = ball.set;
 					var rect1 = ball.rect1;
@@ -5325,8 +5359,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					set.y += ball.y;
 					ball.x = 0;
 					ball.y = 0;
+				} else {
+					ev.controlType = "bezierHandle";
 				}
-				that.dispatchEvent("change");
+				if (moveControlCheck) that.dispatchEvent(ev);
 			});
 
 			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) {
@@ -5365,7 +5401,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			that.controls = showControls;
 			shape.drag({onTop:false});
-			moveDownEvent = shape.on("mousedown", upTop);
+			moveDownEvent = shape.on("mousedown", function() {
+				startPosition = {x:shape.x, y:shape.y};
+				upTop();
+			});
 			movePressEvent = shape.on("pressmove", function() {
 				sets.x = shape.x;
 				sets.y = shape.y;
@@ -5373,10 +5412,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				sticks.y = shape.y;
 			});
 			moveUpEvent = shape.on("pressup", function() {
+				var moveControlCheck = (shape.x != startPosition.x || shape.y != startPosition.y);
 				that.x += shape.x;
 				that.y += shape.y;
 				sets.x = sets.y = sticks.x = sticks.y = shape.x = shape.y = 0;
-				that.dispatchEvent("change");
+				if (moveControlCheck) {
+					var ev = new createjs.Event("change");
+					ev.controlType = "move";
+					that.dispatchEvent(ev);
+				}
 				that.stage.update();
 			});
 
@@ -5390,17 +5434,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			var toggleEvent = that.on("mousedown", function() {
 				if (!that.toggle) return;
-				if (!sets.visible) {
+				if (!that.controls) {
 					that.showControls();
 					that.dispatchEvent("controlsshow");
 				}
 			});
 
-			var toggleStageEvent;
 			that.added(function() {
-				toggleStageEvent = that.stage.on("stagemousedown", function() {
+				that.toggleStageEvent = that.stage.on("stagemousedown", function() {
 					if (!that.toggle) return;
-					if (sets.visible && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY)) {
+					if (that.controls && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY, false)) {
 						that.hideControls();
 						that.dispatchEvent("controlshide");
 					}
@@ -5411,9 +5454,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (!that.ctrlclick) return;
 				if (zimDefaultFrame.ctrlKey) {
 					setTimeout(function() { // give time for record to work if drag with ctrl down
-						that.clone().addTo(that.stage).mov(100);
-						if (that.toggle) that.hideControls();
-						that.dispatchEvent("change");
+						that.clone(true).addTo(that.stage).mov(100);
+						if (that.toggle) {
+							that.hideControls();
+							that.dispatchEvent("controlshide");
+						}
+						var ev = new createjs.Event("change");
+						ev.controlType = "move";
+						that.dispatchEvent(ev);
 						that.stage.update();
 					}, 50);
 				}
@@ -5425,7 +5473,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				_controls = false;
 				if (that.stage) that.stage.update();
 				if (!that.toggle && that.move) stopDragging();
-				that.dispatchEvent("change");
 				return that;
 			}
 			if (!showControls) that.hideControls();
@@ -5545,8 +5592,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.update();
 			}
 
-			that.clone = function() {
-				return that.cloneProps(new zim.Blob(that.color, that.borderColor, that.borderWidth, that.record(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.toggle, that.move, that.ctrlclick, dashed));
+			that.clone = function(commands) {
+				var color = commands?that.colorCommand:that.color;
+				var color = commands?that.colorCommand:that.color;
+				return that.cloneProps(new zim.Blob(commands?that.colorCommand:that.color, commands?that.borderColorCommand:that.borderColor, that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.toggle, that.move, that.ctrlclick, dashed));
 			}
 		} // end of init()
 
@@ -5694,16 +5743,19 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.dispose = function() {
 			if (!that.shape) return;
+			that.shape.cursor = "default";
 			for (var i=0; i<that.points.length; i++) {
 				that.points[i][1].removeAllEventListeners();
 			}
 			for (i=0; i<balls.length; i++) {
 				balls[i].removeAllEventListeners();
 			}
+			that.sticks.removeFrom(that);
+			that.sets.removeFrom(that);
 			that.shape.removeAllEventListeners();
 			that.sets.removeAllEventListeners();
 			that.removeAllEventListeners();
-			if (toggleStageEvent) that.stage.off("stagemousedown", toggleStageEvent);
+			if (that.toggleStageEvent) that.stage.off("stagemousedown", that.toggleStageEvent);
 			return
 		}
 	}
@@ -7931,7 +7983,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		} else if (!container.getBounds) {
 			zog(mess);
 			return;
-		} else if (zot(container.getStage)) {
+		} else if (zot(container.stage)) {
 			zog("zim display - Waiter(): The container must have a stage property");
 			return;
 		}
@@ -8000,20 +8052,23 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 		var accessibilityClicker;
+		var waiterTimeout;
 		this.show = function() {
 			var dot; var counter=0;
 			for (var i=0; i<circles.numChildren; i++) {
 				that.alpha = 0;
 				createjs.Tween.get(that,{override:true})
 						.to({alpha:1}, 300);
-				setTimeout(function() {
-					dot = circles.getChildAt(counter);
-					createjs.Tween.get(dot,{loop:true})
-						.to({alpha:1}, speed/numDots/2)
-						.wait(speed/numDots)
-						.to({alpha:0}, speed/numDots)
-						.wait(speed-speed/numDots-speed/numDots/2);
-					counter++;
+				waiterTimeout = setTimeout(function() {
+					 if (circles) {
+						dot = circles.getChildAt(counter);
+						createjs.Tween.get(dot,{loop:true})
+							.to({alpha:1}, speed/numDots/2)
+							.wait(speed/numDots)
+							.to({alpha:0}, speed/numDots)
+							.wait(speed-speed/numDots-speed/numDots/2);
+						counter++;
+					}
 				}, i*speed/numDots);
 			}
 			that.ticker = createjs.Ticker.on("tick", function() {container.stage.update();});
@@ -8040,6 +8095,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.dispose = function() {
 			if (that.ticker) createjs.Ticker.off("tick", that.ticker);
+			clearInterval(waiterTimeout);
 			display.removeAllEventListeners();
 			that.removeChild(display);
 			that.removeChild(circles);
@@ -12039,6 +12095,7 @@ The others work as the user rolls over the edges or the outer corners.
 You can optionally set these to be visible as boxes on the sides and circles on the outer corners.
 
 NOTE: works with the ZIM TransformManager() class to handle multiple transforms and saving data for persistence.
+NOTE: the transformed object will have its mouseChildren set to false.
 
 CLICK turns off and on the controls if toggle parameter is set to true (default is true)
 If you use the TransformManager for multiple objects, the toggle is automatically set to true
@@ -12130,6 +12187,8 @@ resize() - call resize if the object is transformed in ways other than with the 
 
 EVENTS
 Adds a transformed event to obj that is dispatched when pressup on any of the controls or on click
+	the transformed event object has a transformType property
+	the transformType property has values of "size", "move", "rotate", "stretch", "reg" "reset"
 Adds transformshow and transformhide events for when click to hide or show controls
 
 RETURNS obj for chaining
@@ -12169,6 +12228,8 @@ RETURNS obj for chaining
 		if (zot(snapRotation)) snapRotation = 5;
 		if (zot(cache)) cache = true;
 
+		obj.mouseChildren = false;
+
 		var stage;
 		if (!obj.stage) {
 			if (zimDefaultFrame) stage = zimDefaultFrame.stage;
@@ -12184,6 +12245,7 @@ RETURNS obj for chaining
 		var oB = obj.getBounds();
 		var shape = new zim.Shape(); // bound rect
 		var shapeR = new zim.Shape(); // registration point
+		shapeR.controlType = "reg";
 		var p = obj.parent;
 		var g = shape.graphics;
 		var gR = shapeR.graphics;
@@ -12405,7 +12467,7 @@ RETURNS obj for chaining
 		}
 		drawDragger();
 
-		controls.on("dblclick", function() {
+		controls.on("dblclick", function(e) {
 			if (frame.ctrlKey && obj.transformControls.visible) {
 				obj.scaleX = 1;
 				obj.scaleY = 1;
@@ -12415,7 +12477,7 @@ RETURNS obj for chaining
 				drawDragger();
 				stage.update();
 			}
-			pressUp();
+			pressUp(e, true);
 		});
 
 		var toggleControlsEvent = controls.on("mousedown", toggleCheck);
@@ -12436,8 +12498,6 @@ RETURNS obj for chaining
 				if (obj.transformControls.visible && !controls.hitTestPoint(stage.mouseX, stage.mouseY)) {
 					obj.transformControls.hide();
 					obj.dispatchEvent("transformhide");
-					obj.dispatchEvent("transformed");
-					//frame.canvas.style.cursor = "default";
 				}
 			}
 		}
@@ -12445,8 +12505,6 @@ RETURNS obj for chaining
 			if (obj.transformControls.visible && !controls.hitTestPoint(stage.mouseX, stage.mouseY)) {
 				obj.transformControls.hide();
 				obj.dispatchEvent("transformhide");
-				obj.dispatchEvent("transformed");
-				//frame.canvas.style.cursor = "default";
 			}
 		});
 		if (!toggle) {
@@ -12473,6 +12531,7 @@ RETURNS obj for chaining
 		var mousemoveEvent;
 		var dragmoveEvent;
 		var objCursor = obj.cursor;
+		var transformEvent;
 
 		var carrier = new Circle(30, "rgba(0,0,0,0)").expand(20);
 		if (customCursors) {
@@ -12601,26 +12660,57 @@ RETURNS obj for chaining
 			makeControls();
 		};
 
-		function pressUp(e) {
+		function pressUp(e, reset) {
 			setRotators();
 			var type = e ? e.target.controlType : "move";
+			if (reset) type = "reset";
 			if (customCursors) carrier2.removeFrom(stage);
-			if (
-				(type == "move" && dragger.hitTestPoint(stage.mouseX, stage.mouseY)) ||
-				(type == "corner" && squares.hitTestPoint(stage.mouseX, stage.mouseY)) ||
-				(type == "side" && sidesH.hitTestPoint(stage.mouseX, stage.mouseY)) ||
-				(type == "side" && sidesV.hitTestPoint(stage.mouseX, stage.mouseY)) ||
-				(type == "rotate" && rotators.hitTestPoint(stage.mouseX, stage.mouseY))
-			) {
-				if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
-			 	if (mousemoveEvent) stage.on("stagemousemove", mousemoveEvent);
-			} else {
+			var tCheck = false;
+			transformEvent = null;
+			if (type == "move") {
+				if (obj.x != startProperties.x || obj.y != startProperties.y) {
+					transformEvent = new createjs.Event("transformed");
+					transformEvent.transformType = "move";
+				}
+				tCheck = dragger.hitTestPoint(stage.mouseX, stage.mouseY);
+			} else if (type == "corner") {
+				if (obj.scaleX != startProperties.scaleX || obj.scaleY != startProperties.scaleY) {
+					transformEvent = new createjs.Event("transformed");
+					transformEvent.transformType = "size";
+				}
+				tCheck = squares.hitTestPoint(stage.mouseX, stage.mouseY);
+			} else if (type == "side") {
+				if (obj.scaleX != startProperties.scaleX || obj.scaleY != startProperties.scaleY) {
+					transformEvent = new createjs.Event("transformed");
+					transformEvent.transformType = "stretch";
+				}
+				tCheck = sidesH.hitTestPoint(stage.mouseX, stage.mouseY) || sidesV.hitTestPoint(stage.mouseX, stage.mouseY);
+			} else if (type == "rotate") {
+				if (obj.rotation != startProperties.rotation) {
+					transformEvent = new createjs.Event("transformed");
+					transformEvent.transformType = "rotate";
+				}
+				tCheck = rotators.hitTestPoint(stage.mouseX, stage.mouseY);
+			} else if (type == "reg") {
+				if (obj.regX != startProperties.regX || obj.regY != startProperties.regY) {
+					transformEvent = new createjs.Event("transformed");
+					transformEvent.transformType = "reg";
+				}
+			} else if (type == "reset") {
+				transformEvent = new createjs.Event("transformed");
+				transformEvent.transformType = "reset";
+			}else {
+				transformEvent = new createjs.Event("transformed");
+				transformEvent.transformType = "unknown";
+			}
+
+			if (!tCheck) {
 				carrier.removeFrom(stage);
 				frame.canvas.style.cursor = "default";
 				obj.cursor = objCursor;
 			}
 			stage.update();
-			obj.dispatchEvent("transformed");
+			if (transformEvent) obj.dispatchEvent(transformEvent);
 		}
 
 		function showCustomCursor(e) { // not drag
@@ -12660,7 +12750,7 @@ RETURNS obj for chaining
 
 		shapeR.drag();
 		shapeR.on("mousedown", upTop);
-		shapeR.on("pressup", function() {
+		shapeR.on("pressup", function(e) {
 			// snap to corners unless the ctrl key is down
 			if (!frame.ctrlKey) {
 				for (var i=0; i<corners.length; i++) {
@@ -12685,7 +12775,7 @@ RETURNS obj for chaining
 
 			makeControls();
 			drawDragger();
-			pressUp();
+			pressUp(e);
 			stage.update()
 		});
 
@@ -12729,10 +12819,16 @@ RETURNS obj for chaining
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// Stage Mouse Up
-		stage.on("stagemouseup", function() {
+		var stageUpEvent = stage.on("stagemouseup", function() {
 			mousePress = false;
 			dragger.mouseEnabled = true;
-			if (!dragReady) obj.dispatchEvent("transformed");
+			if (!dragReady) {
+				if (obj.x != startProperties.x || obj.y != startProperties.y) {
+					transformEvent = new createjs.Event("transformed");
+					transformEvent.transformType = "move";
+					obj.dispatchEvent(transformEvent);
+				}
+			}
 			dragReady = true;
 			dragger.visible = true;
 			if (rotateCheck) {
@@ -12746,6 +12842,17 @@ RETURNS obj for chaining
 			rotateCheck = false;
 			stage.update();
 		});
+
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		// add controls to controls container
+
+		function getStartProperies() {
+			startProperties = {x:obj.x, y:obj.y, rotation:obj.rotation, regX:obj.regX, regY:obj.regY, scaleX:obj.scaleX, scaleY:obj.scaleY};
+		}
+		var startProperties;
+		getStartProperies();
+		var compareObjEvent = obj.on("mousedown", getStartProperies);
+		var compareControlEvent = controls.on("mousedown", getStartProperies);
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// add controls to controls container
@@ -12779,10 +12886,10 @@ RETURNS obj for chaining
 				if (onTop) obj.parent.setChildIndex(obj, obj.parent.numChildren-1);
 				stage.addChild(controls);
 				obj.transformControls.visible = true;
-				if (move) {
-					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
-					obj.on("pressmove", pressmoveEvent);
-				}
+				// if (move) {
+					// obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
+					// obj.on("pressmove", pressmoveEvent);
+				// }
 				stage.update();
 				return obj;
 			},
@@ -12884,6 +12991,24 @@ RETURNS obj for chaining
 				drawDragger();
 				setRotators();
 				return obj;
+			},
+			dispose:function() {
+				obj.transformControls.hide();
+				toggle = false;
+				if (move) {
+					zog("here")
+					obj.noDrag();
+					obj.off("pressmove", pressmoveEvent);
+				}
+				controls.removeAllEventListeners();
+				if (toggleObjEvent) obj.off("mousedown", toggleObjEvent);
+				if (toggleControlsEvent) obj.off("mousedown", toggleControlsEvent);
+				if (toggleStageEvent) stage.off("stagemousedown", toggleStageEvent);
+				if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
+				if (dragmoveEvent) stage.off("stagemousemove", dragmoveEvent);
+				if (stageUpEvent) stage.off("stagemouseup", stageUpEvent);
+				if (compareObjEvent) obj.off("mousedown", compareObjEvent);
+				if (pressmoveEvent) obj.off("pressmove", pressmoveEvent);
 			},
 			scaleControls:squares,
 			stretchXControls:sidesH,
@@ -13289,7 +13414,7 @@ RETURNS obj for chaining
 	}//-34.7
 
 /*--
-obj.hitTestPoint = function(x, y)
+obj.hitTestPoint = function(x, y, boundsCheck)
 
 hitTestPoint
 zim DisplayObject method
@@ -13322,16 +13447,18 @@ END EXAMPLE
 
 PARAMETERS
 x and y - the point we are testing to see if it hits the shape of the object
+boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
 --*///+35
-	zim.hitTestPoint = function(obj, x, y) {
+	zim.hitTestPoint = function(obj, x, y, boundsCheck) {
 		z_d("35");
 		if (!obj.stage) return false;
 		if (zot(obj) || !obj.globalToLocal) return;
+		if (zot(boundsCheck)) boundsCheck = true;
 		var point = obj.globalToLocal(x,y);
 		var bounds = obj.getBounds();
-		if (bounds) { // faster to check if point is in bounds first
+		if (boundsCheck && bounds) { // faster to check if point is in bounds first
 			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return false;
 			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return false;
 		}
@@ -13368,16 +13495,18 @@ END EXAMPLE
 
 PARAMETERS
 other - the object whose registration point we are checking against
+boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
 --*///+36
-	zim.hitTestReg = function(a, b) {
+	zim.hitTestReg = function(a, b, boundsCheck) {
 		z_d("36");
 		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.localToLocal || !b.localToLocal) return;
+		if (zot(boundsCheck)) boundsCheck = true;
 		var point = b.localToLocal(b.regX,b.regY,a);
 		var bounds = a.getBounds();
-		if (bounds) { // faster to check if point is in bounds first
+		if (boundsCheck && bounds) { // faster to check if point is in bounds first
 			if (point.x > bounds.x + bounds.width || point.x < bounds.x) return false;
 			if (point.y > bounds.y + bounds.height || point.y < bounds.y) return false;
 		}
@@ -13385,7 +13514,7 @@ RETURNS a Boolean true if hitting, false if not
 	}//-36
 
 /*--
-obj.hitTestRect = function(other, num)
+obj.hitTestRect = function(other, num, boundsCheck)
 
 hitTestRect
 zim DisplayObject method
@@ -13422,21 +13551,23 @@ num - (default 0) the number of points along each edge to checking
 	2 would put two points at 1/3 and 2/3 along the edge, etc.
 	there are always points at the corners
 	and one point in the middle of the rectangle
+boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
 --*///+37
-	zim.hitTestRect = function(a, b, num) {
+	zim.hitTestRect = function(a, b, num, boundsCheck) {
 		z_d("37");
 		if (!a.stage || !b.stage) return false;
 		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
 		if (zot(num)) num = 0;
+		if (zot(boundsCheck)) boundsCheck = true;
 		var bounds = b.getBounds();
 		if (!bounds) {
 			zog("zim methods - hitTestRect():\n please setBounds() on param b object");
 			return;
 		}
 		var bounds2 = a.getBounds();
-		if (bounds2 && !zim.hitTestBounds(a,b)) return false; // bounds not hitting
+		if (boundsCheck && bounds2 && !zim.hitTestBounds(a,b)) return false; // bounds not hitting
 
 		var centerX = bounds.x+bounds.width/2;
 		var centerY = bounds.y+bounds.height/2;
@@ -13465,7 +13596,7 @@ RETURNS a Boolean true if hitting, false if not
 	}//-37
 
 /*--
-obj.hitTestCircle = function(other, num)
+obj.hitTestCircle = function(other, num, boundsCheck)
 
 hitTestCircle
 zim DisplayObject method
@@ -13499,21 +13630,23 @@ PARAMETERS
 other - the object whose circle based on the bounding rect we are using
 num - (default 8) the number of points evenly distributed around the circle
 	and one point in the middle of the circle
+boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
 --*///+38
-	zim.hitTestCircle = function(a, b, num) {
+	zim.hitTestCircle = function(a, b, num, boundsCheck) {
 		z_d("38");
 		if (!a.stage || !b.stage) return;
 		if (zot(a) || zot(b) || !a.hitTest || !b.getBounds) return;
 		if (zot(num)) num = 8;
+		if (zot(boundsCheck)) boundsCheck = true;
 		var bounds = b.getBounds();
 		if (!bounds) {
 			zog("zim methods - hitTestCircle():\n please setBounds() on param b object");
 			return;
 		}
 		var bounds2 = a.getBounds();
-		if (bounds2 && !zim.hitTestBounds(a,b)) return false; // bounds not hitting
+		if (boundsCheck && bounds2 && !zim.hitTestBounds(a,b)) return false; // bounds not hitting
 
 		var centerX = bounds.x+bounds.width/2;
 		var centerY = bounds.y+bounds.height/2;
@@ -18484,14 +18617,13 @@ items - get or set an array of objects currently in the Manager
 	//-75.5
 
 /*--
-zim.TransformManager = function(unique)
+zim.TransformManager = function(objects, persistID)
 
 TransformManager
-zim class
+zim class extends CreateJS EventDispatcher
 
 DESCRIPTION
 Manages multiple objects with transform() methods set.
-Defaults to allow only one transform at a time but can set to not apply this limit.
 Can use to show, hide, hideAll, add, remove and resize transform controls.
 Can be used to automatically save any transforms and reload them again on refresh of Browser / App.
 This uses localStorage.
@@ -18509,16 +18641,19 @@ var circ = new zim.Circle(100, frame.red)
 	.mov(200)
 	.transform();
 
-var tm = new zim.TransformManager();
-tm.add([rect, circ]);
-tm.persist("sample"); // now when a user comes back to page the transforms will be saved
+var tm = new zim.TransformManager([rect, circ], sample);
+// or use methods:
+// tm.add([rect, circ]);
+// tm.persist("sample"); // now when a user comes back to page the transforms will be saved
 END EXAMPLE
 
 PARAMETERS
-unique - (default true) only lets one set of transform() controls be set at a time
+objects - (default null) adds the object(s) to the Transform Manager
+	pass in a single object or an array of multiple objects
+persistID - (default null) String id to make ZIM remember transforms of objects (uses localStorage)
 
 METHODS
-add(obj) - adds object or an array of objects to the TransformManager - first object will get visible controls
+add(obj) - adds object or an array of objects to the TransformManager
 remove(obj) - removes object or an array of objects to the TransformManager
 show(obj) - show controls for an object that has a transform() set
 hide(obj) - hides controls for an object that has a transform() set - still available with click
@@ -18529,44 +18664,98 @@ clearPersist(id) - clear persisting data - do this before adding shapes - must p
 savePersist() - with persist() already set, this will force a saving even without a transform event being captured
 	if resize() after non-transform movement is called, then this is not needed
 stopPersist() - no longer save data
+dispose(removePersist, removeControls) - default just removes manager - keeps the data
+	set removePersist to true to remove the persist data
+	set removeControls to true to remove the transforms and beziers of all the items
 
 PROPERTIES
 items - get or set (set not recommended) an array of objects currently in the TransformManager
+currentObject - the last item to get transform tools if it still has the transform tools active
+persistData - gets the persist data if it exists
+
+EVENTS
+Dispatches a transformed event when pressup on any of the controls or on click
+	transformed event object has transformObject and transformType properties
+	the transformType property has values of:
+	 	FOR TRANSFORM: "size", "move", "rotate", "stretch", "reg" "reset"
+	 	FOR BLOB: "move", "bezierPoint", "bezierHandle", "bezierSwitch"
+Adds transformshow and transformhide events for when click to hide or show controls
+	these have a transformObject property to indicate what was shown or hidden
 
 --*///+75.7
-	zim.TransformManager = function(unique) {
+	zim.TransformManager = function(objects, persistID) {
 		z_d("75.7");
-		if (zot(unique)) unique = true;
 		var that = this;
 		this.items = [];
 		function setPersist() {
 			if (!localStorage) return;
 			that.savePersist();
 		}
+		var tmChangeEvent;
 		this.add = function(obj) {
-			if (Array.isArray(obj)) that.items = that.items.concat(obj);
-			else that.items.push(obj);
-			if (unique) {
-				that.hideAll();
-				var o;
-				for (var i=0; i<that.items.length; i++) {
-					o = that.items[i];
-					if (o.type == "Blob") {
-						if (!o || !o.update) {
-							that.items.splice(i); // was disposed
+			var newObj = []
+			if (Array.isArray(obj)) {newObj = obj;} else {newObj = [obj];}
+			var o; var firstEver = false;
+			for (var i=0; i<newObj.length; i++) {
+				o = newObj[i];
+				if (that.items.length == 0) firstEver = true;
+				if (o.type == "Blob") {
+					if (!that.persistID) {
+						if (firstEver && !o.controls) {
+							o.controls = true;
+							that.currentObject = o;
 						} else {
-							o.toggle = true;
-						}
-					} else {
-						if (!o.transformControls || !o.transformControls.resize) {
-							that.items.splice(i); // was disposed
-						} else {
-							o.transformControls.toggleOn();
+							o.controls = false;
 						}
 					}
+					o.on("change", function(e) {
+						var ev = new createjs.Event("transformed");
+						ev.transformObject = e.target;
+						ev.transformType = e.controlType;
+						that.dispatchEvent(ev);
+					});
+					o.on("controlsshow", function(e) {
+						var ev = new createjs.Event("transformshow");
+						that.currentObject = ev.transformObject = e.target;
+						that.dispatchEvent(ev);
+					});
+					o.on("controlshide", function(e) {
+						var ev = new createjs.Event("transformhide");
+						ev.transformObject = e.target;
+						that.currentObject = null;
+						that.dispatchEvent(ev);
+					});
+				} else {
+					transObj = o.transformControls;
+					if (!that.persistID) {
+						if (firstEver && !transObj.visible) {
+							transObj.show();
+							that.currentObject = o;
+						} else {
+							transObj.hide();
+						}
+					}
+					o.on("transformed", function(e) {
+						var ev = new createjs.Event("transformed");
+						ev.transformObject = e.target;
+						ev.transformType = e.transformType;
+						that.dispatchEvent(ev);
+					});
+					o.on("transformshow", function(e) {
+						var ev = new createjs.Event("transformshow");
+						that.currentObject = ev.transformObject = e.target;
+						that.dispatchEvent(ev);
+					});
+					o.on("transformhide", function(e) {
+						var ev = new createjs.Event("transformhide");
+						ev.transformObject = e.target;
+						that.currentObject = null;
+						that.dispatchEvent(ev);
+					});
 				}
-				// that.show(that.items[0]);
+
 			}
+			that.items = that.items.concat(obj);
 		}
 		this.remove = function(obj) {
 			if (zot(obj)) {that.items = []; return;}
@@ -18574,6 +18763,7 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 			var o;
 			for (var i=0; i<obj.length; i++) {
 				o = obj[i];
+				if (that.currentObject == o) that.currentObject = null;
 				if (o.transformedEvent) {
 					o.off("transformed", o.transformedEvent);
 					o.transformedEvent = null;
@@ -18596,9 +18786,11 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 				if (!transObj || transObj.visible) return;
 				transObj.show();
 			}
+			that.currentObject = obj;
 		}
 		this.hide = function(obj) {
 			if (zot(obj)) return;
+			if (that.currentObject == obj) that.currentObject = null;
 			if (obj.type == "Blob") {
 				if (obj.controls) obj.controls = false;
 			} else {
@@ -18624,6 +18816,7 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 					}
 				}
 			}
+			that.currentObject = null;
 		}
 		this.resize = function() {
 			if (!that) return;
@@ -18633,7 +18826,6 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 				if (!o || !(o.transformControls || o.update)) {
 					that.items.splice(i); // was disposed
 				} else {
-					if (that.items[i]==exception) continue;
 					if (o.type == "Blob") {
 						o.update();
 					} else {
@@ -18643,17 +18835,20 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 			}
 			if (persistID) that.savePersist();
 		}
-		var persistID
-		var sorry = "TransformManager persist(id) - sorry, must provide id";
-		this.persist = function(id) {
-			if (zot(id)) {
+		if (!zot(objects)) that.add(objects);
+		var sorry = "TransformManager persist(persistID) - sorry, must provide id";
+		this.persist = function(persistID) {
+			if (zot(persistID)) {
 				if (zon) {zog(sorry); return;}
 			}
-			persistID = id;
+			that.persistID = persistID;
 			if (localStorage && localStorage[persistID]) {
-				var data = JSON.parse(localStorage[persistID]);
+				var data = that.persistData = JSON.parse(localStorage[persistID]);
 				if (data.length == that.items.length) {
 					for (var i=0; i<that.items.length; i++) {
+						if (data[i].controls) {
+							that.currentObject = that.items[i];
+						}
 						if (data[i] && data[i].type == "Blob") {
 							that.items[i].set(data[i]);
 						} else if (data[i]) {
@@ -18668,8 +18863,12 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 				if (!it.transformedEvent) {
 					if (it.type == "Blob") {
 						it.transformedEvent = it.on("change", setPersist);
+						it.transformedEvent = it.on("controlsshow", setPersist);
+						it.transformedEvent = it.on("controlshide", setPersist);
 					} else {
 						it.transformedEvent = it.on("transformed", setPersist);
+						it.transformedEvent = it.on("transformshow", setPersist);
+						it.transformedEvent = it.on("transformhide", setPersist);
 					}
 				}
 			}
@@ -18684,12 +18883,14 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 					if (it.transformControls && it.transformControls.record) data.push(it.transformControls.record());
 				}
 			}
-			localStorage[persistID] = JSON.stringify(data);
+			that.persistData = data;
+			localStorage[that.persistID] = JSON.stringify(data);
 		}
 		this.clearPersist = function(id) {
 			if (zot(id)) {
 				if (zon) {zog(sorry); return;}
 			}
+			that.persistData = null;
 			if (localStorage) localStorage.removeItem(id);
 		}
 		this.stopPersist = function() {
@@ -18704,8 +18905,24 @@ items - get or set (set not recommended) an array of objects currently in the Tr
 					it.transformedEvent = null;
 				}
 			}
+			that.persistData = null;
+		}
+		if (!zot(persistID)) that.persist(persistID);
+
+		this.dispose = function(removePersist, removeControls) {
+			if (zot(removePersist)) removePersist = true;
+			that.removeAllEventListeners();
+			if (that.persistID && removePersist) that.stopPersist();
+			if (removeControls) {
+				for (var i=0; i<that.items.length; i++) {
+					o = that.items[i];
+					if (o.type == "Blob") o.dispose();
+					else o.transformControls.dispose();
+				}
+			}
 		}
 	}
+	zim.extend(zim.TransformManager, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
 	//-75.7
 
 /*--
@@ -22799,12 +23016,32 @@ loadAssets(assets, path, xhr, time, loadTimeout) // also accepts ZIM DUO configu
 			If absolute src is used, path parameter is ignored - otherwise path is added to start of src
 			After loading, can just use:
 				var label = new zim.Label("hello", 30, "wildwood") // or whatever the font property is
+		asset can be an AudioSprite - which is a single sound file and data for sounds within the sound file:
+			ZIM has a format for the data and so does CreateJS - there is also the zim.parseAudioSprite() method for importing formats
+			See the parseAudioSound parameter to pre-parse the ZIM format then use the resulting CreateJS format to avoid live parsing (maybe save a millisecond)
+			ZIM FORMAT:
+				{src:"audiosprite.mp3", audioSprite:[
+	                // [id, startime(s), endtime(s)]
+	                // prefer this when making audioSprites by hand in Premiere or Audition
+	                ['blackball', 1.041, 2.475],
+	                ['bounce', 3.567, 4.232]
+				]}
+			CREATEJS FORMAT:
+				{src: "audiosprite.mp3", data:{ // extra data property
+				    audioSprite: [
+				        {id:"sound1", startTime:0, duration:500}, // time in ms
+				        {id:"sound2", startTime:1000, duration:400},
+				        {id:"sound3", startTime:1700, duration: 1000}
+				    ]
+				}}
 	path - pass in an optional path String that gets prepended to the asset
 		when accessing the asset with the asset() method you do NOT include the path
 	xhr (default false) set to true to load text and WebAdio (not needed for normal sound mp3, wav, etc.)
 	time (default 0) is the minimum number of milliseconds for the complete event to trigger
 		use this for testing or to always have time to show a loading message
 	loadTimeout (default 8000) is how many ms to wait for asset before error and a complete fires even though asset not loaded
+	outputAudioSprite (default false) set to true when passing in a ZIM AudioSprite format to output to the console a CreateJS AudioSprite JSON object
+	 	JSON.parse() this object before passing in to loadAssets() - and add single quotes around console output as those are stripped by console
 	RETURNS: a zim.Queue object that can be used for control with multiple loadAssets calls
 	Each zim.Queue will trigger progress, assetload and complete events
 	Each zim.Queue will have a preload property to the CreateJS LoadQueue and an isLoading property
@@ -23111,15 +23348,18 @@ EVENTS
 		// ASSETS
 		this.loadAssetsCount = 0;
 		this.assets = {}; // store asset Bitmap or play function for sound
-		this.loadAssets = function(assets, path, xhr, time, loadTimeout) {
-			var sig = "assets, path, xhr, time, loadTimeout";
-			var duo; if (duo = zob(that.loadAssets, arguments, sig)) return duo;
+		this.loadAssets = function(assets, path, xhr, time, loadTimeout, outputAudioSprite) {
+			if (zot(assets.src)) { // might be sending single parameter of audiosprite
+				var sig = "assets, path, xhr, time, loadTimeout, outputAudioSprite";
+				var duo; if (duo = zob(that.loadAssets, arguments, sig)) return duo;
+			}
 			if (zot(assets)) return;
 			if (zot(xhr)) xhr = false;
 			if (!Array.isArray(assets)) assets = [assets];
 			if (assets.length == 0) return;
 			if (zot(time)) time = 0;
 			if (zot(loadTimeout)) loadTimeout = 8000;
+			if (zot(outputAudioSprite)) outputAudioSprite = false;
 			var soundCheck = false;
 			var manifest = [];
 			var a; var ext; var i; var j;
@@ -23127,17 +23367,42 @@ EVENTS
 			var fonts = [];
 			var googleFonts = [];
 			var nonFontCount = 0;
+
 			for (i=0; i<assets.length; i++) {
 				a = assets[i];
 				if (a.constructor == {}.constructor) {
-					if (a.src.match(/fonts\.googleapis\.com/)) googleFonts.push(a);
-					else fonts.push(a);
+					if (a.audioSprite) {
+						var obj = zim.copy(a);
+						a = obj.src;
+						prepareLoad(a);
+						var replacement = [];
+						var r;
+						for (j=0; j<obj.audioSprite.length; j++) {
+							r = obj.audioSprite[j];
+							replacement.push({id:r[0], startTime:Math.round(r[1]*1000), duration:Math.round((r[2]-r[1])*1000)});
+						}
+						delete(obj.audioSprite); // the ZIM data
+						obj.data = {audioSprite:replacement}; // the CreateJS data
+						if (outputAudioSprite) zog(JSON.stringify(obj));
+						manifest.push(obj);
+					} else if (a.data && a.data.audioSprite) { // CreateJS AudioSprite
+						var obj = zim.copy(a);
+						a = obj.src;
+						prepareLoad(a);
+						manifest.push(obj);
+					} else { // ZIM font object
+						if (a.src.match(/fonts\.googleapis\.com/)) googleFonts.push(a);
+						else fonts.push(a);
+					}
 				} else {
-					nonFontCount++;
-					ext = a.match(re);
-					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
+					prepareLoad(a);
 					manifest.push({src:a, loadTimeout:loadTimeout});
 				}
+			}
+			function prepareLoad(a) {
+				nonFontCount++;
+				ext = a.match(re);
+				if (ext && createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(ext[1]) >= 0) soundCheck = true;
 			}
 			that.loadAssetsCount++;
 			that.isLoading = true;
@@ -23199,15 +23464,29 @@ EVENTS
 					var ext = item.id.match(re);
 					var asset;
 					if (type && type == "sound") {
-						asset = that.assets[item.id] = {
-	                        type:"sound",
-	                        id:item.id,
-	                        play:function(added){
-	                            var instance = createjs.Sound.play(item.id, added);
-	                            instance.getStage = function(){return stage;}
-	                            return instance;
-	                        }
-	                    };
+						var soundIDs = [];
+						if (item.data && item.data.audioSprite) {
+							for (var i=0; i<item.data.audioSprite.length; i++) {
+								soundIDs.push(item.data.audioSprite[i].id);
+							}
+						} else {
+							soundIDs.push(item.id);
+						}
+						for (var i=0; i<soundIDs.length; i++) {
+							~function() { // wrap soundID in a closure
+								var soundID = soundIDs[i];
+								asset = that.assets[soundIDs[i]] = {
+			                        type:"sound",
+									path:path,
+			                        id:soundID,
+			                        play:function(added){
+			                            var instance = createjs.Sound.play(soundID, added);
+			                            instance.getStage = function(){return stage;}
+			                            return instance;
+			                        }
+			                    };
+							}();
+						}
 					} else if (type == "image") {
 						asset = that.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, item.id);
 					} else {
@@ -23491,6 +23770,79 @@ END EXAMPLE
 		zog((zim.distillery.length>0)?zim.distillery.join(" "):"must set zim.DISTILL = true;");
 	}//-83.2
 
+	//-83.1
+
+/*--
+zim.parseAudioSprite = function(audioSpriteData, outputAudioSprite)
+
+parseAudioSprite
+zim function
+
+DESCRIPTION
+Converts an AudioSprite data file from a popular AudioSprite Creation Tool: https://github.com/tonistiigi/audiosprite
+To a CreateJS AudioSprite data format to use with Frame loadAssets().
+
+NOTE: only gets the first file from the output and ignores loop and autoplay properties
+To loop a sound, use frame.asset(id).play({loop:-1});
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// loading JSON data for audio is two step process.
+// load the JSON then load the Audio with the converted loaded JSON data
+// NOTE - do not have two frame complete events active at the same time!
+// unless you assign the loadAssets() to a variable (ZIM Queue) and put the complete events on the variable
+frame.loadAssets("audioSprite.json", "assets/");
+frame.on("complete", init, null, true); // run this complete event only once (the true)
+
+function init() {
+	// convert imported data to CreateJS AudioSprite data:
+	var audioSpriteData = parseAudioSprite(frame.asset("audioSprite.json"));
+
+	// load the audio using the converted data
+	frame.loadAssets(audioSpriteData, "assets/");
+	frame.on("complete", function() {
+
+		// now all the AudioSprite ids are available
+		frame.asset("start").play();
+
+	});
+}
+END EXAMPLE
+
+PARAMETERS
+audioSpriteData - an object (not JSON) made from parsed JSON data from https://github.com/tonistiigi/audiosprite example:
+	{"resources": ["audiosprite.mp3"],
+    "spritemap": {
+        "blackball": {"start": 1.041, "end": 2.475, "loop": false},
+	    "bounce": {"start": 3.567, "end": 4.232, "loop": false}
+	}}
+outputAudioSprite - (default false) output to the console the converted CreateJS AudioSprite data
+	NOTE: this is in JSON format so will have to JSON.parse() the console text - wrap it in single quotes as they are stripped by the console
+
+RETURNS - either a ZIM or CreateJS AudioSprite data object
+--*///+83.25
+	zim.parseAudioSprite = function(audioSpriteData, outputAudioSprite) {
+	 	z_d("83.25");
+
+		// zog(audioSpriteData)
+
+		if (zot(audioSpriteData) || zot(audioSpriteData.resources) || zot(audioSpriteData.spritemap)) return;
+		var obj = audioSpriteData;
+		var id = audioSpriteData.resources[0];
+		var data = audioSpriteData.spritemap;
+		var newData = [];
+		var r;
+		var finalData = {src:id, data:{}};
+		for (i in data) {
+			r = data[i];
+			newData.push({id:i, startTime:Math.round(r.start*1000), duration:Math.round((r.end-r.start)*1000)})
+		}
+		finalData.data.audioSprite = newData;
+		if (outputAudioSprite) zog(JSON.stringify(finalData));
+		return finalData;
+	}//-83.25
+
 	return zim;
 } (zim || {});
 
@@ -23603,17 +23955,17 @@ function zimify(obj, list) {
 		gestureRect:function(rect) {
 			return zim.gestureRect(this, rect);
 		},
-		hitTestPoint:function(x, y) {
-			return zim.hitTestPoint(this, x, y);
+		hitTestPoint:function(x, y, boundsCheck) {
+			return zim.hitTestPoint(this, x, y, boundsCheck);
 		},
-		hitTestReg:function(b) {
-			return zim.hitTestReg(this, b);
+		hitTestReg:function(b, boundsCheck) {
+			return zim.hitTestReg(this, b, boundsCheck);
 		},
-		hitTestRect:function(b, num) {
-			return zim.hitTestRect(this, b, num);
+		hitTestRect:function(b, num, boundsCheck) {
+			return zim.hitTestRect(this, b, num, boundsCheck);
 		},
-		hitTestCircle:function(b, num) {
-			return zim.hitTestCircle(this, b, num);
+		hitTestCircle:function(b, num, boundsCheck) {
+			return zim.hitTestCircle(this, b, num, boundsCheck);
 		},
 		hitTestBounds:function(b, boundsShape) {
 			return zim.hitTestBounds(this, b, boundsShape);
@@ -23725,7 +24077,7 @@ function zimify(obj, list) {
 			clone.filters = this.filters==null?null:this.filters.slice(0);
 			clone.mask = this.mask;
 			clone.hitArea = this.hitArea;
-			clone.cursor = this.cursor;
+			// clone.cursor = this.cursor;
 			clone._bounds = this._bounds;
 			return clone;
 		},
