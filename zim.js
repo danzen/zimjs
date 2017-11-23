@@ -1190,6 +1190,38 @@ RETURNS a Boolean
 	}//-11.5
 
 /*--
+zim.isJSON = function(str)
+
+isJSON
+zim function
+
+DESCRIPTION
+returns whether a string is a JSON string
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var s = '{"age":7,"name":"Dan Zen"}';
+zog( isJSON(s) ); // true
+var b = "hello";
+zog( isJSON(b) ); // false
+END EXAMPLE
+
+PARAMETERS
+str - the string to test
+
+RETURNS a Boolean
+--*///+11.6
+	zim.isJSON = function(str) {
+		z_d("11.6");
+		try {
+			return (JSON.parse(str).constructor == {}.constructor);
+		} catch (e) {
+			return false;
+		}
+	}//-11.6
+
+/*--
 zim.merge = function(objects)
 
 merge
@@ -3308,9 +3340,7 @@ width - (default null) the width of the container
 height - (default width) the height of the container
 	if there is a width supplied but no height then the height is set to the width
 	setting these run container.setBounds(boundsX,boundsY,width,height);
-	you should be able to container.setBounds(null) to go back to auto calculation
-	but there is currently a bug in CreateJS - it will be fixed
-	so for now, if you ever want to auto calculate, do not set width and height
+	you can use container.setBounds(null) to go back to auto calculation
 
 OR if four parameters are set:
 boundsX - (default 0) the x of the bounds
@@ -3440,9 +3470,6 @@ width - (default null) the width of the shape
 height - (default width) the height of the shape
 	if there is a width supplied but no height then the height is set to the width
 	setting these run shape.setBounds(boundsX,boundsY,width,height);
-	you should be able to shape.setBounds(null) to go back to auto calculation
-	but there is currently a bug in CreateJS - it will be fixed
-	so for now, if you ever want to auto calculate, do not set width and height
 
 graphics - (default null) a CreateJS Graphics instance (see CreateJS docs)
 	or just use the graphics property of the shape object (like usual)
@@ -4848,8 +4875,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	zim.extend(zim.Triangle, zim.Container, "clone", "zimContainer");
 	//-53
 
-	/*--
-	zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop)
+/*--
+zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop)
 
 Squiggle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4989,6 +5016,10 @@ dispatches a change event for when the bezier controls are adjusted (pressup onl
 dispatches controlsshow and controlshide events when clicked off and on and toggle is true
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+
+MORE
+http://zimjs.com/code/squiggle
+https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOtyc0
 --*///+53.2
 	zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop) {
 
@@ -14243,7 +14274,7 @@ RETURNS obj for chaining
 
 
 /*--
-obj.gesture = function(move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect)
+obj.gesture = function(move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl)
 
 gesture
 zim DisplayObject method
@@ -14251,7 +14282,7 @@ zim DisplayObject method
 DESCRIPTION
 Sets multi-touch pan, pinch and rotate for position, scale and rotation
 Handles scaled and rotated containers
-Scale and rotation occur from registration point
+Scale and rotation occur from the pinch point (with optional regControl for about the registration point)
 Note - gesture() only works on the currentTarget - not a container's children (like drag() can)
 ZIM Frame should have touch set to true (which is the default for mobile)
 ALSO: see the noGesture() method to remove some or all gestures
@@ -14282,6 +14313,7 @@ snapRotate - (default 1) degrees to snap rotation to after rotation is finished
 localBounds - (default false) set to true to make rect for bounds local rather than global
 slide - (default false) will let you throw the object and dispatch a slidestop event when done
 slideEffect - (default 5) how much slide with 0 being no slide and then longer slide times and distance like 10, etc.
+regControl (default false) set to true to rotate and scale around registration point rather than pinch point
 
 EVENTS
 Adds move, scale and rotate events to obj (when associated gesture parameters are set to true)
@@ -14289,9 +14321,9 @@ If slide is true, obj dispatches a slidestop event when sliding stops
 
 RETURNS obj for chaining
 --*///+34.5
-	zim.gesture = function(obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect) {
+	zim.gesture = function(obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl) {
 
-		var sig = "obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect";
+		var sig = "obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl";
 		var duo; if (duo = zob(zim.gesture, arguments, sig)) return duo;
 		z_d("34.5");
 
@@ -14303,6 +14335,7 @@ RETURNS obj for chaining
 		if (zot(snapRotate)) snapRotate = 1;
 		if (zot(slide)) slide = false;
 		if (zot(slideEffect)) slideEffect = 5;
+		if (zot(regControl)) regControl = false;
 
 		var slideData;
 		var slideCount;
@@ -14360,7 +14393,33 @@ RETURNS obj for chaining
 				obj.move(obj.x, obj.y, 10, "quadOut"); // for some reason, first throw is smoother if already animated
 			}
 
+			var matrixStart;
+			var startScaleX;
+			var startScaleY;
+			var startRotation;
+			var startRegX;
+			var startRegY;
+			var lastPoint;
+			var maxTouches;
+
 			obj.zimTouch.mousedown = obj.on("mousedown", function(e) {
+
+				if (zot(maxTouches)) maxTouches = 1;
+				else maxTouches++;
+
+				if (!regControl) {
+					lastPoint = null;
+					startScaleX = obj.scaleX;
+					startScaleY = obj.scaleY;
+					startRotation = obj.rotation;
+					startRegX = obj.regX;
+					startRegY = obj.regY;
+					obj.reg(0,0);
+					matrixStart = obj.getMatrix();
+					obj.regX = startRegX;
+					obj.regY = startRegY;
+				}
+
 				var id = "id"+Math.abs(e.pointerID+1); // some pointers have negative ids
 				// convert all pointer x and y to the parent container of the obj
 				var local = obj.parent.globalToLocal(e.stageX, e.stageY);
@@ -14380,28 +14439,42 @@ RETURNS obj for chaining
 			})
 
 			obj.zimTouch.pressmove = obj.on("pressmove", function(e) {
+
 				var id = "id"+Math.abs(e.pointerID+1);
 				var local = obj.parent.globalToLocal(e.stageX, e.stageY);
 				// update our pointer data with new x and y
 				obj.zimTouch.pointers[id].x = local.x;
 				obj.zimTouch.pointers[id].y = local.y;
 
-				if (obj.zimTouch.move) {
-					// average the pointers' movement
-					var newX = 0;
-					var newY = 0;
-					zim.loop(obj.zimTouch.pointers, function(id, pointer) {
-						newX += pointer.x - pointer.startX;
-						newY += pointer.y - pointer.startY;
-					});
-					newX = obj.zimTouch.startX + newX / obj.zimTouch.total;
-					newY = obj.zimTouch.startY + newY / obj.zimTouch.total;
 
+				// average the pointers' movement
+				var newX = 0;
+				var newY = 0;
+				var aveX = 0; // point about which to scale and rotate
+				var aveY = 0;
+				var deltaX = 0;
+				var deltaY = 0;
+				zim.loop(obj.zimTouch.pointers, function(id, pointer) {
+					newX += pointer.x - pointer.startX;
+					newY += pointer.y - pointer.startY;
+					aveX += pointer.x;
+					aveY += pointer.y;
+				});
+				deltaX = newX / obj.zimTouch.total;
+				deltaY = newY / obj.zimTouch.total;
+				newX = obj.zimTouch.startX + deltaX;
+				newY = obj.zimTouch.startY + deltaY;
+				aveX = aveX / obj.zimTouch.total;
+				aveY = aveY / obj.zimTouch.total;
+
+				var proxy = {}; // will store desired scale and rotation on this object then apply matrix calculations
+
+				if (obj.zimTouch.move) {
 					var result = obj.zimTouch.checkBounds(newX, newY); // es6 opportunity
-					obj.x = result.x;
-					obj.y = result.y;
-					obj.dispatchEvent("move");
+					proxy.x = result.x;
+					proxy.y = result.y;
 				}
+
 
 				// if we have multitouch as determined by setTouches()
 				if (obj.zimTouch.pair.length == 2) {
@@ -14413,8 +14486,11 @@ RETURNS obj for chaining
 						var currentDistance = Math.sqrt(Math.pow((point2.x-point1.x),2) + Math.pow((point2.y-point1.y),2));
 						var newScaleX = obj.zimTouch.startSX + (currentDistance / startDistance - 1);
 						var newScaleY = obj.zimTouch.startSY + (currentDistance / startDistance - 1);
-						obj.scaleX = dampScaleX.convert(newScaleX);
-						obj.scaleY = dampScaleY.convert(newScaleY);
+						proxy.scaleX = newScaleX;
+						proxy.scaleY = newScaleY;
+
+						proxy.scaleX = dampScaleX.convert(newScaleX);
+						proxy.scaleY = dampScaleY.convert(newScaleY);
 
 						// set to scale min or max if scale would be outside range
 						var minBad = (!zot(minScale) && Math.min(newScaleX, newScaleY) < minScale);
@@ -14422,37 +14498,108 @@ RETURNS obj for chaining
 						if (minBad || maxBad) {
 							if (minBad) {
 								if (scaleRatio > 1) {
-									obj.scaleY = minScale;
-									obj.scaleX = minScale*scaleRatio;
+									proxy.scaleY = minScale;
+									proxy.scaleX = minScale*scaleRatio;
 								} else {
-									obj.scaleX = minScale;
-									obj.scaleY = minScale/scaleRatio;
+									proxy.scaleX = minScale;
+									proxy.scaleY = minScale/scaleRatio;
 								}
 							} else if (maxBad) {
 								if (scaleRatio > 1) {
-									obj.scaleX = maxScale;
-									obj.scaleY = maxScale/scaleRatio;
+									proxy.scaleX = maxScale;
+									proxy.scaleY = maxScale/scaleRatio;
 								} else {
-									obj.scaleY = maxScale;
-									obj.scaleX = maxScale*scaleRatio;
+									proxy.scaleY = maxScale;
+									proxy.scaleX = maxScale*scaleRatio;
 								}
 							}
-							dampScaleX.immediate(obj.scaleX);
-							dampScaleY.immediate(obj.scaleY);
+							dampScaleX.immediate(proxy.scaleX);
+							dampScaleY.immediate(proxy.scaleY);
 						}
 
-						obj.dispatchEvent("scale");
 					}
 					if (obj.zimTouch.rotate) {
 						// rotate based on the difference of angle between the fingers at start and at current
 						var startAngle = Math.atan2((point1.startY - point2.startY), (point1.startX - point2.startX)) * (180 / Math.PI);
 						var currentAngle = Math.atan2((point1.y - point2.y), (point1.x - point2.x)) * (180 / Math.PI);
-						obj.rotation = obj.zimTouch.startR + (currentAngle - startAngle);
-						obj.dispatchEvent("rotate");
+						var deltaR = currentAngle - startAngle;
+						proxy.rotation = obj.zimTouch.startR + deltaR;
 					}
+
+					if (regControl) {
+						obj.scaleX = proxy.scaleX;
+						obj.scaleY = proxy.scaleY;
+						obj.rotation = proxy.rotation;
+						obj.x = proxy.x
+						obj.y = proxy.y
+					} else {
+						// transformations seem to ignore registration so need to set to 0 then reset after transformations
+						obj.reg(0,0);
+
+						// need global data - the transformation about the pinch point is an adjustment of the system
+						// originally we wanted calculations in the container of the object
+						// these calculations were probably used for min and max of things, etc. so just leaving them
+						// and instead, bringing the calculations back into the global - and then eventually into the local for the transformations
+						var adjust = obj.parent.localToGlobal(aveX, aveY);
+						aveX = adjust.x;
+						aveY = adjust.y;
+
+						// unfortunately, system goes haywire after a while without adjusting for minor shifts
+						// saving the location of the center back to global after the transformation seems to correct this
+						// we set lastPoint down below after the transformation
+						var point = zot(lastPoint) ? obj.globalToLocal(aveX, aveY) : obj.globalToLocal(lastPoint.x, lastPoint.y);
+
+						// the classic Matrix transformation - translate to the pinch point, scale and rotate, and then translate back
+						// var matrix = new createjs.Matrix2D()
+						var matrix = matrixStart.clone()
+							.translate(point.x, point.y)
+							.rotate(proxy.rotation-startRotation)
+							.scale(proxy.scaleX/startScaleX,proxy.scaleY/startScaleY)
+							.translate(-(point.x), -(point.y))
+							// .prependMatrix(matrixStart) // would use if started new Matrix each time
+
+						matrix.decompose(obj);
+
+						obj.x += deltaX;
+						obj.y += deltaY;
+
+						// correcting for minor shifts which can magnify and set the system haywire
+						lastPoint = obj.localToGlobal(point.x, point.y);
+
+						obj.reg(startRegX, startRegY);
+					}
+
+					if (obj.zimTouch.scale) obj.dispatchEvent("scale");
+					if (obj.zimTouch.rotate) obj.dispatchEvent("rotate");
+					if (obj.zimTouch.move) obj.dispatchEvent("move");
+
+				} else {
+					obj.x = proxy.x;
+					obj.y = proxy.y;
+					if (obj.zimTouch.move) obj.dispatchEvent("move");
 				}
 				if (obj.getStage && obj.stage) obj.stage.update();
 			});
+
+			var mouseCount = 0;
+			obj.on("mousedown", function() {
+				// if an object is removed that is touched, the touch will still be registered
+				// this code makes sure that no ghost touches are left by counting stagemousedown and stagemouseup events
+				var mouseCount = 1;
+				obj.stage.on("stagemousedown", function() {
+					mouseCount++;
+				});
+				obj.stage.on("stagemouseup", function() {
+					mouseCount--;
+					if (mouseCount == 0) {
+						setTimeout(function() {
+							if (obj.zimTouch) obj.zimTouch.total = 0;
+							if (obj.zimTouch) obj.zimTouch.pointers = {};
+							maxTouches = null;
+						}, 50);
+					}
+				});
+			}, null, true); // once
 
 			obj.zimTouch.pressup = obj.on("pressup", function(e) {
 				var id = "id"+Math.abs(e.pointerID+1);
@@ -14466,7 +14613,8 @@ RETURNS obj for chaining
 						obj.rotation = Math.round(obj.rotation);
 					}
 				}
-				if (slide && obj.zimTouch.total == 0) {
+				// spinning was throwing slide off so just slide with single touch for now...
+				if (slide && obj.zimTouch.total == 0 && maxTouches == 1) {
 					obj.zimTouch.slideInterval.pause();
 					var startSlide = slideData[(slideCount+1)%slideData.length];
 					var currentSlide = slideData[(slideCount)%slideData.length];
@@ -14477,6 +14625,7 @@ RETURNS obj for chaining
 					var newT = slideTotal*slideSlice*slideEffect * Math.min((obj.x-result.x)/(obj.x-newX)||1, (obj.y-result.y)/(obj.y-newY)||1);
 					obj.move(result.x, result.y, newT, "quadOut", function(){obj.dispatchEvent("slidestop");});
 				}
+				if (obj.zimTouch.total == 0) maxTouches = null;
 				if (obj.getStage && obj.stage) obj.stage.update();
 				setTouches();
 			});
@@ -16005,7 +16154,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 	        target.stopAnimate = function(ids, include) {
 				if (zot(include)) include = true;
 				if (zot(ids)) {
-					if (!include) return; // would be exclude all ids
+					if (!include) return target; // would be exclude all ids
 					target.zimBusy = null; // clear any busy properties
 		            createjs.Tween.removeTweens(target);
 					for (var id in target.zimTweens) {endTicker(id);}
@@ -16031,7 +16180,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 	        target.pauseAnimate = function(paused, ids, include) {
 	            if (zot(paused)) paused = true;
 				if (zot(include)) include = true;
-				if (zot(ids) && !include) return; // would be exclude all ids
+				if (zot(ids) && !include) return target; // would be exclude all ids
 				if (zot(ids)) { // want all ids
 					for (var id in target.zimTweens) {pauseTicker(id, paused);}
 				} else {
@@ -16936,7 +17085,7 @@ PARAMETERS supports DUO - parameters or single object with properties below
 color - (default brown) the color of the outline
 size - (default 2) the stroke size of the outline
 
-RETURNS the shape if you want to remove it: obj.parent.removeChild(returnedShape);
+RETURNS the obj for chaining;
 --*///+47
 	zim.outline = function(obj, color, size) {
 
@@ -18009,7 +18158,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				if (prefixTab) prefixTab.removeEventListener("focus", clearAlert);
 				if (suffixTab) suffixTab.removeEventListener("focus", clearAlert);
 				for (var i=0; i<tabTags.length; i++) {
-					tabTags[i].outerHTML = "";
+					if (tabTags[i].parentElement) tabTags[i].outerHTML = "";
 				}
 				tabTags = [];
 
@@ -18729,9 +18878,7 @@ Dispatches a "change" event when the screen reader is about to talk
 
 		this.dispose = function() {
 			that.tabOrder = [];
-			for (var i=0; i<tabTags.length; i++) {
-				if (tabTags[i].outerHTML) tabTags[i].outerHTML = "";
-			}
+			for (var i=0; i<tabTags.length; i++) if (tabTags[i].parentElement) tabTags[i].outerHTML = "";
 			that.removeAllEventListeners();
 			frame.off("keydown", tabFrameEvent);
 		}
@@ -23294,8 +23441,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (!horizontal && !vertical) that.centerReg();
 
 				//-------------   INTERVAL
+				// var counter = 0;
+				// var time = Date.now();
+				// that.interval = 1000 / 60;
 
-	            that.zimInterval = zim.interval(that.interval, function() {
+				that.zimInterval = zim.interval(that.interval, function() {
+	            // that.zimInterval = setInterval(function() {
+
+					// counter++;
+				    // zog(decimals(counter/(Date.now() - time)*1000,5));
 
 					if (that.startPaused) {that.pause(); return;}
 					// want to leave that.obj as it was provided
@@ -23525,6 +23679,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		                    particle.animate(zim.copy(a));
 		                }
 					});
+				// }, that.interval);
 	            }, null, true); // true for immediate
 
 
@@ -25202,8 +25357,8 @@ function zimify(obj, list) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
 			else {return zim.animate(this, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id);}
 		},
-		pauseAnimate:function(){},
-		stopAnimate:function(){},
+		pauseAnimate:function(){return this;},
+		stopAnimate:function(){return this;},
 		wiggle:function(property, baseAmount, minAmount, maxAmount, minTime, maxTime, type, ease, integer, id, startType) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.wiggle(arguments[0]);}
 			else {return zim.wiggle(this, property, baseAmount, minAmount, maxAmount, minTime, maxTime, type, ease, integer, id, startType);}
