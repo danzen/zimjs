@@ -17775,6 +17775,13 @@ Ticker.setTimingMode(mode) - (default "raf") RAF uses RequestAnimationFrame with
 	set to "synched" for framerate synching - but will add some variance between updates
 	set to "timeout" for setTimeout synching to framerate - no screen synch or background throttling (if RAF is not supported falls back to this mode)
 	see CreateJS docs: http://www.createjs.com/docs/tweenjs/classes/Ticker.html
+Ticker.raw(function) - a stand-alone direct call to RequestAnimationFrame for maximum speed
+ 	Does not use Dictionary lookup that the add() uses so provides ultimate speed for generative art, etc.
+	Returns function as id so can use Ticker.removeRaw(id)
+	raw() does not automatically update the stage so put a stage.update() in the function
+	raw() is for when you want to run one function much like the draw() in Processing, the animate() renderer in ThreeJS, etc.
+	add() is for when you want to run multiple functions with a single globally coordinated stage.update()
+Ticker.removeRaw(id) - remove the raw function based on the return value of the var id = Ticker.raw(function)
 Ticker.dispose([stage]) - removes all functions from the queue removes and removes the list (optionally per stage)
 
 PROPERTIES (static)
@@ -17798,6 +17805,7 @@ this will run a single update only when needed in zim Ticker for any zim functio
 run Ticker.always(stage);
 4. if for some reason (can't think of any) you want no ticker updates for zim but want component updates
 then set OPTIMIZE = false and then set Ticker.update = false
+5. if you want maximum speed use Ticker.raw(function) which flows directly through to a RequestAnimationFrame
 --*///+30
 	zim.Ticker = {
 		stages:null,
@@ -17829,6 +17837,16 @@ then set OPTIMIZE = false and then set Ticker.update = false
 			if (!t.ticker) t.ticker = createjs.Ticker.on("tick", t.call);
 			if (t.list.at(s)) {t.list.at(s).push(f);} else {t.list.add(s, [f]);}
 			return f;
+		},
+		rawID:{},
+		raw: function(f) {
+			var id = zim.makeID(7, "letters");
+			-function raw() {f(); zim.Ticker.rawID[id] = requestAnimationFrame(raw);}();
+			return id;
+		},
+		removeRaw: function(id) {
+			cancelAnimationFrame(zim.Ticker.rawID[id]);
+			delete zim.Ticker.rawID[id];
 		},
 		call: function(currentTime) {
 			var t = zim.Ticker;
@@ -21745,7 +21763,6 @@ Dispatches a pause event when paused is complete (sometimes a delay to slow to p
 		var b1 = this.backing1 = backing;
 		if (zot(b1) || !b1.getBounds) return;
 		var b2 = this.backing2 = backing.clone();
-		b1.parent.addChild(b2);
 		if (zot(horizontal)) horizontal = true;
 		if (zot(gapFix)) gapFix = 0;
 		var that = this; // we keep animate protected but want to access public properties
@@ -21764,6 +21781,11 @@ Dispatches a pause event when paused is complete (sometimes a delay to slow to p
 			zog("zim display - Scroller(): please pass in stage parameter or add backing objects to stage to start");
 			return;
 		}
+		if (!b1.parent) {
+			zog("zim display - Scroller(): please add object to container or stage before adding to Scroller");
+			return;
+		}
+		b1.parent.addChildAt(b2, b1.parent.getChildIndex(b1));
 		stage = stage||b1.stage;
 		if (zot(container)) container = stage;
 		if (!container.getBounds()) {zog("zim display - Scroller(): please setBounds() on container or stage if no container"); return;}
@@ -21902,7 +21924,7 @@ Dispatches a pause event when paused is complete (sometimes a delay to slow to p
 
 
 /*--
-zim.Dynamo = function(sprite, speed, label, startFrame, endFrame, update, reversable)
+zim.Dynamo = function(sprite, speed, label, startFrame, endFrame, update, reversible, flip, flipVertical)
 
 Dynamo
 zim class - extends a createjs EventDispatcher
@@ -21934,7 +21956,7 @@ EXAMPLE
 // we can make this run faster and slower with an accelerator:
 // we pass in a speed of 30 fps and this becomes the baseSpeed
 
-var dynamo = new Dynamo(sprite, 30, "walk");
+var dynamo = new Dynamo({sprite:sprite, speed:30, label:"walk", reversible:false});
 Ticker.add(function() {
 	// the sprite will run at 0 speed when the cursor is at the left of the stage
 	// and get faster as the cursor moves to the right
@@ -21947,6 +21969,8 @@ var dynamo = new Dynamo(sprite, 30, "walk");
 Ticker.add(function() {
 	// will play backwards at 30 fps at left and forwards at 30 fps at right
 	// it will stop at half the stage width
+	// reversible false means it will not walk backwards
+	// but rather it will flip and walk in the left direction when the speed is negative
 	dynamo.percentSpeed = stage.mouseX/stageW*200 - 100;
 }, stage);
 END EXAMPLE
@@ -21958,7 +21982,11 @@ label - (default null) the label of the sprite to play (see Sprite)
 startFrame - (default 0) the frame to start the animation (ignored if a label is provided)
 endFrame - (default sprite.totalFrames) the frame to end the animation (ignored if a label is provided)
 update - (default false) set to true to update the stage (only do this if you are not already updating the stage!)
-reversable - (default true) will allow percentSpeed to be negative and reverse the animation.  Set to false to use absolute value.
+reversible - (default true) will allow percentSpeed to be negative and reverse the animation.  Set to false to use absolute value.
+flip - (default true if reversible is false) will flip the scaleX of the sprite if speed is negative and reversible is set to false.
+	the pairing of reversible false and flip true will make a Sprite turn and walk the other way if the speed is negaitive
+	Note: also see the scaleX property
+flipVertical - (default false) flip the Sprite in the vertical if the speed is negative (note also see the scaleY property)
 
 METHODS
 pause(state, time, frame) - the way to pause or unpause a Dynamo affecting the sprite animating
@@ -21979,14 +22007,18 @@ speed - get or set the speed of the sprite in frames per second
 baseSpeed - the start speed given in frames per second unless changed with this property
 	this affects the percentSpeed so usually it is not adjusted - but it can be
 paused - read only - whether the Dynamo is paused or not (by using the pause() method)
+scaleX - starts with the original scaleX of the Sprite
+	if you flip the sprite and are scaling the Sprite manually, then also set the scaleX of the dynamo to match
+scaleY - starts with the original scaleY of the Sprite
+	if you flip the sprite and are scaling the Sprite manually, then also set the scaleY of the dynamo to match
 
 EVENTS
 dispatches a change event when the Dynamo changes frame
 dispatches a loop event when the Dynamo loops (possibly in reverse)
 dispatches a pause event when the Dynamo is paused - could be delayed
 --*///+69.2
-	zim.Dynamo = function(sprite, speed, label, startFrame, endFrame, update, reversable) {
-		var sig = "sprite, speed, label, startFrame, endFrame, update, reversable";
+	zim.Dynamo = function(sprite, speed, label, startFrame, endFrame, update, reversible, flip, flipVertical) {
+		var sig = "sprite, speed, label, startFrame, endFrame, update, reversible, flip, flipVertical";
 		var duo; if (duo = zob(zim.Dynamo, arguments, sig, this)) return duo;
 
 		z_d("69.2");
@@ -21997,9 +22029,10 @@ dispatches a pause event when the Dynamo is paused - could be delayed
 		this.totalFrames = frames.length;
 		var _frame = 0; // frame for getter and setter methods
 		if (zot(speed)) speed = 30;
-		if (zot(reversable)) reversable = true;
+		if (zot(reversible)) reversible = true;
 		var lastSpeed = this.baseSpeed = this.speed = speed;
 		if (zot(update)) update = false;
+		if (zot(flip) && reversible == false) flip = true;
 
 		var that = this;
 		var requestID;
@@ -22009,6 +22042,8 @@ dispatches a pause event when the Dynamo is paused - could be delayed
 		var wait;
 		var endFrameRequest;
 		var pausing = false; // for in the act of pausing
+		that.scaleX = sprite.scaleX;
+		that.scaleY = sprite.scaleY;
 		function doDynamo() {
 			requestID = requestAnimationFrame(doDynamo);
 			speedFactor = frames[_frame].s;
@@ -22017,11 +22052,19 @@ dispatches a pause event when the Dynamo is paused - could be delayed
 			currentTime = Date.now();
 			if (currentTime - lastTime > wait) {
 				lastTime = currentTime;
-				var nextFrame = that.frame+((that.speed>0 || !reversable)?1:-1);
+				var nextFrame = that.frame+((that.speed>0 || !reversible)?1:-1);
 				var loopCheck = false;
 				if (nextFrame >= frames.length) {loopCheck = true; nextFrame = 0;}
 				if (nextFrame < 0) {loopCheck = true; nextFrame = frames.length-1;}
 				that.frame = nextFrame;
+				if (flip) {
+					if (that.speed < 0) sprite.scaleX = -that.scaleX;
+					else sprite.scaleX = that.scaleX;
+				}
+				if (flipVertical) {
+					if (that.speed < 0) sprite.scaleY = -that.scaleY;
+					else sprite.scaleY = that.scaleY;
+				}
 				if (loopCheck) that.dispatchEvent("loop");
 				that.dispatchEvent("change");
 				if (update && sprite.stage) sprite.stage.update();
