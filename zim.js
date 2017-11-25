@@ -1533,7 +1533,7 @@ RETURNS a String id (even if type is number)
 		var c; // character - note, char is a reserved word for compressor!
 		var rand;
 		for (var i=0; i<length; i++) {
-			c = choices[Math.floor(Math.random()*length)];
+			c = choices[Math.floor(Math.random()*choices.length)];
 			rand = Math.random();
 			if (letterCase == "uppercase" || (letterCase == "mixed" && rand > .5)) {
 				if (c.toUpperCase) c = c.toUpperCase();
@@ -2969,6 +2969,7 @@ hexToWord - (default false) set to true to convert a hex value to the HMTL strin
 RETURNS a String with the converted color or black or #000000 if a match is not found
 --*///+27.5
 	zim.convertColor = function(color, hexToWord) {
+		z_d("27.5");
 		if (zot(hexToWord)) hexToWord = false;
 		if (hexToWord) {
 			color = color.replace("#","");
@@ -17776,6 +17777,7 @@ Ticker.setTimingMode(mode) - (default "raf") RAF uses RequestAnimationFrame with
 	set to "timeout" for setTimeout synching to framerate - no screen synch or background throttling (if RAF is not supported falls back to this mode)
 	see CreateJS docs: http://www.createjs.com/docs/tweenjs/classes/Ticker.html
 Ticker.raw(function) - a stand-alone direct call to RequestAnimationFrame for maximum speed
+	Example: http://zimjs.com/code/raw/
  	Does not use Dictionary lookup that the add() uses so provides ultimate speed for generative art, etc.
 	Returns function as id so can use Ticker.removeRaw(id)
 	raw() does not automatically update the stage so put a stage.update() in the function
@@ -17840,6 +17842,7 @@ then set OPTIMIZE = false and then set Ticker.update = false
 		},
 		rawID:{},
 		raw: function(f) {
+			z_d("30");
 			var id = zim.makeID(7, "letters");
 			-function raw() {f(); zim.Ticker.rawID[id] = requestAnimationFrame(raw);}();
 			return id;
@@ -24276,7 +24279,7 @@ touch - (default true) activates touch on mobile
 scrollTop - (default true) activates scrolling on older apple devices to hide the url bar
 align - (default "center") for fit and outside, the horizontal alignment "left", "center/middle", "right"
 valign - (default "center") for fit and outside, the vertical alignment "top", "center/middle", "bottom"
-canvasID - (default "myCanvas") will be set to tagIDCanvas if a tagID is provided - eg. scaling=test, canvasID=testCanvas
+canvasID - (default "myCanvas" or if subsequent frame, myCanvas+randomID) will be set to tagIDCanvas if a tagID is provided - eg. scaling="test", canvasID="testCanvas"
 rollPerSecond - (default 20) times per second rollover is activated (if rollover parameter is true)
 delay - (default 500) time in milliseconds to resize ONCE MORE after a orientation change
 	unfortunately, some older devices may have a delay (after a window resize event) in reporting screen sizes
@@ -24305,6 +24308,7 @@ PROPERTIES
 stage - read only reference to the createjs stage - to change run remakeCanvas()
 	frame gives the stage read only stage.width and stage.height properties
 canvas - a reference to the frame's canvas tag
+canvasID - a reference to the frame's canvas ID
 color - the color of the frame background - any css color
 outerColor - the color of the body of the HTML page - set with styles
 tag - the containing tag if scaling is set to an HTML tag id (else null)
@@ -24431,7 +24435,15 @@ EVENTS
 		if (zot(scrollTop)) scrollTop = true;
 		if (zot(align)) align = "center";
 		if (zot(valign)) valign = "center";
-		if (zot(canvasID)) canvasID = "myCanvas";
+		var randomCanvas = "";
+		if (zot(canvasID)) {
+			if (zimDefaultFrame != this) { // more than one canvas with generic name
+				randomCanvas = zim.makeID(5);
+				canvasID = "myCanvas" + randomCanvas;
+			} else {
+				canvasID = "myCanvas";
+			}
+		}
 		if (zot(rollPerSecond)) rollPerSecond = 20;
 		if (zot(delay)) delay = 0;
 		if (zot(gpu)) gpu = false;
@@ -24508,8 +24520,9 @@ EVENTS
 				if (zot(zid(tagID))) {zog("zim.Frame - scaling: HTML tag with id="+scaling+" must exist"); return;};
 				tag = this.tag = zid(tagID);
 				scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
-				if (canvasID == "myCanvas") canvasID = tagID + "Canvas";
+				if (canvasID.substr("myCanvas") == 0) canvasID = tagID + "Canvas" + randomCanvas;
 			}
+			that.canvasID = canvasID;
 
 			// now assign default width and height (ignored by full and tag)
 			if (zot(width)) width = 500;
@@ -25050,7 +25063,7 @@ distill();
 END EXAMPLE
 --*///+83.1
 	DISTILL = false;
-	distillery = [];
+	zim.distillery = [];
 //-83.1
 
 /*--
