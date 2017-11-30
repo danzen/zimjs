@@ -10607,7 +10607,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-62
 
 /*--
-zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep)
+zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax);
 
 Dial
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10629,7 +10629,7 @@ END EXAMPLE
 PARAMETERS supports DUO - parameters or single object with properties below
 min - (default 0) the minimum value for the dial
 max - (default 10) the maximum value for the dial
-step - (default 0) 0 is continuous decimal - 1 would provide steps of 1, 2 would provide steps of 2, etc.
+step - (default 1) 1 provides steps of 1, 0 is continuous decimal, 2 would provide steps of 2, etc.
 width - (default 100) the width of the dial (diameter)
 color - (default "#666") the backing color of the dial
 indicatorColor - (default "#222") the color of the indicator
@@ -10644,6 +10644,14 @@ limit - (default true) stops dial from spinning right around - set to false to n
 keyArrows - (default true) set to false to disable keyboard arrows
 keyArrowsStep - (default 1% of max-min) number to increase or decrease value when arrow is used
 	if step is set, then this value is ignored and set to step
+relative - (default false) this turns the dial into a relative dial from the min at the top
+	The (max-min)/360 give a delta value per degree
+	and as the dial goes clockwise it adds the delta and as it goes counterclockwise it subtracts the delta
+	The steps are still used or not if set to zero
+	The min and max are no longer a real min and max - see the relativeMin and relativeMax below
+	limit is ignored or set to false when relative is true
+relativeMin - (default null) set to Number to limit the minimum total value of the dial when relative is true
+relativeMax - (default null) set to Number to limit the maximum total value of the dial when relative is true
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -10665,7 +10673,11 @@ width - gets or sets the width. Setting the width will scale the height to keep 
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
-min, max, step - read only - the assigned values
+min, max - read only assigned values unless relative is true - then write enabled
+step - read only - the assigned values
+relative - gets a boolean as to whether the relative is true (read only)
+relativeMin - get or set the relativeMin if relative is set to true
+relativeMax - get or set the relativeMax if relative is set to true
 backing - gives access to the dial backing Circle
 inner and inner2 give access to any inner circles
 ticks - gives access to the ticks (to scale these for example)
@@ -10689,9 +10701,9 @@ dispatches a "change" event when dial changes value (but not when setting curren
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+63
-	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep) {
+	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax) {
 
-		var sig = "min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep";
+		var sig = "min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax";
 		var duo; if (duo = zob(zim.Dial, arguments, sig, this)) return duo;
 		z_d("63");
 		this.zimContainer_constructor();
@@ -10711,9 +10723,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(useTicks)) useTicks = true;
 		if (zot(innerTicks)) innerTicks = false;
 		if (zot(tickColor)) tickColor = indicatorColor;
-		if (zot(limit)) limit = true;
 		if (zot(keyArrows)) keyArrows = true;
 		if (zot(keyArrowsStep)) keyArrowsStep = (max-min)/100;
+		if (zot(relative)) relative = false;
+		if (relative) limit = false; // relative sets the limit to false
 
 		var that = this;
 		this.cursor = "pointer";
@@ -10736,7 +10749,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var inner2 = this.inner2 = new zim.Circle(r*(innerScale-.1), ic2);
 				this.addChild(inner2);
 			}
-
 		}
 
 		var stepsTotal = Math.abs(max - min) / step;
@@ -10790,32 +10802,46 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var moveEvent;
 		var upEvent;
 		var lastA = 0;
-		this.on("mousedown", function() {
+		var normalizedAmount; // amount within base rotation - based on min and max
+		if (relative) {
+			var lastRelative = 0;
+			var relativeAngle = 0;
+			var relativeBase = 0; // keeps track of 360s
+			var relativeAdjust = false; // for hitting bounds
+		} else {
+			normalizedAmount = min;
+		}
+		var touchID;
+		this.on("mousedown", function(e) {
 			if (that.zimAccessibility && that.zimAccessibility.aria) return;
 			lastAngle = indicator.rotation;
-			var p = that.parent.globalToLocal(that.stage.mouseX, that.stage.mouseY);
+			var p = that.parent.globalToLocal(e.stageX, e.stageY);
 			var dX = p.x-that.x;
 			var dY = that.y-p.y;
 			startAngle = Math.atan2(dX,dY)*180/Math.PI;
 			var pressTime = new Date().getTime();
-			moveEvent = that.on("pressmove", function() {
-				p = that.parent.globalToLocal(that.stage.mouseX, that.stage.mouseY);
+			moveEvent = that.on("pressmove", function(e) {
+				if (relativeAdjust) { // hit bounds so reset start
+					var p = that.parent.globalToLocal(e.stageX, e.stageY);
+					var dX = p.x-that.x;
+					var dY = that.y-p.y;
+					startAngle = Math.atan2(dX,dY)*180/Math.PI;
+					lastAngle = indicator.rotation;
+				}
+				p = that.parent.globalToLocal(e.stageX, e.stageY);
 				dX = p.x-that.x;
 				dY = that.y-p.y;
-				var angle = lastAngle + Math.atan2(dX,dY)*180/Math.PI - startAngle;
-				if (limit) {
-					if (angle < 0) angle += 360;
-					angle = angle % 360;
-					if (Math.abs(angle-lastA) > 180) return;
-				}
-				lastA = angle;
-
+				var endAngle = Math.atan2(dX,dY)*180/Math.PI;
+				var angle = lastAngle + endAngle - startAngle;
+				angle = (angle + 360*10000) % 360;
+				if (limit && Math.abs(angle-lastA) > 180) return;
 				setValue(angle);
+				lastA = angle;
 			});
-			upEvent = this.on("pressup", function() {
+			upEvent = this.on("pressup", function(e) {
 				var deltaTime = new Date().getTime()-pressTime;
 				if (deltaTime < 200) {
-					p = that.parent.globalToLocal(that.stage.mouseX, that.stage.mouseY);
+					p = that.parent.globalToLocal(e.stageX, e.stageY);
 					dX = p.x-that.x;
 					dY = that.y-p.y;
 					var angle = Math.atan2(dX,dY)*180/Math.PI;
@@ -10834,6 +10860,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function setValue(angle) {
+			if (relative) {
+				if (angle > lastRelative + 180) {
+					relativeBase -= 360;
+				} else if (angle < lastRelative - 180) {
+					relativeBase += 360;
+				}
+				relativeAngle  = relativeBase + angle;
+				that.currentValue = snap(relativeAngle * (max-min) / 360);
+				that.dispatchEvent("change");
+				lastRelative = angle;
+				return true;
+			}
 			var v; // value (not including min)
 			if (angle < 0) angle += 360;
 			angle = angle % 360;
@@ -10860,13 +10898,31 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				if(zot(value)) return;
-				if (min < max) {
-					if (value < min) value = min;
-					if (value > max) value = max;
+				if (relative) {
+					relativeAdjust = false;
+					if (!zot(relativeMin) && !zot(relativeMax)) {
+						if (relativeMin < relativeMax) {
+							if (value < relativeMin) {value = relativeMin; relativeAdjust = true;}
+							if (value > relativeMax) {value = relativeMax; relativeAdjust = true;}
+						} else {
+							if (value > relativeMin) {value = relativeMin; relativeAdjust = true;}
+							if (value < relativeMax) {value = relativeMax; relativeAdjust = true;}
+						}
+					} else if (!zot(relativeMin)) {
+						if (value < relativeMin) {value = relativeMin; relativeAdjust = true;}
+					} else if (!zot(relativeMax)) {
+						if (value > relativeMax) {value = relativeMax; relativeAdjust = true;}
+					}
 				} else {
-					if (value > min) value = min;
-					if (value < max) value = max;
+					if (min < max) {
+						if (value < min) value = min;
+						if (value > max) value = max;
+					} else {
+						if (value > min) value = min;
+						if (value < max) value = max;
+					}
 				}
+
 				myValue = value;
 				value = snap(value);
 				if (step != 0) {
@@ -10874,6 +10930,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else {
 					indicator.rotation = (value - min) * 360 / (max - min);
 				}
+				indicator.rotation = (indicator.rotation + 360 * 10000) % 360;
 				lastValue = value - min;
 				lastA = indicator.rotation;
 				setAccessibility();
@@ -10898,7 +10955,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return min;
 			},
 			set: function(value) {
-				if (zon) zog("min is read only");
+				if (relative) min = value;
+				else if (zon) zog("min is read only");
 			}
 		});
 
@@ -10907,7 +10965,37 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return max;
 			},
 			set: function(value) {
-				if (zon) zog("max is read only");
+				if (relative) max = value;
+				else if (zon) zog("max is read only");
+			}
+		});
+
+		Object.defineProperty(this, 'relative', {
+			get: function() {
+				return relative;
+			},
+			set: function(value) {
+				if (zon) zog("relative is read only");
+			}
+		});
+
+		Object.defineProperty(this, 'relativeMin', {
+			get: function() {
+				return relativeMin;
+			},
+			set: function(value) {
+				relativeMin = value;
+				if (that.currentValue < relativeMin) that.currentValue = relativeMin;
+			}
+		});
+
+		Object.defineProperty(this, 'relativeMax', {
+			get: function() {
+				return relativeMax;
+			},
+			set: function(value) {
+				relativeMax = value;
+				if (that.currentValue > relativeMax) that.currentValue = relativeMax;
 			}
 		});
 
@@ -10949,7 +11037,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep));
+			return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax));
 		}
 
 		this.dispose = function() {
