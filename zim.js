@@ -10723,6 +10723,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(useTicks)) useTicks = true;
 		if (zot(innerTicks)) innerTicks = false;
 		if (zot(tickColor)) tickColor = indicatorColor;
+		if (zot(limit)) limit = true;
 		if (zot(keyArrows)) keyArrows = true;
 		if (zot(keyArrowsStep)) keyArrowsStep = (max-min)/100;
 		if (zot(relative)) relative = false;
@@ -10756,11 +10757,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			ticks = this.ticks = new zim.Container();
 			this.addChild(ticks);
 			var tick;
-			for (var i=0; i<stepsTotal+1; i++) {
+			for (var i=0; i<(relative?stepsTotal:stepsTotal+1); i++) {
 				var tick = new zim.Rectangle(1, r*.2, tickColor);
 				tick.regY = r * ((innerTicks) ? (innerScale-.05) : 1.28);
 				tick.regX = .5;
-				tick.rotation = (360 / (stepsTotal+1)) * i;
+				tick.rotation = (360 / (relative?stepsTotal:stepsTotal+1)) * i;
 				ticks.addChild(tick);
 			}
 		}
@@ -10925,11 +10926,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 				myValue = value;
 				value = snap(value);
-				if (step != 0) {
-					indicator.rotation = (value - min) * (360 - 360 / (stepsTotal+1)) / (max - min);
-				} else {
-					indicator.rotation = (value - min) * 360 / (max - min);
-				}
+				indicator.rotation = (value - min) * 360 / (max - min);
 				indicator.rotation = (indicator.rotation + 360 * 10000) % 360;
 				lastValue = value - min;
 				lastA = indicator.rotation;
