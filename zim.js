@@ -10257,7 +10257,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-61
 
 /*--
-zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep)
+zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV)
 
 Slider
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10290,6 +10290,8 @@ inside - (default false) set to true to fit button inside bar (need to manually 
 keyArrows - (default true) set to false to disable keyboard arrows
 keyArrowsStep - (default 1% of max-min) number to increase or decrease value when arrow is used
 	if step is set, then this value is ignored and set to step
+keyArrowsH - (default true) use left and right arrows when keyArrows is true
+keyArrowsV - (default true) use up and down arrows when keyArrows is true
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -10315,6 +10317,7 @@ min, max, step - read only - the assigned values
 bar - gives access to the bar Rectangle
 button - gives access to the Button
 ticks - gives access to the ticks (to position these for example)
+keyArrowsH, keyArrowsV - get or set the type of arrow keys to use (helpful for when cloning)
 enabled - default is true - set to false to disable
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 
@@ -10333,9 +10336,9 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+62
-	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep) {
+	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV) {
 
-		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep";
+		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV";
 		var duo; if (duo = zob(zim.Slider, arguments, sig, this)) return duo;
 		z_d("62");
 		this.zimContainer_constructor();
@@ -10352,6 +10355,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(useTicks)) useTicks = false;
 		if (zot(inside)) inside = false;
 		if (zot(keyArrows)) keyArrows = true;
+		if (zot(keyArrowsH)) keyArrowsH = true;
+		if (zot(keyArrowsV)) keyArrowsV = true;
 		if (zot(keyArrowsStep)) keyArrowsStep = (max-min)/100;
 
 		if (zot(button)) {
@@ -10400,16 +10405,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (newStep != step) {if (zon) zog("zim.Slider() : non-divisible step ("+step+") adjusted");}
 			step = newStep;
 			if (inside) {
-				var spacing = (barLength - ((vertical) ? button.height : button.width)) / stepsTotal;
+				var spacing = (barLength - ((vertical) ? button.height : button.width)) / Math.abs(stepsTotal);
 			} else {
-				var spacing = barLength / stepsTotal;
+				var spacing = barLength / Math.abs(stepsTotal);
 			}
 		}
 
 		if (vertical) {
 			var start = (inside) ? button.height / 2 : 0;
 			if (useTicks && step != 0) {
-				for (var i=0; i<=stepsTotal; i++) {
+				for (var i=0; i<=Math.abs(stepsTotal); i++) {
 					g.mt(0, start+spacing*i).lt(20, start+spacing*i);
 				}
 				ticks.x = 10;
@@ -10424,7 +10429,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		} else {
 			var start = (inside) ? button.width / 2 : 0;
 			if (useTicks && step != 0) {
-				for (var i=0; i<=stepsTotal; i++) {
+				for (var i=0; i<=Math.abs(stepsTotal); i++) {
 					g.mt(start+spacing*i,0).lt(start+spacing*i,-20);
 				}
 				ticks.y = -10;
@@ -10482,6 +10487,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			setAccessibility();
 			if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 		};
+
+		function sign(n) {return n > 0 ? 1 : -1;}
 
 		function setAccessibility() {
 			if (that.zimAccessibility) that.zimAccessibility.changeTitle(that, null, true);
@@ -10565,18 +10572,62 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		Object.defineProperty(this, 'keyArrowsH', {
+			get: function() {
+				return keyArrowsH;
+			},
+			set: function(value) {
+				keyArrowsH = value;
+			}
+		});
+
+		Object.defineProperty(this, 'keyArrowsV', {
+			get: function() {
+				return keyArrowsV;
+			},
+			set: function(value) {
+				keyArrowsV = value;
+			}
+		});
+
+		var leftCheck = false; var downCheck = false; var rightCheck = false; var upCheck = false;
 		this.keyDownEvent = function(e) {
 			if (that.focus || (!that.zimAccessibility && keyArrows)) {
-				if (e.keyCode == 37 || e.keyCode == 40) {
-					if (step > 0) that.currentValueEvent -= step;
-					else that.currentValueEvent -= keyArrowsStep;
-				} else if (e.keyCode == 38 || e.keyCode == 39){
-					if (step > 0) that.currentValueEvent += step;
-					else that.currentValueEvent += keyArrowsStep;
+				if (e.keyCode == 37 && keyArrowsH) leftCheck = true;
+				else if (e.keyCode == 40 && keyArrowsV) downCheck = true;
+				else if (e.keyCode == 39 && keyArrowsH) rightCheck = true;
+				else if (e.keyCode == 38 && keyArrowsV) upCheck = true;
+				if (that.keyInterval == null && (leftCheck || downCheck || rightCheck || upCheck)) {
+					checkKey();
+					// add traditional keydown delay
+					that.keyTimeout = setTimeout(function() {
+						if (that.keyInterval == null && (leftCheck || downCheck || rightCheck || upCheck)) that.keyInterval = setInterval(checkKey, 40);
+					}, 140);
 				}
 			}
 		}
+		function checkKey() {
+			if (leftCheck || downCheck) {
+				if (step > 0) that.currentValueEvent -= step * sign(max-min);
+				else that.currentValueEvent -= keyArrowsStep * sign(max-min);
+			}
+			if (rightCheck || upCheck) {
+				if (step > 0) that.currentValueEvent += step * sign(max-min);
+				else that.currentValueEvent += keyArrowsStep * sign(max-min);
+			}
+		}
 		window.addEventListener("keydown", this.keyDownEvent);
+		that.keyUpEvent = function(e) {
+			if (e.keyCode == 37) leftCheck = false;
+			else if (e.keyCode == 40) downCheck = false;
+			else if (e.keyCode == 39) rightCheck = false;
+			else if (e.keyCode == 38) upCheck = false;
+			if (that.keyInterval != null && !leftCheck && !downCheck && !rightCheck && !upCheck) {
+				clearInterval(that.keyInterval);
+				that.keyInterval = null;
+			}
+		}
+		window.addEventListener("keyup", this.keyUpEvent);
 
 		this._enabled = true;
 		Object.defineProperty(that, 'enabled', {
@@ -10587,18 +10638,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zenable(that, value);
 				if (value) {
 					window.addEventListener("keydown", that.keyDownEvent);
+					window.addEventListener("keyup", that.keyUpEvent);
 				} else {
 					window.removeEventListener("keydown", that.keyDownEvent);
+					window.removeEventListener("keyup", that.keyUpEvent);
 				}
 			}
 		});
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep));
+			return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV));
 		}
 
 		this.dispose = function() {
 			window.removeEventListener("keydown", that.keyDownEvent);
+			window.removeEventListener("keyup", that.keyUpEvent);
 			button.removeAllEventListeners();
 			return true;
 		}
@@ -10607,7 +10661,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-62
 
 /*--
-zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax);
+zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, relative, relativeMin, relativeMax);
 
 Dial
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10644,6 +10698,8 @@ limit - (default true) stops dial from spinning right around - set to false to n
 keyArrows - (default true) set to false to disable keyboard arrows
 keyArrowsStep - (default 1% of max-min) number to increase or decrease value when arrow is used
 	if step is set, then this value is ignored and set to step
+keyArrowsH - (default true) use left and right arrows when keyArrows is true
+keyArrowsV - (default true) use up and down arrows when keyArrows is true
 relative - (default false) this turns the dial into a relative dial from the min at the top
 	The (max-min)/360 give a delta value per degree
 	and as the dial goes clockwise it adds the delta and as it goes counterclockwise it subtracts the delta
@@ -10683,6 +10739,7 @@ inner and inner2 give access to any inner circles
 ticks - gives access to the ticks (to scale these for example)
 indicator - gives access to the indicator container with registration point at the dial center
 indicatorShape - gives access to the shape on the end of the indicator (zim Triangle, Circle, Rectangle)
+keyArrowsH, keyArrowsV - get or set the type of arrow keys to use (helpful for when cloning)
 enabled - default is true - set to false to disable
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 
@@ -10701,9 +10758,9 @@ dispatches a "change" event when dial changes value (but not when setting curren
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+63
-	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax) {
+	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, relative, relativeMin, relativeMax) {
 
-		var sig = "min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax";
+		var sig = "min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, relative, relativeMin, relativeMax";
 		var duo; if (duo = zob(zim.Dial, arguments, sig, this)) return duo;
 		z_d("63");
 		this.zimContainer_constructor();
@@ -10726,6 +10783,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(limit)) limit = true;
 		if (zot(keyArrows)) keyArrows = true;
 		if (zot(keyArrowsStep)) keyArrowsStep = (max-min)/100;
+		if (zot(keyArrowsH)) keyArrowsH = true;
+		if (zot(keyArrowsV)) keyArrowsV = true;
 		if (zot(relative)) relative = false;
 		if (relative) limit = false; // relative sets the limit to false
 
@@ -10809,6 +10868,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var relativeAngle = 0;
 			var relativeBase = 0; // keeps track of 360s
 			var relativeAdjust = false; // for hitting bounds
+			var resetRelative = false; // for adjusting lastRelative on keyUp
+			var resetRelativeCheck = true; // turned off by normal rotation but turned on by key and direct currentValue calls
 		} else {
 			normalizedAmount = min;
 		}
@@ -10862,15 +10923,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		function setValue(angle) {
 			if (relative) {
+				if (resetRelative) { // if coming from keyup
+					lastRelative = angle;
+					resetRelative = false;
+				}
 				if (angle > lastRelative + 180) {
 					relativeBase -= 360;
 				} else if (angle < lastRelative - 180) {
 					relativeBase += 360;
 				}
 				relativeAngle  = relativeBase + angle;
+				resetRelativeCheck = false;
 				that.currentValue = snap(relativeAngle * (max-min) / 360);
 				that.dispatchEvent("change");
 				lastRelative = angle;
+				resetRelativeCheck = true;
 				return true;
 			}
 			var v; // value (not including min)
@@ -10914,19 +10981,23 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					} else if (!zot(relativeMax)) {
 						if (value > relativeMax) {value = relativeMax; relativeAdjust = true;}
 					}
+					if (resetRelativeCheck) {
+						resetRelative = true;
+						relativeBase = Math.floor(value / (max-min)) * 360;
+					}
 				} else {
 					if (min < max) {
-						if (value < min) value = min;
-						if (value > max) value = max;
+						if (value < min) value = limit?min:max;
+						if (value > max) value = limit?max:min;
 					} else {
-						if (value > min) value = min;
-						if (value < max) value = max;
+						if (value > min) value = limit?min:max;
+						if (value < max) value = limit?max:min;
 					}
 				}
-
 				myValue = value;
 				value = snap(value);
-				indicator.rotation = (value - min) * 360 / (max - min);
+
+				indicator.rotation = (value - min) * 360 / (max - min + (relative?0:sign(max - min)*step));
 				indicator.rotation = (indicator.rotation + 360 * 10000) % 360;
 				lastValue = value - min;
 				lastA = indicator.rotation;
@@ -11005,18 +11076,62 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		Object.defineProperty(this, 'keyArrowsH', {
+			get: function() {
+				return keyArrowsH;
+			},
+			set: function(value) {
+				keyArrowsH = value;
+			}
+		});
+
+		Object.defineProperty(this, 'keyArrowsV', {
+			get: function() {
+				return keyArrowsV;
+			},
+			set: function(value) {
+				keyArrowsV = value;
+			}
+		});
+
+		var leftCheck = false; var downCheck = false; var rightCheck = false; var upCheck = false;
 		this.keyDownEvent = function(e) {
 			if (that.focus || (!that.zimAccessibility && keyArrows)) {
-				if (e.keyCode == 37 || e.keyCode == 40) {
-					if (step > 0) that.currentValueEvent -= step;
-					else that.currentValueEvent -= keyArrowsStep;
-				} else if (e.keyCode == 38 || e.keyCode == 39){
-					if (step > 0) that.currentValueEvent += step;
-					else that.currentValueEvent += keyArrowsStep;
+				if (e.keyCode == 37 && keyArrowsH) leftCheck = true;
+				else if (e.keyCode == 40 && keyArrowsV) downCheck = true;
+				else if (e.keyCode == 39 && keyArrowsH) rightCheck = true;
+				else if (e.keyCode == 38 && keyArrowsV) upCheck = true;
+				if (that.keyInterval == null && (leftCheck || downCheck || rightCheck || upCheck)) {
+					checkKey();
+					// add traditional keydown delay
+					that.keyTimeout = setTimeout(function() {
+						if (that.keyInterval == null && (leftCheck || downCheck || rightCheck || upCheck)) that.keyInterval = setInterval(checkKey, 40);
+					}, 140);
 				}
 			}
 		}
+		function checkKey() {
+			if (leftCheck || downCheck) {
+				if (step > 0) that.currentValueEvent -= step * sign(max-min);
+				else that.currentValueEvent -= keyArrowsStep * sign(max-min);
+			}
+			if (rightCheck || upCheck) {
+				if (step > 0) that.currentValueEvent += step * sign(max-min);
+				else that.currentValueEvent += keyArrowsStep * sign(max-min);
+			}
+		}
 		window.addEventListener("keydown", this.keyDownEvent);
+		that.keyUpEvent = function(e) {
+			if (e.keyCode == 37) leftCheck = false;
+			else if (e.keyCode == 40) downCheck = false;
+			else if (e.keyCode == 39) rightCheck = false;
+			else if (e.keyCode == 38) upCheck = false;
+			if (that.keyInterval != null && !leftCheck && !downCheck && !rightCheck && !upCheck) {
+				clearInterval(that.keyInterval);
+				that.keyInterval = null;
+			}
+		}
+		window.addEventListener("keyup", this.keyUpEvent);
 
 		this._enabled = true;
 		Object.defineProperty(that, 'enabled', {
@@ -11027,18 +11142,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zenable(that, value);
 				if (value) {
 					window.addEventListener("keydown", that.keyDownEvent);
+					window.addEventListener("keyup", that.keyUpEvent);
 				} else {
 					window.removeEventListener("keydown", that.keyDownEvent);
+					window.removeEventListener("keyup", that.keyUpEvent);
 				}
 			}
 		});
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, relative, relativeMin, relativeMax));
+			return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsH, keyArrowsV, keyArrowsStep, relative, relativeMin, relativeMax));
 		}
 
 		this.dispose = function() {
 			that.removeAllEventListeners();
+			window.removeEventListener("keydown", that.keyDownEvent);
+			window.removeEventListener("keyup", that.keyUpEvent);
 			return true;
 		}
 	}
