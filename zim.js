@@ -10661,7 +10661,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-62
 
 /*--
-zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, relative, relativeMin, relativeMax);
+zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax);
 
 Dial
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10700,14 +10700,14 @@ keyArrowsStep - (default 1% of max-min) number to increase or decrease value whe
 	if step is set, then this value is ignored and set to step
 keyArrowsH - (default true) use left and right arrows when keyArrows is true
 keyArrowsV - (default true) use up and down arrows when keyArrows is true
-relative - (default false) this turns the dial into a relative dial from the min at the top
+continuous - (default false) this turns the dial into a continuous dial from the min at the top
 	The (max-min)/360 give a delta value per degree
 	and as the dial goes clockwise it adds the delta and as it goes counterclockwise it subtracts the delta
 	The steps are still used or not if set to zero
-	The min and max are no longer a real min and max - see the relativeMin and relativeMax below
-	limit is ignored or set to false when relative is true
-relativeMin - (default null) set to Number to limit the minimum total value of the dial when relative is true
-relativeMax - (default null) set to Number to limit the maximum total value of the dial when relative is true
+	The min and max are no longer a real min and max - see the continuousMin and continuousMax below
+	limit is ignored or set to false when continuous is true
+continuousMin - (default null) set to Number to limit the minimum total value of the dial when continuous is true
+continuousMax - (default null) set to Number to limit the maximum total value of the dial when continuous is true
 
 METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -10729,11 +10729,11 @@ width - gets or sets the width. Setting the width will scale the height to keep 
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
-min, max - read only assigned values unless relative is true - then write enabled
+min, max - read only assigned values unless continuous is true - then write enabled
 step - read only - the assigned values
-relative - gets a boolean as to whether the relative is true (read only)
-relativeMin - get or set the relativeMin if relative is set to true
-relativeMax - get or set the relativeMax if relative is set to true
+continuous - gets a boolean as to whether the continuous is true (read only)
+continuousMin - get or set the continuousMin if continuous is set to true
+continuousMax - get or set the continuousMax if continuous is set to true
 backing - gives access to the dial backing Circle
 inner and inner2 give access to any inner circles
 ticks - gives access to the ticks (to scale these for example)
@@ -10758,9 +10758,9 @@ dispatches a "change" event when dial changes value (but not when setting curren
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+63
-	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, relative, relativeMin, relativeMax) {
+	zim.Dial = function(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax) {
 
-		var sig = "min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, relative, relativeMin, relativeMax";
+		var sig = "min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax";
 		var duo; if (duo = zob(zim.Dial, arguments, sig, this)) return duo;
 		z_d("63");
 		this.zimContainer_constructor();
@@ -10785,8 +10785,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(keyArrowsStep)) keyArrowsStep = (max-min)/100;
 		if (zot(keyArrowsH)) keyArrowsH = true;
 		if (zot(keyArrowsV)) keyArrowsV = true;
-		if (zot(relative)) relative = false;
-		if (relative) limit = false; // relative sets the limit to false
+		if (zot(continuous)) continuous = false;
+		if (continuous) limit = false; // continuous sets the limit to false
 
 		var that = this;
 		this.cursor = "pointer";
@@ -10816,11 +10816,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			ticks = this.ticks = new zim.Container();
 			this.addChild(ticks);
 			var tick;
-			for (var i=0; i<(relative?stepsTotal:stepsTotal+1); i++) {
+			for (var i=0; i<(continuous?stepsTotal:stepsTotal+1); i++) {
 				var tick = new zim.Rectangle(1, r*.2, tickColor);
 				tick.regY = r * ((innerTicks) ? (innerScale-.05) : 1.28);
 				tick.regX = .5;
-				tick.rotation = (360 / (relative?stepsTotal:stepsTotal+1)) * i;
+				tick.rotation = (360 / (continuous?stepsTotal:stepsTotal+1)) * i;
 				ticks.addChild(tick);
 			}
 		}
@@ -10863,13 +10863,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var upEvent;
 		var lastA = 0;
 		var normalizedAmount; // amount within base rotation - based on min and max
-		if (relative) {
-			var lastRelative = 0;
-			var relativeAngle = 0;
-			var relativeBase = 0; // keeps track of 360s
-			var relativeAdjust = false; // for hitting bounds
-			var resetRelative = false; // for adjusting lastRelative on keyUp
-			var resetRelativeCheck = true; // turned off by normal rotation but turned on by key and direct currentValue calls
+		if (continuous) {
+			var lastContinuous = 0;
+			var continuousAngle = 0;
+			var continuousBase = 0; // keeps track of 360s
+			var continuousAdjust = false; // for hitting bounds
+			var resetContinuous = false; // for adjusting lastContinuous on keyUp
+			var resetContinuousCheck = true; // turned off by normal rotation but turned on by key and direct currentValue calls
 		} else {
 			normalizedAmount = min;
 		}
@@ -10883,7 +10883,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			startAngle = Math.atan2(dX,dY)*180/Math.PI;
 			var pressTime = new Date().getTime();
 			moveEvent = that.on("pressmove", function(e) {
-				if (relativeAdjust) { // hit bounds so reset start
+				if (continuousAdjust) { // hit bounds so reset start
 					var p = that.parent.globalToLocal(e.stageX, e.stageY);
 					var dX = p.x-that.x;
 					var dY = that.y-p.y;
@@ -10922,22 +10922,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function setValue(angle) {
-			if (relative) {
-				if (resetRelative) { // if coming from keyup
-					lastRelative = angle;
-					resetRelative = false;
+			if (continuous) {
+				if (resetContinuous) { // if coming from keyup
+					lastContinuous = angle;
+					resetContinuous = false;
 				}
-				if (angle > lastRelative + 180) {
-					relativeBase -= 360;
-				} else if (angle < lastRelative - 180) {
-					relativeBase += 360;
+				if (angle > lastContinuous + 180) {
+					continuousBase -= 360;
+				} else if (angle < lastContinuous - 180) {
+					continuousBase += 360;
 				}
-				relativeAngle  = relativeBase + angle;
-				resetRelativeCheck = false;
-				that.currentValue = snap(relativeAngle * (max-min) / 360);
+				continuousAngle  = continuousBase + angle;
+				resetContinuousCheck = false;
+				that.currentValue = snap(continuousAngle * (max-min) / 360);
 				that.dispatchEvent("change");
-				lastRelative = angle;
-				resetRelativeCheck = true;
+				lastContinuous = angle;
+				resetContinuousCheck = true;
 				return true;
 			}
 			var v; // value (not including min)
@@ -10966,24 +10966,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				if(zot(value)) return;
-				if (relative) {
-					relativeAdjust = false;
-					if (!zot(relativeMin) && !zot(relativeMax)) {
-						if (relativeMin < relativeMax) {
-							if (value < relativeMin) {value = relativeMin; relativeAdjust = true;}
-							if (value > relativeMax) {value = relativeMax; relativeAdjust = true;}
+				if (continuous) {
+					continuousAdjust = false;
+					if (!zot(continuousMin) && !zot(continuousMax)) {
+						if (continuousMin < continuousMax) {
+							if (value < continuousMin) {value = continuousMin; continuousAdjust = true;}
+							if (value > continuousMax) {value = continuousMax; continuousAdjust = true;}
 						} else {
-							if (value > relativeMin) {value = relativeMin; relativeAdjust = true;}
-							if (value < relativeMax) {value = relativeMax; relativeAdjust = true;}
+							if (value > continuousMin) {value = continuousMin; continuousAdjust = true;}
+							if (value < continuousMax) {value = continuousMax; continuousAdjust = true;}
 						}
-					} else if (!zot(relativeMin)) {
-						if (value < relativeMin) {value = relativeMin; relativeAdjust = true;}
-					} else if (!zot(relativeMax)) {
-						if (value > relativeMax) {value = relativeMax; relativeAdjust = true;}
+					} else if (!zot(continuousMin)) {
+						if (value < continuousMin) {value = continuousMin; continuousAdjust = true;}
+					} else if (!zot(continuousMax)) {
+						if (value > continuousMax) {value = continuousMax; continuousAdjust = true;}
 					}
-					if (resetRelativeCheck) {
-						resetRelative = true;
-						relativeBase = Math.floor(value / (max-min)) * 360;
+					if (resetContinuousCheck) {
+						resetContinuous = true;
+						continuousBase = Math.floor(value / (max-min)) * 360;
 					}
 				} else {
 					if (min < max) {
@@ -10997,7 +10997,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				myValue = value;
 				value = snap(value);
 
-				indicator.rotation = (value - min) * 360 / (max - min + (relative?0:sign(max - min)*step));
+				indicator.rotation = (value - min) * 360 / (max - min + (continuous?0:sign(max - min)*step));
 				indicator.rotation = (indicator.rotation + 360 * 10000) % 360;
 				lastValue = value - min;
 				lastA = indicator.rotation;
@@ -11023,7 +11023,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return min;
 			},
 			set: function(value) {
-				if (relative) min = value;
+				if (continuous) min = value;
 				else if (zon) zog("min is read only");
 			}
 		});
@@ -11033,37 +11033,37 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return max;
 			},
 			set: function(value) {
-				if (relative) max = value;
+				if (continuous) max = value;
 				else if (zon) zog("max is read only");
 			}
 		});
 
-		Object.defineProperty(this, 'relative', {
+		Object.defineProperty(this, 'continuous', {
 			get: function() {
-				return relative;
+				return continuous;
 			},
 			set: function(value) {
-				if (zon) zog("relative is read only");
+				if (zon) zog("continuous is read only");
 			}
 		});
 
-		Object.defineProperty(this, 'relativeMin', {
+		Object.defineProperty(this, 'continuousMin', {
 			get: function() {
-				return relativeMin;
+				return continuousMin;
 			},
 			set: function(value) {
-				relativeMin = value;
-				if (that.currentValue < relativeMin) that.currentValue = relativeMin;
+				continuousMin = value;
+				if (that.currentValue < continuousMin) that.currentValue = continuousMin;
 			}
 		});
 
-		Object.defineProperty(this, 'relativeMax', {
+		Object.defineProperty(this, 'continuousMax', {
 			get: function() {
-				return relativeMax;
+				return continuousMax;
 			},
 			set: function(value) {
-				relativeMax = value;
-				if (that.currentValue > relativeMax) that.currentValue = relativeMax;
+				continuousMax = value;
+				if (that.currentValue > continuousMax) that.currentValue = continuousMax;
 			}
 		});
 
@@ -11151,7 +11151,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsH, keyArrowsV, keyArrowsStep, relative, relativeMin, relativeMax));
+			return that.cloneProps(new zim.Dial(min, max, step, width, color, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsH, keyArrowsV, keyArrowsStep, continuous, continuousMin, continuousMax));
 		}
 
 		this.dispose = function() {
@@ -24376,7 +24376,166 @@ dispatches a ready event when the sound source is connectedc and the calculate()
 	}
 
 	zim.extend(zim.SoundWave, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
-	//-69.95
+
+//-69.95
+
+/*--
+zim.Portal = function(obj, lands)
+
+Portal
+zim class - extends a CreateJS EventDispatcher
+
+DESCRIPTION
+Turn an object into a portal that lets the user enter the portal to change lands, etc.
+The portal works based on mouseover (or press for mobile)
+The lands need to be stacked in a Container with the first land at the top.
+Portal will pass users throught the lands and loop at the end back to the first land.
+Alternatively, if loop is turned to false, Portal will backtrack the user through the lands
+Pass the container of lands into the lands parameter - most often you will have two lands, but more are fine too!
+Alternatively, the portal can be used without lands - and you can customize what you want to happen with portal events.
+
+The object will be used as a mask to show the next land.
+You can set the alpha of the object to any value above .01 to hide the object and show the land (do not use 0)
+If your object is a ZIM shape, you can use rgba(0,0,0,.01) as the color and still have an opaque borderColor
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+frame.loadAssets(["researchbuilding.jpg", "jungle.jpg"]);
+frame.on("complete", function() {
+	var lands = new Container(stageW, stageH).addTo(stage);
+	var jungle = frame.asset("jungle.jpg")
+		.scaleTo({boundObj:lands, type:"biggest"})
+		.center(lands);
+	var researchBuilding = frame.asset("researchbuilding.jpg")
+		.scaleTo({boundObj:lands, type:"biggest"})
+		.center(lands);
+	var portalObject = new Circle(118, frame.faint, frame.pink, 16, true)
+		.addTo(stage)
+		.pos(580, 470)
+		.animate({obj:{rotation:"360"}, time:70000, ease:"linear", loop:true});
+	var portal = new Portal(portalObject, lands);
+	portal.on("enter", function() {
+		// play a sound here!
+	});
+
+	// use enabled to turn on and off portal
+	timeout(1000, function() {portal.enabled = false; portalObject.pauseAnimate(true);});
+	timeout(5000, function() {portal.enabled = true; portalObject.pauseAnimate(false);});
+
+	stage.update();
+}); // assets loaded
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+obj - the Display Object that will be the portal
+lands - (default null) optional container of "lands" or display objects to portal through
+	The Display Objects in the lands container (lands) should be on the stage
+	The lands are adjusted by Portal so the currentLand is the second child and the nextLand is the first child.
+	This is due to how the masking works.
+	Inserting new lands or removing lands below an index of lands.numChildren-2 is okay
+	Use addTo(lands, index) or removeFrom(lands).
+	If you adjust either of the top two lands in the container, this will affect what is see on stage.
+
+METHODS
+dispose() - remove the events - the obj and lands will be left as is - manually remove these if needed
+
+PROPERTIES
+portal - a reference to the portal obj
+enabled - Boolean as to whether the portal is active or not
+currentLand - get or set the active land if lands is provided
+nextLand - get (read only) the next land to go to if lands is provided
+
+EVENTS
+dispatches an enter event on mouseover of the portal and an exit event on mouseout
+--*///+69.96
+	zim.Portal = function(obj, lands) {
+		var sig = "obj, lands";
+		var duo; if (duo = zob(zim.Portal, arguments, sig, this)) return duo;
+		z_d("69.96");
+
+		if (zot(obj) || !obj.stage) return;
+
+		var that = this;
+
+		var landCheck = (lands && lands.numChildren && lands.numChildren > 0);
+		if (landCheck) {
+			var currentLand = lands.getChildAt(lands.numChildren-1);
+			var nextLand = lands.getChildAt(lands.numChildren-2);
+			lands.setChildIndex(nextLand, lands.numChildren-1);
+			nextLand.setMask(obj);
+		}
+		function setPortal() {
+			lands.setChildIndex(currentLand, 0); // send to back
+			currentLand = nextLand;
+			nextLand = lands.getChildAt(lands.numChildren-2);
+			lands.setChildIndex(nextLand, lands.numChildren-1);
+			currentLand.setMask(null);
+			nextLand.setMask(obj);
+			obj.stage.update();
+		}
+
+		obj.on(mobile()?"mousedown":"mouseover", function() {
+			if (!that._enabled) return;
+			if (landCheck) setPortal();
+			that.dispatchEvent("enter");
+		});
+
+		obj.on(mobile()?"pressup":"mouseout", function() {
+			if (!that._enabled) return;
+			that.dispatchEvent("exit");
+		});
+
+		Object.defineProperty(this, 'portal', {
+			get: function() {
+				return obj;
+			},
+			set: function(s) {
+				if (zot(s) || !s.stage){
+					if (zon) {zog("zim.Portal() - please provide a Display Object to act as the portal"); return;}
+				}
+				nextLand.setMask(obj);
+			}
+		});
+
+		Object.defineProperty(this, 'currentLand', {
+			get: function() {
+				return currentLand;
+			},
+			set: function(land) {
+				if (!lands.contains(land)) return;
+				while(land != currentLand) {
+					setPortal();
+				}
+			}
+		});
+
+		Object.defineProperty(this, 'nextLand', {
+			get: function() {
+				return nextLand;
+			},
+			set: function(land) {
+				if (zon) {zog("zim.Portal() - nextLand is read only - remake Portal to change"); return;}
+			}
+		});
+
+		this._enabled = true;
+		Object.defineProperty(that, 'enabled', {
+			get: function() {
+				return that._enabled;
+			},
+			set: function(value) {
+				that._enabled = value;
+			}
+		});
+
+
+		this.dispose = function() {
+
+		}
+	}
+	zim.extend(zim.Portal, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
+	//-69.96
 
 ////////////////  ZIM FRAME  //////////////
 
@@ -24602,9 +24761,11 @@ EVENTS
 "error" - fired when there is a problem loading an asset with loadAssets()
 "resize" - fired on resize of screen
 "orientation" - fired on orientation change
-"keydown" - fires on keydown - just like the window keydown event with eventObject.keyCode, etc.
+"keydown" - fired on keydown - just like the window keydown event with eventObject.keyCode, etc.
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
-"keyup" - fires on keyup - just like the window keyup event with eventObject.keyCode, etc.
+"keyup" - fired on keyup - just like the window keyup event with eventObject.keyCode, etc.
+"devicemotion" - fired on miving mobile device - like a tilt or shake - eventObject.accelleration holds x, y and z properties of motion
+	eg. frame.on("devicemotion", function(e) {zog(e.acceleration.x, e.acceleration.y, e.acceleration.z)});
 --*///+83
 	zim.Frame = function(scaling, width, height, color, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, outerColor, loadFailObj) {
 
@@ -25154,6 +25315,12 @@ EVENTS
 			e.remove = that.eventRemove;
 			that.dispatchEvent(e);
 		});
+		if (window.DeviceMotionEvent) {
+			window.addEventListener("devicemotion",function(e) {
+				e.remove = that.eventRemove;
+				that.dispatchEvent(e);
+			});
+		}
 
 		this.remakeCanvas = function(width, height) {
 			if (scaling == "full") return;
