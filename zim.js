@@ -4972,17 +4972,10 @@ PARAMETERS supports DUO - parameters or single object with properties below
 color - (default frame.green) the line color as any CSS color including "rgba()" for alpha
 thickness - (default 2) the thickness of the line in pixels
 points - (default 4) a number of points to start with on the line OR an array of points as follows:
-	NOTE: this format is different than the points property which is related but holds the actual point objects as opposed to x and y positions used in the parameter:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
-		can access a control at an index by using squiggle.points[index][0]
-		animating the controlX and controlY will move the circle and rectangles together
 	rect1X, rect1Y, rect2X, rect2Y - (default 0) the x and y location of the control rectangles relative to the control location
-		can access a rectangle at an index by using squiggle.points[index][2] or squiggle.points[index][3]
-		animating a rectangle will move the rectangle independently of the circle and other control rectangle
 	circleX and circleY - (default 0) the x and y location of the circle relative to the control location (usually 0, 0)
-		can access a circle at an index by using squiggle.points[index][1]
-		animating the circle will move the circle independently of the control rectangles
 	controlType - (default main controlType parameter or "straight" if not controlType parameter) the point's controlType "none", "mirror", "straight" or "free"
 length - (default 300) the default length of line used to create the squiggle (also specifies the squiggle's bounds(0, 0, length, thickness))
 controlLength - |ZIM VEE| (default radius*numPoints/4) specify a Number to override the calculated default
@@ -4995,7 +4988,7 @@ controlType - (default "straight") one of four String values as follows:
 	** The controlType can be specified for each point - see the points parameter
 	** The controlType can be changed by doubleClicking the point circle to cycle through the controls in the order above - unless the lockControlType is set to true
 lockControlType - (default false) set to true to disable doubleClicking of point circles to change controlType
-showControls - (default true) set to false to start with controls not showing - can change this after with control property or showControls() method
+showControls - (default true) set to false to start with controls not showing - can change this after with controlsVisible property or showControls() and hideControls() methods
 lockControls - (default false) set to true to lock the editing of controls - can't move the points or handles - but can see them if showControls is set to true
 handleSize - (default 20 mobile 10 for non-mobile) the size of control boxes and affects the circles too proportionally
 toggle - (default true) set false to let turn off clicks showing and hiding controls
@@ -5005,25 +4998,27 @@ dashed - (default false) set to true for dashed border (if borderWidth or border
 onTop - (default true) set to false to not bring shape to top of container when dragging
 
 METHODS
-recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with set() method
+recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with setData() method
 	if toJSON (default false) is set to true, the return value is a JSON string
-	the points data comes from recordPoints()
+	the points data comes from the points property
 setData(data, fromJSON) - sets the properties to match the data object passed in - this should come from recordData()
 	if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
-	the points data is parsed with the set setPoints()
+	the points data is parsed with the set setPoints() so the number of points should be the same
 	returns object for chaining
-recordPoints(popup) - returns an array with the same format as the points parameter (see parameter docs)
+recordPoints(popup) - returns an array with the same format as the points parameter - or can just use points property
 	popup - (default false) set to true to open a zim Pane with the points in a zim TextArea (click off to close)
 	NOTE: the TextArea output uses JSON.stringify() - to add the points to the points parameter of the Squiggle use JSON.parse(output);
 	NOTE: using zog(JSON.stringify(squiggle.recordData()))... the console will remove the quotes from the controlTypes so those would have to be manually put back in before parse() will work
 setPoints(data) - sets the Squiggle points to the data from recordPoints
 	This does not remake the Squiggle but rather shifts the controls so the number of points should be the same
-changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) - change a control type and properties at an index
+changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update) - change a control type and properties at an index
 	accepts ZIM DUO normal parameters or configuration object literal with parameter names as propterties
 	passing in null as the index will change all points to the specified properties
+	the update parameter defaults to false so set to true to show update or call update() below
+	this is so multiple changes can be batched before calling update - for instance when animating blobs.
 update() - update the Squiggle if animating control points, etc. would do this in a Ticker
-showControls() - shows the controls (and returns squiggle) - or use squiggle.controls = true property
-hideControls() - hides the controls (and returns squiggle) - or use squiggle.controls = false property
+showControls() - shows the controls (and returns squiggle) also see controlsVisible property
+hideControls() - hides the controls (and returns squiggle) also see controlsVisible property
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
 clone() - makes a copy of the shape
@@ -5047,27 +5042,29 @@ borderColor - get and set the stroke color
 borderColorCommand - access to the CreateJS stroke command for bitmap, linearGradient and radialGradient strokes
 borderWidth - get and set the stroke size in pixels
 num - get the number of points - to set, use the points property
-points - 1. sets or 2. gets the points of the Squiggle - NOTE: the data for 1 and 2 are different:
-	1. sets the Squiggle - use an array of points as described by the points parameter with x and y positions, etc.
-	2. gets an array of control point data that holds actual point objects with the following format:
-	[[set, rect1, rect2, circle, controlType], [etc.]]
-	set - the container for the control that holds the circle and rectangles set
+points - get or set the points array of the Squiggle in the same format as the points parameter:
+	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
+pointObjects - get an array of point objects for each point in the following format:
+	[[control, circle, rect1, rect2, controlType], [etc.]]
+	control - the container for the control that holds the circle and rectangles set
+	circle - the control point circle
 	rect1 - the first control point rectangle
 	rect2 - the second control point rectangle
-	circle - the control point circle
-	NOTE: set, rect1, rect2 and circle can be positioned or animated
-	NOTE: the update() method must be called if manually changing the controls - do this in a Ticker.add(function(){squiggle.update();})
-	controlType - get or set the control type: default is "straight" (or null) and there is also "mirror", "free" and "none"
-	and the controlType can be dynamically set (also double clicking the circle changes the control point)
+	controlType - the control type: default is "straight" (or null) and there is also "mirror", "free" and "none"
+	NOTE: control, circle, rect1, rect2 can be positioned or animated and controlType can be changed
+	NOTE: the update() method must be called if manually changing the control positions or type
+	NOTE: if constantly animating the controls then use a Ticker.add(function(){squiggle.update();})
 	NOTE: also see recordData(), setData(), recordPoints(), setPoints() methods for further options
-sets - access to the container that holds the sets
+controls - access to the container that holds the sets of controls
 sticks - access to the container that holds the control sticks
-types - get or set the array for the types ["mirror", "straight", "free", "none"]
-controls - Boolean to get or set the visibility of the controls (or use showControls() and hideControls() methods)
+controlsVisible - get or set the visibility of the controls - or use showControls() and hideControls()
+types - get or set the general array for the types ["mirror", "straight", "free", "none"]
+	changing this or removing a type will adjust the order when the user double clicks the points to change their type
+	this is not an array of types for each point - see the points property to access the types of each point
 lockControls - Boolean to lock controls from being adjusted or not
+lockControlType - Boolean to lock the type of the controls in their current state or not
 toggle - Boolean to get or set clicking to show and hide controls
 move - Boolean to drag or not drag Squiggle when controls are showing
-lockControlType - Boolean to lock the type of the controls in their current state or not
 ctrlclick - Boolean to let users ctrl click the Squiggle to duplicate it (clone) or not
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -5082,7 +5079,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event for when the bezier controls are adjusted (pressup only)
-	if monitoring constant change is needed add a pressmove event to Squiggle.sets
+	if monitoring constant change is needed add a pressmove event to Squiggle.controls
 	the change event object has a transformType property with values of "move", "bezierPoint", "bezierHandle", "bezierSwitch"
 dispatches controlsshow and controlshide events when clicked off and on and toggle is true
 See the CreateJS Easel Docs for Container events, such as:
@@ -5091,6 +5088,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 MORE
 http://zimjs.com/code/squiggle
 https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOtyc0
+Note the points property has been split into points and pointObjects (and there have been a few property changes) since the time of the video
 --*///+53.2
 	zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, toggle, move, ctrlclick, dashed, onTop) {
 
@@ -5115,6 +5113,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 		if (zot(controlType)) controlType = "mirror";
 		if (zot(lockControlType)) lockControlType = false;
 		if (zot(showControls)) showControls = true;
+		var _controls = showControls;
 		if (zot(lockControls)) lockControls = false;
 		if (zot(handleSize)) handleSize = zim.mobile()?20:10;
 		if (zot(toggle)) toggle = true;
@@ -5165,7 +5164,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 
 			var mobile = zim.mobile();
 
-			var sets = that.sets = new zim.Container().addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
+			var sets = that.controls = new zim.Container().addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
 			_points = [];
 			balls = [];
 
@@ -5213,13 +5212,13 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 					set = new zim.Container().addTo(sets).pos(setInfo[0], setInfo[1]);
 					ball = new zim.Circle(ballS, frame.light, frame.dark, 2)
 						.centerReg(set)
-						.pos(setInfo[6],setInfo[7]);
+						.pos(setInfo[2],setInfo[3]);
 					rect1 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
 						.centerReg(set, 0)
-						.pos(setInfo[2],setInfo[3]);
+						.pos(setInfo[4],setInfo[5]);
 					rect2 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
 						.centerReg(set, 0)
-						.pos(setInfo[4],setInfo[5]);
+						.pos(setInfo[6],setInfo[7]);
 				}
 
 				balls.push(ball);
@@ -5245,7 +5244,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 					rect2.expand();
 				}
 
-				point = [set, rect1, rect2, ball, setInfo?setInfo[8]:controlType];
+				point = [set, ball, rect1, rect2, setInfo?setInfo[8]:controlType];
 				_points.push(point);
 			}
 
@@ -5304,7 +5303,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 					// 1. draw backing grab line
 					g.s("rgba(0,0,0,.01)").ss(minThickness);
 					var set = _points[0][0];
-					var ballPoint = set.localToLocal(_points[0][3].x, _points[0][3].y, shape);
+					var ballPoint = set.localToLocal(_points[0][1].x, _points[0][1].y, shape);
 					g.mt(ballPoint.x, ballPoint.y);
 
 					var currentIndex; var nextIndex;
@@ -5313,14 +5312,14 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 						var nextIndex = (i+1)%_points.length;
 
 						var set = _points[currentIndex][0];
-						var ball = _points[currentIndex][3];
-						var control1 = _points[currentIndex][1];
-						var control2 = _points[currentIndex][2];
+						var ball = _points[currentIndex][1];
+						var control1 = _points[currentIndex][2];
+						var control2 = _points[currentIndex][3];
 
 						var nextSet = _points[nextIndex][0];
-						var nextBall = _points[nextIndex][3];
-						var nextControl1 = _points[nextIndex][1];
-						var nextControl2 = _points[nextIndex][2];
+						var nextBall = _points[nextIndex][1];
+						var nextControl1 = _points[nextIndex][2];
+						var nextControl2 = _points[nextIndex][3];
 
 						var control2Point = set.localToLocal(control2.x, control2.y, shape);
 						var nextControl1Point = nextSet.localToLocal(nextControl1.x, nextControl1.y, shape);
@@ -5345,7 +5344,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				}
 
 				set = _points[0][0];
-				ballPoint = set.localToLocal(_points[0][3].x, _points[0][3].y, shape);
+				ballPoint = set.localToLocal(_points[0][1].x, _points[0][1].y, shape);
 				g.mt(ballPoint.x, ballPoint.y);
 
 				s.c().s(frame.darker).ss(1)
@@ -5356,14 +5355,14 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 					var nextIndex = (i+1)%_points.length;
 
 					var set = _points[currentIndex][0];
-					var ball = _points[currentIndex][3];
-					var control1 = _points[currentIndex][1];
-					var control2 = _points[currentIndex][2];
+					var ball = _points[currentIndex][1];
+					var control1 = _points[currentIndex][2];
+					var control2 = _points[currentIndex][3];
 
 					var nextSet = _points[nextIndex][0];
-					var nextBall = _points[nextIndex][3];
-					var nextControl1 = _points[nextIndex][1];
-					var nextControl2 = _points[nextIndex][2];
+					var nextBall = _points[nextIndex][1];
+					var nextControl1 = _points[nextIndex][2];
+					var nextControl2 = _points[nextIndex][3];
 
 					var control2Point = set.localToLocal(control2.x, control2.y, shape);
 					var nextControl1Point = nextSet.localToLocal(nextControl1.x, nextControl1.y, shape);
@@ -5482,7 +5481,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				if (moveControlCheck) that.dispatchEvent(ev);
 			});
 
-			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) {
+			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update) {
 				var sig = "index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY";
 				var duo; if (duo = zob(that.changeControl, arguments, sig)) return duo;
 				if (zot(index)) {
@@ -5494,29 +5493,30 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				var point = _points[index];
 				point[4] = type;
 				if (type == "none") {
-					if (!zot(circleX)) point[3].x = circleX;
-					if (!zot(circleY)) point[3].y = circleY;
-					point[1].pos(point[3].x, point[3].y);
-					point[2].pos(point[3].x, point[3].y);
-					point[3].parent.addChild(point[3]);
+					if (!zot(circleX)) point[2].x = circleX;
+					if (!zot(circleY)) point[2].y = circleY;
+					point[2].pos(point[1].x, point[1].y);
+					point[3].pos(point[1].x, point[1].y);
+					point[1].parent.addChild(point[1]);
 				} else {
-					if (!zot(rect1X)) point[1].x = rect1X;
-					if (!zot(rect1Y)) point[1].y = rect1Y;
-					if (!zot(rect2X)) point[2].x = rect2X;
-					if (!zot(rect2Y)) point[2].y = rect2Y;
-					if (!zot(circleX)) point[3].x = circleX;
-					if (!zot(circleY)) point[3].y = circleY;
-					point[3].parent.addChildAt(point[3], 0);
+					if (!zot(rect1X)) point[2].x = rect1X;
+					if (!zot(rect1Y)) point[2].y = rect1Y;
+					if (!zot(rect2X)) point[3].x = rect2X;
+					if (!zot(rect2Y)) point[3].y = rect2Y;
+					if (!zot(circleX)) point[1].x = circleX;
+					if (!zot(circleY)) point[1].y = circleY;
+					point[1].parent.addChildAt(point[1], 0);
 				}
-				if (that.stage) that.stage.update();
+				if (update) {
+					that.update();
+					if (that.stage) that.stage.update();
+				}
 			}
 
 			that.update = function() {
 				drawShape();
 				return that;
 			}
-
-			that.controls = showControls;
 
 			shape.drag({onTop:false});
 			moveDownEvent = shape.on("mousedown", function() {
@@ -5552,7 +5552,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 
 			var toggleEvent = that.on("mousedown", function() {
 				if (!that.toggle) return;
-				if (!that.controls) {
+				if (!_controls) {
 					that.showControls();
 					that.dispatchEvent("controlsshow");
 				}
@@ -5561,7 +5561,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 			that.added(function() {
 				that.toggleStageEvent = that.stage.on("stagemousedown", function() {
 					if (!that.toggle || !that.stage) return;
-					if (that.controls && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY, false)) {
+					if (_controls && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY, false)) {
 						that.hideControls();
 						that.dispatchEvent("controlshide");
 					}
@@ -5618,7 +5618,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 					thickness:that.thickness,
 					move:that.move,
 					toggle:that.toggle,
-					controls:that.controls
+					controlsVisible:_controls
 				}
 				if (toJSON) return JSON.stringify(obj);
 				return obj;
@@ -5656,23 +5656,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				// balls are relative to blob but handles are relative to ball
 				// points is an array of [[ballX, ballY, handleX, handleY, handle2X, handle2Y, type], etc.]
 				if (zot(popup)) popup = false;
-				var points = [];
-				var point; var p;
-				for (var i=0; i<_points.length; i++) {
-					p = _points[i];
-					point = [
-						zim.decimals(p[0].x),
-						zim.decimals(p[0].y),
-						zim.decimals(p[1].x),
-						zim.decimals(p[1].y),
-						zim.decimals(p[2].x),
-						zim.decimals(p[2].y),
-						zim.decimals(p[3].x),
-						zim.decimals(p[3].y)
-					];
-					if (p[4] && p[4]!=="straight") point.push(p[4])
-					points.push(point);
-				}
+				var points = that.points;
 				if (popup) {
 					if (!pane) {
 						var pane = new zim.Pane({
@@ -5744,7 +5728,7 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 					if (toggle) {
 						if (that.move) startDragging();
 					} else {
-						if (!that.controls && that.move) stopDragging();
+						if (!_controls && that.move) stopDragging();
 					}
 				}
 			}
@@ -5767,8 +5751,25 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 			shape.off("pressup", moveUpEvent);
 		}
 
-		var _controls = showControls;
-		Object.defineProperty(that, 'controls', {
+		var _lockControls = lockControls;
+		Object.defineProperty(that, 'lockControls', {
+			get: function() {
+				return _lockControls;
+			},
+			set: function(value) {
+				_lockControls = value;
+				if (value) {
+					that.controls.mouseChildren = false;
+					that.controls.mouseEnabled = false;
+				} else {
+					that.controls.mouseChildren = true;
+					that.controls.mouseEnabled = true;
+				}
+			}
+		});
+		that.lockControls = _lockControls;
+
+		Object.defineProperty(that, 'controlsVisible', {
 			get: function() {
 				return _controls;
 			},
@@ -5781,23 +5782,6 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				}
 			}
 		});
-		var _lockControls = lockControls;
-		Object.defineProperty(that, 'lockControls', {
-			get: function() {
-				return _lockControls;
-			},
-			set: function(value) {
-				_lockControls = value;
-				if (value) {
-					that.sets.mouseChildren = false;
-					that.sets.mouseEnabled = false;
-				} else {
-					that.sets.mouseChildren = true;
-					that.sets.mouseEnabled = true;
-				}
-			}
-		});
-		that.lockControls = _lockControls;
 
 		Object.defineProperty(that, 'color', {
 			get: function() {
@@ -5829,7 +5813,24 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 
 		Object.defineProperty(that, 'points', {
 			get: function() {
-				return _points;
+				var points = [];
+				var point; var p;
+				for (var i=0; i<_points.length; i++) {
+					p = _points[i];
+					point = [
+						zim.decimals(p[0].x),
+						zim.decimals(p[0].y),
+						zim.decimals(p[1].x),
+						zim.decimals(p[1].y),
+						zim.decimals(p[2].x),
+						zim.decimals(p[2].y),
+						zim.decimals(p[3].x),
+						zim.decimals(p[3].y)
+					];
+					if (p[4] && p[4]!=="straight") point.push(p[4])
+					points.push(point);
+				}
+				return points;
 			},
 			set: function(value) {
 				that.dispose();
@@ -5838,14 +5839,23 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				if (that.shape) {
 					that.shape.graphics.clear();
 					that.sticks.graphics.clear();
-					that.sets.noDrag();
+					that.controls.noDrag();
 					that.removeAllChildren();
 					delete that.shape;
 					delete that.sticks;
-					delete that.sets;
+					delete that.controls;
 				}
 				init(); // remake Squiggle
 				that.lockControls = _lockControls;
+ 			}
+		});
+
+		Object.defineProperty(that, 'pointObjects', {
+			get: function() {
+				return _points;
+			},
+			set: function(value) {
+				if (zon) {zog("Squiggle() - pointObjects is read only - but its contents can be manipulated - use squiggle.update() after changes")}
  			}
 		});
 
@@ -5859,9 +5869,9 @@ https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOt
 				balls[i].removeAllEventListeners();
 			}
 			that.sticks.removeFrom(that);
-			that.sets.removeFrom(that);
+			that.controls.removeFrom(that);
 			that.shape.removeAllEventListeners();
-			that.sets.removeAllEventListeners();
+			that.controls.removeAllEventListeners();
 			that.removeAllEventListeners();
 			if (that.toggleStageEvent) that.stage.off("stagemousedown", that.toggleStageEvent);
 			return
@@ -5956,22 +5966,24 @@ dashed - (default false) set to true for dashed border (if borderWidth or border
 onTop - (default true) set to false to not bring shape to top of container when dragging
 
 METHODS
-recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with set() method
+recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with setData() method
 	if toJSON (default false) is set to true, the return value is a JSON string
-	the points data comes from recordPoints()
+	the points data comes from the points property
 setData(data, fromJSON) - sets the properties to match the data object passed in - this should come from recordData()
 	if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
-	the points data is parsed with the set setPoints()
+	the points data is parsed with the set setPoints() so the number of points should be the same
 	returns object for chaining
-recordPoints(popup) - returns an array with the same format as the points parameter (see parameter docs)
+recordPoints(popup) - returns an array with the same format as the points parameter - or can just use points property
 	popup - (default false) set to true to open a zim Pane with the points in a zim TextArea (click off to close)
 	NOTE: the TextArea output uses JSON.stringify() - to add the points to the points parameter of the Blob use JSON.parse(output);
 	NOTE: using zog(JSON.stringify(blob.recordData()))... the console will remove the quotes from the controlTypes so those would have to be manually put back in before parse() will work
-setPoints(data) - sets the Blob points to the data from recordPoints()
-	This does not remake the Blob but rather shifts the controls and therefore, the number of points should be the same
-changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) - change a control type and properties at an index
+setPoints(data) - sets the Blob points to the data from recordPoints
+	This does not remake the Blob but rather shifts the controls so the number of points should be the same
+changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update) - change a control type and properties at an index
 	accepts ZIM DUO normal parameters or configuration object literal with parameter names as propterties
 	passing in null as the index will change all points to the specified properties
+	the update parameter defaults to false so set to true to show update or call update() below
+	this is so multiple changes can be batched before calling update - for instance when animating blobs.
 update() - update the Blob if animating control points, etc. would do this in a Ticker
 showControls() - shows the controls (and returns blob) - or use blob.controls = true property
 hideControls() - hides the controls (and returns blob) - or use blob.controls = false property
@@ -5997,22 +6009,25 @@ colorCommand - access to the CreateJS fill command for bitmap, linearGradient an
 borderColor - get and set the stroke color
 borderColorCommand - access to the CreateJS stroke command for bitmap, linearGradient and radialGradient strokes
 borderWidth - get and set the stroke size in pixels
-points - 1. gets or 2. sets the points of the Blob - NOTE: the data for 1 and 2 are different:
-	1. sets the Squiggle with an arry of points as described by the points parameter with x and y positions, etc.
-	2. gets an array of control point data that holds actual point objects with the following format:
-	[[set, rect1, rect2, circle, controlType], [etc.]]
-	set - the container for the control that holds the circle and rectangles set
+points - get or set the points array of the Blob in the same format as the points parameter:
+	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
+pointObjects - get an array of point objects for each point in the following format:
+	[[control, circle, rect1, rect2, controlType], [etc.]]
+	control - the container for the control that holds the circle and rectangles set
+	circle - the control point circle
 	rect1 - the first control point rectangle
 	rect2 - the second control point rectangle
-	circle - the control point circle
-	NOTE: set, rect1, rect2 and circle can be positioned or animated
-	NOTE: the update() method must be called if manually changing the controls - do this in a Ticker.add(function(){squiggle.update();})
-	controlType - get or set the control type: default is "straight" (or null) and there is also "mirror", "free" and "none"
-	and the controlType can be dynamically set (also double clicking the circle changes the control point)
-	NOTE: also see recordData(), setData(), recordPoints(), setPoints() methods for further optionssets - access to the container that holds the sets
+	controlType - the control type: default is "straight" (or null) and there is also "mirror", "free" and "none"
+	NOTE: control, circle, rect1, rect2 can be positioned or animated and controlType can be changed
+	NOTE: the update() method must be called if manually changing the control positions or type
+	NOTE: if constantly animating the controls then use a Ticker.add(function(){blob.update();})
+	NOTE: also see recordData(), setData(), recordPoints(), setPoints() methods for further options
+controls - access to the container that holds the sets of controls
 sticks - access to the container that holds the control sticks
-types - get or set the array for the types ["mirror", "straight", "free", "none"]
-controls - Boolean to get or set the visibility of the controls (or use showControls() and hideControls() methods)
+controlsVisible - get or set the visibility of the controls - or use showControls() and hideControls()
+types - get or set the general array for the types ["mirror", "straight", "free", "none"]
+	changing this or removing a type will adjust the order when the user double clicks the points to change their type
+	this is not an array of types for each point - see the points property to access the types of each point
 lockControls - Boolean to lock controls from being adjusted or not
 toggle - Boolean to get or set clicking to show and hide controls
 move - Boolean to drag or not drag Blob when controls are showing
@@ -6063,6 +6078,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(controlType)) controlType = "straight";
 		if (zot(lockControlType)) lockControlType = false;
 		if (zot(showControls)) showControls = true;
+		var _controls = showControls;
 		if (zot(lockControls)) lockControls = false;
 		if (zot(handleSize)) handleSize = zim.mobile()?20:10;
 		if (zot(toggle)) toggle = true;
@@ -6115,7 +6131,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			var mobile = zim.mobile();
 
-			var sets = that.sets = new zim.Container().addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
+			var sets = that.controls = new zim.Container().addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
 			_points = [];
 			balls = [];
 
@@ -6173,13 +6189,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					set = new zim.Container().addTo(sets).pos(setInfo[0], setInfo[1]);
 					ball = new zim.Circle(ballS, frame.light, frame.dark, 2)
 						.centerReg(set)
-						.pos(setInfo[6],setInfo[7]);
+						.pos(setInfo[2],setInfo[3]);
 					rect1 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
 						.centerReg(set, 0)
-						.pos(setInfo[2],setInfo[3]);
+						.pos(setInfo[4],setInfo[5]);
 					rect2 = new zim.Rectangle(rectS, rectS, getColor(type), frame.dark, 2)
 						.centerReg(set, 0)
-						.pos(setInfo[4],setInfo[5]);
+						.pos(setInfo[6],setInfo[7]);
 				}
 
 				balls.push(ball);
@@ -6205,7 +6221,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					rect2.expand();
 				}
 
-				point = [set, rect1, rect2, ball, setInfo?setInfo[8]:controlType];
+				point = [set, ball, rect1, rect2, setInfo?setInfo[8]:controlType];
 				_points.push(point);
 			}
 
@@ -6271,7 +6287,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					}
 				}
 				var set = _points[0][0];
-				var ballPoint = set.localToLocal(_points[0][3].x, _points[0][3].y, shape);
+				var ballPoint = set.localToLocal(_points[0][1].x, _points[0][1].y, shape);
 				g.mt(ballPoint.x, ballPoint.y);
 
 				s.c().s(frame.darker).ss(1)
@@ -6282,14 +6298,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var nextIndex = (i+1)%_points.length;
 
 					var set = _points[currentIndex][0];
-					var ball = _points[currentIndex][3];
-					var control1 = _points[currentIndex][1];
-					var control2 = _points[currentIndex][2];
+					var ball = _points[currentIndex][1];
+					var control1 = _points[currentIndex][2];
+					var control2 = _points[currentIndex][3];
 
 					var nextSet = _points[nextIndex][0];
-					var nextBall = _points[nextIndex][3];
-					var nextControl1 = _points[nextIndex][1];
-					var nextControl2 = _points[nextIndex][2];
+					var nextBall = _points[nextIndex][1];
+					var nextControl1 = _points[nextIndex][2];
+					var nextControl2 = _points[nextIndex][3];
 
 					var control2Point = set.localToLocal(control2.x, control2.y, shape);
 					var nextControl1Point = nextSet.localToLocal(nextControl1.x, nextControl1.y, shape);
@@ -6405,7 +6421,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (moveControlCheck) that.dispatchEvent(ev);
 			});
 
-			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY) {
+			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update) {
 				var sig = "index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY";
 				var duo; if (duo = zob(that.changeControl, arguments, sig)) return duo;
 				if (zot(index)) {
@@ -6417,21 +6433,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var point = _points[index];
 				point[4] = type;
 				if (type == "none") {
-					if (!zot(circleX)) point[3].x = circleX;
-					if (!zot(circleY)) point[3].y = circleY;
-					point[1].pos(point[3].x, point[3].y);
-					point[2].pos(point[3].x, point[3].y);
-					point[3].parent.addChild(point[3]);
+					if (!zot(circleX)) point[1].x = circleX;
+					if (!zot(circleY)) point[1].y = circleY;
+					point[2].pos(point[1].x, point[1].y);
+					point[3].pos(point[1].x, point[1].y);
+					point[1].parent.addChild(point[1]);
 				} else {
-					if (!zot(rect1X)) point[1].x = rect1X;
-					if (!zot(rect1Y)) point[1].y = rect1Y;
-					if (!zot(rect2X)) point[2].x = rect2X;
-					if (!zot(rect2Y)) point[2].y = rect2Y;
-					if (!zot(circleX)) point[3].x = circleX;
-					if (!zot(circleY)) point[3].y = circleY;
-					point[3].parent.addChildAt(point[3], 0);
+					if (!zot(circleX)) point[1].x = circleX;
+					if (!zot(circleY)) point[1].y = circleY;
+					if (!zot(rect1X)) point[2].x = rect1X;
+					if (!zot(rect1Y)) point[2].y = rect1Y;
+					if (!zot(rect2X)) point[3].x = rect2X;
+					if (!zot(rect2Y)) point[3].y = rect2Y;
+					point[1].parent.addChildAt(point[1], 0);
 				}
-				if (that.stage) that.stage.update();
+				if (update) {
+					that.update();
+					if (that.stage) that.stage.update();
+				}
 			}
 
 			that.update = function() {
@@ -6439,7 +6458,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return that;
 			}
 
-			that.controls = showControls;
 			shape.drag({onTop:false});
 			moveDownEvent = shape.on("mousedown", function() {
 				startPosition = {x:shape.x, y:shape.y};
@@ -6474,7 +6492,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			var toggleEvent = that.on("mousedown", function() {
 				if (!that.toggle) return;
-				if (!that.controls) {
+				if (!_controls) {
 					that.showControls();
 					that.dispatchEvent("controlsshow");
 				}
@@ -6483,7 +6501,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.added(function() {
 				that.toggleStageEvent = that.stage.on("stagemousedown", function() {
 					if (!that.toggle || !that.stage) return;
-					if (that.controls && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY, false)) {
+					if (_controls && !that.hitTestPoint(that.stage.mouseX, that.stage.mouseY, false)) {
 						that.hideControls();
 						that.dispatchEvent("controlshide");
 					}
@@ -6541,7 +6559,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					borderWidth:that.borderWidth,
 					move:that.move,
 					toggle:that.toggle,
-					controls:that.controls
+					controlsVisible:_controls
 				}
 				if (toJSON) return JSON.stringify(obj);
 				return obj;
@@ -6578,23 +6596,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				// balls are relative to blob but handles are relative to ball
 				// points is an array of [[ballX, ballY, handleX, handleY, handle2X, handle2Y, type], etc.]
 				if (zot(popup)) popup = false;
-				var points = [];
-				var point; var p;
-				for (var i=0; i<_points.length; i++) {
-					p = _points[i];
-					point = [
-						zim.decimals(p[0].x),
-						zim.decimals(p[0].y),
-						zim.decimals(p[1].x),
-						zim.decimals(p[1].y),
-						zim.decimals(p[2].x),
-						zim.decimals(p[2].y),
-						zim.decimals(p[3].x),
-						zim.decimals(p[3].y)
-					];
-					if (p[4] && p[4]!=="straight") point.push(p[4])
-					points.push(point);
-				}
+				var points = that.points;
 				if (popup) {
 					if (!pane) {
 						var pane = new zim.Pane({
@@ -6666,7 +6668,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (toggle) {
 						if (that.move) startDragging();
 					} else {
-						if (!that.controls && that.move) stopDragging();
+						if (!_controls && that.move) stopDragging();
 					}
 				}
 			}
@@ -6689,8 +6691,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			shape.off("pressup", moveUpEvent);
 		}
 
-		var _controls = showControls;
-		Object.defineProperty(that, 'controls', {
+		Object.defineProperty(that, 'controlsVisible', {
 			get: function() {
 				return _controls;
 			},
@@ -6703,6 +6704,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 		});
+
 		var _lockControls = lockControls;
 		Object.defineProperty(that, 'lockControls', {
 			get: function() {
@@ -6711,11 +6713,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				_lockControls = value;
 				if (value) {
-					that.sets.mouseChildren = false;
-					that.sets.mouseEnabled = false;
+					that.controls.mouseChildren = false;
+					that.controls.mouseEnabled = false;
 				} else {
-					that.sets.mouseChildren = true;
-					that.sets.mouseEnabled = true;
+					that.controls.mouseChildren = true;
+					that.controls.mouseEnabled = true;
 				}
 			}
 		});
@@ -6761,7 +6763,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		Object.defineProperty(that, 'points', {
 			get: function() {
-				return _points;
+				var points = [];
+				var point; var p;
+				for (var i=0; i<_points.length; i++) {
+					p = _points[i];
+					point = [
+						zim.decimals(p[0].x),
+						zim.decimals(p[0].y),
+						zim.decimals(p[1].x),
+						zim.decimals(p[1].y),
+						zim.decimals(p[2].x),
+						zim.decimals(p[2].y),
+						zim.decimals(p[3].x),
+						zim.decimals(p[3].y)
+					];
+					if (p[4] && p[4]!=="straight") point.push(p[4])
+					points.push(point);
+				}
+				return points;
 			},
 			set: function(value) {
 				that.dispose();
@@ -6770,15 +6789,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (that.shape) {
 					that.shape.graphics.clear();
 					that.sticks.graphics.clear();
-					that.sets.noDrag();
+					that.controls.noDrag();
 					that.removeAllChildren();
 					delete that.shape;
 					delete that.sticks;
-					delete that.sets;
+					delete that.controls;
 				}
 				init(); // remake Blob
 				that.lockControls = _lockControls;
  			}
+		});
+
+		Object.defineProperty(that, 'pointObjects', {
+			get: function() {
+				return _points;
+			},
+			set: function(value) {
+				if (zon) {zog("Blob() - pointObjects is read only - but its contents can be manipulated - use blob.update() after changes")}
+			}
 		});
 
 		this.dispose = function() {
@@ -6791,9 +6819,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				balls[i].removeAllEventListeners();
 			}
 			that.sticks.removeFrom(that);
-			that.sets.removeFrom(that);
+			that.controls.removeFrom(that);
 			that.shape.removeAllEventListeners();
-			that.sets.removeAllEventListeners();
+			that.controls.removeAllEventListeners();
 			that.removeAllEventListeners();
 			if (that.toggleStageEvent) that.stage.off("stagemousedown", that.toggleStageEvent);
 			return
@@ -7977,7 +8005,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		function pressBut(e) {
 			var index = buttonContainer.getChildIndex(e.target);
 			if (always) {if (that.selectedIndex == index) return;}
-			that.setSelected(index);
+			that.controlselected(index);
 			that.dispatchEvent("change");
 		}
 
@@ -8137,7 +8165,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				var index = value;
 				if (always) {if (that.selectedIndex == index) return;}
-				that.setSelected(index);
+				that.controlselected(index);
 			}
 		});
 
@@ -20403,10 +20431,10 @@ Adds transformshow and transformhide events for when click to hide or show contr
 					if (!that.persistID) {
 						if (firstEver) {
 							firstEver = false;
-							o.controls = true;
+							o.controlsVisible = true;
 							that.currentObject = o;
 						} else {
-							o.controls = false;
+							o.controlsVisible = false;
 						}
 					}
 					o.on("change", function(e) {
@@ -20470,7 +20498,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 					o.off("transformed", o.transformedEvent);
 					o.transformedEvent = null;
 				}
-				if (o.type == "Blob" || o.type == "Squiggle") o.controls = false;
+				if (o.type == "Blob" || o.type == "Squiggle") o.controlsVisible = false;
 				else o.transformControls.remove();
 				var index = that.items.indexOf(o);
 				if (index != -1) that.items.splice(index, 1);
@@ -20482,7 +20510,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 		this.show = function(obj) {
 			if (zot(obj)) return;
 			if (obj.type == "Blob" || obj.type == "Squiggle") {
-				if (!obj.controls) obj.controls = true;
+				if (!obj.controlsVisible) obj.controlsVisible = true;
 			} else {
 				var transObj = obj.transformControls;
 				if (!transObj || transObj.visible) return;
@@ -20494,7 +20522,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 			if (zot(obj)) return;
 			if (that.currentObject == obj) that.currentObject = null;
 			if (obj.type == "Blob" || obj.type == "Squiggle") {
-				if (obj.controls) obj.controls = false;
+				if (obj.controlsVisible) obj.controlsVisible = false;
 			} else {
 				var transObj = obj.transformControls;
 				if (!transObj || transObj.visible) return;
@@ -20511,7 +20539,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 				} else {
 					if (that.items[i]==exception) continue;
 					if (o.type == "Blob" || o.type == "Squiggle") {
-						if (o.controls) o.controls = false;
+						if (o.controlsVisible) o.controlsVisible = false;
 					} else {
 						transObj = that.items[i].transformControls;
 						if (transObj.visible) transObj.hide();
@@ -20548,7 +20576,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 				var data = that.persistData = JSON.parse(localStorage[persistID]);
 				if (data.length == that.items.length) {
 					for (var i=0; i<that.items.length; i++) {
-						if (data[i].controls) {
+						if (data[i].controlsVisible) { // check transform rather than blob or squiggle - anything else have controls?
 							that.currentObject = that.items[i];
 						}
 						if (data[i] && (data[i].type == "Blob" || data[i].type == "Squiggle")) {
