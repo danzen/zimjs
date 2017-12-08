@@ -5046,7 +5046,7 @@ points - get or set the points array of the Squiggle in the same format as the p
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 pointObjects - get an array of point objects for each point in the following format:
 	[[control, circle, rect1, rect2, controlType], [etc.]]
-	control - the container for the control that holds the circle and rectangles set
+	control - the container for the control that holds the circle and rectangles
 	circle - the control point circle
 	rect1 - the first control point rectangle
 	rect2 - the second control point rectangle
@@ -5932,18 +5932,11 @@ color - (default frame.green) the fill color as any CSS color including "rgba()"
 borderColor - (default null) the stroke color
 borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
 num - get the number of points - to set, use the points property
-points - (default 4) a number of points to start with around a circle OR an array of points as follows:
-	NOTE: this format is different than the points property which is related but holds the actual point objects as opposed to x and y positions used in the parameter:
+points - (default 4) a number of points to start with on the line OR an array of points as follows:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
-		can access a control at an index by using blob.points[index][0]
-		animating the controlX and controlY will move the circle and rectangles together
 	rect1X, rect1Y, rect2X, rect2Y - (default 0) the x and y location of the control rectangles relative to the control location
-		can access a rectangle at an index by using blob.points[index][2] or blob.points[index][3]
-		animating a rectangle will move the rectangle independently of the circle and other control rectangle
 	circleX and circleY - (default 0) the x and y location of the circle relative to the control location (usually 0, 0)
-		can access a circle at an index by using blob.points[index][1]
-		animating the circle will move the circle independently of the control rectangles
 	controlType - (default main controlType parameter or "straight" if not controlType parameter) the point's controlType "none", "mirror", "straight" or "free"
 radius - (default 100) the default radius of the circle used to create the blob (also specifies the blob's bounds(-radius, -radius, radius*2, radius*2))
 controlLength - |ZIM VEE| (default radius*numPoints/4) specify a Number to override the calculated default
@@ -6013,7 +6006,7 @@ points - get or set the points array of the Blob in the same format as the point
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 pointObjects - get an array of point objects for each point in the following format:
 	[[control, circle, rect1, rect2, controlType], [etc.]]
-	control - the container for the control that holds the circle and rectangles set
+	control - the container for the control that holds the circle and rectangles
 	circle - the control point circle
 	rect1 - the first control point rectangle
 	rect2 - the second control point rectangle
@@ -25149,7 +25142,7 @@ EVENTS
 				if (zot(zid(tagID))) {zog("zim.Frame - scaling: HTML tag with id="+scaling+" must exist"); return;};
 				tag = this.tag = zid(tagID);
 				scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
-				if (canvasID.substr("myCanvas") == 0) canvasID = tagID + "Canvas" + randomCanvas;
+				if (canvasID.indexOf("myCanvas") == 0) canvasID = tagID + "Canvas" + randomCanvas;
 			}
 			that.canvasID = canvasID;
 
