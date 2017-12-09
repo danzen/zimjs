@@ -11741,13 +11741,13 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 selectedIndex - gets or sets the selected index of the pad
+text - gets current selected label text
 selected - gets the selected button - selected.enabled = true, etc.
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
-text - gets current selected label text
 label - gets current selected label object
 color - gets or sets default selected tab color
 rollColor - gets or sets default rolled over color
@@ -12981,6 +12981,7 @@ PROPERTIES
 type - holds the class name as a String
 currentValue - get or set the text content of the TextArea
 text - the same as currentValue - for convenience...
+hasFocus - get or set if the TextArea tag has focus or use focus() to set
 readOnly - set to true to not be able to edit or to false to be able to edit (always can select)
 tag - the HTML textarea tag - just a regular HMTL form tag which can be styled
 backing - access to the Rectangle() used for the backing
@@ -12993,7 +12994,9 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 METHODS
-focus() - sets the focus of the TextArea tag (thanks Armin for the prompting)
+focus(type) - sets the focus of the TextArea tag (thanks Armin for the prompting)
+	type is a Boolean that defaults to true - set to false to make the TextArea blur (loose focus)
+	see also hasFocus property
 resize() - call the resize event if the scale or position of the TextArea is changed
 	this will sync the location of the HTML textarea tag
 	resize() is only needed if the scale or x, y of the TextArea (or its container) is changed
@@ -13078,8 +13081,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.on('mousedown', function() {setTimeout(function(){textareaTag.focus();}, 100)}); // for zim Accessibility
 
-		this.focus = function() {
-			textareaTag.focus();
+		this.focus = function(type) {
+			if (zot(type)) type = true;
+			if (type) textareaTag.focus();
+			else textareaTag.blur();
 			return that;
 		}
 
@@ -13124,6 +13129,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				textareaTag.value = value;
 			}
 		});
+
+		Object.defineProperty(this, 'hasFocus', {
+			get: function() {
+				return (document.activeElement == textareaTag);
+			},
+			set: function(value) {
+				that.focus(value);
+			}
+		});
+
 
 		Object.defineProperty(this, 'readOnly', {
 			get: function() {
@@ -14808,14 +14823,19 @@ RETURNS obj for chaining
 				aveX = aveX / obj.zimTouch.total;
 				aveY = aveY / obj.zimTouch.total;
 
-				var proxy = {}; // will store desired scale and rotation on this object then apply matrix calculations
+				var proxy = { // thanks 王晓东 for the alert that we were missing this!
+ 					x:obj.x,
+					y:obj.y,
+					scaleX:obj.scaleX,
+					scaleY:obj.scaleY,
+					rotation:obj.rotation
+				}; // will store desired scale and rotation on this object then apply matrix calculations
 
 				if (obj.zimTouch.move) {
 					var result = obj.zimTouch.checkBounds(newX, newY); // es6 opportunity
 					proxy.x = result.x;
 					proxy.y = result.y;
 				}
-
 
 				// if we have multitouch as determined by setTouches()
 				if (obj.zimTouch.pair.length == 2) {
@@ -17013,20 +17033,21 @@ DESCRIPTION
 Chainable function that sets the object's cursor to the type provided - same as CSS cursors
 
 EXAMPLE
-var circle = new Circle(10, "red").center(stage).cur("pointer");
+var circle = new Circle(10, "red").center(stage).cur(); // "pointer"
 circle.on("click", function(){zog("yes");});
 END EXAMPLE
 
 PARAMETERS
-type - (default "default") the CSS cursor to set
+type - (default "pointer") the CSS cursor to set
 	https://developer.mozilla.org/en-US/docs/Web/CSS/cursor
-	Common cursors are "pointer", "Wait", "move", "grab", "grabbing", "zoom-in", "zoom-out", and various resize like "ew-resize"
+	Common cursors are "default", "pointer", "Wait", "move", "grab", "grabbing", "zoom-in", "zoom-out", and various resize like "ew-resize"
 
 RETURNS obj for chaining
 --*///+41.1
 	zim.cur = function(obj, type) {
 		z_d("41.1");
 		if (zot(obj)) {zog("zim methods - cur(): please provide object"); return obj;}
+		if (zot(type)) type = "pointer";
 		obj.cursor = type;
 		return obj;
 	}//-41.1
