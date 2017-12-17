@@ -6925,7 +6925,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.type = "Label";
 
 		if (zot(text)) text="LABEL";
-		if (text === "") text = " ";
+		var emptyText = false;
+		if (text === "") {
+			text = " ";
+			emptyText = true;
+		}
 		if (zot(size)) size=36;
 		if (zot(font)) font="arial";
 		if (zot(color)) color="black";
@@ -6997,11 +7001,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		Object.defineProperty(that, 'text', {
 			get: function() {
-				var t = (obj.text == " ") ? "" : obj.text;
+				var t = (obj.text == " " && emptyText) ? "" : obj.text;
 				return t;
 			},
 			set: function(value) {
-				if (zot(value) || value === "") {value = " ";}
+				emptyText = false;
+				if (value === "") {
+					value = " ";
+					emptyText = true;
+				}
 				obj.text = String(value);
 				if (obj2) obj2.text = String(value);
 				setSize();
@@ -15923,16 +15931,20 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					var num = i;
 					if (from) {
 						var val;
-						target[i].zimObj = {};
+						target[num].zimObj = {};
 						for (var prop in obj) {
-							val = obj[prop];
-							target[i].zimObj[prop] = target[i][prop];
-							target[i][prop] = val;
+							val = zik(obj[prop]);
+							target[num].zimObj[prop] = target[num][prop];
+							target[num][prop] = val;
 						}
 					} else {
-						target[i].zimObj = obj;
+						target[num].zimObj = {};
+						for (var prop in obj) {
+							target[num].zimObj[prop] = zik(obj[prop]);
+						}
 					}
 					setTimeout(function() {
+
 						var t =	target[currentTarget];
 						currentTarget++;
 						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id); // do not send from!
