@@ -18033,7 +18033,7 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 		if (obj.zimMaskOriginal && obj.zimMaskOriginal != mask) setMaskNull();
 		if (zot(dynamic)) {
 			// blob, drag, transform, gesture, animate
-			dynamic = (mask.type=="Blob" || mask.zimDown || mask.transformControls || mask.zimTouch || mask.zimTweens);
+			dynamic = (mask.type=="Blob" || !zot(mask.zimDown) || !zot(mask.transformControls) || !zot(mask.zimTouch) || !zot(mask.zimTweens));
 			mask.zimMaskDynamic = dynamic;
 		}
 		obj.zimMaskOriginal = mask;
@@ -18053,6 +18053,7 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 		}
 		// called from Blob and zim functions that move zim shapes
 		mask.zimMaskApply = function() {
+			zog("applying")
 			if (obj.zimMaskTicker) Ticker.remove(obj.zimMaskTicker);
 			obj.zimMaskTicker = Ticker.add(apply);
 		}
