@@ -22874,8 +22874,6 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 		if (container.canvas) {
 			downEvent = container.on("stagemousedown", function() {
 				downCheck = true;
-				container.off("stagemousemove", moveEvent);
-				container.off("stagemouseup", upEvent);
 				downHandler();
 				moveEvent = container.on("stagemousemove", pressHandler);
 				upEvent = container.on("stagemouseup", function() {
@@ -22916,7 +22914,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 		that.target.swiperTicker = zim.Ticker.add(function() {
 			if (!that.swiperMoving) return;
 			that.target[that.property] = integer?Math.round(swiperDamp.convert(desiredVal)):swiperDamp.convert(desiredVal);
-			if (!downCheck && Math.abs(that.target[that.property]-desiredVal) < Math.abs(max-min)/1000) {
+			if (!downCheck && Math.abs(that.target[that.property]-desiredVal) < ((!zot(min)&&!zot(max))?Math.abs(max-min)/1000:1)) {
 				that.swiperMoving = false;
 				that.target[that.property] = desiredVal; // snap to final value
 				that.immediate(that.target[that.property]);
@@ -22967,14 +22965,14 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 
 		function enable() {
 			if (container.canvas) {
-				container.on("stagemousedown", downEvent);
+				downEvent = container.on("stagemousedown", downEvent);
 			} else {
-				container.on("mousedown", downEvent);
-				container.on("pressmove", moveEvent);
-				container.on("pressup", upEvent);
+				downEvent = container.on("mousedown", downEvent);
+				moveEvent = container.on("pressmove", moveEvent);
+				upEvent = container.on("pressup", upEvent);
 			}
 			that.immediate(that.target[that.property]);
-			zim.Ticker.add(that.target.swiperTicker, stage);
+			that.target.swiperTicker = zim.Ticker.add(that.target.swiperTicker, stage);
 		}
 
 		this.dispose = function() {
