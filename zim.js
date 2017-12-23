@@ -5738,9 +5738,9 @@ Note the points property has been split into points and pointObjects (and there 
 			if (draggingCheck) return;
 			draggingCheck = true;
 			shape.drag({onTop:false});
-			shape.on("mousedown", moveDownEvent);
-			shape.on("pressmove", movePressEvent);
-			shape.on("pressup", moveUpEvent);
+			moveDownEvent = shape.on("mousedown", moveDownEvent);
+			movePressEvent = shape.on("pressmove", movePressEvent);
+			moveUpEvent = shape.on("pressup", moveUpEvent);
 		}
 		function stopDragging(making) {
 			if (!making && !draggingCheck) return;
@@ -6671,9 +6671,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (draggingCheck) return;
 			draggingCheck = true;
 			shape.drag({onTop:false});
-			shape.on("mousedown", moveDownEvent);
-			shape.on("pressmove", movePressEvent);
-			shape.on("pressup", moveUpEvent);
+			moveDownEvent = shape.on("mousedown", moveDownEvent);
+			movePressEvent = shape.on("pressmove", movePressEvent);
+			moveUpEvent = shape.on("pressup", moveUpEvent);
 		}
 		function stopDragging(making) {
 			if (!making && !draggingCheck) return;
@@ -11269,8 +11269,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			set: function(value) {
 				zenable(that, value);
 				if (value) {
-					window.addEventListener("keydown", that.keyDownEvent);
-					window.addEventListener("keyup", that.keyUpEvent);
+					that.keyDownEvent = window.addEventListener("keydown", that.keyDownEvent);
+					that.keyUpEvent = window.addEventListener("keyup", that.keyUpEvent);
 				} else {
 					window.removeEventListener("keydown", that.keyDownEvent);
 					window.removeEventListener("keyup", that.keyUpEvent);
@@ -14493,14 +14493,14 @@ RETURNS obj for chaining
 				toggle = toggleStart;
 				if (move) {
 					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
-					obj.on("pressmove", pressmoveEvent);
+					pressmoveEvent = obj.on("pressmove", pressmoveEvent);
 				}
 			},
 			toggleOn:function() {
 				toggle = toggleStart = true;
-				controls.on("mousedown", toggleControlsEvent);
-				obj.on("mousedown", toggleObjEvent);
-				stage.on("stagemousedown", toggleStageEvent);
+				toggleControlsEvent = controls.on("mousedown", toggleControlsEvent);
+				toggleObjEvent = obj.on("mousedown", toggleObjEvent);
+				toggleStageEvent = stage.on("stagemousedown", toggleStageEvent);
 			},
 			toggleOff:function() {
 				toggle = toggleStart = false;
@@ -14521,7 +14521,7 @@ RETURNS obj for chaining
 				controls.mouseEnabled = true;
 				if (move) {
 					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
-					obj.on("pressmove", pressmoveEvent);
+					pressmoveEvent = obj.on("pressmove", pressmoveEvent);
 				}
 			},
 			recordData:function(toJSON) {
@@ -23471,23 +23471,23 @@ dispatches a "change" event with dir as property of event object
 		});
 		function enable() {
 			if (type == "keydown") {
-				frame.on("keydown", keydownEvent);
-				frame.on("keyup", keyupEvent);
-				zim.Ticker.add(keyTicker, stage);
+				keydownEvent = frame.on("keydown", keydownEvent);
+				keyupEvent = frame.on("keyup", keyupEvent);
+				keyTicker = zim.Ticker.add(keyTicker, stage);
 			} else if (type == "gamebutton") {
-				gamepad.on("buttondown", buttondownEvent);
-				gamepad.on("buttonup", buttonupEvent);
-				zim.Ticker.add(keyTicker, stage);
+				buttondownEvent = gamepad.on("buttondown", buttondownEvent);
+				buttonupEvent = gamepad.on("buttonup", buttonupEvent);
+				keyTicker = zim.Ticker.add(keyTicker, stage);
 			} else if (type == "gamestick") {
-				gamepad.on("data", stickEvent);
+				stickEvent = gamepad.on("data", stickEvent);
 			} else if (type == "swipe") {
 				swiperX.enabled = true;
 				swiperY.enabled = true;
-				swiperX.on("swipemove", swiperEvent);
+				swiperEvent = swiperX.on("swipemove", swiperEvent);
 			} else if (type == "mousedown" || type == "mousemove") {
-				stage.on("stage" + type, mouseEvent);
+				mouseEvent = stage.on("stage" + type, mouseEvent);
 			}
-			zim.Ticker.add(mainTicker, stage);
+			mainTicker = zim.Ticker.add(mainTicker, stage);
 		}
 		function disable() {
 			if (type == "keydown") {
