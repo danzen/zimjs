@@ -3518,7 +3518,7 @@ clone(recursive) - makes a copy of the shape
 	set recursive to false to have clone share graphic property
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), placeReg(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -3666,7 +3666,7 @@ drawImageData(x, y, sourceX ,srcY, srcWidth, srcHeight) - draws the Bitmap's ima
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Bitmap methods, such as:
 on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
@@ -3926,7 +3926,7 @@ stopRun() - stop the sprite from animating
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Sprite methods, such as:
 play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
@@ -4283,7 +4283,7 @@ zim class - extends a createjs.MovieClip
 
 DESCRIPTION
 A MovieClip adds timelines to a Container.
-The timelines are move() or animate() zimTween properties.
+The timelines are animate() zimTween properties.
 The zimTween property returns a CreateJS Tween object.
 Primarily made to support Adobe Animate MovieClip export.
 *Consider this experimental for the moment...
@@ -4319,7 +4319,7 @@ METHODS
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for MovieClip methods, such as:
 play(), gotoAndPlay(), gotoAndStop(), stop(), advance(),
@@ -4397,7 +4397,7 @@ cache(see Container docs for parameter description) - overrides CreateJS cache()
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -4578,7 +4578,7 @@ cache(see Container docs for parameter description) - overrides CreateJS cache()
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -4763,7 +4763,7 @@ cache(see Container docs for parameter description) - overrides CreateJS cache()
 clone() - makes a copy of the shape
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -5025,7 +5025,7 @@ clone() - makes a copy of the shape
 dispose() - remove event listeners
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -5986,7 +5986,7 @@ clone() - makes a copy of the shape
 dispose() - remove event listeners
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -6883,7 +6883,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -7196,7 +7196,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -7690,7 +7690,7 @@ setChecked(Boolean) - defaults to true to set button checked (or use checked pro
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -7926,7 +7926,7 @@ setSelected(num) - sets the selected index (or use selectedIndex) -1 is default 
 clone() - makes a copy with properties such as x, y, etc. also copied
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -8266,7 +8266,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied (returns t
 dispose() - removes all events
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -8656,7 +8656,7 @@ clone(recursive) - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes event listeners from Window and content and removes any Ticker functions
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -9182,7 +9182,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied (returns t
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -9393,7 +9393,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes any listeners
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -9627,7 +9627,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -10426,7 +10426,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -10842,7 +10842,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -11356,7 +11356,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -11740,7 +11740,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -11909,7 +11909,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-66
 
 /*--
-zim.Tile = function(obj, cols, rows, spacingH, spacingV, mirrorH, mirrorV, snapToPixel)
+zim.Tile = function(obj, cols, rows, count, spacingH, spacingV, mirrorH, mirrorV, snapToPixel)
 
 Tile
 zim class - extends a zim.Container which extends a createjs.Container
@@ -11952,7 +11952,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -12076,7 +12076,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes listeners and deletes object
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -12714,7 +12714,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the button and listeners
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -13013,7 +13013,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - to get rid of the textarea tag
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -15593,99 +15593,6 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-obj.move = function(x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id)
-
-move
-zim DisplayObject method
-wraps createjs.Tween
-
-DESCRIPTION
-Moves a target object to position x, y in time milliseconds.
-You can set various types of easing like bounce, elastic, back, linear, sine, etc.
-Handles callbacks, delays, loops, rewinds, sequences of move animations.
-Also see the more general animate()
-(which this function calls after consolidating x an y into an object).
-
-NOTE: to temporarily prevent animations from starting set ANIMATE to false
-NOTE: see pauseAnimate(state, ids) and stopAnimate(ids) for controlling tweens when running
-
-EXAMPLE
-var circle = new Circle(50, "red");
-circle.center(stage);
-circle.move(100, 100, 700, "backOut");
-
-// see animate for more complex examples
-END EXAMPLE
-
-PARAMETERS - supports DUO - parameters or single object with properties below
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-3. a ZIM RAND object literal - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, Rectangle(), etc. this just passes through unchanged
-
-NOTE: if using move as a zim function the first parameter is:
-target - |ZIM VEE| the target object to tween
-
-x and y - |ZIM VEE| the absolute positions to tween to
-	RELATIVE VALUES: you can pass in relative values by putting the numbers as strings
-	x:"100" will animate the object 100 pixels to the right of the current x position
-	x:100 will animate the oject to an x position of 100
-time - |ZIM VEE| the time for the tween in milliseconds 1000 ms = 1 second
-ease - |ZIM VEE| (default "quadInOut") see CreateJS easing ("bounceOut", "elasticIn", "backInOut", "linearInOut", etc)
-call - (default null) the function to call when the animation is done
-params - (default target) a single parameter for the call function (eg. use object literal or array)
-wait - |ZIM VEE| (default 0) milliseconds to wait before doing animation
-loop - (default false) set to true to loop animation
-loopCount - |ZIM VEE| (default 0) if loop is true how many times it will loop (0 is forever)
-loopWait - |ZIM VEE| (default 0) milliseconds to wait before looping (post animation wait)
-loopCall - (default null) calls function after loop and loopWait (not including last loop)
-loopParams - (default target) parameters to send loopCall function
-loopWaitCall - (default null) calls function after at the start of loopWait
-loopWaitParams - (default target) parameters to send loopWaitCall function
-rewind - |ZIM VEE| (default false) set to true to rewind (reverse) animation (doubles animation time)
-rewindWait - |ZIM VEE| (default 0) milliseconds to wait in the middle of the rewind
-rewindCall - (default null) calls function at middle of rewind after rewindWait
-rewindParams - (default target) parameters to send rewindCall function
-rewindWaitCall (default null) calls function at middle of rewind before rewindWait
-rewindWaitParams - (default target) parameters to send rewindCall function
-sequence - (default 0) the delay time in milliseconds to run on children of a container or an array of target animations
-	for example, target = container or target = [a,b,c] and sequence = 1000
-	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
-	or in the case of the array, on element a and then 1 second later, element b, etc.
-	If the loop prop is true then sequenceCall below would activate for each loop
-	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
-sequenceCall - (default null) the function that will be called when the sequence ends
-sequenceParams - (default null) a parameter sent to the sequenceCall function
-sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
-props - (default {override: true}) legacy - allows you to pass in TweenJS props
-protect - (default false) protects animation from being interrupted before finishing
- 	unless manually interrupted with stopAnimate()
-	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
-override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
-	set to false to allow multiple tweens of same object
-from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
-set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
-id - (default randomly created) set to String for id to pause or stop Tween
-
-NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
-NOTE: call is now triggered once after all loops and rewinds are done
-
-RETURNS the target for chaining
---*///+44
-	zim.move = function(target, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id) {
-		var sig = "target, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, protect, override, from, set, id";
-		var duo; if (duo = zob(zim.move, arguments, sig)) return duo;
-		z_d("44");
-		if (zot(x) && zot(y)) return;
-		var obj = {x:zik(x), y:zik(y)};
-		if (zot(x)) {obj = {y:zik(y)};} else if (zot(y)) {obj = {x:zik(x)};}
-		return zim.animate(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, null, protect, override, from, set, id);
-	}//-44
-
-/*--
 obj.animate = function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
 
 animate
@@ -15696,8 +15603,6 @@ DESCRIPTION
 Animate object obj properties in time milliseconds.
 You can set various types of easing like bounce, elastic, back, linear, sine, etc.
 Handles callbacks, delays, loops, rewinds, series and sequences of animations.
-Also see the more specific move() to animate position x, y
-although you can animate x an y just fine with animate.
 
 NOTE: to temporarily prevent animations from starting set ANIMATE to false
 NOTE: see pauseAnimate(state, ids) and stopAnimate(ids) for controlling tweens when running
@@ -15877,14 +15782,19 @@ override - (default true) subesequent tweens of any type on object cancel all ea
 from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
 set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
 id - (default null) set to String to use with zimPauseTween(state, id) and zimStopTween(id)
+events - (default false) set to true to receive an "animation" event on the target (or Container with a Container sequence)
 
 NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
 NOTE: call is now triggered once after all loops and rewinds are done
 
+EVENTS - zim animate() will add an "animation" event to the target IF the events parameter is set to true (default is false)
+ 	or the "animation" event will be added to the Container for a sequence in a Container
+	or the "animation" event is added to the targets of an animation series
+
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id) {
-		var sig = "target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id";
+	zim.animate = function(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id, events, sequenceTarget) {
+		var sig = "target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id, events, sequenceTarget";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
@@ -15916,11 +15826,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// handle multiple targets first if there is an array
 		// this just recalls the animate function for each element delayed by the sequence parameter
 		if (zot(sequence)) sequence = 0;
+		var sequenceTarget;
 		if (sequence > 0 && target.addChild) { // container with sequence so convert target to array
 			var newTarget = [];
 			for (var i=0; i<target.numChildren; i++) {
 				newTarget.push(target.getChildAt(i));
 			}
+			sequenceTarget = target;
 			target = newTarget;
 		}
 		if (target instanceof Array) {
@@ -15944,10 +15856,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						}
 					}
 					setTimeout(function() {
-
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id); // do not send from!
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id, events, sequenceTarget); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000); // + ((wait)?wait:0); // wait only happens at start - no longer each time
@@ -15964,7 +15875,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}, sequence*i);
 				}();
 			}
-			return;
+			return sequenceTarget;
 		}
 
 		// DEFAULTS
@@ -16358,7 +16269,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// SET TICKER
 		var zimTicker;
 		if (!css && ticker) {
-			zimTicker = zim.Ticker.add(function(){}, stage);
+			if (events && !zot(sequenceTarget) && sequenceTarget.dispatchEvent) zimTicker = zim.Ticker.add(function(){sequenceTarget.dispatchEvent("animation");}, stage);
+			else if (events && target.dispatchEvent) zimTicker = zim.Ticker.add(function(){target.dispatchEvent("animation");}, stage);
+			else zimTicker = zim.Ticker.add(function(){}, stage);
 		}
 
 		// SET MASK TO DYNAMIC
@@ -16501,7 +16414,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 			} else {
 				clearTimeout(tween.zimAnimateTimeout);
-				if (tween.zimTicker) zim.Ticker.add(tween.zimTicker, stage);
+				if (tween.zimTicker) tween.zimTicker = zim.Ticker.add(tween.zimTicker, stage);
 			}
 		}
 		function expandIds(ids) {
@@ -17008,7 +16921,7 @@ Copies the transformation properties from the source to the obj
 (x, y, rotation, scale and skew)
 Might need to still copy the regX and regY (not included in copyMatrix)
 
-NOTE: used internally by move(), animate() and setMask() for copying transform of shapes to mask
+NOTE: used internally by animate() and setMask() for copying transform of shapes to mask
 also used in addDisplayMembers for clone() method
 
 EXAMPLE
@@ -17107,7 +17020,7 @@ RETURNS obj for chaining
 	}//-41.2
 
 /*--
-obj.pos = function(x, y)
+obj.pos = function(x, y, container, add)
 
 pos
 zim DisplayObject method
@@ -17123,14 +17036,18 @@ END EXAMPLE
 PARAMETERS
 x - (default null) the x position
 y - (default null) the y position
+container - (default null) the Container to add the obj to and position within
+add - (default true) add to container if there is a contianer specified
 
 RETURNS obj for chaining
 --*///+41.5
-	zim.pos = function(obj, x, y) {
+	zim.pos = function(obj, x, y, container, add) {
 		z_d("41.5");
 		if (zot(obj)) return;
 		if (!zot(x)) obj.x = x;
 		if (!zot(y)) obj.y = y;
+		if (zot(add)) add = true;
+		if (!zot(container) && add) obj.addTo(container);
 		return obj;
 	}//-41.5
 
@@ -17145,8 +17062,6 @@ Move the object over in the x and/or y
 Equivalant to obj.x += x and obj.y += y
 Pass in 0 for no shift in x if you just want to shift y
 Gives chainable relative position
-
-NOTE: might want to pronounce this "mawv" to differentiate from ZIM move()
 
 EXAMPLE
 var circle = new Circle().center(stage).mov(50); // move to right 50
@@ -17613,7 +17528,7 @@ We can also use obj.removeFrom(container)
 
 EXAMPLE
 var circle = new Circle(50, "red");
-circle.addTo(stage);
+circle.addTo(stage); // or just circle.addTo(); // for the default frame's stage
 // with chaining - and dragging:
 var circle = new Circle(50, "red").addTo(stage).drag();
 
@@ -17631,12 +17546,12 @@ RETURNS obj for chaining
 
 		z_d("47.5");
 		if (zot(obj)) {zog("zim methods - addTo(): please provide object"); return;}
-		if (zot(container)) {zog("zim methods - addTo(): please provide container"); return;}
-		if (zot(index) || isNaN(index)) {
-			container.addChild(obj);
-		} else {
-			container.addChildAt(obj, index);
+		if (zot(container)) {
+			if (zimDefaultFrame) {container = zimDefaultFrame.stage;}
+			else {zog("zim methods - addTo(): please provide container"); return;}
 		}
+		if (zot(index) || isNaN(index)) {container.addChild(obj);}
+		else {container.addChildAt(obj, index);}
 		return obj;
 	}//-47.5
 
@@ -17699,6 +17614,7 @@ maxTime - (default null) time in ms to keep checking or forever if not provided
 RETURNS id of interval so clearInterval(id) will stop added() from checking for stage
 --*///+47.7
 	zim.added = function(obj, call, interval, maxTime) {
+
 		z_d("47.7");
 		if (zot(obj) || zot(call) || typeof call != "function") return;
 		if (zot(interval)) interval = 100;
@@ -17735,7 +17651,7 @@ zim DisplayObject method
 
 DESCRIPTION
 Centers the registration point on the bounds - obj must have bounds set.
-If a container is provided it adds the object to the container.
+If no container is provided it centers and adds the object to the stage.
 A convenience function for setting both registration points at once.
 Also see center() for centering without changing the registration point.
 
@@ -17743,13 +17659,18 @@ EXAMPLE
 var rect = new Rectangle(100, 100, "blue");
 rect.centerReg(stage); // centers registration, centers and adds to stage
 rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
+
+// Or we can just use rect.centerReg(); to center on the stage
+// To just center the registration and not add it to a container
+// use rect.centerReg(null, null, false);
+// This is different than in the past where leaving out parameters would just center the registration
+// The change is to match the default behaviour of addTo() and center() to add to stage without parameters
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - (default null) centers the object on and adds to the container
+container - (default first frame's stage) centers the object on and adds to the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
-add - (default true) set to false to only center the object on the container
-
+add - (default true) set to false to only center the object's registration
 
 RETURNS obj for chaining
 --*///+48
@@ -17759,10 +17680,12 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
 		z_d("48");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim methods - centerReg(): please provide object with bounds set"); return obj;}
+		if (zot(container) && zimDefaultFrame) container = zimDefaultFrame.stage;
+		if (zot(add)) add = true;
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
-		return (container) ? zim.center(obj, container, index, add) : obj;
+		return add ? zim.center(obj, container, index) : obj;
 	}//-48
 
 /*--
@@ -17785,7 +17708,7 @@ rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - centers the object on and adds to the container
+container - (default is first frame's stage) centers the object on and adds to the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
 add - (default true) set to false to only center and not add the object to the container
 
@@ -17797,6 +17720,7 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
 		z_d("48.1");
 		if (zot(obj) || !obj.getBounds) {zog("zim.center(): please provide object with bounds"); return;}
+		if (zot(container) && zimDefaultFrame) container = zimDefaultFrame.stage;
 		if (zot(container) || !container.getBounds)  {zog("zim.center(): please provide container with bounds"); return;}
 
 		var oB = obj.getBounds();
@@ -17964,7 +17888,7 @@ Specifies a mask for an object - the object can be any display object.
 The mask can be a ZIM (or CreateJS) Shape or a ZIM Rectangle, Circle, Triangle or Blob.
 Masking must be done with a Shape and the ZIM shapes are actually containers with Shape objects in them.
 So setMask() takes care of all the arrangements and updates the mask when using the following ZIM features:
-drag(), animate(), move(), gesture(), transform() and using the Bezier curves, etc. with Blob.
+drag(), animate(), gesture(), transform() and using the Bezier curves, etc. with Blob.
 
 NOTE: the mask you pass in can still be seen but you can set its alpha to 0
 just watch, if you want to interact with the mask it cannot have 0 alpha
@@ -17998,7 +17922,7 @@ var rect = new Rectangle(200,100,"black")
 label.setMask(rect);
 END EXAMPLE
 
-NOTE: move(), animate(), drag(), gesture() and transform() work specially with zim shapes to make this work
+NOTE: animate(), drag(), gesture() and transform() work specially with zim shapes to make this work
 otherwise, if you want to reposition your mask then set the dynamic parameter to true
 or use a zim.Shape() or createjs.Shape directly to avoid this issue
 
@@ -18082,7 +18006,7 @@ ANIMATE
 zim constant
 
 DESCRIPTION
-Set to false to stop move() and animate() calls from working.
+Set to false to stop animate() calls from working.
 Handy for testing your app so you do not have to wait for animations every time!
 To animate things in you can place everything in their final positions
 and then set the "from" parameter to true to animate from starting positions
@@ -18260,7 +18184,7 @@ Ticker.list.objects - the array of stages in the Ticker
 Ticker.list.values - the array holding an array of functions for each stage in the Ticker
 Ticker.framerate - read only - use setFPS() to set
 
-the Ticker is used internally by zim functions like move(), animate(), drag(), Scroller(), Parallax()
+the Ticker is used internally by zim functions like animate(), drag(), Scroller(), Parallax()
 you are welcome to add functions - make sure to pass the stage in as a second parameter to the add() method
 
 USAGE
@@ -19686,9 +19610,7 @@ you can define multiple pages objects add and remove pages objects as needed
 		if (zot(transitionTable)) transitionTable = [];
 		this.transitionTable = transitionTable;
 
-		if (zot(holder)) {
-			if (zimDefaultFrame) holder = zimDefaultFrame.stage;
-		}
+		if (zot(holder) && zimDefaultFrame) holder = zimDefaultFrame.stage;
 		if (!holder.getBounds || !holder.getBounds()) {zog("zim controls - Pages():\nholder object must have bounds set"); return;}
 
 		this.speed = speed;
@@ -23856,7 +23778,7 @@ clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes event listeners from Window and content and removes any Ticker functions
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), move(), animate(), sca(), reg(), mov(), center(), centerReg(),
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
 ALSO: See the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
@@ -26065,13 +25987,9 @@ function zimify(obj, list) {
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		move:function(x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id) {
-			if (isDUO(arguments)) {arguments[0].target = this; return zim.move(arguments[0]);}
-			else {return zim.move(this, x, y, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, protect, override, from, id);}
-		},
-		animate:function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id) {
+		animate:function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id, events, sequenceTarget) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id);}
+			else {return zim.animate(this, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id, events, sequenceTarget);}
 		},
 		pauseAnimate:function(){return this;},
 		stopAnimate:function(){return this;},
@@ -26091,8 +26009,8 @@ function zimify(obj, list) {
 		sha:function(color, offsetX, offsetY, blur) {
 			return zim.sha(this, color, offsetX, offsetY, blur);
 		},
-		pos:function(x, y) {
-			return zim.pos(this, x, y);
+		pos:function(x, y, container, add) {
+			return zim.pos(this, x, y, container, add);
 		},
 		mov:function(x, y) {
 			return zim.mov(this, x, y);
