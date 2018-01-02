@@ -6824,7 +6824,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-53.5
 
 /*--
-zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, backgroundCorner, backgroundDashed, padding, paddingHorizontal, paddingVertical)
 
 Label
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6874,6 +6874,18 @@ backing - (default null) a Display object for the backing of the label (eg. Shap
 	see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
 outlineColor - (default null - or black if outlineWidth set) - the color of the outline of the text
 outlineWidth - (default null - or (size*.2) if outlineColor set) - the thickness of the outline of the text
+backgroundColor - (default null) set to CSS color to add a rectangular color around the label
+	The background color will change size to match the text of the label
+	Note: the backgroundColor is different than a backing which can be any Display Object
+	and background parameters are ignored if a backing parameter is set
+backgroundBorderColor - (default null) the background stroke color
+backgroundBorderWidth - (default null) thickness of the background border
+backgroundCorner - (default 0) the round of corner
+backgroundDashed - (default null) set to true for dashed background border (if backgroundBorderColor or backgroundBorderWidth set)
+padding - (default 10 if backgroundColor set) places the border this amount from text (see paddingHorizontal and paddingVertical)
+	padding parameters are ignored if there is no backgroundColor set (also ignored if a backing parameter is set)
+paddingHorizontal - (default padding) places border out at top bottom
+paddingVertical - (default padding) places border out at left and right
 
 METHODS
 showRollColor(boolean) - true to show roll color (used internally)
@@ -6901,6 +6913,7 @@ height - gets or sets the height. Setting the height will scale the width to kee
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
 backing - access to backing object
+background - access to background Rectangle if backgroundColor is set
 enabled - default is true - set to false to disable
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 
@@ -6916,9 +6929,9 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+54
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth) {
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, backgroundCorner, backgroundDashed, padding, paddingHorizontal, paddingVertical) {
 
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth";
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, backgroundCorner, backgroundDashed, padding, paddingHorizontal, paddingVertical";
 		var duo; if (duo = zob(zim.Label, arguments, sig, this)) return duo;
 		z_d("54");
 		this.zimContainer_constructor();
@@ -6942,6 +6955,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (!zot(outlineColor) && zot(outlineWidth)) outlineWidth = Math.round(size*.2);
 		if (!zot(outlineWidth) && zot(outlineColor)) outlineColor = "#000000";
 		if (zot(outlineWidth)) outlineWidth = 0;
+		if (zot(padding)) padding = 10;
+		if (zot(paddingHorizontal)) paddingHorizontal = padding;
+		if (zot(paddingVertical)) paddingVertical = padding;
 
 		var that = this;
 		this.mouseChildren = false;
@@ -6977,6 +6993,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (backing) {
 				var bb = backing.getBounds();
 				that.setBounds(bb.x, bb.y, bb.width, bb.height);
+			} else if (!zot(backgroundColor)) {
+				that.setBounds(b.x, yAdjust, b.width, b.height);
+				that.removeChild(that.background);
+				that.background = new zim.Rectangle(
+					that.getBounds().width+paddingHorizontal*2, that.getBounds().height+paddingVertical*2,
+					backgroundColor, backgroundBorderColor, backgroundBorderWidth, backgroundCorner, null, backgroundDashed
+				);
+				zim.center(that.background, that, 0);
 			} else {
 				that.setBounds(b.x, yAdjust, b.width, b.height);
 				hitArea.graphics.c().f("black").r(that.getBounds().x, that.getBounds().y, that.getBounds().width, that.getBounds().height);
@@ -6988,7 +7012,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				obj2.y += size/32;
 			}
 		}
-		if (zot(backing)) {
+	 	if (zot(backing) && zot(backgroundColor)) {
 			var hitArea = new createjs.Shape();
 			that.hitArea = hitArea;
 		}
@@ -7076,7 +7100,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.clone = function() {
 			return that.cloneProps(new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions,
-				!zot(backing)?backing.clone():null, outlineColor, outlineWidth));
+				!zot(backing)?backing.clone():null, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, backgroundCorner, backgroundDashed, padding, paddingHorizontal, paddingVertical));
 		}
 
 		this.dispose = function() {
@@ -17537,7 +17561,7 @@ rect.addTo(stage, 0); // place on bottom
 END EXAMPLE
 
 PARAMETERS
-container - the container to add to
+container - (default first frame's stage) the container to add to
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
 
 RETURNS obj for chaining
