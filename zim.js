@@ -2,7 +2,6 @@
 // Also see http://zimjs.com/distill to minify only the functions in your app
 // free to use - donations welcome of course! http://zimjs.com/donate
 
-
 ////////////////  ZIM WRAP  //////////////
 
 // Zim Wrap creates global wrapper functions for less typing
