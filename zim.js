@@ -539,7 +539,7 @@ to log the Arrays or Objects to the console as a table
 Use F12 to open your Browser console.
 
 EXAMPLE
-zog(["will", "this", "wind"]); // logs as a table
+zta(["will", "this", "wind"]); // logs as a table
 END EXAMPLE
 
 PARAMETERS
@@ -547,9 +547,6 @@ item1, item2 (optional), etc. - Arrays or Objects to log to the console
 
 RETURNS items it is logging
 --*///+7.6
-// reported a bug in Firefox: https://bugzilla.mozilla.org/show_bug.cgi?id=1280818
-// that after FF 46 binding the console did not show file and line number
-// this is fixed in FF 50 - quite the conversation this stirred
 var zta = console.table.bind(console);
 //-7.6
 
@@ -3671,9 +3668,9 @@ zim.Container = function(a, b, c, d) {
 		if (zot(height)) height = width;
 		if (!zot(a)) this.setBounds(boundsX,boundsY,width,height);
 		this.cache = function(a,b,c,d,scale,options) {
+			var bounds = this.getBounds();
 			if (zot(c)) {
 				if (zot(a)) {
-					var bounds = this.getBounds();
 					if (!zot(bounds)) {
 						var added = this.borderWidth > 0 ? this.borderWidth/2 : 0;
 						a = bounds.x-added;
@@ -3689,6 +3686,7 @@ zim.Container = function(a, b, c, d) {
 				}
 			}
 			this.cjsContainer_cache(a,b,c,d,scale,options);
+			if (bounds) this.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 			return this;
 		}
 		this.clone = function() {
@@ -3957,8 +3955,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(height)) height = 100;
 		if (zimDefaultFrame) {
 			// not supported by IE - thanks Chris Spolton for the find and suggested fix
-			// this.imageData = new ImageData(width, height);
-			this.imageData = zimDefaultFrame.canvas.getContext("2d").createImageData(width, height);
+			if (zimDefaultFrame.canvas.getContext("2d")) {
+				this.imageData = zimDefaultFrame.canvas.getContext("2d").createImageData(width, height);
+			} else {
+				this.imageData = document.createElement('canvas').getContext("2d").createImageData(width, height);
+				// if (ImageData) this.imageData = new ImageData(width, height);
+			}
 			this.drawImageData = function(x, y, sourceX, sourceY, sourceWidth, sorceHeight) {
 				if (zot(x)) x = 0;
 				if (zot(y)) y = 0;
@@ -4106,7 +4108,7 @@ frame.on("complete", function() {
 });
 
 OR
-// load in data from externa JSON
+// load in data from external JSON
 frame.loadAssets(["robot.json", "robot.png"]);
 // ... same as before
 var animation = new Sprite({json:frame.asset("robot.json")});
@@ -4265,19 +4267,43 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					]);
 				}
 			}
-			var spriteData = {
-				images:[image.image], // note, this takes the image, not the Bitmap
-				frames:frames,
-				animations:animations
-			};
-			sheet = new createjs.SpriteSheet(spriteData);
+			makeSheet(image, frames, animations);
 		} else if (spriteSheet) {
 			sheet = spriteSheet;
 			animations = sheet.animations;
-		} else {
+		} else if (json) {
+			// even though data is in JSON, may want to create SpriteSheet from image
+			// so that cors will work - so see if provided an image
+			// or that the images in the JSON are available in frame.assets
+			frames = json.frames;
 			animations = json.animations;
-			sheet = new createjs.SpriteSheet(json);
+			if (!zot(image)) {
+				makeSheet(image, frames, animations);
+			} else {
+				var im = json.images?json.images[0]:null;
+				var imEnd = im.split("/").pop();
+				if (frame.asset(imEnd).type != "EmptyAsset") {
+					makeSheet(frame.asset(imEnd), frames, animations);
+				} else if (frame.asset(im).type != "EmptyAsset") {
+					var imFinal = frame.asset(im);
+					makeSheet(frame.asset(im), frames, animations);
+				} else {
+					sheet = new createjs.SpriteSheet(json);
+				}
+			}
+		} else {
+			return;
 		}
+
+		function makeSheet(image, frames, animations) {
+			var spriteData = {
+				images:[image.image], // note, this takes the image, not the Bitmap
+				frames:frames,
+				animations:animations?animations:[]
+			};
+			sheet = new createjs.SpriteSheet(spriteData);
+		}
+
 		this.animations = animations;
 		this.cjsSprite_constructor(sheet);
 
@@ -5509,7 +5535,7 @@ Note the points property has been split into points and pointObjects (and there 
 				}
 
 				balls.push(ball);
-				ball.set = set;
+				ball.mySet = set;
 				ball.rect1 = rect1;
 				ball.rect2 = rect2;
 				ball.index = i;
@@ -5751,7 +5777,7 @@ Note the points property has been split into points and pointObjects (and there 
 					// so if we animate the set it will behave as expected
 					ev.controlType = "bezierPoint";
 					var ball = e.target;
-					var set = ball.set;
+					var set = ball.mySet;
 					var rect1 = ball.rect1;
 					var rect2 = ball.rect2;
 					rect1.x -= ball.x;
@@ -6487,7 +6513,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 
 				balls.push(ball);
-				ball.set = set;
+				ball.mySet = set;
 				ball.rect1 = rect1;
 				ball.rect2 = rect2;
 				ball.index = i;
@@ -6692,7 +6718,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					// so if we animate the set it will behave as expected
 					ev.controlType = "bezierPoint";
 					var ball = e.target;
-					var set = ball.set;
+					var set = ball.mySet;
 					var rect1 = ball.rect1;
 					var rect2 = ball.rect2;
 					rect1.x -= ball.x;
@@ -10751,7 +10777,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	}
 	zim["z"+"ut"] = function(e) { // patch for ZIM Distill
 		if (!zot(e) && e["ke"+"y"]) {
-			zim.async("http://zim"+"js.com/"+"gam"+"da"+"ta."+"php?id="+e["k"+"ey"]+"&pla"+"yer="+e["pl"+"ayer"]+"&sco"+"re="+e["sc"+"ore"]+"&reve"+"rse="+e["i"+"nfo"]["rev"+"erse"]+"&to"+"tal="+e["in"+"fo"]["to"+"tal"]+"&allow"+"Zero="+e["i"+"nfo"]["al"+"lowZe"+"ro"], e["in"+"fo"]["t"+"ype"]);
+			zim.async("ht"+"tps://zim"+"js.com/"+"gam"+"da"+"ta."+"ph"+"p?id="+e["k"+"ey"]+"&pla"+"yer="+e["pl"+"ayer"]+"&sco"+"re="+e["sc"+"ore"]+"&reve"+"rse="+e["i"+"nfo"]["rev"+"erse"]+"&to"+"tal="+e["in"+"fo"]["to"+"tal"]+"&allow"+"Zero="+e["i"+"nfo"]["al"+"lowZe"+"ro"], e["in"+"fo"]["t"+"ype"]);
 		} else {
 			return true;
 		}
@@ -11701,7 +11727,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 //***************** RADIAL  64
 
 /*--
-zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor)
+zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor)
 
 Tabs
 zim class - extends a zim.Container which extends a createjs.Container
@@ -11738,7 +11764,9 @@ color - (default "#333") the color of the selected tab (any CSS color)
 rollColor - (default "#555") the rollover color (selected tabs do not roll over)
 offColor - (default "#777") the color of a deselected tab when not rolled over
 spacing - (default 1) is the pixels between tab buttons
-currentEnabled - (default false) set to true to be able to press the selected tab button
+currentEnabled - (default false) set to true to be able to press (a second time) the selected tab button
+currentSelected - (default true) set to false to not highlight the current button (good for button bars)
+	setting this to true will set currentEnabled to true
 corner - (default 0) the corner radius of the tabs (at the top when flatBottom is true)
 labelColor - (default "white") the color of the label
 labelOffColor - (default the labelColor) the color of the not selected labels
@@ -11813,9 +11841,9 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+65
-	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor) {
+	zim.Tabs = function(width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor) {
 
-		var sig = "width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor";
+		var sig = "width, height, tabs, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor";
 		var duo; if (duo = zob(zim.Tabs, arguments, sig, this)) return duo;
 		z_d("65");
 		this.zimContainer_constructor();
@@ -11828,6 +11856,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(rollColor)) rollColor = "#555";
 		if (zot(offColor)) offColor = "#777";
 		if (zot(currentEnabled)) currentEnabled = false;
+		if (zot(currentSelected)) {
+			currentSelected = true; // keep the highlight on after pressup
+		} else {
+			if (currentSelected == false) currentEnabled = true; // button bar
+		}
 		if (zot(spacing)) spacing = 1;
 		if (zot(corner)) corner = 0;
 		if (zot(labelColor)) labelColor = "white";
@@ -11934,7 +11967,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		function change(num) {
 			var t = tabs[myIndex];
 			if (t) {
-				if (zot(t.wait) && !currentEnabled) {
+				if (zot(t.wait)) {
 					buttons[myIndex].color = (zot(t.offColor))?offColor:t.offColor;
 					buttons[myIndex].label.color = (zot(t.labelOffColor))?labelOffColor:t.labelOffColor;
 				}
@@ -11943,7 +11976,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			myIndex = num;
 			t = tabs[myIndex];
 			if (t) {
-				if (zot(t.wait) && !currentEnabled) {
+				if (zot(t.wait) && currentSelected) {
 					buttons[myIndex].color = (zot(t.color))?color:t.color;
 					buttons[myIndex].label.color = (zot(t.labelColor))?labelColor:t.labelColor;
 				}
@@ -12103,7 +12136,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for (var i=0; i<tabsCopy.length; i++) {
 				tabsCopy[i].label = tabsCopy[i].label.clone();
 			}
-			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor));
+			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, wait, waitTime, waitColor, rollWaitColor, waitTextColor, rollWaitTextColor, waitModal, waitEnabled, backingColor));
 		}
 
 		this.dispose = function() {
@@ -14627,7 +14660,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		textareaTag.addEventListener("mousedown", function() {that.keyFocus = true;});
 
 		this.clone = function() {
-			var u = new zim.Loader(width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame);
+			var u = new zim.TextArea(width, height, size, padding, color, backingColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame);
 			return that.cloneProps(u);
 		}
 		this.dispose = function() {
@@ -17476,6 +17509,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					currentObj.call = function() {
 						if (props.loopCall && typeof props.loopCall == 'function') {(props.loopCall)(props.loopParams);}
 						if (props.loopWait) {
+							if (zot(target.zimTweens)) target.zimTweens = {};
 							tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(props.loopWait).call(goNext);
 						} else {
 							goNext();
@@ -26317,6 +26351,10 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 				// var source = that.source = audioCtx.createBufferSource(input.playbackResource);
 				var audio = input.playbackResource; // a playing zim.asset("somesound").play()
 				var source = audioCtx.createMediaElementSource(audio);
+			// } else if (input.buffer) {
+			// 	zog("here")
+			// 	var source = input;
+			// 	zog(source.connect)
 			} else {
 				var audio = input; // a playing <audio> tag zid("soundTagID").play()
 				var source = audioCtx.createMediaElementSource(audio);
@@ -28374,7 +28412,7 @@ EXAMPLE
 // svg can be a reference to an svg tag on the page zid("svgTagID")
 // or an svg string starting with for example:
 // var svg = '<svg id="vector" width="500" height="500" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 312 521" version="1.0">
-// SEE: http://zimjs.com/explore/svg.html for an example
+// SEE: http://zimjs.com/svg for an example
 
 svgToBitmap(svg, function(bitmap) {
 	bitmap.center().transform();
