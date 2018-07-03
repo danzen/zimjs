@@ -7,8 +7,8 @@
 
 // Zim Wrap creates global wrapper functions for less typing
 
-// set var zon=true before calling zim scripts to show script comments
-if (typeof zon == "undefined") zon = false; // comments from zim scripts
+// set var zon=false before calling zim scripts to hide script comments
+if (typeof zon == "undefined") zon = true; // comments from zim scripts
 if (typeof zns == 'undefined') zns = false; // require zim namespace
 /*--
 zog(item1, item2, etc.)         ~ log
@@ -1522,6 +1522,128 @@ RETURNS a positive Number that is the angle between first and second point relat
 		if (zot(y2)) {y2 = y1; y1 = 0};
 		return (Math.atan2(y2-y1, x2-x1)*180/Math.PI+360)%360;
 	}//-13.4
+
+/*--
+zim.Point = function(x, y, z, w)
+
+Point
+zim class
+
+DESCRIPTION
+Stores x, y, z and w properties.
+See also createjs.Point for a Point class with more features.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var point = new Point(100, 100);
+zog(point.x, point.y); // 100, 100
+END EXAMPLE
+
+PARAMETERS
+x - (default 0) the x value of the point
+y - (default 0) the y value of the point
+z - (default 0) the z value of the point - probably not used
+w - (default 0) the w value of the point - very probably not used
+
+PROPERTIES
+x - the x value of the point
+y - the y value of the point
+z - the z value of the point - probably not used
+w - the w value of the point - very probably not used
+--*///+13.45
+	zim.Point = function(x, y, z, w) {
+		z_d("13.45");
+		if (zot(x)) x = 0;
+		if (zot(y)) y = 0;
+		if (zot(z)) z = 0;
+		if (zot(w)) w = 0;
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+	}//-13.45
+
+/*--
+zim.Boundary = function(x, y, width, height)
+
+Boundary
+zim class
+
+DESCRIPTION
+Stores the data for a rectangle with x, y, width and height.
+Can be used with ZIM drag(), gesture() for boundaries
+and the Physics module for world boundary.
+
+NOTE: A createjs.Rectangle or an object {} with x, y, width and height properties can also be used
+Boundary was introduced to reduce confusion over having a ZIM Rectangle (Shape) and a CreateJS Rectangle (data)
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+new Circle(100, frame.blue)
+	.center()
+	.drag(new Boundary(0,0,stageW,stageH));
+// note: drag and gesture used to have rect parameters
+// these have now been depreciated and replaced with boundary parameters
+
+// CONTRACT
+// the drag() boundary contains the registration point
+// note: the gesture() boundary contains the whole shape of the object
+// here, we keep the circle inside the stage by contracting the Boundary by the radius
+var radius = 100;
+new Circle(radius, frame.red)
+	.center()
+	.drag(new Boundary(0,0,stageW,stageH).contract(radius));
+END EXAMPLE
+
+PARAMETERS
+x - the x position of the Boundary
+y - the y position of the Boundary
+width - the width of the Boundary
+height - the height of the Boundary
+
+PROPERTIES
+x - the x position of the Boundary
+y - the y position of the Boundary
+width - the width of the Boundary
+height - the height of the Boundary
+
+METHODS
+contract(number|x, y, width, height) - number of pixels to make the Boundary smaller
+	passing in a single number will contract this on all sides
+	passing in two numbers will contract from horizontal and vertical accordingly
+	passing in four numbers will contract from the sides accordingly
+	note: to expand pass in a negative number
+	returns object for chaining
+--*///+13.46
+	zim.Boundary = function(x, y, width, height) {
+		z_d("13.46");
+		if (zot(x) || zot(y) || zot(width) || zot(height)) return;
+		this.x = x;
+		this.y = y;
+		this.width = width;
+		this.height = height;
+		this.contract = function(a,b,c,d) {
+			if (zot(a)) return this;
+			if (zot(b)) b = a;
+			if (zot(c)) {
+				c = a*2;
+			} else {
+				c = c+a;
+			}
+			if (zot(d)) {
+				d = b*2;
+			} else {
+				d = d+b;
+			}
+			this.x += a;
+			this.y += b;
+			this.width -= c;
+			this.height -= d;
+			return this;
+		}
+	}//-13.46
 
 /*--
 zim.makeID = function(length, type, letterCase)
@@ -3371,7 +3493,7 @@ Stage
 zim class - extends a createjs.Stage which extends a createjs.Container
 
 DESCRIPTION
-An extension of a createjs.Stage that includes read only type, width and height properties and loop method.
+An extension of a createjs.Stage that includes read only type, width and height properties, loop and hitTestGrid methods.
 When using zim.Frame, there should be no reason to make a zim.Stage.
 This was put in place to match the ZIM TypeScript typings for stage width and height.
 Also see https://www.createjs.com/docs/easeljs/classes/Stage.html
@@ -3387,8 +3509,9 @@ canvasID - (default null) string ID for canvas tag
 
 METHODS
 loop(call, reverse, step, start, end) - see the ZIM Display Methods loop() for details
+	 see the ZIM Display Methods loop() for details
 hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
- 	see the ZIM Display Methods loop() for details
+	see the ZIM Display Methods hitTestGrid() for details
 See the CreateJS Easel Docs for Stage methods, such as:
 clear, update, toDataURL
 And all the Container methods such as:
@@ -3452,7 +3575,7 @@ zim.Stage = function(canvasID) {
 /*--
 zim.StageGL = function(canvasID, options)
 
-Stage
+StageGL
 zim class - extends a zim.Stage which extends a createjs.Stage
 
 DESCRIPTION
@@ -3481,10 +3604,18 @@ options - (default null) an object literal with the following properties
 	 	How often the system should automatically dump unused textures with purgeTextures(autoPurge) every autoPurge/2 draws. See purgeTextures for more information.
 
 METHODS
+loop(call, reverse, step, start, end) - see the ZIM Display Methods loop() for details
+	 see the ZIM Display Methods loop() for details
+hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+	see the ZIM Display Methods hitTestGrid() for details
 See the CreateJS Easel Docs for StageGL methods:
 https://www.createjs.com/docs/easeljs/classes/StageGL.html
 
 PROPERTIES
+type - holds the class name as a String
+width - read only width set by ZIM Frame
+height - read only height set by ZIM Frame
+
 See the CreateJS Easel Docs for Stage properties:
 https://www.createjs.com/docs/easeljs/classes/StageGL.html
 
@@ -3522,8 +3653,8 @@ zim.StageGL = function(canvasID, options) {
 		this.loop = function(call, reverse, step, start, end) {
 			return zim.loop(this, call, reverse, step, start, end);
 		}
-		this.loop = function(call, reverse, step, start, end) {
-			return zim.loop(this, call, reverse, step, start, end);
+		this.hitTestGrid = function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
+			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		}
 		this.clone = function() {
 			return this.cloneChildren(this.cloneProps(new zim.StageGL(canvasID)));
@@ -7182,7 +7313,7 @@ END EXAMPLE
 PARAMETERS - supports DUO - parameters or single object with properties below
 text - String for the the text of the label
 size - (default 36) the size of the font in pixels
-font - (default arial) the font or list of fonts for the text
+font - (default zim.DEFAULTFONT or arial) the font or list of fonts for the text
 color - (default "black") color of font (any CSS color)
 rollColor - (default color) the rollover color of the font
 shadowColor - (default -1) for no shadow - set to any css color to see
@@ -7268,7 +7399,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			emptyText = true;
 		}
 		if (zot(size)) size=36;
-		if (zot(font)) font="arial";
+		if (zot(font)) font=(!zns&&DEFAULTFONT?DEFAULTFONT:zim.DEFAULTFONT); // arial unless manually set
 		if (zot(color)) color="black";
 		if (zot(rollColor)) rollColor=color;
 		if (zot(shadowColor)) shadowColor=-1;
@@ -7620,7 +7751,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(label)) {if (zot(icon)) {label = "PRESS";} else {label = "";}}
 		if (!zot(toggle) && zot(toggleEvent)) toggleEvent = zim.mobile()?"mousedown":"click";
 		// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
-		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, "arial", "white", null, null, null, "center", "middle");
+		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 36, null, "white", null, null, null, "center", "middle");
 		if (zot(rollPersist)) rollPersist = false;
 		this.rollPersist = rollPersist;
 		if (zot(dashed)) dashed = false;
@@ -8103,7 +8234,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (zot(size)) size = 60;
 		if (zot(label)) label = null;
-		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, size*5/6, "arial", color);
+		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, size*5/6, null, color);
 		var myChecked = (zot(startChecked)) ? false : startChecked;
 		if (zot(color)) color = "#111";
 		if (zot(margin)) margin = 10; //20;
@@ -8407,11 +8538,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				data = buttons[i];
 
 				if (typeof data === "string" || typeof data === "number") {
-					var d = {selected:false, label:new zim.Label(data, size*5/6, "arial", color)};
+					var d = {selected:false, label:new zim.Label(data, size*5/6, null, color)};
 					data = d;
 				}
 				if (data.label && typeof data.label === "string" || typeof data.label === "number") {
-					data.label = new zim.Label(data.label, size*5/6, "arial", color);
+					data.label = new zim.Label(data.label, size*5/6, null, color);
 				}
 				that.labels.push(data.label);
 				data.index = i;
@@ -8705,7 +8836,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(width)) width=200;
 		if (zot(height)) height=200;
 		if (zot(label)) label = null;
-		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 40, "arial", "black");
+		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 40, null, "black");
 		if (zot(color)) color="white";
 		if (zot(drag)) drag=false;
 		if (zot(resets)) resets=true;
@@ -9235,7 +9366,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var rect = new createjs.Rectangle(
 						edgeLeft, hIndicator.y, width-indicatorLength-edgeLeft-edgeRight, 0
 					);
-					hIndicator.dragRect(rect);
+					hIndicator.dragBoundary(rect);
 					hIndicator.proportion = new zim.Proportion(
 						rect.x, rect.x+rect.width, 0, -that.scrollXMax
 					);
@@ -9260,7 +9391,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var rect = new createjs.Rectangle(
 						vIndicator.x, edgeTop, 0, height-indicatorLength-edgeTop-edgeBottom
 					);
-					vIndicator.dragRect(rect);
+					vIndicator.dragBoundary(rect);
 					vIndicator.proportion = new zim.Proportion(
 						rect.y, rect.y+rect.height, 0, -that.scrollYMax
 					);
@@ -9273,7 +9404,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			moveIndicators();
 			clearTimeout(dTimeout);
-			dTimeout = setTimeout(function(){setDragRect();}, 300);
+			dTimeout = setTimeout(function(){setdragBoundary();}, 300);
 		}
 
 		this.resize = function(w, h) {
@@ -9305,8 +9436,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 
-		function setDragRect() {
-			zim.dragRect(content, new createjs.Rectangle(0, 0, hCheck?-that.scrollXMax:0, vCheck?-that.scrollYMax:0));
+		function setdragBoundary() {
+			zim.dragBoundary(content, new createjs.Rectangle(0, 0, hCheck?-that.scrollXMax:0, vCheck?-that.scrollYMax:0));
 		}
 
 		var swipeCheck = false;
@@ -9352,7 +9483,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				slideSnap:(swipe===true||swipe=="auto"||swipe=="vertical")?slideSnap:false
 			});
 			if (content.getBounds() && content.getBounds().width > 0) {
-				setTimeout(function(){setDragRect();}, 300);
+				setTimeout(function(){setdragBoundary();}, 300);
 			}
 		}
 
@@ -10071,7 +10202,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(color)) color="white";
 		if (zot(borderColor)) borderColor=null;
 		if (zot(label)) label = "";
-		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, "arial", "#555", null, null, null, "center");
+		if (typeof label === "string" || typeof label === "number") label = new zim.Label(label, 64, null, "#555", null, null, null, "center");
 		if (zot(vertical)) vertical=false;
 		if (zot(arrows)) arrows=true;
 		if (zot(corner)) corner=16;
@@ -11925,7 +12056,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			tColor = (i==0)?((zot(t.color))?color:t.color):((zot(t.offColor))?offColor:t.offColor);
 			tLabelColor = (i==0)?((zot(t.labelColor))?labelColor:t.labelColor):((zot(t.labelOffColor))?labelOffColor:t.labelOffColor);
 			if (typeof t.label == "string" || typeof t.label == "number") {
-				t.label = new zim.Label(t.label, height/2, "arial");
+				t.label = new zim.Label(t.label, height/2);
 			}
 			t.label.color = tLabelColor;
 			button = new zim.Button({
@@ -14694,7 +14825,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 
 /*--
-obj.drag = function(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds)
+obj.drag = function(boundary, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect)
 
 drag
 zim DisplayObject method
@@ -14715,21 +14846,23 @@ var circle = new Circle(radius, "red").center(stage).drag();
 // OR with ZIM DUO
 circle.drag({slide:true});
 
-// BOUNDS
+// BOUNDARY
 // circle has its registration point in the middle
 // keep registration point within rectangle starting at x=100, y=100
 // and drag within a width of 500 and height of 400
-// var dragBounds = new createjs.Rectangle(100,100,500,400);
+var boundary = new Boundary(100,100,500,400);
+circle.drag(boundary);
+
 // or keep circle on the stage with the following
-var dragBounds = new createjs.Rectangle(radius,radius,stageW-radius,stageH-radius);
-circle.drag(dragBounds); // drag within stage
+var boundary = new Boundary(radius,radius,stageW-radius,stageH-radius);
+circle.drag(boundary); // drag within stage
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-rect - (default null) a createjs.Rectangle object for the bounds of dragging
-	if surround is true then it will make sure the obj surrounds the rect rather than stays within it
-	this rectangle is relative to the stage (global)
-	if a rectangle relative to the object's parent is desired then set the localBounds parameter to true
+boundary - (default null) a ZIM Boundary object for the drag boundary
+	if surround is true then it will make sure the obj surrounds the boundary rather than stays within it
+	this boundary is relative to the stage (global)
+	if a boundary relative to the object's parent is desired then set the localBounds parameter to true
 overCursor, dragCursor - (default "pointer") the CSS cursor properties as strings
 currentTarget - (default false) allowing you to drag things within a container
 	eg. drag(container); will drag any object within a container
@@ -14737,13 +14870,14 @@ currentTarget - (default false) allowing you to drag things within a container
 swipe - (default false) which prevents a swipe from triggering when dragging
 localBounds - (default false) which means the rect is global - set to true for a rect in the object parent frame
 onTop - (default true) brings the dragged object to the top of the container
-surround - (default false) is for dragging a big object that always surrounds the rect
+surround - (default false) is for dragging a big object that always surrounds the boundary
 slide - (default false) will let you throw the object and dispatch a slidestop event when done
 slideDamp - (default .3) is the damping setting for the slide (1 is no damping and .1 will slide more, etc.)
 slideSnap - (default true) lets the object go outside and snap back to bounds - also "vertical", "horizontal", and false
 reg - (default false) when set to true will snap the registration of the object to the mouse position
 removeTweens - (default true) will automatically remove tweens from dragged object unless set to false
 startBounds - (default true) set to false to ignore bound rect before dragging (sometimes handy when putting drag on container)
+rect - (depreciated) same as boundary - kept for backwards compatibility when using config object
 
 note: will not update stage if OPTIMIZE is set to true
 unless Ticker.update is set to true or you run Ticker.always(stage) see Ticker
@@ -14753,11 +14887,12 @@ Adds a "slidestop" event to the drag object that is dispatched when the object c
 
 RETURNS obj for chaining
 --*///+31
-	zim.drag = function(obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds) {
+	zim.drag = function(obj, boundary, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect) {
 
-		var sig = "obj, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds";
+		var sig = "obj, boundary, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect";
 		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
 		z_d("31");
+
 		if (zot(obj) || !obj.on) return;
 		if (obj.zimDown) obj.noDrag(); // clear any previous drags
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
@@ -14774,9 +14909,29 @@ RETURNS obj for chaining
 		if (zot(reg)) reg = false;
 		if (zot(removeTweens)) removeTweens = true;
 		if (zot(startBounds)) startBounds = true;
+		if (zot(boundary) && !zot(rect)) boundary = rect;
+
+		if (slide) {
+			// set up damping for slide and variables used to predict future locations
+			// these get populated in a setTimeout in the init function
+			var dampX;
+			var dampY;
+			var back; // how many ticks ago to estimate trajectory
+			var lastCount;
+			var backX;
+			var backY;
+			var upX; // mouse up translated to local
+			var upY;
+			var objUpX; // drag object x when mouse up
+			var objUpY;
+			var lastBackX; // used to calculate trajectory
+			var lastBackY;
+			var lastX; // used to see if sliding object is still moving
+			var lastY;
+		}
 
 		zim.setSwipe(obj, swipe);
-		obj.zimDragRect = rect;
+		obj.zimBoundary = boundary;
 		obj.zimLocalBounds = localBounds;
 		var downCheck = false;
 
@@ -14792,49 +14947,46 @@ RETURNS obj for chaining
 			// positionObject() is used as well in the dragmove function
 			// where it expects a global x and y
 			// so convert obj.x and obj.y positions inside its parent to global:
-			if (obj.zimDragRect) {
+			if (obj.zimBoundary) {
 				if (localBounds) {
-					r = zim.boundsToGlobal(obj.parent, obj.zimDragRect);
-					if (surround) rLocal = obj.zimDragRect;
+					r = zim.boundsToGlobal(obj.parent, obj.zimBoundary);
+					if (surround) rLocal = obj.zimBoundary;
 				} else {
-					r = obj.zimDragRect;
-					if (surround) rLocal = zim.boundsToGlobal(obj.parent, obj.zimDragRect, true); // flips to global to local
+					r = obj.zimBoundary;
+					if (surround) rLocal = zim.boundsToGlobal(obj.parent, obj.zimBoundary, true); // flips to global to local
 				}
 			}
-
 			if (r && startBounds) {
 				point = obj.parent.localToGlobal(obj.x, obj.y);
 				positionObject(obj, point.x, point.y);
 			}
 			if (slide) {
-				obj.zimDragMoving = true; // causing obj to go to 0,0 if positioned after drag()
-				setUpSlide();
+				// little delay to in case position is set directly after drag is called
+				setTimeout(function() {
+					// set up damping for slide and variables used to predict future locations
+					dampX = new zim.Damp(obj.x, slideDamp);
+					dampY = new zim.Damp(obj.y, slideDamp);
+					back = 3; // how many ticks ago to estimate trajectory
+					lastCount = 0;
+					backX = [];
+					backY = [];
+					upX = obj.x; // mouse up translated to local
+					upY = obj.y;
+					objUpX = obj.x; // drag object x when mouse up
+					objUpY = obj.y;
+					lastBackX = obj.x; // used to calculate trajectory
+					lastBackY = obj.y;
+					lastX = -10000; // used to see if sliding object is still moving
+					lastY = -10000;
+					obj.zimDragMoving = true;
+					setUpSlide();
+				}, 50);
 			}
-
 			if (!zot(obj.zimMaskDynamic)) obj.zimMaskApply(); // set mask set by zimMask to dynamic
-
 		}
 
 		function unInitializeObject() {
 			if (obj.zimDragTicker) zim.Ticker.remove(obj.zimDragTicker);
-		}
-
-		// set up damping for slide and variables used to predict future locations
-		if (slide) {
-			var dampX = new zim.Damp(obj.x, slideDamp);
-			var dampY = new zim.Damp(obj.y, slideDamp);
-			var back = 3; // how many ticks ago to estimate trajectory
-			var lastCount = 0;
-			var backX = [];
-			var backY = [];
-			var upX = obj.x; // mouse up translated to local
-			var upY = obj.y;
-			var objUpX = obj.x; // drag object x when mouse up
-			var objUpY = obj.y;
-			var lastBackX = obj.x; // used to calculate trajectory
-			var lastBackY = obj.y;
-			var lastX = -10000; // used to see if sliding object is still moving
-			var lastY = -10000;
 		}
 
 		var dragObject;
@@ -14849,7 +15001,7 @@ RETURNS obj for chaining
 			// bring stageX and stageY into the parent's frame of reference
 			// could use e.localX and e.localY but might be dragging container or contents
 			dragObject = (currentTarget)?e.currentTarget:e.target;
-			if (obj.zimDragRect && !dragObject.getBounds()) {zog("zim.drag() - drag object needs bounds set"); return;}
+			if (obj.zimBoundary && !dragObject.getBounds()) {zog("zim.drag() - drag object needs bounds set"); return;}
 			downCheck = true;
 			obj.stage.mouseMoveOutside = true;
 
@@ -14869,13 +15021,13 @@ RETURNS obj for chaining
 			diffX = point.x - dragObject.x;
 			diffY = point.y - dragObject.y;
 
-			if (obj.zimDragRect) {
+			if (obj.zimBoundary) {
 				if (localBounds) {
-					r = zim.boundsToGlobal(dragObject.parent, obj.zimDragRect);
-					if (surround) rLocal = obj.zimDragRect;
+					r = zim.boundsToGlobal(dragObject.parent, obj.zimBoundary);
+					if (surround) rLocal = obj.zimBoundary;
 				} else {
-					r = obj.zimDragRect;
-					if (surround) rLocal = zim.boundsToGlobal(dragObject.parent, obj.zimDragRect, true); // true flips to global to local
+					r = obj.zimBoundary;
+					if (surround) rLocal = zim.boundsToGlobal(dragObject.parent, obj.zimBoundary, true); // true flips to global to local
 				}
 			}
 			// just a quick way to set a default cursor or use the cursor sent in
@@ -14900,7 +15052,7 @@ RETURNS obj for chaining
 
 		function positionObject(o, x, y) {
 
-			if (zot(o)) o = (dragObject) ? dragObject : obj; // so zim.dragRect can use this
+			if (zot(o)) o = (dragObject) ? dragObject : obj; // so zim.dragBoundary can use this
 
 			// x and y are the desired global positions for the object o
 			// checkBounds returns the same values if there are no bounds
@@ -14911,18 +15063,18 @@ RETURNS obj for chaining
 			if (!o.stage) return;
 
 			if (zot(x) || zot(y)) {
-				// so zim.dragRect can use this to position on rect change
+				// so zim.dragBoundary can use this to position on change
 				// it may be we are resizing before we even drag at all
 				// so we need to establish variables that would have been made on drag events
 				var p = o.parent.localToGlobal(o.x, o.y);
 				diffX = diffY = 0;
-				if (obj.zimDragRect) {
+				if (obj.zimBoundary) {
 					if (localBounds) {
-						r = zim.boundsToGlobal(o.parent, obj.zimDragRect);
-						if (surround) rLocal = o.zimDragRect;
+						r = zim.boundsToGlobal(o.parent, obj.zimBoundary);
+						if (surround) rLocal = o.zimBoundary;
 					} else {
-						r = obj.zimDragRect;
-						if (surround) rLocal = zim.boundsToGlobal(o.parent, obj.zimDragRect, true); // flips to global to local
+						r = obj.zimBoundary;
+						if (surround) rLocal = zim.boundsToGlobal(o.parent, obj.zimBoundary, true); // flips to global to local
 					}
 				}
 				x = p.x;
@@ -15022,7 +15174,7 @@ RETURNS obj for chaining
 					var point = o.parent.localToGlobal(x,y);
 					// r is the bounds rectangle on the global stage
 					// r is set during mousedown to allow for global scaling when in localBounds mode
-					// if you scale in localBounds==false mode, you will need to reset bounds with dragRect()
+					// if you scale in localBounds==false mode, you will need to reset bounds with dragBoundary()
 					x = Math.max(r.x, Math.min(r.x+r.width, point.x));
 					y = Math.max(r.y, Math.min(r.y+r.height, point.y));
 					// now that the point has been checked on the global scale
@@ -15121,38 +15273,41 @@ RETURNS obj for chaining
 		obj.off("pressmove", obj.zimMove);
 		obj.off("pressup", obj.zimUp);
 		if (zim.Ticker && obj.zimDragSlide) zim.Ticker.remove(obj.zimDragSlide);
-		obj.zimDragMoving=obj.zimAdded=obj.zimRemoved=obj.zimDown=obj.zimMove=obj.zimUp=obj.zimDragRect=obj.zimDragSlide=null;
+		obj.zimDragMoving=obj.zimAdded=obj.zimRemoved=obj.zimDown=obj.zimMove=obj.zimUp=obj.zimBoundary=obj.zimDragSlide=null;
 		return obj;
 	}//-32
 
 /*--
-obj.dragRect = function(rect)
+obj.dragBoundary = function(boundary)
 
-dragRect
+dragBoundary
 zim DisplayObject method
 
 DESCRIPTION
-Dynamically changes or adds a bounds rectangle to the object being dragged with drag().
+Dynamically changes or adds a boundary rectangle to the object being dragged with drag().
+
+NOTE: replaces old ZIM dragRect() method
 
 EXAMPLE
-var dragBounds = new createjs.Rectangle(100,100,500,400);
-circle.dragRect(dragBounds);
+var boundary = new Boundary(100,100,500,400);
+circle.dragBoundary(boundary);
 END EXAMPLE
 
 PARAMETERS
-rect - is a createjs.Rectangle for the bounds - the local / global does not change from the original drag
+boundary - is a ZIM Boundary object for the bounds - the local / global does not change from the original drag
 
 RETURNS obj for chaining
 --*///+33
-	zim.dragRect = function(obj, rect) {
+	zim.dragBoundary = function(obj, boundary) {
 		z_d("33");
 		if (zot(obj) || !obj.on) return;
-		if (zot(rect)) return;
-		obj.zimDragRect = rect;
+		if (zot(boundary)) return;
+		obj.zimBoundary = boundary;
 		obj.zimDragMoving = true;
 		if (obj.zimPosition) obj.zimPosition();
 		return obj;
 	}//-33
+	zim.dragRect = zim.dragBoundary; // backwards compatible
 
 /*--
 obj.transform = function(move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache)
@@ -15208,7 +15363,7 @@ PARAMETERS supports DUO - parameters or single object with properties below
 move - (default true) let user move object
 stretchX - (default true) let user stretch object from left and right sides
 stretchY - (default true) let user stretch object from top and bottom
-scale - (default true) let user scale object from corners
+scale - (default true) let user scale object from corners - might still be able to stretch from sides - see stretchX and stretchY
 rotate - (default true) let user rotate object
 toggle - (default true) let user hide and show controls with click - set to false not to let user hide controls
 visible - (default true) show the controls to start
@@ -16139,7 +16294,7 @@ RETURNS obj for chaining
 
 
 /*--
-obj.gesture = function(move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround)
+obj.gesture = function(move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround, circularBounds, rect)
 
 gesture
 zim DisplayObject method
@@ -16151,7 +16306,7 @@ Scale and rotation occur from the pinch point (with optional regControl for abou
 Note - gesture() only works on the currentTarget - not a container's children (like drag() can)
 ZIM Frame should have touch set to true (which is the default for mobile)
 ALSO: see the noGesture() method to remove some or all gestures
-ALSO: see the gestureRect() method to set or reset the bound rectangle dynamically
+ALSO: see the gestureBoundary() method to set or reset the boundary rectangle dynamically
 
 EXAMPLE
 rectangle.gesture(); // move, scale and rotate with no bounds
@@ -16171,8 +16326,9 @@ PARAMETERS supports DUO - parameters or single object with properties below
 move - (default true) move the object with average of fingers
 scale - (default true) scale the object with first two fingers' pinch
 rotate - (default true) rotate the object with first two fingers' rotation
-rect - (default null) bounding CreateJS Rectangle(x,y,w,h) to contain registration point
-	if surround is true then it will make sure the obj surrounds the rect rather than stays within it
+boundary - (default null) ZIM Boundary rectangle with (x,y,w,h) to contain bounds of the object
+	if surround is true then it will make sure the obj surrounds the boundary rather than stays within it
+	See circularBounds parameter to keep circular shapes with boundary
 minScale - (default null) a minimum scale
 maxScale - (default null) a maximum scale
 snapRotate - (default 1) degrees to snap rotation to after rotation is finished
@@ -16183,6 +16339,9 @@ regControl (default false) set to true to rotate and scale around registration p
 onTop - (default true) brings the object to the top of the container
 surround - (default false) is for dragging a big object that always surrounds the rect
 	must specify a rect and currently not supported unless rotate is false
+circularBounds - (default false) set to true if object is circular with center registration
+	set to true to use radius to calculate rotated object in boundary if boundary is set
+rect - (depreciated) same as boundary - kept for backwards compatibility
 
 EVENTS
 Adds move, scale and rotate events to obj (when associated gesture parameters are set to true)
@@ -16190,9 +16349,9 @@ If slide is true, obj dispatches a "slidestop" event when sliding stops
 
 RETURNS obj for chaining
 --*///+34.5
-	zim.gesture = function(obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround) {
+	zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround, circularBounds, rect) {
 
-		var sig = "obj, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround";
+		var sig = "obj, move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround, circularBounds, rect";
 		var duo; if (duo = zob(zim.gesture, arguments, sig)) return duo;
 		z_d("34.5");
 
@@ -16211,6 +16370,8 @@ RETURNS obj for chaining
 			surround = rect = null;
 			if (zon) zog("ZIM Gesture() - does not support surround when rotate is true");
 		}
+		if (zot(circularBounds)) circularBounds = false;
+		if (zot(boundary) && !zot(rect)) boundary = rect;
 
 		var slideData;
 		var slideCount;
@@ -16229,22 +16390,22 @@ RETURNS obj for chaining
 				scale:scale,
 				rotate:rotate,
 				pointers:{}, // holds the current pointer data
-				checkBounds:function(x, y) { // used locally and by zim.gestureRect
-					if (obj.zimTouch.rect) {
-						var rect = obj.zimTouch.rect;
+				checkBounds:function(x, y) { // used locally and by zim.gestureBoundary
+					if (obj.zimTouch.boundary) {
+						var boundary = obj.zimTouch.boundary;
 						// convert the desired drag position to a global point
 						// note that we want the position of the object in its parent
 						// so we use the parent as the local frame
 						var point = obj.parent.localToGlobal(x,y);
-						// r is the bounds rectangle on the global stage
-						// r is set during mousedown to allow for global scaling when in localBounds mode
-						// if you scale in localBounds==false mode, you will need to reset bounds with dragRect()
+						// boundary is the boundary rectangle on the global stage
+						// boundary is set during mousedown to allow for global scaling when in localBounds mode
+						// if you scale in localBounds==false mode, you will need to reset bounds with dragBoundary()
 						if (surround) {
-							x = Math.min(rect.x, Math.max(rect.x+rect.width, point.x));
-							y = Math.min(rect.y, Math.max(rect.y+rect.height, point.y));
+							x = Math.min(boundary.x, Math.max(boundary.x+boundary.width, point.x));
+							y = Math.min(boundary.y, Math.max(boundary.y+boundary.height, point.y));
 						} else {
-							x = Math.max(rect.x, Math.min(rect.x+rect.width, point.x));
-							y = Math.max(rect.y, Math.min(rect.y+rect.height, point.y));
+							x = Math.max(boundary.x, Math.min(boundary.x+boundary.width, point.x));
+							y = Math.max(boundary.y, Math.min(boundary.y+boundary.height, point.y));
 						}
 						// now that the point has been checked on the global scale
 						// convert the point back to the obj parent frame of reference
@@ -16256,13 +16417,13 @@ RETURNS obj for chaining
 				}
 			};
 
-			if (rect) {
-				obj.zimTouch.rect = rect;
-				if (localBounds) obj.zimTouch.rect = zim.boundsToGlobal(obj.parent, rect);
-				obj.zimTouch.rectStartX = obj.zimTouch.rect.x;
-				obj.zimTouch.rectStartY = obj.zimTouch.rect.y;
-				obj.zimTouch.rectStartW = obj.zimTouch.rect.width;
-				obj.zimTouch.rectStartH = obj.zimTouch.rect.height;
+			if (boundary) {
+				obj.zimTouch.boundary = boundary;
+				if (localBounds) obj.zimTouch.boundary = zim.boundsToGlobal(obj.parent, boundary);
+				obj.zimTouch.boundaryStartX = obj.zimTouch.boundary.x;
+				obj.zimTouch.boundaryStartY = obj.zimTouch.boundary.y;
+				obj.zimTouch.boundaryStartW = obj.zimTouch.boundary.width;
+				obj.zimTouch.boundaryStartH = obj.zimTouch.boundary.height;
 				var result = obj.zimTouch.checkBounds(obj.x, obj.y); // set in bounds to start
 				obj.x = result.x;
 				obj.y = result.y;
@@ -16424,8 +16585,10 @@ RETURNS obj for chaining
 						obj.scaleX = proxy.scaleX;
 						obj.scaleY = proxy.scaleY;
 						obj.rotation = proxy.rotation;
-						obj.x = proxy.x
-						obj.y = proxy.y
+						if (obj.zimTouch.move) {
+							obj.x = proxy.x
+							obj.y = proxy.y
+						}
 					} else {
 						// transformations seem to ignore registration so need to set to 0 then reset after transformations
 						obj.reg(0,0);
@@ -16454,8 +16617,10 @@ RETURNS obj for chaining
 
 						matrix.decompose(obj);
 
-						obj.x += deltaX;
-						obj.y += deltaY;
+						if (obj.zimTouch.move) {
+							obj.x += deltaX;
+							obj.y += deltaY;
+						}
 
 						// correcting for minor shifts which can magnify and set the system haywire
 						lastPoint = obj.localToGlobal(point.x, point.y);
@@ -16544,17 +16709,32 @@ RETURNS obj for chaining
 				obj.zimTouch.startR = obj.rotation;
 			}
 
-			if (rect) obj.on("move", remakeRect);
-			function remakeRect() {
+			if (boundary) {
+				remakeBoundary();
+				obj.on("move", remakeBoundary);
+			}
+			function remakeBoundary() {
 				var p = obj.localToGlobal(obj.regX, obj.regY);
-				var b = obj.boundsToGlobal();
+				if (circularBounds) {
+					// assuming cropped if Bitmap and width==height
+					var leftTop = obj.parent.localToGlobal(obj.x-obj.width/2, obj.y-obj.height/2);
+					var botRight = obj.parent.localToGlobal(obj.x+obj.width/2, obj.y+obj.height/2);
+					var b = {
+						x:leftTop.x,
+						y:leftTop.y,
+						width:botRight.x-leftTop.x,
+						height:botRight.y-leftTop.y
+					}
+				} else {
+					var b = obj.boundsToGlobal();
+				}
 				var r = {
-					x:obj.zimTouch.rectStartX+p.x-b.x,
-					y:obj.zimTouch.rectStartY+p.y-b.y,
-					width:obj.zimTouch.rectStartW-b.width,
-					height:obj.zimTouch.rectStartH-b.height
+					x:obj.zimTouch.boundaryStartX+p.x-b.x,
+					y:obj.zimTouch.boundaryStartY+p.y-b.y,
+					width:obj.zimTouch.boundaryStartW-b.width,
+					height:obj.zimTouch.boundaryStartH-b.height
 				};
-				obj.gestureRect(r, false); // do not update the original rect
+				obj.gestureBoundary(r, false); // do not update the original rect
 			}
 		}
 		return obj;
@@ -16609,42 +16789,43 @@ RETURNS obj for chaining
 	}//-34.6
 
 /*--
-obj.gestureRect = function(rect, new)
+obj.gestureBoundary = function(boundary, new)
 
-gestureRect
+gestureBoundary
 zim DisplayObject method
 
 DESCRIPTION
-Dynamically changes or adds a bounds rectangle to the object being dragged with gesture().
+Dynamically changes or adds a boundary rectangle to the object being dragged with gesture().
 
 EXAMPLE
-var dragBounds = new createjs.Rectangle(100,100,500,400); // x,y,w,h
-circle.gestureRect(dragBounds);
+var boundary = new Boundary(100,100,500,400); // x,y,w,h
+circle.gestureBoundary(boundary);
 
 OR pre ZIM 4TH
-gestureRect(circle, dragBounds);
+gestureBoundary(circle, boundary);
 END EXAMPLE
 
 PARAMETERS
-rect - is a createjs.Rectangle for the bounds - the local / global does not change from the original gesture setting
-update - (default true) reset base drag rect
+boundary - is a ZIM Boundary rectangle - the local / global does not change from the original gesture setting
+update - (default true) reset base drag boundary
 
 RETURNS obj for chaining
 --*///+34.7
-	zim.gestureRect = function(obj, rect, update) {
+	zim.gestureBoundary = function(obj, boundary, update) {
 		z_d("34.7");
 		if (zot(obj) || !obj.on) return;
-		if (zot(rect) || !obj.zimTouch) return;
+		if (zot(boundary) || !obj.zimTouch) return;
 		if (obj.zimTouch.localBounds && obj.parent) {
-			obj.zimTouch.rect = zim.boundsToGlobal(obj.parent, rect);
+			obj.zimTouch.boundary = zim.boundsToGlobal(obj.parent, boundary);
 		} else {
-			obj.zimTouch.rect = rect;
+			obj.zimTouch.boundary = boundary;
 		}
+		if (zot(update)) update = true;
 		if (update) {
-			obj.zimTouch.rectStartX = rect.x;
-			obj.zimTouch.rectStartY = rect.y;
-			obj.zimTouch.rectStartW = rect.width;
-			obj.zimTouch.rectStartH = rect.height;
+			obj.zimTouch.boundaryStartX = boundary.x;
+			obj.zimTouch.boundaryStartY = boundary.y;
+			obj.zimTouch.boundaryStartW = boundary.width;
+			obj.zimTouch.boundaryStartH = boundary.height;
 		}
 		var result = obj.zimTouch.checkBounds(obj.x, obj.y);
 		obj.x = result.x;
@@ -17141,7 +17322,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 	}//-41
 
 /*--
-obj.animate = function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id)
+obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, obj)
 
 animate
 zim DisplayObject method
@@ -17188,8 +17369,11 @@ rectangle.animate({rotation:"360"}, 1000);
 var circle = new Circle(50, "red");
 circle.center(stage);
 // pulse circle from scale 0 - 1 every second (use ZIM DUO)
-circle.animate({obj:{scale:0}, time:500, loop:true, rewind:true, from:true});
-// see ZIM Bits for more move examples
+circle.animate({props:{scale:0}, time:500, loop:true, rewind:true, from:true});
+// toggle pause the circle when stage is pressed
+stage.on("stagemousedown", function() {
+	circle.pauseAnimate(!circle.paused);
+});
 END EXAMPLE
 
 EXAMPLE
@@ -17211,13 +17395,13 @@ var circle = new Circle({color:frame.purple}) // chaining the rest
 	.addTo(stage)
 	.pos(400,300)
 	.animate({ // circle will be the default object for the inner animations
-		obj:[
+		props:[
 			// an array of animate configuration objects
-			{obj:{x:600, y:300, scale:2}},
-			{obj:{x:600, y:500, scale:1}, call:function(){zog("part way");}},
-			{obj:{x:400, y:500}, time:500, ease:"quadInOut"},
-			{target:rect, obj:{scale:3}, time:1000, rewind:true, ease:"quadInOut"},
-			{obj:{x:400, y:300}}
+			{props:{x:600, y:300, scale:2}},
+			{props:{x:600, y:500, scale:1}, call:function(){zog("part way");}},
+			{props:{x:400, y:500}, time:500, ease:"quadInOut"},
+			{target:rect, props:{scale:3}, time:1000, rewind:true, ease:"quadInOut"},
+			{props:{x:400, y:300}}
 		],
 		time:1000, // will be the default time for the inner animations
 		ease:"backOut", // will be the default ease for the inner animations
@@ -17241,7 +17425,7 @@ var circles = new Container(stageW, stageH).addTo(stage);
 var circle1 = new Circle(50, "red").center(circles);
 var circle2 = new Circle(50, "blue").center(circles).mov(70);
 circles.animate({
-	obj:{scale:1},
+	props:{scale:1},
 	time:500,
 	loop:true,
 	rewind:true,
@@ -17259,14 +17443,16 @@ The ZIM VEE value can be the following:
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, Rectangle(), etc. this just passes through unchanged
 
-obj - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
-	|ZIM VEE| - each obj property value optionally accepts a ZIM VEE value for zik() to pick randomly from (except calls and params)
+props - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
+	Before ZIM 7.1, this parameter was called obj - as to not conflict with CreateJS TweenJS props (now renamed cjsProps)
+	obj is still available as a parameter name for backwards compatibility when using a ZIM DUO configuration object
+	|ZIM VEE| - each props property value optionally accepts a ZIM VEE value for zik() to pick randomly from (except calls and params)
 	RELATIVE VALUES: you can pass in relative values by putting the numbers as strings
 		rotation:"360" will animate the rotation of the object 360 degrees from its current rotation
 		whereas rotation:360 will animate the rotation of the object to 360 degrees
 	ANIMATION SERIES: if you pass in an array for the obj value, then this will run an animation series
 		The array must hold animate configuration objects:
-		[{obj:{scale:2}, time:1000, rewind:true}, {target:different, obj:{x:100}}, etc.]
+		[{props:{scale:2}, time:1000, rewind:true}, {target:different, props:{x:100}}, etc.]
 		If you run animate as a method on an object then this is the default object for the series
 		but you can specify a target to override the default
 		The default time and tween are as provided in the main parameters
@@ -17309,7 +17495,7 @@ sequenceCall - (default null) the function that will be called when the sequence
 sequenceParams - (default null) a parameter sent to the sequenceCall function
 sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
 ticker - (default true) set to false to not use an automatic Ticker function
-props - (default {override: true}) legacy - allows you to pass in TweenJS props
+cjsProps - (default {override: true}) legacy - allows you to pass in CreateJS TweenJS configuration properties
 css - (default false) set to true to animate CSS properties in HTML
  	requires CreateJS CSSPlugin
 	ZIM has a copy here: https://d309knd7es5f10.cloudfront.net/CSSPlugin.js
@@ -17330,9 +17516,19 @@ from - |ZIM VEE| (default false) set to true to animate from obj properties to t
 set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
 id - (default null) set to String to use with pauseAnimate(state, id) and stopAnimate(id) - thanks Sean Berwick for typo catch
 events - (default false) set to true to receive an "animation" event on the target (or Container with a Container sequence)
+sequenceTarget - (default null) used internally for processing sequence animations
+obj - (depreciated) the old version of props - kept for backwards compatibility
 
-NOTE: earlier versions of ZIM used props for loop and rewind - now these are direct parameters
 NOTE: call is now triggered once after all loops and rewinds are done
+
+PROPERTIES - zim.animate() adds a paused property to any object it animates
+	When animating, paused is set to false
+	When paused with pauseAnimate() then paused is set to true
+	When stopped or before animation, paused is undefined or null
+	There is only one paused property per object so pausing a specific id
+	on an object with multiple animations will set paused to true
+	even if other animations are still running.
+	Pausing multiple objects should work fine.
 
 EVENTS - zim animate() will add an "animation" event to the target IF the events parameter is set to true (default is false)
  	or the "animation" event will be added to the Container for a sequence in a Container
@@ -17340,18 +17536,21 @@ EVENTS - zim animate() will add an "animation" event to the target IF the events
 
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id, events, sequenceTarget) {
-		var sig = "target, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, props, css, protect, override, from, set, id, events, sequenceTarget";
+	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, obj) {
+		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, obj";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
 		if (zim.ANIMATE == false || (!window.zns && !ANIMATE)) return target;
 
+		if (zot(props) && !zot(obj)) props = obj; // conversion of 7.1 props paramter to pre 7.1 obj parameter
+		obj = props;
+
 		// zik supports passing array of options or an object with min, max, integer, negative properties and zik will pick or calculate a random value
 		target = zik(target); time = zik(time); ease = zik(ease); wait = zik(wait); loopCount = zik(loopCount); loopWait = zik(loopWait); rewind = zik(rewind); rewindWait = zik(rewindWait); sequenceReverse = zik(sequenceReverse); from = zik(from); set = zik(set);
 
-		// PROPS
-		// convert loop and rewind properties into the legacy props object
+		// CJSPROPS
+		// convert loop and rewind properties into the legacy cjs props object
 		var newProps = {override: true};
 		if (!zot(loop)) newProps.loop = loop;
 		if (!zot(loopCount)) newProps.count = loopCount; // note prop is count
@@ -17366,8 +17565,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (!zot(rewindParams)) newProps.rewindParams = rewindParams;
 		if (!zot(rewindWaitCall)) newProps.rewindWaitCall = rewindWaitCall;
 		if (!zot(rewindWaitParams)) newProps.rewindWaitParams = rewindWaitParams;
-		if (!zot(props)) newProps = zim.merge(newProps, props); // props to overwrite
-		props = newProps;
+		if (!zot(props)) newProps = zim.merge(newProps, cjsProps); // cjsProps to overwrite
+		cjsProps = newProps;
 
 		// SEQUENCE HANDLING
 		// handle multiple targets first if there is an array
@@ -17405,15 +17604,15 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(props), css, protect, override, null, set, id, events, sequenceTarget); // do not send from!
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, obj); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000); // + ((wait)?wait:0); // wait only happens at start - no longer each time
-							if (props && props.rewind) {
-								duration += ((time)?time:1000) + ((props.rewindWait)?props.rewindWait:0);
+							if (cjsProps && cjsProps.rewind) {
+								duration += ((time)?time:1000) + ((cjsProps.rewindWait)?cjsProps.rewindWait:0);
 							}
-							if (props && props.loop && props.loopWait) {
-								duration += props.loopWait;
+							if (cjsProps && cjsProps.loop && cjsProps.loopWait) {
+								duration += cjsProps.loopWait;
 							}
 							setTimeout(function(){
 								sequenceCall(sequenceParams);
@@ -17430,7 +17629,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(t)) t = 1000;
 		if (zot(ease)) ease = "quadInOut";
 		if (zot(wait)) wait = 0;
-		if (zot(props)) props = {override: true};
+		if (zot(cjsProps)) cjsProps = {override: true};
 		if (zot(params)) params = target;
 		if (zot(ticker)) ticker = true;
 		if (zot(css)) css = false;
@@ -17438,7 +17637,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(from)) from = false;
 		if (zot(set)) set = {};
 		if (set.scale) {set.scaleX = set.scaleY = set.scale; delete set.scale}
-		if (!zot(override)) props.override = override;
+		if (!zot(override)) cjsProps.override = override;
 		var tween;
 		var idSet;
 		var providedID;
@@ -17505,12 +17704,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 			function endSeries(currentObj) {
 
-				if (props.loop && (!props.count || currentCount < props.count)) {
+				if (cjsProps.loop && (!cjsProps.count || currentCount < cjsProps.count)) {
 					currentObj.call = function() {
-						if (props.loopCall && typeof props.loopCall == 'function') {(props.loopCall)(props.loopParams);}
-						if (props.loopWait) {
+						if (cjsProps.loopCall && typeof cjsProps.loopCall == 'function') {(cjsProps.loopCall)(cjsProps.loopParams);}
+						if (cjsProps.loopWait) {
 							if (zot(target.zimTweens)) target.zimTweens = {};
-							tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(props.loopWait).call(goNext);
+							tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(cjsProps.loopWait).call(goNext);
 						} else {
 							goNext();
 						}
@@ -17518,7 +17717,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							for (var k=0; k<starts.objects.length; k++) {
 								if (starts.objects[k].set) starts.objects[k].set(starts.values[k]);
 							}
-							if (props.loopWaitCall && typeof props.loopWaitCall == 'function') {(props.loopWaitCall)(props.loopWaitParams);}
+							if (cjsProps.loopWaitCall && typeof cjsProps.loopWaitCall == 'function') {(cjsProps.loopWaitCall)(cjsProps.loopWaitParams);}
 							runMaster();
 						}
 					}
@@ -17611,6 +17810,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (target.zimBusy[o]) delete obj[o];
 		}
 		if (zim.isEmpty(obj)) return; // nothing left to animate
+		target.paused = false;
 		var lastMouseEnabled = target.mouseEnabled;
 		function addZimBusy() {
 			target.mouseEnabled = false;
@@ -17622,7 +17822,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				target.mouseEnabled = lastMouseEnabled;
 			}, 70);
 		}
-		if (protect || props.loop || props.rewind) addZimBusy();
+		if (protect || cjsProps.loop || cjsProps.rewind) addZimBusy();
 
 		// IDS and IDSETS
 		// this is for ids and idSets on this target
@@ -17654,9 +17854,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
 		for (var i in obj) obj[i] = zik(obj[i]);
 		for (i in set) set[i] = zik(set[i]);
-		for (i in props) {
+		for (i in cjsProps) {
 			if (i=="waitedCall" || i=="waitedParams" || i=="loopCall" || i=="rewindCall" || i=="loopWaitCall" || i=="rewindWaitCall") continue;
-			props[i] = zik(props[i]);
+			cjsProps[i] = zik(cjsProps[i]);
 		}
 
 		// PREPARE RELATIVE VALUES PASSED IN AS STRINGS
@@ -17689,47 +17889,47 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// LOOP AND REWIND SETUP
 		var count = 0;
-		if (props.loop) {
-			if (!zot(props.count)) {
-				count = props.count;
-				delete props.count;
+		if (cjsProps.loop) {
+			if (!zot(cjsProps.count)) {
+				count = cjsProps.count;
+				delete cjsProps.count;
 				var currentCount = 1;
 			}
 		}
 		var wait3 = 0;
-		if (props.loopWait) {
-			wait3 = props.loopWait;
-			delete props.loopWait;
+		if (cjsProps.loopWait) {
+			wait3 = cjsProps.loopWait;
+			delete cjsProps.loopWait;
 		}
 		var call3;
-		if (props.loopCall) {
-			call3 = props.loopCall;
-			delete props.loopCall;
+		if (cjsProps.loopCall) {
+			call3 = cjsProps.loopCall;
+			delete cjsProps.loopCall;
 		}
 		var params3 = target;
-		if (props.loopParams) {
-			params3 = props.loopParams;
-			delete props.loopParams;
+		if (cjsProps.loopParams) {
+			params3 = cjsProps.loopParams;
+			delete cjsProps.loopParams;
 		}
 		function doLoopCall() {
 			if (call3 && typeof call3 == 'function') {(call3)(params3);}
 		}
 		var call4;
-		if (props.loopWaitCall) {
-			call4 = props.loopWaitCall;
-			delete props.loopWaitCall;
+		if (cjsProps.loopWaitCall) {
+			call4 = cjsProps.loopWaitCall;
+			delete cjsProps.loopWaitCall;
 		}
 		var params4 = target;
-		if (props.loopWaitParams) {
-			params4 = props.loopWaitParams;
-			delete props.loopWaitParams;
+		if (cjsProps.loopWaitParams) {
+			params4 = cjsProps.loopWaitParams;
+			delete cjsProps.loopWaitParams;
 		}
 		function doLoopWaitCall() {
 			if (call4 && typeof call4 == 'function') {(call4)(params4);}
 		}
 
 		// TWEENS FOR REWIND, LOOP and NORMAL
-		if (props.rewind) {
+		if (cjsProps.rewind) {
 			// flip second ease
 			if (ease) {
 				// backIn backOut backInOut
@@ -17743,37 +17943,37 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 			}
 			var wait2 = 0;
-			delete props.rewind;
-			if (props.rewindWait) {
-				wait2 = props.rewindWait;
-				delete props.rewindWait; // not a createjs prop so delete
+			delete cjsProps.rewind;
+			if (cjsProps.rewindWait) {
+				wait2 = cjsProps.rewindWait;
+				delete cjsProps.rewindWait; // not a createjs prop so delete
 			}
 
 			var call2;
-			if (props.rewindCall) {
-				call2 = props.rewindCall;
-				var params2 = props.rewindParams;
+			if (cjsProps.rewindCall) {
+				call2 = cjsProps.rewindCall;
+				var params2 = cjsProps.rewindParams;
 				if (zot(params2)) params2 = target;
-				delete props.rewindCall;
-				delete props.rewindParams;
+				delete cjsProps.rewindCall;
+				delete cjsProps.rewindParams;
 			}
 			function doRewindCall() {
 				if (call2 && typeof call2 == 'function') {(call2)(params2);}
 			}
 			var call5;
-			if (props.rewindWaitCall) {
-				call5 = props.rewindWaitCall;
-				var params5 = props.rewindWaitParams;
+			if (cjsProps.rewindWaitCall) {
+				call5 = cjsProps.rewindWaitCall;
+				var params5 = cjsProps.rewindWaitParams;
 				if (zot(params5)) params5 = target;
-				delete props.rewindWaitCall;
-				delete props.rewindWaitParams;
+				delete cjsProps.rewindWaitCall;
+				delete cjsProps.rewindWaitParams;
 			}
 			function doRewindWaitCall() {
 				if (call5 && typeof call5 == 'function') {(call5)(params5);}
 			}
 
 			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(function(){
+				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
 					tween1();
 				});
@@ -17783,7 +17983,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			function tween1() {
 				var obj2 = getStart();
 				if (target.set && !from) target.set(set);
-				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
+				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
 					.to(obj, t, createjs.Ease[ease])
 					.call(doRewindWaitCall)
 					.wait(wait2)
@@ -17797,7 +17997,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		} else {
 			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
-				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:props.override}).wait(wait).call(function(){
+				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
 					tween2();
 				});
@@ -17806,7 +18006,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 			function tween2() {
 				if (target.set && !from) {target.set(set);}
-				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, props)
+				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
 					.to(obj, t, createjs.Ease[ease])
 					.call(doneAnimating)
 					.wait(wait3)
@@ -17828,7 +18028,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// ANIMATION DONE AND HELPER FUNCTIONS
 		function doneAnimating() {
-			if (props.loop) {
+			if (cjsProps.loop) {
 				if (count > 0) {
 					if (currentCount < count) {
 						doLoopWaitCall();
@@ -17847,6 +18047,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 			}
 			endTween(id);
+			target.paused = null;
 			if (call && typeof call == 'function') {(call)(params);}
 		}
 		function getStart() {
@@ -17982,6 +18183,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// METHODS ADDED TO TARGET
 		if (!target.stopAnimate || !target.stopAnimate.real) { // empty method gets added by default
 	        target.stopAnimate = function(ids, include) {
+				target.paused = null;
 				if (zot(include)) include = true;
 				if (zot(ids)) {
 					if (!include) return target; // would be exclude all ids
@@ -18009,6 +18211,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.stopAnimate.real = true; // record this as real method instead of empty method
 	        target.pauseAnimate = function(paused, ids, include) {
 	            if (zot(paused)) paused = true;
+				target.paused = paused;
 				if (zot(include)) include = true;
 				if (zot(ids) && !include) return target; // would be exclude all ids
 				if (zot(ids)) { // want all ids
@@ -18070,6 +18273,9 @@ END EXAMPLE
 PARAMETERS
 ids - (default null) pass in an id or an array of ids specified in animate, move and Sprite
 
+PROPERTIES
+paused - zim.stopAnimate() will set paused property of stopped objects to null
+
 RETURNS null if run as stopAnimate() or the obj if run as obj.stopAnimate()
 --*///+45.12
 	zim.stopAnimate = function(ids) {
@@ -18127,6 +18333,13 @@ calling object.pauseAnimate(true, id) pauses tweens with this id on the target o
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
+var circle = new Circle().center().animate({obj:{alpha:0}, repeat:true, rewind:true});
+circle.on("mousedown", function() {
+	circle.pauseAnimate(!circle.paused);
+});
+END EXAMPLE
+
+EXAMPLE
 // We have split the tween in two so we can control them individually
 // Set an id parameter to stop or pause
 // You can control multiple tweens at once by using the same id (the id is for a tween set)
@@ -18152,6 +18365,9 @@ END EXAMPLE
 PARAMETERS
 state - (default true) will pause tweens - set to false to unpause tweens
 ids - (default null) pass in an id or an array of ids specified in animate, move and Sprite
+
+PROPERTIES
+paused - zim.stopAnimate() will set paused property of paused objects to the value of the state parameter
 
 RETURNS null if run as pauseAnimate() or the obj if run as obj.pauseAnimate()
 --*///+45.22
@@ -19283,16 +19499,19 @@ zim DisplayObject method
 
 DESCRIPTION
 Centers the registration point on the bounds - obj must have bounds set.
-If no container is provided it centers and adds the object to the stage.
+Will default to adding the object to the container.
+If no container parameter is provided and the object is in a container,
+centerReg will center the object in the current container. Thanks Jack Bracer for the suggestion.
+If no container and the object is not in a container,
+centerReg will center the object on the default frame's stage.
 A convenience function for setting both registration points at once.
 Also see center() for centering without changing the registration point.
 
 EXAMPLE
 var rect = new Rectangle(100, 100, "blue");
-rect.centerReg(stage); // centers registration, centers and adds to stage
+rect.centerReg(); // centers registration, centers and adds to stage
 rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
 
-// Or we can just use rect.centerReg(); to center on the stage
 // To just center the registration and not add it to a container
 // use rect.centerReg(null, null, false);
 // This is different than in the past where leaving out parameters would just center the registration
@@ -19300,9 +19519,11 @@ rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - (default first frame's stage) centers the object on and adds to the container
+container - (default object's parent or if none, the first frame's stage) centers the object on and adds to the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
+	will be ignored if the add parameter is false
 add - (default true) set to false to only center the object's registration
+	setting to false will not remove the object if already added to a container
 
 RETURNS obj for chaining
 --*///+48
@@ -19313,10 +19534,14 @@ RETURNS obj for chaining
 		z_d("48");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog("zim methods - centerReg(): please provide object with bounds set"); return obj;}
 		if (zot(add)) add = true;
+		if (obj.parent && add) {
+			container = obj.parent;
+			if (zot(index)) index = obj.parent.getChildIndex(obj);
+			obj.parent.removeChild(obj);
+		}
 		var oB = obj.getBounds();
 		obj.regX = oB.x + oB.width/2;
 		obj.regY = oB.y + oB.height/2;
-		if (zot(container) && obj.parent) return obj;
 		return add ? zim.center(obj, container, index) : obj;
 	}//-48
 
@@ -19329,20 +19554,26 @@ zim DisplayObject method
 DESCRIPTION
 Centers the object on the container.
 Will default to adding the object to the container.
+If no container parameter is provided and the object is in a container,
+center will center the object in the current container. Thanks Jack Bracer for the suggestion.
+If no container and the object is not in a container,
+center will center the object on the default frame's stage.
 Also see centerReg() for centering registration point at same time.
 
 EXAMPLE
 var rect = new Rectangle(100, 100, "blue");
-rect.center(stage); // centers and adds to stage
+rect.center(); // centers and adds to stage
 // the below animation will be around the registration point at the top left corner
 // this is usually not desired - see centerReg() when rotating and scaling
 rect.animate({obj:{rotation:360}, time:1000, ease:"linear", loop:true});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - (default is first frame's stage) centers the object on and adds to the container
+container - (default object's parent or if none, the first frame's stage) centers the object on and adds to the container
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
+	will be ignored if the add parameter is false
 add - (default true) set to false to only center and not add the object to the container
+	setting to false will not remove the object if already added to a container
 
 RETURNS obj for chaining
 --*///+48.1
@@ -19352,7 +19583,10 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
 		z_d("48.1");
 		if (zot(obj) || !obj.getBounds) {zog("zim.center(): please provide object with bounds"); return;}
-		if (zot(container) && zimDefaultFrame) container = zimDefaultFrame.stage;
+		if (zot(container)) {
+			if (obj.parent) container = obj.parent;
+			else if (zimDefaultFrame) container = zimDefaultFrame.stage;
+		}
 		if (zot(container) || !container.getBounds)  {zog("zim.center(): please provide container with bounds"); return;}
 
 		var oB = obj.getBounds();
@@ -19366,7 +19600,6 @@ RETURNS obj for chaining
                 container.addChildAt(obj, index);
             }
         }
-
 		if (zot(cB)) return obj; // just add to container if no bounds on Container
 		if (zot(oB)) { // just add to middle of container
 			obj.x = container.getBounds().width/2;
@@ -19659,12 +19892,12 @@ ANIMATE = false;
 var circle1 = new Circle(200, frame.green);
 circle1.center(stage);
 circle1.x -= 110;
-circle1.animate({obj:{alpha:0, scale:0}, time:700, from:true});
+circle1.animate({props:{alpha:0, scale:0}, time:700, from:true});
 
 var circle2 = new Circle(200, frame.pink);
 circle2.center(stage);
 circle2.x += 110;
-circle2.animate({obj:{alpha:0, scale:0}, time:700, wait:700, from:true});
+circle2.animate({props:{alpha:0, scale:0}, time:700, wait:700, from:true});
 END EXAMPLE
 --*///+29.5
 zim.ANIMATE = true;
@@ -19743,6 +19976,39 @@ END EXAMPLE
 --*///+50.3
 zim.ACTIONEVENT = "mousedown";
 //-50.3
+
+/*--
+zim.DEFAULTFONT
+
+DEFAULTFONT
+zim constant
+
+DESCRIPTION
+A default font for all components - really just sets default font for Label
+and all the components use Label.
+A custom font can be used when loaded with frame.loadAssets()
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// put this at the top of your code
+DEFAULTFONT = "courier";
+new Button(200,100,"CLICK").center();
+// the font will be courier rather than arial
+END EXAMPLE
+
+EXAMPLE
+// custom font:
+frame.loadAssets({font:"wildwood", src: "assets/ChurchintheWildwood-Regular.ttf"});
+frame.on("complete", function() {
+	DEFAULTFONT = "wildwood";
+	new Label("hello").center(); // hello in wildwood
+	stage.update();
+});
+END EXAMPLE
+--*///+50.32
+zim.DEFAULTFONT = "arial";
+//-50.32
 
 /*--
 zim.KEYFOCUS
@@ -26170,7 +26436,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	        zim.loop(that, function(particle) {
 	            particle.stopAnimate();
 	        });
-	        that.zimInterval.clear();
+	        if (that.zimInterval) that.zimInterval.clear();
 	        return true;
 	    }
 	}
@@ -27302,9 +27568,12 @@ sensors - (default false) set to true to capture Frame devicemotion and deviceor
 
 METHODS
 loadAssets(assets, path, xhr, time, loadTimeout, outputAudioSprite, crossOrigin, type) // also accepts ZIM DUO configuration object as single parameter
-	assets - a file (url String) or files in an Array
+	assets - a file (url String or asset object) or files in an Array
 		each asset String is how you then access the asset with the asset() method of Frame
 		asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
+		asset can also be an asset object:
+			{id:string, src:url or filename (if specify path with path parameter)}
+			then can use the id to access the asset in the asset() method of Frame
 		asset can also be a font object:
 			{font:name, src:url, type:string, weight:string, style:string} // with last three properties being optional
 			eg.
@@ -27369,14 +27638,15 @@ loadAssets(assets, path, xhr, time, loadTimeout, outputAudioSprite, crossOrigin,
 	It is recommended to use the Queue any time you use multiple LoadAssets() calls at the same time
 	You still access assets with frame.asset() as outlined below whether you use the Queue or not
 asset(file) - access a loaded asset based on file string (not including path)
+	if the asset uses an asset object with an id then you can use the id
 	if the asset is an image then this is a Bitmap and you add it to the stage
 	if the asset is a sound then use asset(file).play();
-	or can pass in a configuration object in play
-	with the following properties (see CreateJS SoundJS docs)
-	delay, offset, loop, volume, pan, startTime, interrupt and duration
-	asset(file).play({volume:.5, pan:-1, loop:2});
-	this returns createjs sound instance which can also be manipulated
-	to stop the sound or set its volume dynamically, etc.
+		or can pass in a configuration object in play
+		with the following properties (see CreateJS SoundJS docs)
+		delay, offset, loop, volume, pan, startTime, interrupt and duration
+		asset(file).play({volume:.5, pan:-1, loop:2});
+		this returns createjs sound instance which can also be manipulated
+		to stop the sound or set its volume dynamically, etc.
 	if the asset is anything else, then it is what it is!
 makeCircles(radius, multiple) - returns ZIM Circles (centered reg)
 	radius defaults to 100
@@ -27754,9 +28024,10 @@ EVENTS
 		// ASSETS
 		this.loadAssetsCount = 0;
 		this.assets = {}; // store asset Bitmap or play function for sound
+		this.assetIDs = {}; // store ids for assets
 		this.loadAssets = function(assets, path, xhr, time, loadTimeout, outputAudioSprite, crossOrigin, fileType) {
 			if (zot(assets)) return;
-			if (zot(assets.src)) { // might be sending single parameter of audiosprite
+			if (zot(assets.src)) { // might be sending single parameter of asset object or audiosprite
 				var sig = "assets, path, xhr, time, loadTimeout, outputAudioSprite, crossOrigin, fileType";
 				var duo; if (duo = zob(that.loadAssets, arguments, sig)) return duo;
 			}
@@ -27798,6 +28069,13 @@ EVENTS
 						a = obj.src;
 						prepareLoad(a);
 						manifest.push(obj);
+					} else if (a.id) { // ZIM asset object
+						this.assetIDs[a.id] = a.src;
+						a = a.src;
+						prepareLoad(a);
+						var manObj = {src:a, loadTimeout:loadTimeout};
+						if (!zot(fileType)) manObj.type = fileType;
+						manifest.push(manObj);
 					} else { // ZIM font object
 						if (a.src.match(/fonts\.googleapis\.com/)) googleFonts.push(a);
 						else fonts.push(a);
@@ -27941,6 +28219,8 @@ EVENTS
 
 		this.asset = function(n) {
 			if (zot(n)) return;
+			var fromID = that.assetIDs[n];
+			if (fromID) n = fromID;
 			if (that.assets[n]) return that.assets[n];
 			if (that.loadFailObj == "circles") var empty = frame.makeCircles(14);
 			else var empty = that.loadFailObj;
@@ -28528,15 +28808,18 @@ function zimify(obj, list) {
 	z_d("83.3");
 
 	var displayMethods = {
-		drag:function(rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens) {
+		drag:function(boundary, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.drag(arguments[0]);}
-			else {return zim.drag(this, rect, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens);}
+			else {return zim.drag(this, boundary, overCursor, dragCursor, currentTarget, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect);}
 		},
 		noDrag:function() {
 			return zim.noDrag(this);
 		},
-		dragRect:function(rect) {
-			return zim.dragRect(this, rect);
+		dragBoundary:function(boundary) {
+			return zim.dragBoundary(this, boundary);
+		},
+		dragRect:function(boundary) {
+			return zim.dragBoundary(this, boundary);
 		},
 		transform:function(move, stretchX, stretchY, scale, rotate, toggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.transform(arguments[0]);}
@@ -28545,16 +28828,19 @@ function zimify(obj, list) {
 		setSwipe:function(swipe) {
 			return zim.setSwipe(this, swipe);
 		},
-		gesture:function(move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround) {
+		gesture:function(move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround, circularBounds, rect) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.gesture(arguments[0]);}
-			else {return zim.gesture(this, move, scale, rotate, rect, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround);}
+			else {return zim.gesture(this, move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBounds, slide, slideEffect, regControl, onTop, surround, circularBounds, rect);}
 		},
 		noGesture:function(move, scale, rotate) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noGesture(arguments[0]);}
 			else {zim.noGesture(this, move, scale, rotate);}
 		},
-		gestureRect:function(rect, update) {
-			return zim.gestureRect(this, rect, update);
+		gestureBoundary:function(boundary, update) {
+			return zim.gestureBoundary(this, boundary, update);
+		},
+		gestureRect:function(boundary, update) {
+			return zim.gestureBoundary(this, boundary, update);
 		},
 		hitTestPoint:function(x, y, boundsCheck) {
 			return zim.hitTestPoint(this, x, y, boundsCheck);
@@ -28580,9 +28866,9 @@ function zimify(obj, list) {
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		animate:function(obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id, events, sequenceTarget) {
+		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, obj) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, obj, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, ticker, props, css, protect, override, from, id, events, sequenceTarget);}
+			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, obj);}
 		},
 		pauseAnimate:function(){return this;},
 		stopAnimate:function(){return this;},
