@@ -1155,8 +1155,9 @@ clone - (default false) set to true to clone any cloneable object while copying
 
 RETURNS a new Object
 --*///+10
+	zim.copyCheck = false;
 	zim.copy = function(obj, clone) {
-		z_d("10");
+		if (!zim.copyCheck) {z_d("10"); zim.copyCheck = true;}
 		if (zot(clone)) clone = false;
 		if (obj==null || !(obj instanceof Array || obj.constructor == {}.constructor)) return clone&&obj!=null?(obj.clone?obj.clone():obj):obj;
 		if (obj instanceof Array) {
@@ -1313,8 +1314,9 @@ objects - a list of objects (any number) to merge together
 
 RETURNS a new Object
 --*///+12
+	zim.mergeCheck = false;
 	zim.merge = function() {
-		z_d("12");
+		if (!zim.mergeCheck) {z_d("12"); zim.mergeCheck = true;}
 		var obj = {}; var i; var j;
 		for (i=0; i<arguments.length; i++) {
 			for (j in arguments[i]) {
@@ -3883,8 +3885,11 @@ EVENTS
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.5
+
+zim.containerCheck = false;
 zim.Container = function(a, b, c, d) {
-		z_d("50.5");
+		if (!zim.containerCheck) {z_d("50.5"); zim.containerCheck=true;}
+
 		this.cjsContainer_constructor();
 		this.type = "Container";
 
@@ -7960,7 +7965,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var duo; if (duo = zob(zim.Button, arguments, sig, this)) return duo;
 		z_d("55");
 		this.group = group;
-		var DS = ignoreStyles?{}:zim.getStyle("Button", ignoreStyles, group);
+		var DS = ignoreStyles?{}:zim.getStyle("Button", group);
 
 		if (zot(width)) width=DS.width!=null?DS.width:200;
 		if (zot(height)) height=DS.height!=null?DS.height:60;
@@ -18274,8 +18279,9 @@ flip - (default false) make a global rect ported to local values
 
 RETURNS a createjs Rectangle of the bounds of object projected onto the stage
 --*///+40
+	zim.boundsCheck = false;
 	zim.boundsToGlobal = function(obj, rect, flip) {
-		z_d("40");
+		if (!zim.boundsCheck) {z_d("40"); zim.boundsCheck = true;}
 		if (zot(obj) || !obj.getBounds) return;
 		if (zot(flip)) flip = false;
 		var oB = obj.getBounds();
@@ -18675,6 +18681,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		if (zim.ANIMATE == false || (!window.zns && !ANIMATE)) return target;
 
+
 		if (zot(props) && !zot(obj)) props = obj; // conversion of 7.1 props parameter to pre 7.1 obj parameter
 		obj = props;
 
@@ -18683,7 +18690,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// CJSPROPS
 		// convert loop and rewind properties into the legacy cjs props object
-		var newProps = {override: (!zot(target.zimX) && !zot(obj.x) || !zot(target.zimY) && !zot(obj.y))};
+		var newProps = {override: ((!zot(target) && !zot(target.zimX) && !zot(obj.x)) || (!zot(target) && !zot(target.zimY) && !zot(obj.y)))};
 		if (!zot(loop)) newProps.loop = loop;
 		if (!zot(loopCount)) newProps.count = loopCount; // note prop is count
 		if (!zot(loopWait)) newProps.loopWait = loopWait;
@@ -18778,6 +18785,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// if an array is passed in to animate() as the obj
 		// then animate treats this as an animation series
 		// [{target:circle, obj:{alpha:0}, time:1000}, {target:rect, obj:{alpha:0}, time:1000},]
+
 		if (obj instanceof Array) {
 			var starts;
 			var currentCount = 1;
@@ -18867,6 +18875,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				for (var i=0; i<obj.length; i++) {
 					o = obj[i];
 					if (!target) target = o.target;
+
 					if (zot(o.target)) o.target = target;
 					if (zot(o.ease)) o.ease = ease;
 					if (zot(o.target)) continue;
@@ -18917,9 +18926,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			return target;
 		} // end series
 
-		if (obj.x) target.zimX = true;
-		if (obj.y) target.zimY = true;
-
+		if (obj) {
+			if (obj.x) target.zimX = true;
+			if (obj.y) target.zimY = true;
+		}
 		// -----------------------------
 		// NORMALIZED TWEEN COMING THROUGH
 		if (zot(target)) return;
@@ -20802,10 +20812,11 @@ add - (default true) set to false to only center and not add the object to the c
 
 RETURNS obj for chaining
 --*///+48.1
+	zim.centerCheck = false;
 	zim.center = function(obj, container, index, add) {
 		var sig = "obj, container, index, add";
 		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
-		z_d("48.1");
+		if (!zim.centerCheck) {z_d("48.1"); zim.centerCheck = true;}
 		if (zot(obj) || !obj.getBounds) {zog("zim.center(): please provide object with bounds"); return;}
 		if (zot(container)) {
 			if (obj.parent) container = obj.parent;
@@ -21255,6 +21266,8 @@ They are cascading with each level overriding the previous level:
 4. OBJECT: styles applied as parameters to the component object override all other styles
 	new Button({corner:40}) will make this button have a corner of 40
 
+See: https://zimjs.com/style.html for an example
+
 EXAMPLE
 STYLE = {
 	corner:20,
@@ -21305,7 +21318,7 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 zim.STYLE = null;
 zim.STYLECHECK = false;
 zim.ignore = "ignore";
-zim.getStyle = function(type, ignoreStyles, group) {
+zim.getStyle = function(type, group) {
 	if (!zim.STYLECHECK) {z_d("50.34"); zim.STYLECHECK = true;}
 
 	// called by components
@@ -21317,6 +21330,7 @@ zim.getStyle = function(type, ignoreStyles, group) {
 	var TS = DS.type;
 	if (TS) delete DS.type;
 
+	if (type == "Indicator") zog(group)
 	if (!zot(group) && !zot(DS.group)) {
 		var groups = group.split(","); // support comma delimited multiple groups
 		var GS = {};
@@ -21337,57 +21351,6 @@ zim.getStyle = function(type, ignoreStyles, group) {
 	return DS;
 }
 //-50.34
-
-/*
---*///+50.35
-// zim.GSCHECK = false;
-// zim.filterStyles = function(styles, ignoreStyles, group) {
-// 	if (!zim.GSCHECK) {z_d("50.35"); zim.GSCHECK = true;}
-function specifyStyles(S, type) {
-	var val;
-	for (var style in S) {
-		val = S[style];
-		if (val != null && val.constructor === {}.constructor) {
-			if (!zot(val[type])) {
-				if (val[type] == "ignore") delete S[style];
-				else S[style] = val[type].clone?val[type].clone(val[type]):val[type];
-			} else if (!zot(val["Default"])) {
-				if (val["Default"] == "ignore") delete S[style];
-				else S[style] = val["Default"].clone?val["Default"].clone(val["Default"]):val["Default"];
-			} else {
-				delete S[style];
-			}
-		} else if (val.clone && type!=val.type) {
-			S[style] = S[style].clone();
-		} else if (val == "ignore") {
-			delete S[style];
-		}
-	}
-}
-
-// function specifyStyles(S, type) {
-// 	var val;
-// 	for (var style in S) {
-// 		val = S[style];
-// 		if (val != null && val.constructor === {}.constructor) {
-// 			if (!zot(val[type])) {
-// 				if (val[type] == "ignore") delete S[style];
-// 				else S[style] = val[type].clone?val[type].clone(val[type]):val[type];
-// 			} else if (!zot(val["Default"])) {
-// 				if (val["Default"] == "ignore") delete S[style];
-// 				else S[style] = val["Default"].clone?val["Default"].clone(val["Default"]):val["Default"];
-// 			} else {
-// 				delete S[style];
-// 			}
-// 		} else if (val.clone && type!=val.type) {
-// 			S[style] = S[style].clone();
-// 		} else if (val == "ignore") {
-// 			delete S[style];
-// 		}
-// 	}
-// }
-
-//-50.35
 
 /*--
 zim.Ticker = {}
