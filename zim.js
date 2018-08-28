@@ -452,8 +452,8 @@ zik() will then randomly pick from the options and return a value.
 The ZIM VEE value can be the following:
 1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
 2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the makeSeries() function which returns a function that will execute a series in order
-	pass makeSeries(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
+	see also the series() function which returns a function that will execute a series in order
+	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
 3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
@@ -496,7 +496,7 @@ var show = zik(age);
 // below we randomize the tile colors in the first example
 // and make them in color order for the second example
 new Tile([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")]); would randomize colors
-new Tile(makeSeries([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")])); would alternate colors
+new Tile(series([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")])); would alternate colors
 
 // here we pass an array through without processing the array with zik:
 zik({noZik:[1,2,3,4,5]}); // result is [1,2,3,4,5]
@@ -1736,9 +1736,9 @@ RETURNS a String id (even if type is number)
 	}//-13.5
 
 /*--
-zim.makeSeries = function(array)
+zim.series = function(array)
 
-makeSeries
+series
 zim function
 
 DESCRIPTION
@@ -1746,27 +1746,45 @@ returns a function that will return each value of array passed as a parameter
 this goes in sequence each time the function is called
 Use this to pass a series in to any ZIM VEE (zik) value so a looping series is obtained
 
+NOTE: was called makeSeries() which is now depreciated
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-var series = makeSeries(["red", "green", "blue"]);
-series(); // "red"
-series(); // "green"
-series(); // "blue"
-series(); // "red", etc.
+// note - do not call the variable series
+var s = series(["red", "green", "blue"]);
+s(); // "red"
+s(); // "green"
+s(); // "blue"
+s(); // "red", etc.
 
 new Tile([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")]); would randomize colors
-new Tile(makeSeries([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")])); would alternate colors
+new Tile(series([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")])); would alternate colors
 END EXAMPLE
 
 PARAMETERS
 array - an array of results that will be called in order as the resulting function is called
-    // when used with ZIM VEE - the array values may be further ZIM VEE values (including more makeSeries values)
+    // when used with ZIM VEE - the array values may be further ZIM VEE values (including more series values)
 
 PROPERTIES
 array - gets the array passed in to the function
 
 RETURNS a function that can be called many times - each time returning the next value in the series
+--*///+13.61
+	zim.series = function(array) {
+		z_d("13.61");
+        if (zot(array)) return function(){};
+        var count = 0;
+        var f = function() {
+            return array[(count++)%array.length];
+        }
+        f.array = array;
+        return f;
+	}//-13.61
+
+/*--
+zim.makeSeries = function(array)
+	depreciated - use series()
 --*///+13.6
 	zim.makeSeries = function(array) {
 		z_d("13.6");
@@ -3946,7 +3964,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
-			return this.cloneChildren(this.cloneProps(new zim.Container(n[0],n[1],n[2],n[3], style, group)));
+			return this.cloneChildren(this.cloneProps(new zim.Container(n[0],n[1],n[2],n[3], style, this.group)));
 		}
 	}
 	zim.Container.prototype.dispose = function() {
@@ -4253,9 +4271,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.group = group;
 	    var DS = style===false?{}:zim.getStyle(this.type, this.group);
 
-	    if (zot(a)) a = DS.a!=null?DS.a:null;
+		this.id = that.fileID = DS.id!=null?DS.id:id;
+		if (!zot(width)) width = DS.width!=null?DS.width:null;
+		if (!zot(height)) height = DS.height!=null?DS.height:null;
 
-		this.id = that.fileID = id;
 		if (!zot(width) && !zot(height)) that.setBounds(0,0,width,height);
 		if (zot(width)) width = 100;
 		if (zot(height)) height = 100;
@@ -4298,7 +4317,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
-			return this.cloneProps(new zim.Bitmap(image, width, height, that.fileID, style, group));
+			return this.cloneProps(new zim.Bitmap(image, width, height, that.fileID, style, this.group));
 		}
 		this.dispose = function() {
 			this.removeAllEventListeners();
@@ -4880,7 +4899,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
-			return this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, null, globalControl, spriteSheet, style, group));
+			return this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, null, globalControl, spriteSheet, style, this.group));
 		}
 		this.dispose = function() {
 			this.removeAllEventListeners();
@@ -4983,7 +5002,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
-			return this.cloneProps(new zim.MovieClip(mode, startPosition, loop, labels, style, group));
+			return this.cloneProps(new zim.MovieClip(mode, startPosition, loop, labels, style, this.group));
 		}
 		this.dispose = function() {
 			this.removeAllEventListeners();
@@ -5176,7 +5195,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
-			return that.cloneProps(new zim.Circle(that.radius, that.color, that.borderColor, that.borderWidth, dashed, style, group));
+			return that.cloneProps(new zim.Circle(that.radius, that.color, that.borderColor, that.borderWidth, dashed, style, this.group));
 		}
 	}
 	zim.extend(zim.Circle, zim.Container, "clone", "zimContainer", false);
@@ -5366,7 +5385,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Rectangle(width, height, that.color, that.borderColor, that.borderWidth, corner, flatBottom, dashed, style, group));
+			return that.cloneProps(new zim.Rectangle(width, height, that.color, that.borderColor, that.borderWidth, corner, flatBottom, dashed, style, this.group));
 		}
 	}
 	zim.extend(zim.Rectangle, zim.Container, "clone", "zimContainer", false);
@@ -5610,7 +5629,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.Triangle(a, b, c, that.color, that.borderColor, that.borderWidth, center, adjust, dashed, style, group));
+			return that.cloneProps(new zim.Triangle(a, b, c, that.color, that.borderColor, that.borderWidth, center, adjust, dashed, style, this.group));
 		}
 	}
 	zim.extend(zim.Triangle, zim.Container, "clone", "zimContainer");
@@ -6395,7 +6414,7 @@ Note the points property has been split into points and pointObjects (and there 
 			that.clone = function(commands) {
 				var color = commands?that.colorCommand:that.color;
 				var color = commands?that.colorCommand:that.color;
-				return that.cloneProps(new zim.Squiggle(commands?that.colorCommand:that.color, that.lineWidth, that.recordPoints(), length, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, that.ctrlclick, dashed, style, group));
+				return that.cloneProps(new zim.Squiggle(commands?that.colorCommand:that.color, that.lineWidth, that.recordPoints(), length, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, that.ctrlclick, dashed, style, that.group));
 			}
 		} // end of init()
 
@@ -7343,7 +7362,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.clone = function(commands) {
 				var color = commands?that.colorCommand:that.color;
 				var color = commands?that.colorCommand:that.color;
-				return that.cloneProps(new zim.Blob(commands?that.colorCommand:that.color, commands?that.borderColorCommand:that.borderColor, that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, that.ctrlclick, dashed, style, group));
+				return that.cloneProps(new zim.Blob(commands?that.colorCommand:that.color, commands?that.borderColorCommand:that.borderColor, that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, that.ctrlclick, dashed, style, that.group));
 			}
 		} // end of init()
 
@@ -7846,14 +7865,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		zimStyleTransforms(this, DS)
 		this.clone = function() {
 			return that.cloneProps(new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions,
-				!zot(backing)?backing.clone():null, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, style, group));
+				!zot(backing)?backing.clone():null, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, style, this.group));
 		}
 	}
 	zim.extend(zim.Label, zim.Container, "clone", "zimContainer");
 	//-54
 
 /*--
-zim.Button = function(width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, style, group)
+zim.Button = function(width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, style, group)
 
 Button
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7954,8 +7973,8 @@ wait - (default null) - String word for button to show when button is pressed an
 waitTime - (default 30000 - 30 seconds) milliseconds (ms) to show wait state before reverting to normal button
 waitBackgroundColor - (default frame.red) color to make button during wait time if wait is set
 rollWaitBackgroundColor - (default rollColor) color for button when waiting and rolled over
-waitTextBackgroundColor - (default label's color) color to make text during wait time if wait is set
-rollWaitTextBackgroundColor - (default label's roll color) color for text when waiting and rolled over
+waitColor - (default label's color) color to make text during wait time if wait is set
+rollWaitColor - (default label's roll color) color for text when waiting and rolled over
 waitModal - (default false) set to true to clearWait() if the user clicks off the button
 waitEnabled - (default true) set to false to disable button while wait is in progress
 waitBacking - (default null) set to display object to set a different backing for wait state
@@ -8040,15 +8059,12 @@ dispatches a "waited" event if button is in wait state and the wait time has com
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+55
-	zim.Button = function(width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, style, group) {
-		var sig = "width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, style, group";
+	zim.Button = function(width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, style, group) {
+		var sig = "width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, flatBottom, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, style, group";
 		var duo; if (duo = zob(zim.Button, arguments, sig, this)) return duo;
 		z_d("55");
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("Button", group);
-		if (zot(style)) style = true
-		else style = false;
-		this.style = style;
 
 		if (zot(width)) width=DS.width!=null?DS.width:200;
 		if (zot(height)) height=DS.height!=null?DS.height:60;
@@ -8287,8 +8303,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				setTimeout(function(){that.waiting = true;}, 50);
 				// set button to waiting state
 				waitStartText = label.text;
-				if (!zot(waitTextBackgroundColor)) that.label.color = waitTextBackgroundColor;
-				if (!zot(rollWaitTextBackgroundColor)) that.label.rollColor = rollWaitTextBackgroundColor;
+				if (!zot(waitColor)) that.label.color = waitColor;
+				if (!zot(rollWaitColor)) that.label.rollColor = rollWaitColor;
 				waitStartEnabled = that.enabled;
 				if (!waitEnabled && that.enabled) that.enabled = false;
 				if (!zot(wait)) that.text = wait;
@@ -8607,13 +8623,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				!zot(toggleIcon)?toggleIcon.clone():null,
 				!zot(rollToggleIcon)?rollToggleIcon.clone():null,
 				toggleEvent,
-				wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled,
+				wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled,
 				!zot(waitBacking)?waitBacking.clone():null,
 				!zot(rollWaitBacking)?rollWaitBacking.clone():null,
 				!zot(waitIcon)?waitIcon.clone():null,
 				!zot(rollWaitIcon)?rollWaitIcon.clone():null,
-				that.style,
-				that.group
+				style,
+				this.group
 			);
 			return that.cloneProps(but);
 		}
@@ -8856,7 +8872,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.CheckBox(size, label?label.clone():"", startChecked, color, backgroundColor, margin, indicatorType, indicatorColor, style, group));
+			return that.cloneProps(new zim.CheckBox(size, label?label.clone():"", startChecked, color, backgroundColor, margin, indicatorType, indicatorColor, style, this.group));
 		}
 	}
 	zim.extend(zim.CheckBox, zim.Container, "clone", "zimContainer", false);
@@ -9175,14 +9191,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for (var i=0; i<buttonsCopy.length; i++) {
 				buttonsCopy[i].label = buttonsCopy[i].label.clone();
 			}
-			return that.cloneProps(new zim.RadioButtons(size, buttonsCopy, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, style, group));
+			return that.cloneProps(new zim.RadioButtons(size, buttonsCopy, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, style, this.group));
 		}
 	}
 	zim.extend(zim.RadioButtons, zim.Container, "clone", "zimContainer", false);
 	//-57
 
 /*--
-zim.Pane = function(width, height, label, backgroundColor, drag, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group)
+zim.Pane = function(width, height, label, backgroundColor, color, drag, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group)
 
 Pane
 zim class - extends a zim.Container which extends a createjs.Container
@@ -9214,7 +9230,7 @@ new Pane({
 	label:new Label({color:white, text:"STOP", size:50}),
 	backing:pizzazz.makePattern({
 		type:"stripes",
-		colors:makeSeries([red,black]),
+		colors:series([red,black]),
 		rows:20
 	}).alp(.8)
 }).show();
@@ -9227,6 +9243,7 @@ width - (default 200) width of pane
 height - (default 200) height of pane
 label - (default null) an optional ZIM Label (or text for default label properties)
 backgroundColor - (default "white") a css color for the background of the Pane
+color - (default "black") a css color for the text color of the Pane
 draggable - (default false) pass in true to drag the pane
 resets - (default true) resets position to start on re-open - set to false to keep last position
 modal - (default true) pane will close when user clicks off the pane - set to false to keep pane open
@@ -9311,8 +9328,8 @@ dispatches a "close" event when closed by clicking on backing, display, close, e
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58
-	zim.Pane = function(width, height, label, backgroundColor, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group) {
-		var sig = "width, height, label, backgroundColor, drag, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group";
+	zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group) {
+		var sig = "width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group";
 		var duo; if (duo = zob(zim.Pane, arguments, sig, this)) return duo;
 		z_d("58");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -9341,7 +9358,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(height)) height=DS.height!=null?DS.height:200;
 		if (zot(label)) label = DS.label!=null?DS.label:null;
 		if (typeof label === "string" || typeof label === "number") label = new zim.Label({
-			text:label, size:DS.size!=null?DS.size:40, color:DS.color!=null?DS.color:"black",
+			text:label, size:DS.size!=null?DS.size:40, color:DS.color!=null?DS.color:color,
 			backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", padding:"ignore", backgroundColor:"ignore",
 			group:this.group
 		});
@@ -9585,7 +9602,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.clone = function() {
 			var lX = label.x; // new Panes automatically center the label
 			var lY = label.y;
-			var p2 = that.cloneProps(new zim.Pane(width, height, label.clone(), backgroundColor, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, zot(backing)?backing.clone():null, fadeTime, that.container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group));
+			var p2 = that.cloneProps(new zim.Pane(width, height, label.clone(), backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, zot(backing)?backing.clone():null, fadeTime, that.container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, this.group));
 			p2.label.x = lX;
 			p2.label.y = lY;
 			return p2;
@@ -10458,7 +10475,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Waiter(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group));
+			return that.cloneProps(new zim.Waiter(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, this.group));
 		}
 
 		this.dispose = function() {
@@ -10765,7 +10782,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.ProgressBar(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, style, group));
+			return that.cloneProps(new zim.ProgressBar(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, style, this.group));
 		}
 
 		this.dispose = function() {
@@ -10994,7 +11011,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Indicator(width, height, num, foregroundColor, offForegroundColor, borderColor, borderWidth, backgroundColor, corner, indicatorType, fill, scale, lightScale, press, shadowColor, shadowBlur, style, group));
+			return that.cloneProps(new zim.Indicator(width, height, num, foregroundColor, offForegroundColor, borderColor, borderWidth, backgroundColor, corner, indicatorType, fill, scale, lightScale, press, shadowColor, shadowBlur, style, this.group));
 		}
 	}
 	zim.extend(zim.Indicator, zim.Container, "clone", "zimContainer", false);
@@ -11835,7 +11852,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Stepper(list, width, backgroundColor, borderColor, borderWidth, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, continuous, display, press, hold, holdDelay, holdSpeed, draggable, dragSensitivity, dragRange, stepperType, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward, style, group));
+			return that.cloneProps(new zim.Stepper(list, width, backgroundColor, borderColor, borderWidth, label.clone(), vertical, arrows, corner, shadowColor, shadowBlur, continuous, display, press, hold, holdDelay, holdSpeed, draggable, dragSensitivity, dragRange, stepperType, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward, style, this.group));
 		}
 
 		this.dispose = function() {
@@ -12281,7 +12298,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (style!==false) zimStyleTransforms(this, DS)
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, style, group));
+			return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, style, this.group));
 		}
 
 		this.dispose = function() {
@@ -12809,7 +12826,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Dial(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, style, group));
+			return that.cloneProps(new zim.Dial(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, style, this.group));
 		}
 
 		this.dispose = function() {
@@ -12825,7 +12842,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 //***************** RADIAL  64
 
 /*--
-zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, backdropColor, style, group)
+zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, style, group)
 
 Tabs
 zim class - extends a zim.Container which extends a createjs.Container
@@ -12856,7 +12873,7 @@ tabs - (default ["1","2","3","4"]) an array of tab objects with the following pr
 	[{label:"String", width:200, backgroundColor:"red", rollBackgroundColor:"pink", offBackgroundColor:"grey", color:"yellow", offColor:"lime"}, {etc.}]
 	label can be a String or a Label object - default text color is white
 	Tab objects can also include wait properties for individual buttons.
-	See wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal and waitEnabled parameters below
+	See wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal and waitEnabled parameters below
 	wait can be used with button's waiting property to offer an alternative to a loading screen or confirmation panel
 	also see the button's clearWait() method to cancel the wait state and waited event that triggers when the wait is done
 	wait will primarily be applicable when the tabs are used as a set of buttons rather than traditional tabbing
@@ -12882,8 +12899,8 @@ waitBackgroundColor - (default color) the color of the tab during wait period
 rollWaitBackgroundColor - (default color) the color of the tab during wait period
 waitBackgroundColor - (default frame.red) color to make button during wait time if wait is set
 rollWaitBackgroundColor - (default rollColor) color for button when waiting and rolled over
-waitTextBackgroundColor - (default label's color) color to make text during wait time if wait is set
-rollWaitTextBackgroundColor - (default label's roll color) color for text when waiting and rolled over
+waitColor - (default label's color) color to make text during wait time if wait is set
+rollWaitColor - (default label's roll color) color for text when waiting and rolled over
 waitModal - (default false) set to true to exit wait state if user clicks off tabs or to another tab
 waitEnabled - (default true) set to false to disable tabs while in wait mode
 backdropColor - (default null) set to a color to show behind the tabs (handy for when corner is not 0)
@@ -12948,8 +12965,8 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+65
-	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, backdropColor, style, group) {
-		var sig = "width, height, tabs, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, backdropColor, style, group";
+	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, style, group) {
+		var sig = "width, height, tabs, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, style, group";
 		var duo; if (duo = zob(zim.Tabs, arguments, sig, this)) return duo;
 		z_d("65");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -13063,8 +13080,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				waitTime:(zot(t.waitTime))?waitTime:t.waitTime,
 				waitBackgroundColor:(zot(t.waitBackgroundColor))?waitBackgroundColor:t.waitBackgroundColor,
 				rollWaitBackgroundColor:(zot(t.rollWaitBackgroundColor))?rollWaitBackgroundColor:t.rollWaitBackgroundColor,
-				waitTextBackgroundColor:(zot(t.waitTextBackgroundColor))?waitTextBackgroundColor:t.waitTextBackgroundColor,
-				rollWaitTextBackgroundColor:(zot(t.rollWaitBackgroundColor))?rollWaitTextBackgroundColor:t.rollWaitTextBackgroundColor,
+				waitColor:(zot(t.waitColor))?waitColor:t.waitColor,
+				rollWaitColor:(zot(t.rollWaitBackgroundColor))?rollWaitColor:t.rollWaitColor,
 				waitModal:(zot(t.waitModal))?waitModal:t.waitModal,
 				waitEnabled:(zot(t.waitEnabled))?waitEnabled:t.waitEnabled,
 				style:false
@@ -13257,14 +13274,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for (var i=0; i<tabsCopy.length; i++) {
 				tabsCopy[i].label = tabsCopy[i].label.clone();
 			}
-			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, backdropColor, style, group));
+			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, currentSelected, corner, labelColor, labelOffColor, flatBottom, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, style, this.group));
 		}
 	}
 	zim.extend(zim.Tabs, zim.Container, "clone", "zimContainer", false);
 	//-65
 
 /*--
-zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, style, group)
+zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group)
 
 Pad
 zim class - extends a zim.Container which extends a createjs.Container
@@ -13297,7 +13314,7 @@ keys - (default an Array for cols x rows) an array of key objects with the follo
 	[{label:"String", width:200, backgroundColor:"Red", rollBackgroundColor:"pink", offBackgroundColor:"grey"}, {etc.}]
 	the label can be a String or a Label object - default text color is white
 	Key objects can also include wait properties for individual buttons.
-	See wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal and waitEnabled parameters below
+	See wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal and waitEnabled parameters below
 	wait can be used with button's waiting property to offer an alternative to a loading screen or confirmation panel
 	also see the button's clearWait() method to cancel the wait state and waited event that triggers when the wait is done
 backgroundColor - (default "#333") the background color of the selected key (any CSS color)
@@ -13319,8 +13336,8 @@ waitBackgroundColor - (default color) the color of the button during wait period
 rollWaitBackgroundColor - (default color) the color of the button during wait period
 waitBackgroundColor - (default frame.red) color to make button during wait time if wait is set
 rollWaitBackgroundColor - (default rollColor) color for button when waiting and rolled over
-waitTextBackgroundColor - (default label's color) color to make text during wait time if wait is set
-rollWaitTextBackgroundColor - (default label's roll color) color for text when waiting and rolled over
+waitColor - (default label's color) color to make text during wait time if wait is set
+rollWaitColor - (default label's roll color) color for text when waiting and rolled over
 waitModal - (default false) set to true to exit wait state if user clicks off the pad or to another button
 waitEnabled - (default true) set to false to disable pad while in wait mode
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
@@ -13380,8 +13397,8 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+66
-	zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, style, group) {
-		var sig = "width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, style, group";
+	zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group) {
+		var sig = "width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group";
 		var duo; if (duo = zob(zim.Pad, arguments, sig, this)) return duo;
 		z_d("66");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -13441,8 +13458,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				waitTime:DS.waitTime!=null?DS.waitTime:waitTime,
 				waitBackgroundColor:DS.waitBackgroundColor!=null?DS.waitBackgroundColor:waitBackgroundColor,
 				rollWaitBackgroundColor:DS.rollWaitBackgroundColor!=null?DS.rollWaitBackgroundColor:rollWaitBackgroundColor,
-				waitTextBackgroundColor:DS.waitTextBackgroundColor!=null?DS.waitTextBackgroundColor:waitTextBackgroundColor,
-				rollWaitTextBackgroundColor:DS.rollWaitTextBackgroundColor!=null?DS.rollWaitTextBackgroundColor:rollWaitTextBackgroundColor,
+				waitColor:DS.waitColor!=null?DS.waitColor:waitColor,
+				rollWaitColor:DS.rollWaitColor!=null?DS.rollWaitColor:rollWaitColor,
 				waitModal:DS.waitModal!=null?DS.waitModal:waitModal,
 				waitEnabled:DS.waitEnabled!=null?DS.waitEnabled:waitEnabled,
 				group:group,
@@ -13500,7 +13517,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Pad(width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitTextBackgroundColor, rollWaitTextBackgroundColor, waitModal, waitEnabled, style, group));
+			return that.cloneProps(new zim.Pad(width, cols, rows, keys, backgroundColor, rollBackgroundColor, offBackgroundColor, color, rollColor, offColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, this.group));
 		}
 	}
 	zim.extend(zim.Pad, zim.Container, "clone", "zimContainer", false);
@@ -14152,7 +14169,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, style, group));
+			return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, style, this.group));
 		}
 
 		this.dispose = function() {
@@ -15234,7 +15251,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, style, group);
+			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, style, this.group);
 			return that.cloneProps(kb);
 		}
 	}
@@ -15635,7 +15652,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				!zot(rollToggleBacking)?rollToggleBacking.clone():null,
 				!zot(toggleIcon)?toggleIcon.clone():null,
 				!zot(rollToggleIcon)?rollToggleIcon.clone():null,
-				toggleEvent, frame, style, group
+				toggleEvent, frame, style, this.group
 			);
 			return that.cloneProps(u);
 		}
@@ -15906,7 +15923,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			var u = new zim.TextArea(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame, style, group);
+			var u = new zim.TextArea(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame, style, this.group);
 			return that.cloneProps(u);
 		}
 		this.dispose = function() {
@@ -18678,8 +18695,8 @@ PARAMETERS - supports DUO - parameters or single object with properties below
 The ZIM VEE value can be the following:
 1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
 2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the makeSeries() function which returns a function that will execute a series in order
-	pass makeSeries(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
+	see also the series() function which returns a function that will execute a series in order
+	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
 3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
@@ -19691,8 +19708,8 @@ target - the object to wiggle
 The ZIM VEE value can be the following:
 1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
 2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the makeSeries() function which returns a function that will execute a series in order
-	pass makeSeries(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
+	see also the series() function which returns a function that will execute a series in order
+	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
 3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
@@ -21381,7 +21398,7 @@ STYLE = {
 	corner:20,
 	backgroundColor:pink,
 	type:{
-		Button:{width:{min:100, max:500}, corner:0, centerReg:true, move:{y:makeSeries([-150, -50, 50, 150])}},
+		Button:{width:{min:100, max:500}, corner:0, centerReg:true, move:{y:series([-150, -50, 50, 150])}},
 		Dial:{add:true, x:800, y:600, backgroundColor:red, scale:2, outline:true},
 		Pane:{corner:ignore, color:white, draggable:true, width:300, label:"HI!"},
 		ProgressBar:{add:true, x:200, y:600, barType:"rectangle", transform:true},
@@ -21413,7 +21430,7 @@ STYLE = {
 			color:[red, pink, purple], // pick a random color from here
 			centerReg:true,
 			animate:{props:{rotation:360}, time:500, ease:"linear", loop:true},
-			move:{x:makeSeries([-200, 0, 200])}
+			move:{x:series([-200, 0, 200])}
 		}
 	}
 }
@@ -21427,12 +21444,12 @@ x, y, rotation, alpha, scale, scaleX, scaleY, regX, regY, skewX, skewY, visible
 a bounds style has a value of {x:Number, y:Number, width:Number, height:Number}
 where x and y are optional
 
-ZIM VEE - RANDOM, RANGES, SERIES, FUNCTIONS
+RANDOM, RANGES, SERIES, FUNCTIONS
 Any property value can be a ZIM VEE value to make use of ZIM zik (pick)
 color:[red, green, blue] will pick a random color for each object for which the style is applied
-x:makeSeries([100,200,300]) will place subsequent objects at these locations
+x:series([100,200,300]) will place subsequent objects at these locations
 width:{min:100, max:500} will make objects with a width within this range
-See Docs on ZIM zik() and ZIM makeSeries() for more information
+See Docs on ZIM zik() and ZIM series() for more information
 
 FUNCTION STYLES
 The following functions have been added:
@@ -21536,7 +21553,7 @@ var zimStyleTransforms = function(obj, styles) {
 			if (styles.move) styles.mov = styles.move;
 			if (styles.mov.constructor==={}.constructor) {
 				obj.mov(zik(styles.mov.x), zik(styles.mov.y));
-			} else if (typeof styles.mov == "number") {
+			} else {
 				obj.mov(zik(styles.mov));
 			}
 		}
@@ -25407,8 +25424,8 @@ PARAMETERS supports DUO - parameters or single object with properties below
 The ZIM VEE value can be the following:
 1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
 2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the makeSeries() function which returns a function that will execute a series in order
-	pass makeSeries(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
+	see also the series() function which returns a function that will execute a series in order
+	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
 3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
@@ -25539,7 +25556,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 			rowTotal += maxHeight+spacingV;
 		}
 		this.clone = function() {
-			return that.cloneProps(new zim.Tile(obj, cols, rows, spacingH, spacingV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone));
+			return that.cloneProps(new zim.Tile(obj, cols, rows, spacingH, spacingV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, this.group));
 		}
 	}
 	zim.extend(zim.Tile, zim.Container, "clone", "zimContainer", false);
@@ -27394,8 +27411,8 @@ PARAMETERS supports DUO - parameters or single object with properties below
 The ZIM VEE value can be the following:
 1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
 2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the makeSeries() function which returns a function that will execute a series in order
-	pass makeSeries(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
+	see also the series() function which returns a function that will execute a series in order
+	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
 3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
 4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
