@@ -7,7 +7,7 @@ A consistent, complete, simple yet powerful Canvas Framework that provides very 
 
 ZIM adds many conveniences, components and controls to the robust CreateJS library.
 
-http://zimjs.com has all the details
+https://zimjs.com has all the details
 
 * One-line Drag and Drop
 * Multitouch Pan, Pinch and Rotate
