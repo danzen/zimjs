@@ -5889,16 +5889,16 @@ Note the points property has been split into points and pointObjects (and there 
 				set = new zim.Container({style:false}).addTo(sets);
 				if (typeof points == "number") { // no sets yet
 					var stickLength = zik(controlLength);
-					temp = new zim.Container(stickLength, thickness, null, null, false).pos(i*length/(num-1)-stickLength/2, i%2*stickLength).addTo(that);
+					temp = new zim.Container(stickLength, thickness, null, null, false).addTo(that).pos({x:i*length/(num-1)-stickLength/2, y:i%2*stickLength, reg:true});
 					ball = new zim.Circle(ballS, frame.light, frame.dark, 2, null, false)
 						.centerReg(temp)
-						.pos(stickLength/2,0);
+						.pos({x:stickLength/2, y:0, reg:true});
 					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(controlType), frame.dark, 2, null, null, null, false)
 						.centerReg(temp)
-						.pos(0,0);
+						.pos({x:0,y:0,reg:true});
 					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(controlType), frame.dark, 2, null, null, null, false)
 						.centerReg(temp)
-						.pos(stickLength,0);
+						.pos({x:stickLength,y:0,reg:true});
 
 					var ballPoint = temp.localToLocal(ball.x, ball.y, sets);
 					ball.x = ballPoint.x;
@@ -5912,7 +5912,8 @@ Note the points property has been split into points and pointObjects (and there 
 					rect2.x = controlType=="none"?0:rect2Point.x-ball.x;
 					rect2.y = controlType=="none"?0:rect2Point.y-ball.y;
 					rect2.addTo(set, null, false);
-					set.pos(ball.x, ball.y);
+					set.x = ball.x;
+					set.y = ball.y;
 					ball.x = 0;
 					ball.y = 0;
 					if (controlType=="none") ball.addTo(set, null, false); // on top
@@ -5924,16 +5925,16 @@ Note the points property has been split into points and pointObjects (and there 
 
 					setInfo = points[i];
 					type = setInfo[8] ? setInfo[8] : controlType;
-					set = new zim.Container({style:false}).addTo(sets).pos(setInfo[0], setInfo[1]);
+					set = new zim.Container({style:false}).addTo(sets).pos({x:setInfo[0], y:setInfo[1],reg:true});
 					ball = new zim.Circle(ballS, frame.light, frame.dark, 2, null, false)
 						.centerReg(set)
-						.pos(setInfo[2],setInfo[3]);
+						.pos({x:setInfo[2],y:setInfo[3],reg:true});
 					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), frame.dark, 2, null, null, null, false)
 						.centerReg(set, 0)
-						.pos(setInfo[4],setInfo[5]);
+						.pos({x:setInfo[4],y:setInfo[5],reg:true});
 					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), frame.dark, 2, null, null, null, false)
 						.centerReg(set, 0)
-						.pos(setInfo[6],setInfo[7]);
+						.pos({x:setInfo[6],y:setInfo[7],reg:true});
 				}
 
 				balls.push(ball);
@@ -6210,8 +6211,10 @@ Note the points property has been split into points and pointObjects (and there 
 				if (type == "none") {
 					if (!zot(circleX)) point[2].x = circleX;
 					if (!zot(circleY)) point[2].y = circleY;
-					point[2].pos(point[1].x, point[1].y);
-					point[3].pos(point[1].x, point[1].y);
+					point[2].x = point[1].x;
+					point[2].y = point[1].y;
+					point[3].x = point[1].x;
+					point[3].y = point[1].y;
 					point[1].parent.addChild(point[1]);
 				} else {
 					if (!zot(rect1X)) point[2].x = rect1X;
@@ -6319,8 +6322,10 @@ Note the points property has been split into points and pointObjects (and there 
 				sets.visible = true;
 				sticks.visible = true;
 				_controls = true;
-				sets.pos(shape.x, shape.y);
-				sticks.pos(shape.x, shape.y);
+				sets.x = shape.x;
+				sets.y = shape.y;
+				sticks.x = shape.x;
+				sticks.y = shape.y;
 				that.addChildAt(shape,0); // put to bottom incase dragged
 				if (that.move && !that.allowToggle) startDragging();
 				if (that.stage) that.stage.update();
@@ -6877,13 +6882,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					temp.rotation = i/num * 360;
 					ball = new zim.Circle(ballS, frame.light, frame.dark, 2, null, false)
 						.centerReg(temp)
-						.pos(length/2,0);
+						.pos({x:length/2,y:0,reg:true});
 					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(controlType), frame.dark, 2, null, null, null, false)
 						.centerReg(temp)
-						.pos(0,0);
+						.pos({x:0,y:0,reg:true});
 					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(controlType), frame.dark, 2, null, null, null, false)
 						.centerReg(temp)
-						.pos(length,0);
+						.pos({x:length,y:0,reg:true});
 
 					var ballPoint = temp.localToLocal(ball.x, ball.y, sets);
 					ball.x = ballPoint.x;
@@ -6897,7 +6902,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					rect2.x = controlType=="none"?0:rect2Point.x-ball.x;
 					rect2.y = controlType=="none"?0:rect2Point.y-ball.y;
 					rect2.addTo(set, null, false);
-					set.pos(ball.x, ball.y);
+					set.x = ball.x;
+					set.y = ball.y;
 					ball.x = 0;
 					ball.y = 0;
 					if (controlType=="none") ball.addTo(set, null, false); // on top
@@ -6909,16 +6915,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 					setInfo = points[i];
 					type = setInfo[8] ? setInfo[8] : controlType;
-					set = new zim.Container({style:false}).addTo(sets).pos(setInfo[0], setInfo[1]);
+					set = new zim.Container({style:false}).addTo(sets).pos({x:setInfo[0], y:setInfo[1],reg:true});
 					ball = new zim.Circle(ballS, frame.light, frame.dark, 2, null, false)
 						.centerReg(set)
-						.pos(setInfo[2],setInfo[3]);
+						.pos({x:setInfo[2],y:setInfo[3],reg:true});
 					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), frame.dark, 2, null, null, null, false)
 						.centerReg(set, 0)
-						.pos(setInfo[4],setInfo[5]);
+						.pos({x:setInfo[4],y:setInfo[5],reg:true});
 					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), frame.dark, 2, null, null, null, false)
 						.centerReg(set, 0)
-						.pos(setInfo[6],setInfo[7]);
+						.pos({x:setInfo[6],y:setInfo[7],reg:true});
 				}
 
 				balls.push(ball);
@@ -7158,8 +7164,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (type == "none") {
 					if (!zot(circleX)) point[1].x = circleX;
 					if (!zot(circleY)) point[1].y = circleY;
-					point[2].pos(point[1].x, point[1].y);
-					point[3].pos(point[1].x, point[1].y);
+					point[2].x = point[1].x,
+					point[2].y = point[1].y;
+					point[3].x = point[1].x,
+					point[3].y = point[1].y;
 					point[1].parent.addChild(point[1]);
 				} else {
 					if (!zot(circleX)) point[1].x = circleX;
@@ -7268,8 +7276,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				sets.visible = true;
 				sticks.visible = true;
 				_controls = true;
-				sets.pos(shape.x, shape.y);
-				sticks.pos(shape.x, shape.y);
+				sets.x = shape.x;
+				sets.y = shape.y;
+				sticks.x = shape.x;
+				sticks.y = shape.y;
 				that.addChildAt(shape,0); // put to bottom incase dragged
 				if (that.move && !that.allowToggle) startDragging();
 				if (that.stage) that.stage.update();
@@ -9495,7 +9505,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			titleBar.mouseEnabled = false;
 			titleBar.mouseChildren = false;
 			var titleBarRect = that.titleBar.backing = new zim.Rectangle(width, titleBarHeight, titleBarColor, null, null, corner*.95, true, null, false).addTo(titleBar);
-			titleBarLabel.center(titleBar).pos(Math.max(corner/2, 10));
+			titleBarLabel.center(titleBar).pos({x:Math.max(corner/2, 10), reg:true});
 		}
 
 		if (close) {
@@ -10015,7 +10025,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (zot(titleBarColor)) titleBarColor = "rgba(0,0,0,.2)";
 			that.titleBar = titleBar = new zim.Container(width, titleBarHeight, null, null, false).centerReg(that).mov(0,-height/2-titleBarHeight/2);
 			var titleBarRect = that.titleBar.backing = new zim.Rectangle(width, titleBarHeight, titleBarColor, null, null, corner*.95, true, null, false).addTo(titleBar);
-			titleBarLabel.center(titleBar).pos(Math.max(corner/2, Math.max(10, padding)));
+			titleBarLabel.center(titleBar).pos({x:Math.max(corner/2, Math.max(10, padding)), reg:true});
 			that.regX = 0; that.regY = -titleBarHeight;
 			that.setBounds(0,-titleBarHeight,width,height+titleBarHeight);
 
@@ -10037,7 +10047,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (zot(closeColor)) closeColor = "#555";
 			var close = that.close = new zim.Shape(-40,-40,80,80,null,false);
 			close.graphics.f(closeColor).p("AmJEVIEUkTIkXkWIB4h5IEWEYIETkTIB4B3IkTESIEQERIh4B4IkRkRIkSEVg"); // width about 90 reg in middle
-			if (titleBar) close.centerReg(that).scaleTo(titleBar, null, 50).pos(width-Math.max(corner/2, Math.max(10, padding))-close.width/2, -titleBarHeight/2).expand(40);
+			if (titleBar) close.centerReg(that).scaleTo(titleBar, null, 50).pos({x:width-Math.max(corner/2, Math.max(10, padding))-close.width/2, y:-titleBarHeight/2, reg:true}).expand(40);
 			else close.centerReg(that).sca(.3).mov(width-Math.max(corner/2, Math.max(10, padding)), close.height).expand(40);
 			close.cursor = "pointer";
 			close.expand();
@@ -10653,7 +10663,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (barType == "circle") {
 			var width = 20;
 			var backing = this.backing = new zim.Circle(width, "rgba(0,0,0,0)", backgroundColor, borderWidth, null, false).addTo(this);
-			var bar = this.bar = new zim.Shape({style:false}).addTo(that).pos(backing.x, backing.y).rot(-90);
+			var bar = this.bar = new zim.Shape({style:false}).addTo(that).pos({x:backing.x, y:backing.y, reg:true}).rot(-90);
 		} else {
 			var width = 200;
 			if (shadowColor != -1 && shadowBlur > 0) {
@@ -14227,8 +14237,8 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 // create Labels to capture the text from the keyboard
-var text1 = new Label({text:"", backgroundColor:frame.white}).pos(100,100,stage);
-var text2 = new Label({text:"", backgroundColor:frame.white}).pos(100,200,stage);
+var text1 = new Label({text:"", backgroundColor:frame.white}).pos(100,100);
+var text2 = new Label({text:"", backgroundColor:frame.white}).pos(100,200);
 
 // create a new Keyboard and pass in the labels as an array
 // or if just one label, then pass in the label
@@ -14926,7 +14936,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		    var point;
 		    buttonsCursor = [];
 		    point = currentLabel.localToLocal(0, 0, that);
-		    cursorShiftMenu = new zim.Container({style:false}).addTo(that).pos(point.x, point.y+currentLabel.height+15).cur();
+		    cursorShiftMenu = new zim.Container({style:false}).addTo(that).pos({x:point.x, y:point.y+currentLabel.height+15, reg:true}).cur();
 		    for (var i=0; i<tekens.length;i++) {
 				bakking = new zim.Rectangle(size, size, placeBackgroundColor, borderColor, borderWidth, corner, null, null, false);
 				if (tekens[i] == "x") new zim.Rectangle(size, size, "black", null, null, corner, null, null, false).alp(shadeAlpha).addTo(bakking);
@@ -14944,7 +14954,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		        buttonsCursor.push(button);
 		    }
 			point = currentLabel.localToLocal(0, 0, that);
-			cursorShiftMenu.pos(point.x, point.y+currentLabel.height+15);
+			cursorShiftMenu.x = point.x;
+			cursorShiftMenu.y = point.y+currentLabel.height+15;
 			cursorShiftMenu.on("click", verschuifCursor);
 		    function verschuifCursor(e) {
 		        if (buttonsCursor.indexOf(e.target)==0) {
@@ -15058,7 +15069,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (cursorShiftMenu && currentLabel) {
 				if (currentLabel.text.length > 0) {
 					point = currentLabel.localToLocal(0, 0, that);
-					cursorShiftMenu.pos(point.x, point.y+currentLabel.height+15);
+					cursorShiftMenu.x = point.x;
+					cursorShiftMenu.x = point.y+currentLabel.height+15;
 				} else {
 					removeCursorShiftMenu();
 				}
@@ -15263,7 +15275,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.x = currentStage.width/2 - that.width/2;
 			if (cursorShiftMenu) {
 				point = currentLabel.localToLocal(0, 0, that);
-		        cursorShiftMenu.pos(point.x, point.y+currentLabel.height+15);
+		        cursorShiftMenu.x = point.x;
+				cursorShiftMenu.y = point.y+currentLabel.height+15;
 			}
 			if (that.stage) that.stage.update();
 			return that;
@@ -16014,7 +16027,7 @@ EXAMPLE
 // The localToLocal parameter converts between the coordinates and updates the x and y
 // so that the object does not appear to jump - this defaults to true
 
-var container = new Container().pos(100,100,stage);
+var container = new Container().pos(100,100);
 var rectangle = new Rectangle(200, 200, frame.yellow).addTo(container);
 // we want to drag the container and the circle
 // but when the circle is in the container we want to drag the circle independently
@@ -16059,7 +16072,7 @@ RETURNS obj for chaining
 		if (localToLocal) var point = obj.parent.localToLocal(obj.x, obj.y, container);
 		if (zot(index) || isNaN(index)) {container.addChild(obj);}
 		else {container.addChildAt(obj, index);}
-		if (localToLocal) obj.pos(point.x, point.y);
+		if (localToLocal) {obj.x = point.x; obj.y = point.y;}
 		return obj;
 	}//-47.5
 
@@ -16254,7 +16267,7 @@ RETURNS obj for chaining
 	 	if (zot(add)) add = true;
 		if (add && container.addChild) {
             if (zot(index) || (typeof index === 'number' && isNaN(index))) {
-                container.addChild(obj);
+                if (!container.contains(obj)) container.addChild(obj);
             } else {
                 container.addChildAt(obj, index);
             }
@@ -16357,7 +16370,7 @@ RETURNS undefined
 			zog(id+".reg(" + Math.round(p.x) +  ", " + Math.round(p.y) + ");");
 		}
 		var p = obj.parent.localToGlobal(obj.x, obj.y);
-		var cursor = new zim.Shape(-25, -25, 50, 50,null,false).addTo(stage).pos(p.x, p.y);
+		var cursor = new zim.Shape(-25, -25, 50, 50,null,false).addTo(stage).pos({x:p.x, y:p.y, reg:true});
 		cursor.graphics.s("white").mt(-25,0).lt(25,0).mt(0,-25).lt(0,20);
 		cursor.compositeOperation = "difference";
 		cursor.expand(0);
@@ -16369,70 +16382,143 @@ RETURNS undefined
 // SUBSECTION SHORT CHAINABLE
 
 /*--
-obj.pos = function(x, y, container, right, bottom, index, add)
+obj.pos = function(x, y, right, bottom, container, index, add, reg, regX, regY)
 
 pos
 zim DisplayObject method
 
 DESCRIPTION
-Chainable convenience function to position x and y and optionally add to a container
-Can also position from the right or bottom
-See also the CreateJS set({prop:val, prop2:val}) method;
+Chainable convenience function to position an object and optionally add to a container
+** previously positioned only registration point
+** now positions based on sides, top or bottom unless reg is set to true
+By default, will position left and top of object - can also position right or bottom
+Setting reg (or regX, regY) to true will position to the registration point
 
 EXAMPLE
-circle.pos(100, 100); // moves circle to 100, 100
-cirlce.pos(100, 200, box); // adds to box and positions
+// 1. adds circle to default stage moves left and top of circle to 100, 100
+circle1.pos(100, 100);
+
+// 2. adds circle to box and positions right and bottom of circle 100 and 200
+// from right and bottom of box bounds
+circle2.pos(100, 200, true, true, box);
+
+// 3. adds to stage and puts registration point at x=200 and y=0
+circle3.pos({x:200, reg:true});
+
+// 4. adds to stage and puts registration point at x=200 and y=radius (not y=0)
+circle4.pos({x:200, regX:true});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-x - (default the current x position) the x position
-y - (default the current y position) the y position
-container - (default null) the Container to add the obj to and position
-right - (default false) set to true to postion to the right of the container bounds
-	if the object has a regX == 0 and is not rotated then the distance is from the right of the object
-	otherwise the distance is from the registration point
-bottom - (default false) set to true to postion to the bottom of the container bounds
-	if the object has a regY == 0 and is not rotated then the distance is from the bottom of the object
-	otherwise the distance is from the registration point
+x - (default null or 0 for right) the x distance in the container to the left or right side of the object
+	which side, depends on the right parameter
+	if reg or regX is true then it is the distance to the registration point not the side
+y - (default null or 0 for bottom) the y distance in the container to the top or bottom of the object
+	which one, depends on the bottom parameter
+	if reg or regY is true then it is the distance to the registration point not the top or bottom
+right - (default false) set to true to postion the right side from the right of the container bounds
+	if reg or regX is true then it is the distance to the registration point not the side
+bottom - (default false) set to true to postion the bottom of the object from the bottom of the container bounds
+	if reg or regY is true then it is the distance to the registration point not the bottom
+container - (default current container or zimDefaultFrame stage) the Container to add the obj to and position
 index - (default null) if provided will addChildAt the object at the index (0 being bottom)
 add - (default true) add to container if there is a container specified
+reg - (default false) set to true to position to the registration point rather than sides, top or bottom
+	See: POSREG contant - set POSREG=true; to change the default pos() to position the registration point
+	This is good to adjust legacy code - or if the original pos setting is preferred.
+regX - (default reg) set to true to position x to the registration point rather than the sides
+	will override reg if provided
+regY - (default reg) set to true to position y to the registration point rather than the top or bottom
+	will override reg if provided
 
 RETURNS obj for chaining
 --*///+41.5
-	zim.pos = function(obj, x, y, container, right, bottom, index, add) {
-		var sig = "obj, x, y, container, right, bottom, index, add";
+	zim.pos = function(obj, x, y, right, bottom, container, index, add, reg, regX, regY) {
+		var sig = "obj, x, y, right, bottom, container, index, add, reg, regX, regY";
 		var duo; if (duo = zob(zim.pos, arguments, sig)) return duo;
 		z_d("41.5");
 
+		var PR = zim.POSREG;
+		if (POSREG) PR = POSREG;
+		if (zot(reg)) reg = PR;
+
 		if (zot(obj)) return;
-		if (!zot(x)) obj.x = x;
-		if (!zot(y)) obj.y = y;
-		x = obj.x;
-		y = obj.y;
+		if (zot(reg) && zot(regX)) regX = false; // regX and regY override reg
+		if (zot(reg) && zot(regY)) regY = false;
+		if (!zot(reg) && zot(regX)) regX = reg;
+		if (!zot(reg) && zot(regY)) regY = reg;
+		if (right!==true) right = false;
+		if (bottom!==true) bottom = false;
+
 		if (zot(add)) add = true;
-		if (!zot(container) && add) {
+		if (!zot(container) && !container.addChild) container = null;
+		if (!obj.getBounds && !object.getBounds()) {regX = regY = false;}
+
+		if (zot(container)) {
+			if (obj.parent) container = obj.parent;
+			else if (zimDefaultFrame) container = zimDefaultFrame.stage;
+		}
+
+		if (!obj.parent && zot(x)) x = 0;
+		if (!obj.parent && zot(y)) y = 0;
+
+		if (!zot(container) && container.addChild && add) {
 			if (zot(index) || (typeof index === 'number' && isNaN(index))) {
-                container.addChild(obj);
+                if (!container.contains(obj)) container.addChild(obj);
             } else {
                 container.addChildAt(obj, index);
             }
 		}
 
-		if (obj.parent && obj.parent.getBounds()) {
+		if (obj.parent && obj.parent.getBounds) {
 			container = obj.parent;
-			var b = container.getBounds();
-			if (right==true) {
-				if (obj.regX===0 && Math.round(obj.rotation)===0) {
-					obj.x = b.width-b.x-x-obj.width;
-				} else {
-					obj.x = b.width-b.x-x;
+
+			if (zot(x) && right==true) x = 0;
+			if (zot(y) && bottom==true) y = 0;
+
+			if (!zot(x)) obj.x = x;
+			if (!zot(y)) obj.y = y;
+			if (zot(x) && zot(y) && !right && !bottom) return obj;
+
+			var shiftX = 0;
+			var shiftY = 0;
+			if (obj.getBounds()) {
+				var projected = obj.boundsToGlobal();
+				if (!zot(x)) {
+					if (!right) {
+						var local = obj.parent.globalToLocal(projected.x, projected.y);
+					} else {
+						var local = obj.parent.globalToLocal(projected.x+projected.width, projected.y+projected.height);
+					}
+					shiftX = local.x-x;
+				}
+				if (!zot(y)) {
+					if (!bottom) {
+						var local = obj.parent.globalToLocal(projected.x, projected.y);
+					} else {
+						var local = obj.parent.globalToLocal(projected.x+projected.width, projected.y+projected.height);
+					}
+					shiftY = local.y-y;
 				}
 			}
-			if (bottom==true) {
-				if (obj.regY===0 && Math.round(obj.rotation)===0) {
-					obj.y = b.height-b.y-y-obj.height;
+
+			var b = container.getBounds();
+			if (!zot(x)) {
+				if (right) {
+					if (regX) obj.x = b.width-b.x-x;
+					else obj.x = b.width-b.x-x-shiftX;
 				} else {
-					obj.y = b.height-b.y-y;
+					if (regX) obj.x = x;
+					else obj.x = x-shiftX;
+				}
+			}
+			if (!zot(y)) {
+				if (bottom) {
+					if (regY) obj.y = b.height-b.y-y;
+					else obj.y = b.height-b.y-y-shiftY;
+				} else {
+					if (regY) obj.y = y;
+					else obj.y = y-shiftY;
 				}
 			}
 		}
@@ -16860,6 +16946,7 @@ dragCursor - (default "pointer") the CSS cursor property as a string for pressin
 all - (default false) set to true to drag a whole container rather than its parts (was called currentTarget)
 	eg. container.drag(); will drag any object within the container
 	container.drag({all:true}) will drag the whole container
+	See: DRAGALL contant - set DRAGALL=true; to change the default drag to drag a whole container
 swipe - (default false) which prevents a swipe from triggering when dragging
 localBounds - (default false) which means the rect is global - set to true for a rect in the object parent frame
 onTop - (default true) brings the dragged object to the top of the container - unless Keyboard at top.
@@ -16888,6 +16975,11 @@ RETURNS obj for chaining
 		z_d("31");
 
 		if (zot(obj) || !obj.on) return;
+
+		var DA = zim.DRAGALL;
+		if (DRAGALL) DA = DRAGALL;
+		if (zot(all)) all = DA;
+
 		if (obj.zimDown) obj.noDrag(); // clear any previous drags
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
 		if (zot(all) && zot(currentTarget)) currentTarget = false;
@@ -17669,23 +17761,24 @@ RETURNS obj for chaining
 			for (var i=0; i<corners.length; i++) {
 				var c = corners[i];
 				squares.getChildAt(i)
-					.pos(c.x, c.y)
+					.pos({x:c.x, y:c.y, reg:true})
 					.ske(skX, skY)
 					.rot(ro);
 				rotators.getChildAt(i)
-					.pos(c.x, c.y)
+					.pos({x:c.x, y:c.y, reg:true})
 					.rot(ro);
 				var m = mids[i];
 				var whichSide = i%2==0?sidesV:sidesH;
 				whichSide.getChildAt(Math.floor(i/2))
-					.pos(m.x, m.y)
+					.pos({x:m.x, y:m.y, reg:true})
 					.ske(skX, skY)
 					.rot(ro);
 				if (!showStretch) {
 					whichSide.getChildAt(Math.floor(i/2)).sca(i%2==0?totalScaleX/2:1, i%2==0?1:totalScaleY/2);
 				}
 			}
-			shapeR.pos(pR.x,pR.y);
+			shapeR.x = pR.x;
+			shapeR.y = pR.y;
 		}
 		makeControls();
 
@@ -17693,7 +17786,8 @@ RETURNS obj for chaining
 		// dragger
 		var dragger = new zim.Shape(1000,1000,null,null,null,false);
 		function drawDragger() {
-			dragger.pos(0,0);
+			dragger.x = 0;
+			dragger.y = 0;
 			dragger.graphics
 				.c()
 				.f("rgba(0,0,0,.01)")
@@ -17704,7 +17798,8 @@ RETURNS obj for chaining
 				.lt(pTL.x, pTL.y)
 				.cp();
 			dragger.reg(pR.x, pR.y)
-			dragger.pos(pR.x, pR.y)
+			dragger.x = pR.x;
+			dragger.y = pR.y;
 		}
 		drawDragger();
 
@@ -17851,12 +17946,13 @@ RETURNS obj for chaining
 			if (e.target.controlType != "rotate") cornerPoint = {x:e.target.op.x, y:e.target.op.y};
 			if (carrier.stage) stage.setChildIndex(carrier, stage.getChildIndex(controls));
 			else carrier.addTo(stage, stage.getChildIndex(controls)+1);
-			carrier.pos(e.stageX, e.stageY);
+			carrier.x = e.stageX;
+			carrier.y = e.stageY;
 			carrier.cursor = customCursors?"none":e.target.cu;
 			if (customCursors) {
 				transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu] + originalR;
 				if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
-				carrier2.addTo(stage, 1).pos(e.stageX, e.stageY);
+				carrier2.addTo(stage, 1).pos({x:e.stageX, y:e.stageY, reg:true});
 			}
 			dragger.visible = false;
 			obj.cursor = "none";
@@ -17877,8 +17973,9 @@ RETURNS obj for chaining
 				obj.scaleY = (e.target.cu == "n-resize") ? scale * startSY : startSY;
 			}
 			makeControls();
-			carrier.pos(e.stageX, e.stageY);
-			if (customCursors) carrier2.pos(e.stageX, e.stageY);
+			carrier.x = e.stageX;
+			carrier.y = e.stageY;
+			if (customCursors) {carrier2.x = e.stageX; carrier2.y = e.stageY;}
 			if (!frame.ctrlKey || e.target.controlType == "side") { // keep opposite corner at same location
 				var newCornerPoint = {x:e.target.op.x, y:e.target.op.y};
 				obj.x -= (newCornerPoint.x-cornerPoint.x) * zim.sign(totalScaleX) * zim.sign(obj.scaleX); // adjust for - scale outside
@@ -17895,11 +17992,13 @@ RETURNS obj for chaining
 				obj.rot(startR + (angle - startAngle) * zim.sign(totalScaleX) * zim.sign(obj.scaleX));
 			}
 			makeControls();
-			carrier.pos(e.stageX, e.stageY);
+			carrier.x = e.stageX;
+			carrier.y = e.stageY;
 			if (customCursors) {
 				transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu] + originalR;
 				if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
-				carrier2.pos(e.stageX, e.stageY);
+				carrier2.x = e.stageX;
+				carrier2.y = e.stageY;
 			}
 			makeControls();
 		};
@@ -17962,14 +18061,17 @@ RETURNS obj for chaining
 			if (carrier.stage) stage.setChildIndex(carrier, stage.getChildIndex(controls));
 			else carrier.addTo(stage, stage.getChildIndex(controls)+1);
 			carrier2.addTo(stage, 1);
-			carrier.pos(e.stageX, e.stageY);
-			carrier2.pos(e.stageX, e.stageY);
+			carrier.x = e.stageX;
+			carrier.y = e.stageY;
+			carrier2.x = e.stageX;
+			carrier2.y = e.stageY;
 			transformCursor.rotation = obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY) + ccData[e.target.cu] + originalR;
 			if (e.target.controlType != "side" && totalScaleX * totalScaleY < 0) transformCursor.rotation += 90;
 			stage.update();
 			if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
 			mousemoveEvent = stage.on("stagemousemove", function(e) {
-				carrier.pos(e.stageX, e.stageY);
+				carrier.x = e.stageX;
+				carrier.y = e.stageY;
 				stage.update();
 			});
 		}
@@ -18035,7 +18137,8 @@ RETURNS obj for chaining
 			var rPoint = p.globalToLocal(shapeR.x, shapeR.y);
 			obj.reg(point.x, point.y);
 			obj.rotation = 0;
-			obj.pos(obj.x + rPoint.x-obj.x, obj.y + rPoint.y-obj.y);
+			obj.x = obj.x + rPoint.x-obj.x;
+			obj.y = obj.y + rPoint.y-obj.y;
 			obj.rotation = originalRotation;
 
 			makeControls();
@@ -18065,11 +18168,12 @@ RETURNS obj for chaining
 			moveCursor
 				.addTo(controls)
 				// .rot(obj.rotation*zim.sign(totalScaleX*totalScaleY)*zim.sign(obj.scaleX*obj.scaleY))
-				.pos(e.stageX, e.stageY);
+				.pos({x:e.stageX, y:e.stageY, reg:true});
 			stage.update();
 			if (dragmoveEvent) stage.off("stagemousemove", dragmoveEvent);
 			dragmoveEvent = stage.on("stagemousemove", function(e) {
-				moveCursor.pos(e.stageX, e.stageY);
+				moveCursor.x = e.stageX;
+				moveCursor.y = e.stageY;
 				stage.update();
 			});
 		}
@@ -21329,7 +21433,7 @@ new Button(); // will have a corner of 0 and be pink
 new Button({group:"homePage"}); // will have a corner of 30 and be pink
 new Button({corner:10, group:"homePage"}); // will have a corner of 10 and be pink
 new Button({corner:"ignore"}) // will have a corner of its default 20 and be pink
-new Button({style:false}).pos(700,100,stage); // will have original default styles
+new Button({style:false}).pos(700,100); // will have original default styles
 new Dial(); // will be red and scaled twice as big and have an outline
 new Tabs(); // will have a corner of 20 and selection will be pink
 var p = new ProgressBar({corner:15}); // will be a bar with transform tools, corner 15
@@ -21380,6 +21484,7 @@ to wiggle in the x and y for instance or run multiple animate calls on the objec
 CONVENIENCE STYLES
 add:true - has been provided to add to the stage (use addTo for other containers)
 move:{x:value, y:value} or move:x - mirrors the mov Function style (just adding the e)
+pos: has corner convenience values: "left", "right", "top", "bottom", "rightbottom" or "bottomright", "center" and "centerReg"
 style:false - will turn off all styles for the selector
 
 EXCLUSION
@@ -21476,9 +21581,14 @@ var zimStyleTransforms = function(obj, styles) {
 		}
 		if (styles.pos) {
 			if (styles.pos.constructor==={}.constructor) {
-				obj.pos(zik(styles.pos.x), zik(styles.pos.y), styles.pos.container, zik(styles.pos.right), zik(styles.pos.bottom), zik(styles.pos.index), styles.pos.add);
+				obj.pos(zik(styles.pos.x), zik(styles.pos.y), zik(styles.pos.right), zik(styles.pos.bottom), zik(styles.pos.index), styles.pos.add, zik(styles.pos.reg), zik(styles.pos.regX), zik(styles.pos.regY));
 			} else {
-				obj.pos(null,null,zimDefaultFrame?zimDefaultFrame.stage:null);
+				if (styles.pos == "left" || styles.pos == "top") obj.pos();
+				if (styles.pos == "right") obj.pos({right:true});
+				if (styles.pos == "bottom") obj.pos({bottom:true});
+				if (styles.pos == "rightbottom" || styles.pos == "bottomright" || styles.pos == "rightBottom" || styles.pos == "bottomRight") obj.pos({right:true, bottom:true});
+				if (styles.pos == "center") obj.center();
+				if (styles.pos == "centerReg" || styles.pos == "centerreg") obj.centerReg();
 			}
 		}
 		if (styles.outline) {
@@ -21666,6 +21776,57 @@ END EXAMPLE
 --*///+50.33
 zim.KEYFOCUS = null;
 //-50.33
+
+/*--
+zim.POSREG
+
+POSREG
+zim global variable (in guise of a constant)
+
+DESCRIPTION
+A global variable that stores the desired setting for the reg parameter of pos()
+pos() had traditionally positioned based on registration point
+Now it defaults to position to the sides or the top and bottom
+Setting POSREG = true; will make pos() default to positioning at the registration
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+POSREG = false; // default
+new Rectangle().pos({x:10, right:true}); // will position right side 10 pixels from right
+
+POSREG = true;
+new Rectangle().pos({x:10, right:true}); // will position registration point 10 pixels from right
+END EXAMPLE
+--*///+50.335
+zim.POSREG = false;
+//-50.335
+
+/*--
+zim.DRAGALL
+
+DRAGALL
+zim global variable (in guise of a constant)
+
+DESCRIPTION
+A global variable that stores the desired setting for the all parameter of drag()
+By default, drag() will drag individual items in a container (currentTarget = false)
+This is handy to quickly drag a bunch of things.
+But some developers are used to dragging the whole container by default.
+Setting DRAGALL=true will change drag calls to default to the whole container (currentTarget = true)
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+DRAGALL = false; // default
+containerOfMonsters.drag(); // will drag individual monsters
+
+DRAGALL = true;
+containerOfMonsters.drag(); // will drag all the monsters at once
+END EXAMPLE
+--*///+50.337
+zim.DRAGALL = false;
+//-50.337
 
 /*--
 zim.Ticker = {}
@@ -23785,6 +23946,8 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 		this.resize = function(w, h) {
 			if (zot(w)) w = width;
 			if (zot(h)) h = height;
+			width = w;
+			height = h;
 			resize(w, h);
 			return that;
 		}
@@ -26238,9 +26401,7 @@ SEE: https://zimjs.com/controller for more examples
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-container - the Container the target is in - the stage is most likely fine
-	this must be on the stage (or be the stage) when the MotionController is made
-target - the object you want to control
+target (default null) - the object you want to control
 	if you only want data from the MotionController you can leave the target parameter as null (don't include it)
 type - (default "mousedown") by default will move to where you press in the container
 	set to "mousemove" to have the target follow the mouse movement
@@ -26278,6 +26439,8 @@ turnSpeed - (default speed*.4) - the speed for turning in firstPerson mode - wil
 moveThreshold - (default 5) pixels negative or positive to treat damped motion as stopped
 stickThreshold - (default .2) gamepad stick axes values are from -1 to 1 but there is a lot of noise
 	so consider within +- stickThreshold as no motion 0
+container - (default zimDefauktFrame stage) the Container the target is in - the stage is most likely fine
+	if container is specified, it must be on the stage when the MotionController is made
 localBounds - (default false) which means the boundary is global - set to true for a boundary in the object parent frame
 mouseMoveOutside - (default true) set to false to not allow mouse movement outside the stage to affect motion
 
@@ -28354,7 +28517,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								var particle = template.clone();
 								if (!particle.centerReg) zimify(particle);
 								if (that.trace) {
-									particle.centerReg(container).pos(-1000,-1000); // cache was drawing this in center - perhaps missing an update so just move it away
+									particle.centerReg(container).pos({x:-1000,y:-1000,reg:true}); // cache was drawing this in center - perhaps missing an update so just move it away
 								} else {
 									if (that.layers == "top") {
 										particle.centerReg(that);
@@ -28401,7 +28564,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						if (particle.emitShape) {
 							particle.graphics.mt(particle.info.position.x, particle.info.position.y);
 						} else {
-							particle.pos(particle.info.position.x, particle.info.position.y);
+							particle.x = particle.info.position.x,
+							particle.y = particle.info.position.y;
 						}
 
 						if (that.random) {
@@ -28420,7 +28584,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 										particle.graphics.mt(particle.info.position.x, particle.info.position.y);
 									}
 		                            particle[property] = val;
-									if (particle.emitShape) particle.pos(0,0); // just adjust info for x and y of shape
+									if (particle.emitShape) {particle.x=0; particle.y = 0;} // just adjust info for x and y of shape
 		                        }
 		                    });
 		                }
@@ -29209,8 +29373,8 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
         if (startAngle != 0) var startAngleTimeout = setTimeout(addContent, 100);
         else addContent();
         function addContent() {
-            contentLeft.addTo(left, null, false).setMask(left.getChildAt(0)).pos(null,(holder.height-contentLeft.height)/2);
-            contentRight.addTo(right, null, false).setMask(right.getChildAt(0)).pos(null,(holder.height-contentLeft.height)/2);
+            contentLeft.addTo(left, null, false).setMask(left.getChildAt(0)).pos({y:(holder.height-contentLeft.height)/2, reg:true});
+            contentRight.addTo(right, null, false).setMask(right.getChildAt(0)).pos({y:(holder.height-contentLeft.height)/2, reg:true});
         };
 
         var leftVR = []; // lists of eligable containers
@@ -29377,7 +29541,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			color:frame.dark,
 			align:"center",
 			valign:"center"
-		}).center(adjuster).pos(null,50);
+		}).center(adjuster).pos({y:50, reg:true});
 
 		var close = adjuster.close = new zim.Rectangle(50,50,frame.light, null, null, null, null, null, false).addTo(adjuster).mov(adjuster.width-70, 26)
 		var ex = new zim.Shape(-40,-40,80,80,null,false);
@@ -29390,15 +29554,15 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			that.dispatchEvent("closed");
 		});
 
-		var dotLeft = new zim.Circle(30, frame.dark, null, null, null, false).center(adjuster).pos(adjuster.width/4)
+		var dotLeft = new zim.Circle(30, frame.dark, null, null, null, false).center(adjuster).pos({x:adjuster.width/4, reg:true})
 		dotLeft.shape.alpha = .2
 		new zim.Circle(12, frame.dark).center(dotLeft)
-		var dotRight = new zim.Circle(30, frame.dark, null, null, null, false).center(adjuster).pos(adjuster.width/4*3)
+		var dotRight = new zim.Circle(30, frame.dark, null, null, null, false).center(adjuster).pos({x:adjuster.width/4*3, reg:true})
 		dotRight.shape.alpha = .2
 		new zim.Circle(12, frame.dark, null, null, null, false).center(dotRight)
 		var slider = adjuster.slider = new zim.Slider({
 			min:0, max:30, step:1, useTicks:true, style:false
-		}).centerReg(adjuster).pos(null, adjuster.height-40);
+		}).centerReg(adjuster).pos({y:adjuster.height-40, reg:true});
 		slider.currentValue = (slider.max - slider.min) / 2 + eyeAdjust;
 		var leftP = new zim.Proportion(slider.min, slider.max, dotLeft.x-adjuster.width/4, dotLeft.x+adjuster.width/4, -1);
 		var rightP = new zim.Proportion(slider.min, slider.max, dotRight.x-adjuster.width/4, dotRight.x+adjuster.width/4);
@@ -29406,8 +29570,8 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			dotLeft.x = leftP.convert(slider.currentValue);
 			dotRight.x = rightP.convert(slider.currentValue);
 		})
-		new zim.Label("closer", 24, null, frame.silver).centerReg(adjuster).pos(slider.x - 220, slider.y);
-		new zim.Label("farther", 24, null, frame.silver).centerReg(adjuster).pos(slider.x + 220, slider.y);
+		new zim.Label("closer", 24, null, frame.silver).centerReg(adjuster).pos({x:slider.x - 220, y:slider.y, reg:true});
+		new zim.Label("farther", 24, null, frame.silver).centerReg(adjuster).pos({x:slider.x + 220, y:slider.y, reg:true});
 		var ok = that.ok = new zim.Button({
 			label:"OK",
 			width:90,
@@ -29417,7 +29581,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			rollBackgroundColor:frame.green,
 			shadowColor:-1,
 			style:false
-		}).centerReg(adjuster).sca(.8).pos(adjuster.width-58, slider.y);
+		}).centerReg(adjuster).sca(.8).pos({x:adjuster.width-58, y:slider.y, reg:true});
 
 		ok.on((!zns?ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {
 			if (localStorage) localStorage.zimEyeAdjust = slider.currentValue - (slider.max - slider.min) / 2;
@@ -29436,7 +29600,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			rollBackgroundColor:frame.green,
 			shadowColor:-1,
 			style:false
-		}).centerReg(adjuster).sca(.8).pos(58, slider.y);
+		}).centerReg(adjuster).sca(.8).pos({x:58, y:slider.y, reg:true});
 		zero.on((!zns?ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {
 			slider.currentValue = (slider.max - slider.min) / 2;
 			dotLeft.x = leftP.convert(slider.currentValue);
@@ -31107,9 +31271,9 @@ function zimify(obj, list) {
 		sha:function(color, offsetX, offsetY, blur) {
 			return zim.sha(this, color, offsetX, offsetY, blur);
 		},
-		pos:function(x, y, container, right, bottom, index, add) {
+		pos:function(x, y, right, bottom, container, index, add, reg, regX, regY) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.pos(arguments[0]);}
-			else {return zim.pos(this, x, y, container, right, bottom, index, add);}
+			else {return zim.pos(this, x, y, right, bottom, container, index, add, reg, regX, regY);}
 		},
 		mov:function(x, y) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.mov(arguments[0]);}
