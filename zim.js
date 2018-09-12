@@ -16978,7 +16978,7 @@ RETURNS obj for chaining
 
 		var DA = zim.DRAGALL;
 		if (DRAGALL) DA = DRAGALL;
-		if (zot(all)) all = DA;
+		if (zot(all) && zot(currentTarget)) all = DA;
 
 		if (obj.zimDown) obj.noDrag(); // clear any previous drags
 		obj.cursor = (zot(overCursor)) ? "pointer" : overCursor;
@@ -21221,7 +21221,7 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 		var m;
 		function apply() {
 			if (dynamic && (!obj.stage || !mask.stage)) return obj;
-			delete m;
+			m = null;
 			obj.zimMask = mask.zimMask = m = mask.shape.clone();
 			zim.copyMatrix(m, mask);
 			m.regX = mask.regX;
