@@ -8,8 +8,8 @@
 // Zim Wrap creates global wrapper functions for less typing
 
 // set var zon=false before calling zim scripts to hide script comments
-if (typeof zon == "undefined") zon = true; // comments from zim scripts
-if (typeof zns == 'undefined') zns = false; // require zim namespace
+if (typeof zon == "undefined") var zon = true; // comments from zim scripts
+if (typeof zns == 'undefined') var zns = false; // require zim namespace
 /*--
 zog(item1, item2, etc.)         ~ log
 
@@ -1264,6 +1264,7 @@ zim function
 DESCRIPTION
 Converts color to hex numbers - for example: "#333333"
 Or converts color to HTML string - for example: "red"
+Or converts color to RGB - for example: "rgb(0,0,0)"
 Or converts color to RGBA - for example: "rgba(0,0,0,.5)"
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
@@ -1277,16 +1278,17 @@ END EXAMPLE
 
 PARAMETERS
 color - (default black) the HTML string or hex color (case insensitive) (does not work with "rgba()" input)
-toColorType - (default "hex") or use "string" or "rgba"
+toColorType - (default "hex") or use "string", "rgb" or "rgba"
 alpha - (default 1) the alpha used for the "rgba" toColorType
 
 RETURNS a String with the converted color or black if a match is not found
 --*///+27.5
+	zim.convertColorCheck = false;
 	zim.convertColor = function(color, toColorType, alpha) {
-		z_d("27.5");
+		if (!zim.convertColorCheck) {z_d("27.5"); zim.convertColorCheck=true;}
 		if (zot(toColorType)) toColorType = "hex";
 		if (zot(alpha)) alpha == 1;
-		if (toColorType == "rgba") {
+		if (toColorType == "rgb" || toColorType == "rgba") {
 			function hexToRgbA(hex){ // kennebec on StackOverflow
 				var c;
 				if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
@@ -1295,9 +1297,18 @@ RETURNS a String with the converted color or black if a match is not found
 						c= [c[0], c[0], c[1], c[1], c[2], c[2]];
 					}
 					c= '0x'+c.join('');
-					return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
+					if (toColorType == "rgb") {
+						return 'rgb('+[(c>>16)&255, (c>>8)&255, c&255]+')';
+					} else {
+						return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
+					}
+
 				} else {
-					return "rgba(0,0,0,1)";
+					if (toColorType == "rgb") {
+						return "rgb(0,0,0)";
+					} else {
+						return "rgba(0,0,0,1)";
+					}
 				}
 			}
 			if (color.charAt(0)=="#") {
@@ -1323,6 +1334,56 @@ RETURNS a String with the converted color or black if a match is not found
 			return "#"+hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0];
 		}
 	}//-27.5
+
+/*--
+zim.colorRange = function(color1, color2, ratio)
+
+colorRange
+zim function
+
+DESCRIPTION
+Gets the color in a range between two colors based on a ratio from 0-1
+Used internally by setColorRange() method and colorRange property of ZIM shapes
+including animating color from current color to a new color
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+zog(colorRange(green, blue, .5)); // #7ecb7c
+var rect = new Rectangle(100,100,red).center().setColorRange(purple);
+rect.colorRange = .1; will change color to #f1455e (closer to red than purple)
+rect.animate({color:purple}, 1000); // will animate color to purple in one second
+rect.wiggle("colorRange", .5, .2, .5, 1000, 5000); // wiggles the color in the range
+END EXAMPLE
+
+PARAMETERS
+color1 - (default null) the first color as an HTML string or hex color (case insensitive)
+color2 - (default black) the second color as an HTML string or hex color (case insensitive)
+ratio - (default .5) the ratio where 0 is the first color and 1 the second color
+
+RETURNS a hex color string
+--*///+27.6
+	zim.colorRangeCheck = false;
+	zim.colorRange = function(color1, color2, ratio) {
+		if (!zim.colorRangeCheck) {z_d("27.6"); zim.colorRangeCheck=true;}
+		// thanks Chris Dolphin - StackOverflow
+		// modified by Dan Zen to use hex input and output
+		// possibly converting and converting back - but not quite...
+		var c1 = zim.convertColor(color1, "rgb");
+		var c2 = zim.convertColor(color2, "rgb");
+		var color1 = c1.substring(4, c1.length - 1).split(',');
+		var color2 = c2.substring(4, c2.length - 1).split(',');
+		var difference;
+		var newColor = "#";
+		var c;
+		for (var i=0; i<color1.length; i++) {
+			difference = color2[i] - color1[i];
+			c = Math.floor(parseInt(color1[i], 10) + difference * ratio).toString(16);
+			if (c.length < 2) c = "0"+c;
+			newColor += c;
+		}
+		return newColor;
+	}//-27.6
 
 /*--
 zim.makeID = function(length, type, letterCase)
@@ -3925,7 +3986,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var n = normalizeBounds(a, b, c, d);
 		function normalizeBounds(a, b, c, d) {
 			var bounds = [];
-			if (!zot(c)) {
+			if (zot(a)) {
+				bounds = [a,b,c,d];
+			} else if (!zot(c)) {
 				bounds[0] = a;
 				bounds[2] = c;
 				bounds[1] = b;
@@ -5061,7 +5124,8 @@ style - (default true) set to false to ignore styles set with the STYLE - will r
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 
 METHODS
-** the methods setFill(), setStroke(), setStrokeSize() - have been removed - see properties above
+setColorRange(color1, color2) - set a color range for shape - used by colorRange property
+	if one color is used, the current color is used and color1 is the second color in the range
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
 clone() - makes a copy of the shape
@@ -5078,6 +5142,12 @@ PROPERTIES
 type - holds the class name as a String
 shape - gives access to the circle shape
 color - get and set the fill color
+colorRange - if setColorRange() is used, the colorRange is a ratio (0-1) between the colors
+	setting the colorRange will change the color property of the shape
+	for instance, shape.setColorRange(blue, pink) then shape.colorRange = .5
+	will set the color of the shape to half way between blue and pink
+	shape.animate({color:red}, 1000); is a shortcut to animate the colorRange
+	shape.wiggle("colorRange", .5, .2, .5, 1000, 5000) will wiggle the colorRange
 colorCommand - access to the CreateJS fill command for bitmap, linearGradient and radialGradient fills
 	eg. shape.colorCommand.linearGradient([frame.green, frame.blue ,frame.green], [.2, .5, .8], 0, 0, shape.width, 0)
 	See: https://www.createjs.com/docs/easeljs/classes/Graphics.Fill.html
@@ -5167,6 +5237,32 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (zot(value)) value = "black";
 				_color = value;
 				colorObj.style = _color;
+			}
+		});
+		var startColor;
+		var endColor;
+		this.setColorRange = function(color1, color2) {
+			if (zot(color2)) {
+				startColor = that.color;
+				endColor = color1;
+			} else if (zot(color1)) {
+				startColor = that.color;
+				endColor = color2;
+			} else {
+				startColor = color1;
+				endColor = color2;
+			}
+		}
+		var _colorRange = 0;
+		Object.defineProperty(that, 'colorRange', {
+			get: function() {
+				return _colorRange;
+			},
+			set: function(value) {
+				_colorRange = value;
+				if (!zot(startColor) && !zot(endColor)) {
+					that.color = zim.colorRange(startColor, endColor, value);
+				}
 			}
 		});
 		Object.defineProperty(that, 'borderColor', {
@@ -5368,6 +5464,32 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				colorObj.style = _color;
 			}
 		});
+		var startColor;
+		var endColor;
+		this.setColorRange = function(color1, color2) {
+			if (zot(color2)) {
+				startColor = that.color;
+				endColor = color1;
+			} else if (zot(color1)) {
+				startColor = that.color;
+				endColor = color2;
+			} else {
+				startColor = color1;
+				endColor = color2;
+			}
+		}
+		var _colorRange = 0;
+		Object.defineProperty(that, 'colorRange', {
+			get: function() {
+				return _colorRange;
+			},
+			set: function(value) {
+				_colorRange = value;
+				if (!zot(startColor) && !zot(endColor)) {
+					that.color = zim.colorRange(startColor, endColor, value);
+				}
+			}
+		});
 		Object.defineProperty(that, 'borderColor', {
 			get: function() {
 				return _borderColor;
@@ -5530,9 +5652,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var lines = [a,b,c];
 		lines.sort(function(a, b){return b-a});
-		aa = lines[0];
-		bb = lines[1];
-		cc = lines[2];
+		var aa = lines[0];
+		var bb = lines[1];
+		var cc = lines[2];
 		var order = [lines.indexOf(a), lines.indexOf(b), lines.indexOf(c)];
 
 		if (aa > bb+cc) {
@@ -5612,6 +5734,32 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				colorObj.style = _color;
 			}
 		});
+		var startColor;
+		var endColor;
+		this.setColorRange = function(color1, color2) {
+			if (zot(color2)) {
+				startColor = that.color;
+				endColor = color1;
+			} else if (zot(color1)) {
+				startColor = that.color;
+				endColor = color2;
+			} else {
+				startColor = color1;
+				endColor = color2;
+			}
+		}
+		var _colorRange = 0;
+		Object.defineProperty(that, 'colorRange', {
+			get: function() {
+				return _colorRange;
+			},
+			set: function(value) {
+				_colorRange = value;
+				if (!zot(startColor) && !zot(endColor)) {
+					that.color = zim.colorRange(startColor, endColor, value);
+				}
+			}
+		});
 		Object.defineProperty(that, 'borderColor', {
 			get: function() {
 				return _borderColor;
@@ -5648,7 +5796,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-53
 
 /*--
-zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, style, group)
+zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, stickColor, style, group)
 
 Squiggle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5701,6 +5849,7 @@ move - (default true) set to false to disable dragging when controls are showing
 ctrlclick - (default false) set to true to let ctrl click copy the Squiggle with its current shape (adds to same holder container - use holder.getChildAt(holder.numChildren-1) to access)
 dashed - (default false) set to true for dashed border (if borderWidth or borderColor set)
 onTop - (default true) set to false to not bring shape to top of container when dragging
+stickColor - (default "#111") set the stick color of the controls
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 
@@ -5744,6 +5893,7 @@ PROPERTIES
 type - holds the class name as a String
 shape - gives access to the shape of the squiggle
 color - get and set the fill color
+stickColor - get or set the stickColor - requires an update() to see changes
 colorCommand - access to the CreateJS fill command for bitmap, linearGradient and radialGradient fills
 	eg. shape.colorCommand.linearGradient([frame.green, frame.blue ,frame.green], [.2, .5, .8], 0, 0, shape.width, 0)
 	See: https://www.createjs.com/docs/easeljs/classes/Graphics.Fill.html
@@ -5804,8 +5954,8 @@ https://zimjs.com/squiggle
 https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOtyc0
 Note the points property has been split into points and pointObjects (and there have been a few property changes) since the time of the video
 --*///+53.2
-	zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, style, group) {
-		var sig = "color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, style, group";
+	zim.Squiggle = function(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, stickColor, style, group) {
+		var sig = "color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, stickColor, style, group";
 		var duo; if (duo = zob(zim.Squiggle, arguments, sig, this)) return duo;
 		z_d("53.2");
 
@@ -5834,6 +5984,9 @@ Note the points property has been split into points and pointObjects (and there 
 		if (zot(allowToggle)) allowToggle = DS.allowToggle!=null?DS.allowToggle:true;
 		if (zot(move)) move = DS.move!=null?DS.move:true;
 		if (zot(ctrlclick)) ctrlclick = DS.ctrlclick!=null?DS.ctrlclick:false;
+		if (zot(stickColor)) stickColor = DS.stickColor!=null?DS.stickColor:"#111";
+		this.stickColor = stickColor;
+
 		this.move = move;
 		this.allowToggle = allowToggle;
 		this.lockControlType = lockControlType;
@@ -6063,7 +6216,7 @@ Note the points property has been split into points and pointObjects (and there 
 				ballPoint = set.localToLocal(_points[0][1].x, _points[0][1].y, shape);
 				g.mt(ballPoint.x, ballPoint.y);
 
-				s.c().s(frame.darker).ss(1)
+				s.c().s(that.stickColor).ss(1);
 
 				var currentIndex; var nextIndex;
 				for (var i=0; i<_points.length; i++) {
@@ -6527,6 +6680,33 @@ Note the points property has been split into points and pointObjects (and there 
 				colorObj.style = _color;
 			}
 		});
+		var startColor;
+		var endColor;
+		this.setColorRange = function(color1, color2) {
+			if (zot(color2)) {
+				startColor = that.color;
+				endColor = color1;
+			} else if (zot(color1)) {
+				startColor = that.color;
+				endColor = color2;
+			} else {
+				startColor = color1;
+				endColor = color2;
+			}
+		}
+		var _colorRange = 0;
+		Object.defineProperty(that, 'colorRange', {
+			get: function() {
+				return _colorRange;
+			},
+			set: function(value) {
+				_colorRange = value;
+				if (!zot(startColor) && !zot(endColor)) {
+					that.color = zim.colorRange(startColor, endColor, value);
+				}
+			}
+		});
+
 		Object.defineProperty(that, 'thickness', {
 			get: function() {
 				return _thickness;
@@ -6603,7 +6783,7 @@ Note the points property has been split into points and pointObjects (and there 
 
 
 /*--
-zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, style, group)
+zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, stickColor, style, group)
 
 Blob
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6681,6 +6861,7 @@ move - (default true) set to false to disable dragging when controls are showing
 ctrlclick - (default false) set to true to let ctrl click copy the Blob with its current shape (adds to same holder container - use holder.getChildAt(holder.numChildren-1) to access)
 dashed - (default false) set to true for dashed border (if borderWidth or borderColor set)
 onTop - (default true) set to false to not bring shape to top of container when dragging
+stickColor - (default "#111") set the stick color of the controls
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 
@@ -6735,6 +6916,7 @@ borderWidthCommand - access to the CreateJS stroke style command (width, caps, j
 	See: https://www.createjs.com/docs/easeljs/classes/Graphics.StrokeStyle.html
 borderDashedCommand - access to the CreateJS stroke dashed command (segments, offset)
 	see https://www.createjs.com/docs/easeljs/classes/Graphics.StrokeDash.html
+stickColor - get or set the stick color of the controls - requires an update() to see changes
 points - get or set the points array of the Blob in the same format as the points parameter:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 pointObjects - get an array of point objects for each point in the following format:
@@ -6780,8 +6962,8 @@ dispatches controlsshow and controlshide events when clicked off and on and togg
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.5
-	zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, style, group) {
-		var sig = "color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, style, group";
+	zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, stickColor, style, group) {
+		var sig = "color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, ctrlclick, dashed, onTop, stickColor, style, group";
 		var duo; if (duo = zob(zim.Blob, arguments, sig, this)) return duo;
 		z_d("53.5");
 		this.group = group;
@@ -6812,6 +6994,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(allowToggle)) allowToggle = DS.allowToggle!=null?DS.allowToggle:true;
 		if (zot(move)) move = DS.move!=null?DS.move:true;
 		if (zot(ctrlclick)) ctrlclick = DS.ctrlclick!=null?DS.ctrlclick:false;
+		if (zot(stickColor)) stickColor = DS.stickColor!=null?DS.stickColor:"#111";
+		this.stickColor = stickColor;
 		this.move = move;
 		this.allowToggle = allowToggle;
 		this.lockControlType = lockControlType;
@@ -7019,7 +7203,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var ballPoint = set.localToLocal(_points[0][1].x, _points[0][1].y, shape);
 				g.mt(ballPoint.x, ballPoint.y);
 
-				s.c().s(frame.darker).ss(1)
+				s.c().s(that.stickColor).ss(1);
 
 				var currentIndex; var nextIndex;
 				for (var i=0; i<_points.length; i++) {
@@ -7481,6 +7665,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				colorObj.style = _color;
 			}
 		});
+		var startColor;
+		var endColor;
+		this.setColorRange = function(color1, color2) {
+			if (zot(color2)) {
+				startColor = that.color;
+				endColor = color1;
+			} else if (zot(color1)) {
+				startColor = that.color;
+				endColor = color2;
+			} else {
+				startColor = color1;
+				endColor = color2;
+			}
+		}
+		var _colorRange = 0;
+		Object.defineProperty(that, 'colorRange', {
+			get: function() {
+				return _colorRange;
+			},
+			set: function(value) {
+				_colorRange = value;
+				if (!zot(startColor) && !zot(endColor)) {
+					that.color = zim.colorRange(startColor, endColor, value);
+				}
+			}
+		});
+
 		Object.defineProperty(that, 'borderColor', {
 			get: function() {
 				return _borderColor;
@@ -7648,6 +7859,8 @@ style - (default true) set to false to ignore styles set with the STYLE - will r
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 
 METHODS
+setColorRange(color1, color2) - set a color range for label - used by colorRange property
+	if one color is used, the current color is used and color1 is the second color in the range
 showRollColor(visible) - default true to show roll color (used internally)
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
@@ -7664,9 +7877,15 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 label - references the text object of the label
+text - references the text property of the text object
 color - gets or sets the label text color
 rollColor - gets or sets the label rollover color
-text - references the text property of the text object
+colorRange - if setColorRange() is used, the colorRange is a ratio (0-1) between the colors
+	setting the colorRange will change the color property of the label
+	for instance, label.setColorRange(blue, pink) then label.colorRange = .5
+	will set the color of the label to half way between blue and pink
+	label.animate({color:red}, 1000); is a shortcut to animate the colorRange
+	label.wiggle("colorRange", .5, .2, .5, 1000, 5000) will wiggle the colorRange
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
@@ -7775,6 +7994,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, null, backgroundDashed, false
 				);
 				zim.center(that.background, that, 0);
+				that.setBounds(that.background.x, that.background.y, that.background.width, that.background.height);
 			} else {
 				that.setBounds(b.x, yAdjust, b.width, b.height);
 				hitArea.graphics.c().f("black").r(that.getBounds().x, that.getBounds().y, that.getBounds().width, that.getBounds().height);
@@ -7837,6 +8057,32 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				color = value;
 				obj.color = color;
 				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+		var startColor;
+		var endColor;
+		this.setColorRange = function(color1, color2) {
+			if (zot(color2)) {
+				startColor = that.color;
+				endColor = color1;
+			} else if (zot(color1)) {
+				startColor = that.color;
+				endColor = color2;
+			} else {
+				startColor = color1;
+				endColor = color2;
+			}
+		}
+		var _colorRange = 0;
+		Object.defineProperty(that, 'colorRange', {
+			get: function() {
+				return _colorRange;
+			},
+			set: function(value) {
+				_colorRange = value;
+				if (!zot(startColor) && !zot(endColor)) {
+					that.color = zim.colorRange(startColor, endColor, value);
+				}
 			}
 		});
 
@@ -8011,9 +8257,11 @@ style - (default true) set to false to ignore styles set with the STYLE - will r
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 
 METHODS
-setBackings(newBacking, newRollBacking) - dynamically set backing and rollBacking on button (both default to null and if empty, removes backings)
+setBacking(type, newBacking) - dynamically set any type of backing for button (if null removes backing for that type)
+	Backing types are: "backing", "rollBacking", "toggleBacking", "rollToggleBacking", "waitBacking", "rollWaitBacking"
 	note - all backing will have a pattern property if a pattern is set as a backing
-setIcons(newIcon, newRollIcon) - dynamically set icon and rollIcon on button (both default to null and if empty, removes icons)
+setIcon(type, newIcon) - dynamically set any type of icon for button (if null removes icon for that type)
+	Icon types are: "icon", "rollIcon", "toggleIcon", "rollToggleIcon", "waitIcon", "rollWaitIcon"
 toggle(state) - forces a toggle of label, backing and icon if set
 	state defaults to null so just toggles if left blank
 	pass in true to go to the toggled state and false to go to the original state
@@ -9070,7 +9318,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var d = {selected:false, label:new zim.Label({
 						text:data, size:size*5/6, color:DS.color!=null?DS.color:color, valign:"center",
 						backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", padding:"ignore", backgroundColor:"ignore",
-						group:this.group
+						group:that.group
 					})};
 					data = d;
 				}
@@ -12503,7 +12751,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var stepsTotal = Math.abs(max - min) / step;
 		if (useTicks && step != 0) {
-			ticks = this.ticks = new zim.Container({style:false});
+			var ticks = this.ticks = new zim.Container({style:false});
 			this.addChild(ticks);
 			var tick;
 			for (var i=0; i<(continuous?stepsTotal:stepsTotal+1); i++) {
@@ -15381,8 +15629,11 @@ save(content, x, y, width, height, url, cached, cachedBounds, type) - save a pic
 	type - (default "png") set to "jpeg" for jpeg
 
 Button methods:
-setBackings(newBacking, newRollBacking) - dynamically set backing and rollBacking on button (both default to null and if empty, removes backings)
-setIcons(newIcon, newRollIcon) - dynamically set icon and rollIcon on button (both default to null and if empty, removes icons)
+setBacking(type, newBacking) - dynamically set any type of backing for button (if null removes backing for that type)
+	Backing types are: "backing", "rollBacking", "toggleBacking", "rollToggleBacking", "waitBacking", "rollWaitBacking"
+	note - all backing will have a pattern property if a pattern is set as a backing
+setIcon(type, newIcon) - dynamically set any type of icon for button (if null removes icon for that type)
+	Icon types are: "icon", "rollIcon", "toggleIcon", "rollToggleIcon", "waitIcon", "rollWaitIcon"
 toggle(state) - forces a toggle of label if toggle param is string, else toggles icon if icon is set or otherwise toggles backing
 	state defaults to null so just toggles
 	pass in true to go to the toggled state and false to go to the original state
@@ -16356,13 +16607,13 @@ END EXAMPLE
 PARAMETERS
 id - (default null) the name of the object so that the log gives you complete code
 
-RETURNS undefined
+RETURNS obj for chaining
 --*///+49.5
 	zim.placeReg = function(obj, id) {
 		z_d("49.5");
 		if (zot(obj)) return;
 		var stage = obj.stage;
-		if (zot(stage)) {zog("zim.placeReg() - add object to stage before calling placeReg()");	return;}
+		if (zot(stage)) {zog("zim.placeReg() - add object to stage before calling placeReg()");	return obj;}
 		if (zot(id)) id = "obj";
 		function report() {
 			var p = obj.globalToLocal(cursor.x, cursor.y);
@@ -16377,6 +16628,7 @@ RETURNS undefined
 		zim.drag({obj:cursor});
 		zog("place cursor to get new registration point location");
 		stage.on("stagemouseup", report);
+		return obj;
 	}//-49.5
 
 // SUBSECTION SHORT CHAINABLE
@@ -16393,6 +16645,7 @@ Chainable convenience function to position an object and optionally add to a con
 ** now positions based on sides, top or bottom unless reg is set to true
 By default, will position left and top of object - can also position right or bottom
 Setting reg (or regX, regY) to true will position to the registration point
+See: POSREG constant - set to true to change default pos() to reg=true
 
 EXAMPLE
 // 1. adds circle to default stage moves left and top of circle to 100, 100
@@ -19503,9 +19756,12 @@ The ZIM VEE value can be the following:
 5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
 6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
 
-props - the object literal holding properties and values to animate (includes a scale - convenience property for scaleX and scaleY)
+props - the object literal holding properties and values to animate
 	Before ZIM 7.1, this parameter was called obj - as to not conflict with CreateJS TweenJS props (now renamed cjsProps)
 	obj is still available as a parameter name for backwards compatibility when using a ZIM DUO configuration object
+	props includes a scale - convenience property for scaleX and scaleY
+	props includes a color - convenience property on ZIM shapes for setColorRange() and animate colorRange from 0-1
+	 	** this property cannot be run in a series - rather animate in a call function to accomplish a series of color changes
 	|ZIM VEE| - each props property value optionally accepts a ZIM VEE value for zik() to pick randomly from (except calls and params)
 	RELATIVE VALUES: you can pass in relative values by putting the numbers as strings
 		rotation:"360" will animate the rotation of the object 360 degrees from its current rotation
@@ -19524,6 +19780,7 @@ props - the object literal holding properties and values to animate (includes a 
 		You currently cannot nest animimation series
 		Note: if any of the series has a loop and loops forever (a loopCount of 0 or no loopCount)
 		then this will be the last of the series to run
+		Note: color cannot be animated in a series - rather animate in a call function to accomplish a series of color changes
 time - |ZIM VEE| the time for the tween in milliseconds 1000 ms = 1 second
 ease - |ZIM VEE| (default "quadInOut") the equation type for easing ("bounceOut", "elasticIn", "backInOut", "linear", etc)
 	see CreateJS easing: https://www.createjs.com/docs/tweenjs/classes/Ease.html
@@ -19870,6 +20127,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (!zot(obj.scale)) {
 			obj.scaleX = obj.scaleY = zik(obj.scale);
 			delete obj.scale;
+		}
+		// convert color tween
+		if (target.setColorRange && !zot(obj.color)) {
+			var color = obj.color;
+			delete obj.color;
+			obj.colorRange = 1;
+			target.setColorRange(color);
 		}
 
 		// PROTECT LOOPS AND REWINDS WITH BUSY
@@ -21020,7 +21284,7 @@ RETURNS object for chaining
 		if (zot(height)) height = width;
 		if (!zot(a)) obj.setBounds(boundsX,boundsY,width,height);
 		else obj.setBounds(null);
-	return this;
+	return obj;
 }//-40.5
 
 /*--
@@ -22815,7 +23079,7 @@ The default is "mousedown" - if set to something else the component will act on 
 		this.dispose = function() {
 			but.off(eventType, butEvent);
 			obj.removeChild(but);
-			delete but;
+			but = null;
 			return true;
 		}
 	}
@@ -23554,10 +23818,12 @@ squeezeV - (default "none") how to handle positioning within columns
 		false - will not compress past longest column including spacingV
 		true - will compress all columns - valign will then align columns to longest column
 		"full" - will continue to compress always keeping each column to the height
-colSize - (default item size) set to number to hard code column width (ignores spacing)
+colSize - |ZIM VEE| (default item size) set to number to hard code column width (ignores spacing)
 	ignored if width is set
-rowSize - (default item size) set to number to hard code row height (ignores spacing)
+	use a series([100, 200, 100, 400]) to set specific sizes
+rowSize - |ZIM VEE| (default item size) set to number to hard code row height (ignores spacing)
 	ignored if height is set
+	use a series([100, 200, 100, 400]) to set specific sizes
 align - (default "left") set to "center", "middle", "right"
 	this is a basic align and may not work with rotated objects
 	add these to a container perhaps for best results
@@ -23636,7 +23902,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 		if (zot(mirrorV)) mirrorV = false;
 		if (zot(snapToPixel)) snapToPixel = true;
 		if (snapToPixel) {
-			if (obj.stage) obj.stage.snapToPixelEnabled = true;
+			if (obj && obj.stage) obj.stage.snapToPixelEnabled = true;
 			else if (typeof(elem) !== 'undefined' && zimDefaultFrame) zimDefaultFrame.stage.snapToPixelEnabled = true;
 		}
 		if (zot(clone)) clone = true;
@@ -23665,11 +23931,11 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 			for (var i=0; i<cols; i++) {
 				currentCount++;
 				if (!zot(count) && currentCount > count) break outer;
-				if (clone) {
-					tile = zik(obj).clone();
-				} else {
-					tile = zik(obj);
+				tile = zik(obj);
+				if (zot(tile)) {
+					tile = new zim.Container(0,0,0,0);
 				}
+				if (clone) tile = tile.clone();
 				that.items.push(tile);
 			}
 		}
@@ -23691,6 +23957,10 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 		var scalesY;
 		var rowCounts; // number of rows across columns
 
+		// remember any set widths and heights in case
+		// zik is used for colSize and rowSize
+		var widthHeights;
+
 		function makeTile() {
 
 			that.removeAllChildren();
@@ -23707,7 +23977,9 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 			scalesX = []; // used for resizing mirror
 			scalesY = [];
 			rowCounts = []; // number of rows across columns
+			widthHeights = []; // width and heights per row per col [w,h]
 
+			if (!that.items || !that.items.length) that.items = [];
 			count = that.items.length;
 			var currentCount = 0;
 			var tile;
@@ -23716,25 +23988,31 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				j=Math.floor(i/that.cols);
 				k=i%that.cols;
 				if (zot(objects[j])) objects[j] = [];
+				if (zot(that.items[i])) that.items[i] = new Container(0,0,0,0);
 				objects[j][k] = that.items[i];
 			}
-			that.rows = objects.length;
-			that.cols = !zot(objects[0])?objects[0].length:0;
+			that.rows = Math.max(1, objects.length);
+			that.cols = Math.max(1, !zot(objects[0])?objects[0].length:0);
 
 			outer2:
 			for (var j=0; j<that.rows; j++) {
 				scalesX.push([]);
 				scalesY.push([]);
+				widthHeights.push([]);
+				if (rowSize&&zot(height)) h = zik(rowSize);
 				for (var i=0; i<that.cols; i++) {
 					currentCount++;
 					if (!zot(count) && currentCount > count) break outer2;
 					tile = objects[j][i];
 					tile.snapToPixel = snapToPixel;
 					that.addChild(tile);
+
 					scalesX[j].push(tile.scaleX);
 					scalesY[j].push(tile.scaleY);
-					var w = colSize&&zot(width)?colSize:tile.width;
-					var h = rowSize&&zot(height)?rowSize:tile.height;
+					if (j==0 && (colSize&&zot(width))) w = zik(colSize);
+					if (!colSize||!zot(width)) w = tile.width;
+					if (!rowSize||!zot(height)) h = tile.height;
+					widthHeights[j][i] = [w,h];
 					if (zot(widthMax[i])) widthMax[i] = 0;
 					if (zot(heightMax[j])) heightMax[j] = 0;
 					if (w > widthMax[i]) widthMax[i] = w;
@@ -23795,19 +24073,19 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 			// ~~~~~~~~~~~~~~~~~~~  PLACEMENTS ~~~~~~~~~~~~~~~
 
-
+			var rowObjects;
 			var colTotal; // keep track of current x positions
 			// loop order means we need to keep array data for y
 			var rowTotals = []; // keep track of current y positions
 			var rowSpacings = [];
 			var rowTops = [];
+			var rowTilesTotalWidth;
 			for (j=0; j<objects.length; j++) {
 				rowObjects = objects[j];
 				colTotal = 0;
 				if (!zot(width)) {rowTilesTotalWidth = 0;}
 				for (i=0; i<rowObjects.length; i++) {
 					tile = rowObjects[i];
-
 					var b;
 					var left;
 					var top;
@@ -23841,8 +24119,8 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 						}
 					}
 
+					b = tile.getBounds();
 					if (i==0) {
-						b = tile.getBounds();
 
 						// ~~~~~~~~~~~~~~~~~~~  HORIZONTAL ALIGN ~~~~~~~~~~~~~~~
 
@@ -23868,15 +24146,14 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 							left = 0;
 						}
 					}
-
-					var w = colSize?colSize:tile.width;
-					var h = rowSize?rowSize:tile.height;
+					var w = widthHeights[j][i][0];
+					var h = widthHeights[j][i][1];
 
 					if (that.mirrorH && i%2==1) {
 						tile.scaleX = -scalesX[j][i];
-						tile.x = colTotal+w-tile.getBounds().x*2*tile.scaleX;
+						tile.x = colTotal+w-b.x*2*tile.scaleX;
 					} else {
-						tile.x = colTotal + tile.regX-tile.getBounds().x;
+						tile.x = colTotal + tile.regX-b.x;
 					}
 
 					if (zot(width) && (that.align=="center" || that.align=="middle")) {
@@ -23895,9 +24172,9 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 					if (that.mirrorV && j%2==1) {
 						tile.scaleY = -scalesY[j][i];
-						tile.y = rowTotals[i]+h-tile.getBounds().y*2*tile.scaleY;
+						tile.y = rowTotals[i]+h-b.y*2*tile.scaleY;
 					} else {
-						tile.y = rowTotals[i] + tile.regY-tile.getBounds().y;
+						tile.y = rowTotals[i] + tile.regY-b.y;
 					}
 					if (zot(height) && (that.valign=="center" || that.valign=="middle")) {
 						if (!that.squeezeV) {
@@ -26371,7 +26648,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 	//-69.5
 
 /*--
-zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside)
+zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mouseDownIncludes)
 
 MotionController
 zim class - extends a createjs EventDispatcher
@@ -26443,6 +26720,12 @@ container - (default zimDefauktFrame stage) the Container the target is in - the
 	if container is specified, it must be on the stage when the MotionController is made
 localBounds - (default false) which means the boundary is global - set to true for a boundary in the object parent frame
 mouseMoveOutside - (default true) set to false to not allow mouse movement outside the stage to affect motion
+mouseDownIncludes - (default null) a single object or array of objects (aside from the stage) to activate with mousedown
+	For mousedown and pressmove types, the mousedown will activate on the stage only
+	The controller assumes everything in the container will not activate the mousedown
+	This lets you activate interface elements without moving to them ;-)
+	If for instance, a backing is used other than the stage, just pass in the backing to this parameter
+	See also the mouseDownIncludes property
 
 METHODS
 immediate(x, y) - set the damping immediately to this value to avoid damping to value
@@ -26471,6 +26754,7 @@ boundary - get or set the Boundary object
 gamepad - reference to GamePad object if applicable - allows you to use this for more events like jumping, shooting, etc.
 moveThreshold - the maximum value (+-) within which movement is considered stopped
 stickThreshold - the maximum value (+-) within which the gamepad stick axes values are considered 0
+mouseDownIncludes - an array of objects that the mousedown will work on - along with the stage
 enabled - set to false to disable or true to enable MotionController - can toggle with enabled = !enabled
 
 EVENTS
@@ -26480,8 +26764,8 @@ dispatches a "mousedown" event if type is "mousedown" or "pressmove"
 dispatches a "pressing" event if type is "pressmove" - note, this dispatches even if not moving
 dispatches a "moving" event if target is moving and "startmoving" and "stopmoving" events
 --*///+69.7
-	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside) {
-		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside";
+	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mouseDownIncludes) {
+		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mouseDownIncludes";
 		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
 		z_d("69.7");
 
@@ -26529,6 +26813,9 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		if (zot(stickThreshold)) stickThreshold = .2;
 		if (zot(mouseMoveOutside)) mouseMoveOutside = false;
 		stage.mouseMoveOutside = mouseMoveOutside;
+		if (zot(mouseDownIncludes)) mouseDownIncludes = [];
+		if (!Array.isArray(mouseDownIncludes)) mouseDownIncludes = [mouseDownIncludes];
+		this.mouseDownIncludes = mouseDownIncludes;
 
 		var that = this;
 		this.dirX = 0;
@@ -26653,13 +26940,25 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			}, stage);
 		} else if (type == "mousedown" || type == "mousemove") {
 			mouseEvent = stage.on("stage" + type, function(e){
-				if (type == "mousedown") that.dispatchEvent("mousedown");
+				if (type == "mousedown") {
+					if (!Array.isArray(that.mouseDownIncludes)) that.mouseDownIncludes = [that.mouseDownIncludes];
+					for (var i=0; i<container.numChildren; i++) {
+						var child = container.getChildAt(i);
+						if (that.mouseDownIncludes.indexOf(child)==-1 && child.mouseEnabled && child.hitTestPoint(e.stageX, e.stageY)) return;
+					}
+					that.dispatchEvent("mousedown");
+				}
 				var p = container.globalToLocal(mouseMoveOutside?e.rawX:e.stageX, mouseMoveOutside?e.rawY:e.stageY);
 				that.x = p.x; that.y = p.y;
 				calculate();
 			});
 		} else if (type == "pressmove") {
 			mouseEvent = stage.on("stagemousedown", function(e) {
+				if (!Array.isArray(that.mouseDownIncludes)) that.mouseDownIncludes = [that.mouseDownIncludes];
+				for (var i=0; i<container.numChildren; i++) {
+					var child = container.getChildAt(i);
+					if (that.mouseDownIncludes.indexOf(child)==-1 && child.mouseEnabled && child.hitTestPoint(e.stageX, e.stageY)) return;
+				}
 				var p = container.globalToLocal(mouseMoveOutside?e.rawX:e.stageX, mouseMoveOutside?e.rawY:e.stageY);
 				that.immediate(p.x, p.y);
 				calculate();
@@ -30029,6 +30328,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 "error" - fired when there is a problem loading an asset with loadAssets()
 
 --*///+83
+	var zimDefaultFrame
 	zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors) {
 		var sig = "scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
@@ -30850,7 +31150,7 @@ distill();
 // data duplication is left in for statistical purposes
 END EXAMPLE
 --*///+83.1
-	DISTILL = false;
+	var DISTILL = false;
 	zim.distillery = [];
 //-83.1
 
@@ -31516,6 +31816,7 @@ PARAMETERS
 exclude - (default null) a String command or an array of command strings to not remove the zim namespace
 
 --*///+83.35
+var ignore;
 function zimplify(exclude) {
 	z_d("83.35");
 
@@ -31548,7 +31849,7 @@ zim class
 
 DESCRIPTION
 Wonder sends counts, times, and orders to a server for user testing or statistical purposes.
-Go to https://zimjs.com/wonder/ to get a Wonder ID (wid) and set up Wonder stats with ZIM
+Go to http://zimjs.com/wonder/ to get a Wonder ID (wid) and set up Wonder stats with ZIM
 or make up your own wid and use your own server script to collect data.
 See the zim Wonder site for a sample script to collect data.
 NOTE: all records at ZIM are archived NEW YEARS DAY and kept for a year after that.
