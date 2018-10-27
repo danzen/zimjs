@@ -6075,6 +6075,8 @@ Makes a squiggly line with a number of points.
 The points have Bezier controls - little handles that change the shape of the line.
 The type of control can be specified overall and individually - and can be hidden or shown
 The type of control can be changed by double clicking the point - colors of the handles will change
+Points can be added by clicking on the line or removed by SHIFT clicking a point.
+CTRL Z will undo adding or removing a point
 The shape of the line can be recorded with the recordData() method and recreated with the setData() method
 The Squiggle is set by default to show and hide controls when clicked
 It is also draggable by default when the controls are showing
@@ -6336,9 +6338,11 @@ Note the points property has been split into points and pointObjects (and there 
 
 		var mapMove;
 		var drawShape;
+		var sets;
 
 		init();
 		function init() {
+			if (sets) sets.removeAllEventListeners();
 
 			that.num = num = typeof points == "number" ? points : points.length;
 			num = Math.max(2,num);
@@ -6371,7 +6375,7 @@ Note the points property has been split into points and pointObjects (and there 
 
 			var mobile = zim.mobile();
 
-			var sets = that.controls = new zim.Container({style:false}).addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
+			sets = that.controls = new zim.Container({style:false}).addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
 			_points = [];
 			balls = [];
 
@@ -6704,31 +6708,33 @@ Note the points property has been split into points and pointObjects (and there 
 
 			sets.on("pressup", function(e) {
 				if (that.lockControls) return;
-				// var bou = that.getBounds();
-				// that.setBounds(bou.x, bou.y, bou.width, bou.height);
 				var moveControlCheck = (e.target.x != startPosition.x || e.target.y != startPosition.y);
 				var ev = new createjs.Event("change");
 				if (e.target.rect1) { // pressup on ball
-					// move ball back to origin and move set accordingly
-					// so if we animate the set it will behave as expected
 					ev.controlType = "bezierPoint";
-					var ball = e.target;
-					var set = ball.mySet;
-					var rect1 = ball.rect1;
-					var rect2 = ball.rect2;
-					rect1.x -= ball.x;
-					rect1.y -= ball.y;
-					rect2.x -= ball.x;
-					rect2.y -= ball.y;
-					set.x += ball.x;
-					set.y += ball.y;
-					ball.x = 0;
-					ball.y = 0;
+					endMove(e.target);
 				} else {
 					ev.controlType = "bezierHandle";
 				}
 				if (moveControlCheck) that.dispatchEvent(ev);
 			});
+
+			function endMove(target) {
+				if (selectPoints) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected && currentSelected.indexOf(target) == -1) {
+						replaceControls(target);
+					} else if (currentSelected && currentSelected.length>0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							replaceControls(currentSelected[i]);
+						}
+					} else {
+						replaceControls(target);
+					}
+				} else {
+					replaceControls(target);
+				}
+			};
 
 			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update) {
 				var sig = "index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update";
@@ -6926,7 +6932,6 @@ Note the points property has been split into points and pointObjects (and there 
 				var points = that.points;
 				if (popup) {
 					if (!that.pane) {
-						zog("pad")
 						var pane = that.pane = new zim.Pane({
 							container:that.stage,
 							width:Math.min(500, that.stage.width-20),
@@ -7037,6 +7042,24 @@ Note the points property has been split into points and pointObjects (and there 
 				return answer;
 			}
 
+			function replaceControls(target) {
+				// move ball back to origin and move set accordingly
+				// so if we animate the set it will behave as expected
+				if (target.type != "Circle") return;
+				var ball = target;
+				var set = ball.mySet;
+				var rect1 = ball.rect1;
+				var rect2 = ball.rect2;
+				rect1.x -= ball.x;
+				rect1.y -= ball.y;
+				rect2.x -= ball.x;
+				rect2.y -= ball.y;
+				set.x += ball.x;
+				set.y += ball.y;
+				ball.x = 0;
+				ball.y = 0;
+			}
+
 			that.selectionManager.on("keydown", function (e) {
 				if (!that.keyFocus) return;
 				if (e.keyCode >= 37 && e.keyCode <= 40) {
@@ -7052,6 +7075,18 @@ Note the points property has been split into points and pointObjects (and there 
 						}
 						drawShape();
 						if (that.stage) that.stage.update();
+					}
+				}
+			});
+
+			that.selectionManager.on("keyup", function (e) {
+				if (!that.keyFocus) return;
+				if (e.keyCode >= 37 && e.keyCode <= 40) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected.length > 0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							replaceControls(currentSelected[i]);
+						}
 					}
 				}
 			});
@@ -7356,10 +7391,41 @@ Note the points property has been split into points and pointObjects (and there 
 
 		that.getSegmentPoint = function(point1, point2) {
 			if (zot(point1) || zot(point2)) return;
+			// dragging points temporarily puts data out of order
+			if (point1[2] != 0 || point1[3] != 0) {
+				point1[4] -= point1[2];
+				point1[5] -= point1[3];
+				point1[6] -= point1[2];
+				point1[7] -= point1[3];
+				point1[0] += point1[2];
+				point1[1] += point1[3];
+				point1[2] = 0;
+				point1[3] = 0;
+			}
+			if (point2[2] != 0 || point2[3] != 0) {
+				point2[4] -= point2[2];
+				point2[5] -= point2[3];
+				point2[6] -= point2[2];
+				point2[7] -= point2[3];
+				point2[0] += point2[2];
+				point2[1] += point2[3];
+				point2[2] = 0;
+				point2[3] = 0;
+			}
 			var p1 = {x:point1[0], y:point1[1]};
 			var p2 = {x:point1[0]+point1[6], y:point1[1]+point1[7]};
 			var p3 = {x:point2[0]+point2[4], y:point2[1]+point2[5]};
 			var p4 = {x:point2[0], y:point2[1]};
+			if (sets.x != 0 || sets.y !=0) {
+				p1.x+=sets.x;
+				p2.x+=sets.x;
+				p3.x+=sets.x;
+				p4.x+=sets.x;
+				p1.y+=sets.y;
+				p2.y+=sets.y;
+				p3.y+=sets.y;
+				p4.y+=sets.y;
+			}
 			return [p1,p2,p3,p4];
 		}
 
@@ -7449,6 +7515,8 @@ Makes a blob shape inside a container using a number of points.
 The points have Bezier controls - little handles that change the shape of the Blob.
 The type of control can be specified overall and individually - and can be hidden or shown
 The type of control can be changed by double clicking the point - colors of the handles will change
+Points can be added by clicking on the shape or removed by SHIFT clicking a point.
+CTRL Z will undo adding or removing a point
 The shape of the Blob can be recorded with the recordData() method and recreated with the setData() method
 The Blob is set by default to show and hide controls when clicked
 It is also draggable by default when the controls are showing
@@ -7708,7 +7776,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.lockControlType = lockControlType;
 		this.ctrlclick = ctrlclick;
 		this.num = num;
-		zog(selectPoints)
 
 		if (zot(onTop)) onTop = DS.onTop!=null?DS.onTop:true;
 		if (zot(editPoints)) editPoints = DS.editPoints!=null?DS.editPoints:true;
@@ -7737,10 +7804,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var mapMove;
 		var drawShape;
+		var sets;
 
 		init();
 		function init() {
-
+			if (sets) sets.removeAllEventListeners();
 			if (selectPoints) {
 				that.selectedBalls = new zim.SelectionSet();
 				that.selectedRect1s = new zim.SelectionSet();
@@ -7772,7 +7840,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			var mobile = zim.mobile();
 
-			var sets = that.controls = new zim.Container({style:false}).addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
+			sets = that.controls = new zim.Container({style:false}).addTo(that).drag({onTop:!mobile}); // sets - a set contains a ball and two rects
 			_points = [];
 			balls = [];
 
@@ -7796,15 +7864,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					temp.rotation = i/num * 360;
 					ball = new zim.Circle(ballS, selectPoints&&that.selectedBalls.isSelected(i)?selectColor:light, dark, 2, null, false)
 						.centerReg(temp)
-						.expand(10)
 						.pos({x:length/2,y:0,reg:true});
 					rect1 = new zim.Rectangle(rectS, rectS, selectPoints&&that.selectedRect1s.isSelected(i)?selectColor:getBackgroundColor(controlType), handleSize==0?null:dark, handleSize==0?null:2, null, null, null, false)
 						.centerReg(temp)
-						.expand(10)
 						.pos({x:0,y:0,reg:true});
 					rect2 = new zim.Rectangle(rectS, rectS, selectPoints&&that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(controlType), handleSize==0?null:dark, handleSize==0?null:2, null, null, null, false)
 						.centerReg(temp)
-						.expand(10)
 						.pos({x:length,y:0,reg:true});
 
 					var ballPoint = temp.localToLocal(ball.x, ball.y, sets);
@@ -8083,26 +8148,30 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var moveControlCheck = (e.target.x != startPosition.x || e.target.y != startPosition.y);
 				var ev = new createjs.Event("change");
 				if (e.target.rect1) { // pressup on ball
-					// move ball back to origin and move set accordingly
-					// so if we animate the set it will behave as expected
 					ev.controlType = "bezierPoint";
-					var ball = e.target;
-					var set = ball.mySet;
-					var rect1 = ball.rect1;
-					var rect2 = ball.rect2;
-					rect1.x -= ball.x;
-					rect1.y -= ball.y;
-					rect2.x -= ball.x;
-					rect2.y -= ball.y;
-					set.x += ball.x;
-					set.y += ball.y;
-					ball.x = 0;
-					ball.y = 0;
+					endMove(e.target);
 				} else {
 					ev.controlType = "bezierHandle";
 				}
 				if (moveControlCheck) that.dispatchEvent(ev);
 			});
+
+			function endMove(target) {
+				if (selectPoints) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected && currentSelected.indexOf(target) == -1) {
+						replaceControls(target);
+					} else if (currentSelected && currentSelected.length>0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							replaceControls(currentSelected[i]);
+						}
+					} else {
+						replaceControls(target);
+					}
+				} else {
+					replaceControls(target);
+				}
+			};
 
 			that.changeControl = function(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update) {
 				var sig = "index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, update";
@@ -8415,6 +8484,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return answer;
 			}
 
+			function replaceControls(target) {
+				// move ball back to origin and move set accordingly
+				// so if we animate the set it will behave as expected
+				if (target.type != "Circle") return;
+				var ball = target;
+				var set = ball.mySet;
+				var rect1 = ball.rect1;
+				var rect2 = ball.rect2;
+				rect1.x -= ball.x;
+				rect1.y -= ball.y;
+				rect2.x -= ball.x;
+				rect2.y -= ball.y;
+				set.x += ball.x;
+				set.y += ball.y;
+				ball.x = 0;
+				ball.y = 0;
+			}
+
 			that.selectionManager.on("keydown", function (e) {
 				if (!that.keyFocus) return;
 				if (e.keyCode >= 37 && e.keyCode <= 40) {
@@ -8430,6 +8517,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						}
 						drawShape();
 						if (that.stage) that.stage.update();
+					}
+				}
+			});
+
+			that.selectionManager.on("keyup", function (e) {
+				if (!that.keyFocus) return;
+				if (e.keyCode >= 37 && e.keyCode <= 40) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected.length > 0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							replaceControls(currentSelected[i]);
+						}
 					}
 				}
 			});
@@ -8742,10 +8841,41 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		that.getSegmentPoint = function(point1, point2) {
 			if (zot(point1) || zot(point2)) return;
+			// dragging points temporarily puts data out of order
+			if (point1[2] != 0 || point1[3] != 0) {
+				point1[4] -= point1[2];
+				point1[5] -= point1[3];
+				point1[6] -= point1[2];
+				point1[7] -= point1[3];
+				point1[0] += point1[2];
+				point1[1] += point1[3];
+				point1[2] = 0;
+				point1[3] = 0;
+			}
+			if (point2[2] != 0 || point2[3] != 0) {
+				point2[4] -= point2[2];
+				point2[5] -= point2[3];
+				point2[6] -= point2[2];
+				point2[7] -= point2[3];
+				point2[0] += point2[2];
+				point2[1] += point2[3];
+				point2[2] = 0;
+				point2[3] = 0;
+			}
 			var p1 = {x:point1[0], y:point1[1]};
 			var p2 = {x:point1[0]+point1[6], y:point1[1]+point1[7]};
 			var p3 = {x:point2[0]+point2[4], y:point2[1]+point2[5]};
 			var p4 = {x:point2[0], y:point2[1]};
+			if (sets.x != 0 || sets.y !=0) {
+				p1.x+=sets.x;
+				p2.x+=sets.x;
+				p3.x+=sets.x;
+				p4.x+=sets.x;
+				p1.y+=sets.y;
+				p2.y+=sets.y;
+				p3.y+=sets.y;
+				p4.y+=sets.y;
+			}
 			return [p1,p2,p3,p4];
 		}
 
@@ -28327,7 +28457,7 @@ items - an array of all Layout objects added with add()
 	}//-81
 
 /*--
-zim.SelectionSet = function()
+zim.SelectionSet = function(selections)
 
 SelectionSet
 zim class
@@ -28340,6 +28470,7 @@ Uses remove() instead of splice(index, 1), etc.
 Handles multiple select, matching other SelectionSet objects for add and remove, etc.
 Use with a SelectionManager to control multiple Selection Set objects at once.
 See: https://zimjs.com/explore/selectionTest.html
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -28371,7 +28502,7 @@ remove(item, multiple, match, unmatch) - remove an item
 	multiple will not remove other selected items
 	match - pass in another SelectionSet to remove the same item or index
 	unMatch - pass in another SelectionSet to add the same item or index if there
-
+dispose() -  clears list and sets to null
 
 PROPERTIES
 type - holds the class name as a String
@@ -28451,11 +28582,12 @@ items - an array of all Layout objects added with add()
 		this.dispose = function() {
 			this.clear();
 			this.selections = null;
+			return true;
 		}
 	}//-81.5
 
 /*--
-zim.SelectionManager = function()
+zim.SelectionManager = function(sets, multipleKey, multipleSets)
 
 SelectionManager
 zim class extends a CreateJS EventDispatcher
@@ -28505,7 +28637,7 @@ multipleSets - (default true) set to false to only allow one set at a time to be
 
 METHODS
 clear() - clears all SelectionSet objects in the SelectionManager
-setCurrent(SelectionSet) - sets the privided SelectionSet to the currentSet and clears the others
+setCurrent(set) - sets the privided SelectionSet to the currentSet and clears the others
 dispose() - removes key events
 
 PROPERTIES
@@ -32580,7 +32712,7 @@ loadAssets(assets, path, xhr, time, loadTimeout, outputAudioSprite, crossOrigin,
 				}}
 	path - pass in an optional path String that gets prepended to the asset
 		when accessing the asset with the asset() method you do NOT include the path
-    progress - (default null) - set to a Waiter() or ProgressBar() object to show while loading
+	progress - (default null) - set to a Waiter() or ProgressBar() object to show while loading
 	xhr (default false or true if Progress is a ProgressBar) set to true to load text and WebAdio (not needed for normal sound mp3, wav, etc.)
 	time (default 0) is the minimum number of milliseconds for the complete event to trigger
 		use this for testing or to always have time to show a loading message
