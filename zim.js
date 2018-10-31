@@ -1625,18 +1625,18 @@ RETURNS an array of points with numbers transformed
 			} else if (transformType == "y") {
 				point[1] += amount;
 			} else if (transformType == "scaleX") {
-				point[0] = (point[0]-x)*amount;
+				point[0] = (point[0]-x)*amount+x;
 				point[4] = (point[4])*amount;
 				point[6] = (point[6])*amount;
 			} else if (transformType == "scaleY") {
-				point[1] = (point[1]-y)*amount;
+				point[1] = (point[1]-y)*amount+y;
 				point[5] = (point[5])*amount;
 				point[7] = (point[7])*amount;
 			} else if (transformType == "scale") {
-				point[0] = (point[0]-x)*amount;
+				point[0] = (point[0]-x)*amount+x;
 				point[4] = (point[4])*amount;
 				point[6] = (point[6])*amount;
-				point[1] = (point[1]-y)*amount;
+				point[1] = (point[1]-y)*amount+y;
 				point[5] = (point[5])*amount;
 				point[7] = (point[7])*amount;
 			} else if (transformType == "rotation") {
@@ -31358,7 +31358,7 @@ spurt(num, time, restart) - shoots particles (usually would pause Emitter before
 		if both num and time are provided the faster one will stop the emitting
 		dispatches three different spurt events - see events
 	restart (default false) set to true to restart the particles when spurted (removes old particles)
-emitterPause(state, restart, freeze, immediate) - pause or unpause the Emitter
+pauseEmitter(state, restart, freeze, immediate) - pause or unpause the Emitter
 	state (default true) will pause the emitter or set to false to unpause the emitter
 		this will set the read only paused property to true or false accordingly
 	restart (default false) set to true to restart the particles when unpaused
@@ -31383,7 +31383,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 ** All the PARAMETERS are available as PROPERTIES to get and set (except for the cache parameter - and width and height act differently)
-emitterPaused - read only Boolean as to whether the Emitter is paused or not - see also emitterPause() method
+emitterPaused - read only Boolean as to whether the Emitter is paused or not - see also pauseEmitter() method
 currentParticle - the latest particle emitted
 	if trace is false then this is myEmitter.getChildAt(myEmitter.numChildren-1);
 	if trace is true then this is myEmitter.getChildAt(myEmitter.numChildren-1).getChildAt(0);
@@ -31506,7 +31506,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					// counter++;
 				    // zog(decimals(counter/(Date.now() - time)*1000,5));
 
-					if (that.startEmitterPaused) {that.emitterPause(); return;}
+					if (that.startEmitterPaused) {that.pauseEmitter(); return;}
 					// want to leave that.obj as it was provided
 					// but for creation we will normalize it as an Array
 					obj = Array.isArray(that.obj)?that.obj:[that.obj];
@@ -31831,7 +31831,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function lastSpurt(p) {
-			that.emitterPause();
+			that.pauseEmitter();
 			that.spurtCount = that.spurtNum = null;
 			sendEvent("spurted", p);
 			p.endSpurt = true;
@@ -31869,7 +31869,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.spurtCount = 0;
 				that.spurting = true;
 			}
-			that.emitterPause(false, restart, null, true); // unpause and immediately call call interval function
+			that.pauseEmitter(false, restart, null, true); // unpause and immediately call call interval function
 		}
 
 		this.clearPool = function() {
@@ -31883,7 +31883,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		if (!that.startEmitterPaused) this.emitterPaused = false; // do not set to false - as it will be done below if needed
-		this.emitterPause = function(state, restart, freeze, immediate) {
+		this.pauseEmitter = function(state, restart, freeze, immediate) {
 			that.startEmitterPaused = null;
 			if (zot(state)) state = true;
 			if (zot(restart)) restart = false;
