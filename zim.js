@@ -6477,6 +6477,7 @@ Note the points property has been split into points and pointObjects (and there 
 
 		var that = this;
 		var types = this.types = ["mirror", "straight", "free", "none"];
+		this.interactive = interactive;
 		this.num = num;
 		this.onTop = onTop;
 		this.move = move;
@@ -8072,6 +8073,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		var that = this;
+		this.interactive = interactive;
+		this.num = num;
 		this.editPoints = editPoints;
 		this.selectPoints = selectPoints;
 		this.lockControls = lockControls;
@@ -8080,7 +8083,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.allowToggle = allowToggle;
 		this.lockControlType = lockControlType;
 		this.ctrlclick = ctrlclick;
-		this.num = num;
 
 		var types = this.types = ["mirror", "straight", "free", "none"];
 
@@ -16035,6 +16037,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		// create buttons
+		var hMaxWidth = 0;
 		function makeButtons(list) {
 			var buttons = [];
 			var labels = [];
@@ -16080,6 +16083,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else {
 					button = t;
 				}
+				if (button.width > hMaxWidth) hMaxWidth = button.width;
 
 				// apply events
 				if (useTap) {
@@ -16123,7 +16127,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					button.y = lastY;
 					lastY = button.y + button.height + spacing;
 					if (align=="left") button.x = button.type=="TabsButton" && !mix?0:indentHorizontal;
-					else if (align=="right") button.x = width-button.width-(button.type=="TabsButton" && !mix?0:indentHorizontal);
+					else if (align=="right") button.x = (specifiedWidth?width:hMaxWidth)-button.width-(button.type=="TabsButton" && !mix?0:indentHorizontal);
 				} else {
 					button.x = lastX;
 					lastX = button.x + button.width + spacing;
@@ -16140,6 +16144,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			w = vertical&&specifiedWidth?width:bou.width;
 			h = vertical?bou.height:height;
 			that.setBounds(w, h);
+
 
 			if (vertical && !specifiedWidth) {
 				for (i=0; i<=buttons.length; i++) {
