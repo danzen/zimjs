@@ -7168,7 +7168,7 @@ Note the points property has been split into points and pointObjects (and there 
 			that.shape.on("pressup", function (e) {
 				if (!that.editPoints) return;
 				if (that.pressX && Math.abs(that.pressX-e.stageX) < min && Math.abs(that.pressY-e.stageY) < min) {
-					if (that.selectPoints) that.lastPoints = copy(that.points);
+					if (that.selectPoints) that.lastPoints = zim.copy(that.points);
 					var points = that.points;
 					var point = that.globalToLocal(e.stageX, e.stageY);
 					var pointBefore = zim.closestPointAlongCurve(point, that.segmentPoints);
@@ -7188,7 +7188,7 @@ Note the points property has been split into points and pointObjects (and there 
 						if (that.controls.numChildren <= 2) return;
 						var index = that.controls.getChildIndex(e.target.parent);
 						var points = that.points;
-						if (that.selectPoints) that.lastPoints = copy(points);
+						if (that.selectPoints) that.lastPoints = zim.copy(points);
 						points.splice(index, 1); // remove the point at the index
 						that.points = points;
 						that.stage.update();
@@ -7277,8 +7277,8 @@ Note the points property has been split into points and pointObjects (and there 
 			if (!that.selectPoints) return;
 			if (!that.keyFocus) return;
 			if (that.lastPoints) {
-				var tempPoints = copy(that.lastPoints);
-				that.lastPoints = copy(that.points);
+				var tempPoints = zim.copy(that.lastPoints);
+				that.lastPoints = zim.copy(that.points);
 				that.points = tempPoints;
 				if (that.stage) that.stage.update()
 			}
@@ -7478,17 +7478,16 @@ Note the points property has been split into points and pointObjects (and there 
 			}
 		});
 
-
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (!zim.KEYFOCUS) setFocus();
 		function setFocus() {if (!that.selectPoints) return; that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
 
@@ -8745,7 +8744,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.shapePressupEvent = that.shape.on("pressup", function (e) {
 				if (!that.editPoints) return;
 				if (that.pressX && Math.abs(that.pressX-e.stageX) < min && Math.abs(that.pressY-e.stageY) < min) {
-					if (that.selectPoints) that.lastPoints = copy(that.points);
+					if (that.selectPoints) that.lastPoints = zim.copy(that.points);
 					var points = that.points;
 					var point = that.globalToLocal(e.stageX, e.stageY);
 					var pointBefore = zim.closestPointAlongCurve(point, that.segmentPoints);
@@ -8764,7 +8763,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						if (that.controls.numChildren <= 2) return;
 						var index = that.controls.getChildIndex(e.target.parent);
 						var points = that.points;
-						if (that.selectPoints) that.lastPoints = copy(points);
+						if (that.selectPoints) that.lastPoints = zim.copy(points);
 						points.splice(index, 1); // remove the point at the index
 						that.points = points;
 						that.stage.update();
@@ -8852,8 +8851,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (!that.selectPoints) return;
 			if (!that.keyFocus) return;
 			if (that.lastPoints) {
-				var tempPoints = copy(that.lastPoints);
-				that.lastPoints = copy(that.points);
+				var tempPoints = zim.copy(that.lastPoints);
+				that.lastPoints = zim.copy(that.points);
 				that.points = tempPoints;
 				if (that.stage) that.stage.update()
 			}
@@ -9059,16 +9058,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (that.selectPoints && zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (that.selectPoints && !zim.KEYFOCUS) setFocus();
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
 
@@ -13759,7 +13758,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			tabs.setBounds(0,0,vertical?b.width:(b.width+spacing*2+4),vertical?(b.height+spacing*2+4):b.height);
 			that.add(tabs);
 		}
-		makeTabs(copy(list));
+		makeTabs(zim.copy(list));
 
 		var _selectedIndex;
 		tabs.tap(function (e) {
@@ -13858,7 +13857,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.clone = function() {
-			return that.cloneProps(new zim.List(width, originalHeight, copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, indentHorizontal, indentVertical, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, style, this.group));
+			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, indentHorizontal, indentVertical, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, style, this.group));
 		}
 	}
 	zim.extend(zim.List, zim.Window, "clone", "zimWindow", false);
@@ -14543,16 +14542,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (!zim.KEYFOCUS) setFocus();
 		this.on("mousedown", function() {setFocus()});
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
@@ -15095,16 +15094,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (keyArrows && zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (keyArrows && !zim.KEYFOCUS) setFocus();
 		this.on("mousedown", function() {if (keyArrows) setFocus()});
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
@@ -15640,16 +15639,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (keyArrows && zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (keyArrows && !zim.KEYFOCUS) setFocus();
 		this.on("mousedown", function() {if (keyArrows) setFocus()});
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
@@ -16352,16 +16351,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (keyEnabled && zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (keyEnabled && zim.KEYFOCUS) setFocus();
 		this.on("mousedown", function() {if (keyEnabled) setFocus()});
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
@@ -17198,16 +17197,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
 				if (zns) zim.KEYFOCUS = that;
 				else KEYFOCUS = that;
 			}
 		});
-		if (keyArrows && zns ? !zim.KEYFOCUS : !KEYFOCUS) setFocus();
+		if (keyArrows && zim.KEYFOCUS) setFocus();
 		this.on("mousedown", function() {if (keyArrows) setFocus()});
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
 
@@ -18340,7 +18340,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 
-		var background = new zim.Rectangle(this.width, this.height, clear, null, null, null, null, false).addTo(this).expand().bot();
+		var background = new zim.Rectangle(this.width, this.height, zim.clear, null, null, null, null, false).addTo(this).expand().bot();
 		background.on("mousedown", function(){});
 		background.on("click", function(){});
 
@@ -18779,7 +18779,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-67.5
 
 /*--
-zim.TextArea = function(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame, style, group)
+zim.TextArea = function(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, frame, style, group)
 
 TextArea
 zim class - extends a zim.Container which extends a createjs.Container
@@ -18839,6 +18839,7 @@ id - (default null) a string id for the HTML textarea tag for CSS styling, etc.
 placeholder - (default null) a string that is used for the HTML textarea tag placeholder parameter
 readOnly - (default false) set to true to make TextArea read only (still selectable)
 spellCheck - (default true) set to false to turn Browser spell check off
+password - (default false) set to true to turn the field into a password field - single line only (uses input field type=password and not TextArea)
 frame - (default the zimDefaultFrame) a reference to the Frame (to scale and position the HTML tag)
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
@@ -18890,8 +18891,8 @@ These are just the html events passed on through - note the difference between i
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.6
-	zim.TextArea = function(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame, style, group) {
-		var sig = "width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame, style, group";
+	zim.TextArea = function(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, frame, style, group) {
+		var sig = "width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, frame, style, group";
 		var duo; if (duo = zob(zim.TextArea, arguments, sig, this)) return duo;
 		z_d("67.6");
 		this.group = group;
@@ -18910,6 +18911,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(corner)) corner = DS.corner!=null?DS.corner:0;
 		if (!zot(shadowBlur) && zot(shadowColor)) shadowColor=DS.shadowColor!=null?DS.shadowColor:"rgba(0,0,0,.3)";
 		if (!zot(shadowColor) && zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:10;
+		if (zot(password)) pasword=DS.pasword!=null?DS.pasword:false;
 		if (zot(frame)) {
 			if (zimDefaultFrame) {
 				frame = zimDefaultFrame;
@@ -18926,11 +18928,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var background = this.background = new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner, dashed, false);
 		if (shadowColor != -1 && shadowBlur > 0) background.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 		that.addChild(background);
-		var textareaTag = that.tag = document.createElement("textarea");
+		var textareaTag = that.tag = password?document.createElement("input"):document.createElement("textarea");
 		document.body.appendChild(textareaTag);
 		if (!zot(id)) {
 			textareaTag.setAttribute("id", id);
 			textareaTag.setAttribute("name", id);
+		}
+		if (password) {
+			textareaTag.setAttribute("type", "password");
 		}
 		if (readOnly) textareaTag.readOnly = true;
 		if (!spellCheck) textareaTag.spellcheck = false;
@@ -19023,21 +19028,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
 			get: function() {
-				return zns ? zim.KEYFOCUS == that : KEYFOCUS == that;
+				return zim.KEYFOCUS == that;
 			},
 			set: function(value) {
-				if (zns) zim.KEYFOCUS = that;
-				else KEYFOCUS = that;
+				zim.KEYFOCUS = that;
 			}
 		});
-		if (zns ? !zim.KEYFOCUS : !KEYFOCUS) that.keyFocus = true;
+		if (!zim.KEYFOCUS) that.keyFocus = true;
 		textareaTag.addEventListener("mousedown", function() {that.keyFocus = true;});
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			var u = new zim.TextArea(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, frame, style, this.group);
+			var u = new zim.TextArea(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, frame, style, this.group);
 			return that.cloneProps(u);
 		}
 		this.dispose = function() {
@@ -19524,7 +19529,7 @@ RETURNS obj for chaining
 		z_d("41.5");
 
 		var PR = zim.POSREG;
-		if (POSREG) PR = POSREG;
+		if (typeof POSREG !== typeof undefined) PR = POSREG;
 		if (zot(reg)) reg = PR;
 
 		if (zot(obj)) return;
@@ -20335,7 +20340,7 @@ RETURNS obj for chaining
 		if (zot(obj) || !obj.on) return;
 
 		var DA = zim.DRAGALL;
-		if (DRAGALL) DA = DRAGALL;
+		if (typeof DRAGALL !== typeof undefined) DA = DRAGALL;
 		if (zot(all) && zot(currentTarget)) all = DA;
 
 		if (obj.zimDown) obj.noDrag(); // clear any previous drags
@@ -23122,6 +23127,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		if (zot(props) && !zot(obj)) props = obj; // conversion of 7.1 props parameter to pre 7.1 obj parameter
 		obj = props;
+		if (zot(obj)) {if (zon) {zog("animate() - need props");}; return target;}
 
 		// zik supports passing array of options or an object with min, max, integer, negative properties and zik will pick or calculate a random value
 		target = zik(target); time = zik(time); ease = zik(ease); wait = zik(wait); loopCount = zik(loopCount); loopWait = zik(loopWait); rewind = zik(rewind); rewindWait = zik(rewindWait); sequenceReverse = zik(sequenceReverse); from = zik(from); set = zik(set);
@@ -25589,7 +25595,7 @@ zim.getStyle = function(type, group) {
 
 	// called by DisplayObjects
 	var DS = zim.STYLE;
-	if (STYLE) DS = STYLE;
+	if (typeof STYLE !== typeof undefined) DS = STYLE;
 	if (!zot(DS)) DS = zim.copy(DS); // can't copy with clone due to recursion
 	else DS = {};
 
@@ -25601,13 +25607,13 @@ zim.getStyle = function(type, group) {
 		var GS = {};
 		for (var i=0; i<groups.length; i++) {
 			var g = groups[i].trim();
-			if (!zot(DS.group[g])) GS = merge(GS, DS.group[g]);
+			if (!zot(DS.group[g])) GS = zim.merge(GS, DS.group[g]);
 		}
 		delete DS.group;
 	}
 
-	if (!zot(type) && !zot(TS) && !zot(TS[type])) DS = merge(DS, TS[type]);
-	if (!zot(group) && !zot(GS)) DS = merge(DS, GS);
+	if (!zot(type) && !zot(TS) && !zot(TS[type])) DS = zim.merge(DS, TS[type]);
+	if (!zot(group) && !zot(GS)) DS = zim.merge(DS, GS);
 	var val;
 	var functionList = ["pos","addTo","center","centerReg","mov","drag","transform","gesture","outline","bounds","animate","wiggle"];
 	for (var s in DS) {
@@ -25615,7 +25621,7 @@ zim.getStyle = function(type, group) {
 		if (val=="ignore") {delete DS[s]; continue;}
 		else if (val && val.clone && val.type != type) val = val.clone();
 		// copy config objects with clone except for type container - do not center or centerReg on shape
-		else if (val && val.constructor === {}.constructor) val = copy(val, true, false);
+		else if (val && val.constructor === {}.constructor) val = zim.copy(val, true, false);
 		DS[s] = val;
 	}
 
@@ -34879,8 +34885,8 @@ asset(file) - access a loaded asset based on file string (not including path)
 	if the asset is a sound then use asset(file).play();
 		or can pass in a configuration object in play
 		with the following properties (see CreateJS SoundJS docs)
-		delay, offset, loop, volume, pan, startTime, interrupt and duration
-		asset(file).play({volume:.5, pan:-1, loop:2});
+		delay, offset, loop, loopCount, volume, pan, startTime, interrupt and duration
+		// note: ZIM has adjusted loop (Boolean) and added loopCount (number) to be consistent with animate() parameters
 		this returns createjs sound instance which can also be manipulated
 		to stop the sound or set its volume dynamically, etc.
 	if the asset is anything else, then it is what it is!
@@ -35477,7 +35483,8 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			                        type:"sound",
 									path:path,
 			                        id:soundID,
-			                        play:function(added){
+			                        play:function(added) {
+										if (added && added.loopCount) added.loop = added.loopCount;
 			                            var instance = createjs.Sound.play(soundID, added);
 			                            instance.getStage = function(){return stage;}
 			                            return instance;
