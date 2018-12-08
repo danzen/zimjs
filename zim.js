@@ -11756,8 +11756,28 @@ See: https://zimjs.com/explore/panel.html
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-new Toggle("ON").center().change(function (e) {
-	zog(e.target.toggled)
+var panel = new Panel({titleBar:series("TODAY", "TOMORROW")})
+	.center();
+
+// make a couple pages for the panels
+
+// content for panel 1
+var today = new Container(panel.width, panel.height).addTo(panel);
+var sun = new Circle(30, yellow).center(today);
+
+// content for panel 2
+var tomorrow = new Container(panel.width, panel.height); // do not add yet
+var label = new Label("-30").center(tomorrow);
+
+// event to change content as panels change
+panel.on("change", function () {
+	if (today.parent) {
+		today.removeFrom();
+		tomorrow.center(panel);
+	} else {
+		tomorrow.removeFrom();
+		today.center(panel);
+	}
 });
 END EXAMPLE
 
@@ -13968,7 +13988,7 @@ ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+60.5
 
-	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, scrol, excludeCustomTap, organizer, style, group, inherit) {
+	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, style, group, inherit) {
 		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, style, group, inherit";
 		var duo; if (duo = zob(zim.List, arguments, sig, this)) return duo;
 		z_d("60.5");
@@ -18812,7 +18832,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 //
 
 /*--
-zim.Organizer = function(list, width, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit)
+zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit)
 
 Organizer
 zim class - extends a zim.Tabs which extends a zim.Container which extends a createjs.Container
@@ -18831,10 +18851,24 @@ See: https://zimjs.com/explore/organizer.html
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
+	var organizer = new Organizer(250)
+		.change(function () {
+			if (organizer.orgType=="add") organizer.orgItem.text = "new";
+		});
+	new List({
+		width:250
+		organizer:organizer // pass the organizer to the list
+	});
+		.center()
+		.mov(0,40);
+	stage.update();
+
+	// OR
+
 	var list = new List(250)
 		.center()
 		.mov(0,40);
-	var organizer = new Organizer(list)
+	var organizer = new Organizer(250, list)
 		.center()
 		.mov(0,-80)
 		.change(function () {
@@ -18846,9 +18880,9 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-list - (default null) an ZIM List object to control - or null to add later with the list property
 width - (default 300) width of Tabs - this will determine the height as the Buttons are square.
 	There is no vertical version of an Organizer.
+list - (default null) an ZIM List object to control - or null to add later with the list property
 useAdd - default(true) set to false to not include the add button
 useRemove - default(true) set to false to not include the remove button
 usePosition - default(true) set to false to not include the position buttons (up, down, toTop, toBottom)
@@ -18930,8 +18964,8 @@ ALSO: All Tab events
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.3
-	zim.Organizer = function(list, width, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit) {
-		var sig = "list, width, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit";
+	zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit) {
+		var sig = "width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit";
 		var duo; if (duo = zob(zim.Organizer, arguments, sig, this)) return duo;
 		z_d("67.3");
 
@@ -19150,7 +19184,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.Organizer(list, width, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, that.group, inherit));
+			return that.cloneProps(new zim.Organizer(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, that.group, inherit));
 		}
 	}
 	zim.extend(zim.Organizer, zim.Tabs, "clone", "zimTabs", false);
@@ -26680,12 +26714,8 @@ zim.getStyle = function(type, group, inherit) {
 	}
 	var IS = inherit;
 
-
-
-
 	var TS = DS.type;
 	if (TS) delete DS.type;
-
 	if (!zot(group) && !zot(DS.group)) {
 		var groups = group.split(","); // support comma delimited multiple groups
 		var GS = {};
