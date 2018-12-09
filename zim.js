@@ -11743,7 +11743,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-57.5
 
 /*--
-zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, draggable, boundary, style, group, inherit)
+zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit)
 
 Panel
 zim class - extends a zim.Container which extends a createjs.Container
@@ -11797,6 +11797,8 @@ corner - (default 0) the round of corner
    can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
 arrow - (default true if more than one panel) set to false to not show an arrow if multiple panels
 align - (default "left") set to "center", "middle" or "right" to align the label on the titleBar
+shadowColor - (default "rgba(0,0,0,.3)" if shadowBlur) the shadow color - set to -1 for no shadow
+shadowBlur - (default 14 if shadowColor) the shadow blur - set to -1 for no shadow
 draggable - (default true if titleBar) set to false to not allow dragging titleBar to drag window
 boundary - (default null) set to ZIM Boundary() object - or CreateJS.rectangle()
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
@@ -11842,8 +11844,8 @@ dispatches a "change" event when arrow is pressed to go to the next panel
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57.7
-	zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, draggable, boundary, style, group, inherit) {
-        var sig = "width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, draggable, boundary, style, group, inherit";
+	zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit) {
+        var sig = "width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit";
         var duo; if (duo = zob(zim.Panel, arguments, sig, this)) return duo;
 		z_d("57.7");
 
@@ -11866,14 +11868,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
         else if (borderColor!=null && borderWidth==null) borderWidth = 1;
 		if (zot(corner)) corner=DS.corner!=null?DS.corner:5;
 		if (zot(align)) align=DS.align!=null?DS.align:"left";
+		if (zot(shadowColor)) shadowColor=DS.shadowColor!=null?DS.shadowColor:"rgba(0,0,0,.3)";
+		if (zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:14;
 		if (zot(draggable)) draggable = DS.draggable!=null?DS.draggable:false;
 		if (zot(boundary)) boundary = DS.boundary!=null?DS.boundary:null;
 		if (zot(arrow)) arrow=DS.arrow!=null?DS.arrow:zim.vee(titleBar);
 		if (!Array.isArray(corner)) corner = [corner,corner,corner,corner];
 
 		var that = this;
-		var background = that.background = new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner).addTo(this);
-
+		var background = this.background = new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner).addTo(this);
+		if (shadowColor != -1 && shadowBlur > 0) {
+			this.background.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+		}
 		var titleBarValue = titleBar; // as we assign the container to titleBar later
 		var t = zik(titleBarValue);
 		var tBarColor = zik(titleBarColor);
@@ -11957,14 +11963,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
         if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-        	return that.cloneProps(new zim.Toggle(width, height, titleBar?titleBar.clone():"", titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, draggable, boundary, style, this.group, inherit));
+        	return that.cloneProps(new zim.Toggle(width, height, titleBar?titleBar.clone():"", titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, shadowColor, shadowBlur, draggable, boundary, style, this.group, inherit));
 		}
     }
 	zim.extend(zim.Panel, zim.Container, "clone", "zimContainer", false);
 	//-57.7
 
 /*--
-zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group, inherit)
+zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, group, inherit)
 
 Pane
 zim class - extends a zim.Container which extends a createjs.Container
@@ -12031,7 +12037,8 @@ backing - (default null) a Display object for the backing of the pane (eg. Shape
 fadeTime - (default 0) milliseconds to fade in and out
 container - (default - the default stage) container for the pane
 titleBar - (default null - no titleBar) a String or ZIM Label title for the pane that will be presented on a titleBar across the top
-titleBarColor - (default "rgba(0,0,0,.2)") the background color of the titleBar if a titleBar is requested
+titleBarColor - (default "black") the color of the titleBar text if a titleBar is requested
+titleBarBackgroundColor - (default "rgba(0,0,0,.2)") the background color of the titleBar if a titleBar is requested
 titleBarHeight - (default fit label) the height of the titleBar if a titleBar is requested
 close - (default false) - a close X for the top right corner that closes the pane when pressed
 closeColor - (default #555) - the color of the close X if close is requested
@@ -12065,9 +12072,10 @@ heightOnly - gets or sets the height.  This sets only the height and may change 
 display - reference to the pane box
 text - gives access to the label text
 label - gives access to the label
-titleBar - access to the ZIM Container for the titleBar if there is a titleBar
-titleBarLabel - access to the ZIM Label of the titleBar if there is a titleBar
-titleBarBacking - access to the ZIM Rectangle of the titleBar if there is a titleBar
+titleBar - (default null - no titleBar) a String or ZIM Label title for the window that will be presented on a titleBar across the top
+titleBarColor - (default "black") the text color of the titleBar if a titleBar is requested
+titleBarBackgroundColor - (default "rgba(0,0,0,.2)") the background color of the titleBar if a titleBar is requested
+titleBarHeight - (default fit label) the height of the titleBar if a titleBar is requested
 toggled - read-only Boolean property as to whether pane is showing
 close - access to the ZIM Shape if there is a close X
 backdrop - reference to the backdrop that covers the stage
@@ -12097,8 +12105,8 @@ dispatches a "close" event when closed by clicking on backing, display, close, e
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58
-	zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group, inherit) {
-		var sig = "width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, group, inherit";
+	zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, group, inherit) {
+		var sig = "width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, group, inherit";
 		var duo; if (duo = zob(zim.Pane, arguments, sig, this)) return duo;
 		z_d("58");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -12136,6 +12144,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(resets)) resets=DS.resets!=null?DS.resets:true;
 		if (zot(modal)) modal=DS.modal!=null?DS.modal:true;
 		if (zot(corner)) corner=DS.corner!=null?DS.corner:20;
+
+		if (zot(titleBar)) titleBar = DS.titleBar!=null?DS.titleBar:null;
+		if (zot(titleBarColor)) titleBarColor = DS.titleBarColor!=null?DS.titleBarColor:null;
+		if (zot(titleBarBackgroundColor)) titleBarBackgroundColor = DS.titleBarBackgroundColor!=null?DS.titleBarBackgroundColor:null;
+		if (zot(titleBarHeight)) titleBarHeight = DS.titleBarHeight!=null?DS.titleBarHeight:null;
+
 		if (zot(backdropColor)) backdropColor=DS.backdropColor!=null?DS.backdropColor:"rgba(0,0,0,.2)";
 		if (zot(shadowColor))  shadowColor=DS.shadowColor!=null?DS.shadowColor:"rgba(0,0,0,.3)";
 		if (zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:20;
@@ -12240,14 +12254,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		if (!zot(titleBar)) {
-			if (typeof titleBar == "string") titleBar = new zim.Label(titleBar);
+			if (typeof titleBar == "string") titleBar = new zim.Label(titleBar, null, null, titleBarColor);
 			titleBarLabel = that.titleBarLabel = titleBar;
-			if (zot(titleBarHeight)) titleBarHeight = titleBarLabel.height * 1.5;
-			if (zot(titleBarColor)) titleBarColor = "rgba(0,0,0,.2)";
+			if (zot(titleBarHeight)) titleBarHeight=titleBarLabel.height * 1.5;
+			if (zot(titleBarColor)) titleBarColor = "black";
+			if (zot(titleBarBackgroundColor)) titleBarBackgroundColor = "rgba(0,0,0,.2)";
 			that.titleBar = titleBar = new zim.Container(width, titleBarHeight, null, null, false).centerReg(that).mov(0,-height/2+titleBarHeight/2);
 			titleBar.mouseEnabled = false;
 			titleBar.mouseChildren = false;
-			var titleBarRect = that.titleBar.backing = new zim.Rectangle(width, titleBarHeight, titleBarColor, null, null, [corner*.95,corner*.95, 0,0], null, false).addTo(titleBar);
+			var titleBarRect = that.titleBar.backing = new zim.Rectangle(width, titleBarHeight, titleBarBackgroundColor, null, null, [corner*.95,corner*.95, 0,0], null, false).addTo(titleBar);
 			titleBarLabel.center(titleBar).pos({x:Math.max(corner/2, 10), reg:true});
 		}
 
@@ -12371,7 +12386,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.clone = function() {
 			var lX = label.x; // new Panes automatically center the label
 			var lY = label.y;
-			var p2 = that.cloneProps(new zim.Pane(width, height, label.clone(), backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, zot(backing)?backing.clone():null, fadeTime, that.container, titleBar, titleBarColor, titleBarHeight, close, closeColor, style, this.group, inherit));
+			var p2 = that.cloneProps(new zim.Pane(width, height, label.clone(), backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, zot(backing)?backing.clone():null, fadeTime, that.container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, this.group, inherit));
 			p2.label.x = lX;
 			p2.label.y = lY;
 			return p2;
@@ -22236,16 +22251,16 @@ RETURNS obj for chaining
 			for (var i=0; i<corners.length; i++) {
 				var c = corners[i];
 				squares.getChildAt(i)
-					.pos({x:c.x, y:c.y, reg:true})
+					.loc(c.x, c.y)
 					.ske(skX, skY)
 					.rot(ro);
 				rotators.getChildAt(i)
-					.pos({x:c.x, y:c.y, reg:true})
+					.loc(c.x, c.y)
 					.rot(ro);
 				var m = mids[i];
 				var whichSide = i%2==0?sidesV:sidesH;
 				whichSide.getChildAt(Math.floor(i/2))
-					.pos({x:m.x, y:m.y, reg:true})
+					.loc(m.x, m.y)
 					.ske(skX, skY)
 					.rot(ro);
 				if (!showStretch) {
