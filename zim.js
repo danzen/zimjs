@@ -13825,7 +13825,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-60
 
 /*--
-zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, style, group, inherit)
+zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit)
 
 List
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -13927,13 +13927,15 @@ close - (default false) - a close X for the top right corner that closes the lis
 closeColor - (default #555) - the color of the close X if close is requested
 excludeCustomTap - (default false) set to true to exclude custom buttons from tap() which would override existing tap() on the custom buttons
 organizer - (default null) the ZIN Organizer for the list
+clone - (default false) set to true to add clones of the list items rather than the items themselves
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
 animateTo(index, timePerItem) - animate list to index at given time per item (default 50ms) - returns object for chaining
-addAt(items, index) - an array of items to insert at an index in the list - returns object for chaining
+addAt(items, index, clone) - an array of items to insert at an index in the list - returns object for chaining
+	clone defaults to false - set to true to add a clone of the item or items to the list
 removeAt(number, index) - remove a number of elements (default 1) from the list starting at and including the index - returns object for chaining
 first() - select first list element - returns object to chain
 last() - select last list element - returns object to chain
@@ -13988,8 +13990,8 @@ ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+60.5
 
-	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, style, group, inherit) {
-		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, style, group, inherit";
+	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit) {
+		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit";
 		var duo; if (duo = zob(zim.List, arguments, sig, this)) return duo;
 		z_d("60.5");
 
@@ -14056,6 +14058,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(close)) close = DS.close!=null?DS.close:null;
 		if (zot(closeColor)) closeColor = DS.closeColor!=null?DS.closeColor:null;
 		if (zot(excludeCustomTap)) excludeCustomTap = DS.excludeCustomTap!=null?DS.excludeCustomTap:false;
+		if (zot(clone)) clone = DS.clone!=null?DS.clone:false;
 
 		if (titleBar === false) titleBar = null;
 		this.vertical = vertical;
@@ -14125,7 +14128,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.add(tabs);
 			// tabs.loc(paddingHorizontal, paddingVertical)
 		}
-		makeTabs(zim.copy(list));
+		makeTabs(zim.copy(list, clone));
 
 		var _selectedIndex;
 		tabs.tap(function (e) {
@@ -14152,8 +14155,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 
-		this.addAt = function(items, index) {
-			that.tabs.addAt(items, index)
+		this.addAt = function(items, index, clone) {
+			that.tabs.addAt(copy(items, clone), index)
 			// var b = tabs.getBounds();
 			// tabs.setBounds(0,0,vertical?b.width:(b.width+spacing*2+4),vertical?(b.height+spacing*2+4):b.height);
 			that.resize();
@@ -14164,7 +14167,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.tabs.removeAt(num, index)
 			// var b = tabs.getBounds();
 			// tabs.setBounds(0,0,vertical?b.width:(b.width+spacing*2+4),vertical?(b.height+spacing*2+4):b.height);
-			that.resize();
+			that.update();
 			return that;
 		}
 		if (list[0]=="%-&" && list.length==1) that.removeAt(1,0);
@@ -14224,17 +14227,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 		function getScrollPosition(index) {
+			// var w = (that.itemWidth+spacing)*(vertical?1:that.length);
+			// var h = (that.itemHeight+spacing)*(vertical?that.length:1);
+			// that.tabs.setBounds(w, h);
 			if (vertical) {
-				var newY = -that.itemHeight*index + height/2 - that.itemHeight/2;
+				var newY = -(that.itemHeight+spacing)*index + height/2 - that.itemHeight/2;
 				if ((that.itemHeight+spacing)*that.length < height) newY = 0;
 				if (newY > 0) newY = 0;
-				if ((that.itemHeight+spacing)*that.length>height && newY < -tabs.height + height-paddingVertical*2) newY = -tabs.height+height-paddingVertical*2;
+				if ((that.itemHeight+spacing)*that.length > height && newY < -that.tabs.height+height-paddingVertical*2) newY = -that.tabs.height+height-paddingVertical*2;
 				return newY;
 			} else {
 				var newX = -(that.itemWidth+spacing)*index + width/2 - that.itemWidth/2;
 				if ((that.itemWidth+spacing)*that.length < width) newX = 0;
 				if (newX > 0) newX = 0;
-				if ((that.itemWidth+spacing)*that.length>width && newX < -tabs.width + width-paddingHorizontal*2) newX = -tabs.width + width-paddingHorizontal*2;
+				if ((that.itemWidth+spacing)*that.length > width && newX < -that.tabs.width+width-paddingHorizontal*2) newX = -that.tabs.width+width-paddingHorizontal*2;
 				return newX;
 			}
 		}
@@ -14250,7 +14256,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, style, this.group, inherit));
+			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, this.group, inherit));
 		}
 	}
 	zim.extend(zim.List, zim.Window, "clone", "zimWindow", false);
@@ -16313,6 +16319,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var DS = style===false?{}:zim.getStyle("Tabs", this.group, inherit);
 		if (zot(vertical)) vertical = DS.vertical!=null?DS.vertical:false;
 		var specifiedWidth = !zot(width);
+
 		if (zot(width)) width = DS.width!=null?DS.width:(vertical?60:240);
 		if (zot(height)) height = DS.height!=null?DS.height:(vertical?240:60);
 
@@ -16584,18 +16591,31 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 
 			// might have to use w and h rather than width and height if run multiple times...
+			if (!zot(backdropColor)) {
+				that.removeChild(backdrop);
+			}
+
 			that.setBounds();
 			var bou = that.getBounds();
-			w = vertical&&specifiedWidth?width:bou.width;
-			h = vertical?bou.height:height;
+			if (!bou) {
+				w = h = 0;
+			} else {
+				w = vertical&&specifiedWidth?width:bou.width;
+				h = vertical?bou.height:height;
+			}
+
 			that.setBounds(w, h);
+			if (!zot(backdropColor)) {
+				backdrop.widthOnly = w;
+				backdrop.heightOnly = h;
+				that.addChildAt(backdrop,0);
+			}
 
 			if (vertical && !specifiedWidth) {
 				for (i=0; i<=buttons.length; i++) {
 					if (align=="center" || align=="middle") button.x = (w-button.width)/2;
 				}
 			}
-			if (!zot(backdropColor)) that.backdrop.siz(width, height);
 		}
 		prepareAllButtons(); // operates on buttons array - not tabs array
 
@@ -18915,7 +18935,8 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
-add(index, item) - manually add item at index - both are optional - index defaults to current index
+add(index, item, clone) - manually add item at index - both are optional - index defaults to current index
+	clone defaults to false - set to true to add a clone of the item
 up(index) - move item up one index number in list - index defaults to current index
 down(index) - move item down one index number in list - index defaults to current index
 toTop(index) - move item to top of list (index 0) - index defaults to current index
@@ -19109,7 +19130,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
-		this.add = function(index, item) {
+		this.add = function(index, item, clone) {
 			if (zot(index)) index = that.lastIndex;
 			if (zot(item)) item = "";
 			if (addForward) {
@@ -19117,7 +19138,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else {
 				var index = Math.max(0,that.list.selectedIndex);
 			}
-			that.list.addAt(item, index);
+			that.list.addAt(item, index, clone);
 			that.list.selectedIndexPlusPosition = index;
 			that.orgItem = that.list.selected;
 			that.orgIndex = that.list.selectedIndex;
