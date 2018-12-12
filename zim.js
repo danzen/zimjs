@@ -13227,7 +13227,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 		var accessibilityClicker;
-		var waiterTimeout;
+		var timeouts = [];
 		this.show = function() {
 			var mess = "zim display - Waiter(): Please pass in a reference to a container with bounds set as first parameter to Waiter";
 			if (zot(container)) {
@@ -13244,13 +13244,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zog("zim display - Waiter(): The container must have a stage property");
 				return;
 			}
+			that.alpha = 0;
+			createjs.Tween.get(that,{override:true})
+					.to({alpha:1}, 300);
 			var dot; var counter=0;
 			for (var i=0; i<circles.numChildren; i++) {
-				that.alpha = 0;
-				createjs.Tween.get(that,{override:true})
-						.to({alpha:1}, 300);
-				waiterTimeout = setTimeout(function() {
-					 if (circles) {
+				if (circles) {
+					timeouts.push(setTimeout(function() {
 						dot = circles.getChildAt(counter);
 						createjs.Tween.get(dot,{loop:true})
 							.to({alpha:1}, speed/numDots/2)
@@ -13258,8 +13258,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 							.to({alpha:0}, speed/numDots)
 							.wait(speed-speed/numDots-speed/numDots/2);
 						counter++;
-					}
-				}, i*speed/numDots);
+					}, i*speed/numDots));
+				}
 			}
 			that.ticker = createjs.Ticker.on("tick", function() {container.stage.update();});
 
@@ -13294,7 +13294,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.dispose = function() {
 			if (that.ticker) createjs.Ticker.off("tick", that.ticker);
-			clearInterval(waiterTimeout);
+			createjs.Tween.removeTweens(that);
+			for (var i=0; i<circles.numChildren; i++) {
+				var circle = circles.getChildAt(i);
+				clearInterval(timeouts[i]);
+				createjs.Tween.removeTweens(circle);
+			}
 			this.zimContainer_dispose();
 			return true;
 		}
