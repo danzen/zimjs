@@ -4401,6 +4401,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					b = 0;
 				}
 			}
+			if (this.type == "Triangle") {
+				a-=this.borderWidth?this.borderWidth:0;
+				c+=this.borderWidth?this.borderWidth*2:0;
+				b-=this.borderWidth?this.borderWidth:0;
+				d+=this.borderWidth?this.borderWidth*2:0;
+			}
 			this.cjsContainer_cache(a,b,c,d,scale,options);
 			if (bounds) this.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 			return this;
@@ -5148,14 +5154,18 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				makeSheet(image, frames, animations);
 			} else {
 				var im = json.images?json.images[0]:null;
-				var imEnd = im.split("/").pop();
-				if (frame.asset(imEnd).type != "EmptyAsset") {
-					makeSheet(frame.asset(imEnd), frames, animations);
-				} else if (frame.asset(im).type != "EmptyAsset") {
-					var imFinal = frame.asset(im);
-					makeSheet(frame.asset(im), frames, animations);
-				} else {
+				if (!im.split) {
 					sheet = new createjs.SpriteSheet(json);
+				} else {
+					var imEnd = im.split("/").pop();
+					if (frame.asset(imEnd).type != "EmptyAsset") {
+						makeSheet(frame.asset(imEnd), frames, animations);
+					} else if (frame.asset(im).type != "EmptyAsset") {
+						var imFinal = frame.asset(im);
+						makeSheet(frame.asset(im), frames, animations);
+					} else {
+						sheet = new createjs.SpriteSheet(json);
+					}
 				}
 			}
 		} else {
@@ -5807,7 +5817,8 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-width, height - (default 100) the width and height ;-)
+width - (default the height if provided else 100) the width
+height - (default the width if provided else 100) the height
 color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
 borderColor - (default null) the stroke color
 borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
@@ -5881,10 +5892,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.zimContainer_constructor(null,null,null,null,false);
 		this.type = "Rectangle";
 		this.group = group;
+
 	    var DS = style===false?{}:zim.getStyle(this.type, this.group, inherit);
 
-	   	if (zot(width)) width = DS.width!=null?DS.width:100;
-		if (zot(height)) height = DS.height!=null?DS.height:100;
+	   	if (zot(width)) width = DS.width!=null?DS.width:null;
+		if (zot(height)) height = DS.height!=null?DS.height:!zot(width)?width:100;
+		if (zot(width)) width = height;
 		if (zot(corner)) corner = DS.corner!=null?DS.corner:0;
 		if (zot(dashed)) dashed = DS.dashed!=null?DS.dashed:false;
 		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
@@ -10374,6 +10387,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(rollColor)) rollColor=DS.rollColor!=null?DS.rollColor:"white";
 		if (zot(waitBackgroundColor)) waitBackgroundColor=DS.waitBackgroundColor!=null?DS.waitBackgroundColor:backgroundColor;
 		if (zot(rollWaitBackgroundColor)) rollWaitBackgroundColor=DS.rollWaitBackgroundColor!=null?DS.rollWaitBackgroundColor:rollBackgroundColor;
+		var originalBorderColor = borderColor;
+		var originalBorderWidth = borderWidth;
 		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
 		if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:null;
 		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
@@ -10780,7 +10795,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				color = value;
-				if (that.label && that.label.color) {
+				if (that.label && !zot(that.label.color)) {
 					that.label.color = color;
 				}
 				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
@@ -10793,8 +10808,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				rollColor = value;
-				if (that.label && that.label.color) {
-					that.label.color = rollColor;
+				if (that.label) {
+					that.label.rollColor = rollColor;
 				}
 			}
 		});
@@ -10820,9 +10835,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				rollBackgroundColor = value;
-				if (that.rollBacking.color) {
+				if (that.rollBacking && that.rollBacking.color) {
 					that.rollBacking.color = rollBackgroundColor;
-				} else if (that.rollBacking.mask) {
+				} else if (that.rollBacking && that.rollBacking.mask) {
 					that.rollBacking.mask.color = rollBackgroundColor;
 				}
 			}
@@ -10915,7 +10930,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (style!==false) if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
 			var but = new zim.Button(
-				width, height, label.clone(), backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed,
+				width, height, label.clone(), backgroundColor, rollBackgroundColor, color, rollColor, originalBorderColor, borderRollColor, originalBorderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed,
 				!zot(backing)?that.backing.clone():null,
 				!zot(rollBacking)?that.rollBacking.clone():null,
 				rollPersist,
@@ -10967,14 +10982,14 @@ size - (default 60) size in pixels (always square)
 label - (default null) ZIM Label object - or String to make a default label (black)
 startChecked - (default false) an initial parameter to set checked if true
 color - (default "#111") the text color of the label
-backgroundColor - (default color) the background color of the box
-borderColor - (default null) the color of the border
-borderWidth - (default null) thickness of the border
+backgroundColor - (default "rgba(255,255,255,.8)") the background color of the box
+borderColor - (default "#111") the color of the border
+borderWidth - (default size/10) thickness of the border
 corner - (default 0) the round of the corner
    can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
 margin - (default 10) is on outside of box so clicking or pressing is easier
 indicatorType - (default check) could be square (box) or x
-indicatorColor - (default color) the color of the indicator
+indicatorColor - (default borderColor or black if no border) the color of the indicator
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -11041,7 +11056,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(startChecked)) startChecked = DS.startChecked!=null?DS.startChecked:false;
 		var myChecked = startChecked;
 		if (zot(color)) color = DS.color!=null?DS.color:"#111";
-		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"rgba(255,255,255,.5)";
+		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"rgba(255,255,255,.8)";
 		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:"#111";
 		if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:size/10;
 		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
@@ -11052,26 +11067,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", padding:"ignore", backgroundColor:"ignore",
 			group:this.group
 		});
-		if (zot(margin)) margin = DS.margin!=null?DS.margin:10; //20;
+		if (zot(margin)) margin = DS.margin!=null?DS.margin:size/5;
 		if (indicatorType != "box" && indicatorType != "square" && indicatorType != "x") indicatorType = DS.indicatorType!=null?DS.indicatorType:"check";
-		if (zot(indicatorColor)) indicatorColor = DS.indicatorColor!=null?DS.indicatorColor:color;
+		if (zot(indicatorColor)) indicatorColor = DS.indicatorColor!=null?DS.indicatorColor:borderWidth>0?borderColor:"black";
 		this.setBounds(-margin, -margin, size+margin*2, size+margin*2);
 
 		var that = this;
 		this.cursor = "pointer";
 
-		var box = new zim.Rectangle(size, size, backgroundColor, borderColor, borderWidth, corner);
-		// var g = box.graphics;
-		// g.f("rgba(255,255,255,.5)").r(0,0,size,size);
-		// g.s(backgroundColor).ss(size/10).r(size/7, size/7, size-size/7*2, size-size/7*2);
-		this.addChild(box);
+		var box = new zim.Rectangle(size, size, backgroundColor, null, null, corner);
+		var box2 = new zim.Rectangle(size*5/7, size*5/7,"rgba(0,0,0,0)", borderColor, borderWidth, corner);
+		box2.x = size/7; box2.y = size/7;
+		this.addChild(box, box2);
 
 		var fullWidth = size;
 
 		if (label) {
-			this.addChild(label);
-			label.x = size + margin;
-			label.y = size/2;
+			label.center(that);
+			label.x = that.getBounds().width;
 			this.label = label;
 			this.setBounds(-margin, -margin, size+margin*3+label.getBounds().width, Math.max(size+margin*2, label.getBounds().height));
 			fullWidth = label.x + label.width;
@@ -11226,11 +11239,13 @@ buttons - an array of button data objects as follows:
 	or just a list of labels for default labels ["hi", "bye", "what!"]
 vertical - (default true) displays radio buttons vertically - set to false to display horizontally
 color - (default "#111") the text color of the label
-backgroundColor - (default color) the stroke color of the box (consider the check to be the foreground)
+backgroundColor - (default "rgba(255,255,255,.8)") the background color of the circle
+borderColor - (default "#111") the color of the border
+borderWidth - (default size/9) thickness of the border
 spacing - (size*.2 for vertical and size for horizontal) the space between radio button objects
 margin - (size/5) the space around the radio button itself
 always - (default false) if set true, cannot click on selection to unselect it
-indicatorColor - (default color) the color of the indicator
+indicatorColor - (default borderColor or black) the color of the indicator
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -11287,8 +11302,8 @@ then ask for the properties above for info
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57
-	zim.RadioButtons = function(size, buttons, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, style, group, inherit) {
-		var sig = "size, buttons, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, style, group, inherit";
+	zim.RadioButtons = function(size, buttons, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, style, group, inherit) {
+		var sig = "size, buttons, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, style, group, inherit";
 		var duo; if (duo = zob(zim.RadioButtons, arguments, sig, this)) return duo;
 		z_d("57");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -11301,10 +11316,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(buttons)) buttons = DS.buttons!=null?DS.buttons:["A", "B", "C"];
 		if (zot(vertical)) vertical = DS.vertical!=null?DS.vertical:true;
 		if (zot(color)) color = DS.color!=null?DS.color:"#111";
-		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"#111";
+		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"rgba(255,255,255,.8)";
+		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:"#111";
+		if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:size/9;
+		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
+		else if (borderColor!=null && borderWidth==null) borderWidth = size/10;
 		if (zot(spacing)) spacing = (vertical) ? DS.spacing!=null?DS.spacing:size*.2 : DS.spacing!=null?DS.spacing:size;
 		if (zot(margin)) margin =  DS.margin!=null?DS.margin:size/5;
-		if (zot(indicatorColor)) indicatorColor =  DS.indicatorColor!=null?DS.indicatorColor:color;
+		if (zot(indicatorColor)) indicatorColor =  DS.indicatorColor!=null?DS.indicatorColor:borderWidth>0?borderColor:"black";;
 
 		var that = this;
 		this.cursor = "pointer";
@@ -11400,8 +11419,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			var box = new zim.Shape({style:false});
 			var g = box.graphics;
-			g.f("rgba(255,255,255,.5)").dc(size/2,size/2,size/1.85);
-			g.s(backgroundColor).ss(size/9).dc(size/2, size/2, size/2-size/2/5);
+			g.f(backgroundColor).dc(size/2,size/2,size/1.85);
+			g.s(borderColor).ss(borderWidth).dc(size/2, size/2, size/2-size/2/5);
 			but.addChild(box);
 
 			var check = but.check = new zim.Circle(size/5.2, indicatorColor, null, null, null, false);
@@ -11511,7 +11530,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for (var i=0; i<buttonsCopy.length; i++) {
 				buttonsCopy[i].label = buttonsCopy[i].label.clone();
 			}
-			return that.cloneProps(new zim.RadioButtons(size, buttonsCopy, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, style, this.group, inherit));
+			return that.cloneProps(new zim.RadioButtons(size, buttonsCopy, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, style, this.group, inherit));
 		}
 	}
 	zim.extend(zim.RadioButtons, zim.Container, "clone", "zimContainer", false);
@@ -11870,6 +11889,9 @@ label - access to the label of the current panel
 text - access to the text of the current panel
 arrow - access to the next arrow
 background - access to the background Rectangle
+extraButton - access to the Label for the extra button if extraButton parameter is set to true
+	use this to set the text in the button (a one letter button is expected - for instance, i for info, x for close, etc.)
+overlay - access to the overlay Rectangle used if enabled = false
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
@@ -12223,6 +12245,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (draggable) displayClose = false;
 		if (zot(backdropClose)) backdropClose=DS.backdropClose!=null?DS.backdropClose:true;
 		if (zot(fadeTime)) fadeTime=DS.fadeTime!=null?DS.fadeTime:0;
+		if (zot(close)) close=DS.close!=null?DS.close:false;
+		if (zot(closeColor)) closeColor=DS.closeColor!=null?DS.closeColor:"#555";
 
 		var backdrop = this.backdrop = new zim.Shape({style:false});
 		backdrop.type = "CreateJS_Shape";
@@ -12254,11 +12278,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			display = this.backing = this.display = new zim.Rectangle({
 				width:width, height:height, color:backgroundColor, corner:corner, style:false
 			});
-
 		} else {
 			if (backing.type == "Pattern") {
 				var pattern = backing;
-				display = new zim.Rectangle(width, height, color, null, null, corner, null, null, false);
+				// width, height, color, borderColor, borderWidth, corner, dashed, style, group, inherit
+				display = new zim.Rectangle(width, height, backgroundColor, null, null, corner, null, false);
 				pattern.centerReg(display);
 				pattern.setMask(display.shape);
 			} else {
@@ -12332,7 +12356,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		if (close) {
-			if (zot(closeColor)) closeColor = "#555";
 			var close = that.close = new zim.Shape(-40,-40,80,80,null,false);
 			close.graphics.f(closeColor).p("AmJEVIEUkTIkXkWIB4h5IEWEYIETkTIB4B3IkTESIEQERIh4B4IkRkRIkSEVg"); // width about 90 reg in middle
 			if (titleBar) close.addTo(that).scaleTo(titleBar, null, 50).mov(width/2-Math.max(corner/2, 10)-close.width/2, -height/2+titleBarHeight/2).expand(40);
@@ -12618,6 +12641,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(width)) width=DS.width!=null?DS.width:300;
 		if (zot(height)) height=DS.height!=null?DS.height:200;
 		if (zot(backgroundColor)) backgroundColor=DS.backgroundColor!=null?DS.backgroundColor:"#333";
+		var originalBorderColor = borderColor;
+		var originalBorderWidth = borderWidth;
 		if (zot(borderColor)) borderColor=DS.borderColor!=null?DS.borderColor:"#999";
 		if (zot(borderWidth)) borderWidth=DS.borderWidth!=null?DS.borderWidth:1; // 0
 		if (zot(padding)) padding=DS.padding!=null?DS.padding:0;
@@ -13115,7 +13140,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function(recursive) {
 			if (zot(recursive)) recursive = true;
-			var w = that.cloneProps(new zim.Window(width, height, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBar.color, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, style, group, inherit));
+			var w = that.cloneProps(new zim.Window(width, height, backgroundColor, originalBorderColor, originalBorderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBar.color, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, style, group, inherit));
 			if (recursive) {
 				that.content.cloneChildren(w.content);
 				w.update();
@@ -13137,6 +13162,492 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	}
 	zim.extend(zim.Window, zim.Container, ["clone", "dispose"], "zimContainer", false);
 	//-58.1
+
+/*--
+zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit)
+
+Layer
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+Layer is a ZIM Container with transform controls.
+ZIM transform() objects have their mousechildren turned off so they can be dragged and transformed.
+This means there can be no interactivity inside the transformed object.
+Layer provides a solution to nest transformed objects in transformable containers.
+It does so by providing a titleBar that can be used to turn on and off the transform of the container
+and allow its contents to be transformed when the transform controls of the Layer are turned off.
+This is more than just hiding the transform tools but rather removing and adding them.
+
+The Layer titleBar will always remain visible on the stage
+If the Layer is moved (not by its titleBar) so that the titleBar hits the edge,
+then the titleBar will become anchored to the edge (unless anchor is set to false)
+This creates an independent titleBar that can be moved to any location.
+The titleBarPos() method can also be used to separate the titleBar at any time.
+Drop the titleBar on the top left corner of the Layer or doubleClick it to snap it back on to the layer
+
+NOTE: Layers can be added to a Transform Manager and saved with the persist sytem.
+NOTE: Layers can be added to Layers (nested) along with any other type of DisplayObject content.
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+SEE: https://zimjs.com/explore/layer.html
+
+EXAMPLE
+// adding the Layers above the content will allow pressing Layer titleBar objects inside other Layers
+// adding everything right on the stage would not allow pressing titleBars inside other Layers - either way may be best, depending on content
+var content = new Container(stageW, stageH).addTo();
+var layers = new Container(stageW, stageH).addTo();
+
+// create an outer layer with two inner layers - one holding a circle and the other two circles
+var layer0 = new Layer(800, 500, "LAYER 0", layers).center(content);
+var layer1 = new Layer(300, 400, "LAYER 1", layers).loc(50,50,layer0);
+var circle1 = new Circle(50, pink).center(layer1).transform({visible:false});
+var layer2 = new Layer(300, 400, "LAYER 2", layers).pos(50,50,true,false,layer0);
+var circle2 = new Circle(50, green).center(layer2).mov(0, -80).transform({visible:false});
+var circle3 = new Circle(50, blue).center(layer2).mov(0, 80).transform({visible:false});
+
+// optionally store transforms
+var t = new TransformManager([layer0, layer1, layer2, circle1, circle2, circle3], "layersID");
+// t.clearPersist("layersID")
+
+layer2.titleBarPos(30,30); // position a titleBar for instance
+timeout(1000, function () {
+	layer2.resetTitleBar();
+	layer2.turnOn();
+
+	// if moving manually, must call resize()
+	layer2.mov(30);
+	layer2.resize();
+	stage.update();
+});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+
+width - (default 500) the width of the Layer Container
+height - (default 500) the height of the Layer Container not including the titleBar (which is not in the Container)
+titleBar - (default "LAYER") a String or ZIM Label for the titleBar
+titleBarContainer - (default null - ZimDefaultFrame' stage) a container for the titleBar
+	can group these with other Layers and hide them all by hiding the container for instance
+	this also can help layer the titleBars above the content
+backgroundColor - (default #eee) the background color of the titleBar
+rollBackgroundColor - (default #fff) the roll background color of the titleBar
+selectedBackgroundColor - (default #666) the selected background color of the titleBar
+color - (default #666) the color of the titleBar text
+rollColor - (default #666) the roll color of the titleBar text
+selectedColor - (default #ddd) the selected color of the titleBar text
+borderWidth - (default 1) the width of the ghost outline when the Layer is not selected
+	to adjust the transform controls border width use the transformObject parameter and set the borderWidth property
+borderColor - (default borderColor) the color of the ghost outline when the Layer is not selected
+	to adjust the transform controls border color use the transformObject parameter and set the borderColor property
+dashed - (default true) the dashed of the ghost outline when the Layer is not selected
+	to adjust the transform controls border dashed use the transformObject parameter and set the dashed property
+transformObject - (default {borderColor:selectedBackgroundColor}) any of the transform parameters as an object literal
+	certain properties are overwritten by Layer as follows:
+	{events:true, visible:false, ghostColor:borderColor, ghostWidth:borderWidth, ghostDashed:dashed, ghostHidden:true}
+	use the transformControls.show() to show the transform controls once the Layer is made for instance:
+	timeout(100, function(){layer.transformControls.show();}); // a timeout is needed as Layer gets created - sorry.
+titleBarWidth - (default 100 + 30 if close) the width of the titleBar.  30 pixels will be added if close is true
+titleBarHeight - (default 40) the height of the titleBar
+titleBarDraggable - (default true) set to false to not let the titleBar be dragged.
+	this is useful with the titleBarPos() to create a stationary menu for the layers - for instance along the edge like tabs
+close - (default true) - set to false to not use the close checkbox
+	WARNING: without the close checkbox, the user may make the layer bigger than the stage and not be able to deselect the layer
+closeColor - (default selectedBackgroundColor) the border of the close checkBox
+closeBackgroundColor - (default selectedBackgroundColor) the backgroundColor of the close checkBox
+closeIndicatorColor - (default selectedColor) the indicator color of the close checkBox
+anchor - (default true) set to false to not anchor the titleBar to the edge if dragged with the Layer (not the titleBar)
+	with anchor true, the user can dock the titleBar to the edges and then drag them to any desired location
+	the user can snap the titleBar back on the layer by dropping it on the top left corner of the layer or double clicking the titleBar
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+titleBarPos(x, y, right, bottom) - position the titleBar in the titleBarContainer - returns object for chaining
+	This will undock the titleBar from the Layer so it can be moved independently
+	unless titleBarDraggable is set to false
+resetTitleBar() - dock the titleBar back on the Layer - returns object for chaining
+toggle(state) - toggle the controls or turn on or off the controls by providing a Boolean state - returns object for chaining
+resize(dispatch) - resize the Layer and its children if Layer is manually adjusted - returns object for chaining
+	for instance, layer.x = 10; layer.resize(); otherwise, the transform controls are broken!
+	normal layer transforming using the controls automatically resize.
+	Setting dispatch to true will dispatch a "transformed" event
+hasProp(property as String) - returns true if property exists on object else returns false
+clone() - makes a copy with properties such as x, y, etc. also copied (returns the new waiter for chaining)
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+transformControls - the transform transformControls object - see below for a description
+anchor - get or set whether the titleBar will anchor to the edges of the titleBarContainer
+toggled - read only if Layer has its transform turned on - or use transformControls.visible
+	use toggle(state) to toggle controls or pass in true for show controls or false for hide controls
+titleBar - access to the ZIM Container that holds the titleBar
+checkBox - access to the ZIM CheckBox that shows when the Layer is active and close is true
+button - access to the ZIM Button that makes up the titleBar
+label - access to the ZIM Label that is on the Button for the titleBar
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
+width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
+height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
+widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
+heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+group - used when the object is made to add STYLE with the group selector (like a CSS class)
+
+ALSO: See the transformControls property described below for more options.
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+TRANSFORM CONTROL OBJECT
+Layer receives a transformControls property
+This may be slightly delayed as Layer is prepared on stage
+var layer = new Layer().center();
+timeout(100, function(){zog(layer.transformControls);}); // will probably do the trick
+The transformControls property holds the following:
+
+TRANSFORM CONTROL OBJECT PROPERTIES
+visible - read only whether the controls are visible
+ghost - read only as to whether the ghost outline is showing - set with showGhost and hideGhost
+ghostEnabled - read only as to whether the ghost outline will be turned on and off - set with addGhost and removeGhost
+scaleControls - reference to the Container that holds the corner boxes for scaling
+stretchXControls - reference to the Container that holds the left and right boxes for stretching
+stretchYControls - reference to the Container that holds the top and bottom boxes for stretching
+rotateControls - reference to the Container that holds the outer circles for rotating
+
+TRANSFORM CONTROL OBJECT METHODS
+hide() - hides the controls - returns object for chaining
+show() - shows the controls - returns object for chaining
+recordData(toJSON) - returns an object with type, x, y, scaleX, scaleY, rotation, skewX, skewY, visible PROPERTIES
+	if toJSON (default false) is set to true, the return value is a JSON string
+setData(data, fromJSON) - sets the properties to match the data object passed in - this should come from recordData()
+	if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
+	returns object for chaining
+remove(noHide) - removes the controls - set noHide true if already hidden
+add(noShow) - adds the controls back if then have been removed - set noShow true if not wanting to show
+allowToggleOn() - sets the show / hide controls on with click
+allowToggleOff() - removes the show / hide controls on with click
+showGhost() - show the ghost outline - the ghostWidth or ghostColor must be set in initial parameters
+hideGhost() - hide the ghost outline
+addGhost() - enable ghost outline functionality - the ghostWidth or ghostColor must be set in initial parameters
+removeGhost() - disable ghost outline functionality
+disable() - may show the controls if visible but cannot use them
+enable() - turns the using of the controls back on
+resize(dispatch) - call resize if the object is transformed in ways other than with the controls
+	set dispatch to true to dispatch a "transformed" event - if manually adjusted this will save to TransformManager
+
+EVENTS
+dispatches a "transformed" event when being transformed
+	the transformed event object has a transformType property
+	the transformType property has values of "size", "move", "rotate", "stretch", "reg", "reset"
+	the transformType also might be "resize" if resize(true) is called to dispatch a transformed event
+	the transformed event object also has a pressup property that is true if on pressup and null if from pressmove
+dispatches "transformshow" and "transformhide" events for when click to hide or show controls
+If TransformManager() is used there are more events available such as "persistset", etc.
+
+See the CreateJS Easel Docs for Container events, such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+--*///+58.5
+	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
+		var sig = "width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit";
+		var duo; if (duo = zob(zim.Layer, arguments, sig, this)) return duo;
+		z_d("58.5");
+
+		this.group = group;
+		var DS = style===false?{}:zim.getStyle("Layer", this.group, inherit);
+
+		if (zot(width)) width=DS.width!=null?DS.width:500;
+		if (zot(height)) height=DS.height!=null?DS.height:500;
+
+		this.zimContainer_constructor(0,0,width,height,false);
+		this.type = "Layer";
+
+		var that = this;
+		that.distX = 40; // titleBar distance from top left corner of Container
+		that.distY = 0;
+		if (zot(titleBar)) titleBar=DS.titleBar!=null?DS.titleBar:"LAYER";
+		var titleBarOriginal = titleBar;
+		var titleBarText = titleBar;
+		var titleBarDefault = true;
+
+		if (zot(backgroundColor)) backgroundColor=DS.backgroundColor!=null?DS.backgroundColor:"#eee";
+		if (zot(rollBackgroundColor)) rollBackgroundColor=DS.rollBackgroundColor!=null?DS.rollBackgroundColor:"#fff";
+		if (zot(selectedBackgroundColor)) selectedBackgroundColor=DS.selectedBackgroundColor!=null?DS.selectedBackgroundColor:"#666";
+		if (zot(color)) color=DS.color!=null?DS.color:"#666";
+		if (zot(rollColor)) rollColor=DS.rollColor!=null?DS.rollColor:"#666";
+		if (zot(selectedColor)) selectedColor=DS.selectedColor!=null?DS.selectedColor:"#ddd";
+		if (zot(borderWidth)) borderWidth=DS.borderWidth!=null?DS.borderWidth:1;
+		if (zot(borderColor)) borderColor=DS.borderColor!=null?DS.borderColor:backgroundColor;
+		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
+		if (zot(dashed)) dashed=DS.dashed!=null?DS.dashed:true;
+		if (zot(transformObject)) transformObject=DS.titleBar!=null?DS.titleBar:null;
+		if (zot(titleBarWidth)) titleBarWidth=DS.titleBarWidth!=null?DS.titleBarWidth:100;
+		var originalTitleBarWidth = titleBarWidth;
+		if (zot(titleBarHeight)) titleBarHeight=DS.titleBarHeight!=null?DS.titleBarHeight:40;
+		if (zot(titleBarDraggable)) titleBarDraggable=DS.titleBarDraggable!=null?DS.titleBarDraggable:true;
+		if (zot(close)) close=DS.close!=null?DS.close:true;
+		if (zot(closeColor)) closeColor=DS.closeColor!=null?DS.closeColor:selectedBackgroundColor;
+		if (zot(closeBackgroundColor)) closeBackgroundColor=DS.closeBackgroundColor!=null?DS.closeBackgroundColor:selectedBackgroundColor;
+		if (zot(closeIndicatorColor)) closeIndicatorColor=DS.closeIndicatorColor!=null?DS.closeIndicatorColor:selectedColor;
+		if (zot(anchor)) anchor=DS.anchor!=null?DS.anchor:true;
+		if (!titleBarDraggable) anchor = false;
+		that.anchor = anchor;
+		if (close) titleBarWidth += 30;
+
+		transformObject = zim.merge({borderColor:selectedBackgroundColor}, transformObject, {events:true, visible:false, ghostColor:borderColor, ghostWidth:borderWidth, ghostDashed:dashed, ghostHidden:true});
+
+		// do the defaultFrame thing for the container
+		if (zot(titleBarContainer)) titleBarContainer=DS.titleBarContainer!=null?DS.titleBarContainer:null;
+		if (zot(titleBarContainer)) {
+			if (zimDefaultFrame) {
+				titleBarContainer = zimDefaultFrame.stage;
+			} else {
+				zog("zim Layer(): Please pass in a reference to a container with bounds set.");
+				return;
+			}
+		}
+
+		var downCheck = false;
+		that.active = false;
+		that.turnOff = function(noHide, noShow) {
+			that.active = false;
+			if (close) that.checkBox.visible = false;
+			that.mouseChildren = true;
+			that.button.backgroundColor = backgroundColor;
+			that.button.rollBackgroundColor = rollBackgroundColor;
+			that.button.color = color;
+			that.button.rollColor = color;
+			that.transformControls.allowToggleOff();
+			if (that.resizeChildren) that.resizeChildren();
+		}
+		that.turnOn = function() {
+			that.active = true;
+			if (close) {
+				that.checkBox.visible = true;
+				that.checkBox.checked = true;
+			}
+			that.button.backgroundColor = selectedBackgroundColor;
+			that.button.rollBackgroundColor = selectedBackgroundColor;
+			that.button.color = selectedColor;
+			that.button.rollColor = selectedColor;
+			that.mouseChildren = false;
+			that.transformControls.add();
+			that.transformControls.allowToggleOn();
+		}
+		var stage;
+		that.titleBarPos = function(x, y) {
+			if (titleBar.pos) {
+				titleBar.pos(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5], arguments[6], arguments[7], arguments[8], arguments[9]); // ES6 wish
+				stage.update();
+			} else {
+				that.distX = x;
+				that.distY = y;
+			}
+			titleBarDefault = false;
+			return that;
+		}
+		var lastVisible = that.visible;
+		that.visible = false;
+		this.added(function (theStage) {
+			that.transform(transformObject); // in case persist is set do this first and wait a little bit with visible false
+			if (borderWidth >= 0) that.transformControls.hideGhost();
+			timeout(50, function () {
+				that.visible = lastVisible;
+				if (borderWidth >= 0) {
+					timeout(100, function(){
+						that.transformControls.showGhost();
+						stage.update();
+					});
+				}
+				stage = theStage;
+				var titleBar = that.titleBar = new Container(titleBarWidth, titleBarHeight)
+					.reg(0,titleBarHeight)
+					.loc(that, null, titleBarContainer)
+					.mov(that.distX,that.distY);
+				if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
+				if (that.distX != 40 || that.distY !=0) {
+					titleBar.pos(that.distX, that.distY);
+				}
+				if (close) {
+					that.checkBox = new CheckBox({
+						borderColor:closeColor,
+						backgroundColor:closeBackgroundColor,
+						indicatorColor:closeIndicatorColor,
+						size:titleBar.height/2, startChecked:true
+					}).center(titleBar).pos(0, null, true).change(function () {
+						that.turnOff(true, true);
+					});
+					that.checkBox.visible = false;
+				}
+				titleBar.mouseChildren = true;
+				titleBar.layer = that;
+
+				that.resetTitleBar = function() {
+					that.distX = 40;
+					that.distY = 0;
+					titleBarDefault = true;
+					that.move(true);
+					stage.update();
+				}
+
+				if (typeof titleBarText === "string" || typeof titleBarText === "number") titleBarText = new zim.Label({
+					text:titleBarText, color:color, rollColor:rollColor, size:DS.size!=null?DS.size:18,
+					group:this.group
+				});
+				that.label = titleBarText;
+				that.label.center(titleBar);
+
+				that.button = new Button({
+					shadowBlur:-1,
+					width:originalTitleBarWidth, height:titleBarHeight-2, label:that.label,
+					color:color,
+					rollColor:rollColor,
+					backgroundColor:backgroundColor,
+					rollBackgroundColor:rollBackgroundColor,
+					corner:0
+				}).addTo(titleBar);
+				that.button.on("mousedown", function () {
+					downCheck = true;
+					// all other layers get turned off
+					titleBarContainer.loop(function (bar) {
+						if (bar && bar != titleBar && bar.layer && bar.layer.turnOff && bar.layer.active) bar.layer.turnOff(true, true);
+					});
+					that.turnOn();
+					titleBar.top();
+				});
+				that.button.on("pressmove", function(){matchLocation()});
+				that.button.on("pressup", function () {
+					matchLocation(true);
+					var point = that.parent.localToLocal(that.x, that.y, titleBar.parent);
+					that.distX = titleBar.x-point.x;
+					that.distY = titleBar.y-point.y;
+					titleBar.top();
+					downCheck = false;
+					if (that.button.hitTestReg(that.transformControls.scaleControls.getChildAt(0))) that.resetTitleBar();
+				});
+				function matchLocation(dispatch) {
+					if (titleBarDefault) {
+						var point = titleBar.parent.localToLocal(titleBar.x-that.distX, titleBar.y-that.distY, that.parent);
+						that.x = point.x;
+						that.y = point.y;
+						that.transformControls.resize(dispatch); // TransformManager saves all objects any time a single object changes
+						that.loop(function (obj) {
+							if (obj.type == "Layer") {
+								obj.move();
+								if (obj.transformControls.ghost) obj.transformControls.resize(); // to move ghost
+							}
+						});
+					}
+				}
+				that.button.on("dblclick", function () {
+					that.resetTitleBar();
+				});
+
+				that.turnOff();
+				that.on("transformed", function (e) {
+					if (e.transformType=="move" || e.transformType=="size" || e.transformType=="stretch") {
+						that.move();
+						that.loop(function (obj) {
+							if (obj.type == "Layer") {
+								obj.move();
+								if (obj.transformControls.ghost) obj.transformControls.resize(); // to move ghost
+							}
+						});
+					}
+				});
+				that.move = function(override) {
+					if (!override && !titleBarDefault && that.anchor) {
+						if (titleBar.x == 0) return;
+						if (titleBar.y == titleBar.height) return;
+						if (titleBar.x == titleBarContainer.width-titleBar.width) return;
+						if (titleBar.y == titleBarContainer.height) return;
+					}
+					titleBar.loc(that).mov(that.distX, that.distY);
+					if (titleBar.x < 0) {titleBarDefault=false; titleBar.x = 0;}
+					if (titleBar.y < titleBar.height) {titleBarDefault=false; titleBar.y = titleBar.height;}
+					if (titleBar.x > titleBarContainer.width-titleBar.width) {titleBarDefault=false; titleBar.x = titleBarContainer.width-titleBar.width;}
+					if (titleBar.y > titleBarContainer.height) {titleBarDefault=false; titleBar.y =titleBarContainer.height}
+					if (!that.anchor) titleBarDefault = true;
+				}
+				that.on("transformhide", function() {
+					that.turnOff(true, true);
+					titleBarContainer.loop(function (bar) {
+						if (bar && bar != titleBar && bar.layer && bar.layer.turnOff && bar.layer.active) bar.layer.turnOff();
+					});
+				});
+				that.resizeChildren = function(dispatch) {
+					that.transformControls.resize(dispatch);
+					if (that.transformControls.visible) that.transformControls.hide();
+					that.loop(function (obj) {
+						if (obj.transformControls) {
+							if (obj.transformControls.visible) obj.transformControls.hide();
+							if (obj.type == "Layer") {
+								obj.resizeChildren();
+							} else {
+								obj.transformControls.resize();
+							}
+						}
+					});
+				}
+				that.resize = function(dispatch) {
+                    that.move();
+                    that.resizeChildren(dispatch);
+					return that;
+                }
+				that.toggled = false;
+				function setToggled() {
+					if (that.toggled) {
+						titleBarContainer.loop(function (bar) {
+							if (bar && bar != titleBar && bar.layer && bar.layer.turnOff && bar.layer.active) bar.layer.turnOff();
+						});
+						that.turnOn();
+					} else {
+						titleBar.top();
+						that.turnOff();
+						titleBarContainer.loop(function (bar) {
+							if (bar && bar != titleBar && bar.layer && bar.layer.turnOff && bar.layer.active) bar.layer.turnOff();
+						});
+					}
+					if (that.stage) that.stage.update();
+				}
+				that.toggle = function(state) {
+					if (zot(state)) {
+						that.toggled = !that.toggled;
+					} else {
+						that.toggled = state;
+					}
+					setToggled();
+					return that;
+				}
+				stage.on("stagemouseup", function () {
+					if (that.transformControls.visible) titleBar.top();
+				});
+			}); // end timeout
+		}); // end added
+
+		if (style!==false) zimStyleTransforms(this, DS)
+		this.clone = function() {
+			return that.cloneProps(new zim.Layer(width, height, titleBarOriginal, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, originalTitleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, this.group, inherit));
+		}
+
+		this.dispose = function() {
+			that.transformControls.remove();
+			that.transformControls.disable();
+			this.zimContainer_dispose();
+			return true;
+		}
+	}
+	zim.extend(zim.Layer, zim.Container, ["clone", "dispose"], "zimContainer", false);
+	//-58.5
 
 /*--
 zim.Waiter = function(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group, inherit)
@@ -13196,12 +13707,12 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - holds the class name as a String
+display - reference to the waiter backing graphic
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
-display - reference to the waiter backing graphic
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 
@@ -14044,6 +14555,7 @@ label - gets current selected label object
 items (or list) - read-only array of list button objects or objects in the list
 	this will change from the list entered as parameters as strings are turned into tab buttons, etc.
 	use addAt() and removeAt() methods to manipulate
+itemsText - read-only array of text for labels (or null element if no label)
 itemWidth - the width of each item (unless custom items)
 itemHeight - the height of each item (unless custom items)
 length - read-only length of the list
@@ -14107,6 +14619,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(selectedColor)) selectedColor = DS.selectedColor!=null?DS.selectedColor:color;
 		if (zot(backdropColor)) backdropColor = DS.backdropColor!=null?DS.backdropColor:backdropColor;
 
+		var originalBorderColor = borderColor;
+		var originalBorderWidth = borderWidth;
 		if (zot(borderColor)) borderColor=DS.borderColor!=null?DS.borderColor:"#999";
 		if (zot(borderWidth)) borderWidth=DS.borderWidth!=null?DS.borderWidth:1; // 0
 		// if (vertical && zot(padding) && zot(paddingVertical)) paddingVertical = spacing;
@@ -14378,7 +14892,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, this.group, inherit));
+			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, this.group, inherit));
 		}
 	}
 	zim.extend(zim.List, zim.Window, "clone", "zimWindow", false);
@@ -16522,6 +17036,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (item.constructor === {}.constructor) {
 					if (mixType && mixType != "TabObject") mix = true;
 					mixType = "TabObject";
+					item.type = "TabObject";
 					continue;
 				}
 				if (typeof item == "string" || typeof item == "number" || item.type == "Label") {
@@ -18595,11 +19110,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		function positionBlinker() {
 			if (!currentLabel) return;
-			var positionXBlinker = 0;
+			// Dan Zen added 9.4.2 using CreateJS Label to avoid padding and backing issues and addition of bounds x for align issues
+			var positionXBlinker = currentLabel.label.x + currentLabel.label.getBounds().x;
 			for (var i=0; i<insertPoint;i++) {
 				positionXBlinker += currentLabel.widthArray[i];
 			}
-			textBlinker.heightOnly = currentLabel.getBounds().height-(currentLabel.paddingVertical?currentLabel.paddingVertical*2:0);
+			// Dan Zen added 9.4.2 padding for three types of Label (backing, backgroundColor and neither)
+			textBlinker.heightOnly = currentLabel.getBounds().height*(currentLabel.backing&&zot(currentLabel.padding)?.9:1)-((currentLabel.paddingVertical&&currentLabel.background)?currentLabel.paddingVertical*2:0);
 			textBlinker.center(currentLabel);
 			textBlinker.x = positionXBlinker;
 		}
@@ -18666,25 +19183,28 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (currentStatus === statuses.shift) {
 					letter = letter.toUpperCase();
 				}
-				if (currentLabel && currentLabel.width<maxWidth) {
-					//letter meten
-					measureField = currentLabel.clone().removeFrom();
-					measureField.text = letter;
-					widthMeasureField = measureField.label.getMeasuredWidth();
-					if (!currentLabel.widthArray) {
-						currentLabel.widthArray = [currentLabel.breedte];
-					} else {
-						currentLabel.widthArray.splice(insertPoint,0,widthMeasureField);
-					}
-					//toevoegen in string
-					if (insertPoint<currentLabel.text.length) {
-						currentLabel.text = [currentLabel.text.slice(0,insertPoint),letter,currentLabel.text.slice(insertPoint)].join('');
-					} else {
-						// currentLabel.text+="\u202E" + letter;
-						currentLabel.text+=letter;
-					}
+				var textBeforeCheck = currentLabel.text;
+				measureField = currentLabel.clone().removeFrom();
+				measureField.text = letter;
+				widthMeasureField = measureField.label.getMeasuredWidth();
+				if (!currentLabel.widthArray) {
+					currentLabel.widthArray = [currentLabel.breedte];
+				} else {
+					currentLabel.widthArray.splice(insertPoint,0,widthMeasureField);
+				}
+				//toevoegen in string
+				if (insertPoint<currentLabel.text.length) {
+					currentLabel.text = [currentLabel.text.slice(0,insertPoint),letter,currentLabel.text.slice(insertPoint)].join('');
+				} else {
+					// currentLabel.text+="\u202E" + letter;
+					currentLabel.text+=letter;
+				}
+				// if (currentLabel && currentLabel.width<maxWidth) {
+				if (currentLabel && currentLabel.label.getBounds().width<maxWidth) {
 					insertPoint++;
 					positionBlinker();
+				} else {
+					currentLabel.text = textBeforeCheck;
 				}
 			}
 			if (currentStatus === statuses.shift&&!bigShiftOn) {
@@ -18708,7 +19228,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			currentLabel = e.target;
 			if (!currentLabel.widthArrayCheck) makeWidthsArray();
 			maxWidth = currentLabel.label.lineWidth?currentLabel.label.lineWidth:10000;
-			point = currentLabel.globalToLocal(e.stageX, e.stageY);
+			// Dan Zen added 9.4.2 point relative to actual CreateJS Label - to avoid padding and backing issues
+			point = currentLabel.label.globalToLocal(e.stageX, e.stageY);
 			// point opzoeken in array textfield door op te tellen
 			// for (var i=currentLabel.widthArray.length-1; i>=0; i--) {
 			// 	sumUp += currentLabel.widthArray[i];
@@ -18731,7 +19252,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			// }
 			for (var i=0; i<currentLabel.widthArray.length; i++) {
 				sumUp += currentLabel.widthArray[i];
-				if (point.x < sumUp-currentLabel.widthArray[i]/2) {
+				// Dan Zen added 9.4.2 addition of bounds x for when align is center or right
+				if (point.x < sumUp-currentLabel.widthArray[i]/2+currentLabel.label.getBounds().x) {
 					insertPoint = i;
 					found = true;
 					break;
@@ -18820,7 +19342,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		    currentLabel = labels[0];
 			maxWidth = (currentLabel && currentLabel.label.lineWidth)?currentLabel.label.lineWidth:10000;
 		    if (currentLabel) {
-		        textBlinker = new zim.Rectangle(3, currentLabel.height-(currentLabel.paddingVertical?currentLabel.paddingVertical*2:0), cursorColor, null, null, null, null, false).center(currentLabel);;
+		        textBlinker = new zim.Rectangle(3, currentLabel.height-((currentLabel.paddingVertical&&currentLabel.background)?currentLabel.paddingVertical*2:0), cursorColor, null, null, null, null, false).center(currentLabel);;
 		        textBlinker.x = 0;
 				textBlinker.visible = false;
 		        textBlinker.animate({
@@ -18872,7 +19394,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		this.show = function(index) {
 			that.addTo(container);
-			that.resize();
+			// that.resize();
 			if (!zot(index)) {
 				var obj = {target:labels[index]};
 				activateLabel(obj);
@@ -18957,6 +19479,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (that.stage) that.stage.update();
 			return that;
 		}
+		this.resize();
 
 		if (that.selectedLabel) that.selectedIndex = that.selectedLabel.text.length;
 
@@ -21361,7 +21884,7 @@ RETURNS obj for chaining
 		if (zot(distance)) distance = 5;
 		if (zot(time)) time = 10000;
 		if (zot(once)) once = false;
-		if (obj.pointer) obj.cursor = "pointer";
+		obj.cursor = "pointer";
 		obj.zimClickDownEvent = obj.on("mousedown", function (e) {
 			if (e.currentTarget.type == "List") {
 				if (e.target.type == "WindowBacking") return;
@@ -22006,7 +22529,7 @@ RETURNS obj for chaining
 	zim.dragRect = zim.dragBoundary; // backwards compatible
 
 /*--
-obj.transform = function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache)
+obj.transform = function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden)
 
 transform
 zim DisplayObject method
@@ -22080,6 +22603,12 @@ snapRotation - (default 5) rotation will snap to angles divisible by this value
 	holding CTRL will avoid snapping
 	holding SHIFT will rotate only multiples of 45 degrees
 cache (default true) - set to false to not cache the controls and cursors
+events (default false) - set to true to receive events while controls are being opertated
+	otherwise events will only trigger on pressup (not pressmove) - this conserves processing
+ghostColor (default null) - color of outline when transform tools are not showing
+ghostWidth (default null) - width of outline when transform tools are not showing
+ghostDashed (default true) - dashed of outline if ghostColor or ghostWidth is set
+ghostHidden (default false) - set to true to start with ghostHidden
 
 PROPERTIES
 toggled - adds a read-only Boolean to the object that is true if controls are showing otherwise false
@@ -22095,6 +22624,8 @@ This holds the following:
 
 PROPERTIES:
 visible - read only whether the controls are visible
+ghost - read only as to whether the ghost outline is showing - set with showGhost and hideGhost
+ghostEnabled - read only as to whether the ghost outline will be turned on and off - set with addGhost and removeGhost
 scaleControls - reference to the Container that holds the corner boxes for scaling
 stretchXControls - reference to the Container that holds the left and right boxes for stretching
 stretchYControls - reference to the Container that holds the top and bottom boxes for stretching
@@ -22108,24 +22639,32 @@ recordData(toJSON) - returns an object with type, x, y, scaleX, scaleY, rotation
 setData(data, fromJSON) - sets the properties to match the data object passed in - this should come from recordData()
 	if fromJSON (default false) is set to true, it will assume a JSON string is passed in as data
 	returns object for chaining
-remove() - removes the controls and turns off the dblclick
-add() - adds the controls back if then have been removed and sets the dblclick to its starting value
+remove(noHide) - removes the controls - set noHide true if already hidden
+add(noShow) - adds the controls back if then have been removed - set noShow true if not wanting to show
 allowToggleOn() - sets the show / hide controls on with click
 allowToggleOff() - removes the show / hide controls on with click
+showGhost() - show the ghost outline - the ghostWidth or ghostColor must be set in initial parameters
+hideGhost() - hide the ghost outline
+addGhost() - enable ghost outline functionality - the ghostWidth or ghostColor must be set in initial parameters
+removeGhost() - disable ghost outline functionality
 disable() - may show the controls if visible but cannot use them
 enable() - turns the using of the controls back on
-resize() - call resize if the object is transformed in ways other than with the controls
+resize(dispatch) - call resize if the object is transformed in ways other than with the controls
+	set dispatch to true to dispatch a "transformed" event - if manually adjusted this will save to TransformManager
 
 EVENTS
-Adds a transformed event to obj that is dispatched when pressup on any of the controls or on click
+Adds a "transformed" event to obj that is dispatched when pressup on any of the controls or on click
+	if the events parameter (or events property on transformControls) is set to true then these happen on pressmove of controls
 	the transformed event object has a transformType property
 	the transformType property has values of "size", "move", "rotate", "stretch", "reg" "reset"
-Adds transformshow and transformhide events for when click to hide or show controls
+	the transformed event object also has a pressup property that is true if on pressup and false if from pressmove
+Adds "transformshow" and "transformhide" events for when click to hide or show controls
+If TransformManager() is used there are more events available such as "persistset", etc.
 
 RETURNS obj for chaining
 --*///+33.5
-	zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
-		var sig = "obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache";
+	zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden) {
+		var sig = "obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden";
 		var duo; if (duo = zob(zim.transform, arguments, sig)) return duo;
 		z_d("33.5");
 
@@ -22151,12 +22690,22 @@ RETURNS obj for chaining
 		if (zot(showBorder)) showBorder = true;
 		if (zot(borderColor)) borderColor = "brown";
 		if (zot(borderWidth)) borderWidth = 1;
+
+		if (zot(ghostColor)) ghostColor = null;
+		if (zot(ghostWidth)) ghostWidth = null;
+		if (ghostColor < 0 || ghostWidth < 0) ghostColor = ghostWidth = null;
+		else if (ghostColor!=null && ghostWidth==null) ghostWidth = 1;
+		if (zot(ghostDashed)) ghostDashed = true;
+		if (zot(ghostHidden)) ghostHidden = false;
+
+
 		if (zot(customCursors)) customCursors = mobile?false:true;
 		if (zot(handleSize)) handleSize = zim.mobile()?20:10;
 		if (zot(regSize)) regSize = 16;
 		if (zot(snapDistance)) snapDistance = 10;
 		if (zot(snapRotation)) snapRotation = 5;
 		if (zot(cache)) cache = true;
+		if (zot(events)) events = false;
 
 		obj.mouseChildren = false;
 
@@ -22174,10 +22723,13 @@ RETURNS obj for chaining
 
 		var oB = obj.getBounds();
 		var shape = new zim.Shape({style:false}); // bound rect
+		var shapeG = new zim.Shape({style:false}); // ghost rect
 		var shapeR = new zim.Shape({style:false}); // registration point
+		shapeG.mouseEnabled = false;
 		shapeR.controlType = "reg";
 		var p = obj.parent;
 		var g = shape.graphics;
+		var gG = shapeG.graphics;
 		var gR = shapeR.graphics;
 		var pTL;
 		var pTR;
@@ -22319,6 +22871,7 @@ RETURNS obj for chaining
 
 		function makeControls() {
 			g.c();
+			gG.c();
 			gR.c();
 			pTL = obj.localToGlobal(oB.x, oB.y);
 			pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
@@ -22339,6 +22892,17 @@ RETURNS obj for chaining
 				g.s(borderColor);
 				if (dashed) g.sd([10, 5], 0);
 				g.ss(borderWidth)
+					.mt(pTL.x, pTL.y)
+					.lt(pTR.x, pTR.y)
+					.lt(pBR.x, pBR.y)
+					.lt(pBL.x, pBL.y)
+					.lt(pTL.x, pTL.y)
+					.cp();
+			}
+			if (!zot(ghostColor)) {
+				gG.s(ghostColor);
+				if (ghostDashed) gG.sd([10, 5], 0);
+				gG.ss(ghostWidth)
 					.mt(pTL.x, pTL.y)
 					.lt(pTR.x, pTR.y)
 					.lt(pBR.x, pBR.y)
@@ -22584,6 +23148,10 @@ RETURNS obj for chaining
 				obj.y -= (newCornerPoint.y-cornerPoint.y) * zim.sign(totalScaleY) * zim.sign(obj.scaleY);
 			}
 			makeControls();
+			if (obj.transformControls.events) {
+				var type = e.target.controlType;
+				dispatchEvents(e, type);
+			}
 		};
 
 		function rotatePressmove(e) {
@@ -22603,6 +23171,10 @@ RETURNS obj for chaining
 				carrier2.y = e.stageY;
 			}
 			makeControls();
+			if (obj.transformControls.events) {
+				var type = e.target.controlType;
+				dispatchEvents(e, type);
+			}
 		};
 
 		function pressUp(e, reset) {
@@ -22610,6 +23182,10 @@ RETURNS obj for chaining
 			var type = e ? e.target.controlType : "move";
 			if (reset) type = "reset";
 			if (customCursors) carrier2.removeFrom(stage);
+			dispatchEvents(e, type, true);
+		}
+
+		function dispatchEvents(e, type, pressup) {
 			var tCheck = false;
 			transformEvent = null;
 			if (type == "move") {
@@ -22644,18 +23220,20 @@ RETURNS obj for chaining
 			} else if (type == "reset") {
 				transformEvent = new createjs.Event("transformed");
 				transformEvent.transformType = "reset";
-			}else {
+			} else {
 				transformEvent = new createjs.Event("transformed");
 				transformEvent.transformType = "unknown";
 			}
-
 			if (!tCheck) {
 				carrier.removeFrom(stage);
 				frame.canvas.style.cursor = "default";
 				obj.cursor = objCursor;
 			}
-			stage.update();
-			if (transformEvent) obj.dispatchEvent(transformEvent);
+			// stage.update();
+			if (transformEvent) {
+				transformEvent.pressup = pressup;
+				obj.dispatchEvent(transformEvent);
+			}
 		}
 
 		function showCustomCursor(e) { // not drag
@@ -22780,11 +23358,15 @@ RETURNS obj for chaining
 			});
 		}
 		dragger.on("mousedown", upTop);
-		dragger.on("pressmove", function() {
+		dragger.on("pressmove", function(e) {
 			var point = p.globalToLocal(dragger.x, dragger.y);
 			obj.x = point.x;
 			obj.y = point.y;
 			makeControls();
+			if (obj.transformControls.events) {
+				var type = "move";
+				dispatchEvents(e, type);
+			}
 		});
 		dragger.on("pressup", pressUp);
 
@@ -22852,21 +23434,22 @@ RETURNS obj for chaining
 		var toggleStart = allowToggle;
 		obj.transformControls = {
 			visible:visible,
-
+			events:events,
+			ghost:!zot(ghostColor),
+			ghostEnabled:!zot(ghostColor),
 			show:function() {
 				if (onTop) upTop();
 				else addControls();
 				obj.toggled = true;
 				obj.transformControls.visible = true;
-				// if (move) {
-					// obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
-					// obj.on("pressmove", pressmoveEvent);
-				// }
+				if (shapeG.parent) shapeG.removeFrom();
 				stage.update();
 				return obj;
 			},
 			hide:function() {
+				if (obj.transformControls.ghost) var index = stage.getChildIndex(controls);
 				stage.removeChild(controls);
+				if (obj.transformControls.ghost && obj.transformControls.ghostEnabled) stage.addChildAt(shapeG, index);
 				obj.toggled = false;
 				obj.transformControls.visible = false;
 				if (customCursors) {
@@ -22880,16 +23463,22 @@ RETURNS obj for chaining
 				stage.update();
 				return obj;
 			},
-			remove:function() {
-				obj.transformControls.hide();
+			remove:function(noHide) {
+				if (!noHide) {
+					obj.transformControls.hide();
+					obj.dispatchEvent("transformhide");
+				}
 				toggle = false;
 				if (move) {
 					obj.noDrag();
 					obj.off("pressmove", pressmoveEvent);
 				}
 			},
-			add:function() {
-				obj.transformControls.show();
+			add:function(noShow) {
+				if (!noShow) {
+					obj.transformControls.show();
+					obj.dispatchEvent("transformshow");
+				}
 				toggle = toggleStart;
 				if (move) {
 					obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
@@ -22951,20 +23540,48 @@ RETURNS obj for chaining
 				for (var i in data) {
 					obj[i] = data[i];
 				}
-				makeControls();
-				drawDragger();
-				setRotators();
-				p.setChildIndex(obj, index);
-				if (visible) obj.transformControls.show();
-				else obj.transformControls.hide();
+				timeout(90, function () { // added 9.4.2 - watch to see if there is an issue - nested positions were not ready
+					makeControls();
+					drawDragger();
+					setRotators();
+					p.setChildIndex(obj, index);
+					if (obj.transformControls.visible && obj.type != "Layer") obj.transformControls.show();
+					else obj.transformControls.hide();
+					if (obj.transformControls.ghost && !obj.transformControls.ghostEnabled && !obj.transformControls.visible) stage.addChild(shapeG);
+				})
 				return obj;
 			},
-			resize:function() {
+			hideGhost:function() {
+				obj.transformControls.ghost = false;
+				shapeG.removeFrom();
+            },
+            showGhost:function() {
+				obj.transformControls.ghost = true;
+				if (obj.transformControls.ghostEnabled && !obj.transformControls.visible) shapeG.addTo(stage);
+            },
+			addGhost:function() {
+				if (ghostWidth > 0) {
+					obj.transformControls.ghostEnabled = true;
+					obj.transformControls.showGhost();
+				}
+				else {if (zon) zog("ZIM transform() - ghostWidth must be > 0 when making transform");}
+            },
+            removeGhost:function() {
+				obj.transformControls.ghostEnabled = false;
+				obj.transformControls.hideGhost();
+            },
+			resize:function(dispatch) {
 				p = obj.parent;
 				makeControls();
 				drawDragger();
 				setRotators();
 				if (visible) obj.transformControls.show(); // bring on top
+				if (dispatch) {
+					var transformEvent = new createjs.Event("transformed");
+					transformEvent.pressup = true;
+					transformEvent.transformType = "resize";
+					obj.dispatchEvent(transformEvent);
+				}
 				return obj;
 			},
 			dispose:function() {
@@ -23000,6 +23617,7 @@ RETURNS obj for chaining
 			return obj;
 		}
 		if (visible) obj.transformControls.show();
+		else if (!ghostHidden && obj.transformControls.ghost) obj.transformControls.showGhost();
 
 		return obj;
 
@@ -26917,7 +27535,8 @@ zim.getStyle = function(type, group, inherit) {
 		}
 		val = functionList.indexOf(s)==-1?zik(DS[s]):DS[s]; // do not zik configuration objects of methods
 		if (val=="ignore") {delete DS[s]; continue;}
-		else if (val && val.clone && val.type != type) val = val.clone();
+		// not sure what the line below was for - maybe auto cloning a bitmap? but had to remove it ZIM 9.4.2 when debugging addTo STYLE issues
+	 	// else if (val && val.clone && val.type != type && val.type != "Stage" && val.type != "StageGL") val = val.clone();
 		// copy config objects with clone except for type container - do not center or centerReg on shape
 		else if (val && val.constructor === {}.constructor) val = zim.copy(val, true, false);
 		DS[s] = val;
@@ -26935,17 +27554,20 @@ var zimTransformList = ["visible","x","y","scale","scaleX","scaleY","rotation","
 var zimStyleTransforms = function(obj, styles) {
 	if (styles) {
 		if (styles.add) {
-			if (obj.type == "Button") zog("add")
 			obj.addTo();
 		}
 		if (styles.addTo) {
-			obj.addTo(styles.addTo.constructor==={}.constructor?styles.addTo:null);
+			obj.addTo(styles.addTo===true?null:styles.addTo);
+			// not sure what these were doing below but replaced them with above... ZIM 9.4.2
+			//obj.addTo(styles.addTo.constructor==={}.constructor?styles.addTo:null);
 		}
 		if (styles.center) {
-			obj.center(styles.center.constructor==={}.constructor?styles.center:null);
+			obj.center(styles.center===true?null:styles.center);
+			// obj.center(styles.center.constructor==={}.constructor?styles.center:null);
 		}
 		if (styles.centerReg) {
-			obj.centerReg(styles.centerReg.constructor==={}.constructor?styles.centerReg:null);
+			obj.centerReg(styles.centerReg===true?null:styles.centerReg);
+			//obj.centerReg(styles.centerReg.constructor==={}.constructor?styles.centerReg:null);
 		}
 		for (var i=0; i<zimTransformList.length; i++) {
 			if (styles[zimTransformList[i]]!=null) obj[zimTransformList[i]] = zik(styles[zimTransformList[i]]);
@@ -31027,8 +31649,10 @@ Dispatches a "transformed" event when pressup on any of the controls or on click
 	the transformType property has values of:
 	 	FOR TRANSFORM: "size", "move", "rotate", "stretch", "reg" "reset"
 	 	FOR BLOB, SQUIGGLE: "move", "bezierPoint", "bezierHandle", "bezierSwitch"
-Adds transformshow and transformhide events for when click to hide or show controls
+Adds "transformshow" and "transformhide" events for when click to hide or show controls
 	these have a transformObject property to indicate what was shown or hidden
+Dispatches, on each object, a "persistset" event when persist data is ready - could be delayed 50ms due to Layer being created
+Dispatches a "persistcomplete" event when all persist data has been set + 100ms for layers to be set before applying controls
 
 --*///+75.7
 	zim.TransformManager = function(objects, persistID) {
@@ -31036,9 +31660,9 @@ Adds transformshow and transformhide events for when click to hide or show contr
 		var that = this;
 		this.type = "TransformManager";
 		this.items = [];
-		function setPersist() {
-			if (!localStorage) return;
-			that.savePersist();
+		function setPersist(e) {
+			if (!localStorage || (e && !e.pressup)) return;
+			that.savePersist(e);
 		}
 		var tmChangeEvent;
 		this.add = function(obj) {
@@ -31084,12 +31708,12 @@ Adds transformshow and transformhide events for when click to hide or show contr
 				} else {
 					transObj = o.transformControls;
 					if (!that.persistID) {
-						if (firstEver) {
+						if (firstEver && o.type != "Layer") {
 							firstEver = false;
-							transObj.show();
+							if (transObj && transObj.visible) transObj.show();
 							that.currentObject = o;
 						} else {
-							transObj.hide();
+							if (transObj) transObj.hide();
 						}
 					}
 					o.on("transformed", function(e) {
@@ -31192,6 +31816,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 			}
 			if (persistID) that.savePersist();
 		}
+
 		if (!zot(objects)) that.add(objects);
 		var sorry = "TransformManager persist(persistID) - sorry, must provide id";
 		this.persist = function(persistID) {
@@ -31199,6 +31824,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 				if (zon) {zog(sorry); return;}
 			}
 			that.persistID = persistID;
+			var dispatchNum = 0;
 			if (localStorage && localStorage[persistID]) {
 				var data = that.persistData = JSON.parse(localStorage[persistID]);
 				if (data.length == that.items.length) {
@@ -31212,7 +31838,39 @@ Adds transformshow and transformhide events for when click to hide or show contr
 							}
 							that.items[i].setData(data[i]);
 						} else if (data[i]) {
-							that.items[i].transformControls.setData(data[i]);
+							if (zot(that.items[i].transformControls)) {
+								-function(){
+									var it = that.items[i];
+									var da = data[i];
+									interval(50, function(o) {
+										if (it.transformControls) {
+											it.transformControls.setData(da);
+											it.dispatchEvent("persistset");
+											dispatchNum++;
+											if (dispatchNum == data.length) {
+												setTimeout(function(){
+													that.dispatchEvent("persistcomplete");
+												}, 100);
+											}
+											o.clear();
+										}
+									}, 20);
+								}();
+							} else {
+								that.items[i].transformControls.setData(data[i]);
+								-function(){
+									var it = that.items[i];
+									timeout(50, function(o) {
+										it.dispatchEvent("persistset");
+										dispatchNum++;
+										if (dispatchNum == data.length) {
+											setTimeout(function(){
+												that.dispatchEvent("persistcomplete");
+											}, 100);
+										}
+									});
+								}();
+							}
 						}
 					}
 				}
@@ -31234,7 +31892,7 @@ Adds transformshow and transformhide events for when click to hide or show contr
 				}
 			}
 		}
-		this.savePersist = function() {
+		this.savePersist = function(e) {
 			var data = [];
 			for (var i=0; i<that.items.length; i++) {
 				it = that.items[i];
@@ -32129,6 +32787,9 @@ DESCRIPTION
 MotionController lets you control an object (target) in a container (like the stage)
 with "mousedown", "mousemove", "keydown", "gamebutton", "gamestick" or "manual" modes (types)
 For instance, you can control a player in a game or a butterfly in field
+SEE: https://zimjs.com/controller for more examples
+SEE: https://zimjs.com/explore/sidescroller.html for keyboard work with Scroller, Sprite, Dynamo, Accelerator
+SEE: https://zimjs.com/pen or https://zimjs.com/genpen (complex example)
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -32145,8 +32806,6 @@ var controller = new MotionController({
 	damp:.1,
 	rotate:true
 });
-
-SEE: https://zimjs.com/controller for more examples
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -33379,6 +34038,7 @@ and animate and swap the backgrounds when needed.
 NOTE: A scroller can be added to a Accelerator object
 this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
 See https://zimjs.com/zide/
+See https://zimjs.com/explore/sidescroller.html (with keys)
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -33615,11 +34275,12 @@ A Dynamo dispatches a "change" event everytime the frame changes
 and a loop event everytime it loops to the start and a paused event when paused
 
 NOTE: A Dynamo requires constant stage.update() to run the Sprite
-A Ticker.add(function () { // speed Code}) or a MotionController will provide the update
+A Ticker.add(function () { // speed Code}) or just Ticker.always() will provide the update
 
-NOTE: A Dynamo can be added to a Accelerator object
+NOTE: A Dynamo can be added to a Accelerator object (and then to a MotionController)
 this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
 See https://zimjs.com/zide/
+See https://zimjs.com/explore/sidescroller.html
 
 NOTE: Dynamo is an alternative to a Sprite.run() where you provide a set time for animation
 but you can pause a Dynamo and then use run() and then unpause the Dynamo when the run is done
@@ -33863,6 +34524,8 @@ which can be set by the Accelerator to operate the speeds.
 They can also be paused and paused over time.
 An Accelerator object lets you control these from one place
 
+See: https://zimjs.com/explore/sidescroller.html
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -34022,7 +34685,7 @@ items - an array of all objects added with add()
 	//-69.3
 
 /*--
-zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin)
+zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles)
 
 Emitter
 zim class - extends a zim.Container which extends a createjs.Container
@@ -34170,6 +34833,9 @@ poolMin - (default 0) a minimum number of pooled particles before new particles 
 	eg. setting poolMin to 100 would make 100 particles and then start reusing these particles for performance
 	if you set pool to true and do not specify a poolMin then ZIM will calculate the needed number to properly recycle
 	but you can override this number if you want a larger pool for more selection
+particles - (default null) a container for the particles
+	by default, the Emitter will make a Container and place it beneath itself when added to the stage.
+	by separating the particles from the emitter, it allows the emitter to be moved without all the particles moving
 
 METHODS
 spurt(num, time, restart) - shoots particles (usually would pause Emitter before doing this)
@@ -34244,8 +34910,8 @@ dispatches a "fizzed" event when the particle's life ms has elapsed
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+69.9
-	zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin) {
-	    var sig = "obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin";
+	zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles) {
+	    var sig = "obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles";
 	    var duo; if (duo = zob(zim.Emitter, arguments, sig, this)) return duo;
 		z_d("69.9");
 		this.type = "Emitter";
@@ -34277,13 +34943,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(startPaused)) startPaused = false;
 		if (zot(pool)) pool = true;
 		if (zot(poolMin)) poolMin = 0;
+		if (zot(particles)) particles = new Container();
 
 	    this.zimContainer_constructor(width, height, null, null, false);
 		this.type = "Emitter";
 	    var that = this;
 
+
 	    // might want many of these as dynamic properties - sigh.
-	    that.obj = obj; that.interval = interval; that.num = num;
+	    that.obj = obj; that.particles = particles;
+		that.interval = interval; that.num = num;
 	    that.life = life; that.fade = fade; that.shrink = shrink;
 		that.decayTime = decayTime;  that.decayStart = decayStart;
 		that.trace = trace; that.traceFadeTime = traceFadeTime,
@@ -34315,6 +34984,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			if (cache) stage.snapToPixelEnabled = true;
 	        if (stage) {
+				var myIndex = that.parent.getChildIndex(that);
+				that.parent.addChildAt(particles, myIndex); // add particles beneath emitter in emitter's container
+				// particles.x = that.x;
+				// particles.y = that.y;
 				if (!horizontal && !vertical) that.centerReg(null, null, false);
 
 				//-------------   INTERVAL
@@ -34370,11 +35043,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 							}
 							if (container.trace) container.updateCache();
 							if (that.layers == "top") {
-								if (particle.emitShape) container.addTo(that, null, false);
-								else container.centerReg(that);
+								if (particle.emitShape) container.addTo(particles, null, false);
+								else container.centerReg(particles);
 							} else {
-								if (particle.emitShape) container.addTo(that, that.layers=="bottom"?0:zim.rand(that.numChildren), false);
-								else container.centerReg(that, that.layers=="bottom"?0:zim.rand(that.numChildren));
+								if (particle.emitShape) container.addTo(particles, that.layers=="bottom"?0:zim.rand(particles.numChildren), false);
+								else container.centerReg(particles, that.layers=="bottom"?0:zim.rand(particles.numChildren));
 							}
 							container.alpha = 1;
 							container.scaleX = 1;
@@ -34405,9 +35078,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 									particle.addTo(container, null, false)
 								} else {
 									if (that.layers == "top") {
-										particle.addTo(that, null, false);
+										particle.addTo(particles, null, false);
 									} else {
-										particle.addTo(that, that.layers=="bottom"?0:zim.rand(that.numChildren), null, false);
+										particle.addTo(particles, that.layers=="bottom"?0:zim.rand(particles.numChildren), null, false);
 									}
 								}
 							} else { // others need to be centerReg
@@ -34417,18 +35090,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 									particle.centerReg(container).pos({x:-1000,y:-1000,reg:true}); // cache was drawing this in center - perhaps missing an update so just move it away
 								} else {
 									if (that.layers == "top") {
-										particle.centerReg(that);
+										particle.centerReg(particles);
 									} else {
-										particle.centerReg(that, that.layers=="bottom"?0:zim.rand(that.numChildren));
+										particle.centerReg(particles, that.layers=="bottom"?0:zim.rand(particles.numChildren));
 									}
 								}
 							}
 
 							if (that.trace) { // still need to add the container if there is one
 								if (that.layers == "top") {
-									container.addTo(that, null, false);
+									container.addTo(particles, null, false);
 								} else {
-									container.addTo(that, that.layers=="bottom"?0:zim.rand(that.numChildren), false);
+									container.addTo(particles, that.layers=="bottom"?0:zim.rand(particles.numChildren), false);
 								}
 								container.cache(traceShiftX,traceShiftY,width,height);
 							}
@@ -34453,8 +35126,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		                var speedX = speed*Math.cos(angle*Math.PI/180);
 		                var speedY = speed*Math.sin(angle*Math.PI/180);
 		                particle.info = {
-		                    position: {x:width/2, y:height/2},
-		                    velocity: {x:speedX, y:speedY},
+		                    position: {x:that.x, y:that.y},
+		                    velocity: {x:speedX, y:speedY}
 		                }
 						if (that.horizontal) particle.info.position = {x:zim.rand(0, width), y:that.vertical?height/2:0};
 		                if (that.vertical) particle.info.position = {x:that.horizontal?width/2:0, y:zim.rand(0, height)};
@@ -34568,7 +35241,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 				var framerate = 0; // need a Ticker before can get the framerate so set this after Ticker
 				emitterTicker = that.emitterTicker = zim.Ticker.add(function() {
-	                zim.loop(that, function(particle) {
+	                zim.loop(particles, function(particle) {
 						if (particle.trace) {
 							var particleContainer = particle;
 							particle = particle.getChildAt(0);
@@ -34882,12 +35555,8 @@ deleteable - (default true) - set to false to not be able to delete segments wit
 doubleClickDelete - (default true) - set to false to not use dblclick to delete segment
 immediateStop - (default true) - if pressup is used (drag or MotionController) then stop drawing immediately when press is up
 	set to false to keep drawing until damping is finished.
-
-// (default "both") - other options are "pressup", "mousestop" and "either"
-// 	pressup will stop drawing segment only when mouse or finger is up - assuming drag or MotionController pressup type.
-// 	mousemove will stop drawing segment when mouse stops moving.
-// 	both will stop drawing only when both pressup and mousemove has finished.
-// 	either will stop drawing when either the mousemove has finished or on pen pressup.
+lineAlpha - (default 1) the alpha for each line drawn
+lineBlendMode - (default "normal") the blendMode for each line drawn () - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 
 METHODS
 setPen(newPen) - sets the pen and resets the default properties for the pen
@@ -34956,7 +35625,7 @@ undoKeys - get or set if CTRL Z and CTRL Y / CTRL SHIFT Z are used for undo and 
 draggable - read-only if pen is draggable
 	to make pen not draggable set pen.paper.mouseEnabled = false;
 immediateStop - get or set how drawing segments ends - "both", "pressup", "mousemove" and "either" are options (see parameter for more info)
-infinite - keep recording until stop() is called
+infinite - boolean to keep recording until stop() is called
 
 ALSO See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
@@ -38044,9 +38713,9 @@ function zimify(obj, list) {
 		dragRect:function(boundary) {
 			return zim.dragBoundary(this, boundary);
 		},
-		transform:function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache) {
+		transform:function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.transform(arguments[0]);}
-			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache);}
+			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden);}
 		},
 		setSwipe:function(swipe) {
 			return zim.setSwipe(this, swipe);
