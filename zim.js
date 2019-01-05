@@ -13296,6 +13296,8 @@ anchor - get or set whether the titleBar will anchor to the edges of the titleBa
 toggled - read only if Layer has its transform turned on - or use transformControls.visible
 	use toggle(state) to toggle controls or pass in true for show controls or false for hide controls
 titleBar - access to the ZIM Container that holds the titleBar
+titleBarDraggable - get or set whether the titleBar can be dragged
+	use with titleBarPos() to permanently positing the titleBar
 checkBox - access to the ZIM CheckBox that shows when the Layer is active and close is true
 button - access to the ZIM Button that makes up the titleBar
 label - access to the ZIM Label that is on the Button for the titleBar
@@ -23303,7 +23305,7 @@ RETURNS obj for chaining
 				}
 			} else {
 				var insert = p;
-				while (insert.parent!=stage) {insert = insert.parent;}
+				while (insert.parent && insert.parent!=stage) {insert = insert.parent;}
 				if (controls.stage) stage.setChildIndex(controls, stage.getChildIndex(insert)+1);
 				else stage.addChildAt(controls, stage.getChildIndex(insert)+1);
 			}
@@ -23576,9 +23578,12 @@ RETURNS obj for chaining
 				obj.transformControls.ghost = true;
 				if (obj.transformControls.ghostEnabled && !obj.transformControls.visible) {
 					var insert = p;
-					while (insert.parent!=stage) {insert = insert.parent;}
-					if (shapeG.stage) stage.setChildIndex(shapeG, stage.getChildIndex(insert)+1);
-					else stage.addChildAt(shapeG, stage.getChildIndex(insert)+1);
+					while (insert.parent && insert.parent!=stage) {insert = insert.parent;}
+					if (shapeG.stage) {
+						stage.setChildIndex(shapeG, stage.getChildIndex(insert)+1);
+					} else {
+						stage.addChildAt(shapeG, stage.getChildIndex(insert)+1);
+					}
 				}
             },
 			addGhost:function() {
