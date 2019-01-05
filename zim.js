@@ -10849,8 +10849,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				borderColor = value;
-				if (that.backing.borderColor) {
-					that.backing.borderColor = value;
+				if (!that.rolled) {
+					if (that.backing && that.backing.borderColor) that.backing.borderColor = value;
 					if (that.border) that.border.borderColor = value;
 				}
 			}
@@ -10862,6 +10862,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			},
 			set: function(value) {
 				borderRollColor = value;
+				if (that.rolled) {
+					if (that.backing && that.backing.borderColor) that.backing.borderColor = value;
+					if (that.border) that.border.borderColor = value;
+				}
 			}
 		});
 
@@ -13401,6 +13405,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(anchor)) anchor=DS.anchor!=null?DS.anchor:true;
 		if (!titleBarDraggable) anchor = false;
 		that.anchor = anchor;
+		that.titleBarDraggable = titleBarDraggable;
 		if (close) titleBarWidth += 30;
 
 		transformObject = zim.merge({borderColor:selectedBackgroundColor}, transformObject, {events:true, visible:false, ghostColor:borderColor, ghostWidth:borderWidth, ghostDashed:dashed, ghostHidden:true});
@@ -13457,10 +13462,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		var lastVisible = that.visible;
 		that.visible = false;
+		var firstControl;
 		this.added(function (theStage) {
 			that.transform(transformObject); // in case persist is set do this first and wait a little bit with visible false
 			if (borderWidth >= 0) that.transformControls.hideGhost();
 			timeout(50, function () {
+				function firstPoint() {return that.localToLocal(0,0,titleBarContainer);}
 				that.visible = lastVisible;
 				if (borderWidth >= 0) {
 					timeout(100, function(){
@@ -13473,7 +13480,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					.reg(0,titleBarHeight)
 					.loc(that, null, titleBarContainer)
 					.mov(that.distX,that.distY);
-				if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
+				if (that.titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
 				if (that.distX != 40 || that.distY !=0) {
 					titleBar.pos(that.distX, that.distY);
 				}
@@ -13527,18 +13534,25 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.button.on("pressmove", function(){matchLocation()});
 				that.button.on("pressup", function () {
 					matchLocation(true);
-					var point = that.parent.localToLocal(that.x, that.y, titleBar.parent);
+					var point = that.localToLocal(0, 0, titleBarContainer);
 					that.distX = titleBar.x-point.x;
 					that.distY = titleBar.y-point.y;
 					titleBar.top();
 					downCheck = false;
-					if (that.button.hitTestReg(that.transformControls.scaleControls.getChildAt(0))) that.resetTitleBar();
+					if (!edgeCheck() && that.titleBarDraggable) {
+						var point = that.localToGlobal(0,0);
+						if (that.button.hitTestPoint(point.x, point.y)) that.resetTitleBar();
+					}
 				});
 				function matchLocation(dispatch) {
 					if (titleBarDefault) {
-						var point = titleBar.parent.localToLocal(titleBar.x-that.distX, titleBar.y-that.distY, that.parent);
-						that.x = point.x;
-						that.y = point.y;
+
+						var desiredTopLeft = titleBarContainer.localToLocal(titleBar.x-that.distX, titleBar.y-that.distY, that.parent);
+						var regPoint = that.localToLocal(that.regX, that.regY, that.parent);
+						var topLeft = that.localToLocal(0,0,that.parent);
+						that.x =  desiredTopLeft.x + (regPoint.x-topLeft.x);
+						that.y =  desiredTopLeft.y + (regPoint.y-topLeft.y);
+
 						that.transformControls.resize(dispatch); // TransformManager saves all objects any time a single object changes
 						that.loop(function (obj) {
 							if (obj.type == "Layer") {
@@ -13549,13 +13563,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					}
 				}
 				that.button.on("dblclick", function () {
-					that.resetTitleBar();
+					if (that.titleBarDraggable) that.resetTitleBar();
 				});
 
 				that.turnOff();
 				that.on("transformed", function (e) {
-					if (e.transformType=="move" || e.transformType=="size" || e.transformType=="stretch") {
-						that.move();
+					if (e.transformType=="move" || e.transformType=="size" || e.transformType=="stretch" || e.transformType=="rotate") {
+						if (that.titleBarDraggable) that.move();
 						that.loop(function (obj) {
 							if (obj.type == "Layer") {
 								obj.move();
@@ -13564,14 +13578,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						});
 					}
 				});
+				function edgeCheck() {
+					if (titleBar.x == 0) return true;
+					if (titleBar.y == titleBar.height) return true;
+					if (titleBar.x == titleBarContainer.width-titleBar.width) return true;
+					if (titleBar.y == titleBarContainer.height) return true;
+				}
 				that.move = function(override) {
 					if (!override && !titleBarDefault && that.anchor) {
-						if (titleBar.x == 0) return;
-						if (titleBar.y == titleBar.height) return;
-						if (titleBar.x == titleBarContainer.width-titleBar.width) return;
-						if (titleBar.y == titleBarContainer.height) return;
+						if (edgeCheck()) return;
 					}
-					titleBar.loc(that).mov(that.distX, that.distY);
+					titleBar.loc(firstPoint()).mov(that.distX, that.distY);
 					if (titleBar.x < 0) {titleBarDefault=false; titleBar.x = 0;}
 					if (titleBar.y < titleBar.height) {titleBarDefault=false; titleBar.y = titleBar.height;}
 					if (titleBar.x > titleBarContainer.width-titleBar.width) {titleBarDefault=false; titleBar.x = titleBarContainer.width-titleBar.width;}
@@ -23557,7 +23574,12 @@ RETURNS obj for chaining
             },
             showGhost:function() {
 				obj.transformControls.ghost = true;
-				if (obj.transformControls.ghostEnabled && !obj.transformControls.visible) shapeG.addTo(stage);
+				if (obj.transformControls.ghostEnabled && !obj.transformControls.visible) {
+					var insert = p;
+					while (insert.parent!=stage) {insert = insert.parent;}
+					if (shapeG.stage) stage.setChildIndex(shapeG, stage.getChildIndex(insert)+1);
+					else stage.addChildAt(shapeG, stage.getChildIndex(insert)+1);
+				}
             },
 			addGhost:function() {
 				if (ghostWidth > 0) {
