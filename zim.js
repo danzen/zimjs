@@ -13168,7 +13168,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-58.1
 
 /*--
-zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit)
+zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit)
 
 Layer
 zim class - extends a zim.Container which extends a createjs.Container
@@ -13254,6 +13254,8 @@ transformObject - (default {borderColor:selectedBackgroundColor}) any of the tra
 	timeout(100, function(){layer.transformControls.show();}); // a timeout is needed as Layer gets created - sorry.
 titleBarWidth - (default 100 + 30 if close) the width of the titleBar.  30 pixels will be added if close is true
 titleBarHeight - (default 40) the height of the titleBar
+titleBarX - (default null) the starting x position of the titleBar - see also titleBarPos() and resetTitleBar() methods
+titleBarY - (default null) the starting y position of the titleBar - see also titleBarPos() and resetTitleBar() methods
 titleBarDraggable - (default true) set to false to not let the titleBar be dragged.
 	this is useful with the titleBarPos() to create a stationary menu for the layers - for instance along the edge like tabs
 close - (default true) - set to false to not use the close checkbox
@@ -13272,6 +13274,7 @@ METHODS
 titleBarPos(x, y, right, bottom) - position the titleBar in the titleBarContainer - returns object for chaining
 	This will undock the titleBar from the Layer so it can be moved independently
 	unless titleBarDraggable is set to false
+	See also titleBarX and titleBarY parameters to start titleBars at a certain position
 resetTitleBar() - dock the titleBar back on the Layer - returns object for chaining
 toggle(state) - toggle the controls or turn on or off the controls by providing a Boolean state - returns object for chaining
 resize(dispatch) - resize the Layer and its children if Layer is manually adjusted - returns object for chaining
@@ -13363,8 +13366,8 @@ If TransformManager() is used there are more events available such as "persistse
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.5
-	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
-		var sig = "width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit";
+	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
+		var sig = "width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit";
 		var duo; if (duo = zob(zim.Layer, arguments, sig, this)) return duo;
 		z_d("58.5");
 
@@ -13399,6 +13402,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(titleBarWidth)) titleBarWidth=DS.titleBarWidth!=null?DS.titleBarWidth:100;
 		var originalTitleBarWidth = titleBarWidth;
 		if (zot(titleBarHeight)) titleBarHeight=DS.titleBarHeight!=null?DS.titleBarHeight:40;
+		if (zot(titleBarX)) titleBarX=DS.titleBarX!=null?DS.titleBarX:100;
+		if (zot(titleBarY)) titleBarY=DS.titleBarY!=null?DS.titleBarY:100;
 		if (zot(titleBarDraggable)) titleBarDraggable=DS.titleBarDraggable!=null?DS.titleBarDraggable:true;
 		if (zot(close)) close=DS.close!=null?DS.close:true;
 		if (zot(closeColor)) closeColor=DS.closeColor!=null?DS.closeColor:selectedBackgroundColor;
@@ -13407,7 +13412,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(anchor)) anchor=DS.anchor!=null?DS.anchor:true;
 		if (!titleBarDraggable) anchor = false;
 		that.anchor = anchor;
-		that.titleBarDraggable = titleBarDraggable;
 		if (close) titleBarWidth += 30;
 
 		transformObject = zim.merge({borderColor:selectedBackgroundColor}, transformObject, {events:true, visible:false, ghostColor:borderColor, ghostWidth:borderWidth, ghostDashed:dashed, ghostHidden:true});
@@ -13453,8 +13457,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		var stage;
 		that.titleBarPos = function(x, y) {
-			if (titleBar.pos) {
-				titleBar.pos(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5], arguments[6], arguments[7], arguments[8], arguments[9]); // ES6 wish
+			if (that.titleBar.pos) {
+				that.titleBar.pos(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4], arguments[5], arguments[6], arguments[7], arguments[8], arguments[9]); // ES6 wish
 				stage.update();
 			} else {
 				that.distX = x;
@@ -13483,7 +13487,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					.reg(0,titleBarHeight)
 					.loc(that, null, titleBarContainer)
 					.mov(that.distX,that.distY);
-				if (that.titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
+				if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true});
 				if (that.distX != 40 || that.distY !=0) {
 					titleBar.pos(that.distX, that.distY);
 				}
@@ -13515,7 +13519,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				});
 				that.label = titleBarText;
 				that.label.center(titleBar);
-
 				that.button = new Button({
 					shadowBlur:-1,
 					width:originalTitleBarWidth, height:titleBarHeight-1, label:that.label,
@@ -13523,7 +13526,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					rollColor:rollColor,
 					backgroundColor:backgroundColor,
 					rollBackgroundColor:rollBackgroundColor,
-					corner:0
+					corner:(DS.corner!=null?DS.corner:0),
+					inherit:DS
 				}).addTo(titleBar);
 				that.button.on("mousedown", function () {
 					downCheck = true;
@@ -13542,13 +13546,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					that.distY = titleBar.y-point.y;
 					titleBar.top();
 					downCheck = false;
-					if (!edgeCheck() && that.titleBarDraggable) {
+					if (!edgeCheck() && titleBarDraggable) {
 						var point = that.localToGlobal(0,0);
 						if (that.button.hitTestPoint(point.x, point.y)) that.resetTitleBar();
 					}
 				});
 				function matchLocation(dispatch) {
-					if (titleBarDefault) {
+					if (titleBarDefault && titleBarDraggable) {
 						var desiredTopLeft = titleBarContainer.localToLocal(titleBar.x-that.distX, titleBar.y-that.distY, that.parent);
 						var regPoint = that.localToLocal(that.regX, that.regY, that.parent);
 						var topLeft = that.localToLocal(0,0,that.parent);
@@ -13561,20 +13565,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				function recursiveLocation(obj) {
 					obj.loop(function (o) {
 						if (o.type == "Layer") {
-							o.move();
+							if (that.titleBarDraggable) o.move();
 							if (o.transformControls.ghost) o.transformControls.resize(); // to move ghost
 							recursiveLocation(o);
 						}
 					});
 				}
 				that.button.on("dblclick", function () {
-					if (that.titleBarDraggable) that.resetTitleBar();
+					if (titleBarDraggable) that.resetTitleBar();
 				});
 
 				that.turnOff();
 				that.on("transformed", function (e) {
 					if (e.transformType=="move" || e.transformType=="size" || e.transformType=="stretch" || e.transformType=="rotate") {
-						if (that.titleBarDraggable) that.move();
+						if (titleBarDraggable) that.move();
 						recursiveLocation(that);
 					}
 				});
@@ -13645,15 +13649,36 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					setToggled();
 					return that;
 				}
+				Object.defineProperty(that, 'titleBarDraggable', {
+					get: function() {
+						return titleBarDraggable;
+					},
+					set: function(value) {
+		                titleBarDraggable = value;
+						if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
+						else titleBar.noDrag();
+					}
+				});
 				stage.on("stagemouseup", function () {
 					if (that.transformControls.visible) titleBar.top();
 				});
+				if (!zot(titleBarX) || !zot(titleBarY)) {
+					titleBarDefault = false;
+					var x = !zot(titleBarX)?titleBarX:titleBar.x;
+					var y = !zot(titleBarY)?titleBarY:titleBar.y;
+					that.titleBarStartX = titleBarX;
+					that.titleBarStartY = titleBarY;
+					that.titleBarPos(x,y);
+					var point = that.localToLocal(0, 0, titleBarContainer);
+					that.distX = titleBar.x-point.x;
+					that.distY = titleBar.y-point.y;
+				}
 			}); // end timeout
 		}); // end added
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Layer(width, height, titleBarOriginal, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, originalTitleBarWidth, titleBarHeight, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, this.group, inherit));
+			return that.cloneProps(new zim.Layer(width, height, titleBarOriginal, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, originalTitleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, this.group, inherit));
 		}
 
 		this.dispose = function() {
@@ -23658,6 +23683,15 @@ RETURNS obj for chaining
 			else if (obj.transformControls.visible) obj.transformControls.hide();
 			else obj.transformControls.show();
 			return obj;
+		}
+		if (obj.transformControls.ghost) {
+			obj.transformControls.toggleGhost = function(state) {
+				if (state===true) obj.transformControls.showGhost();
+				else if (state===false) obj.transformControls.hideGhost();
+				else if (obj.transformControls.visible) obj.transformControls.hideGhost();
+				else obj.transformControls.showGhost();
+				return obj;
+			}
 		}
 		if (visible) obj.transformControls.show();
 		else if (!ghostHidden && obj.transformControls.ghost) obj.transformControls.showGhost();
