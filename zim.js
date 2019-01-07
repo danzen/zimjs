@@ -13347,6 +13347,8 @@ allowToggleOn() - sets the show / hide controls on with click
 allowToggleOff() - removes the show / hide controls on with click
 showGhost() - show the ghost outline - the ghostWidth or ghostColor must be set in initial parameters
 hideGhost() - hide the ghost outline
+toggleGhost(state) - if ghost is showing will hide ghost and if ghost is hidden will show ghost
+	or set state to true to show ghost or false to not show ghost
 addGhost() - enable ghost outline functionality - the ghostWidth or ghostColor must be set in initial parameters
 removeGhost() - disable ghost outline functionality
 disable() - may show the controls if visible but cannot use them
@@ -13402,8 +13404,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(titleBarWidth)) titleBarWidth=DS.titleBarWidth!=null?DS.titleBarWidth:100;
 		var originalTitleBarWidth = titleBarWidth;
 		if (zot(titleBarHeight)) titleBarHeight=DS.titleBarHeight!=null?DS.titleBarHeight:40;
-		if (zot(titleBarX)) titleBarX=DS.titleBarX!=null?DS.titleBarX:100;
-		if (zot(titleBarY)) titleBarY=DS.titleBarY!=null?DS.titleBarY:100;
+		if (zot(titleBarX)) titleBarX=DS.titleBarX!=null?DS.titleBarX:null;
+		if (zot(titleBarY)) titleBarY=DS.titleBarY!=null?DS.titleBarY:null;
 		if (zot(titleBarDraggable)) titleBarDraggable=DS.titleBarDraggable!=null?DS.titleBarDraggable:true;
 		if (zot(close)) close=DS.close!=null?DS.close:true;
 		if (zot(closeColor)) closeColor=DS.closeColor!=null?DS.closeColor:selectedBackgroundColor;
@@ -13487,7 +13489,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					.reg(0,titleBarHeight)
 					.loc(that, null, titleBarContainer)
 					.mov(that.distX,that.distY);
-				if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true});
+
+				if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,titleBarHeight,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true});
 				if (that.distX != 40 || that.distY !=0) {
 					titleBar.pos(that.distX, that.distY);
 				}
@@ -13496,7 +13499,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						borderColor:closeColor,
 						backgroundColor:closeBackgroundColor,
 						indicatorColor:closeIndicatorColor,
-						size:titleBar.height/2, startChecked:true
+						size:20, startChecked:true
 					}).center(titleBar).pos(0, null, true).change(function () {
 						that.turnOff(true, true);
 					});
@@ -13665,11 +13668,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (!zot(titleBarX) || !zot(titleBarY)) {
 					titleBarDefault = false;
 					var x = !zot(titleBarX)?titleBarX:titleBar.x;
-					var y = !zot(titleBarY)?titleBarY:titleBar.y;
+					var y = !zot(titleBarY)?titleBarY:titleBar.y-titleBarHeight;
 					that.titleBarStartX = titleBarX;
 					that.titleBarStartY = titleBarY;
 					that.titleBarPos(x,y);
-					var point = that.localToLocal(0, 0, titleBarContainer);
+					var point = that.parent.localToLocal(that.x, that.y, titleBarContainer);
 					that.distX = titleBar.x-point.x;
 					that.distY = titleBar.y-point.y;
 				}
@@ -22687,6 +22690,8 @@ allowToggleOn() - sets the show / hide controls on with click
 allowToggleOff() - removes the show / hide controls on with click
 showGhost() - show the ghost outline - the ghostWidth or ghostColor must be set in initial parameters
 hideGhost() - hide the ghost outline
+toggleGhost(state) - if ghost is showing will hide ghost and if ghost is hidden will show ghost
+	or set state to true to show ghost or false to not show ghost
 addGhost() - enable ghost outline functionality - the ghostWidth or ghostColor must be set in initial parameters
 removeGhost() - disable ghost outline functionality
 disable() - may show the controls if visible but cannot use them
@@ -25313,8 +25318,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// -----------------------------
 		// NORMALIZED TWEEN COMING THROUGH
 
-
 		if (zot(target)) return;
+		target.pathRatio = (target.percentComplete && Math.round(target.percentComplete) != 100)?target.percentComplete/100:0;
 
 		if (css) ticker = false;
 		if (zot(target.zimTweens)) target.zimTweens = {};
@@ -25988,7 +25993,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (zim.isEmpty(target.zimIdSets)) delete target.zimIdSets;
 				}
 			}
-			target.pathRatio = null;
+			//target.pathRatio = null;
 			if (target.type == "Pen" && target.zimOnPath) {target.stop(); target.zimOnPath = false;}
 			delete target.zimTweens[id];
 			if (zim.isEmpty(target.zimTweens)) target.stopAnimate();
