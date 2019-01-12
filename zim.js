@@ -1312,6 +1312,7 @@ RETURNS a String with the converted color or black if a match is not found
 		if (!zim.convertColorCheck) {z_d("27.5"); zim.convertColorCheck=true;}
 		if (zot(toColorType)) toColorType = "hex";
 		if (zot(alpha)) alpha == 1;
+		if (zot(color)) return;
 		if (toColorType == "rgb" || toColorType == "rgba") {
 			function hexToRgbA(hex){ // kennebec on StackOverflow
 				var c;
@@ -1394,6 +1395,8 @@ RETURNS a hex color string
 		// thanks Chris Dolphin - StackOverflow
 		// modified by Dan Zen to use hex input and output
 		// possibly converting and converting back - but not quite...
+		if (zot(color1)) color1 = "white";
+		if (zot(color2)) color2 = "black";
 		var c1 = zim.convertColor(color1, "rgb");
 		var c2 = zim.convertColor(color2, "rgb");
 		var color1 = c1.substring(4, c1.length - 1).split(',');
@@ -1513,8 +1516,8 @@ RETURNS an approximate distance along the curve
 		z_d("27.8");
 		// Thanks David F. Knight in OpenGl.org forumn
 		// points are [startPt, controlPt1, controlPt2, endPt]
-		var chord = dist(points[0], points[3]);
-		var controlDist = dist(points[0], points[1]) + dist(points[1], points[2]) + dist(points[2], points[3]);
+		var chord = zim.dist(points[0], points[3]);
+		var controlDist = zim.dist(points[0], points[1]) + zim.dist(points[1], points[2]) + zim.dist(points[2], points[3]);
 		return (chord + controlDist)/2;
 	}//-27.8
 
@@ -4099,6 +4102,7 @@ click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, ro
 --*///+50.44
 zim.Stage = function(canvasID) {
 		z_d("50.44");
+		if (zot(canvasID)) return;
 		this.cjsStage_constructor(canvasID);
 		this.type = "Stage";
 		this.cache = function(a,b,c,d,scale,options) {
@@ -6534,7 +6538,7 @@ Note the points property has been split into points and pointObjects (and there 
 		this.type = "Squiggle";
 
 		if (zot(dashed)) dashed = DS.dashed!=null?DS.dashed:false;
-		if (zot(color)) color = DS.color!=null?DS.color:blue;
+		if (zot(color)) color = DS.color!=null?DS.color:zim.blue;
 		if (color.style) {this.colorCommand = color; color = "black";}
 
 		if (zot(controlType)) controlType = DS.controlType!=null?DS.controlType:"mirror";
@@ -6644,13 +6648,13 @@ Note the points property has been split into points and pointObjects (and there 
 				if (typeof points == "number") { // no sets yet
 					var stickLength = zik(controlLength);
 					temp = new zim.Container(stickLength, thickness, null, null, false).addTo(that).loc({x:i*length/(num-1)-stickLength/2, y:i%2*stickLength});
-					ball = new zim.Circle(ballS, that.selectPoints&&that.selectedBalls.isSelected(i)?selectColor:light, dark, 2, null, false)
+					ball = new zim.Circle(ballS, that.selectPoints&&that.selectedBalls.isSelected(i)?selectColor:zim.light, zim.dark, 2, null, false)
 						.centerReg(temp)
 						.loc({x:stickLength/2, y:0});
-					rect1 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect1s.isSelected(i)?selectColor:getBackgroundColor(controlType),  handleSize==0?null:dark,  handleSize==0?null:2, null, null, false)
+					rect1 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect1s.isSelected(i)?selectColor:getBackgroundColor(controlType),  handleSize==0?null:zim.dark,  handleSize==0?null:2, null, null, false)
 						.centerReg(temp)
 						.loc({x:0,y:0});
-					rect2 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(controlType),  handleSize==0?null:dark,  handleSize==0?null:2, null, null, false)
+					rect2 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(controlType),  handleSize==0?null:zim.dark,  handleSize==0?null:2, null, null, false)
 						.centerReg(temp)
 						.loc({x:stickLength,y:0});
 
@@ -6680,13 +6684,13 @@ Note the points property has been split into points and pointObjects (and there 
 					setInfo = points[i];
 					type = setInfo[8] ? setInfo[8] : controlType;
 					set.loc({x:setInfo[0], y:setInfo[1]});
-					ball = new zim.Circle(ballS, light, dark, 2, null, false)
+					ball = new zim.Circle(ballS, zim.light, zim.dark, 2, null, false)
 						.centerReg(set)
 						.loc({x:setInfo[2],y:setInfo[3]});
-					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type),  handleSize==0?null:dark,  handleSize==0?null:2, null, null, false)
+					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type),  handleSize==0?null:zim.dark,  handleSize==0?null:2, null, null, false)
 						.centerReg(set, 0)
 						.loc({x:setInfo[4],y:setInfo[5]});
-					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), handleSize==0?null:dark,  handleSize==0?null:2, null, null, false)
+					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), handleSize==0?null:zim.dark,  handleSize==0?null:2, null, null, false)
 						.centerReg(set, 0)
 						.loc({x:setInfo[6],y:setInfo[7]});
 				}
@@ -6768,8 +6772,8 @@ Note the points property has been split into points and pointObjects (and there 
 			};
 
 			function getBackgroundColor(type) {
-				var colors = {straight:pink, free:yellow, none:blue};
-				return colors[type] ? colors[type] : purple;
+				var colors = {straight:zim.pink, free:zim.yellow, none:zim.blue};
+				return colors[type] ? colors[type] : zim.purple;
 			}
 
 			drawShape = function () {
@@ -6930,9 +6934,9 @@ Note the points property has been split into points and pointObjects (and there 
 					// loop through all controls and set to right color based on selection
 					for (var i=0; i<that.pointObjects.length; i++) {
 						var po = that.pointObjects[i];
-						po[1].color = that.selectedBalls.isSelected(i)?white:light;
-						po[2].color = that.selectedRect1s.isSelected(i)?white:getBackgroundColor(po[4]);
-						po[3].color = that.selectedRect2s.isSelected(i)?white:getBackgroundColor(po[4]);
+						po[1].color = that.selectedBalls.isSelected(i)?zim.white:zim.light;
+						po[2].color = that.selectedRect1s.isSelected(i)?zim.white:getBackgroundColor(po[4]);
+						po[3].color = that.selectedRect2s.isSelected(i)?zim.white:getBackgroundColor(po[4]);
 					}
 					e.target.stage.update();
 				});
@@ -8127,7 +8131,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:null;
 		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
 		else if (borderColor!=null && borderWidth==null) borderWidth = 1;
-		if (zot(color)) color = DS.color!=null?DS.color:(borderWidth>0?"rgba(0,0,0,0)":green);
+		if (zot(color)) color = DS.color!=null?DS.color:(borderWidth>0?"rgba(0,0,0,0)":zim.green);
 		if (color.style) {this.colorCommand = color; color = "black";}
 		if (borderColor && borderColor.style) {this.borderColorCommand = borderColor; borderColor = "black";}
 		if (zot(points)) points = DS.points!=null?DS.points:4;
@@ -8256,13 +8260,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var length = zik(controlLength);
 					temp = new zim.Container(length, radius, null, null, false).reg(length/2, radius).addTo(that);
 					temp.rotation = i/num * 360;
-					ball = new zim.Circle(ballS, that.selectPoints&&that.selectedBalls.isSelected(i)?selectColor:light, dark, 2, null, false)
+					ball = new zim.Circle(ballS, that.selectPoints&&that.selectedBalls.isSelected(i)?selectColor:zim.light, zim.dark, 2, null, false)
 						.centerReg(temp)
 						.loc({x:length/2,y:0});
-					rect1 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect1s.isSelected(i)?selectColor:getBackgroundColor(controlType), handleSize==0?null:dark, handleSize==0?null:2, null, null, false)
+					rect1 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect1s.isSelected(i)?selectColor:getBackgroundColor(controlType), handleSize==0?null:zim.dark, handleSize==0?null:2, null, null, false)
 						.centerReg(temp)
 						.loc({x:0,y:0});
-					rect2 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(controlType), handleSize==0?null:dark, handleSize==0?null:2, null, null, false)
+					rect2 = new zim.Rectangle(rectS, rectS, that.selectPoints&&that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(controlType), handleSize==0?null:zim.dark, handleSize==0?null:2, null, null, false)
 						.centerReg(temp)
 						.loc({x:length,y:0});
 
@@ -8292,13 +8296,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					setInfo = points[i];
 					type = setInfo[8] ? setInfo[8] : controlType;
 					set.loc({x:setInfo[0], y:setInfo[1]});
-					ball = new zim.Circle(ballS, light, dark, 2, null, false)
+					ball = new zim.Circle(ballS, zim.light, zim.dark, 2, null, false)
 						.centerReg(set)
 						.loc({x:setInfo[2],y:setInfo[3]});
-					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), handleSize==0?null:dark, handleSize==0?null:2, null, null, false)
+					rect1 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), handleSize==0?null:zim.dark, handleSize==0?null:2, null, null, false)
 						.centerReg(set, 0)
 						.loc({x:setInfo[4],y:setInfo[5]});
-					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), handleSize==0?null:dark, handleSize==0?null:2, null, null, false)
+					rect2 = new zim.Rectangle(rectS, rectS, getBackgroundColor(type), handleSize==0?null:zim.dark, handleSize==0?null:2, null, null, false)
 						.centerReg(set, 0)
 						.loc({x:setInfo[6],y:setInfo[7]});
 				}
@@ -8379,8 +8383,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			};
 
 			function getBackgroundColor(type) {
-				var colors = {mirror:purple, free:yellow, none:blue};
-				return colors[type] ? colors[type] : pink;
+				var colors = {mirror:zim.purple, free:zim.yellow, none:zim.blue};
+				return colors[type] ? colors[type] : zim.pink;
 			}
 
 			drawShape = function() {
@@ -8504,9 +8508,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					// loop through all controls and set to right color based on selection
 					for (var i=0; i<that.pointObjects.length; i++) {
 						var po = that.pointObjects[i];
-						po[1].color = that.selectedBalls.isSelected(i)?white:light;
-						po[2].color = that.selectedRect1s.isSelected(i)?white:getBackgroundColor(po[4]);
-						po[3].color = that.selectedRect2s.isSelected(i)?white:getBackgroundColor(po[4]);
+						po[1].color = that.selectedBalls.isSelected(i)?zim.white:zim.light;
+						po[2].color = that.selectedRect1s.isSelected(i)?zim.white:getBackgroundColor(po[4]);
+						po[3].color = that.selectedRect2s.isSelected(i)?zim.white:getBackgroundColor(po[4]);
 					}
 					e.target.stage.update();
 				});
@@ -10023,13 +10027,13 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 	this.allowToggle = allowToggle;
 	path.interactive = interactive;
 
-	if (typeof label == "string") label = new Label(label);
+	if (typeof label == "string") label = new zim.Label(label);
 
 	var lastAlpha = path.alpha;
 	if (!showPath) path.alp(0);
 	path.onTop = onTop;
 
-	var letters = this.letters = new Container().addTo(this);
+	var letters = this.letters = new zim.Container().addTo(this);
 	if (!percents) {
 		percents = [];
 		for (var i=0; i<label.text.length; i++) {
@@ -10106,9 +10110,9 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 		set: function(value) {
 			interactive = value;
 			path.interactive = value;
-			if (this.ticker) Ticker.remove(this.ticker);
+			if (this.ticker) zim.Ticker.remove(this.ticker);
 			if (interactive) {
-				this.ticker = Ticker.add(function () {
+				this.ticker = zim.Ticker.add(function () {
 					that.resize();
 				});
 			}
@@ -10116,7 +10120,7 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 	});
 
 	if (this.interactive) {
-		this.ticker = Ticker.add(function () {
+		this.ticker = zim.Ticker.add(function () {
 			that.resize();
 		});
 	}
@@ -10163,7 +10167,7 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 		return that.cloneProps(new zim.LabelOnPath(that.label.clone(), that.path.clone(), percentAngle, zim.copy(percents), showPath, allowToggle, interactive, onTop, style, this.group, inherit));
 	}
 	this.dispose = function() {
-		if (this.ticker) Ticker.remove(this.ticker);
+		if (this.ticker) zim.Ticker.remove(this.ticker);
 		this.zimContainer_dispose();
 		return true;
 	}
@@ -12024,7 +12028,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		if (!zot(extraButton)) {
-			var extraButton = that.extraButton = new Button({
+			var extraButton = that.extraButton = new zim.Button({
 				label:"R",
 				width:50,
 				height:50,
@@ -12037,7 +12041,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
-		var overlay = that.overlay = new Rectangle(width, height).alp(.7);
+		var overlay = that.overlay = new zim.Rectangle(width, height).alp(.7);
 
 		this._enabled = true;
 		Object.defineProperty(that, 'enabled', {
@@ -13475,27 +13479,27 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.added(function (theStage) {
 			that.transform(transformObject); // in case persist is set do this first and wait a little bit with visible false
 			if (borderWidth >= 0) that.transformControls.hideGhost();
-			timeout(50, function () {
+			zim.timeout(50, function () {
 				function firstPoint() {return that.localToLocal(0,0,titleBarContainer);}
 				that.visible = lastVisible;
 				if (borderWidth >= 0) {
-					timeout(100, function(){
+					zim.timeout(100, function(){
 						that.transformControls.showGhost();
 						stage.update();
 					});
 				}
 				stage = theStage;
-				var titleBar = that.titleBar = new Container(titleBarWidth, titleBarHeight)
+				var titleBar = that.titleBar = new zim.Container(titleBarWidth, titleBarHeight)
 					.reg(0,titleBarHeight)
 					.loc(that, null, titleBarContainer)
 					.mov(that.distX,that.distY);
 
-				if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,titleBarHeight,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true});
+				if (titleBarDraggable) titleBar.drag({all:true, boundary:new zim.Boundary(0,titleBarHeight,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true});
 				if (that.distX != 40 || that.distY !=0) {
 					titleBar.pos(that.distX, that.distY);
 				}
 				if (close) {
-					that.checkBox = new CheckBox({
+					that.checkBox = new zim.CheckBox({
 						borderColor:closeColor,
 						backgroundColor:closeBackgroundColor,
 						indicatorColor:closeIndicatorColor,
@@ -13522,7 +13526,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				});
 				that.label = titleBarText;
 				that.label.center(titleBar);
-				that.button = new Button({
+				that.button = new zim.Button({
 					shadowBlur:-1,
 					width:originalTitleBarWidth, height:titleBarHeight-1, label:that.label,
 					color:color,
@@ -13658,7 +13662,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					},
 					set: function(value) {
 		                titleBarDraggable = value;
-						if (titleBarDraggable) titleBar.drag({all:true, boundary:new Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
+						if (titleBarDraggable) titleBar.drag({all:true, boundary:zim.Boundary(0,40,titleBarContainer.width-titleBarWidth,titleBarContainer.height-titleBarHeight), localBounds:true})
 						else titleBar.noDrag();
 					}
 				});
@@ -14733,7 +14737,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var tabs;
 		function makeTabs(tabList) {
-			tabs = that.tabs = new Tabs({
+			tabs = that.tabs = new zim.Tabs({
 				width:vertical?that.itemWidth:(that.itemWidth*list.length),
 				height:vertical?that.itemHeight*list.length:that.itemHeight,
 				tabs:tabList,
@@ -16118,7 +16122,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (damp) {
 			myDampedValue = min;
 			dampObject = new zim.Damp(myDampedValue, damp);
-			that.ticker = Ticker.add(function () {
+			that.ticker = zim.Ticker.add(function () {
 				myDampedValue = dampObject.convert(myValue);
 			});
 		}
@@ -16614,7 +16618,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (damp) {
 			myDampedValue = min;
 			dampObject = new zim.Damp(myDampedValue, damp);
-			that.ticker = Ticker.add(function () {
+			that.ticker = zim.Ticker.add(function () {
 				myDampedValue = dampObject.convert(myValue);
 			});
 		}
@@ -18778,7 +18782,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					that.tickerMouseEvent = currentStage.on("stagemousemove", function(e) {
 						that.mouseYAmount = e.stageY;
 					});
-		            Ticker.add(startDragging);
+		            zim.Ticker.add(startDragging);
 		            that.on("pressup", stopDragging);
 		            dragY = e.stageY-that.localToGlobal(0,0).y;
 				} else if (!zot(special) && e.target.name === special) {
@@ -19147,14 +19151,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		function stopDragging() {
 			currentStage.off("pressmousemove", that.tickerMouseEvent);
-		    Ticker.remove(startDragging);
+		    zim.Ticker.remove(startDragging);
 		}
 
 
 		// ~~~~~~~~~~~~~~~~~  LABELS AND CURSOR
 
 		function positionBlinker() {
-			if (!currentLabel) return;
+			if (!currentLabel || !textBlinker) return;
 			// Dan Zen added 9.5.0 using CreateJS Label to avoid padding and backing issues and addition of bounds x for align issues
 			var positionXBlinker = currentLabel.label.x + currentLabel.label.getBounds().x;
 			for (var i=0; i<insertPoint;i++) {
@@ -19168,6 +19172,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		function makeCursorShiftmenu() {
 			if (cursorShiftMenu) return that;
+			if (!currentLabel) return that;
 		    var tekens = placeClose?["<",">","x"]:["<",">"];
 		    var label;
 		    var bakking;
@@ -19217,6 +19222,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function addToLabel(letter) {
+			if (!currentLabel) return;
 			var measureField;
 			var widthMeasureField;
 			// backspace
@@ -19345,7 +19351,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		            removeLetter();
 		            timeOut = zim.timeout(200, haalWeg);
 		        }
-		        if (currentLabel.text.length<1) {
+		        if (currentLabel && currentLabel.text.length<1) {
 		            stopRemoval();
 		        }
 		    }
@@ -19486,6 +19492,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			labels = labels.concat(labs);
 			setLabels();
 			makeCursor();
+			if (textBlinker) textBlinker.visible = true;
 			return that;
 		}
 
@@ -19516,7 +19523,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.scaleTo(currentStage, 100-margin*2/currentStage.width*100, 50-margin*2/currentStage.height*100);
 			that.y = currentStage.height - that.height - margin;
 			that.x = currentStage.width/2 - that.width/2;
-			if (cursorShiftMenu) {
+			if (currentLabel && cursorShiftMenu) {
 				point = currentLabel.localToLocal(0, 0, that);
 		        cursorShiftMenu.x = point.x;
 				cursorShiftMenu.y = point.y+currentLabel.height+15;
@@ -19717,20 +19724,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		var buttons = this.buttons = [];
-		var addIcon = new Shape();
+		var addIcon = new zim.Shape();
 		addIcon.graphics.f(color).p("AAAA4Ih6B8Ig5g4IB8h8Ih7h6IA4g5IB6B8IB7h8IA5A5Ih8B6IB8B7Ig5A5g");
-		if (useAdd) buttons.push(new Button({icon:addIcon.sca(.55).rot(-45).reg(1), inherit:buttonStyle}));
+		if (useAdd) buttons.push(new zim.Button({icon:addIcon.sca(.55).rot(-45).reg(1), inherit:buttonStyle}));
 		if (usePosition) {
-			var arrowIcon = new Shape();
+			var arrowIcon = new zim.Shape();
 			arrowIcon.graphics.f(color).p("AiJieIETCeIkTCfg");
-			buttons.push(new Button({icon:arrowIcon.sca(.6).rot(list&&!list.vertical?180:-90).reg(-2), inherit:buttonStyle}));
-			buttons.push(new Button({icon:arrowIcon.clone().sca(.6).rot(list&&!list.vertical?0:90).reg(-2), inherit:buttonStyle}));
-			var endIcon = new Shape();
+			buttons.push(new zim.Button({icon:arrowIcon.sca(.6).rot(list&&!list.vertical?180:-90).reg(-2), inherit:buttonStyle}));
+			buttons.push(new zim.Button({icon:arrowIcon.clone().sca(.6).rot(list&&!list.vertical?0:90).reg(-2), inherit:buttonStyle}));
+			var endIcon = new zim.Shape();
 			endIcon.graphics.f(color).p("AiFCLIAAkVIBXAAIAAEVgAgiAAICoiHIAAEQg");
-			buttons.push(new Button({icon:endIcon.sca(.62).rot(list&&!list.vertical?0:90).reg(0), inherit:buttonStyle}));
-			buttons.push(new Button({icon:endIcon.clone().sca(.62).rot(list&&!list.vertical?180:-90).reg(0), inherit:buttonStyle}));
+			buttons.push(new zim.Button({icon:endIcon.sca(.62).rot(list&&!list.vertical?0:90).reg(0), inherit:buttonStyle}));
+			buttons.push(new zim.Button({icon:endIcon.clone().sca(.62).rot(list&&!list.vertical?180:-90).reg(0), inherit:buttonStyle}));
 		}
-		if (useRemove) buttons.push(new Button({icon:addIcon.clone().rot(0).sca(.55), inherit:buttonStyle}));
+		if (useRemove) buttons.push(new zim.Button({icon:addIcon.clone().rot(0).sca(.55), inherit:buttonStyle}));
 		if (buttons.length==0) buttons = [""]
 		this.zimTabs_constructor(width, width/buttons.length, buttons, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, false, spacing, true, false, corner, null, true, gradient, gloss, null, null, null, null, null, null, null, null, null, null, backdropColor);
 
@@ -20683,7 +20690,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (zot(width)) width = DS.width!=null?DS.width:250;
 		if (zot(height)) height = DS.height!=null?DS.height:70;
-		if (zot(id)) id = DS.id!=null?DS.id:"zimTag_" + rand(10000);
+		if (zot(id)) id = DS.id!=null?DS.id:"zimTag_" + zim.rand(10000);
 		if (zot(frame)) {
 			if (zimDefaultFrame) {
 				frame = zimDefaultFrame;
@@ -22807,14 +22814,14 @@ RETURNS obj for chaining
 			makeCursor(moveCursor);
 			makeCursor(transformCursor);
 			function makeCursor(type) {
-				if (type==moveCursor) new Triangle(16,12,12,"white").addTo(type).mov(0,-13.5);
-				new Triangle(16,12,12,"white").addTo(type).mov(13.5).rot(90);
-				if (type==moveCursor) new Triangle(16,12,12,"white").addTo(type).mov(0,13.5).rot(180);
-				new Triangle(16,12,12,"white").addTo(type).mov(-13.5).rot(-90);
-				if (type==moveCursor) new Triangle(10,7,7,"black").addTo(type).mov(0,-13);
-				new Triangle(10,7,7,"black").addTo(type).mov(13).rot(90);
-				if (type==moveCursor) new Triangle(10,7,7,"black").addTo(type).mov(0,13).rot(180);
-				new Triangle(10,7,7,"black").addTo(type).mov(-13).rot(-90);
+				if (type==moveCursor) new zim.Triangle(16,12,12,"white").addTo(type).mov(0,-13.5);
+				new zim.Triangle(16,12,12,"white").addTo(type).mov(13.5).rot(90);
+				if (type==moveCursor) new zim.Triangle(16,12,12,"white").addTo(type).mov(0,13.5).rot(180);
+				new zim.Triangle(16,12,12,"white").addTo(type).mov(-13.5).rot(-90);
+				if (type==moveCursor) new zim.Triangle(10,7,7,"black").addTo(type).mov(0,-13);
+				new zim.Triangle(10,7,7,"black").addTo(type).mov(13).rot(90);
+				if (type==moveCursor) new zim.Triangle(10,7,7,"black").addTo(type).mov(0,13).rot(180);
+				new zim.Triangle(10,7,7,"black").addTo(type).mov(-13).rot(-90);
 				if (cache) type.cache(-20,-20,40,40);
 			}
 			var ccData = {"nw-resize":45, "ne-resize":-45, "n-resize":90, "e-resize":0};
@@ -27246,7 +27253,7 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 		function setMaskNull() {
 			if (obj.zimMask && obj.zimMask.parent) obj.zimMask.parent.removeChild(obj.zimMask);
 			obj.zimMask = null;
-			if (obj.zimMaskTicker) Ticker.remove(obj.zimMaskTicker);
+			if (obj.zimMaskTicker) zim.Ticker.remove(obj.zimMaskTicker);
 			obj.mask = null;
 		}
 		if (obj.zimMaskOriginal && obj.zimMaskOriginal != mask) setMaskNull();
@@ -27272,8 +27279,8 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 		}
 		// called from Blob and zim functions that move zim shapes
 		mask.zimMaskApply = function() {
-			if (obj.zimMaskTicker) Ticker.remove(obj.zimMaskTicker);
-			obj.zimMaskTicker = Ticker.add(apply);
+			if (obj.zimMaskTicker) zim.Ticker.remove(obj.zimMaskTicker);
+			obj.zimMaskTicker = zim.Ticker.add(apply);
 		}
 		if (mask && mask.shape) { // zim.Rectangle, Circle or Triangle, blob
 			apply();
@@ -29899,12 +29906,12 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				}
 			}
 			if (that.squeezeH === false) {
-				loop(widthMax, function(val) {
+				zim.loop(widthMax, function(val) {
 					widthUncompressedMax+=val;
 				})
 			}
 			if (that.squeezeV === false) {
-				loop(heightMax, function(val) {
+				zim.loop(heightMax, function(val) {
 					heightUncompressedMax+=val;
 				})
 			}
@@ -33882,7 +33889,7 @@ dispatches an enter event on mouseover of the portal and an exit event on mouseo
 // SUBSECTION EFFECTS
 
 /*--
-zim.Parallax = function(layers, damp, auto, stage)
+zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside)
 
 Parallax
 zim class
@@ -33920,6 +33927,49 @@ var parallax = new Parallax([
 stage.update();
 END EXAMPLE
 
+EXAMPLE
+// interact outside a stage
+// this example has a small stage in the middle of the HTML page
+// see https://zimjs.com/explore/parallax.html
+var parallax = new Parallax({mouseMoveOutside:true, startPaused:true});
+var colors = series(black, white);
+new Rectangle(stageW, stageH).center()
+loop(10, function (i, total) {
+	var rect = new Rectangle(stageW*(1-i/10), stageH*(1-i/10), colors()).center();
+	parallax.addLayer({
+		obj:rect,
+		input:"mouseX", // default so don't need...
+		prop:"x", // default so don't need...
+		propChange:40*i,
+		inMin:-1000,
+		inMax:stageW+1000
+	});
+	parallax.addLayer({
+		obj:rect,
+		input:"mouseY",
+		prop:"y",
+		split:true,
+		propChange:40*i,
+		inMin:-500,
+		inMax:stageH+500
+	});
+});
+
+// starting the parallax paused so this will unpause when mouse is over stage
+stage.on("stagemousemove", function (e) {
+	if (stage.mouseInBounds) { // now that state is set to move outside...
+		// go immediately to the target input - needs to be done for each layer
+		var targets = [];
+		loop(10, function (i) {
+			targets.push(e.stageX, e.stageY)
+		});
+		parallax.immediate(targets); // pass in the array
+		parallax.pause(false); // start the parallax
+		e.remove(); // end event
+	}
+});
+END EXAMPLE
+
 PARAMETERS supports DUO - parameters or single object with properties below
 layers - (default null) an array of layer objects, the format as below
 	Example: to move an obj 200 px in the x as the window scrolls from 100 to 300 px in the y
@@ -33942,21 +33992,25 @@ damp - (default .1) the damp value with 1 being no damping and 0 being no moveme
 auto - (default true) uses the specified input
 	if auto is set to false, you must make your own Ticker and use the step(input) method
 stage - (default the default frame's stage) the stage - specify this if multiple stages
+startPaused - (default false) set to true to start parallax paused - set paused(false) to unpause it
+mouseMoveOutside - (default true) set to false to not allow mouse movement outside the stage to affect motion
 NOTE: ticker and fps parameters have been removed - see Ticker to set
 
 METHODS
 addLayer({layer object properties}) - adds a layer
 removeLayer(index) - removes a layer based on order added
 step(input) - used when auto is false to send in custom input data
-immediate([]) - immediately sets the target value for each layer object (no damping)
+immediate([]) - an array of inputs for each layer used to immediately set the target value with no damping
+pause(state) - pauses or unpauses the parallax - state defaults to true - see also startPaused
 dispose() - removes listeners
 
 PROPERTIES
 type - holds the class name as a String
 damp - allows you to dynamically change the damping
+paused - read-only boolean whether the parallax is paused - see pause() and startPaused property
 --*///+68
-	zim.Parallax = function(layers, damp, auto, stage) {
-		var sig = "layers, damp, auto, stage";
+	zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside) {
+		var sig = "layers, damp, auto, stage, startPaused, mouseMoveOutside";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
 		z_d("68");
 		this.type = "Parallax";
@@ -33972,14 +34026,17 @@ damp - allows you to dynamically change the damping
 		}
 		if (zot(auto)) auto = true;
 		else auto = false;
+		if (zot(startPaused)) startPaused = false;
+		if (zot(mouseMoveOutside)) mouseMoveOutside = false;
 
 		var stageW = stage.getBounds().width;
 		var stageH = stage.getBounds().height;
+		stage.mouseMoveOutside = mouseMoveOutside;
 
 		var that = this;
 		stage.on("stagemousemove", function (e) {
-			that.mouseX = e.stageX;
-			that.mouseY = e.stageY;
+			that.mouseX = e.rawX;
+			that.mouseY = e.rawY;
 		});
 
 		// public properties
@@ -34056,6 +34113,7 @@ damp - allows you to dynamically change the damping
 
 		if (auto) {
 			var zimTicker = zim.Ticker.add(animate, stage);
+			if (startPaused) zim.Ticker.remove(zimTicker);
 		}
 
 		// loop though our layers and apply the converted proportion damping
@@ -34088,6 +34146,17 @@ damp - allows you to dynamically change the damping
 				}
 			}
 		}
+
+		that.paused = startPaused;
+		that.pause = function(state) {
+			if (zot(state)) state = true;
+			if (that.paused != state) {
+				that.paused = state;
+				if (!state) zimTicker = zim.Ticker.add(zimTicker);
+				else zim.Ticker.remove(zimTicker);
+			}
+ 		}
+
 
 		Object.defineProperty(that, 'damp', {
 			get: function() {
@@ -34997,7 +35066,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	    var duo; if (duo = zob(zim.Emitter, arguments, sig, this)) return duo;
 		z_d("69.9");
 		this.type = "Emitter";
-	    if (zot(obj)) obj = [new Circle(20,"#e472c4"),new Circle(20,"#acd241"),new Circle(20,"#50c4b7")];
+	    if (zot(obj)) obj = [new zim.Circle(20,"#e472c4"),new zim.Circle(20,"#acd241"),new zim.Circle(20,"#50c4b7")];
 		if (zot(width)) width = 300;
 		if (zot(height)) height = 300;
 	    if (zot(interval)) interval = 20;
@@ -35025,7 +35094,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(startPaused)) startPaused = false;
 		if (zot(pool)) pool = true;
 		if (zot(poolMin)) poolMin = 0;
-		if (zot(particles)) particles = new Container();
+		if (zot(particles)) particles = new zim.Container();
 
 	    this.zimContainer_constructor(width, height, null, null, false);
 		this.type = "Emitter";
@@ -35746,7 +35815,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 			line:{size:2},
 			kitetail:{
 				size:{min:5, max:20},
-				color:zim.series(pink,blue,green),
+				color:zim.series(zim.pink,zim.blue,zim.green),
 				borderColor:"rgba(0,0,0,.5)",
 				borderWidth:1
 			},
@@ -35820,7 +35889,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 		that.spreadFactor = 1;
 		that.stop = function() {};
 
-		if (zot(paper)) paper = new Container();
+		if (zot(paper)) paper = new zim.Container();
 		else shape.addTo(paper);
 
 		this.added(function () {
@@ -35869,7 +35938,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 					if (that.drawing) return;
 					if (cache) {
 						shape.cache(-(w*cropScale-w)/2, -(h*cropScale-h)/2, w*cropScale, h*cropScale);
-						var line = paper.bitmap = new Bitmap(shape.cacheCanvas).reg((w*cropScale-w)/2, (h*cropScale-h)/2).addTo(paper);
+						var line = paper.bitmap = new zim.Bitmap(shape.cacheCanvas).reg((w*cropScale-w)/2, (h*cropScale-h)/2).addTo(paper);
 						shape.graphics.clear();
 						shape.uncache();
 						shape.top();
@@ -35882,7 +35951,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 						if (undo.length > that.undoLevels) undo.unshift(); // take off front
 						that.dispatchEvent("recordUndo");
 					}
-					if (!cache)  shape = new Shape().clone().addTo(paper);
+					if (!cache)  shape = new zim.Shape().clone().addTo(paper);
 					that.lastSegment = line;
 					that.lastSelected = line;
 					line.alpha = that.lineAlpha;
@@ -35898,7 +35967,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 			that.dampY.immediate(that.y);
 			that.lastX = that.x;
 			that.lastY = that.y;
-			that.ticker = Ticker.add(function () {
+			that.ticker = zim.Ticker.add(function () {
 
 				var newX = that.dampX.convert(_draw?that.x:that.finishX);
 				var newY = that.dampY.convert(_draw?that.y:that.finishY);
@@ -35935,7 +36004,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 
 				if (penType == "splatter") {
 					for (var i=0; i<=3; i++) {
-						var angle = rand(360)*Math.PI/180;
+						var angle = zim.rand(360)*Math.PI/180;
 						var d = pickedSpread;
 						var loc = {x:newX+d*Math.cos(angle), y:newY+d*Math.sin(angle)}
 						var point = that.parent.localToLocal(loc.x,loc.y, shape);
@@ -37024,7 +37093,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
             }
         }
         if (parallax != 0 && distance != 0) {
-            var parallaxPD = new ProportionDamp(180-parallaxAngle/2, 180+parallaxAngle/2, -parallaxAngle/2, parallaxAngle/2, parallaxDamp);
+            var parallaxPD = new zim.ProportionDamp(180-parallaxAngle/2, 180+parallaxAngle/2, -parallaxAngle/2, parallaxAngle/2, parallaxDamp);
 			parallaxPD.immediate(180);
             if (angle == 0) {
                 function calculateDistance2(container, a) {
@@ -37093,19 +37162,19 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 		contentLeft.startRegX = contentLeft.regX;
 		contentRight.startRegX = contentRight.regX;
 		var adjuster = this.adjuster = new zim.Container(800, 300, null, null, false);
-		var backing = adjuster.backing = new zim.Rectangle(adjuster.width, adjuster.height, lighter, null, null, null, null, false).center(adjuster).alp(1).sha("rgba(0,0,0,.2)", 0, 0, 30);
-		var backing2 = adjuster.strip = new zim.Rectangle(adjuster.width, adjuster.height/3, white, null, null, null, null, false).center(adjuster).alp(1);
+		var backing = adjuster.backing = new zim.Rectangle(adjuster.width, adjuster.height, zim.lighter, null, null, null, null, false).center(adjuster).alp(1).sha("rgba(0,0,0,.2)", 0, 0, 30);
+		var backing2 = adjuster.strip = new zim.Rectangle(adjuster.width, adjuster.height/3, zim.white, null, null, null, null, false).center(adjuster).alp(1);
 		var label = adjuster.label = new zim.Label({
 			text:"slide to adjust center of left and right",
 			size:28,
-			color:dark,
+			color:zim.dark,
 			align:"center",
 			valign:"center"
 		}).center(adjuster).pos({y:50, reg:true});
 
-		var close = adjuster.close = new zim.Rectangle(50,50,light, null, null, null, null, false).addTo(adjuster).mov(adjuster.width-70, 26)
+		var close = adjuster.close = new zim.Rectangle(50,50,zim.light, null, null, null, null, false).addTo(adjuster).mov(adjuster.width-70, 26)
 		var ex = new zim.Shape(-40,-40,80,80,null,false);
-		ex.graphics.f(dark).p("AmJEVIEUkTIkXkWIB4h5IEWEYIETkTIB4B3IkTESIEQERIh4B4IkRkRIkSEVg"); // width about 90 reg in middle
+		ex.graphics.f(zim.dark).p("AmJEVIEUkTIkXkWIB4h5IEWEYIETkTIB4B3IkTESIEQERIh4B4IkRkRIkSEVg"); // width about 90 reg in middle
 		ex.center(close).sca(.3);
 		close.cursor = "pointer";
 		close.on((!zns?ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {
@@ -37114,12 +37183,12 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			that.dispatchEvent("closed");
 		});
 
-		var dotLeft = new zim.Circle(30, dark, null, null, null, false).center(adjuster).pos({x:adjuster.width/4, reg:true})
+		var dotLeft = new zim.Circle(30, zim.dark, null, null, null, false).center(adjuster).pos({x:adjuster.width/4, reg:true})
 		dotLeft.shape.alpha = .2
-		new zim.Circle(12, dark).center(dotLeft)
-		var dotRight = new zim.Circle(30, dark, null, null, null, false).center(adjuster).pos({x:adjuster.width/4*3, reg:true})
+		new zim.Circle(12, zim.dark).center(dotLeft)
+		var dotRight = new zim.Circle(30, zim.dark, null, null, null, false).center(adjuster).pos({x:adjuster.width/4*3, reg:true})
 		dotRight.shape.alpha = .2
-		new zim.Circle(12, dark, null, null, null, false).center(dotRight)
+		new zim.Circle(12, zim.dark, null, null, null, false).center(dotRight)
 		var slider = adjuster.slider = new zim.Slider({
 			min:0, max:30, step:1, useTicks:true, style:false
 		}).centerReg(adjuster).pos({y:adjuster.height-40, reg:true});
@@ -37130,15 +37199,15 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			dotLeft.x = leftP.convert(slider.currentValue);
 			dotRight.x = rightP.convert(slider.currentValue);
 		})
-		new zim.Label("closer", 24, null, silver).centerReg(adjuster).pos({x:slider.x - 220, y:slider.y, reg:true});
-		new zim.Label("farther", 24, null, silver).centerReg(adjuster).pos({x:slider.x + 220, y:slider.y, reg:true});
+		new zim.Label("closer", 24, null, zim.silver).centerReg(adjuster).pos({x:slider.x - 220, y:slider.y, reg:true});
+		new zim.Label("farther", 24, null, zim.silver).centerReg(adjuster).pos({x:slider.x + 220, y:slider.y, reg:true});
 		var ok = that.ok = new zim.Button({
 			label:"OK",
 			width:90,
 			height:60,
 			corner:0,
-			backgroundColor:blue,
-			rollBackgroundColor:green,
+			backgroundColor:zim.blue,
+			rollBackgroundColor:zim.green,
 			shadowColor:-1,
 			style:false
 		}).centerReg(adjuster).sca(.8).pos({x:adjuster.width-58, y:slider.y, reg:true});
@@ -37156,8 +37225,8 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			width:90,
 			height:60,
 			corner:0,
-			backgroundColor:yellow,
-			rollBackgroundColor:green,
+			backgroundColor:zim.yellow,
+			rollBackgroundColor:zim.green,
 			shadowColor:-1,
 			style:false
 		}).centerReg(adjuster).sca(.8).pos({x:58, y:slider.y, reg:true});
@@ -37167,7 +37236,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			dotRight.x = rightP.convert(slider.currentValue);
 		});
 
-		var adjusterP = new Proportion(0, 30, -holder.width/4, holder.width/4);
+		var adjusterP = new zim.Proportion(0, 30, -holder.width/4, holder.width/4);
 		function setReg() {
 			// shift the registration point of the content to accommodate eye distance adjust
 			var change = adjusterP.convert(slider.currentValue);
@@ -37222,12 +37291,12 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 
         if (angle != 0 && distance != 0 && boundaryMarkers) {
             that.boundaryRight = new zim.Container({style:false});
-            new zim.Circle(24, light, null, null, null, false).addTo(that.boundaryRight).dep(-2);
-            new zim.Triangle(16,16,16,yellow, grey,null,null,-3,null,false).rot(-90).center(that.boundaryRight).dep(-6);
+            new zim.Circle(24, zim.light, null, null, null, false).addTo(that.boundaryRight).dep(-2);
+            new zim.Triangle(16,16,16,zim.yellow, zim.grey,null,null,-3,null,false).rot(-90).center(that.boundaryRight).dep(-6);
             that.boundaryRight.center(content).mov(distance/2+24);
             that.boundaryLeft = new zim.Container({style:false});
-            new zim.Circle(24, light, null, null, null, false).addTo(that.boundaryLeft).dep(-2);
-            new zim.Triangle(16,16,16,yellow, grey,null,null,-3,null,false).rot(90).center(that.boundaryLeft).dep(-6);
+            new zim.Circle(24, zim.light, null, null, null, false).addTo(that.boundaryLeft).dep(-2);
+            new zim.Triangle(16,16,16,zim.yellow, zim.grey,null,null,-3,null,false).rot(90).center(that.boundaryLeft).dep(-6);
             that.boundaryLeft.center(content).mov(-distance/2-24);
             that.register(that.boundaryRight);
             that.register(that.boundaryLeft);
@@ -38641,7 +38710,7 @@ RETURNS - a ZIM Tab which is automatically added to the frame's stage
 		} else {
 			return;
 		}
-		var soundTab = new Tabs({
+		var soundTab = new zim.Tabs({
 			tabs:tabs, width:stageW, currentEnabled:true
 		}).addTo(stage);
 		soundTab.on("change", function() {
@@ -38689,7 +38758,7 @@ RETURNS - null
         var DOMURL = self.URL || self.webkitURL || self;
         var img = new Image();
         img.onload = function() {
-            var bitmap = new Bitmap(img);
+            var bitmap = new zim.Bitmap(img);
             //timeout(1500, function() {
                 // bitmap.cache(0,0,bitmap.width,bitmap.height);
                 callBack(bitmap);
