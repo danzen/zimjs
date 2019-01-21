@@ -18569,6 +18569,8 @@ show(index) - shows the Keyboard - use this rather than addTo(), etc.
 hide() - hides the keyboard
 toggle(state - default null) - shows if hidden and hides if showing (returns the keyboard for chaining)
 	or pass in true to show keyboard or false to hide keyboard
+addChar(char) - add a character to the currentLabel at the currentIndex
+removeChar() - removes the chararcter in the currentLabel at the currentIndex-1 (a backspace)
 addLabels(labels) - add a ZIM Label or an array of Labels to the labels list for the Keyboard
 removeLabels(labels) - remove a ZIM Label or an array of Labels
 showPlace() - show the place menu for cursor
@@ -18824,6 +18826,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		        }
 		        currentStage.update();
 		    }
+		}
+
+		that.addChar = function(char) {
+			if (!zot(char) && char.match(/^.$/)) addToLabel(char);
+		}
+		that.removeChar = function() {
+			backspaceRemovesLetter(true);
 		}
 
 		var shiftEvent;
@@ -19340,7 +19349,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			positionBlinker();
 		}
 
-		function backspaceRemovesLetter() {
+		function backspaceRemovesLetter(once) {
 		    var removalOkay = true;
 		    var timeOut;
 		    function haalWeg() {
@@ -19348,8 +19357,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		            removalOkay = false;
 		        }
 		        if (removalOkay) {
-		            removeLetter();
 		            timeOut = zim.timeout(200, haalWeg);
+					removeLetter();
 		        }
 		        if (currentLabel && currentLabel.text.length<1) {
 		            stopRemoval();
@@ -19358,14 +19367,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		    function removeLetter() {
 		        if (currentLabel && currentLabel.text.length>0) {
 					if (that.selectedIndex > 0) addToLabel("del");
-		            that.on("pressup", stopRemoval);
+		            if (once) stopRemoval()
+					else that.on("pressup", stopRemoval);
 		        } else {
 		            addToLabel("del");
 		        }
 		    }
 		    function stopRemoval() {
 		        removalOkay = false;
-		        timeOut.clear();
+		        if (timeOut) timeOut.clear();
 		        that.off("pressup", stopRemoval);
 		    }
 		    removeLetter();
@@ -19436,6 +19446,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return insertPoint;
 			},
 			set: function(index) {
+				index = Math.min(that.selectedLabel.text.length, Math.max(0, index));
 				insertPoint = index;
 				positionBlinker();
 			}
