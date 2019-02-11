@@ -2,6 +2,7 @@
 // Also see https://zimjs.com/distill to minify only the functions in your app
 // free to use - donations welcome of course! https://zimjs.com/donate
 
+var zimDefaultFrame; // global variable to hold default frame - used by other ZIM modules like physics, etc.
 
 ////////////////  ZIM WRAP  //////////////
 
@@ -443,97 +444,20 @@ function zob(func, args, sig, scope) {
 }//-7
 
 /*--
-zik(Array|function|object)      ~ pick
+zik(Array|function|object|Pick)      ~ pick
 
 zik
 global function
 
-DESCRIPTION
-Receives what is called a ZIM VEE value which is a way of providing options.
-zik() will then randomly pick from the options and return a value.
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the series() function which returns a function that will execute a series in order
-	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
-NOTE: the ZIM RAND object gets passed to zim.rand() directly so read about params there - integer defaults to false for zik()
-
-Think of zik() as a random option filter for a parameter that can be passed and then picked later with zik()
-This is different than executing right away although you can use zik() directly for that
-Used by zim.interval, zim.animate, zim.Emitter, etc.
-zik() is recursive so it will zik() the answer from an Array or Function
-
-EXAMPLE
-var loopCount = [1,2,3];
-loopCount = zik(loopCount); // loopCount is 1, 2, or 3
-// if just simple like this, could use loopCount = zim.shuffle(loopCount)[0];
-// but then would have to check first if loopCount is an array rather than single value
-
-var rotation = {min:10, max:20, integer:false, negative:true};
-// an example of a RAND object - this will give values between -20 and -10 or 10 and 20
-// rotation now holds an object as to how to pick its value
-// this can be passed into a zim.Emitter() for instance
-// which will make multiple copies and rotate them based on zik()
-// or this can be passed into an animation object
-// and then into zim.Emitter() for the animate parameter
-
-var emitter = new zim.Emitter({
-	obj:new zim.Rectangle(),
-	random:[rotation:rotation] // the emitter will use zik() to pick a rotation each particle
-});
-
-function age() {
-	// assuming user.age is some input value that exists
-	if (user.age >= 18) return ["a", "b", ["c","d"]];
-	else return ["e", "f"];
-}
-// below will be a, b, c or d if user is 18+ with a and b having more of a chance
-// or e or f if not over 18
-var show = zik(age);
-
-// below we randomize the tile colors in the first example
-// and make them in color order for the second example
-new Tile([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")]); would randomize colors
-new Tile(series([new Rectangle(10,10,"blue"), new Rectangle(10,10,"red")])); would alternate colors
-
-// here we pass an array through without processing the array with zik:
-zik({noZik:[1,2,3,4,5]}); // result is [1,2,3,4,5]
-END EXAMPLE
-
-PARAMETERS
-value - an Array to randomly pick from or a Function yielding a return value
- 	or an Object literal to pick a random number as follows:
-	{min:0, max:20, integer:false, negative:false} - this RAND object is passes through to zim.rand()
-	See zim.rand() for defaults and parameter descriptions
-	NOTE: one change in defaults: the RAND object integer parameter defaults to false where zim.rand() defaults to true
-	if you just want an array or function to pass through unprocessed, use {noZik:value} where the value is the array or function
-
-RETURNS a random element from the Array or a Function result if a function is passed in
-or a Number from Object instructions or the value that was given
-and the value from an Array or Function is passed through zik() again, etc. until a single value is returned
+DESCRIPTION - DEPRECIATED as of ZIM 10
+Has now been replaced with ZIM Pick() class which formalizes zik() and ZIM VEE into a more general class.
+See ZIM Pick() under the Code module Classes.
 --*///+7.5
 function zik(v) {
 	z_d("7.5");
+	z_d("17.6");
 	if (zot(v)) return;
-	if ((v.constructor === {}.constructor) || Array.isArray(v) || typeof v == "function") {
-		if (Array.isArray(v)) {
-			var val = v[Math.floor(Math.random()*(v.length))];
-			return zik(val); // recursive
-		} else if (v.constructor === {}.constructor) {
-			if (!zot(v.noZik)) return v.noZik; // a passthrough for arrays and functions
-			if (zot(v.max)) return v;
-			if (zot(v.integer)) v.integer = false;
-			var val = zim.rand(v.min, v.max, v.integer, v.negative);
-			return val;
-		} else if (typeof v == "function") {
-			return zik((v)()); // recursive
-		}
-	}
-	return v;
+	return zim.Pick.choose(v);
 }//-7.5
 
 /*--
@@ -693,18 +617,11 @@ RETURNS a Number
 		if (negative) if (Math.random()>.5) {a*=-1; b*=-1;};
 		if (integer) if (a>b) {a++;} else if (b>a) {b++;}
 		var r;
-		if (a == 0 && b == 0) {
-			return 0;
-		} else if (b == 0) {
-			r = Math.random()*a;
-		} else {
-			r = Math.min(a,b) + Math.random()*(Math.max(a,b)-Math.min(a,b));
-		}
-		if (integer) {
-			return Math.floor(r);
-		} else {
-			return r;
-		}
+		if (a == 0 && b == 0) return 0;
+		else if (b == 0) r = Math.random()*a;
+		else r = Math.min(a,b) + Math.random()*(Math.max(a,b)-Math.min(a,b));
+		if (integer) return Math.floor(r);
+		else return r;
 	}//-9
 
 /*--
@@ -716,7 +633,7 @@ zim function
 DESCRIPTION
 Returns a function that will return each value passed as a parameter (or an Array) in order
 This goes in sequence each time the function is called
-Use this to pass a series in to any ZIM VEE (zik) value so a looping series is obtained
+Use this to pass a series in to any ZIM VEE value so a looping series is obtained
 
 NOTE: was called makeSeries() which is now depreciated
 
@@ -738,8 +655,8 @@ s(); // green
 s(); // blue
 s(); // red, etc.
 
-new Tile(new Rectangle(10,10,blue), new Rectangle(10,10,red)); would randomize colors
-new Tile(series(new Rectangle(10,10,blue), new Rectangle(10,10,red))); would alternate colors
+new Tile(new Rectangle(10,10,[blue, red]), 10, 10); would randomize colors
+new Tile(new Rectangle(10,10,series(blue, red)), 10, 10); would alternate colors
 END EXAMPLE
 
 EXAMPLE
@@ -809,7 +726,7 @@ So this is like: for (var i=0; i<obj; i++) {element = array[i]}
 and passes the function call the property name, value, currentIndex, totalLoops, startIndex, endIndex, obj
 So this is like: for (var i in obj) {property = i; value = obj[i];}
 
-4. If you pass an HTML NodeList then loop() loops and gives each tag in the NodeList
+4. If you pass an HTML NodeList or HTMLCollection then loop() loops and gives each tag in the NodeList or HTMLCollection
 see ZIM zet() for an example of getting a NodeList (like the $() in JQuery)
 
 5. See also the loop method under ZIM Methods to see how to loop through a ZIM Container
@@ -878,12 +795,12 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 		if (zot(reverse)) reverse = false;
 		if (zot(step) || step <= 0) step = 1;
 
-		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":(obj instanceof NodeList?"nodelist":"invalid")));
+		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":(obj instanceof NodeList?"nodelist":(obj instanceof HTMLCollection?"htmlcollection":"invalid"))));
 
 		if (type == "invalid") {
 			return undefined;
 		}
-		if (type == "number" || type == "array" || type == "nodelist") {
+		if (type == "number" || type == "array" || type == "nodelist" || type == "htmlcollection") {
 			var length = type=="number"?obj:obj.length;
 			var total = getTotal(length-1);
 			if (total == 0) return;
@@ -904,7 +821,7 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 						var r = call(i, total, start, end, obj);
 					} else if (type=="array") {
 						var r = call(obj[i], i, total, start, end, obj);
-					} else { // nodelist
+					} else { // nodelist or htmlcollection
 						var r = call(obj.item(i), i, total, start, end, obj);
 					}
 					if (typeof r != 'undefined') return r;
@@ -979,9 +896,9 @@ button.on("click", function() {
 END EXAMPLE
 
 PARAMETERS
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 time - |ZIM VEE| milliseconds to wait until function is called
-	or pass in a ZIM VEE value and zik() will pick a time
-	ZIM VEE value is an Array of choices or a Function or an Object literal with min, max, integer properties (RAND object)
 call - function to call when the time passes - will receive the id object as a single parameter
 
 RETURNS a ZIM timeoutObject to pause and clear the timeout with the following methods and properties:
@@ -1000,7 +917,7 @@ done - true if finished
 		if (zot(call)) return;
 		if (typeof call != 'function') return;
 		if (zot(time)) time = 1000;
-		time = zik(time);
+		time = zim.Pick.choose(time);
 		var obj = {startTime:Date.now(), time:0, paused:false, done:false};
 		var lastTime = obj.startTime;
 		function next() {
@@ -1091,7 +1008,7 @@ var interval = interval(1000, function() {
 var button = new Button({label:"STOP", toggle:"START"}).center(stage);
 button.on("click", function(){interval.pause(button.toggled);});
 
-RANDOM intervals with zik()
+RANDOM intervals with ZIM Pick() literals
 interval({min:200, max:800}, dropBombs); // bombs will fall at different rates between 200ms and 800ms
 interval([1000, 2000], dropBombs); // bombs will fall at either 1000 or 2000 ms
 var count = 1;
@@ -1100,9 +1017,9 @@ interval(increase, dropBombs); // bombs will fall at 1000, then again after 2000
 END EXAMPLE
 
 PARAMETERS
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 time - |ZIM VEE| (default 1000) milliseconds for the interval (delay until the function runs - again and again)
-	or pass in a ZIM VEE value and zik() will pick a time
-	ZIM VEE value is an Array of choices or a Function or an Object literal with min, max, integer properties (RAND object)
 call - function to call when the interval passes
 	Will be passed a ZIM intervalObject as a single parameter
 	This is the same as the return object from animate()
@@ -1142,7 +1059,7 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 
 		function interval() {
 			obj.startTime = Date.now();
-			obj.interval = zik(obj.time);
+			obj.interval = zim.Pick.choose(obj.time);
 			obj.id = setTimeout(function() {
 				if (obj.paused) return;
 				if (!obj.active) return;
@@ -1301,7 +1218,9 @@ var color = convertColor(blue, "rgba", .5); // result is "rgba(80,196,183,0.5)"
 END EXAMPLE
 
 PARAMETERS
-color - (default black) the HTML string or hex color (case insensitive) (does not work with "rgba()" input)
+color - (default black) the HTML string or hex color (case insensitive)
+	"rgb()" in only works with "rgba" out else returns rgb() value
+	"rgba()" in only returns rgba() value with alpha
 toColorType - (default "hex") or use "string", "rgb" or "rgba"
 alpha - (default 1) the alpha used for the "rgba" toColorType
 
@@ -1313,6 +1232,18 @@ RETURNS a String with the converted color or black if a match is not found
 		if (zot(toColorType)) toColorType = "hex";
 		if (zot(alpha)) alpha == 1;
 		if (zot(color)) return;
+		if (color.match(/rgba\(/)) {
+			var c = color.split(",");
+			c[3] = alpha+")";
+			return c.join(",");
+		}
+		if (color.match(/rgb\(/)) {
+			if (toColorType == "rgba") {
+				var c = color.split(")");
+				return c[0]+","+alpha+c[1];
+			} else return color;
+		}
+
 		if (toColorType == "rgb" || toColorType == "rgba") {
 			function hexToRgbA(hex){ // kennebec on StackOverflow
 				var c;
@@ -1832,19 +1763,19 @@ vee
 zim function
 
 DESCRIPTION
-Determines if obj is in ZIM VEE format - that is used by ZIM zik()... short for pick()
-ZIM VEE format is [], {min:a, max:b}, function(){}, {noZik:x}
-ZIM VEE is a way to pass in dynamic parameters or style properties
+Determines if obj is a ZIM Pick() object or a Pick Literal - used by ZIM VEE parameters
+Pick Literal format is [], {min:a, max:b}, function(){}, {noPick:x} or a function(){}
+See https://zimjs.com/docs.html?type=Pick
+ZIM Pick is a way to pass in dynamic parameters or style properties
 This is very handy to pass in a series() function or an array for random pickings, etc.
 Used to create dynamic particles with the Emitter or tile specific items in order, etc.
-ZIM VEE accepts any value and if not in ZIM VEE format, will just return the object
-It is called ZIM VEE as it was launched with ZIM VEE (5) - we are on ZIM NIO (9)
+Pick.choose() accepts any value and if not in ZIM Pick format, will just return the object
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
 var color = [red, green, blue];
-// ternary operator - if ZIM VEE format, add "random" else ""
+// ternary operator - if in Pick format, add "random" else ""
 new Label((vee(color)?"random ":"") + "colors").center();
 END EXAMPLE
 
@@ -1853,11 +1784,11 @@ orientation - (default true) uses window.orientation property to determine mobil
 	this may call certain touch screens mobile
 	but setting to false uses a test on mobile names which could be incomplete
 
-RETURNS a Boolean true if ZIM VEE format or false if not (such as just a number, string, new Circle, etc.)
+RETURNS a Boolean true if Pick format or false if not (such as just a number, string, new Circle, etc.)
 --*///+28.5
 	zim.vee = function(obj) {
 		z_d("28.5");
-		return !zot(obj) && (Array.isArray(obj) || (obj.constructor == {}.constructor && (!zot(obj.max) || !zot(obj.noZik))) || typeof obj == "function");
+		return !zot(obj) && (obj.type == "Pick" || Array.isArray(obj) || (obj.constructor == {}.constructor && (!zot(obj.max) || !zot(obj.noPick))) || typeof obj == "function");
 	}//-28.5
 
 /*--
@@ -1965,33 +1896,9 @@ c.addChild(new Rectangle(100, 100, green)); // zogs "added a child to Collection
 c.center(stage); // centers the collection but then offsets it 50 pixels up
 END EXAMPLE
 
-PARAMETERS supports DUO - parameters or single object with properties below
-NOTE: do NOT use zim.extend() with ES6 - see ES6 examples at top instead
-subclass - the class to extend
-superclass - the class to extend from (an existing class)
-override - (default null) an Array of methods (as Strings) to override.
-	You can override any function by just defining that function in the subclass
-	the override parameter gives you access to the overridden function in the superclass prototype
-	only methods on the superclass prototype can be accessed once overridden - not methods in the superclass body
-	if there is only one method being overridden then a single string is fine ("test" or ["test"] is fine)
-	any methods passed to this parameter will be given prefix_methodName() access on the sub class (this.prefix_methodName())
-	where the prefix is below (note, the prototype setting has no bearing on these manual overrides)
-	this list is only needed for methods in the subclass body
-	methods assigned to the prototype of the subclass that override are automatically given prefixes
-prefix - (default "super") a prefix that will be followed by "_" and then the overridden method name
-	by default this.super_constructor() would call the super class constructor
-	if prefix is set to "Person" then this.Person_constructor() would call the super class constructor
-	the same system is used to call overridden files in override or prototype
-prototype - (default true) will search the subclass prototype for overriding methods
-	the overridden methods are then available as this.prefix_methodName()
-	set to false to avoid searching the super class for methods overridden by the sub class prototype
-	just quickens the code minutely if there is no need
-
 NOTE: the superclass constructor is always available as this.prefix_constructor() no matter the override or prototype settings
 NOTE: this.prefix_constructor(); should be called at the top of the subclass to avoid problems when multiple copies of object
 NOTE: to extend a class that already extends a ZIM class then change the prefix to a unique name:
-
-NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
 // if we already had the Collection example above and we want to extend that
@@ -2014,6 +1921,28 @@ var Jazz = function() {
 }
 extend(Jazz, Records, null, "Records");
 END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+NOTE: do NOT use zim.extend() with ES6 - see ES6 examples at top instead
+subclass - the class to extend
+superclass - the class to extend from (an existing class)
+override - (default null) an Array of methods (as Strings) to override.
+	You can override any function by just defining that function in the subclass
+	the override parameter gives you access to the overridden function in the superclass prototype
+	only methods on the superclass prototype can be accessed once overridden - not methods in the superclass body
+	if there is only one method being overridden then a single string is fine ("test" or ["test"] is fine)
+	any methods passed to this parameter will be given prefix_methodName() access on the sub class (this.prefix_methodName())
+	where the prefix is below (note, the prototype setting has no bearing on these manual overrides)
+	this list is only needed for methods in the subclass body
+	methods assigned to the prototype of the subclass that override are automatically given prefixes
+prefix - (default "super") a prefix that will be followed by "_" and then the overridden method name
+	by default this.super_constructor() would call the super class constructor
+	if prefix is set to "Person" then this.Person_constructor() would call the super class constructor
+	the same system is used to call overridden files in override or prototype
+prototype - (default true) will search the subclass prototype for overriding methods
+	the overridden methods are then available as this.prefix_methodName()
+	set to false to avoid searching the super class for methods overridden by the sub class prototype
+	just quickens the code minutely if there is no need
 
 NOTE: extend() is included in Distill if DISPLAY, METHODS or FRAME Module classes are used (otherwise NOT included)
 
@@ -3141,13 +3070,13 @@ seed - read only - the seed that was used for the Noise object
 	}//-13.9
 
 /*--
-zim.Point = function(x, y, z, w)
+zim.Point = function(x, y, z, q, r, s, t, u, v, w)
 
 Point
 zim class
 
 DESCRIPTION
-Stores x, y, z and w properties.
+Stores x, y, z, q, r, s, t, u, v, w properties.
 See also createjs.Point for a Point class with more features.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
@@ -3161,23 +3090,47 @@ PARAMETERS
 x - (default 0) the x value of the point
 y - (default 0) the y value of the point
 z - (default 0) the z value of the point - probably not used
+q - (default 0) the q value of the point - very probably not used
+r - (default 0) the r value of the point - very probably not used
+s - (default 0) the s value of the point - very probably not used
+t - (default 0) the t value of the point - very probably not used
+u - (default 0) the u value of the point - very probably not used
+v - (default 0) the v value of the point - very probably not used
 w - (default 0) the w value of the point - very probably not used
 
 PROPERTIES
 x - the x value of the point
 y - the y value of the point
 z - the z value of the point - probably not used
+q - the q value of the point - very probably not used
+r - the r value of the point - very probably not used
+s - the s value of the point - very probably not used
+t - the t value of the point - very probably not used
+u - the u value of the point - very probably not used
+v - the v value of the point - very probably not used
 w - the w value of the point - very probably not used
 --*///+13.45
-	zim.Point = function(x, y, z, w) {
+	zim.Point = function(x, y, z, q, r, s, t, u, v, w) {
 		z_d("13.45");
 		if (zot(x)) x = 0;
 		if (zot(y)) y = 0;
 		if (zot(z)) z = 0;
+		if (zot(q)) q = 0;
+		if (zot(r)) r = 0;
+		if (zot(s)) s = 0;
+		if (zot(t)) t = 0;
+		if (zot(u)) u = 0;
+		if (zot(v)) v = 0;
 		if (zot(w)) w = 0;
 		this.x = x;
 		this.y = y;
 		this.z = z;
+		this.q = q;
+		this.r = r;
+		this.s = s;
+		this.t = t;
+		this.u = u;
+		this.v = v;
 		this.w = w;
 	}//-13.45
 
@@ -3333,7 +3286,7 @@ lastValue - setting this would go immediately to this value (would not normally 
 	}//-14
 
 /*--
-zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound)
+zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound, clamp)
 
 Proportion
 zim class
@@ -3367,6 +3320,7 @@ targetMin - (default 0) min for the output scale (say volume)
 targetMax - (default 1) max for the output scale (say volume)
 factor - (default 1) is going the same direction and -1 is going in opposite direction
 targetRound - (default false) set to true to round the converted number
+clamp - (default true) set to false to let results go outside min and max range
 
 METHODS
 convert(input) - will return the output property (for instance, a volume)
@@ -3376,8 +3330,8 @@ just call the convert method right away if you want it to start at a different b
 for instance, if your slider went from 100 to 500 and you want to start at half way
 make the object and call p.convert(300); on the next line
 --*///+15
-	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound) {
-		var sig = "baseMin, baseMax, targetMin, targetMax, factor, targetRound";
+	zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound, clamp) {
+		var sig = "baseMin, baseMax, targetMin, targetMax, factor, targetRound, clamp";
 		var duo; if (duo = zob(zim.Proportion, arguments, sig, this)) return duo;
 		z_d("15");
 		// factor - set to 1 for increasing and -1 for decreasing
@@ -3386,6 +3340,7 @@ make the object and call p.convert(300); on the next line
 		if (zot(targetMax)) targetMax = 1;
 		if (zot(factor)) factor = 1;
 		if (zot(targetRound)) targetRound = false;
+		if (zot(clamp)) clamp = true;
 
 		// proportion
 		var baseAmount;
@@ -3395,9 +3350,11 @@ make the object and call p.convert(300); on the next line
 		baseAmount = baseMin; // just start at the min otherwise call immediate(baseValue);
 
 		this.convert = function(baseAmount) {
-			if (isNaN(baseAmount)) {return;}
-			baseAmount = Math.max(baseAmount, baseMin);
-			baseAmount = Math.min(baseAmount, baseMax);
+			if (isNaN(baseAmount) || (baseMax-baseMin==0)) {return;}
+			if (clamp) {
+				baseAmount = Math.max(baseAmount, baseMin);
+				baseAmount = Math.min(baseAmount, baseMax);
+			}
 			proportion = (baseAmount - baseMin) / (baseMax - baseMin);
 			if (factor > 0) {
 				targetAmount = targetMin + (targetMax-targetMin) * proportion;
@@ -3410,7 +3367,7 @@ make the object and call p.convert(300); on the next line
 	}//-15
 
 /*--
-zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound)
+zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound, clamp)
 
 ProportionDamp
 zim class
@@ -3453,8 +3410,8 @@ NOTE: the object always starts by assuming baseMin as baseValue
 if you want to start or go to an immediate value without easing then
 call the pd.immediate(baseValue) method with your desired baseValue (not targetValue)
 --*///+16
-	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound) {
-		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound";
+	zim.ProportionDamp = function(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound, clamp) {
+		var sig = "baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound, clamp";
 		var duo; if (duo = zob(zim.ProportionDamp, arguments, sig, this)) return duo;
 		z_d("16");
 		// damp - can be changed via damp get/set method property
@@ -3466,6 +3423,7 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 		if (zot(damp)) damp = .1;
 		if (zot(factor)) factor = 1;
 		if (zot(targetRound)) targetRound = false;
+		if (zot(clamp)) clamp = true;
 
 		this.damp = damp; // want to expose as a property we can change
 		var that = this;
@@ -3487,10 +3445,12 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 		var interval = setInterval(calculate, 20);
 
 		function calculate() {
-			if (isNaN(baseAmount)) {return;}
+			if (isNaN(baseAmount) || (baseMax-baseMin==0)) {return;}
 
-			baseAmount = Math.max(baseAmount, baseMin);
-			baseAmount = Math.min(baseAmount, baseMax);
+			if (clamp) {
+				baseAmount = Math.max(baseAmount, baseMin);
+				baseAmount = Math.min(baseAmount, baseMax);
+			}
 
 			proportion = (baseAmount - baseMin) / (baseMax - baseMin);
 			targetDifference = targetMax - targetMin;
@@ -3528,7 +3488,6 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 			return true;
 		}
 	}//-16
-
 
 /*--
 zim.Dictionary = function(unique)
@@ -3648,6 +3607,472 @@ values - array of values synched to keys
 			return true;
 		}
 	}//-17
+
+/*--
+zim.Hierarchy = function(input, data)
+
+Hierarchy
+zim class
+
+DESCRIPTION
+A hierarchy is a nested structure for organized data (like XML).
+For instance, Hierarchy manages the accordion feature of ZIM List()
+where the list can be expanded and collapsed to show nested sections.
+
+HOW IT WORKS
+There are two formats that can be used as input.
+Each will create a data property in final hierarchy format.
+
+A. The SIMPLE input is an easier format to write but
+has a limitation in that identifiers must be strings.
+The Hierarchy replaces the identifiers with sequential ids
+and stores the original identifiers as an obj property.
+
+B. The COMPLEX input starts off like the final hierarchy data
+which has the advantage of storing any type of object in the hierarchy.
+The disadvantage is the ids must be hand coded and it is longer.
+The Hierarchy will add level, open and opened properties
+and create the data property in final hierarchy format.
+
+STRATEGY
+The complex format is tricky.
+One way to deal with it is to pass in a SIMPLE string version.
+Then replace the strings with final objects in the data property.
+The Hierarchy class is used internally by ZIM so may not be needed.
+However, it will help for custom tree menus, mindmaps, etc.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE - SIMPLE INPUT
+// 1. Here is linear input as an array - a boring tree - more like grass!
+var simple = [1,2,3,4]; // so we would probably not use Hierarchy for this.
+
+// 2. To hold nested data we use an object literal.
+// The properties can hold linear arrays as values
+// but if any of the values need to hold more values then use an object literal:
+var simple = {
+    "linear":[1,2,3,4], // an array is okay as all items are leaf nodes (end nodes)
+    "nested":{ // an object literal is required as one or more items hold other items
+        "A":[], // this holds nothing (a leaf node) but still needs an empty array
+        "B":["one", "two", "three"], // this holds a linear list - all leaf nodes
+        "C":{ // this holds another nested list where at least one item holds more
+            "LEAF":[],
+            "LINEAR":[1,2,3,4],
+            "LEAF":[]
+        }
+    }
+}
+
+// pass the object into the input parameter:
+var hierarchy = new Hierarchy(simple);
+var data = hierarchy.data;
+
+// data will be the following - note it is a more complex format
+// but also a form that could hold any type of data as a value
+// note the level matches the indent and all values have an id
+data = {
+    id0:{obj:"linear", level:0, open:false, opened:false, list:{
+        id1:{obj:1, level:1},
+        id2:{obj:2, level:1},
+        id3:{obj:3, level:1},
+        id4:{obj:4, level:1}
+    }},
+    id5:{obj:"nested", level:0, open:false, opened:false, list:{
+        id6:{obj:"A", level:1},
+        id7:{obj:"B", level:1, open:false, opened:false, list:{
+            id8:{obj:"one", level:2},
+            id9:{obj:"two", level:2},
+            id10:{obj:"three", level:2}
+        }},
+        id11:{obj:"C", level:1, open:false, opened:false, list:{
+            id12:{obj:"LEAF", level:2},
+            id13:{obj:"LINEAR", level:2, open:false, opened:false, list:{
+                id14:{obj:1, level:3},
+                id15:{obj:2, level:3},
+                id16:{obj:3, level:3},
+                id17:{obj:4, level:3}
+            }},
+            id18:{obj:"LEAF", level:2}
+        }}
+    }}
+}
+END EXAMPLE
+
+EXAMPLE - COMPLEX INPUT
+// Here is a sample of passing in the more complex format.
+// level, open, opened properties are not required
+// they will be added by the Hierarchy.
+// Note that there are no arrays in this data format so that each item has an id.
+// This could be passed in to the data property of List
+// to show an expandable hierarchy of objects rather than strings converted to buttons
+var complex = {
+	id0:{obj:new Rectangle(), list:{
+		id1:{obj:new Triangle()},
+		id2:{obj:new Triangle()},
+		id3:{obj:new Triangle()}
+	}},
+	id4:{obj:new Circle(), list:{
+		id5:{obj:new Button()},
+		id6:{obj:new Button(), list:{
+			id7:{obj:new CheckBox()},
+			id8:{obj:new CheckBox()},
+		}},
+		id9:{obj:new Button(), list:{
+			id10:{obj:new Label("Leaf")},
+			id11:{obj:new Label("Nest"), list:{
+				id12:{obj:1},
+				id13:{obj:2},
+				id14:{obj:3},
+				id15:{obj:4},
+			}},
+			id16:{obj:new Label("Leaf")}
+		}}
+	}}
+};
+var hierarchy = new Hierarchy(complex);
+var list = new List({list:hierarchy.data, align:"center"}).center();
+END EXAMPLE
+
+PARAMETERS
+input (default null) - a simple formated input - see the examples
+	this will be turned in to a more complex object literal available as the data property
+	OR input a complex formated input - similar to the data property output
+	but only ids, obj and list properties are required.
+	The main purpose of Hierarchy is to create the complex data object
+	but passing in a complex format allows objects other than strings to be used.
+
+METHODS
+processSimple(input) - enter simple input - returns a Hierarchy data object literal
+	this is what the Hierarchy does when a simple input is provided to make its data property
+	the input must be in the simple format as described in the SIMPLE example.
+processComplex(input) - enter complex input - returns a Hierarchy data object literal
+	this is what the Hierarchy does when complex data is provided to make its data property
+	processComplex will add level, open, and opened properties to the data
+	otherwise data must be in the same format as the final data property - see COMPLEX example
+getLinearList(data) - enter final data format, to get a linear list top level objects
+	and all open list objects within according to the open property
+getLinearIds(data) - enter final data format, to get a linear list top level ids
+	and all open lists ids within according to the open property
+getData(id) - find the final data format for a given Hierarchy ID - eg. id0, id12, etc.
+getNextSibling(id) - gets the id of the next sibling - skipping ids of any children
+	will find parents next sibling if last child in parent
+	or undefined if last child in hierarchy
+getPrevSibling(id) - gets the id of the previous sibling - skipping ids of any children
+	will find the parent if first child in parent
+	or undefined if first child in hierarchy
+
+
+PROPERTIES
+data - a hierarchy formated object literal with ids that hold object literals
+	ids are in the format of id0, id1, id2, etc. numbered in order of creation (top to bottom)
+	the object literals have obj, level, open, opened and list properties
+	leaf nodes (end nodes) will have {} as its list property value
+--*///+17.5
+	zim.Hierarchy = function(input) {
+		z_d("17.5");
+		var that = this;
+        if (zot(input)) return;
+
+        that.processSimple = function(list) {
+            var count = 0;
+            var m = {}
+            function makeLevel(list, obj, level) {
+                if (list.constructor == {}.constructor) {
+                    loop(list, function (key, val) {
+                        var newList = {};
+                        obj["id"+count] = {obj:key, level:level, open:false, opened:false, list:newList}
+                        count++;
+                        makeLevel(val, newList, level+1);
+                    });
+                } else if (Array.isArray(list)) {
+                    loop(list, function (val) {
+                        var newList = {};
+                        obj["id"+count] = {obj:val}
+                        count++;
+                    });
+                }
+            }
+            makeLevel(input, m, 0);
+            return m;
+        }
+		that.processComplex = function(input) {
+			var count = 0;
+			function innerFunction(inp, level) {
+				loop(inp, function (key, val) {
+					val.level = level;
+					val.open = false;
+					val.opened = false;
+					if (val.list) innerFunction(val.list, level+1);
+				});
+			}
+			innerFunction(input, 0);
+			return input;
+		}
+
+		if (zot(input.id0)) {
+			that.data = that.processSimple(input);
+		} else {
+			that.data = that.processComplex(input);
+		}
+
+        that.getLinearList = function(data) {
+			if (zot(data)) data = that.data;
+            return getLinear(data)[0];
+        }
+        that.getLinearIDs = function(data) {
+			if (zot(data)) data = that.data;
+            return getLinear(data)[1];
+        }
+
+        function getLinear(data) {
+            var linear = [];
+            var ids = [];
+            function getLevel(data, level) {
+                loop(data, function (item, list) {
+                    linear.push(list.obj);
+                    ids.push(item);
+                    if (list.open) getLevel(list.list, level+1);
+                })
+            }
+            getLevel(data, 0);
+            return [linear, ids];
+        }
+
+        that.getData = function(id) {
+            // recursively find the data for id
+            var answer;
+            function find(obj) {
+                loop(obj, function (key, val) {
+                    if (key == id) {
+                        answer = val;
+                        return answer;
+                    }
+                    find(val.list);
+                });
+            }
+            find(that.data);
+            return answer;
+        }
+
+        that.getNextSibling = function(id) {
+            var current;
+            var answer;
+            function find(obj) {
+                loop(obj, function (key, val) {
+                    if (!answer && current) {
+                        answer = key;
+                        return answer;
+                    }
+                    if (key == id) {
+                        current = val;
+                    } else {
+                        find(val.list);
+                    }
+                });
+            }
+            find(that.data);
+            return answer;
+        }
+
+		that.getPrevSibling = function(id) {
+			var lasts = [];
+            function find(obj, lev) {
+                loop(obj, function (key, val) {
+                    if (key == id) {
+                        return lasts[lev] || lasts[lev-1];
+                    } else {
+						lasts[lev] = key;
+                        find(val.list, lev+1);
+                    }
+                });
+            }
+            find(that.data, 0);
+            return answer;
+        }
+
+	}//-17.5
+
+/*--
+zim.Pick = function(choices)
+
+Pick
+zim class
+
+HISTORY
+Pick was originally zik() and ZIM VEE (introduced in ZIM 5) throughout the ZIM documentation
+It was so handy that a general (non ZIM centric) name has been given to a class
+that can be used by other libraries and languages.
+See https://github.com/danzen/Pick for the complete general code and description
+
+DESCRIPTION
+Pick() provides a system to handle dynamic parameters.
+It does so by providing formats for options and a choose() method to pick from the options.
+
+For example, a particle emitter has an obj parameter to receive what type of particle to emmit.
+If a particle were randomly chosen from a rectangle, circle or triangle and passed into obj
+then the emitter would only emitt the randomly chosen particle - say, a bunch of triangles.
+What is desired is that the emitter emitt rectangles, circles and triangles randomly.
+Pick() provides a way to pass in all three shapes and have the emitter choose each time it emitts.
+
+FORMATS
+The Pick() formats handle:
+	1. a random selection: ["blue", "green", "yellow"] - array format
+	2. a random range: {min:10, max:30} - range object format
+	3. a series: series(10,20,30) - series format also Pick.series()
+	4. a function result: function(){return new Date().minutes} - function format
+	5. a normal value: 7 or "hello" - single-value format
+	6. a noPick object: {noPick:["real", "array"]} - escape format
+	7. a combination: [{min:10, max:20}, 30, 40] - combination format (recursive)
+
+NOTE: the range format gets passed to ZIM rand() directly so see docs there
+there are also integer and negative parameters both defaulting to false
+
+PICK LITERAL
+Formats are passed in to a Pick() object and the Pick object can be passed to a class or function parameter
+In ZIM, the formats may be passed directly into the class or function parameter (as a Pick literal)
+	new Circle(new Pick([10,20]), red); // Pick()
+	new Circle([10,20], red); // Pick Literal
+** The literal can run into conflicts such as for a ZIM corner parameter which accepts an array []
+This would be avoided with a system always using Pick() and never the literal.
+But... ZIM started off without the formalized Pick - and the literal is shorter ;-)
+
+NOTE: Pick is used internally by by zim.interval, zim.animate, zim.Emitter, zim.Pen, etc.
+as well as ZIM Shape basic parameters handy for cloning with Tile, Emitter, etc.
+
+EXAMPLE
+var loopCount = new Pick([1,2,3]);
+var choice = Pick.choose(loopCount); // 1, 2, or 3
+
+var loopCount = [1,2,3]; // Pick literal
+var choice = Pick.choose(loopCount); // 1, 2, or 3
+
+var choice = Pick.choose([1,2,3]); // 1, 2, or 3
+
+var rotation = {min:10, max:20, integer:false, negative:true};
+// an example of a Range object - this will give values between -20 and -10 or 10 and 20
+// rotation now holds an object as to how to pick its value
+// this can be passed into a zim.Emitter() for instance
+// which will make multiple copies and rotate them based on Pick.choose()
+// or this can be passed into an animation object
+// and then into zim.Emitter() for the animate parameter
+
+var emitter = new zim.Emitter({
+	obj:new zim.Rectangle(),
+	random:{rotation:rotation} // the emitter will use Pick.choose() to pick a rotation for each particle
+});
+
+function age() {
+	// assuming user.age is some input value that exists
+	if (user.age >= 18) return ["a", "b", ["c","d"]];
+	else return ["e", "f"];
+}
+// below will be a, b, c or d if user is 18+ with a and b having more of a chance
+// or e or f if not over 18
+var show = Pick.choose(age);
+
+// below we randomize the tile colors in the first example
+// and make them in color order for the second example
+new Tile(new Rectangle(10,10,["blue", "red"]), 10, 10); would randomize colors
+new Tile(new Rectangle(10,10,series("blue", "red")), 10, 10); would alternate colors
+
+// here we pass an array through without processing the array:
+Pick.choose({noPick:[1,2,3,4,5]}); // result is [1,2,3,4,5]
+
+// a range between one and three seconds - repeating after 3 choices
+var pick = new Pick({min:1000, max:3000}).num(3);
+interval(pick, function () {console.log("calling");}); // eg. 2.5s, 2.7s, 1.2s, 2.5s, 2.7s, 1.2s, etc.
+END EXAMPLE
+
+PARAMETERS
+choices - any of the ZIM Pick formats:
+	1. an array of choices to choose from randomly
+	2. a range object with min and max (integer and negative) properties
+	3. a zim.series() or Pick.series() to pick objects in order
+	4. a function that returns a result
+	5. a single not one of the above that passes through
+	6. an escape object with a noPick property
+	7. any combination of the above to pick recursively
+
+METHODS
+num(number) - a chainable method to limit the number of options until Pick.choose() will repeat like a series
+loop(number, call(value, index, total)) - a way to loop through options
+ 	number is the number of times to loop
+	call is a callback function that gets called each loop
+	the callback will recieve a value (the choice), the index of the loop and the total (the number parameter)
+	inside the function a return is like a continue and a return of any value is like a break in traditional for loops.
+
+STATIC METHODS
+Pick.choose(Pick Object or Pick Literal) - gets a value from the Pick object or Pick Literal
+	so chooses from a random array, or range, or gets the next in the series, etc.
+Pick.rand(a, b, integer, negative) - gets a random number - same as zim.rand()
+	a - the first Number for the range
+		if a and b are not provided, rand() acts like Math.random()
+		if parameter b is not provided, rand will use range 0 to and including a
+	b - (default 0) second Number for the range
+		it does not matter if a>b or a<b
+	integer - (default true) set to false to include decimals in results
+		if false, range will include decimals up to but not including the highest number
+		if a or b have decimals this is set to false
+	negative - (default false) includes the negative range as well as the positive
+Pick.series(array|item1, item2, item3, etc.) - same as zim.series()
+	returns a function that can be called many times each time returning the next value in the series (eventually looping)
+	array|item1 - the first item - or an array of results that will be called in order as the resulting function is called
+    item2 - the second item if the first is not an array
+	item3 - the third item, etc. to as many items as needed
+
+PROPERTIES
+type - the type of object as a String
+choices - a reference to the choices object provided as the Pick(choices) parameter
+--*///+17.6
+	zim.Pick = function(choices) {
+		z_d("17.6");
+        this.choices = choices;
+        this.num = function(num) {
+            var s = [];
+            for (var i=0; i<num; i++) {s.push(zim.Pick.choose(this))}
+            this.choices = zim.Pick.series(s);
+            return this;
+        }
+        var that = this;
+        this.loop = function(num, call) {
+            var r;
+            for (var i=0; i<num; i++) {
+                r = call(zim.Pick.choose(that), i, num);
+                if (typeof r != 'undefined') return r;
+            }
+         }
+    };
+    zim.Pick.prototype.type = "Pick";
+    zim.Pick.series = function() {
+		// see https://github.com/danzen/Pick for all inclusive class to use in other libraries / languages, etc.
+		return zim.series.apply(null, arguments);
+    }
+    zim.Pick.rand = function(a, b, integer, negative) {
+		// see https://github.com/danzen/Pick for all inclusive class to use in other libraries / languages, etc.
+		return zim.rand(a, b, integer, negative);
+    }
+    zim.Pick.choose = function(obj, literal) {
+        if (literal == null) literal = true;
+		if (obj==null) return obj;
+        if (obj.type=="Pick" || literal) {
+            var c = obj.choices || obj;
+            if (Array.isArray(c)) {
+                var val = c[Math.floor(Math.random()*(c.length))];
+                return zim.Pick.choose(val); // recursive
+            } else if (c.constructor === {}.constructor) {
+                if (!zot(c.noPick)) return c.noPick; // a passthrough for arrays and functions
+                if (zot(c.max)) return c;
+                if (zot(c.integer)) c.integer = false;
+                var val = zim.Pick.rand(c.min, c.max, c.integer, c.negative);
+                return val; // this is just a number in a range - no need for recursive
+            } else if (typeof c == "function") {
+                return zim.Pick.choose((c)()); // recursive
+            }
+            return obj;
+        } else {
+            return obj;
+        }
+	}//-17.6
 
 	// DOM CODE
 
@@ -4307,7 +4732,6 @@ METHODS
 * such as ZIM Rectangle, Circle, Triangle, BLob
 * as well as all components like: Label, Button, Slider, Dial, Tab, Pane, etc.
 * as well as the ZIM display wrappers: Container, Shape, Sprite, MovieClip and Bitmap
-* the addition of methods and display wrappers added 3.4K to the file size
 cache(width||x, height||y, null||width, null||height, scale, options) - overrides CreateJS cache() and returns object for chaining
 	If you do not provide the first four parameters, then the cache dimensions will be set to the bounds of the object
 	width||x - (default getBounds().x) the width of the chache - or the x if first four parameters are provided
@@ -4359,6 +4783,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.cjsContainer_constructor();
 		this.type = "Container";
 		this.group = group;
+		var that = this;
 		var DS = style===false?{}:zim.getStyle(this.type, this.group, inherit);
 
 		if (zot(a)) a = DS.a!=null?DS.a:null;
@@ -5297,7 +5722,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					delete innerLabel.endFrame;
 
 					innerLabel.obj = zim.merge(innerLabel.obj, {normalizedFrame:innerLabel.lookup.length-1});
-					innerLabel.set = zim.merge(innerLabel.set, {normalizedFrames:{noZik:innerLabel.lookup}, normalizedFrame:0});
+					innerLabel.set = zim.merge(innerLabel.set, {normalizedFrames:{noPick:innerLabel.lookup}, normalizedFrame:0});
 
 					// based on previous frames
 					if (zot(innerLabel.wait)) innerLabel.wait = extraTime*tweek;
@@ -5565,6 +5990,1246 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	zimify(zim.MovieClip.prototype);
 	//-50.9
 
+/*--
+zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit)
+
+SVGContainer
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+Parses SVG and adds items to a ZIM Container.
+Items are created as ZIM Shapes: Circle, Rectangle, Blob, Squiggle.
+If geometric is true then Circle and Rectangle are used otherwise Blob is used.
+
+WARNING: this should be considered experimental
+The idea is that paths from SVG can be made editable in ZIM
+or animation, dragging, or Label along paths can be accommodated
+As such, not all SVG features will work - no CSS, Text, Gradients, DropShadows, etc.
+It is possible that these will be added at some point
+See also the ZIM svgToBitmap() function under META to get an exact image of the SVG
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var svgContainer = new SVGContainer(frame.asset("sample.svg")).addTo();
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+svg - an SVG file loaded into a frame.asset() or SVG text
+splitTypes - (default false) - set to true to split different types of paths into separate objects
+geometric - (default true) - set to false to load Rectangle and Circle objects as Blob objects
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+hasProp(property as String) - returns true if property exists on object else returns false
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+svg - a reference to the SVG text
+type - holds the class name as a String
+** bounds must be set first for these to work
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
+width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
+height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
+widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
+heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
+blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+group - used when the object is made to add STYLE with the group selector (like a CSS class)
+
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+EVENTS
+See the CreateJS Easel Docs for Container events, such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+--*///+50.95
+
+	zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit) {
+	    var sig = "svg, splitTypes, geometric, style, group, inherit";
+	    var duo; if (duo = zob(zim.SVGContainer, arguments, sig, this)) return duo;
+	    z_d("50.95");
+	    this.group = group;
+	    var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
+
+	    var parser = new DOMParser();
+	    var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
+	    var list = svg.getElementsByTagName("svg");
+	    var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
+	    var w, h;
+	    if (!zot(tag)){
+	        var w = tag.getAttribute("width");
+	        var h = tag.getAttribute("height");
+	    }
+	    if (w) w = Number(w.trim());
+	    if (h) h = Number(h.trim());
+	    this.zimContainer_constructor(w, h);
+	    this.type = "SVGContainer";
+
+	    if (zot(tag)) return;
+	    if (zot(splitTypes)) splitTypes = true;
+	    if (zot(geometric)) geometric = true;
+
+	    var that = this;
+
+	    var defaultFill = black, generalFill = black;
+	    var defaultStroke = black, generalStroke = black;
+	    var defaultStrokeSize = 2, generalStrokeSize = 2;
+	    var defaultAlpha = 1, generalAlpha = 1;
+	    var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
+	    var currentTransform;
+
+	    var startPosition = new Point(0,0); // the x,y of the last shape
+
+	    function processTag(tag) {
+	        loop(tag, function (t) {
+	            var tn = t.tagName.toLowerCase();
+	            if (tn == "path") processPath(t);
+	            if (tn == "circle") processShape("circle", t);
+	            if (tn == "rect") processShape("rect", t);
+	            if (tn == "ellipse") processShape("ellipse", t);
+	            if (tn == "line") processShape("line", t);
+	            if (tn == "polygon") processShape("polygon", t);
+	            if (tn == "polyline") processShape("polyline", t);
+	            if (tn == "g") {
+	                // styles can be overwritten by parameters in the general tag
+	                // so find styles first
+	                var style = t.getAttribute("style");
+	                var f,s,ss,a,aa;
+	                if (style) {
+	                    var styles = processStyle(style);
+	                    f = styles[0];
+	                    s = styles[1];
+	                    ss = styles[2];
+	                    a = styles[3];
+	                    aa = styles[4];
+	                }
+	                // then overwrite styles with any attribute values
+	                currentTransform = t.getAttribute("transform");
+	                generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
+	                generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
+	                generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
+	                generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
+	                generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
+	            }
+	            // general settings can wrap any number of tags - the tags are processed here:
+	            processTag(t.children);
+	            // after this nest of tags are processed, clear the general settings
+	            if (t.tagName.toLowerCase() == "g") {
+	                generalFill = defaultFill;
+	                generalStroke = defaultStroke;
+	                generalStrokeSize = defaultStrokeSize;
+	                generalAlpha = defaultAlpha;
+	                generalStrokeAlpha = defaultStrokeAlpha;
+	                currentTransform = null;
+	            }
+	        })
+	    }
+	    processTag(svg.getElementsByTagName("svg"));
+
+	    function processStyle(style) {
+	        var st = style.split(";");											//kv notes: it bugs when style contains ; at the end of the string
+	                                                                            //kv        haven't done a full test yet
+	        var f,s,ss,a,aa;
+	        loop(st, function (sty) {
+	            var sty = sty.replace(/,/g,"");
+	            var styl = sty.split(":");
+	            var prop = styl[0].trim().toLowerCase();
+	            var val = styl[1].trim().toLowerCase().replace("px", "");
+	            if (prop=="fill") f = val;
+	            if (prop=="stroke") s = val;
+	            if (prop=="stroke-width") ss = val;
+	            if (prop=="opacity") a = val, aa = val;
+	            if (prop=="fill-opacity") a = val;
+	            if (prop=="stroke-opacity") aa = val;
+	        });
+	        return [f,s,ss,a,aa];
+	    }
+
+	    function processGeneral(tag) {
+	        // any styles on the tag overwrites general styles or attributes
+	        var f,s,ss,a,aa;
+	        var style = tag.getAttribute("style");
+	        if (style) {
+	            var styles = processStyle(style);
+	            f = styles[0];
+	            s = styles[1];
+	            ss = styles[2];
+	            a = styles[3];
+	            aa = styles[4];
+	        }
+	        // any attributes on the tag overwrites styles or general
+	        f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
+	        s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
+	        ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:generalStrokeSize;
+	        a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
+	        aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
+
+	        var x = tag.getAttribute("x")?tag.getAttribute("x"):0;
+	        x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
+	        var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
+	        y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
+	        if (!zot(a) && !zot(f)) f = convertColor(f, "rgba", Number(a));
+	        if (!zot(aa) && !zot(s)) s = convertColor(s, "rgba", Number(aa));
+	        return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
+	    }
+
+	    function processShape(type, tag) {
+	        var shape;
+	        var g = processGeneral(tag); // want ES6
+	        var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
+	        if (type == "circle") {
+	            var r = Number(tag.getAttribute("r").trim());
+	            var d = r*.5523;
+	            if (geometric) shape = new Circle(Number(tag.getAttribute("r")), f, s, ss);
+	            else shape = new Blob(f, s, ss, 4, r, d, "mirror");
+	        } else if (type == "rect") {
+	            if (geometric) shape = new Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
+	            else {
+	                var w = Number(tag.getAttribute("width"));
+	                var h = Number(tag.getAttribute("height"));
+	                var rx = Number(tag.getAttribute("rx"));
+	                var ry = Number(tag.getAttribute("ry"));
+	                if (rx && ry) {
+	                    var dx = rx*.5523;
+	                    var dy = ry*.5523;
+	                    shape = new Blob(f, s, ss, [
+	                        [rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
+	                        [w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
+	                        [w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
+	                        [0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
+	                } else {
+	                    shape = new Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
+	                }
+	            }
+	        } else if (type == "line") {
+	            shape = new Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
+	        } else if (type == "polygon" || type == "polyline") {
+	            var p = tag.getAttribute("points");
+	            p = p.replace(/-/g, " -");
+	            p = p.replace(/\s+/g, " ");
+	            var points = [];
+	            loop(p.split(" "), function (point) {
+	                var pp = point.split(",");
+	                points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
+	            })
+	            if (type=="polygon") shape = new Blob(f, s, ss, points);
+	            else shape = new Squiggle(s, ss, points);
+	        } else if (type == "ellipse") {
+	            shape = new Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
+	        }
+	        shape.loc(x,y,that);
+	        var transform = tag.getAttribute("transform");
+	        if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+	        if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
+	    }
+
+	    function processTransform(shape, transform) {
+	        var tr = transform.split(")");
+	        // apply all transforms in the order given
+	        loop(tr, function (tra) {
+	            if (tra=="") return;
+	            var tran = tra.trim().split("(");
+	            var prop = tran[0].trim().toLowerCase();
+	            var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
+	            if (prop=="translate") {
+	                var m = val.split(",");
+	                shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
+	            }
+	            if (prop=="scale"){
+	                var s = val.split(",");
+	                if (shape.type=="Blob" || shape.type=="Squiggle") {
+	                    if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
+	                    else if (s.length == 2) {
+	                        shape.transformPoints("scaleX", Number(s[0].trim()));
+	                        shape.transformPoints("scaleY", Number(s[1].trim()));
+	                    }
+	                } else {
+	                    if (s.length == 1) shape.sca(Number(s[0].trim()))
+	                    else if (s.length == 2) {
+	                        shape.sca(Number(s[0].trim()), Number(s[1].trim()));
+	                    }
+	                }
+	            }
+	            if (prop=="rotate") {
+	                var r = val.split(",");
+	                // if (shape.type=="Blob" || shape.type=="Squiggle") {
+	                    // rotation is a different way for SVG and transform() - too bad
+	                    // it rotates around 0,0 unless a different point is chosen
+	                    // so shape.transformPoints which is a registration point system
+	                    // is unlikely to work - and too complex to add rotate around a given point
+	                    // so we will use zim rot() to which we have added rotating around a different point
+	                    // but this will rotate the little box handles
+	                    // maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
+	                    // if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
+	                if (r.length == 1) r.push(0,0);
+	                else if (r.length == 2) r.push(0);
+	                shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
+	            }
+
+	            if (prop=="skewX") shape.skewX = val;
+	            if (prop=="skewY") shape.skewY = val;
+	        });
+	    }
+
+	    // beatgammit on StackOverflow
+	    function ellipse(x, y, xDis, yDis) {
+	        var kappa = 0.5522848, // 4 * ((√(2) - 1) / 3)
+	            ox = xDis * kappa,  // control point offset horizontal
+	            oy = yDis * kappa,  // control point offset vertical
+	            xe = x + xDis,      // x-end
+	            ye = y + yDis;      // y-end
+	        var points = [ // modified by Dan Zen to relative
+	            [x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
+	            [x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
+	            [xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
+	            [x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
+	        ];
+	        return points;
+	    }
+
+
+	    function processPath(path) {
+	        var commands = ["M","m","L","l","H","h","V","v","C","c","S","s","Q","q","T","t","A","a","z","Z"];
+
+	        var position = new Point(0,0); // the current position - relative places based on this
+	        var id = path.getAttribute("id");
+	        var d = path.getAttribute("d");
+	        // m251.85 119.04c7.85 10.45-9.81
+	        d = d.replace(/,/g ," ");
+	        d = d.replace(/([a-zA-Z])/g, " $1 ");
+	        d = d.replace(/-/g, " -");
+	        d = d.replace(/\s+/g, " ");
+
+	        var g = processGeneral(path); // want ES6
+	        var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
+
+	        //kv var points = [[0,0]];											//kv adjust logic
+	        var points = [];													//kv adjust logic
+	        var line = new Point(0,0);
+	        var quad = new Point(0,0,0,0);
+	        var cube = new Point(0,0,0,0,0,0);
+	        var arc = new Point(0,0,0,0,0,0,0);
+	        //kv var data = d.split(" ");										//kv adjust logic
+	        var dataOrigin = d.split(" ");										//kv adjust logic
+	        var data = dataOrigin.slice(1,dataOrigin.length);					//kv adjust logic
+	        var missingCommand = false;											//kv adjust logic (not used)
+	        var adding = false;
+	        var what;
+	        var type = "squiggle";
+	        var dataType = null;
+	            //kv loop(data, function (command) {											//kv adjust logic
+	            loop(data, function (command,i) {												//kv adjust logic
+	                if (i==0) {startPosition.x = 0; startPosition.y=0};
+	            if (commands.indexOf(command) == -1) {
+	                if (what == "lxo") {what="lx"; aCommand.push("l");missingCommand=true};		//kv adjust logic
+	                if (what == "lyo") {what="ly"; missingCommand=true};						//kv adjust logic
+	                if (what == "Lxo") {what="Lx"; aCommand.push("L");missingCommand=true};		//kv adjust logic
+	                if (what == "Lyo") {what="Ly"; missingCommand=true};						//kv adjust logic
+
+	                // position
+	                if (what == "X") {
+	                    startPosition.x = Number(command);
+	                    what = "Y";
+	                } else if (what == "Y") {
+	                    startPosition.y = Number(command);
+	                    //kv what = "Lx"; // in case no letters come next		//kv adjust logic
+	                    what = "Lxo"; // in case no letters come next			//kv adjust logic
+	                    points.push([startPosition.x, startPosition.y]);		//kv adjust logic
+	                    // what = null;
+	                } else if (what == "x") {
+	                    if (points.length > 1) {								//kv adkust logic
+	                        startPosition.x = points[points.length-1][0]; 		//kv adjust logic
+	                        startPosition.y = points[points.length-1][1]		//kv adjust logic
+	                    };														//kv adjust logic
+	                    startPosition.x = startPosition.x+Number(command);
+	                    what = "y";
+	                } else if (what == "y") {
+	                    startPosition.y = startPosition.y+Number(command);
+	                    what = "lxo";											//kv adjust logic
+	                    //kv what = "lx"; // in case no letters come next		//kv adjust logic
+	                    points.push([startPosition.x, startPosition.y]);		//kv adjust logic
+	                    // what = null;
+	                }
+
+	                // left, right, top or bottom
+	                if (what == "H" || what == "h") {
+	                    position.x = points[points.length-1][0];														//kv adjust logic
+	                    position.y = points[points.length-1][1];														//kv adjust logic
+	                    position.x = position.x + (what=="h"?Number(command):Number(command)-startPosition.x);
+	                    points.push([position.x, position.y]);
+	                    what = "Lx";
+	                } else if (what == "V" || what == "v") {
+	                    position.y = position.y + (what=="v"?Number(command):Number(command)-startPosition.y);
+	                    points.push([position.x, position.y]);
+	                    what = "lx";
+	                }
+
+	                // line
+	                if (what == "Lx") {
+	                    //kv line.x = Number(command)-startPosition.x;				//kv adjust logic
+	                    line.x = Number(command);									//kv adjust logic
+	                    what = "Ly";
+	                } else if (what == "Ly") {
+	                    //kv line.y = Number(command)-startPosition.y;				//kv adjust logic
+	                    line.y = Number(command);									//kv adjust logic
+	                    position.x = line.x;
+	                    position.y = line.y;
+	                    points.push([position.x, position.y]);
+	                    what = "Lx";
+	                } else if (what == "lx") {
+	                    line.x = startPosition.x + Number(command);					//kv adjust logic
+	                    //kv line.x = line.x + Number(command);						//kv adjust logic
+	                    if (missingCommand) {what="lyo"} else						//kv adjust logic
+	                    what = "ly";
+	                } else if (what == "ly") {
+	                    line.y = startPosition.y + Number(command);					//kv adjust logic
+	                    //line.y = line.y + Number(command);						//kv adjust logic
+	                    position.x = line.x;
+	                    position.y = line.y;
+	                    points.push([position.x, position.y]);
+	                    what = "lx";
+	                }
+
+	                // Quadratic
+	                if (what == "qx" || what == "Qx") {
+	                    var lastPoint = points[points.length-1];
+	                    quad.x = what=="qx"?position.x+Number(command):Number(command)-startPosition.x;
+	                    what = what=="qx"?"qy":"Qy";
+	                } else if (what == "qy" || what == "Qy") {
+	                    quad.y = what=="qy"?position.y+Number(command):Number(command)-startPosition.y;
+	                    what = what=="qy"?"qz":"Qz";
+	                    if (adding) {
+	                        adding = false;
+	                        var lastPoint = points[points.length-1];
+	                        lastPoint[6] = -lastPoint[4];
+	                        lastPoint[7] = -lastPoint[5];
+	                        lastPoint[8] = "mirror";
+	                        position.x = quad.x;
+	                        position.y = quad.y;
+	                        points[points.length] = [
+	                            position.x, position.y,
+	                            0, 0,
+	                            -lastPoint[6], lastPoint[7],
+	                            0,0,
+	                            "free"
+	                        ];
+	                        what = what=="qy"?"qx":"Qx";
+	                    }
+	                } else if (what == "qz" || what == "Qz") {
+	                    quad.z = what=="qz"?position.x+Number(command):Number(command)-startPosition.x;
+	                    what = what=="qz"?"qq":"Qq";
+	                } else if (what == "qq" || what == "Qq") {
+	                    quad.w = what=="qq"?position.y+Number(command):Number(command)-startPosition.y;
+	                    var lastPoint = points[points.length-1];
+	                    lastPoint[6] = 2/3 *(quad.x - position.x); // relative needs position and absolute does not it
+	                    lastPoint[7] = 2/3 *(quad.y - position.y);
+	                    lastPoint[8] = "free";
+	                    position.x = quad.z; // assign this point's position - fix this and apply throughout...
+	                    position.y = quad.w;
+	                    points[points.length] = [
+	                        position.x, position.y,
+	                        0, 0,
+	                        // relative needs - startPosition and absolute does not
+	                        2/3*(quad.x-position.x), 2/3*(quad.y-position.y),
+	                        0,0,
+	                        "free"
+	                    ];
+	                    what = what=="qq"?"qx":"Qx";
+	                }
+
+	                // kv note: I have not fully completed the test. i will wait for you to finish your cubic command test first
+	                // Cubic
+	                if (what == "cx" || what == "Cx") {
+	                    position.x = points[points.length-1][0];														//kv adjust logic
+	                    position.y = points[points.length-1][1];														//kv adjust logic
+	                    zog("last position.x = " + position.x);
+	                    zog("last position.y = " + position.y);
+	                    //kv cube.x = what=="cx"?position.x+Number(command):Number(command)-startPosition.x;
+	                    cube.x = what=="cx"?position.x+Number(command):Number(command);									//kv adjust logic
+	                    zog("cube.x = " + cube.x);
+	                    what = what=="cx"?"cy":"Cy";
+	                    zog("next is " + what)
+	                } else if (what == "cy" || what == "Cy") {
+	                    zog("last position.x = " + position.x);
+	                    zog("last position.y = " + position.y);
+	                    //kv cube.y = what=="cy"?position.y+Number(command):Number(command)-startPosition.y;
+	                    cube.y = what=="cy"?position.y+Number(command):Number(command);									//kv adjust logic
+	                    zog("cube.y = " + cube.y);
+	                    what = what=="cy"?"cz":"Cz";
+	                    zog("next is " + what)
+	                } else if (what == "cz" || what == "Cz") {
+	                    zog("last position.x = " + position.x);
+	                    zog("last position.y = " + position.y);
+	                    //kv cube.z = what=="cz"?position.x+Number(command):Number(command)-startPosition.x;
+	                    cube.z = what=="cz"?position.x+Number(command):Number(command);									//kv adjust logic
+	                    zog("cube.z = " + cube.z);
+	                    what = what=="cz"?"cq":"Cq";
+	                    zog("next is " + what)
+	                } else if (what == "cq" || what == "Cq") {
+	                    zog("last position.x = " + position.x);
+	                    zog("last position.y = " + position.y);
+	                    //kv cube.q = what=="cq"?position.y+Number(command):Number(command)-startPosition.y;
+	                    cube.q = what=="cq"?position.y+Number(command):Number(command);									//kv adjust logic
+	                    zog("cube.q = " + cube.q);
+	                    what = what=="cq"?"cr":"Cr";
+	                    zog("next is " + what)
+	                    if (adding) {
+	                        adding = false;
+	                        var lastPoint = points[points.length-1];
+	                        lastPoint[6] = -lastPoint[4];
+	                        lastPoint[7] = -lastPoint[5];
+	                        lastPoint[8] = "mirror";
+	                        position.x = cube.z;
+	                        position.y = cube.q;
+	                        points[points.length] = [
+	                            position.x, position.y,
+	                            0, 0,
+	                            cube.x-position.x, cube.y-position.y,
+	                            0,0,
+	                            "free"
+	                        ];
+	                        what = what=="cq"?"cx":"Cx";
+	                    }
+	                } else if (what == "cr" || what == "Cr") {
+	                    zog("last position.x = " + position.x);
+	                    zog("last position.y = " + position.y);
+	                    //kv cube.r = what=="cr"?position.x+Number(command):Number(command)-startPosition.x;
+	                    cube.r = what=="cr"?position.x+Number(command):Number(command);									//kv adjust logic
+	                    zog("cube.r = " + cube.r);
+	                    what = what=="cr"?"cs":"Cs";
+	                    zog("next is " + what)
+	                } else if (what == "cs" || what == "Cs") {
+	                    zog("last position.x = " + position.x);
+	                    zog("last position.y = " + position.y);
+	                    //kv cube.s = what=="cs"?position.y+Number(command):Number(command)-startPosition.y;
+	                    cube.s = what=="cs"?position.y+Number(command):Number(command);									//kv adjust logic
+	                    zog("cube.s = " + cube.s);
+	                    var lastPoint = points[points.length-1];
+	                    lastPoint[6] = cube.x;
+	                    lastPoint[7] = cube.y;
+	                    lastPoint[8] = "free";
+	                    position.x = cube.r;
+	                    position.y = cube.s;
+	                    points[points.length] = [
+	                        position.x, position.y,
+	                        0, 0,
+	                        cube.z-position.x, cube.q-position.y,
+	                        0,0,
+	                        "free"
+	                    ];
+	                    what = what=="cs"?"cx":"Cx";
+	                }
+
+	            };
+
+	            // Commands
+	            if (command=="M") {
+	                what = "X";
+	            } else if (command=="m") {
+	                what = "x";
+	            } else if (command=="L") {
+	                what = "Lx";
+	                if (splitTypes && dataType && (dataType != "l")) makeShape();
+	                dataType = "l";
+	            } else if (command=="l") {
+	                what = "lx";
+	                if (splitTypes && dataType && (dataType != "l")) makeShape();
+	                dataType = "l";
+	            } else if (command=="H") {
+	                what = "H";
+	                if (splitTypes && dataType && (dataType != "l")) makeShape();
+	                dataType = "l";
+	            } else if (command=="h") {
+	                what = "h";
+	                if (splitTypes && dataType && (dataType != "l")) makeShape();
+	                dataType = "l";
+	            } else if (command=="V") {
+	                what = "V";
+	                if (splitTypes && dataType && (dataType != "l")) makeShape();
+	                dataType = "l";
+	            } else if (command=="v") {
+	                what = "v";
+	                if (splitTypes && dataType && (dataType != "l")) makeShape();
+	                dataType = "l";
+	            } else if (command=="C") {
+	                what = "Cx";
+	                if (splitTypes && dataType && (dataType != "c")) makeShape();
+	                dataType = "c";
+	            } else if (command=="c") {
+	                what = "cx";
+	                if (splitTypes && dataType && (dataType != "c")) makeShape();
+	                dataType = "c";
+	            } else if (command=="S") {
+	                adding = true;
+	                what = "Cx";
+	                if (splitTypes && dataType && (dataType != "c")) makeShape();
+	                dataType = "c";
+	            } else if (command=="s") {
+	                adding = true;
+	                what = "cx";
+	                if (splitTypes && dataType && (dataType != "c")) makeShape();
+	                dataType = "c";
+	            } else if (command=="Q") {
+	                what = "Qx";
+	                if (splitTypes && dataType && (dataType != "q")) makeShape();
+	                dataType = "q";
+	            } else if (command=="q") {
+	                what = "qx";
+	                if (splitTypes && dataType && (dataType != "q")) makeShape();
+	                dataType = "q";
+	            } else if (command=="T") {
+	                adding = true;
+	                what = "Qx";
+	                if (splitTypes && dataType && (dataType != "q")) makeShape();
+	                dataType = "q";
+	            } else if (command=="t") {
+	                adding = true;
+	                what = "qx";
+	                if (splitTypes && dataType && (dataType != "q")) makeShape();
+	                dataType = "q";
+	            } else if (command=="A") {
+	                type = null;
+	            // 	what = "Ax";
+	            // 	if (splitTypes && dataType && (dataType != "a")) makeShape();
+	            // 	dataType = "a";
+	            // } else if (command=="a") {
+	            // 	what = "ax";
+	            // 	if (splitTypes && dataType && (dataType != "a")) makeShape();
+	            // 	dataType = "a";
+	            } else if (command=="z" || command=="Z") {
+	                type = "blob";
+	            }
+
+	        }); // end of data loop
+
+	        function makeShape() {
+	            var shape;
+	            if (points.length >= 2)
+	            // M 100 350 l 150 -300
+	            if (type == "squiggle") shape = new Squiggle(s, ss, points);
+	            else shape = new Blob(f, s, ss, points);
+	            shape.loc(0,0);																//kv adjust logic
+	            //kv shape.loc(startPosition.x, startPosition.y, that);
+	            //kv startPosition.x = startPosition.x + position.x;
+	            //kv startPosition.y = startPosition.y + position.y;
+	            position.x = 0;
+	            position.y = 0;
+	            points = [[0,0]];
+
+	            var transform = path.getAttribute("transform");
+	            if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+	        }
+	        makeShape();
+	    } // end process path
+	    if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
+	    this.clone = function() {
+	        return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, style, this.group, inherit));
+	    }
+	}
+	zim.extend (zim.SVGContainer, zim.Container, "clone", "zimContainer", false);
+	//-51
+
+	// zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit) {
+	// 	var sig = "svg, splitTypes, geometric, style, group, inherit";
+	// 	var duo; if (duo = zob(zim.SVGContainer, arguments, sig, this)) return duo;
+	// 	z_d("50.95");
+	// 	this.group = group;
+	// 	var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
+	//
+	// 	var parser = new DOMParser();
+	// 	var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
+	// 	var list = svg.getElementsByTagName("svg");
+	// 	var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
+	// 	var w, h;
+	// 	if (!zot(tag)){
+	// 		var w = tag.getAttribute("width");
+	// 		var h = tag.getAttribute("height");
+	// 	}
+	// 	if (w) w = Number(w.trim());
+	// 	if (h) h = Number(h.trim());
+	// 	this.zimContainer_constructor(w, h);
+	// 	this.type = "SVGContainer";
+	//
+	// 	if (zot(tag)) return;
+	// 	if (zot(splitTypes)) splitTypes = true;
+	// 	if (zot(geometric)) geometric = true;
+	//
+	// 	var that = this;
+	//
+	// 	var defaultFill = black, generalFill = black;
+	// 	var defaultStroke = black, generalStroke = black;
+	// 	var defaultStrokeSize = 2, generalStrokeSize = 2;
+	// 	var defaultAlpha = 1, generalAlpha = 1;
+	// 	var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
+	// 	var currentTransform;
+	//
+	// 	var startPosition = new Point(0,0); // the x,y of the last shape
+	//
+	// 	function processTag(tag) {
+	// 		loop(tag, function (t) {
+	// 			// zog("parsing " + t.tagName);
+	// 			var tn = t.tagName.toLowerCase();
+	// 			if (tn == "path") processPath(t);
+	// 			if (tn == "circle") processShape("circle", t);
+	// 			if (tn == "rect") processShape("rect", t);
+	// 			if (tn == "ellipse") processShape("ellipse", t);
+	// 			if (tn == "line") processShape("line", t);
+	// 			if (tn == "polygon") processShape("polygon", t);
+	// 			if (tn == "polyline") processShape("polyline", t);
+	// 			if (tn == "g") {
+	// 				// styles can be overwritten by parameters in the general tag
+	// 				// so find styles first
+	// 				var style = t.getAttribute("style");
+	// 				var f,s,ss,a,aa;
+	// 				if (style) {
+	// 					var styles = processStyle(style);
+	// 					f = styles[0];
+	// 					s = styles[1];
+	// 					ss = styles[2];
+	// 					a = styles[3];
+	// 					aa = styles[4];
+	// 				}
+	// 				// then overwrite styles with any attribute values
+	// 				currentTransform = t.getAttribute("transform");
+	// 				generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
+	// 				generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
+	// 				generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
+	// 				generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
+	// 				generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
+	// 			}
+	// 			// general settings can wrap any number of tags - the tags are processed here:
+	// 			processTag(t.children);
+	// 			// after this nest of tags are processed, clear the general settings
+	// 			if (t.tagName.toLowerCase() == "g") {
+	// 				generalFill = defaultFill;
+	// 				generalStroke = defaultStroke;
+	// 				generalStrokeSize = defaultStrokeSize;
+	// 				generalAlpha = defaultAlpha;
+	// 				generalStrokeAlpha = defaultStrokeAlpha;
+	// 				currentTransform = null;
+	// 			}
+	// 		})
+	// 	}
+	// 	processTag(svg.getElementsByTagName("svg"));
+	//
+	// 	function processStyle(style) {
+	// 		var st = style.split(";");
+	// 		var f,s,ss,a,aa;
+	// 		loop(st, function (sty) {
+	// 			var styl = sty.split(":");
+	// 			var prop = styl[0].trim().toLowerCase();
+	// 			var val = styl[1].trim().toLowerCase().replace("px", "");
+	// 			if (prop=="fill") f = val;
+	// 			if (prop=="stroke") s = val;
+	// 			if (prop=="stroke-width") ss = val;
+	// 			if (prop=="opacity") a = val, aa = val;
+	// 			if (prop=="fill-opacity") a = val;
+	// 			if (prop=="stroke-opacity") aa = val;
+	// 		});
+	// 		return [f,s,ss,a,aa];
+	// 	}
+	//
+	// 	function processGeneral(tag) {
+	// 		// any styles on the tag overwrites general styles or attributes
+	// 		var f,s,ss,a,aa;
+	// 		var style = tag.getAttribute("style");
+	// 		if (style) {
+	// 			var styles = processStyle(style);
+	// 			f = styles[0];
+	// 			s = styles[1];
+	// 			ss = styles[2];
+	// 			a = styles[3];
+	// 			aa = styles[4];
+	// 		}
+	// 		// any attributes on the tag overwrites styles or general
+	// 		f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
+	// 		s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
+	// 		ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:generalStrokeSize;
+	// 		a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
+	// 		aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
+	//
+	// 		var x = tag.getAttribute("x")?tag.getAttribute("x"):0;
+	// 		x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
+	// 		var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
+	// 		y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
+	// 		if (!zot(a) && !zot(f)) f = convertColor(f, "rgba", Number(a));
+	// 		if (!zot(aa) && !zot(s)) s = convertColor(s, "rgba", Number(aa));
+	// 		return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
+	// 	}
+	//
+	// 	function processShape(type, tag) {
+	// 		var shape;
+	// 		var g = processGeneral(tag); // want ES6
+	// 		var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
+	// 		if (type == "circle") {
+	// 			var r = Number(tag.getAttribute("r").trim());
+	// 			var d = r*.5523;
+	// 			if (geometric) shape = new Circle(Number(tag.getAttribute("r")), f, s, ss);
+	// 			else shape = new Blob(f, s, ss, 4, r, d, "mirror");
+	// 		} else if (type == "rect") {
+	// 			if (geometric) shape = new Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
+	// 			else {
+	// 				var w = Number(tag.getAttribute("width"));
+	// 				var h = Number(tag.getAttribute("height"));
+	// 				var rx = Number(tag.getAttribute("rx"));
+	// 				var ry = Number(tag.getAttribute("ry"));
+	// 				if (rx && ry) {
+	// 					var dx = rx*.5523;
+	// 					var dy = ry*.5523;
+	// 					shape = new Blob(f, s, ss, [
+	// 						[rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
+	// 						[w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
+	// 						[w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
+	// 						[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
+	// 				} else {
+	// 					shape = new Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
+	// 				}
+	// 			}
+	// 		} else if (type == "line") {
+	// 			shape = new Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
+	// 		} else if (type == "polygon" || type == "polyline") {
+	// 			var p = tag.getAttribute("points");
+	// 			p = p.replace(/-/g, " -");
+	// 			p = p.replace(/\s+/g, " ");
+	// 			var points = [];
+	// 			loop(p.split(" "), function (point) {
+	// 				var pp = point.split(",");
+	// 				points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
+	// 			})
+	// 			if (type=="polygon") shape = new Blob(f, s, ss, points);
+	// 			else shape = new Squiggle(s, ss, points);
+	// 		} else if (type == "ellipse") {
+	// 			shape = new Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
+	// 		}
+	// 		shape.loc(x,y,that);
+	// 		var transform = tag.getAttribute("transform");
+	// 		if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+	// 		if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
+	// 	}
+	//
+	// 	function processTransform(shape, transform) {
+	// 		var tr = transform.split(")");
+	// 		// apply all transforms in the order given
+	// 		loop(tr, function (tra) {
+	// 			if (tra=="") return;
+	// 			var tran = tra.trim().split("(");
+	// 			var prop = tran[0].trim().toLowerCase();
+	// 			var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
+	// 			if (prop=="translate") {
+	// 				var m = val.split(",");
+	// 				shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
+	// 			}
+	// 			if (prop=="scale"){
+	// 				var s = val.split(",");
+	// 				if (shape.type=="Blob" || shape.type=="Squiggle") {
+	// 					if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
+	// 					else if (s.length == 2) {
+	// 						shape.transformPoints("scaleX", Number(s[0].trim()));
+	// 						shape.transformPoints("scaleY", Number(s[1].trim()));
+	// 					}
+	// 				} else {
+	// 					if (s.length == 1) shape.sca(Number(s[0].trim()))
+	// 					else if (s.length == 2) {
+	// 						shape.sca(Number(s[0].trim()), Number(s[1].trim()));
+	// 					}
+	// 				}
+	// 			}
+	// 			if (prop=="rotate") {
+	// 				var r = val.split(",");
+	// 				// if (shape.type=="Blob" || shape.type=="Squiggle") {
+	// 					// rotation is a different way for SVG and transform() - too bad
+	// 					// it rotates around 0,0 unless a different point is chosen
+	// 					// so shape.transformPoints which is a registration point system
+	// 					// is unlikely to work - and too complex to add rotate around a given point
+	// 					// so we will use zim rot() to which we have added rotating around a different point
+	// 					// but this will rotate the little box handles
+	// 					// maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
+	// 					// if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
+	// 				if (r.length == 1) r.push(0,0);
+	// 				else if (r.length == 2) r.push(0);
+	// 				shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
+	// 			}
+	//
+	// 			if (prop=="skewX") shape.skewX = val;
+	// 			if (prop=="skewY") shape.skewY = val;
+	// 		});
+	// 	}
+	//
+	// 	// beatgammit on StackOverflow
+	// 	function ellipse(x, y, xDis, yDis) {
+	// 		var kappa = 0.5522848, // 4 * ((√(2) - 1) / 3)
+	// 			ox = xDis * kappa,  // control point offset horizontal
+	// 			oy = yDis * kappa,  // control point offset vertical
+	// 			xe = x + xDis,      // x-end
+	// 			ye = y + yDis;      // y-end
+	// 		var points = [ // modified by Dan Zen to relative
+	// 			[x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
+	// 			[x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
+	// 			[xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
+	// 			[x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
+	// 		];
+	// 		return points;
+	// 	}
+	//
+	// 	function processPath(path) {
+	// 		var commands = ["M","m","L","l","H","h","V","v","C","c","S","s","Q","q","T","t","A","a","z","Z"];
+	//
+	// 		var position = new Point(0,0); // the current position - relative places based on this
+	// 		var id = path.getAttribute("id");
+	// 		var d = path.getAttribute("d");
+	// 		// m251.85 119.04c7.85 10.45-9.81
+	// 		d = d.replace(/,/g ," ");
+	// 		d = d.replace(/([a-zA-Z])/g, " $1 ");
+	// 		d = d.replace(/-/g, " -");
+	// 		d = d.replace(/\s+/g, " ");
+	//
+	// 		var g = processGeneral(path); // want ES6
+	// 		var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
+	//
+	// 		var points = [[0,0]];
+	// 		var line = new Point(0,0);
+	// 		var quad = new Point(0,0,0,0);
+	// 		var cube = new Point(0,0,0,0,0,0);
+	// 		var arc = new Point(0,0,0,0,0,0,0);
+	// 		var data = d.split(" ");
+	// 		var adding = false;
+	// 		var what;
+	// 		var type = "squiggle";
+	// 		var dataType = null;
+	// 		loop(data, function (command) {
+	//
+	// 			if (commands.indexOf(command) == -1) {
+	// 				// position
+	// 				if (what == "X") {
+	// 					startPosition.x = Number(command);
+	// 					what = "Y";
+	// 				} else if (what == "Y") {
+	// 					startPosition.y = Number(command);
+	// 					what = "Lx"; // in case no letters come next
+	// 					// what = null;
+	// 				} else if (what == "x") {
+	// 					startPosition.x = startPosition.x+Number(command);
+	// 					what = "y";
+	// 				} else if (what == "y") {
+	// 					startPosition.y = startPosition.y+Number(command);
+	// 					what = "lx"; // in case no letters come next
+	// 					// what = null;
+	// 				}
+	//
+	// 				// left, right, top or bottom
+	// 				if (what == "H" || what == "h") {
+	// 					position.x = position.x + (what=="h"?Number(command):Number(command)-startPosition.x);
+	// 					points.push([position.x, position.y]);
+	// 					what = "Lx";
+	// 				} else if (what == "V" || what == "v") {
+	// 					position.y = position.y + (what=="v"?Number(command):Number(command)-startPosition.y);
+	// 					points.push([position.x, position.y]);
+	// 					what = "lx";
+	// 				}
+	//
+	// 				// line
+	// 				if (what == "Lx") {
+	// 					line.x = Number(command)-startPosition.x;
+	// 					what = "Ly";
+	// 				} else if (what == "Ly") {
+	// 					line.y = Number(command)-startPosition.y;
+	// 					position.x = line.x;
+	// 					position.y = line.y;
+	// 					points.push([position.x, position.y]);
+	// 					what = "Lx";
+	// 				} else if (what == "lx") {
+	// 					line.x = line.x + Number(command);
+	// 					what = "ly";
+	// 				} else if (what == "ly") {
+	// 					line.y = line.y + Number(command);
+	// 					position.x = line.x;
+	// 					position.y = line.y;
+	// 					points.push([position.x, position.y]);
+	// 					what = "ly";
+	// 				}
+	//
+	// 				// Quadratic
+	// 				if (what == "qx" || what == "Qx") {
+	// 					var lastPoint = points[points.length-1];
+	// 					quad.x = what=="qx"?position.x+Number(command):Number(command)-startPosition.x;
+	// 					what = what=="qx"?"qy":"Qy";
+	// 				} else if (what == "qy" || what == "Qy") {
+	// 					quad.y = what=="qy"?position.y+Number(command):Number(command)-startPosition.y;
+	// 					what = what=="qy"?"qz":"Qz";
+	// 					if (adding) {
+	// 						adding = false;
+	// 						var lastPoint = points[points.length-1];
+	// 						lastPoint[6] = -lastPoint[4];
+	// 						lastPoint[7] = -lastPoint[5];
+	// 						lastPoint[8] = "mirror";
+	// 						position.x = quad.x;
+	// 						position.y = quad.y;
+	// 						points[points.length] = [
+	// 							position.x, position.y,
+	// 							0, 0,
+	// 							-lastPoint[6], lastPoint[7],
+	// 							0,0,
+	// 							"free"
+	// 						];
+	// 						what = what=="qy"?"qx":"Qx";
+	// 					}
+	// 				} else if (what == "qz" || what == "Qz") {
+	// 					quad.z = what=="qz"?position.x+Number(command):Number(command)-startPosition.x;
+	// 					what = what=="qz"?"qq":"Qq";
+	// 				} else if (what == "qq" || what == "Qq") {
+	// 					quad.w = what=="qq"?position.y+Number(command):Number(command)-startPosition.y;
+	// 					var lastPoint = points[points.length-1];
+	// 					lastPoint[6] = 2/3 *(quad.x - position.x); // relative needs position and absolute does not it
+	// 					lastPoint[7] = 2/3 *(quad.y - position.y);
+	// 					lastPoint[8] = "free";
+	// 					position.x = quad.z; // assign this point's position - fix this and apply throughout...
+	// 					position.y = quad.w;
+	// 					points[points.length] = [
+	// 						position.x, position.y,
+	// 						0, 0,
+	// 						// relative needs - startPosition and absolute does not
+	// 						2/3*(quad.x-position.x), 2/3*(quad.y-position.y),
+	// 						0,0,
+	// 						"free"
+	// 					];
+	// 					what = what=="qq"?"qx":"Qx";
+	// 				}
+	//
+	// 				// Cubic
+	// 				if (what == "cx" || what == "Cx") {
+	// 					var lastPoint = points[points.length-1];
+	// 					cube.x = what=="cx"?position.x+Number(command):Number(command)-startPosition.x;
+	// 					what = what=="cx"?"cy":"Cy";
+	// 				} else if (what == "cy" || what == "Cy") {
+	// 					cube.y = what=="cy"?position.y+Number(command):Number(command)-startPosition.y;
+	// 					what = what=="cy"?"cz":"Cz";
+	// 				} else if (what == "cz" || what == "Cz") {
+	// 					cube.z = what=="cz"?position.x+Number(command):Number(command)-startPosition.x;
+	// 					what = what=="cz"?"cq":"Cq";
+	// 				} else if (what == "cq" || what == "Cq") {
+	// 					cube.q = what=="cq"?position.y+Number(command):Number(command)-startPosition.y;
+	// 					what = what=="cq"?"cr":"Cr";
+	// 					if (adding) {
+	// 						adding = false;
+	// 						var lastPoint = points[points.length-1];
+	// 						lastPoint[6] = -lastPoint[4];
+	// 						lastPoint[7] = -lastPoint[5];
+	// 						lastPoint[8] = "mirror";
+	// 						position.x = cube.z;
+	// 						position.y = cube.q;
+	// 						points[points.length] = [
+	// 							position.x, position.y,
+	// 							0, 0,
+	// 							cube.x-position.x, cube.y-position.y,
+	// 							0,0,
+	// 							"free"
+	// 						];
+	// 						what = what=="cq"?"cx":"Cx";
+	// 					}
+	// 				} else if (what == "cr" || what == "Cr") {
+	// 					cube.r = what=="cr"?position.x+Number(command):Number(command)-startPosition.x;
+	// 					what = what=="cr"?"cs":"Cs";
+	// 				} else if (what == "cs" || what == "Cs") {
+	// 					cube.s = what=="cs"?position.y+Number(command):Number(command)-startPosition.y;
+	// 					var lastPoint = points[points.length-1];
+	// 					lastPoint[6] = cube.x;
+	// 					lastPoint[7] = cube.y;
+	// 					lastPoint[8] = "free";
+	// 					position.x = cube.r;
+	// 					position.y = cube.s;
+	// 					points[points.length] = [
+	// 						position.x, position.y,
+	// 						0, 0,
+	// 						cube.z-position.x, cube.q-position.y,
+	// 						0,0,
+	// 						"free"
+	// 					];
+	// 					what = what=="cs"?"cx":"Cx";
+	// 				}
+	//
+	// 				// // Arc - TODO - equation does not seem to work
+	// 				// // https://github.com/colinmeinke/svg-arc-to-cubic-bezier/issues/7
+	// 				// // rx ry x-axis-rotation large-arc-flag sweep-flag x y
+	// 				// if (what == "ax" || what == "Ax") {
+	// 				// 	arc.x = Number(command); // radius x
+	// 				// 	what = what=="ax"?"ay":"Ay";
+	// 				// } else if (what == "ay" || what == "Ay") {
+	// 				// 	arc.y = Number(command); // radius y
+	// 				// 	what = what=="ay"?"az":"Az";
+	// 				// } else if (what == "az" || what == "Az") {
+	// 				// 	arc.z = Number(command); // x-axis-rotation
+	// 				// 	what = what=="az"?"aq":"Aq";
+	// 				// } else if (what == "aq" || what == "Aq") {
+	// 				// 	arc.q = Number(command); // large-arc-flag
+	// 				// 	what = what=="aq"?"ar":"Ar";
+	// 				// } else if (what == "ar" || what == "Ar") {
+	// 				// 	arc.r = Number(command); // sweep-flag
+	// 				// 	what = what=="ar"?"as":"As";
+	// 				// } else if (what == "as" || what == "As") {
+	// 				// 	arc.s = what=="as"?position.x+Number(command):Number(command)-startPosition.x;
+	// 				// 	//zog(arc.s)
+	// 				// 	what = what=="as"?"at":"At";
+	// 				// } else if (what == "at" || what == "At") {
+	// 				// 	arc.t = what=="at"?position.y+Number(command):Number(command)-startPosition.y;
+	// 				// 	//zog(arc.t)
+	// 				// 	// rx ry x-axis-rotation large-arc-flag sweep-flag x y
+	// 				//
+	// 				// 	zta(arc)
+	// 				// 	var curves = arcToBezier({
+	// 				// 	  px: position.x,
+	// 				// 	  py: position.y,
+	// 				// 	  cx: arc.s,
+	// 				// 	  cy: arc.t,
+	// 				// 	  rx: arc.x,
+	// 				// 	  ry: arc.y,
+	// 				// 	  xAxisRotation: arc.z,
+	// 				// 	  largeArcFlag: arc.q,
+	// 				// 	  sweepFlag: arc.r,
+	// 				// 	});
+	// 				//
+	// 				// 	//zta(curves)
+	// 				//
+	// 				// 	loop(curves, function (curve) {
+	// 				// 		lastPoint = points[points.length-1];
+	// 				// 		lastPoint[6] = curve.x1-position.x;
+	// 				// 		lastPoint[7] = curve.y1-position.y;
+	// 				// 		lastPoint[8] = "free";
+	// 				// 		//zog(curve.x, curve.y)
+	// 				// 		position.x = curve.x;
+	// 				// 		position.y = curve.y;
+	// 				// 		points[points.length] = [
+	// 				// 			position.x, position.y,
+	// 				// 			0, 0,
+	// 				// 			curve.x2-position.x, curve.y2-position.y,
+	// 				// 			0,0,
+	// 				// 			"free"
+	// 				// 		];
+	// 				// 	});
+	// 				// 	what = what=="at"?"ax":"Ax";
+	// 				// }
+	// 			}
+	//
+	// 			// Commands
+	// 			if (command=="M") {
+	// 				what = "X";
+	// 			} else if (command=="m") {
+	// 				what = "x";
+	// 			} else if (command=="L") {
+	// 				what = "Lx";
+	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
+	// 				dataType = "l";
+	// 			} else if (command=="l") {
+	// 				what = "lx";
+	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
+	// 				dataType = "l";
+	// 			} else if (command=="H") {
+	// 				what = "H";
+	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
+	// 				dataType = "l";
+	// 			} else if (command=="h") {
+	// 				what = "h";
+	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
+	// 				dataType = "l";
+	// 			} else if (command=="V") {
+	// 				what = "V";
+	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
+	// 				dataType = "l";
+	// 			} else if (command=="v") {
+	// 				what = "v";
+	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
+	// 				dataType = "l";
+	// 			} else if (command=="C") {
+	// 				what = "Cx";
+	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
+	// 				dataType = "c";
+	// 			} else if (command=="c") {
+	// 				what = "cx";
+	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
+	// 				dataType = "c";
+	// 			} else if (command=="S") {
+	// 				adding = true;
+	// 				what = "Cx";
+	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
+	// 				dataType = "c";
+	// 			} else if (command=="s") {
+	// 				adding = true;
+	// 				what = "cx";
+	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
+	// 				dataType = "c";
+	// 			} else if (command=="Q") {
+	// 				what = "Qx";
+	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
+	// 				dataType = "q";
+	// 			} else if (command=="q") {
+	// 				what = "qx";
+	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
+	// 				dataType = "q";
+	// 			} else if (command=="T") {
+	// 				adding = true;
+	// 				what = "Qx";
+	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
+	// 				dataType = "q";
+	// 			} else if (command=="t") {
+	// 				adding = true;
+	// 				what = "qx";
+	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
+	// 				dataType = "q";
+	// 			} else if (command=="A") {
+	// 				type = null;
+	// 			// 	what = "Ax";
+	// 			// 	if (splitTypes && dataType && (dataType != "a")) makeShape();
+	// 			// 	dataType = "a";
+	// 			// } else if (command=="a") {
+	// 			// 	what = "ax";
+	// 			// 	if (splitTypes && dataType && (dataType != "a")) makeShape();
+	// 			// 	dataType = "a";
+	// 			} else if (command=="z" || command=="Z") {
+	// 				type = "blob";
+	// 			}
+	//
+	// 		}); // end of data loop
+	//
+	// 		function makeShape() {
+	// 			var shape;
+	// 			if (points.length >= 2)
+	// 			// M 100 350 l 150 -300
+	// 			if (type == "squiggle") shape = new Squiggle(s, ss, points);
+	// 			else shape = new Blob(f, s, ss, points);
+	// 			shape.loc(startPosition.x, startPosition.y, that);
+	// 			startPosition.x = startPosition.x + position.x;
+	// 			startPosition.y = startPosition.y + position.y;
+	// 			position.x = 0;
+	// 			position.y = 0;
+	// 			points = [[0,0]];
+	//
+	// 			var transform = path.getAttribute("transform");
+	// 			if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+	// 		}
+	// 		makeShape();
+	// 	} // end process path
+	// 	if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
+	// 	this.clone = function() {
+	// 		return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, style, this.group, inherit));
+	// 	}
+	// }
+	// zim.extend (zim.SVGContainer, zim.Container, "clone", "zimContainer", false);
+	// //-51
+
+
 // SUBSECTION ZIM SHAPES
 
 /*--
@@ -5593,11 +7258,13 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-radius - (default 50) the radius ;-)
-color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
-borderColor - (default null) the stroke color
-borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
+radius - |ZIM VEE| (default 50) the radius (from the center to the edge or half the diameter) ;-)
+color - |ZIM VEE| (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - |ZIM VEE| (default null) the stroke color
+borderWidth - |ZIM VEE| (default 1 if stroke is set) the size of the stroke in pixels
 dashed - (default false) set to true for dashed border (if borderWidth or borderColor set)
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
@@ -5677,6 +7344,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
 		else if (borderColor!=null && borderWidth==null) borderWidth = 1;
 		if (zot(color)) color = DS.color!=null?DS.color:(borderWidth>0?"rgba(0,0,0,0)":"black");
+
+		// PICK
+		var oa = remember(radius, color, borderColor, borderWidth);
+		function remember() {return arguments;} // for cloning PICK
+		radius = zim.Pick.choose(radius);
+		color = zim.Pick.choose(color);
+		borderColor = zim.Pick.choose(borderColor);
+		borderWidth = zim.Pick.choose(borderWidth);
 
 		var that = this;
 		var _radius = radius;
@@ -5787,6 +7462,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.clone = function() {
 			return that.cloneProps(new zim.Circle(that.radius, that.color, that.borderColor, that.borderWidth, dashed, style, this.group, inherit));
 		}
+		this.clone = function(exact) {
+			return that.cloneProps(
+				exact?new zim.Circle(that.radius, that.color, that.borderColor, that.borderWidth, dashed, style, this.group, inherit)
+				:new zim.Circle(oa[0],oa[1],oa[2],oa[3], dashed, style, this.group, inherit)
+			);
+		}
 	}
 	zim.extend(zim.Circle, zim.Container, "clone", "zimContainer", false);
 	//-51
@@ -5820,12 +7501,14 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-width - (default the height if provided else 100) the width
-height - (default the width if provided else 100) the height
-color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
-borderColor - (default null) the stroke color
-borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
+width - |ZIM VEE| (default the height if provided else 100) the width
+height - |ZIM VEE| (default the width if provided else 100) the height
+color - |ZIM VEE| (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - |ZIM VEE| (default null) the stroke color
+borderWidth - |ZIM VEE| (default 1 if stroke is set) the size of the stroke in pixels
 corner - (default 0) the round of corner
 	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
 dashed - (default false) set to true for dashed border (if borderWidth or borderColor set)
@@ -5839,7 +7522,9 @@ setColorRange(color1, color2) - set a color range for shape - used by colorRange
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
 hasProp(property as String) - returns true if property exists on object else returns false
-clone() - makes a copy of the shape
+clone(exact) - makes a copy of the shape
+	exact defaults to false and will use ZIM VEE when cloning - set to true to not use ZIM VEE and make an exact copy
+	eg. Tile() could make different dimension shapes each time if ZIM VEE is used for dimension
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
@@ -5892,7 +7577,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner, dashed, style, group, inherit) {
 		var sig = "width, height, color, borderColor, borderWidth, corner, dashed, style, group, inherit";
 		var duo; if (duo = zob(zim.Rectangle, arguments, sig, this)) return duo;
+		// var oa = []; for (var i=0; i<arguments.length; i++) {oa[i]=arguments[i]; arguments[i]=zim.Pick.choose(arguments[i])}
 		z_d("52");
+
 		this.zimContainer_constructor(null,null,null,null,false);
 		this.type = "Rectangle";
 		this.group = group;
@@ -5909,6 +7596,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
 		else if (borderColor!=null && borderWidth==null) borderWidth = 1;
 		if (zot(color)) color = DS.color!=null?DS.color:(borderWidth>0?"rgba(0,0,0,0)":"black");
+
+		// PICK
+		var oa = remember(width, height, color, borderColor, borderWidth);
+		function remember() {return arguments;} // for cloning PICK
+		width = zim.Pick.choose(width);
+		height = zim.Pick.choose(height);
+		color = zim.Pick.choose(color);
+		borderColor = zim.Pick.choose(borderColor);
+		borderWidth = zim.Pick.choose(borderWidth);
 
 		var that = this;
 		var _color = color;
@@ -6012,9 +7708,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 		if (style!==false) zimStyleTransforms(this, DS)
-		this.clone = function() {
-			return that.cloneProps(new zim.Rectangle(width, height, that.color, that.borderColor, that.borderWidth, corner, dashed, style, this.group, inherit));
+		this.clone = function(exact) {
+			return that.cloneProps(
+				exact?new zim.Rectangle(width, height, that.color, that.borderColor, that.borderWidth, corner, dashed, style, this.group, inherit)
+				:new zim.Rectangle(oa[0],oa[1],oa[2],oa[3],oa[4], corner, dashed, style, this.group, inherit)
+			);
 		}
+
 	}
 	zim.extend(zim.Rectangle, zim.Container, "clone", "zimContainer", false);
 	//-52
@@ -6052,14 +7752,16 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-a, b and c - (default 100) the lengths of the sides
+a, b and c - |ZIM VEE| (default 100) the lengths of the sides
 	a will run horizontally along the bottom
 	b is upwards and c is back to the origin
 	if c is set to -1 will assume a 90 angle
-color - (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
-borderColor - (default null) the stroke color
-borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
+color - |ZIM VEE| (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - |ZIM VEE| (default null) the stroke color
+borderWidth - |ZIM VEE| (default 1 if stroke is set) the size of the stroke in pixels
 center - (default true) puts the registration point to the center
 adjust - (default 0) pixels to bring center towards vertical base
 	the actual center is not really the weighted center
@@ -6146,6 +7848,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
 		else if (borderColor!=null && borderWidth==null) borderWidth = 1;
 		if (zot(color)) color = DS.color!=null?DS.color:(borderWidth>0?"rgba(0,0,0,0)":"black");
+
+		// PICK
+		var oa = remember(a, b, c, color, borderColor, borderWidth);
+		function remember() {return arguments;} // for cloning PICK
+		a = zim.Pick.choose(a);
+		b = zim.Pick.choose(b);
+		c = zim.Pick.choose(c);
+		color = zim.Pick.choose(color);
+		borderColor = zim.Pick.choose(borderColor);
+		borderWidth = zim.Pick.choose(borderWidth);
 
 		var that = this;
 		var _color = color;
@@ -6292,8 +8004,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 		if (style!==false) zimStyleTransforms(this, DS);
-		this.clone = function() {
-			return that.cloneProps(new zim.Triangle(a, b, c, that.color, that.borderColor, that.borderWidth, center, adjust, dashed, style, this.group, inherit));
+		this.clone = function(exact) {
+			return that.cloneProps(
+				exact?new zim.Triangle(a, b, c, that.color, that.borderColor, that.borderWidth, center, adjust, dashed, style, this.group, inherit)
+				:new zim.Triangle(oa[0],oa[1],oa[2],oa[3],oa[4],oa[5], center, adjust, dashed, style, this.group, inherit)
+			);
 		}
 	}
 	zim.extend(zim.Triangle, zim.Container, "clone", "zimContainer");
@@ -6338,6 +8053,8 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 color - (default green) the line color as any CSS color including "rgba()" for alpha
 thickness - (default 2) the thickness of the line in pixels
@@ -6349,7 +8066,6 @@ points - (default 4) a number of points to start with on the line OR an array of
 	controlType - (default main controlType parameter or "straight" if not controlType parameter) the point's controlType "none", "mirror", "straight" or "free"
 length - (default 300) the default length of line used to create the squiggle (also specifies the squiggle's bounds(0, 0, length, thickness))
 controlLength - |ZIM VEE| (default radius*numPoints/4) specify a Number to override the calculated default
-	or pass in a ZIM VEE value and zik will assign a random option for each controlLength of the squiggle
 controlType - (default "straight") one of four String values as follows:
 	none - there are no control rectangles (they are actually set at 0,0).  This makes a corner at the circle point.
 	mirror - the control rectangles reflect one another about the point circle - lengths are kept even
@@ -6454,7 +8170,7 @@ num - get the number of points - to set, use the points property
 points - get or set the points array of the Squiggle in the same format as the points parameter:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 pointControls - get an array of controls (a container) - use this to animate controls
-pointCircles - get an array of control circles - use this to place some other obect at the point
+pointCircles - get an array of control circles - use this to place some other object at the point
 pointObjects - get an array of point objects for each point in the following format:
 	[[control, circle, rect1, rect2, controlType], [etc.]]
 	control - the container for the control that holds the circle and rectangles (also see pointControls)
@@ -6646,7 +8362,7 @@ Note the points property has been split into points and pointObjects (and there 
 				set = new zim.Container({style:false}).addTo(sets);
 				set.num = i;
 				if (typeof points == "number") { // no sets yet
-					var stickLength = zik(controlLength);
+					var stickLength = zim.Pick.choose(controlLength);
 					temp = new zim.Container(stickLength, thickness, null, null, false).addTo(that).loc({x:i*length/(num-1)-stickLength/2, y:i%2*stickLength});
 					ball = new zim.Circle(ballS, that.selectPoints&&that.selectedBalls.isSelected(i)?selectColor:zim.light, zim.dark, 2, null, false)
 						.centerReg(temp)
@@ -7932,6 +9648,8 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 color - (default green) the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
 borderColor - (default null) the stroke color
@@ -7945,7 +9663,6 @@ points - (default 4) a number of points to start with on the line OR an array of
 	controlType - (default main controlType parameter or "straight" if not controlType parameter) the point's controlType "none", "mirror", "straight" or "free"
 radius - (default 100) the default radius of the circle used to create the blob (also specifies the blob's bounds(-radius, -radius, radius*2, radius*2))
 controlLength - |ZIM VEE| (default radius*numPoints/4) specify a Number to override the calculated default
-	or pass in a ZIM VEE value and zik will assign a random option for each controlLength of the blob
 controlType - (default "straight") one of four String values as follows:
 	none - there are no control rectangles (they are actually set at 0,0).  This makes a corner at the circle point.
 	mirror - the control rectangles reflect one another about the point circle - lengths are kept even
@@ -8055,7 +9772,7 @@ stickColor - get or set the stick color of the controls - requires an update() t
 points - get or set the points array of the Blob in the same format as the points parameter:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 pointControls - get an array of controls (a container) - use this to animate controls
-pointCircles - get an array of control circles - use this to place some other obect at the point
+pointCircles - get an array of control circles - use this to place some other object at the point
 pointObjects - get an array of point objects for each point in the following format:
 	[[control, circle, rect1, rect2, controlType], [etc.]]
 	control - the container for the control that holds the circle and rectangles (also see pointControls)
@@ -8257,7 +9974,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					// afterwards, adjust controls in set Container so origin and registration is at ball
 					// then move the set Container so it matches that adjustment
 					// (or could have calculated all positions to start with aTan2, sin, cos etc.)
-					var length = zik(controlLength);
+					var length = zim.Pick.choose(controlLength);
 					temp = new zim.Container(length, radius, null, null, false).reg(length/2, radius).addTo(that);
 					temp.rotation = i/num * 360;
 					ball = new zim.Circle(ballS, that.selectPoints&&that.selectedBalls.isSelected(i)?selectColor:zim.light, zim.dark, 2, null, false)
@@ -8852,7 +10569,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.controlsClickEvent = that.controls.on("click", function (e) {
 				that.lastSelected = e.target.parent;
 				var index = that.lastSelectedIndex = that.controls.getChildIndex(e.target.parent);
-				zog(index)
 				if (!that.editPoints) return;
 				if (that.selectionManager.shiftKey) { // remove
 					if (e.target.type == "Circle") {
@@ -11798,6 +13514,242 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-57.5
 
 /*--
+zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit)
+
+Tip
+zim class - extends a a zim.Label which extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+A Tip() can be used to show some extra information - the tip disapears after an amount of time
+Tip has easy positioning along the inside edges or the outside edges of a target.
+
+NOTE: Tip places the tip on the stage when the show() method is called
+You can reposition with .mov() etc. if desired
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+new Tip("Press Circle").show(1000); // wait one second and show tip at 40 pixels from bottom right
+
+var circle = new Circle().center().tap(function () {
+	circleTip.show();
+});
+var circleTip = new Tip({
+	text:"This is a default ZIM Circle",
+	backgroundColor:white,
+	color:black,
+	outside:true, // outside the circle
+	container:circle,
+	align:"center",
+	valign:"bottom",
+	margin:14,
+	corner:0,
+	size:20
+});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+text - (default "Here's a tip!") String for the the text of the tip
+align - (default "right") the horizontal position of the tip ("left", "center"/"middle", "right")
+valign - (default "bottom") the vertical position of the tip ("top", "center"/"middle", "bottom")
+margin - (default 40) distance from side (unless centered) in pixels
+marginH - (default margin) distance from horizontal edges
+marginV - (default margin) distance from vertical edges
+outside - (default false) set to true to place Tip on outside of container
+target - (default ZimDefaultFrame's stage) if outside is false then tip is placed inside the target
+ 	if outside is true, then tip is placed in the target's parent and placed to an edge of the target
+** the rest are parameters for a Label (align and valign are set as textAlign and textValign)
+size - (default 36) the size of the font in pixels
+font - (default arial) the font or list of fonts for the text
+color - (default "black") color of font (any CSS color)
+rollColor - (default color) the rollover color of the font
+shadowColor - (default "rgba(0,0,0,.3)") for no shadow - set to any css color to see
+shadowBlur - (default 1) if shadow is present
+textAlign - ((default "left") text registration point alignment also "center" and "right"
+textValign - (default "center") vertical registration point alignment alse "middle / center", "bottom"
+lineWidth - (default false) for no wrapping (use \n) Can set to number for wrap
+lineHeight - (default getMeasuredLineHeight) set to number to adjust line height
+fontOptions - (default null) css VALUES as a single string for font-style font-variant font-weight
+   eg. "italic bold small-caps" or just "italic", etc.
+backing - (default null) a Display object for the backing of the label (eg. Shape, Bitmap, Container, Sprite)
+   see ZIM Pizzazz module for a fun set of Shapes like Boomerangs, Ovals, Lightning Bolts, etc.
+outlineColor - (default null - or black if outlineWidth set) - the color of the outline of the text
+outlineWidth - (default null - or (size*.2) if outlineColor set) - the thickness of the outline of the text
+backgroundColor - (default null) set to CSS color to add a rectangular color around the label
+   The background color will change size to match the text of the label
+   Note: the backgroundColor is different than a backing which can be any Display Object
+   and background parameters are ignored if a backing parameter is set
+backgroundBorderColor - (default null) the background stroke color
+backgroundBorderWidth - (default null) thickness of the background border
+corner - (default 0) the round of corner of the background if there is one
+   can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
+backgroundDashed - (default null) set to true for dashed background border (if backgroundBorderColor or backgroundBorderWidth set)
+padding - (default 10 if backgroundColor set) places the border this amount from text (see paddingHorizontal and paddingVertical)
+   padding parameters are ignored if there is no backgroundColor set (also ignored if a backing parameter is set)
+paddingHorizontal - (default padding) places border out at top bottom
+paddingVertical - (default padding) places border out at left and right
+shiftHorizontal - (default 0) move the label (CreateJS Text) inside the Label container horizontally
+shiftVertical - (default 0) move the label (CreateJS Text) inside the Label container vertically
+rollPersist - (default false) set to true to maintain rollover stage as long as mousedown or press is activated (used by Buttons)
+labelWidth - (default null) the same as the lineWidth - the text will wrap at the labelWidth (added to match labelHeight)
+labelHeight - (default null) the height of the text - setting this will probably alter the font size - so the size parameter is overwritten
+   for labelHeight to work, the labelWidth must also be set
+   using labelWidth and labelHeight together allow you to fit as much text into specified width and height dimensions
+maxSize - (default null) set to limit the font size when using labelWidth and labelHeight
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+show(delay, time) - show the tip - delay in ms defaults to 0 and time in ms defaults to 2000
+hide() - hides tip - show() will also hide the tip automatically after the time provided
+clear() - hides tip and removes the call to a delayed tip using a delay time in show()
+hasProp(property as String) - returns true if property exists on object else returns false
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: See all methods of a Label() such as setColorRange(), etc.
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+align - get or set the horizontal alignment
+valign - get or set the vertical alignment
+text - get or set the text of the Tip
+ALSO: See all properties of a Label() such as size, color, etc.
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+EVENTS
+See the CreateJS Easel Docs for Container events, such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+--*///+57.6
+	zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit) {
+        var sig = "text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit";
+        var duo; if (duo = zob(zim.Tip, arguments, sig, this)) return duo;
+		z_d("57.6");
+
+		this.group = group;
+		var DS = style===false?{}:zim.getStyle("Tip", this.group, inherit);
+
+		if (zot(text)) text = DS.text!=null?DS.text:"Here's a tip!";
+		if (zot(margin)) margin = DS.margin!=null?DS.margin:40;
+		if (zot(marginH)) marginH = DS.marginH!=null?DS.marginH:margin;
+		if (zot(marginV)) marginV = DS.marginV!=null?DS.marginV:margin;
+		if (zot(align)) align = DS.align!=null?DS.align:"right";
+		if (zot(valign)) valign = DS.valign!=null?DS.valign:"bottom";
+		if (zot(outside)) outside = DS.outside!=null?DS.outside:false;
+        if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:blue;
+        if (zot(color)) color = DS.color!=null?DS.color:white;
+		if (zot(corner)) corner = DS.corner!=null?DS.corner:25;
+		if (zot(corner)) corner = DS.corner!=null?DS.corner:25;
+		if (zot(corner)) corner = DS.corner!=null?DS.corner:25;
+		if (zot(paddingHorizontal)) paddingHorizontal = DS.paddingHorizontal!=null?DS.paddingHorizontal:14+(Array.isArray(corner)?corner[0]:corner);
+		if (zot(shadowColor) || shadowColor=="ignore") shadowColor=(DS.shadowColor!=null&&shadowColor!="ignore")?DS.shadowColor:"rgba(0,0,0,.3)";
+		if (zot(shadowBlur) || shadowBlur=="ignore") shadowBlur=(DS.shadowBlur!=null&&shadowBlur!="ignore")?DS.shadowBlur:1;
+
+	    this.zimLabel_constructor(text, size, font, color, rollColor, null, null, textAlign, textValign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, DS);
+        this.type = "Tip";
+
+		if (outside) {
+			marginH = -marginH;
+			marginV = -marginV;
+		}
+        var that = this;
+
+		that.align = align;
+		that.valign = valign;
+
+        this.background.sha(shadowColor, 3, 5, shadowBlur);
+        this.show = function(delay, time) {
+			if (zot(delay)) delay = DS.delay!=null?DS.delay:0;
+			if (zot(time)) time = DS.time!=null?DS.time:2000;
+			var mess = "zim Tip(): Please pass in a reference to a container with bounds set as parameter to Tip";
+			if (zot(target)) {
+				if (zimDefaultFrame) {
+					target = zimDefaultFrame.stage;
+				} else {
+					zog(mess);
+					return that;
+				}
+			} else if (!target.getBounds) {
+				zog(mess);
+				return that;
+			} else if (zot(target.stage)) {
+				zog("zim display - Waiter(): The container must have a stage property");
+				return that;
+			}
+
+			if (delay > 0) {
+				that.showID = zim.timeout(delay, doShow);
+			} else {
+				doShow();
+			}
+
+			function doShow() {
+
+				if (target.boundsToGlobal) var b = target.boundsToGlobal();
+				else var b = target.getBounds();
+				var container = new Container(b.x, b.y, b.width, b.height);
+				container.zimTemp = true;
+				container.loc(0, 0, target.stage);
+
+				if (that.align=="center" || that.align=="middle" || that.valign=="center" || that.valign=="middle") {
+					that.center(container);
+				}
+	            that.pos((that.align=="center" || that.align=="middle")?null:marginH, (that.valign=="center" || that.valign=="middle")?null:marginV, (that.align=="right"), (that.valign=="bottom"), container);
+				if (outside) {
+					if (that.align=="right") that.x += that.width;
+					else if (that.align=="left") that.x -= that.width;
+					if (that.valign=="bottom") that.y += that.height;
+					else if (that.valign=="top") that.y -= that.height;
+				}
+
+				that.addTo(container.stage); // will transfer over position...
+				if (container.zimTemp && container.removeFrom) {container.removeFrom(); container = null;}
+				container = that.stage;
+
+				if (that.timeoutID) that.timeoutID.clear();
+	            that.timeoutID = zim.timeout(time, function () {
+	                that.hide();
+	                container.stage.update();
+	            });
+	            if (that.upID) container.stage.off("stagemouseup", that.upID);
+	            that.upID = container.stage.on("stagemouseup", function () {
+					that.hide();
+	                container.stage.update();
+	            })
+				container.stage.update();
+			}
+			return that;
+        }
+        this.hide = function() {
+            this.removeFrom();
+            if (this.timeoutID) this.timeoutID.clear();
+            if (this.upID) target.stage.off("stagemouseup", this.downID);
+			return that;
+        }
+		this.clear = function() {
+			if (that.showID) that.showID.clear();
+			that.hide();
+		}
+
+        if (style!==false) zimStyleTransforms(this, DS);
+		this.clone = function() {
+        	return that.cloneProps(new zim.Tip(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, fontOptions, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, this.group, inherit));
+		}
+    }
+	zim.extend(zim.Tip, zim.Label, "clone", "zimLabel", false);
+	//-57.6
+
+/*--
 zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, style, group, inherit)
 
 Panel
@@ -11838,17 +13790,9 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-   see also the series() function which returns a function that will execute a series in order
-   pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
 
 width - (default 250) the width of the panel
 height - (default 300) the height of the panel
@@ -11956,11 +13900,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			this.background.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 		}
 		var titleBarValue = titleBar; // as we assign the container to titleBar later
-		var t = zik(titleBarValue);
-		var tBarColor = zik(titleBarColor);
-		var tBarBackgroundColor = zik(titleBarBackgroundColor);
-		var pBackgroundColor = zik(backgroundColor);
-		var pBorderColor = zik(borderColor);
+		var t = zim.Pick.choose(titleBarValue);
+		var tBarColor = zim.Pick.choose(titleBarColor);
+		var tBarBackgroundColor = zim.Pick.choose(titleBarBackgroundColor);
+		var pBackgroundColor = zim.Pick.choose(backgroundColor);
+		var pBorderColor = zim.Pick.choose(borderColor);
 
 		if (typeof t == "string") t = new zim.Label({
 			text:t, color:tBarColor, size:DS.size!=null?DS.size:20,
@@ -11976,11 +13920,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		that.text = t.text;
 
 		this.nextPanel = function(index, event) {
-			var t = zot(index)||zot(titleBarValue.array)?zik(titleBarValue):titleBarValue.array[index];
-			var tBarColor = zot(index)||zot(titleBarColor.array)?zik(titleBarColor):titleBarColor.array[index];
-			var tBarBackgroundColor = zot(index)||zot(titleBarBackgroundColor.array)?zik(titleBarBackgroundColor):titleBarBackgroundColor.array[index];
-			var pBackgroundColor = zot(index)||zot(backgroundColor.array)?zik(backgroundColor):backgroundColor.array[index];
-			var pBorderColor = zot(index)||zot(borderColor.array)?zik(borderColor):borderColor.array[index];
+			var t = zot(index)||zot(titleBarValue.array)?zim.Pick.choose(titleBarValue):titleBarValue.array[index];
+			var tBarColor = zot(index)||zot(titleBarColor.array)?zim.Pick.choose(titleBarColor):titleBarColor.array[index];
+			var tBarBackgroundColor = zot(index)||zot(titleBarBackgroundColor.array)?zim.Pick.choose(titleBarBackgroundColor):titleBarBackgroundColor.array[index];
+			var pBackgroundColor = zot(index)||zot(backgroundColor.array)?zim.Pick.choose(backgroundColor):backgroundColor.array[index];
+			var pBorderColor = zot(index)||zot(borderColor.array)?zim.Pick.choose(borderColor):borderColor.array[index];
 			if (typeof t == "string") t = new zim.Label({
 				text:t, color:tBarColor, size:DS.size!=null?DS.size:20,
 				backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", padding:"ignore", backgroundColor:"ignore",
@@ -12230,7 +14174,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(height)) height=DS.height!=null?DS.height:200;
 		if (zot(label)) label = DS.label!=null?DS.label:null;
 		if (typeof label === "string" || typeof label === "number") label = new zim.Label({
-			text:label, size:DS.size!=null?DS.size:40, color:DS.color!=null?DS.color:color,
+			text:label, size:DS.size!=null?DS.size:40, align:DS.align!=null?DS.align:"center", valign:DS.valign!=null?DS.valign:"center", color:DS.color!=null?DS.color:color,
 			backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", padding:"ignore", backgroundColor:"ignore",
 			group:this.group
 		});
@@ -12579,6 +14523,7 @@ removeAll() - removes all objects from content container of window and updates -
 resize(width, height) - resizes the Window without scaling the content (also calls update() for scroll update)
 	width and height are optional - returns window for chaining
 update() - resets window scrolling if perhaps the content gets bigger or smaller
+cancelCurrentDrag() - stop current drag on window - but add dragging back again for next drag
 clone(recursive) - makes a copy with properties such as x, y, etc. also copied
 	recursive (default true) clones the window content as well (set to false to not clone content)
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -12799,8 +14744,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var yy = borderWidth/2;
 			var ww = width-((vCheck && scrollBarActive)?scrollBar.size+scrollBar.spacing*2:0)-(vCheck?0:borderWidth);
 			var hh = height-((hCheck && scrollBarActive)?scrollBar.size+scrollBar.spacing*2:0)-(hCheck?0:borderWidth);
-			mg.f("rgba(0,0,0,.01)").rc(xx,yy,ww,hh,titleBarCorner,titleBarCorner,vCheck&&scrollBarActive?0:corner,hCheck&&scrollBarActive?0:corner);
+			mg.f("rgba(0,0,0,0)").rc(xx,yy,ww,hh,titleBarCorner,titleBarCorner,vCheck&&scrollBarActive?0:corner,hCheck&&scrollBarActive?0:corner);
 
+			mask.setBounds(that.getBounds().x,that.getBounds().y,that.getBounds().width, that.getBounds().height);
+			zim.expand(mask, 0);
 			if (!interactive) {
 				hitArea.graphics.c().f("red").dr(xx,yy,ww,hh);
 				content.hitArea = hitArea;
@@ -12996,6 +14943,19 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				setTimeout(function(){setdragBoundary();}, 300);
 			}
 		}
+		this.cancelCurrentDrag = function() {
+			that.content.noDrag();
+			zim.drag({
+				obj:content,
+				currentTarget:true,
+				localBounds:true,
+				slide:slide, slideDamp:slideDamp,
+				slideSnap:(scrollBarH && (swipe===true||swipe=="auto"||swipe=="horizontal")) || (scrollBarV && (swipe===true||swipe=="auto"||swipe=="vertical"))?slideSnap:false
+			});
+			if (content.getBounds() && content.getBounds().width > 0) {
+				setTimeout(function(){setdragBoundary();}, 300);
+			}
+		}
 
 		if (interactive) {
 			this.added(function (theStage) {
@@ -13172,7 +15132,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-58.1
 
 /*--
-zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit)
+zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit)
 
 Layer
 zim class - extends a zim.Container which extends a createjs.Container
@@ -13372,8 +15332,8 @@ If TransformManager() is used there are more events available such as "persistse
 See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.5
-	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
-		var sig = "width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit";
+	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
+		var sig = "width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit";
 		var duo; if (duo = zob(zim.Layer, arguments, sig, this)) return duo;
 		z_d("58.5");
 
@@ -13685,7 +15645,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Layer(width, height, titleBarOriginal, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, borderWidth, borderColor, dashed, transformObject, originalTitleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, this.group, inherit));
+			return that.cloneProps(new zim.Layer(width, height, titleBarOriginal, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, originalTitleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, this.group, inherit));
 		}
 
 		this.dispose = function() {
@@ -14466,7 +16426,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-60
 
 /*--
-zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit)
+zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, selectedColor, rollColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit)
 
 List
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -14479,6 +16439,12 @@ The list can also include any DisplayObject with bounds (which most ZIM objects 
 If the object is not a string, number or Label then selection will not highlight and currently animateTo() may not work if size is different.
 See: https://zimjs.com/explore/list.html
 See: https://zimjs.com/explore/listObjects.html
+
+ACCORDION
+An accordion is a list with nested sections that expand open.
+A special accordion object can be passed to the list parameter
+that includes the menu items, styles for the sub menus
+and properties to animate, shade and indent the sub menus.
 
 SPACING, PADDING, INDENTING
 These adjust depending on vertical or horizontal settings
@@ -14494,6 +16460,7 @@ NOTE: List can have a ZIM Organizer added with the organizer parameter
 The organizer lets the user add, remove and move items up, down, to the top or the bottom
 See: https://zimjs.com/docs?item=organizer
 See: https://zimjs.com/explore/organizer.html
+See: https://zimjs.com/ten/accordion.html
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -14513,6 +16480,18 @@ height - (default 200) height of list
 list - (default Options 1-30) an array of strings, numbers or zim Label objects - these will be added to zim Tabs Buttons
 	or include any DisplayObject with bounds - these will not get highlighted but will indicate a change event and selectedIndex
 	currently objects with different sizes may not animateTo() properly - this will be fixed soon.
+	A special Accordion object literal {} can be provided with the following properties:
+		menu - a SIMPLE or COMPLEX hierarchy input - see ZIM Hierarchy() in the Code module
+			note: if just providing the menu and the rest of the properties below are default
+			then the Accordion object literal can be the SIMPLE or COMPLEX hierarchy input.
+			In other words, no need to pass in {menu:{blah}} just pass in {blah}
+		shade - (default .2) the alpha of indented shade in sub menus - or false for no shading
+		shift - (default 15) the pixels to indent the shade - and left or right aligned text of sub menus - or false for no indenting
+		dim - (default .1) the alpha of dark background overlay on sub menus - or false for no dimming
+		bloom - (default 10) time in milliseconds for each submenu item to be added - or false to not animate sub menus in
+		whither - (default 10) time in milliseconds for each submenu item to be removed - or false to not animate sub menus out
+		subStyles - (default null) an array of style objects for each sublevel - with all the color and background color properties
+	note: the Accordion List is currently incompatible with the Organizer, addTo() and removeFrom()
 viewNum - (default 5) how many items to show in the width and height provided
 vertical - (default true) set to false to make a horizontal list
 currentSelected - (default false) set to true to show the current selection as highlighted
@@ -14581,6 +16560,7 @@ removeAt(number, index) - remove a number of elements (default 1) from the list 
 clear() - clears the list
 first() - select first list element - returns object to chain
 last() - select last list element - returns object to chain
+cancelCurrentDrag() - stop current drag on list - but add dragging back again for next drag
 hasProp(property as String) - returns true if property exists on object else returns false
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -14615,6 +16595,7 @@ width - gets or sets the width. Setting the width will scale the height to keep 
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+enabled - default is true - set to false to disable
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 
@@ -14633,8 +16614,8 @@ ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+60.5
 
-	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit) {
-		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit";
+	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, selectedColor, rollColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit) {
+		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, selectedColor, rollColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, group, inherit";
 		var duo; if (duo = zob(zim.List, arguments, sig, this)) return duo;
 		z_d("60.5");
 
@@ -14645,9 +16626,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(height)) height=DS.height!=null?DS.height:!zot(organizer)?200+organizer.height:200;
 		if (zot(list)) list = list=DS.list!=null?DS.list:["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10"];
 		if (list.length == 0) list=["%-&"];
+		this.originalList = list;
 		if (zot(viewNum)) viewNum=DS.viewNum!=null?DS.viewNum:5;
 		if (zot(vertical)) vertical=DS.vertical!=null?DS.vertical:true;
 		if (zot(currentSelected)) currentSelected=DS.currentSelected!=null?DS.currentSelected:true;
+		var originalAlign = !zot(align) || !zot(labelAlign);
 		if (zot(align)) align=DS.align!=null?DS.align:"center";
 		if (zot(valign)) valign=DS.valign!=null?DS.valign:"center";
 		if (zot(labelAlign)) labelAlign=DS.labelAlign!=null?DS.labelAlign:align;
@@ -14663,9 +16646,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"#777";
 		if (zot(rollBackgroundColor)) rollBackgroundColor = DS.rollBackgroundColor!=null?DS.rollBackgroundColor:"#555";
 		if (zot(selectedBackgroundColor)) selectedBackgroundColor = DS.selectedBackgroundColor!=null?DS.selectedBackgroundColor:"#444";
+		if (zot(selectedRollBackgroundColor)) selectedRollBackgroundColor = DS.selectedRollBackgroundColor!=null?DS.selectedRollBackgroundColor:"#555";
 		if (zot(color)) color = DS.color!=null?DS.color:"white";
 		if (zot(rollColor)) rollColor = DS.rollColor!=null?DS.rollColor:color;
 		if (zot(selectedColor)) selectedColor = DS.selectedColor!=null?DS.selectedColor:color;
+		if (zot(selectedRollColor)) selectedRollColor = DS.selectedRollColor!=null?DS.selectedRollColor:rollColor;
 		if (zot(backdropColor)) backdropColor = DS.backdropColor!=null?DS.backdropColor:backdropColor;
 
 		var originalBorderColor = borderColor;
@@ -14711,6 +16696,32 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var that = this;
 		var originalHeight = height;
 
+		// handle possible accordion data
+		if (list.constructor == {}.constructor) {
+			var shade = !zot(list.shade)?list.shade:!zot(DS.shade)?DS.shade:.2;
+			var dim = !zot(list.dim)?list.dim:!zot(DS.dim)?DS.dim:.1;
+			var shift = !zot(list.shift)?list.shift:!zot(DS.shift)?DS.shift:15;
+			var bloom = !zot(list.bloom)?list.bloom:!zot(DS.bloom)?DS.bloom:false;
+			var whither = !zot(list.whither)?list.whither:!zot(DS.whither)?DS.whither:false;
+			if (bloom === true) bloom = 10;
+			if (whither === true) whither = 10;
+			if (shift === true) shift = 15;
+			if (shade === true) shade = .2;
+			if (dim === true) dim = .1;
+			var subStyles = !zot(list.subStyles)?list.subStyles:!zot(DS.subStyles)?DS.subStyles:{};
+			if (!zot(list.menu)) {
+				list = list.menu;
+			}
+			// how to handle if final hierarchy data is submitted
+			var tree = new Hierarchy(list);
+			list = tree.getLinearList();
+			if (!originalAlign) align = labelAlign = "left";
+		}
+
+		this.align = align;
+		this.valign = valign;
+		this.indent = indent;
+
 		if (!zot(organizer)) {
 			height = height - organizer.height;
 			organizer.list = that;
@@ -14746,10 +16757,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				backgroundColor:backgroundColor,
 				rollBackgroundColor:rollBackgroundColor,
 				selectedBackgroundColor:selectedBackgroundColor,
+				selectedRollBackgroundColor:selectedRollBackgroundColor,
 				color:color,
-				backdropColor:backdropColor,
 				rollColor:rollColor,
 				selectedColor:selectedColor,
+				selectedRollColor:selectedRollColor,
+				backdropColor:backdropColor,
 				currentEnabled:true,
 				currentSelected:currentSelected,
 				align:align,
@@ -14775,6 +16788,132 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		makeTabs(zim.copy(list, clone));
 
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+		if (tree) {
+
+			var ids = tree.getLinearIDs();
+			loop(ids, function (id, i) {
+				that.tabs.buttons[i].listZID = id;
+			});
+
+			// add these to single accordion object literal along with styles and data?
+			// and then pass in to list parameter?
+
+
+			loop(that.tabs.buttons, function (item) {
+				var data = tree.getData(item.listZID);
+				if (!isEmpty(data.list)) item.accordion = new Label({text:"+", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
+			});
+
+			function applyAccordion(item, id, data) {
+				item.listZID = id;
+				if (item.label) {
+					if (shade) new Rectangle(shift*(data.level+1), item.height).alp(shade).pos(0,0,that.align=="right",false,item);
+					if (dim) new Rectangle(item.width, item.height).alp((data.level+1)*dim).addTo(item).bot().ord(1);
+					if (shift && that.align!="center") item.label.x += (that.align=="right"?-1:1)*shift*(data.level+1);
+				}
+				var newData = tree.getData(id);
+				newData.obj = item;
+				if (newData.list && !isEmpty(newData.list)) item.accordion = new Label({text:"+", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
+			}
+
+			that.tap(function () {
+				if (!that.selected.accordion) return;
+				var data = tree.getData(that.selected.listZID);
+				if (data.open) { // close
+					if (that.selected.accordion) that.selected.accordion.text = "+";
+					data.open = false;
+					var nextSibling = tree.getNextSibling(that.selected.listZID);
+					if (zot(nextSibling)) var finalIndex = that.items.length-1;
+					else {
+						var finalIndex = loop(that.items, function (item, i) {
+							if (item.listZID == nextSibling) return i-1;
+						});
+					}
+					if (whither) {
+						var count = 0;
+						that.enabled = false;
+						interval(whither, function (obj) {
+							that.removeAt(1, that.selectedIndex+finalIndex-that.selectedIndex-count);
+							count++;
+							if (obj.total == obj.count+1) that.enabled = true;
+						}, finalIndex-that.selectedIndex, true);
+					} else {
+						that.removeAt(finalIndex-that.selectedIndex, that.selectedIndex+1);
+					}
+				} else { // open
+					data.open = true;
+					if (that.selected.accordion) that.selected.accordion.text = "-";
+					var outer = tree.getLinearList(data.list);
+					var ids = tree.getLinearIDs(data.list);
+					if (!data.opened) {
+						data.opened = true;
+						var newStyles = subStyles[data.level];
+						if (zot(newStyles)) newStyles = {};
+						if (Array.isArray(outer)) {
+							if (bloom) {
+								var count = 0;
+								that.enabled = false;
+								interval(bloom, function (obj) {
+									that.addAt(outer[count], that.selectedIndex+1+count, {
+										backgroundColor:newStyles.backgroundColor,
+										color:newStyles.color,
+										rollBackgroundColor:newStyles.rollBackgroundColor,
+										rollColor:newStyles.rollColor,
+										selectedBackgroundColor:newStyles.selectedBackgroundColor,
+										selectedColor:newStyles.selectedColor,
+										selectedRollBackgroundColor:newStyles.selectedRollBackgroundColor,
+										selectedRollColor:newStyles.selectedRollColor
+									});
+									var id = ids[count];
+									var item = that.items[that.selectedIndex+1+count];
+									applyAccordion(item, id, data);
+									if (obj.total == obj.count+1) that.enabled = true;
+									count++;
+								}, outer.length, true);
+							} else {
+								that.addAt(outer, that.selectedIndex+1, {
+									backgroundColor:newStyles.backgroundColor,
+									color:newStyles.color,
+									rollBackgroundColor:newStyles.rollBackgroundColor,
+									rollColor:newStyles.rollColor,
+									selectedBackgroundColor:newStyles.selectedBackgroundColor,
+									selectedColor:newStyles.selectedColor,
+									selectedRollBackgroundColor:newStyles.selectedRollBackgroundColor,
+									selectedRollColor:newStyles.selectedRollColor
+								});
+								loop(ids, function (id, i) {
+									var item = that.items[that.selectedIndex+1+i];
+									applyAccordion(item, id, data);
+								});
+							}
+						}
+					} else {
+						if (Array.isArray(outer)) {
+							if (bloom) {
+								var count = 0;
+								that.enabled = false;
+								interval(bloom, function (obj) {
+									that.addAt(outer[count], that.selectedIndex+1+count);
+									// that.selectedIndexPlusPosition = that.selectedIndex;
+									if (obj.total == obj.count+1) that.enabled = true;
+									count++;
+								}, outer.length, true)
+							} else {
+								that.addAt(outer, that.selectedIndex+1);
+							}
+						}
+					}
+				}
+			});
+
+		}
+
+		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
 		var _selectedIndex;
 		tabs.tap(function (e) {
 			if (e.target.selectedIndex == that.selectedIndex) return;
@@ -14782,6 +16921,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.dispatchEvent("change");
 			e.preventDefault();
 		});
+
+		this.getItemIndex = function(item) {
+			return that.items.indexOf(item);
+		}
 
 		this.animateTo = function(index, timePerItem) {
 			if (zot(index)) index = 0;
@@ -14800,8 +16943,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 
-		this.addAt = function(items, index, clone) {
-			that.tabs.addAt(copy(items, clone), index)
+		this.addAt = function(items, index, style, clone) {
+			that.tabs.addAt(copy(items, clone), index, style)
 			// var b = tabs.getBounds();
 			// tabs.setBounds(0,0,vertical?b.width:(b.width+spacing*2+4),vertical?(b.height+spacing*2+4):b.height);
 			that.content.x = 0;
@@ -14911,6 +17054,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		Object.defineProperty(that, 'itemDown', {
+			get: function() {
+				return that.tabs.buttonDown
+			},
+			set: function(value) {
+
+			}
+		});
+
 		Object.defineProperty(that, 'itemsText', {
 			get: function() {
 				var a = [];
@@ -14930,6 +17082,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		if (currentSelected) that.selectedIndex = 0;
 
+		this._enabled = true;
+		Object.defineProperty(that, 'enabled', {
+			get: function() {
+				return that._enabled;
+			},
+			set: function(value) {
+				zenable(that, value);
+			}
+		});
+
 		this.last = function() {
 			this.selectedIndexPlusPosition = this.length-1;
 			return this;
@@ -14941,7 +17103,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(list), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, backdropColor, color, selectedColor, rollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, this.group, inherit));
+			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(that.originalList, true), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, selectedColor, rollColor, selectedRollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, close, closeColor, excludeCustomTap, organizer, clone, style, this.group, inherit));
 		}
 	}
 	zim.extend(zim.List, zim.Window, "clone", "zimWindow", false);
@@ -16846,7 +19008,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 //***************** RADIAL  64
 
 /*--
-zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, group, inherit)
+zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, group, inherit)
 
 Tabs
 zim class - extends a zim.Container which extends a createjs.Container
@@ -16885,11 +19047,13 @@ tabs - (default ["1","2","3","4"]) an array of any String, Number, Label, Button
 	wait will primarily be applicable when the tabs are used as a set of buttons rather than traditional tabbing
 	Warning - do not use the same array for multiple tabs as the array is turned into an array of objects used by the Tabs object.
 backgroundColor - (default "#777") the background color of a deselected tab when not rolled over
-rollBackgroundColor - (default "#555") the rollover background color (selected tabs do not roll over if currentEnabled is false)
+rollBackgroundColor - (default "#555") the rollover background color
 selectedBackgroundColor - (default "#333") the background color of the selected tab (any CSS color)
+selectedRollBackgroundColor - (default rollBackgroundColor) the background color of the selected tab on rollover (if currentEnabled is true)
 color - (default "white") the text color of a deselected tab when not rolled over
-selectedColor - (default color) the text color of the selected tab (any CSS color)
 rollColor - (default color) the rollover color (selected tabs do not roll over)
+selectedColor - (default color) the text color of the selected tab (any CSS color)
+selectedRollColor - (default rollColor) the text color of the selected tab on rollover (if currentEnabled is true)
 vertical - (default false) set to true to make vertical tabs with text still horizontal
 spacing - (default 1) is the pixels between tab buttons
 currentEnabled - (default false) set to true to be able to press (a second time) the selected tab button
@@ -16930,11 +19094,13 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
-addAt(items, index) - an array of items to insert at an index in the tab - tabs will grow in size - returns the object for chaining
+addAt(items, index, setStyle) - an array of items to insert at an index in the tab - tabs will grow in size - returns the object for chaining
 	To keep the same size - run insertAt() and then remake the Tabs using the tabs.buttons array as the tabs parameter
+	Can also send in a setStyle object literal {} with color, rollColor, selectedColor and selectedRollColor plus the background color versions of these!
 removeAt(index, number) - remove a tab index an number of items (default 1) - tabs will shrink in size - returns the object for chaining
 first() - select first tab - returns object to chain
 last() - select last tab - returns object to chain
+getItemIndex(item) - gets the index of the list item provided
 
 hasProp(property as String) - returns true if property exists on object else returns false
 clone() - makes a copy with properties such as x, y, etc. also copied
@@ -16957,16 +19123,19 @@ height - gets or sets the height. Setting the height will scale the width to kee
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
 tabs - gets or sets tabs object (will have to manually change buttons as well as adjust props)
-backgroundColor - gets or sets default unselected background color
-rollBackgroundColor - gets or sets default rolled over background color
-selectedBackgroundColor - gets or sets default selected background color
-color - gets or sets default unselected text color
-selectedColor - gets or sets default selected text color
-rollColor - gets or sets default rolled over text color
+backgroundColor - gets or sets default unselected background color - not applied to custom buttons
+rollBackgroundColor - gets or sets default rolled over background color - not applied to custom buttons
+selectedBackgroundColor - gets or sets default selected background color - not applied to custom buttons
+selectedRollBackgroundColor - gets or sets default selected roll background color - not applied to custom buttons
+color - gets or sets default unselected text color - not applied to custom buttons
+rollColor - gets or sets default rolled over text color - not applied to custom buttons
+selectedColor - gets or sets default selected text color - not applied to custom buttons
+selectedRollColor - gets or sets default selected roll text color - not applied to custom buttons
 text - gets current selected label text
 label - gets current selected label object
 buttons - an array of the ZIM Button objects. buttons[0].enabled = false;
 labels - an array of the ZIM Label objects. labels[0].text = "YUM"; labels[2].y -= 10;
+buttonDown - the button that is currently being pressed
 backdrop - reference to backdrop Rectangle if backdropColor is provided
 keyEnabled - gets or sets whether the tab key and shift tab key cycles through tabs (does not affect accessibility)
 enabled - default is true - set to false to disable
@@ -16994,8 +19163,8 @@ dispatches a "change" event when a tab changes (but not when setting selectedInd
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+65
-	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, group, inherit) {
-		var sig = "width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, group, inherit";
+	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, group, inherit) {
+		var sig = "width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, group, inherit";
 		var duo; if (duo = zob(zim.Tabs, arguments, sig, this)) return duo;
 		z_d("65");
 
@@ -17014,11 +19183,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"#777";
 		if (zot(rollBackgroundColor)) rollBackgroundColor = DS.rollBackgroundColor!=null?DS.rollBackgroundColor:"#555";
 		if (zot(selectedBackgroundColor)) selectedBackgroundColor = DS.selectedBackgroundColor!=null?DS.selectedBackgroundColor:"#333";
+		if (zot(selectedRollBackgroundColor)) selectedRollBackgroundColor = DS.selectedRollBackgroundColor!=null?DS.selectedRollBackgroundColor:rollBackgroundColor;
 		if (zot(color)) color = DS.color!=null?DS.color:"white";
 		if (zot(rollColor)) rollColor = DS.rollColor!=null?DS.rollColor:color;
+		if (zot(selectedColor)) selectedColor = DS.selectedColor!=null?DS.selectedColor:color;
+		if (zot(selectedRollColor)) selectedRollColor = DS.selectedRollColor!=null?DS.selectedRollColor:rollColor;
 		if (zot(backing)) backing = DS.backing!=null?DS.backing:null;
 		if (zot(rollBacking)) rollBacking = DS.rollBacking!=null?DS.rollBacking:null;
-		if (zot(selectedColor)) selectedColor = DS.selectedColor!=null?DS.selectedColor:color;
 		if (zot(align)) align=DS.align!=null?DS.align:"center";
 		if (zot(valign)) valign=DS.valign!=null?DS.valign:"center";
 		if (zot(labelAlign)) labelAlign=DS.labelAlign!=null?DS.labelAlign:align;
@@ -17136,17 +19307,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		// Create Label Objects including Label and also get max width
-		function makeLabels(list) {
+		function makeLabels(list, addStyle) {
 			for (i=0; i<list.length; i++) {
 				t = list[i];
 				if (t == "") continue; // was break?
 				if (t.type == "TabObject") {
 					if (zot(t.label)) t.label = " ";
 					if (typeof t.label == "string" || typeof t.label == "number") {
+						// will do colors in Button
 						t.label = new zim.Label({
-							text:t.label, size:DS.size!=null?DS.size:(vertical?tabH/2:height/2),
+							text:t.label,
+							size:DS.size!=null?DS.size:(vertical?tabH/2:height/2),
 							font:DS.font!=null?DS.font:null,
-							style:false
+							style:false,
+							inherit:addStyle
 						});
 					}
 				}
@@ -17164,37 +19338,43 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		// create buttons
 		var hMaxWidth = 0;
-		function makeButtons(list) {
+		function makeButtons(list, addStyle) {
 			var buttons = [];
 			var labels = [];
-			var tSelectedBackgroundColor; var tSelectedColor;
 			for (i=0; i<list.length; i++) {
 				t = list[i];
 				if (t.type == "TabObject") {
-					// now we sometimes add a single item with addAt() so can't just say first item is selected
-					// tSelectedBackgroundColor = (i==0 && currentSelected)?((zot(t.selectedbackgroundColor))?selectedBackgroundColor:t.selectedBackgroundColor):((zot(t.backgroundColor))?backgroundColor:t.backgroundColor);
-					// tSelectedColor = (i==0 && currentSelected)?((zot(t.selectedColor))?selectedColor:t.selectedColor):((zot(t.labelColor))?color:t.labelColor);
-					// tRollColor = (i==0 && currentSelected)?((zot(t.selectedColor))?color:t.selectedColor):((zot(t.rollColor))?rollColor:t.rollColor);
-					tSelectedBackgroundColor = zot(t.backgroundColor)?backgroundColor:t.backgroundColor;
-					tSelectedColor = zot(t.labelColor)?color:t.labelColor;
-					tRollColor = zot(t.rollColor)?rollColor:t.rollColor;
-					t.label.color = tSelectedColor;
-					t.label.rollColor = tRollColor;
+					var tabInfo = {
+						color:zot(t.color)?color:t.color,
+						rollColor:zot(t.rollColor)?rollColor:t.rollColor,
+						selectedColor:zot(t.selectedColor)?selectedColor:t.selectedColor,
+						selectedRollColor:zot(t.selectedRollColor)?selectedRollColor:t.selectedRollColor,
+						backgroundColor:zot(t.backgroundColor)?backgroundColor:t.backgroundColor,
+						rollBackgroundColor:(zot(t.rollBackgroundColor))?rollBackgroundColor:t.rollBackgroundColor,
+						selectedBackgroundColor:(zot(t.selectedBackgroundColor))?selectedBackgroundColor:t.selectedBackgroundColor,
+						selectedRollBackgroundColor:(zot(t.selectedRollBackgroundColor))?selectedRollBackgroundColor:t.selectedRollBackgroundColor,
+						wait:(zot(t.wait))?wait:t.wait
+					};
+					if (addStyle) {
+						for (aStyle in addStyle) {
+							if (!zot(addStyle[aStyle])) tabInfo[aStyle] = addStyle[aStyle];
+						}
+					}
 					button = new zim.Button({
 						width:vertical?(zot(t.width)?specifiedWidth?width:(maxWidth+tabH/2+corner[0]/2):t.width):((zot(t.width))?tabW:t.width),
 						height:vertical?tabH:height,
 						label:t.label,
 						borderColor:DS.borderColor!=null?DS.borderColor:null,
 						borderWidth:DS.borderWidth!=null?DS.borderWidth:null,
-						backgroundColor:tSelectedBackgroundColor,
-						rollBackgroundColor:(zot(t.rollBackgroundColor))?rollBackgroundColor:t.rollBackgroundColor,
+						backgroundColor:tabInfo.backgroundColor,
+						rollBackgroundColor:tabInfo.rollBackgroundColor,
 						corner:corner,
 						shadowColor:-1,
 						gradient:gradient,
 						gloss:gloss,
 						backing:backing?backing.clone():null,
 						rollBacking:rollBacking?rollBacking.clone():null,
-						wait:(zot(t.wait))?wait:t.wait,
+						wait:tabInfo.wait,
 						waitTime:(zot(t.waitTime))?waitTime:t.waitTime,
 						waitBackgroundColor:(zot(t.waitBackgroundColor))?waitBackgroundColor:t.waitBackgroundColor,
 						rollWaitBackgroundColor:(zot(t.rollWaitBackgroundColor))?rollWaitBackgroundColor:t.rollWaitBackgroundColor,
@@ -17208,17 +19388,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						indentVertical:labelIndentVertical,
 						inherit:DS
 					});
+					button.tabInfo = tabInfo;
+					// set the label colors
+					button.color = button.tabInfo.color;
+					button.rollColor = button.tabInfo.rollColor;
 					button.type = "TabsButton";
-					button.originalWait = zot(t.wait)?wait:t.wait
-					button.originalColor = zot(t.color)?color:t.color;
-					button.originalBackgroundColor = zot(t.backgroundColor)?backgroundColor:t.backgroundColor;
-					button.originalSelectedColor = zot(t.selectedColor)?selectedColor:t.selectedColor;
-					button.originalSelectedBackgroundColor = zot(t.selectedBackgroundColor)?selectedBackgroundColor:t.selectedBackgroundColor;
 				} else {
 					button = t;
+					button.tabInfo = {};
 					if (excludeCustomTap) button.excludeTap = true;
-					button.originalColor = zot(t.color)?color:t.color;
-					button.originalBackgroundColor = zot(t.backgroundColor)?backgroundColor:t.backgroundColor;
+					button.tabInfo.color = zot(t.color)?color:t.color;
+					button.tabInfo.backgroundColor = zot(t.backgroundColor)?backgroundColor:t.backgroundColor;
 				}
 				if (button.width > hMaxWidth) hMaxWidth = button.width;
 
@@ -17236,6 +19416,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 					});
 				}
+				button.on("mousedown", function(e) {
+					that.buttonDown = e.currentTarget;
+				});
+				button.on("pressup", function() {
+					that.buttonDown = null;
+				});
 				labels.push(t.label);
 				buttons.push(button);
 			}
@@ -17245,6 +19431,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		buttons = result[0];
 		labels = result[1];
 
+
 		// finalize index, location, bounds
 		function prepareAllButtons() {
 			var lastX = 0; var lastY = 0; var t; var button;
@@ -17252,7 +19439,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				button = buttons[i];
 				button.znum = i;
 				button.selectedIndex = i;
-				if (button.selectedIndex == myIndex && currentSelected) button.backgroundColor = selectedBackgroundColor;
+				if (button.selectedIndex == myIndex && currentSelected) {
+					button.backgroundColor = selectedBackgroundColor;
+					button.rollBackgroundColor = selectedRollBackgroundColor;
+					button.color = selectedColor;
+				}
 				if (labels[i]) labels[i].znum = i;
 				that.addChild(button);
 				if (!vertical || specifiedWidth) {
@@ -17306,31 +19497,35 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		function change(num) {
 			var b = buttons[myIndex];
 			if (b && currentSelected) {
-				if (zot(b.originalWait)) {
-					if (b.originalBackgroundColor) b.backgroundColor = b.originalBackgroundColor;
-					if (b.originalColor && b.label) b.label.color = b.originalColor;
+				if (b.tabInfo && zot(b.tabInfo.wait)) {
+					if (b.tabInfo.backgroundColor) b.backgroundColor = b.tabInfo.backgroundColor;
+					if (b.tabInfo.rollBackgroundColor) b.rollBackgroundColor = b.tabInfo.rollBackgroundColor;
+					if (b.tabInfo.color && b.label) b.color = b.tabInfo.color;
+					if (b.tabInfo.rollColor && b.label) b.rollColor = b.tabInfo.rollColor;
 				}
 				if (!currentEnabled) b.enabled = true;
 			}
 			myIndex = num;
 			b = buttons[myIndex];
 			if (b) {
-				if (zot(b.originalWait) && currentSelected) {
-					b.backgroundColor = (zot(t.selectedBackgroundColor))?selectedBackgroundColor:t.selectedBackgroundColor;
-					if (b.label) b.label.color = (zot(t.selectedColor))?selectedColor:t.selectedColor;
+				if (b.tabInfo && zot(b.tabInfo.wait) && currentSelected) {
+					if (b.tabInfo.selectedBackgroundColor) b.backgroundColor = b.tabInfo.selectedBackgroundColor;
+					if (b.tabInfo.selectedRollBackgroundColor) b.rollBackgroundColor = b.tabInfo.selectedRollBackgroundColor;
+					if (b.tabInfo.selectedColor && b.label) b.color = b.tabInfo.selectedColor;
+					if (b.tabInfo.selectedRollColor && b.label) b.rollColor = b.tabInfo.selectedRollColor;
 				}
 				if (!currentEnabled) b.enabled = false;
 			}
 		}
 
-		this.addAt = function(items, index) {
+		this.addAt = function(items, index, addStyle) {
 			if (zot(index)) index = buttons.length;
 			index = zim.constrain(index, 0, buttons.length);
 			// create tabObjects from new item(s)
 			if (!Array.isArray(items)) items = [items];
 			makeDataObject(items);
-			makeLabels(items);
-			var result = makeButtons(items);
+			makeLabels(items, addStyle);
+			var result = makeButtons(items, addStyle);
 			var buts = result[0];
 			var labs = result[1];
 			if (index <= myIndex) myIndex += buts.length;
@@ -17355,8 +19550,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			// remove listeners
 			for (i=index; i<index+num; i++) {
-				if (buttons[i].originalBackgroundColor) buttons[i].backgroundColor = buttons[i].originalBackgroundColor;
-				if (buttons[i].originalColor && buttons[i].label) buttons[i].label.color = buttons[i].originalColor;
+				if (buttons[i].tabInfo) {
+					if (buttons[i].tabInfo.backgroundColor) buttons[i].backgroundColor = buttons[i].tabInfo.backgroundColor;
+					if (buttons[i].tabInfo.color && buttons[i].label) buttons[i].color = buttons[i].tabInfo.color;
+				}
+
 				if (useTap) buttons[i].noTap();
 				else buttons[i].off((!zns?ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", buttons[i].zimTabEvent);
 				buttons[i].removeFrom();
@@ -17424,12 +19622,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		Object.defineProperty(this, 'color', {
 			get: function() {
-				return color;
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.color;
+				else return color;
 			},
 			set: function(value) {
 				color = value;
-				if (zot(tabs[myIndex].color)) {
-					buttons[myIndex].color = color;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.color = value;
+						}
+						if (i != myIndex || !currentSelected) that.buttons[i].color = color;
+					}
 					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 				}
 			}
@@ -17437,30 +19641,136 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		Object.defineProperty(this, 'rollColor', {
 			get: function() {
-				return rollColor;
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.rollColor;
+				else return rollColor;
 			},
 			set: function(value) {
 				rollColor = value;
-				for (var i=0; i<tabs.length; i++) {
-					if (zot(tabs[myIndex].rollColor)) {
-						buttons[i].rollColor = rollColor;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.rollColor = value;
+						}
+						that.buttons[i].rollColor = rollColor;
+						if (i != myIndex && that.buttons[i].rolled) that.buttons[i].color = rollColor;
 					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 				}
 			}
 		});
 
 		Object.defineProperty(this, 'selectedColor', {
 			get: function() {
-				return selectedColor;
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.selectedColor;
+				else return selectedColor;
 			},
 			set: function(value) {
 				selectedColor = value;
-				for (var i=0; i<tabs.length; i++) {
-					if (zot(tabs[myIndex].color)) {
-						buttons[i].color = selectedColor;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.selectedColor = value;
+						}
+						if ((i == myIndex && currentSelected)) that.buttons[i].color = selectedColor;
 					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 				}
-				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+
+		Object.defineProperty(this, 'selectedRollColor', {
+			get: function() {
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.selectedRollColor;
+				else return selectedRollColor;
+			},
+			set: function(value) {
+				selectedRollColor = value;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.selectedRollColor = value;
+						}
+						if ((i == myIndex && currentSelected) && that.buttons[i].rolled) that.buttons[i].color = selectedRollColor;
+					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+				}
+			}
+		});
+
+		Object.defineProperty(this, 'backgroundColor', {
+			get: function() {
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.backgroundColor;
+				else return backgroundColor;
+			},
+			set: function(value) {
+				backgroundColor = value;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.backgroundColor = value;
+						}
+						if (i != myIndex || !currentSelected) that.buttons[i].backgroundColor = backgroundColor;
+					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+				}
+			}
+		});
+
+		Object.defineProperty(this, 'rollBackgroundColor', {
+			get: function() {
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.rollBackgroundColor;
+				else return rollBackgroundColor;
+			},
+			set: function(value) {
+				rollBackgroundColor = value;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.rollBackgroundColor = value;
+						}
+						that.buttons[i].rollBackgroundColor = rollBackgroundColor;
+						if (i != myIndex && that.buttons[i].rolled) that.buttons[i].backgroundColor = rollBackgroundColor;
+					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+				}
+			}
+		});
+
+		Object.defineProperty(this, 'selectedBackgroundColor', {
+			get: function() {
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.selectedBackgroundColor;
+				else return selectedBackgroundColor;
+			},
+			set: function(value) {
+				selectedBackgroundColor = value;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.selectedBackgroundColor = value;
+						}
+						if ((i == myIndex && currentSelected)) that.buttons[i].backgroundColor = selectedBackgroundColor;
+					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+				}
+			}
+		});
+
+		Object.defineProperty(this, 'selectedRollBackgroundColor', {
+			get: function() {
+				if (that.buttons[0].tabItems) return that.buttons[0].tabItems.selectedRollBackgroundColor;
+				else return selectedRollBackgroundColor;
+			},
+			set: function(value) {
+				selectedRollBackgroundColor = value;
+				if (that.buttons[0].tabInfo) {
+					for (var i=0; i<that.buttons.length; i++) {
+						if (that.buttons[i].tabInfo) {
+							that.buttons[i].tabInfo.selectedRollBackgroundColor = value;
+						}
+						if ((i == myIndex && currentSelected) && that.buttons[i].rolled) that.buttons[i].backgroundColor = selectedRollBackgroundColor;
+					}
+					if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+				}
 			}
 		});
 
@@ -17531,14 +19841,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for (var i=0; i<tabsCopy.length; i++) {
 				tabsCopy[i].label = tabsCopy[i].label.clone();
 			}
-			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, this.group, inherit));
+			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, style, this.group, inherit));
 		}
 	}
 	zim.extend(zim.Tabs, zim.Container, "clone", "zimContainer", false);
 	//-65
 
 /*--
-zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group, inherit)
+zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group, inherit)
 
 Pad
 zim class - extends a zim.Container which extends a createjs.Container
@@ -17657,8 +19967,8 @@ dispatches a "change" event when a pad changes (but not when setting selectedInd
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+66
-	zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group, inherit) {
-		var sig = "width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group, inherit";
+	zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group, inherit) {
+		var sig = "width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, group, inherit";
 		var duo; if (duo = zob(zim.Pad, arguments, sig, this)) return duo;
 		z_d("66");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -17779,7 +20089,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS)
 		this.clone = function() {
-			return that.cloneProps(new zim.Pad(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, this.group, inherit));
+			return that.cloneProps(new zim.Pad(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, style, this.group, inherit));
 		}
 	}
 	zim.extend(zim.Pad, zim.Container, "clone", "zimContainer", false);
@@ -18569,8 +20879,6 @@ show(index) - shows the Keyboard - use this rather than addTo(), etc.
 hide() - hides the keyboard
 toggle(state - default null) - shows if hidden and hides if showing (returns the keyboard for chaining)
 	or pass in true to show keyboard or false to hide keyboard
-addChar(char) - add a character to the currentLabel at the currentIndex
-removeChar() - removes the chararcter in the currentLabel at the currentIndex-1 (a backspace)
 addLabels(labels) - add a ZIM Label or an array of Labels to the labels list for the Keyboard
 removeLabels(labels) - remove a ZIM Label or an array of Labels
 showPlace() - show the place menu for cursor
@@ -18826,13 +21134,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		        }
 		        currentStage.update();
 		    }
-		}
-
-		that.addChar = function(char) {
-			if (!zot(char) && char.match(/^.$/)) addToLabel(char);
-		}
-		that.removeChar = function() {
-			backspaceRemovesLetter(true);
 		}
 
 		var shiftEvent;
@@ -19349,7 +21650,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			positionBlinker();
 		}
 
-		function backspaceRemovesLetter(once) {
+		function backspaceRemovesLetter() {
 		    var removalOkay = true;
 		    var timeOut;
 		    function haalWeg() {
@@ -19357,8 +21658,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		            removalOkay = false;
 		        }
 		        if (removalOkay) {
+		            removeLetter();
 		            timeOut = zim.timeout(200, haalWeg);
-					removeLetter();
 		        }
 		        if (currentLabel && currentLabel.text.length<1) {
 		            stopRemoval();
@@ -19367,15 +21668,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		    function removeLetter() {
 		        if (currentLabel && currentLabel.text.length>0) {
 					if (that.selectedIndex > 0) addToLabel("del");
-		            if (once) stopRemoval()
-					else that.on("pressup", stopRemoval);
+		            that.on("pressup", stopRemoval);
 		        } else {
 		            addToLabel("del");
 		        }
 		    }
 		    function stopRemoval() {
 		        removalOkay = false;
-		        if (timeOut) timeOut.clear();
+		        timeOut.clear();
 		        that.off("pressup", stopRemoval);
 		    }
 		    removeLetter();
@@ -19446,7 +21746,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return insertPoint;
 			},
 			set: function(index) {
-				index = Math.min(that.selectedLabel.text.length, Math.max(0, index));
 				insertPoint = index;
 				positionBlinker();
 			}
@@ -19558,7 +21857,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 //
 
 /*--
-zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit)
+zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit)
 
 Organizer
 zim class - extends a zim.Tabs which extends a zim.Container which extends a createjs.Container
@@ -19691,8 +21990,8 @@ ALSO: All Tab events
 ALSO: See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.3
-	zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit) {
-		var sig = "width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit";
+	zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit) {
+		var sig = "width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit";
 		var duo; if (duo = zob(zim.Organizer, arguments, sig, this)) return duo;
 		z_d("67.3");
 
@@ -19750,7 +22049,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		if (useRemove) buttons.push(new zim.Button({icon:addIcon.clone().rot(0).sca(.55), inherit:buttonStyle}));
 		if (buttons.length==0) buttons = [""]
-		this.zimTabs_constructor(width, width/buttons.length, buttons, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, false, spacing, true, false, corner, null, true, gradient, gloss, null, null, null, null, null, null, null, null, null, null, backdropColor);
+		this.zimTabs_constructor(width, width/buttons.length, buttons, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, false, spacing, true, false, corner, null, true, gradient, gloss, null, null, null, null, null, null, null, null, null, null, backdropColor);
 
 		var that = this;
 		that.list = list;
@@ -19911,7 +22210,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.Organizer(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, color, rollColor, selectedColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, that.group, inherit));
+			return that.cloneProps(new zim.Organizer(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, that.group, inherit));
 		}
 	}
 	zim.extend(zim.Organizer, zim.Tabs, "clone", "zimTabs", false);
@@ -21605,10 +23904,29 @@ rotation - (default null) the rotation in degrees
 
 RETURNS obj for chaining
 --*///+41.8
-	zim.rot = function(obj, rotation) {
+	zim.rot = function(obj, rotation, x, y) {
 		z_d("41.8");
 		if (zot(obj)) return;
-		if (!zot(rotation)) obj.rotation=rotation;
+		if (!zot(rotation)) {
+			if (obj.parent && (!zot(x) || !zot(y))) {
+				if (zot(x)) x = obj.x;
+				if (zot(y)) y = obj.y;
+				var diffX = x-obj.x;
+				var diffY = y-obj.y;
+				var inside = obj.parent.localToLocal(x, y, obj);
+				var outside = new Point(obj.x, obj.y);
+				obj.reg(inside.x, inside.y);
+				obj.rotation=rotation;
+				obj.x = x;
+				obj.y = y;
+				var backPoint = obj.parent.localToLocal(outside.x, outside.y, obj);
+				obj.reg(backPoint.x, backPoint.y);
+				obj.x = outside.x;
+				obj.y = outside.y;
+			} else {
+				obj.rotation=rotation;
+			}
+		}
 		return obj;
 	}//-41.8
 
@@ -21902,7 +24220,7 @@ RETURNS obj for chaining
 		return obj;
 	}//-41.65
 
-// SUBSECTION TAP, CHANGE, DRAG, TRANSFORM, GESTURE
+// SUBSECTION TAP, CHANGE, DRAG, TRANSFORM, GESTURE, PHYSICS
 
 /*--
 obj.tap = function(call, distance, time, once)
@@ -24268,6 +26586,118 @@ RETURNS obj for chaining
 		return obj;
 	}//-34.7
 
+/*--
+obj.addPhysics = function(dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics)
+
+addPhysics
+zim DisplayObject method
+
+DESCRIPTION
+Add Physics to a DisplayObject.  DisplayObject should be centerReg() on the stage (or in non-transformed Container at 0,0 on stage)
+The Physics world can be set up with the ZIM Physics() class in the Controls module.
+Box2D and ZIM physics JavaScript helper module need to be imported.
+If no physics world has been created, the addPhysics() method will create a default world.
+The default world will have a borders around the stage and gravity of 10.
+See: https://zimjs.com/physics/
+
+NOTE: Adding physics also adds more methods and properties to the DisplayObject
+See the Physics() docs for all the details
+
+EXAMPLE
+new Circle().center().addPhysics(); // circle will fall with gravity to the floor
+END EXAMPLE
+
+EXAMPLE
+// create a world with no gravity (viewed from top like air-hockey)
+var physics = new Physics(0);
+
+// create physics objects using the addPhysics() method
+var circle = new Circle(50,blue,grey).center().addPhysics({restitution:1.1}); // how bouncy
+
+// make sure to centerReg() any rectangular objects
+var rect = new Rectangle(30,400).centerReg().pos(70).addPhysics(false); // static - do not move
+var tri = new Triangle(150,150,150,green,grey).center().pos(200).addPhysics({linear:10}); // does not slide easily
+
+// turn on dragging
+physics.drag();
+END EXAMPLE
+
+PARAMETERS
+dynamic - (default true) - set to true to not move the physics body (static)
+contract - (default 0) - make the physics body smaller (or bigger with negative) than bounds
+shape - (default object shape) - "rectangle" for any object other than Cirlce, Dial and Triangle
+ 	but can specify a "circle" for a Sprite or Bitmap, for instance - to try and match shape
+	custom polygon bodies can also be made with manual Box2D and then use physics.setMap()
+	but the only shapes available automatically are "rectangle", "circle", "triangle"
+friction - (default .8) - how sticky will the body act - set to 0 to slide.
+linear - (default .5) - linear damping which slows the movement - set to 0 for no damping
+angular - (default .5) - angular damping which slows the rotation - set to 0 for no damping
+density - (default 1) - the density that can affect what happens with collisions
+restitution - (default 0) - how bouncy the object is - 0 is not bouncy 4 is crazy bouncy
+maskBits - (default null) - used with categoryBits to determine which bodies will collide with which other bodies
+	as soon as maskBits is specified, the body will collide only with the categoryBits provided to the maskBits parameter
+	1 will collide with bodies that do not have categoryBits specified including the borders
+	to test collision with bodies that have categoryBits specified, use the pipe (|) as follows:
+	1|2 will also collide with bodies having categoryBits of 2 specified
+	so if another body has categoryBits of 4 then the bodies would not collide.
+	1|2|4 would also collide with 4 but not bodies with categoryBits of 8, etc.
+	2|4 would pass through any bodies without categoryBits of 2 or 4 including the borders
+categoryBits - (default 1) - a collision category - by default, bodies are in category 1
+	use with maskBits to say which bodies will collide with which other bodies
+	the values are bit fields https://en.wikipedia.org/wiki/Bit_field so can have the following decimal values:
+	can be 2, 4, 8, 16, 32, 64, 128, 256, etc. up to 15 powers of 2
+physics - (default zimDefaultPhysics)
+
+RETURNS obj for chaining
+--*///+34.8
+
+	zim.addPhysics = function(obj, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics) {
+		var sig = "obj, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics";
+		var duo; if (duo = zob(zim.addPhysics, arguments, sig)) return duo;
+		z_d("34.8");
+
+		if (zot(physics)) {
+			if (typeof(zimPhysics) == "undefined") {if (zon) {zog("ZIM Physics module must be imported")}; return obj;}
+			if (zot(zimDefaultPhysics)) zimDefaultPhysics = new zim.Physics();
+			physics = zimDefaultPhysics;
+		}
+		obj.physics = physics;
+		var defaultShape = "rectangle";
+		if (obj.type == "Circle" || obj.type == "Dial") defaultShape = "circle";
+		else if (obj.type == "Triangle") defaultShape = "triangle";
+		if (zot(shape)) shape = defaultShape;
+		setPhysics(obj, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits);
+
+		return obj;
+	}//-34.8
+
+/*--
+obj.removedPhysics = function()
+
+removePhysics
+zim DisplayObject method
+
+DESCRIPTION
+Remove Physics from a DisplayObject.
+This removes various methods and properties that addPhysics() added
+The object can be added back to the physics world with addPhysics()
+
+EXAMPLE
+obj.removePhysics(); // ;-)
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+34.85
+	zim.removePhysics = function(obj) {
+		z_d("34.85");
+		if (zot(obj.physics)) return obj;
+		if (obj == obj.physics.followObj) obj.physics.follow(null);
+		obj.physics.remove(obj.body);
+		obj.follow = obj.noFollow = obj.control = obj.noControl = obj.sleep = obj.wake = null;
+		obj.physics = obj.impulse = obj.force = obj.torque = null;
+		return obj;
+	}//-34.85
+
 // SUBSECTION HIT TESTS
 
 /*--
@@ -24870,17 +27300,10 @@ var line = new Squiggle().center();
 new Circle(10, red).addTo().animate({path:line}, 1000);
 END EXAMPLE
 
-PARAMETERS - supports DUO - parameters or single object with properties below
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the series() function which returns a function that will execute a series in order
-	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 
 props - the object literal holding properties and values to animate
 	Basic examples: {x:200} or {rotation:360, alpha:0} or {scale:4} or {x:300, y:300, scale:"2"} (relative scale)
@@ -24935,7 +27358,7 @@ props - the object literal holding properties and values to animate
 		extra - in addition to the convenience properties above, ZIM EXTRA! has a more general and complete format:
 			Pass in a single EXTRA! object or an array of EXTRA! objects: extra:{} or extra:[{},{},{}]
 			The object has the following properties - all are optional except the outputProp which is required:
-				|ZIM VEE| - each object below optionally accepts a ZIM VEE value for zik() to pick randomly from
+				|ZIM VEE| - each object below optionally accepts a ZIM VEE value for Pick.choose() to pick randomly from
 		        inputObj - (default target) - the object with the input property - probably the animation target but could be any object
 		        inputProp - (default "y") - a string of the property name for the input - "x", "rotation", etc.
 		        inputMin - (default 0) - the minimum input value for the calculation - also see constrain
@@ -24955,7 +27378,7 @@ props - the object literal holding properties and values to animate
 			extra:{outputObj:circle, outputProp:"alpha"} would animate the alpha of circle based on the animated target's y position
 			extra:{inputObj:circle, inputProp:"x", inputMax:stageW, outputProp:"level"} would animate the target's child index as the circle's x goes across the screen
 			** in the last two examples, circle is a different object than the target of the animation - circle might be animating independently or based on a Slider value, etc.
-	|ZIM VEE| - each props property value optionally accepts a ZIM VEE value for zik() to pick randomly from (except the EXTRA! properties which accept ZIM VEE values inside)
+	|ZIM VEE| - each props property value optionally accepts a ZIM VEE value for Pick.choose() to pick randomly from (except the EXTRA! properties which accept ZIM VEE values inside)
 	RELATIVE VALUES: you can pass in relative values by putting the numbers as strings
 		rotation:"360" will animate the rotation of the object 360 degrees from its current rotation
 		whereas rotation:360 will animate the rotation of the object to 360 degrees
@@ -24997,8 +27420,8 @@ rewindParams - (default target) parameters to send rewindCall function
 rewindWaitCall - (default null) calls function at middle of rewind before rewindWait
 rewindWaitParams - (default target) parameters to send rewindCall function
 sequence - (default 0) the delay time in milliseconds to run on children of a container or an array of target animations
-	with the addition of ZIM VEE object to the target, you must noZik the array
-	for example, target = container or target = {noZik:[a,b,c]} and sequence = 1000
+	with the addition of ZIM VEE object to the target, you must noPick the array
+	for example, target = container or target = {noPick:[a,b,c]} and sequence = 1000
 	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
 	or in the case of the array, on element a and then 1 second later, element b, etc.
 	If the loop prop is true then sequenceCall below would activate for each loop
@@ -25085,7 +27508,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(obj)) {if (zon) {zog("animate() - need props");}; return target;}
 
 		// zik supports passing array of options or an object with min, max, integer, negative properties and zik will pick or calculate a random value
-		target = zik(target); time = zik(time); ease = zik(ease); wait = zik(wait); loopCount = zik(loopCount); loopWait = zik(loopWait); rewind = zik(rewind); rewindWait = zik(rewindWait); sequenceReverse = zik(sequenceReverse); from = zik(from); set = zik(set);
+		target = zim.Pick.choose(target); time = zim.Pick.choose(time); ease = zim.Pick.choose(ease); wait = zim.Pick.choose(wait); loopCount = zim.Pick.choose(loopCount); loopWait = zim.Pick.choose(loopWait); rewind = zim.Pick.choose(rewind); rewindWait = zim.Pick.choose(rewindWait); sequenceReverse = zim.Pick.choose(sequenceReverse); from = zim.Pick.choose(from); set = zim.Pick.choose(set);
 
 		// CJSPROPS
 		// convert loop and rewind properties into the legacy cjs props object
@@ -25129,14 +27552,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						var val;
 						target[num].zimObj = {};
 						for (var prop in obj) {
-							val = zik(obj[prop]);
+							val = zim.Pick.choose(obj[prop]);
 							target[num].zimObj[prop] = target[num][prop];
 							target[num][prop] = val;
 						}
 					} else {
 						target[num].zimObj = {};
 						for (var prop in obj) {
-							target[num].zimObj[prop] = zik(obj[prop]);
+							target[num].zimObj[prop] = zim.Pick.choose(obj[prop]);
 						}
 					}
 					setTimeout(function() {
@@ -25353,7 +27776,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		if (!zot(obj.scale)) {
-			obj.scaleX = obj.scaleY = zik(obj.scale);
+			obj.scaleX = obj.scaleY = zim.Pick.choose(obj.scale);
 			delete obj.scale;
 		}
 		// convert color tween
@@ -25420,13 +27843,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		var extraLookup = {zoom:target.type=="Pen"?"size":"scale", speed:"percentSpeed", layer:"layer", fade:"alpha"};
 		for (var i in obj) {
 			if (extraTypes.indexOf(i) >= 0) continue; // skip for extras
-			obj[i] = zik(obj[i]);
+			obj[i] = zim.Pick.choose(obj[i]);
 		}
 		extraTypes.shift(); // take off extra for later
-		for (i in set) set[i] = zik(set[i]);
+		for (i in set) set[i] = zim.Pick.choose(set[i]);
 		for (i in cjsProps) {
 			if (i=="waitedCall" || i=="waitedParams" || i=="loopCall" || i=="rewindCall" || i=="loopWaitCall" || i=="rewindWaitCall") continue;
-			cjsProps[i] = zik(cjsProps[i]);
+			cjsProps[i] = zim.Pick.choose(cjsProps[i]);
 		}
 
 		// PREPARE RELATIVE VALUES PASSED IN AS STRINGS
@@ -26191,7 +28614,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 				// ZIK all property values!
 				for (var j in eObj) {
-					obj[j] = zik(obj[j]);
+					obj[j] = zim.Pick.choose(obj[j]);
 				}
 				if (eObj.outputProp == "percentSpeed") dynamic = true;
 
@@ -26551,21 +28974,13 @@ ball.wiggle("x", ball.x, 10, 30, 300, 1000);
 ball.pauseAnimate(); // will pause the wiggle
 END EXAMPLE
 
-PARAMETERS - supports DUO - parameters or single object with properties below
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 
 NOTE: if using wiggle as a zim function the first parameter is:
 target - the object to wiggle
-
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the series() function which returns a function that will execute a series in order
-	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
 
 property - the property name as a String that will be width-indicatorLength-edgeLeft-edgeRight
 baseAmount - |ZIM VEE| the center amount for the wiggle - wiggle will go to each side of this center
@@ -26612,23 +29027,23 @@ RETURNS target for chaining
 		var count = 0;
 		var lastWiggle;
 		function wiggleMe() {
-			var time = zim.rand(zik(minTime), zik(maxTime));
+			var time = zim.rand(zim.Pick.choose(minTime), zim.Pick.choose(maxTime));
 			var obj = {};
 			var set = {};
-			set[property] = zik(baseAmount);
+			set[property] = zim.Pick.choose(baseAmount);
 			// to start go from center
 			if (type == "negative" || (count==0 && startType == "negative")) {
-				var wiggle = - zim.rand(zik(minAmount),zik(maxAmount),integer);
+				var wiggle = - zim.rand(zim.Pick.choose(minAmount),zim.Pick.choose(maxAmount),integer);
 			} else if (type == "positive" || (count==0 && startType == "positive")) {
-				var wiggle = zim.rand(zik(minAmount),zik(maxAmount),integer);
+				var wiggle = zim.rand(zim.Pick.choose(minAmount),zim.Pick.choose(maxAmount),integer);
 			} else {
 				if (count == 0) {
-					var wiggle = zim.rand(zik(minAmount),zik(maxAmount),integer,true); // negative or positive
+					var wiggle = zim.rand(zim.Pick.choose(minAmount),zim.Pick.choose(maxAmount),integer,true); // negative or positive
 				} else {
-					var wiggle = zim.rand(zik(minAmount),zik(maxAmount),integer)*zim.sign(lastWiggle)*-1;
+					var wiggle = zim.rand(zim.Pick.choose(minAmount),zim.Pick.choose(maxAmount),integer)*zim.sign(lastWiggle)*-1;
 				}
 			}
-			obj[property]=zik(baseAmount)+wiggle;
+			obj[property]=zim.Pick.choose(baseAmount)+wiggle;
 			if (count == 0) time = time/2;
 			lastWiggle = wiggle;
 			count++;
@@ -26654,7 +29069,7 @@ The loop function (see the CODE module for loop) lets you loop through:
 1. If you pass in a Number for obj then loop() does function call that many times
 2. If you pass in an Array then loop() loops through the array
 3. If you pass in an Object literal then loop() loops through the object
-4. If you pass in an HTML NodeList then loop() loops through the tags in the list
+4. If you pass in an HTML NodeList or HTMLCollection then loop() loops through the tags
 
 The loop method lets you loop through a Container
 NOTE: you can also pass the container as the first parameter of the loop function
@@ -26713,12 +29128,12 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 		if (zot(reverse)) reverse = false;
 		if (zot(step) || step <= 0) step = 1;
 
-		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":(obj instanceof NodeList?"nodelist":"container")));
+		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":(obj instanceof NodeList?"nodelist":(obj instanceof HTMLCollection?"htmlcollection":"invalid"))));
 
 		if (type == "container" && !obj.addChild) {
 			return undefined;
 		}
-		if (type == "number" || type == "array" || type == "nodelist") {
+		if (type == "number" || type == "array" || type == "nodelist" || type == "htmlcollection") {
 			var length = type=="number"?obj:obj.length;
 			var total = getTotal(length-1);
 			if (total == 0) return;
@@ -26739,7 +29154,7 @@ RETURNS any value returned from the loop - or undefined if no value is returned 
 						var r = call(i, total, start, end, obj);
 					} else if (type=="array") {
 						var r = call(obj[i], i, total, start, end, obj);
-					} else { // nodelist
+					} else { // nodelist // htmlcollection
 						var r = call(obj.item(i), i, total, start, end, obj);
 					}
 					if (typeof r != 'undefined') return r;
@@ -27160,7 +29575,7 @@ Sets whether we want to swipe an object or not using ZIM Swipe.
 Recursively sets children to same setting.
 
 EXAMPLE
-circle.swipe(false);
+circle.swipe();
 END EXAMPLE
 
 PARAMETERS
@@ -27539,12 +29954,12 @@ a bounds style has a value of {x:Number, y:Number, width:Number, height:Number}
 where x and y are optional
 
 RANDOM, RANGES, AND SERIES STYLES
-Any property value can be a ZIM VEE value to make use of ZIM zik (pick)
+Any property value can be a ZIM VEE value to make use of ZIM Pick see https://zimjs.com/docs.html?item=Pick
 color:[red, green, blue] will pick a random color for each object for which the style is applied
 x:series([100,200,300]) will place subsequent objects at these locations
 width:{min:100, max:500} will make objects with a width within this range
-corner:{noZik:[0,40,0,40]}; will set corners - note we have to noZik this otherwise it would pick a number from the array for the corner value
-See Docs on ZIM zik() and ZIM series() for more information
+corner:{noPick:[0,40,0,40]}; will set corners - note we have to noPick this otherwise it would pick a number from the array for the corner value
+See Docs on ZIM Pick() and ZIM series() for more information
 
 FUNCTION STYLES
 The following functions have been added:
@@ -27633,7 +30048,7 @@ zim.getStyle = function(type, group, inherit) {
 			delete DS[s];
 			continue;
 		}
-		val = functionList.indexOf(s)==-1?zik(DS[s]):DS[s]; // do not zik configuration objects of methods
+		val = functionList.indexOf(s)==-1?zim.Pick.choose(DS[s]):DS[s]; // do not zik configuration objects of methods
 		if (val=="ignore") {delete DS[s]; continue;}
 		// not sure what the line below was for - maybe auto cloning a bitmap? but had to remove it ZIM 9.5.0 when debugging addTo STYLE issues
 	 	// else if (val && val.clone && val.type != type && val.type != "Stage" && val.type != "StageGL") val = val.clone();
@@ -27670,7 +30085,7 @@ var zimStyleTransforms = function(obj, styles) {
 			//obj.centerReg(styles.centerReg.constructor==={}.constructor?styles.centerReg:null);
 		}
 		for (var i=0; i<zimTransformList.length; i++) {
-			if (styles[zimTransformList[i]]!=null) obj[zimTransformList[i]] = zik(styles[zimTransformList[i]]);
+			if (styles[zimTransformList[i]]!=null) obj[zimTransformList[i]] = zim.Pick.choose(styles[zimTransformList[i]]);
 		}
 		if (styles.bounds) {
 			if (styles.bounds.constructor==={}.constructor) {
@@ -27680,16 +30095,16 @@ var zimStyleTransforms = function(obj, styles) {
 		if (styles.mov || styles.move) {
 			if (styles.move) styles.mov = styles.move;
 			if (styles.mov.constructor==={}.constructor) {
-				obj.mov(zik(styles.mov.x), zik(styles.mov.y));
+				obj.mov(zim.Pick.choose(styles.mov.x), zim.Pick.choose(styles.mov.y));
 			} else {
-				obj.mov(zik(styles.mov));
+				obj.mov(zim.Pick.choose(styles.mov));
 			}
 		}
 		if (styles.pos) {
 			if (styles.pos.constructor==={}.constructor) {
-				obj.pos(zik(styles.pos.x), zik(styles.pos.y), zik(styles.pos.right), zik(styles.pos.bottom), zik(styles.pos.index), styles.pos.add, zik(styles.pos.reg), zik(styles.pos.regX), zik(styles.pos.regY));
+				obj.pos(zim.Pick.choose(styles.pos.x), zim.Pick.choose(styles.pos.y), zim.Pick.choose(styles.pos.right), zim.Pick.choose(styles.pos.bottom), zim.Pick.choose(styles.pos.index), styles.pos.add, zim.Pick.choose(styles.pos.reg), zim.Pick.choose(styles.pos.regX), zim.Pick.choose(styles.pos.regY));
 			} else {
-				var sp = zik(styles.pos);
+				var sp = zim.Pick.choose(styles.pos);
 				if (sp == "left" || sp == "top") obj.pos();
 				if (sp == "right") obj.pos({right:true});
 				if (sp == "bottom") obj.pos({bottom:true});
@@ -28695,11 +31110,13 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 spots - an array of hotspot data objects with the following format:
-	[{page:home, rect:[190,50,260,260], call:someFunction},
-	 {page:home, rect:[70,405,500,150], call:someOtherFunction}]
+	[{page:home, rect:[190,50,260,260], talk:"screen reader content", call:someFunction, callOver:optionalFunction, callOut:optionalFunction},
+	 {page:home, rect:[70,405,500,150], talk:"screen reader content", call:someOtherFunction, callOver:optionalFunction, callOut:optionalFunction}]
 	the page should be a Container
 	the rect is the [left, right, width, height] of a rectangle relative to the stage
+	talk (optional) will provide text for screen reader if ZIM Accessibility() is turned on
 	call is the callback function to call when a hotSpot is clicked
+	callOver and callOut will add mouseover and mouseout event functions to the hotSpot
 	instead of a rect array you can pass an object that must have setBounds() set
 	[{page:home, rect:submitButton, call:function(){//code}}]
 	the hotSpot will then use the button position and bounds as the rectangle
@@ -28719,6 +31136,7 @@ dispose() - removes listeners
 
 PROPERTIES
 type - holds the class name as a String
+hotSpots - an array of HotSpot objects
 
 ACTIONEVENT
 This component is affected by the general ACTIONEVENT setting
@@ -28745,7 +31163,7 @@ the class creates HotSpot objects - see the class underneath this one
 
 		var data; // spot data object
 		var hs; // hotSpot object
-		var hotSpots = []; // array of hotSpot objects
+		var hotSpots = that.hotSpots = []; // array of hotSpot objects
 
 		// loop through data and add hotSpot objects
 		for (var i=0; i<spots.length; i++) {
@@ -28760,15 +31178,15 @@ the class creates HotSpot objects - see the class underneath this one
 					zog("zim controls - HotSpots(): HotSpot "+ data.page + " " + data.rect +" button does not exist");
 					return;
 				}
-				data.rect = [button.x, button.y, 1, 1];	// bounds are not used for button
+				data.rect = [button.x, button.y, button.width, button.height];	// bounds are not used for button
 			}
-
-			hs = new zim.HotSpot(data.page,data.rect[0],data.rect[1],data.rect[2],data.rect[3],data.call,local);
+			hs = new zim.HotSpot(data.page,data.rect[0],data.rect[1],data.rect[2],data.rect[3],data.call,data.callOver,data.callOut,local,data.talk);
 			hs.zimHSpage = data.page;
 			hs.button = button;
 			hotSpots.push(hs);
 			hs.on(eventType, hsEvent);
-			if (button) {
+			if (button && zot(data.callOver) && zot(data.callOut)) {
+
 				// stop hotSpot from taking away rollovers on button
 				hs.spot.mouseEnabled = false;
 				hs.spot.mouseChildren = false;
@@ -28792,8 +31210,8 @@ the class creates HotSpot objects - see the class underneath this one
 			}
 		}
 
-		this.addHotSpot = function(page,rect,call) {
-			data = {page:page, rect:rect, call:call};
+		this.addHotSpot = function(page,rect,call,callOver,callOut,talk) {
+			data = {page:page, rect:rect, call:call, callOver:callOver, callOut:callOut, talk:talk};
 			spots.push(data);
 			addSpot(data);
 		}
@@ -28801,13 +31219,13 @@ the class creates HotSpot objects - see the class underneath this one
 		this.show = function() {
 			for (var i=0; i<hotSpots.length; i++) {
 				hs = hotSpots[i];
-				if (!hs.button) hs.show();
+				if (!hs.button) hs.spot.alpha = .2;
 			}
 		}
 		this.hide = function() {
 			for (var i=0; i<hotSpots.length; i++) {
 				hs = hotSpots[i];
-				hs.hide();
+				hs.spot.alpha = 0;
 			}
 		}
 
@@ -28864,7 +31282,7 @@ the class creates HotSpot objects - see the class underneath this one
 
 
 /*--
-zim.HotSpot = function(obj, x, y, width, height, call, local)
+zim.HotSpot = function(obj, x, y, width, height, call, callOver, callOut, local, talk)
 
 HotSpot
 zim class - extends a zim.Container which extends a createjs.Container
@@ -28891,9 +31309,10 @@ PARAMETERS supports DUO - parameters or single object with properties below
 holder - container object in which to place the hotspot (stage for instance)
 x, y, width and height - of the rectangle for the hotspot
 call - the function to call when the spot is pressed
-local (default true) hotSpot rect is based on local coordinates of the container
+local - (default true) hotSpot rect is based on local coordinates of the container
 	use when the element scale independently from the stage
 	if set to false then you pass in global coordinates and hotSpot will convert them
+talk - (default "hotspot") text for ZIM Accessibility screen reader
 
 METHODS
 show() - helps when creating the spot to see where it is
@@ -28909,8 +31328,8 @@ ACTIONEVENT
 This component is affected by the general ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 --*///+73
-	zim.HotSpot = function(obj, x, y, width, height, call, local) {
-		var sig = "obj, x, y, width, height, call, local";
+	zim.HotSpot = function(obj, x, y, width, height, call, callOver, callOut, local, talk) {
+		var sig = "obj, x, y, width, height, call, callOver, callOut, local, talk";
 		var duo; if (duo = zob(zim.HotSpot, arguments, sig, this)) return duo;
 		z_d("73");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -28925,34 +31344,43 @@ The default is "mousedown" - if set to something else the component will act on 
 		var w = width; var h = height;
 		var that = this;
 
-		var backing = new createjs.Shape();
-		var but = new createjs.Shape();
-
 		if (!local) {
 			var point = obj.globalToLocal(x,y);
 			var point2 = obj.globalToLocal(x+w,y+h);
 			var newW = point2.x-point.x;
 			var newH = point2.y-point.y;
-			backing.graphics.f("#999999").dr(point.x,point.y,newW,newH);
-			but.graphics.f("#999999").dr(point.x,point.y,1,1);	 // small point
 		} else {
-			backing.graphics.f("#999999").dr(x,y,w,h);
-			but.graphics.f("#999999").dr(x,y,1,1);
+			var point = new zim.Point(x,y);
+			var newW = width;
+			var newH = height;
 		}
-
-		backing.alpha = .4;
-		backing.mouseEnabled = false;
-		but.alpha = .01;
+		var but = new zim.Shape(width, height);
+		but.talk = zot(talk)?"HotSpot":talk;
+		but.alpha = 0;
+		but.graphics.f("black").dr(0,0,newW,newH);
+		but.x = point.x;
+		but.y = point.y;
 		but.cursor = "pointer";
+		but.expand(0);
 		this.spot = but;
 
-		var butEvent = but.on(eventType,function(e) {
-			if (typeof(call) == "function") {
-				call();
-			}
-		});
+		if (typeof(call) == "function") {
+			var butEvent = but.on(eventType,function(e) {
+				call(e);
+			});
+		}
+		if (typeof(callOver) == "function") {
+			var butOverEvent = but.on("mouseover",function(e) {
+				callOver(e);
+			});
+		}
+		if (typeof(callOut) == "function") {
+			var butOutEvent = but.on("mouseout",function(e) {
+				callOut(e);
+			});
+		}
 		obj.addChild(but);
-		but.hitArea = backing;
+
 		this.show = function() {
 			obj.addChild(backing);
 		}
@@ -28960,7 +31388,9 @@ The default is "mousedown" - if set to something else the component will act on 
 			obj.removeChild(backing);
 		}
 		this.dispose = function() {
-			but.off(eventType, butEvent);
+			if (butEvent) but.off(eventType, butOverEvent);
+			if (butOverEvent) but.off("mouseover", butOverEvent);
+			if (butOutEvent) but.off("mouseout", butOutEvent);
 			obj.removeChild(but);
 			but = null;
 			return true;
@@ -29609,7 +32039,7 @@ By default the object is cloned.
 A ZIM VEE value can be passed to tile multiple types of objects
 
 2. LAYOUT
-Pass in a series([obj1, obj2, obj3, etc.]) to tile unique objects
+Pass in a series(obj1, obj2, obj3, etc.) to tile unique objects
 These could be thumbnail pictures, interface bars, content sections on a page, etc.
 Setting the clone:false will make sure the unique objects are used (rather than clones)
 Horizontal and vertical spacings can be set
@@ -29655,7 +32085,7 @@ var d2 = new Dial();
 var s1 = new Slider();
 var s2 = new Slider();
 var tile = new Tile({
-	obj:series([d1, s1, d2, s2]),
+	obj:series(d1, s1, d2, s2),
 	cols:2, rows:2,
 	spacingH:30, spacingV:30,
 	valign:"center",
@@ -29664,17 +32094,10 @@ var tile = new Tile({
 d1.on("change", function () {zog("changing dial 1")});
 END EXAMPLE
 
-PARAMETERS supports DUO - parameters or single object with properties below
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the series() function which returns a function that will execute a series in order
-	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 
 obj - |ZIM VEE| the display object to tile
 cols - (default 1) the columns to tile
@@ -29735,6 +32158,8 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - holds the class name as a String
+items - an array of the tile items - or use tile.getChildAt() or tile.loop(function (item) {})
+tileNum - this property is added to each object in the tile to give its number in the tile
 These properties can be changed by calling remake()
 	items - an array of items the tile uses
 		modify this and pass in to remake(items) to update the Tile with new items
@@ -29817,12 +32242,13 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 			for (var i=0; i<cols; i++) {
 				currentCount++;
 				if (!zot(count) && currentCount > count) break outer;
-				tile = zik(obj);
+				tile = zim.Pick.choose(obj);
 				if (zot(tile)) {
 					tile = new zim.Container(0,0,0,0);
 				}
-				if (clone) tile = tile.clone();
+				if (clone && !(j==0 && i==0)) tile = tile.clone();
 				that.items.push(tile);
+				tile.tileNum = currentCount-1;
 			}
 		}
 
@@ -29887,7 +32313,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				scalesX.push([]);
 				scalesY.push([]);
 				widthHeights.push([]);
-				if (rowSize&&zot(height)) h = zik(rowSize);
+				if (rowSize&&zot(height)) h = zim.Pick.choose(rowSize);
 				for (var i=0; i<that.cols; i++) {
 					currentCount++;
 					if (!zot(count) && currentCount > count) break outer2;
@@ -29897,8 +32323,8 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 					scalesX[j].push(tile.scaleX);
 					scalesY[j].push(tile.scaleY);
-					if (j==0 && (colSize&&zot(width))) w = zik(colSize);
-					if (j==0) finalAlign.push(zik(align));
+					if (j==0 && (colSize&&zot(width))) w = zim.Pick.choose(colSize);
+					if (j==0) finalAlign.push(zim.Pick.choose(align));
 					if (!colSize||!zot(width)) w = tile.width;
 					if (!rowSize||!zot(height)) h = tile.height;
 					widthHeights[j][i] = [w,h];
@@ -30036,7 +32462,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 						}
 
 						// squeeze does not work with ZIK - so this is for non-squeezed
-						finalVAlign = zik(valign); // start of each row pick a valign
+						finalVAlign = zim.Pick.choose(valign); // start of each row pick a valign
 					}
 					// squeeze does not work with ZIK - here is the recorded align for the current column
 					align = finalAlign[i];
@@ -30648,7 +33074,7 @@ The objects and the order in which the objects recieve focus can be set with a t
 A text message can be passed to the talk() method and it will be read by a Screen Reader
 
 NOTE: Instructions to activate a screen reader on desktop or laptop computers
-On Windows, you can type Narrator into Cortana and run it - it is really easily
+On Windows, you can type Narrator into Cortana and run it - it is really easy
 On Mac, under Accessibility choose Voice Over
 On Android, under Accesibility choose Voice and turn on TalkBack
 Windows worked at ZIM 6, Apple worked at 6.1.0, Android worked at 6.1.0 aside from Slider, Dial, Stepper and ColorPicker
@@ -30876,6 +33302,14 @@ Dispatches a "change" event when the screen reader is about to talk
 				var subtotal = 0;
 				for (var i=0; i<array.length; i++) {
 					item = array[i];
+					if (item.type == "HotSpots") {
+						// for (var j=0; j<item.hotSpots.length; j++) {
+						// 	addSpots.push(item.hotSpots[j].spot);
+						// }
+						array.splice.apply(array, [i, 1].concat(item.hotSpots));
+						item = item.hotSpots[0];
+					}
+					if (item.type == "HotSpot") item = item.spot;
 					if (item.constructor == {}.constructor) {
 						obj = item.obj;
 						if (!obj || !obj.getStage) continue; // must provide display object
@@ -31196,6 +33630,7 @@ Dispatches a "change" event when the screen reader is about to talk
 		if (!zot(tabOrder)) {
 			_tabOrder = [];
 			that.tabOrder = tabOrder;
+
 			if (!zot(tabIndex)) that.tabIndex = tabIndex;
 		} else {
 			// wait a sec to see if the tabOrder property is set
@@ -31228,6 +33663,7 @@ Dispatches a "change" event when the screen reader is about to talk
 		// function to create text for screen reader prepending object type
 		// and in some cases if tabParent then preparing prefix for future items like radio buttons
 		function getText(obj) {
+			if (obj.talk) return obj.talk;
 			if (obj.type == "TextArea" || obj.type == "RadioButtons" || obj.type == "Tabs" || obj.type == "Pad") return obj.type; // first part of title naming for radio button if no title provided
 			if (obj.type == "Waiter") return "Waiter active - please wait";
 			return obj.text ? obj.type + " - " + ((obj.text=="a" || obj.text=="A") ? "eh" : obj.text) : obj.type + ((obj.type == "Dial" || obj.type == "Slider" || obj.type == "ColorPicker" || obj.type == "Stepper") ? " (use arrow keys)" : "") + ((obj.type == "TextArea") ? " (press ENTER to edit)" : "");
@@ -32878,7 +35314,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 	//-69.5
 
 /*--
-zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed)
+zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup)
 
 MotionController
 zim class - extends a createjs EventDispatcher
@@ -32963,6 +35399,7 @@ mousedownIncludes - (default null) a single object or array of objects (aside fr
 mousedownExcludes - (default null) an array of objects that the mousedown will not work on - overrides mousedownIncludes
 minPercentSpeed - (default 0) if target is an Accelerator, the percentSpeed at the left or top of the stage (depending on axis)
 minPercentSpeed - (default 100) if target is an Accelerator, the percentSpeed at the right or bottom of the stage (depending on axis)
+dampKeyup - (default .3) damping applied to slow down Accelerator with keydown
 
 METHODS
 immediate(x, y) - set the damping immediately to this value to avoid damping to value - returns object for chaining
@@ -32982,6 +35419,7 @@ scaleX - read only scaleX of player (to get flip data if only using controller f
 scaleY - read only scaleY of player (to get flip data if only using controller for data)
 dampX - reference to the horizonal Damp object
 dampY - reference to the vertical Damp object
+dampKeyup - get or set keyup damping for when using an accelerator
 speed - the speed setting which will be multiplied by direction
 turnSpeed - the turn speed for firstPerson mode
 axis - the axis (horizontal, vertical or both);
@@ -33002,8 +35440,8 @@ dispatches a "mousedown" event if type is "mousedown" or "pressmove"
 dispatches a "pressing" event if type is "pressmove" - note, this dispatches even if not moving
 dispatches a "moving" event if target is moving and "startmoving" and "stopmoving" events
 --*///+69.7
-	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed) {
-		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed";
+	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup) {
+		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, rotate, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBounds, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup";
 		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
 		z_d("69.7");
 
@@ -33072,8 +35510,10 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		// if (!Array.isArray(mousedownExcludes)) mousedownExcludes = [mousedownExcludes];
 		this.mousedownIncludes = mousedownIncludes;
 		// this.mousedownExcludes = mousedownExcludes;
+		if (zot(dampKeyup)) dampKeyup = .3;
 
 		var that = this;
+		that.dampKeyup = dampKeyup;
 		this.dirX = 0;
 		this.dirY = 0;
 		this.speed = speed;
@@ -33401,6 +35841,12 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				} else {
 					tempX += that.dirX*speedX;
 				}
+				if (d.dirX==0) {
+					var desired = that.boundary?that.boundary.width/2:stage.width/2;
+					var newTempX = that.x-(that.x-desired)*that.dampKeyup;
+					tempX = newTempX
+					that.x = tempX;
+				}
 				if (accelerator && bb && bb.width) that.target.percentSpeed = proportion.convert((that.dampX.convert(tempX)));
 				else that.target.x = that.dampX.convert(tempX);
 
@@ -33411,6 +35857,12 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 					tempY = that.y;
 				} else {
 					tempY += zim.sign(that.y-tempY)*speedY;
+				}
+				if (d.dirY==0) {
+					var desired = that.boundary?that.boundary.height/2:stage.height/2;
+					var newTempY = that.y-(that.y-desired)*that.dampKeyup;
+					tempY = newTempY
+					that.y = tempY;
 				}
 				if (accelerator && bb && bb.height) that.target.percentSpeed = proportion.convert(that.dampY.convert(tempY));
 				else that.target.y = that.dampY.convert(tempY);
@@ -33897,10 +36349,427 @@ dispatches an enter event on mouseover of the portal and an exit event on mouseo
 	zim.extend(zim.Portal, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
 	//-69.96
 
+//
+/*--
+zim.Physics = function(gravity, borders, scroll, frame)
+
+Physics
+zim module - must import ZIM physics JavaScript file
+SEE: https://zimjs.com/physics/
+
+DESCRIPTION
+The Physics class provides a wrapper for the Box2D physics engine.
+Both Box2D and the ZIM physics JavaScript files must be imported after ZIM.
+Once installed, physics can be turned on for ZIM DisplayObjects such as:
+Rectangle, Circle, Triangle, Bitmap, Label, Sprite, Shape, etc.
+
+NOTE: The DisplayObjects used in Physics should have center registration and be on the stage
+or in a non-transformed Container at 0,0 on the stage.
+
+Use the DisplayObject's addPhysics() method to add the object to a physics world.
+This will also add more methods and properties to the DisplayObject.
+The physics world can be set up ahead of time with new Physics()
+or if a world is not already created the addPhysics() method will make a default world.
+The default world will have a boundary of the frame and gravity of 10 (normal gravity).
+
+SHAPES
+By default the physics body shape will be a rectangle that matches the bounding box of the DisplayObject.
+However, a Circle will be have a physics circle and a Triangle will have a physics triangle.
+A different shape can be passed in to the physics() method if desired.
+The expand parameter can be used to make the physics object bigger or smaller than the bounds.
+
+PHYSICS
+Objects have impulse(), force() and torque() methods to push them around and spin them.
+impulse() is a one time push like shooting a pool ball
+force() is a force over time like gravity or wind and is applied in a Ticker, etc.
+torque() will rotate or spin the object around its center
+The physics class has a join() method that can join objects in a variety of physics joints.
+The physics class has a drag() method to specify which objects are draggable.
+There is a debug() method to see the physics world behind ZIM.
+The world can be set up to be bigger than the frame and follow() an object.
+Objects are given a control() method to use keyboard keys to move the object.
+Contact can be tested for with contact() and contactEnd()
+each which receive a callback function that is provided with the other contacting body
+
+BOX2D
+http://www.box2dflash.org/docs/2.1a/reference/
+http://www.box2dflash.org/docs/2.0.2/manual
+Box2D has many other features that can be accessed as well.
+Note that the ZIM Physics makes much of this easier
+so start with ZIM and use the Box2D docs and manuals for custom requirements.
+The Physics class has a world poperty that refers to the Box2D world.
+Each ZIM DisplayObject with physics() turned on has a body property
+that refers to the Box2D body and a physics property that refers to its Physics object.
+See the properties listed below for more information.
+
+SEE: https://zimjs.com/physics/ for examples
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// add a circle to a default Physics world,
+// set it draggable and turn debug mode on
+var circle = new Circle().center().addPhysics();
+circle.physics.drag();
+circle.physics.debug();
+END EXAMPLE
+
+EXAMPLE
+// create a world with no gravity (viewed from top like air-hockey)
+var physics = new Physics(0);
+var circle = new Circle(50,blue,grey).center().addPhysics({restitution:1.1}); // how bouncy
+// make sure to centerReg() any rectangular objects
+var rect = new Rectangle(30,400).centerReg().pos(70).addPhysics(false); // static - do not move
+var tri = new Triangle(150,150,150,green,grey).center().pos(200).addPhysics({linear:10});
+physics.drag();
+// test to see if circle hits rectangle
+// contact callback function receives ZIM object (and physics body as next param)
+circle.contact(function (obj) {
+	if (obj == rect) {
+		rect.color = red;
+		timeout(300, function () {
+			rect.color = black;
+			// circle.noContact(); // could only check once...
+		})
+	}
+});
+END EXAMPLE
+
+PARAMETERS - FOR PHYSICS
+** supports DUO - parameters or single object with properties below
+gravity - (default 10) the gravity force in the downward direction
+borders - (default the frame bounds) a ZIM Boundary() object or object literal with x, y, width and height properties
+	this makes physics body rectangles around the physics world
+	pass in "none" for no borders
+	you can remove border bodies afterwards with physics.remove(physics.borderTop)
+	and then borderLeft, borderRight and borderBottom
+scroll - (default false) set to true to be able to scroll the stage x an y
+ 	This will let you follow a physics object - see follow() method
+frame - (default zimDefaultFrame) the zim.Frame object
+
+METHODS - FOR PHYSICS - see also OBJECT METHODS and BODY METHODS below
+borders(boundary) - (default frame bounds) a ZIM Boundary() object or an object literal {} with x, y, width and height
+	pass in "none" for no borders - also see borders parameter
+	will remove old borders bodies before making new
+drag(array) - drag all physics objects (with dynamic set to true)
+	array - (default null) pass in an array of objects to drag
+	Note: physics dragging is applied on the Physics class to not overwrite traditional ZIM drag() on DisplayObjects
+noDrag() - stops dragging all physics objects
+join(obj1, obj2, point1, point2, minAngle, maxAngle, type) - creates and returns a physics joint
+	obj1 - the first ZIM DisplayObject (with physics turned on) to join together
+	obj2 - the second ZIM DisplayObject (with physics turned on) to join together
+	point1 - (default center of object) the anchor point of the joint on the first object
+	point2 - (default center of object) this is only needed on a distance joint
+	minAngle - (default null) the minimum angle the joint can make from its starting angle
+	maxAngle - (default null) the maximum angle the joint can make from its starting angle
+	type - (default "distance") the type of joint
+		set to "distance" to keep the same distance between two object anchors
+		set to "resolute" to rotate objects around a fixed point relative to the first object
+		set to "weld" to fix the objects together
+break(joint) - break a joint created with join()
+	to use, store the result of the join() method in a variable and pass that variable in to break()
+debug() - activates the debugging
+updateDebug() - updates the debug canvas if the frame has been scaled (put in frame.resize())
+removeDebug() - removes the debug canvas - you can add it again later (or toggle, etc.)
+remove(body) - removes a physics body - use on border bodies, for instance
+	this is for physics bodies only - use obj.removePhysics() to remove physics from ZIM DisplayObjects
+addMap(body, asset) - sets x, y, rotation of ZIM asset to Box2D body
+	this can be automatically done by using the physics() method on the ZIM DisplayObject
+removeMap(body) - removes mapping (then probably will want to remove body and removeChild)
+	see the removePhysics() method of a ZIM DisplayObject
+dispose() - stops the update, removes debug if there - you still need to remove ZIM assets
+*** also see Ticker below for methods to add and remove functions from update function
+
+PROPERTIES - FOR PHYSICS - see also OBJECT PROPERTIES and BODY PROPERTIES below
+world - the Box2D world that is made
+scale (read only) scale used in world (constant 30)
+step (read only) step used in world (constant 20)
+gravity (read only) gravity used in world (whatever parameter was passed)
+Ticker - gives access to update function to add your own functions:
+	physics.Ticker.add(function, after)
+		after defaults to true for after world step and force clear
+		set after to false to run function before world step
+	physics.Ticker.remove(function)
+controlObj - the ZIM DisplayObject being controlled by the obj.control() method
+followObj - the ZIM DisplayObject being followed by the obj.follow() method
+borderTop - the top border physics body of the world if it exists
+borderBottom - the bottom border physics body of the world if it exists
+borderLeft - the left border physics body of the world if it exists
+borderRight - the right border physics body of the world if it exists
+
+METHODS - FOR OBJECTS - also see BODY METHODS below
+** the ZIM DisplayObject comes with an addPhyics() method
+** for reference, here are the docs for the addPhysics() method
+** all the methods below addPhysics are the methods added to the DisplayObject
+addPhysics(dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics)
+	** supports DUO - parameters or single object with properties below
+	dynamic - (default true) - set to true to not move the physics body (static)
+	contract - (default 0) - make the physics body smaller (or bigger with negative) than bounds
+	shape - (default object shape) - "rectangle" for any object other than Cirlce, Dial and Triangle
+	 	but can specify a "circle" for a Sprite or Bitmap, for instance - to try and match shape
+		custom polygon bodies can also be made with manual Box2D and then use physics.setMap()
+		but the only shapes available automatically are "rectangle", "circle", "triangle"
+	friction - (default .8) - how sticky will the body act - set to 0 to slide.
+	linear - (default .5) - linear damping which slows the movement - set to 0 for no damping
+	angular - (default .5) - angular damping which slows the rotation - set to 0 for no damping
+	density - (default 1) - the density that can affect what happens with collisions
+	restitution - (default 0) - how bouncy the object is - 0 is not bouncy 4 is crazy bouncy
+	maskBits - (default null) - used with categoryBits to determine which bodies will collide with which other bodies
+		as soon as maskBits is specified, the body will collide only with the categoryBits provided to the maskBits parameter
+		1 will collide with bodies that do not have categoryBits specified including the borders
+		to test collision with bodies that have categoryBits specified, use the pipe (|) as follows:
+		1|2 will also collide with bodies having categoryBits of 2 specified
+		so if another body has categoryBits of 4 then the bodies would not collide.
+		1|2|4 would also collide with 4 but not bodies with categoryBits of 8, etc.
+		2|4 would pass through any bodies without categoryBits of 2 or 4 including the borders
+	categoryBits - (default 1) - a collision category - by default, bodies are in category 1
+		use with maskBits to say which bodies will collide with which other bodies
+		the values are bit fields https://en.wikipedia.org/wiki/Bit_field so can have the following decimal values:
+		can be 2, 4, 8, 16, 32, 64, 128, 256, etc. up to 15 powers of 2
+	physics - (default zimDefaultPhysics)
+impulse(x, y, targetX, targetY) - add a one-time force on the object like a hitting a pool ball
+	x - (default 0) the force in the x direction
+	y - (default 0) the force in the y direction
+	targetX - (default center of object) the x location on the object where the force acts
+	targetY - (default center of object) the y location on the object where the force acts
+force(x, y, targetX, targetY) - add a force over time on the object like a gravity or wind
+	this is applied in a Ticker or on keydown, etc. many times
+	just applying the force once will not do anything - use an impulse() for that
+	x - (default 0) the force in the x direction
+	y - (default 0) the force in the y direction
+	targetX - (default center of object) the x location on the object where the force acts
+	targetY - (default center of object) the y location on the object where the force acts
+removePhysics() - lets you remove the DisplayObject from the physics world
+	to add back to the physics world, use the addPhysics() method
+sleep() - puts object to sleep so no physics calculations are done
+wake() - wakes up object from sleep so physics calculations are done
+follow(damp, dampY, leftOffset, rightOffset, upOffset, downOffset, offsetDamp, offsetDampY, horizontal, vertical, borderLock, borderOriginal)
+	moves stage to to follow ZIM object
+	set the scroll parameter of Physics to true
+	pass in null for obj to stop following - then can position stage with x and y
+	** supports DUO - parameters or single object with properties below
+	damp - (default .05) the damping of the motion of the stage - 1 moves faster, 0 not at all
+	dampY - (default damp) can set to damp vertical movement at a separate rate
+	leftOffset - (default 0)
+	rightOffset - (frame.width)
+		the object will try and move to leftOffset when moving right and rightOffset when moving left
+		this counters the damping so that the user can see in the direction of motion
+		when the object is not being controled it moves to the average between left and right offsets
+	upOffSet - (default 0)
+	downOffSet - (default frame.height)
+		same as offsets above but in the y direction
+	offsetDamp - (default .02) the damping for moving the object to the offset
+	offsetDampY - (default offsetDamp) - damping for moving the object to the y offset if desired to be different than x
+	horizontal - (default true) set to false to not follow horizontally
+	vertical - (default true) set to false to not follow vertically
+	borderLock - (default true) locks follow to borders if borders are not "none"
+	borderOriginal - (default false) set to true to lock follow to original borders even if removed
+control(type, speed, speedY, horizontal, vertical) - control object with arrows
+	see noControl() to turn off object control
+	** supports DUO - parameters or single object with properties below
+	type - (default "both") or set "wasd" or "arrows"
+	speed - (default 200) the speed of the object motion
+	speedY - (default speed) or set to specify a different y speed than the x speed
+	horizontal - (default true) set to false to not control horizontal motion
+	vertical - (default true) set to false to not control vertical motion
+noControl() - remove control for an object set with control()
+contact(call) - run the call function when object's body contacts another body
+	the callback function receives two parameters - the ZIM object and the Physics body that the object has hit
+	Note that the borders do not have ZIM Objects so use the second parameter to test against physics.borderBottom - etc.
+contactEnd(call) - run the call function when object's body ends contacts with another body
+	the callback function receives two parameters - the ZIM object and the Physics body that the object has hit
+	Note that the borders do not have ZIM Objects so use the second parameter to test against physics.borderBottom - etc.
+noContact() - remove contact call
+noContactEnd() - remove contactEnd call
+
+PROPERTIES - FOR OBJECTS - see also BODY PROPERTIES below
+dynamic - set to true for dynamic and false for static
+	there is also kinematic that can be set using the obj.body.SetType(1)
+** normal x, y, rotation or pos(), loc(), rot() will not work with physics!
+** see the BODY PROPERTIES below for x, y and rotation
+** these should really not be set at all in the physics world
+** but rather let the forces, etc. work them out
+** it is best to set traditional properties before calling physics()
+
+METHODS - FOR BODY (a phsyics engine body)
+** the ZIM DisplayObject body property provides access to the following Box2D methods (note, all start with uppercase):
+** commonly used methods are handled through ZIM wrapper methods on the DisplayObject
+** see http://www.box2dflash.org/docs/2.1a/reference/ for very basic docs
+Advance()​​ ApplyForce() ​​ApplyImpulse() ​​ApplyTorque() ​​CreateFixture() ​​CreateFixture2() ​DestroyFixture()
+​​GetAngle() ​​GetAngularDamping() ​​GetAngularVelocity() ​​GetContactList() ​​GetControllerList() ​​GetDefinition()
+​​GetFixtureList() ​​GetInertia() ​​GetJointList() ​​GetLinearDamping() ​​GetLinearVelocity() ​​
+GetLinearVelocityFromLocalPoint() ​​GetLinearVelocityFromWorldPoint() ​​GetLocalCenter() GetLocalPoint() ​​
+GetLocalVector() ​​GetMass() GetMassData() ​​GetNext() ​​GetPosition() ​​GetTransform() ​​GetType() ​​GetUserData()
+GetWorld() ​​GetWorldCenter() ​​GetWorldPoint() GetWorldVector() ​​IsActive() ​​IsAwake() ​​IsBullet() ​​IsFixedRotation()
+​​IsSleepingAllowed() Merge() ResetMassData() SetActive() SetAngle() ​​SetAngularDamping() SetAngularVelocity()
+​​SetAwake() ​​SetBullet() ​​SetFixedRotation() ​​SetLinearDamping() ​​SetLinearVelocity() ​​SetMassData() ​​SetPosition()
+SetPositionAndAngle() ​​SetSleepingAllowed() ​​SetTransform() SetType() SetUserData() ShouldCollide()
+Split() SynchronizeFixtures() SynchronizeTransform() b2Body() connectEdges()
+
+PROPERTIES - FOR BODY (a phsyics engine body)
+zimObj - the ZIM Object that the body is mapped to
+** traditional properties should be set before calling phyics()
+** but the following properties are provided
+x - the x position of the body - setting this will also position of the ZIM DisplayObject
+y - the y position of the body - setting this will also position of the ZIM DisplayObject
+rotation - the rotation of the body (degrees) - setting this will also rotate the ZIM DisplayObject
+
+GLOBAL VARIABLES
+** Making a new Physics() or using physics() on a ZIM DisplayObject
+** gives global shortcut access to the following Box2D classes:
+** these all have methods and properties http://www.box2dflash.org/docs/2.1a/reference/
+b2Vec2 = Box2D.Common.Math.b2Vec2;
+b2BodyDef = Box2D.Dynamics.b2BodyDef;
+b2Body = Box2D.Dynamics.b2Body;
+b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+b2Fixture = Box2D.Dynamics.b2Fixture;
+b2World = Box2D.Dynamics.b2World;
+b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+b2MouseJointDef = Box2D.Dynamics.Joints.b2MouseJointDef;
+b2DistanceJointDef = Box2D.Dynamics.Joints.b2DistanceJointDef;
+b2RevoluteJointDef = Box2D.Dynamics.Joints.b2RevoluteJointDef;
+b2WeldJointDef = Box2D.Dynamics.Joints.b2WeldJointDef;
+b2AABB = Box2D.Collision.b2AABB;
+b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+b2BuoyancyController = Box2D.Dynamics.Controllers.b2BuoyancyController;
+b2ContactListener = Box2D.Dynamics.b2ContactListener;
+--*///+69.97
+	var zimContactListener;
+	var zimContactBeginList;
+	var zimContactEndList;
+	function setPhysics(obj, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits) {
+		z_d("69.97");
+
+		if (zot(contract)) contract = 0;
+		if (shape == "rectangle") obj.body = obj.physics.makeRectangle(obj.width-contract, obj.height-contract, dynamic, friction, angular, density, restitution, maskBits, categoryBits, linear);
+		else if (shape == "circle") obj.body = obj.physics.makeCircle(obj.width/2-contract, dynamic, friction, angular, density, restitution, maskBits, categoryBits, linear);
+		else if (shape == "triangle") {
+			if (zot(obj.a)) {
+				obj.a = obj.width;
+				obj.b = obj.c = Math.sqrt(Math.pow(obj.a/2,2) + Math.pow(obj.height,2));
+			}
+			obj.body = obj.physics.makeTriangle(obj.a-contract, obj.b-contract, obj.c-contract, dynamic, friction, angular, density, restitution, maskBits, categoryBits, linear);
+		}
+
+		obj.body.x = obj.x;
+		obj.body.y = obj.y;
+		obj.body.rotation = obj.rotation;
+		obj.physics.addMap(obj.body, obj);
+
+		obj.impulse = function(x, y, targetX, targetY) {
+			if (zot(x)) x = 0;
+			if (zot(y)) y = 0;
+			var defaultTarget = obj.body.GetWorldCenter();
+			if (zot(targetX)) targetX = defaultTarget.x*obj.physics.scale;
+			if (zot(targetY)) targetY = defaultTarget.y*obj.physics.scale;
+			obj.body.ApplyImpulse(new b2Vec2(x, y), new b2Vec2(targetX/obj.physics.scale, targetY/obj.physics.scale));
+			return obj;
+		}
+		obj.force = function(x, y, targetX, targetY) {
+			if (zot(x)) x = 0;
+			if (zot(y)) y = 0;
+			var defaultTarget = obj.body.GetWorldCenter();
+			if (zot(targetX)) targetX = defaultTarget.x*obj.physics.scale;
+			if (zot(targetY)) targetY = defaultTarget.y*obj.physics.scale;
+			obj.body.ApplyForce(new b2Vec2(x, y), new b2Vec2(targetX/obj.physics.scale, targetY/obj.physics.scale));
+			return obj;
+		}
+		obj.torque = function(amount) {
+			if (zot(amount)) amount = 10;
+			obj.body.ApplyTorque(amount);
+			return obj;
+		}
+
+		obj.follow = function(damp, dampY, leftOffset, rightOffset, upOffset, downOffset, offsetDamp, offsetDampY, horizontal, vertical, borderLock, borderOriginal) {
+			var sig = "damp, dampY, leftOffset, rightOffset, upOffset, downOffset, offsetDamp, offsetDampY, horizontal, vertical, borderLock, borderOriginal";
+			var duo; if (duo = zob(obj.follow, arguments, sig)) return duo;
+			obj.physics.follow(obj, damp, dampY, leftOffset, rightOffset, upOffset, downOffset, offsetDamp, offsetDampY, horizontal, vertical, borderLock, borderOriginal);
+			return obj;
+		}
+		obj.noFollow = function() {
+			obj.physics.follow(null);
+			return obj;
+		}
+
+		obj.control = function(type, speed, speedY, horizontal, vertical) {
+			var sig = "type, speed, speedY, horizontal, vertical";
+			var duo; if (duo = zob(obj.control, arguments, sig)) return duo;
+			obj.physics.control(obj, type, speed, speedY, horizontal, vertical);
+			return obj;
+		}
+		obj.noControl = function() {
+			obj.physics.noControl(obj);
+			return obj;
+		}
+
+		obj.sleep = function() {
+			zog(obj.body)
+			obj.body.SetAwake(false);
+			return obj;
+		}
+		obj.wake = function() {
+			obj.body.SetAwake(true);
+			return obj;
+		}
+
+		function makeContact() {
+			zimContactListener = new b2ContactListener();
+			zimContactBeginList = new zim.Dictionary(true);
+			zimContactEndList = new zim.Dictionary(true);
+			zimContactListener.BeginContact = beginContact;
+			zimContactListener.EndContact = endContact;
+			function beginContact(e) {
+				var match = zimContactBeginList.at(e.m_fixtureB.GetBody());
+				if (match) match(e.m_fixtureA.GetBody().zimObj, e.m_fixtureA.GetBody());
+				else {
+					match = zimContactBeginList.at(e.m_fixtureA.GetBody());
+					if (match) match(e.m_fixtureB.GetBody().zimObj, e.m_fixtureB.GetBody());
+				}
+			}
+			function endContact(e) {
+				var match = zimContactEndList.at(e.m_fixtureB.GetBody());
+				if (match) match(e.m_fixtureA.GetBody().zimObj, e.m_fixtureA.GetBody());
+				else {
+					match = zimContactEndList.at(e.m_fixtureB.GetBody().zimObj, e.m_fixtureB.GetBody());
+					if (match) match(e.m_fixtureB.GetBody());
+				}
+			}
+			obj.physics.world.SetContactListener(zimContactListener);
+		}
+		obj.contact = function(f) {
+			if (!zimContactListener) makeContact();
+			zimContactBeginList.add(obj.body, f);
+			return obj;
+		}
+		obj.noContact = function() {
+			zimContactBeginList.remove(obj.body);
+			return obj;
+		}
+		obj.contactEnd = function(f) {
+			if (!zimContactListener) makeContact();
+			zimContactEndList.add(obj.body, f);
+			return obj;
+		}
+		obj.noContactEnd = function() {
+			zimContactEndList.remove(obj.body);
+			return obj;
+		}
+		Object.defineProperty(obj, 'dynamic', {
+			get: function() {
+				return obj.body.GetType() == 2;
+			},
+			set: function(val) {
+				obj.body.SetType(val==true?2:0);
+			}
+		});
+	}
+	//-69.97
+
 // SUBSECTION EFFECTS
 
 /*--
-zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside)
+zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside, clamp)
 
 Parallax
 zim class
@@ -34005,6 +36874,7 @@ auto - (default true) uses the specified input
 stage - (default the default frame's stage) the stage - specify this if multiple stages
 startPaused - (default false) set to true to start parallax paused - set paused(false) to unpause it
 mouseMoveOutside - (default true) set to false to not allow mouse movement outside the stage to affect motion
+clamp - (default true) set to false to allow range outside min and max
 NOTE: ticker and fps parameters have been removed - see Ticker to set
 
 METHODS
@@ -34020,8 +36890,8 @@ type - holds the class name as a String
 damp - allows you to dynamically change the damping
 paused - read-only boolean whether the parallax is paused - see pause() and startPaused property
 --*///+68
-	zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside) {
-		var sig = "layers, damp, auto, stage, startPaused, mouseMoveOutside";
+	zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside, clamp) {
+		var sig = "layers, damp, auto, stage, startPaused, mouseMoveOutside, clamp";
 		var duo; if (duo = zob(zim.Parallax, arguments, sig, this)) return duo;
 		z_d("68");
 		this.type = "Parallax";
@@ -34076,8 +36946,8 @@ paused - read-only boolean whether the parallax is paused - see pause() and star
 			var factor = (zot(layer.factor)) ? 1 : layer.factor;
 			var integer = (zot(layer.integer)) ? false : layer.integer;
 
-			// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound
-			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], _damp, factor, integer);
+			// baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound, clamp
+			obj["p_"+obj.prop] = new zim.ProportionDamp(inMin, inMax, 0, obj[obj.prop], _damp, factor, integer, clamp);
 			if (obj.prop == "scale") {
 				obj["s_"+obj.prop] = obj.obj.scaleX; // helper to allow scale to be property
 			} else if (obj.prop == "frame") {
@@ -34931,17 +37801,10 @@ frame.on("ready", function() {
 // see more examples at https://zimjs.com/particles
 END EXAMPLE
 
-PARAMETERS supports DUO - parameters or single object with properties below
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the series() function which returns a function that will execute a series in order
-	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 
 obj - |ZIM VEE| (default blue, green, pink Circles) a display object to clone - eg. new Circle(10, green);
 	can also specify a shape config object with the following properties to draw inside a shape as an alternative to the trace property
@@ -34979,7 +37842,7 @@ wind - (default 0) a force you can apply in the horizontal direction either nega
 layers - (default "top") where to place the current particle being emitted - values are "top", "bottom", "random"
 animation - |ZIM VEE| (default null) a zim animate config object to apply to the particle
 	This is the whole zim DUO object to pass to animate - including an obj parameter that holds the animation object (different than the animate object)
-random - (default null) an object holding properties to animate, each property holding a ZIM VEE Value object for zik to pick from per particle
+random - (default null) an object holding properties to animate, each property holding a ZIM VEE Value object for Pick.choose() to pick from per particle
 	eg: {color:["red", "white", "green"], scale:{min:1, max:2}} // scale is a convienence property for both scaleX and scaleY
 horizontal - (default false) start the particles across the emitter's width at the top of the emitter (unless vertical is set to true)
 vertical - (default false) start the particles across the emitter's height at the left of the emitter (unless horizontal is set to true)
@@ -35189,7 +38052,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						maxNum = that.num;
 					}
 
-					zim.loop(zik(that.num), function() {
+					zim.loop(zim.Pick.choose(that.num), function() {
 		                if (that.decayTime > 0) {
 		                    var decay = {};
 		                    if (that.shrink) decay.scale=0;
@@ -35201,7 +38064,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 							var particle = container.trace?container.getChildAt(0):container;
 							if (particle.emitShape) {
 								var t = particle.template;
-								particle.graphics.c().s(t.s?zik(t.s):null).ss(t.ss?zik(t.ss):null).sd(t.sd?zik(t.sd):null, t.offset?zik(t.offset):null);
+								particle.graphics.c().s(t.s?zim.Pick.choose(t.s):null).ss(t.ss?zim.Pick.choose(t.ss):null).sd(t.sd?zim.Pick.choose(t.sd):null, t.offset?zim.Pick.choose(t.offset):null);
 							}
 							if (container.trace) container.updateCache();
 							if (that.layers == "top") {
@@ -35227,7 +38090,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								container.trace = true;
 							}
 
-							var template = zik(zim.shuffle(obj)[0]);
+							var template = zim.Pick.choose(zim.shuffle(obj)[0]);
 							if (template.type == "shape") { // shape needs to be top left whereas others need to be centerReg
 								var t = template;
 								// {type:"shape", s:"white", ss:2, f:null, sd:[20, 10], offset:3}
@@ -35235,7 +38098,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								var particle = new zim.Shape(1,1,null,null,null,false);
 								particle.emitShape = true;
 								particle.template = t;
-								particle.graphics.s(t.s?zik(t.s):null).ss(t.ss?zik(t.ss):null).sd(t.sd?zik(t.sd):null, t.offset?zik(t.offset):null);
+								particle.graphics.s(t.s?zim.Pick.choose(t.s):null).ss(t.ss?zim.Pick.choose(t.ss):null).sd(t.sd?zim.Pick.choose(t.sd):null, t.offset?zim.Pick.choose(t.offset):null);
 								if (that.trace) {
 									particle.addTo(container, null, false)
 								} else {
@@ -35283,8 +38146,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						container.particleDecaying = false;
 						container.particleFizzing = false;
 
-						var angle = zik(that.angle);
-		                var speed = zik(that.force);
+						var angle = zim.Pick.choose(that.angle);
+		                var speed = zim.Pick.choose(that.force);
 		                var speedX = speed*Math.cos(angle*Math.PI/180);
 		                var speedY = speed*Math.sin(angle*Math.PI/180);
 		                particle.info = {
@@ -35303,7 +38166,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						if (that.random) {
 		                    // {color:[blue, pink, yellow, orange]}
 		                    zim.loop(that.random, function(property, options) {
-		                        val = zik(options);
+		                        val = zim.Pick.choose(options);
 		                        if (property == "scale") {
 		                            particle.sca(val);
 		                        } else {
@@ -35390,7 +38253,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						if (that.events) sendEvent("emitted", container);
 						spurtCheck(particle);
 		                if (that.animation) {
-							var a = zik(that.animation);
+							var a = zim.Pick.choose(that.animation);
 		                    if (zot(a.override)) a.override = false;
 		                    particle.animate(zim.copy(a));
 		                }
@@ -35414,12 +38277,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	                    // will add multiple sinks in the future
 	                    // also - try sink with negative force to deflect
 	                    if (!zot(that.sink)) {
-	                        var b = that.localToGlobal(p.position.x, p.position.y);
+	                        var b = that.particles.localToGlobal(p.position.x, p.position.y);
 							var s;
 							if (that.sink.parent && that.sink.parent.localToGlobal) {
 								var s = that.sink.parent.localToGlobal(that.sink.x, that.sink.y);
 							} else {
-								s = new createjs.Point(zik(that.sink.x), zik(that.sink.y));
+								s = new createjs.Point(zim.Pick.choose(that.sink.x), zim.Pick.choose(that.sink.y));
 							}
 	                        var sinkAngle = zim.angle(b.x, b.y, s.x, s.y);
 	                        var sinkX = that.sinkForce*Math.cos(sinkAngle*Math.PI/180)
@@ -35515,14 +38378,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	   	 	var duo; if (duo = zob(that.spurt, arguments, sig)) return duo;
 
 			if (!zot(time)) {
-				zim.timeout(zik(time), function() {
+				zim.timeout(zim.Pick.choose(time), function() {
 					lastSpurt(that.currentParticle);
 				});
 				that.spurting = true;
 			}
 			if (!zot(num)) {
 				// handled by checkSpurt() function
-				that.spurtNum = zik(num);
+				that.spurtNum = zim.Pick.choose(num);
 				that.spurtCount = 0;
 				that.spurting = true;
 			}
@@ -35679,17 +38542,11 @@ pen.animate({
 })
 END EXAMPLE
 
-PARAMETERS supports DUO - parameters or single object with properties below
-** some parameters below support ZIM VEE values that use zik() to pick a random option
-The ZIM VEE value can be the following:
-1. an Array of values to pick from randomly - eg. ["red", "green", "blue"]
-2. a Function that returns a value - eg. function(){return Date.now();}
-	see also the series() function which returns a function that will execute a series in order
-	pass series(["red", "green", "blue"]) into a ZIM VEE parameter to select these in order then repeat, etc.
-3. a ZIM RAND object literal for a range - eg. {min:10, max:20, integer:true, negative:true} max is required
-4. any combination of the above - eg. ["red", function(){x>100?["green", "blue"]:"yellow"}] zik is recursive
-5. a single value such as a Number, String, zim.Rectangle(), etc. this just passes through unchanged
-6. an object literal with a property of noZik having a value such as an Array or Function that zik will not process
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+
 size - |ZIM VEE| (default depends on penType) the pen size
 color - |ZIM VEE| (default depends on penType) the pen size
 damp - (default .1) the damping for the pen - 0 is no movement, 1 is no damping
@@ -35983,8 +38840,8 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				var newX = that.dampX.convert(_draw?that.x:that.finishX);
 				var newY = that.dampY.convert(_draw?that.y:that.finishY);
 				var newPoint = that.parent.localToLocal(newX, newY, shape);
-				var pickedSize = zik(size)*that.sizeScale*that.sizeFactor;
-				var pickedSpread = zik(spread)*that.spreadScale*that.spreadFactor;
+				var pickedSize = zim.Pick.choose(size)*that.sizeScale*that.sizeFactor;
+				var pickedSpread = zim.Pick.choose(spread)*that.spreadScale*that.spreadFactor;
 
 				if (Math.abs(that.lastX-newX)+Math.abs(that.lastY-newY)<1) {
 					if (that.drawing) {
@@ -36019,7 +38876,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 						var d = pickedSpread;
 						var loc = {x:newX+d*Math.cos(angle), y:newY+d*Math.sin(angle)}
 						var point = that.parent.localToLocal(loc.x,loc.y, shape);
-						shape.graphics.mt(point.x, point.y).f(zik(color)).dc(point.x, point.y, pickedSize/2)
+						shape.graphics.mt(point.x, point.y).f(zim.Pick.choose(color)).dc(point.x, point.y, pickedSize/2)
 					}
 				} else if (penType == "grass" || penType == "hair" || penType == "city") {
 					if (penType == "grass" || penType == "hair") { // add more
@@ -36027,23 +38884,23 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 						var midY = that.lastY+(newY-that.lastY)/2;
 						var midPoint = that.parent.localToLocal(midX,midY, shape);
 						shape.graphics
-							.s(zik(color)).ss(pickedSize, end)
+							.s(zim.Pick.choose(color)).ss(pickedSize, end)
 							.mt(midPoint.x, midPoint.y)
 							.lt(midPoint.x+rand(-pickedSpread/4, pickedSpread/4), penType=="hair"?midPoint.y+pickedSpread:midPoint.y-pickedSpread);
 					}
 					if (penType == "grass" || penType == "hair" || (penType == "city" && count%3==0)) {
 						shape.graphics
-							.s(zik(color)).ss(pickedSize, end)
+							.s(zim.Pick.choose(color)).ss(pickedSize, end)
 							.mt(newPoint.x, newPoint.y)
 							.lt(newPoint.x+(penType=="city"?0:rand(-pickedSpread/4, pickedSpread/4)), penType=="hair"?midPoint.y+pickedSpread:newPoint.y-pickedSpread);
 					}
 					count++;
 				} else {
 					if (penType == "kitetail") {
-						shape.graphics.s(zik(color)).ss(pickedSize, end)
+						shape.graphics.s(zim.Pick.choose(color)).ss(pickedSize, end)
 					}
 					if (penType == "barbwire") {
-						shape.graphics.s(zik(color)).ss(pickedSize, end)
+						shape.graphics.s(zim.Pick.choose(color)).ss(pickedSize, end)
 						var midX = that.lastX+(newX-that.lastX)/2+rand(-pickedSpread, pickedSpread);
 						var midY = that.lastY+(newY-that.lastY)/2+rand(-pickedSpread, pickedSpread);
 					} else {
@@ -36059,15 +38916,15 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 					var midX = that.lastX+(newX-that.lastX)/2;
 					var midY = that.lastY+(newY-that.lastY)/2;
 					var midPoint = that.parent.localToLocal(midX,midY, shape);
-					shape.graphics.s(zik(borderColor)).ss(zik(borderWidth)).mt(lastPoint.x, lastPoint.y).qt(midPoint.x, midPoint.y, newPoint.x, newPoint.y);
+					shape.graphics.s(zim.Pick.choose(borderColor)).ss(zim.Pick.choose(borderWidth)).mt(lastPoint.x, lastPoint.y).qt(midPoint.x, midPoint.y, newPoint.x, newPoint.y);
 					if (penType == "splatter") shape.graphics.es();
 				}
 
 				if (penType == "splatter") {
-					shape.graphics.f(zik(color));
+					shape.graphics.f(zim.Pick.choose(color));
 				} else if (penType == "kitetail") {
 				} else {
-					shape.graphics.s(zik(color)).ss(pickedSize, end);
+					shape.graphics.s(zim.Pick.choose(color)).ss(pickedSize, end);
 				}
 				if (penType != "grass" && penType != "hair" && penType != "city" && penType != "splatter") {
 					shape.graphics
@@ -36228,7 +39085,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				that.lastX = that.finishX = that.x;
 				that.lastY = that.finishY = that.y;
 				if (penType == "barbwire") {
-					shape.graphics.s(zik(color)).ss(zik(size)*that.sizeScale*that.sizeFactor, end);
+					shape.graphics.s(zim.Pick.choose(color)).ss(zim.Pick.choose(size)*that.sizeScale*that.sizeFactor, end);
 				}
 				shape.graphics.mt(that.x, that.y);
 
@@ -36333,7 +39190,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				shape.graphics.es();
 				shape.graphics.ef();
 				size = value;
-				if (penType != "splatter") shape.graphics.ss(zik(size)*that.sizeScale*that.sizeFactor, end);
+				if (penType != "splatter") shape.graphics.ss(zim.Pick.choose(size)*that.sizeScale*that.sizeFactor, end);
 			}
 		});
 
@@ -36345,7 +39202,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				color = value;
 				shape.graphics.es();
 				shape.graphics.ef();
-				if (penType != "splatter") shape.graphics.s(zik(color));
+				if (penType != "splatter") shape.graphics.s(zim.Pick.choose(color));
 			}
 		});
 		Object.defineProperty(this, 'penType', {
@@ -36356,9 +39213,9 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				penType = value;
 				shape.graphics.ef().es();
 				if (penType != "splatter") {
-					shape.graphics.s(zik(color));
+					shape.graphics.s(zim.Pick.choose(color));
 				} else {
-					shape.graphics.s(zik(color)).ss(zik(size)*that.sizeScale*that.sizeFactor, end);
+					shape.graphics.s(zim.Pick.choose(color)).ss(zim.Pick.choose(size)*that.sizeScale*that.sizeFactor, end);
 				}
 			}
 		});
@@ -36758,7 +39615,7 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 //-69.95
 
 /*--
-zim.VR = function(content, angle, distance, parallax, parallaxAngle, damp, parallaxDamp, startAngle, negativeParallax, boundaryMarkers, swiper, holder)
+zim.VR = function(content, angle, distance, parallax, parallaxAngle, damp, parallaxDamp, startAngle, negativeParallax, borderMarkers, swiper, holder)
 
 VR
 zim class - extends a ZIM Container which extends a CreateJS Container
@@ -36782,7 +39639,7 @@ This gives a sense of 3D coming out of the screen for positive depths and into t
 Device orientation can also be used to move the content as the head is turned and the headset and device moves.
 Currently the horizontal movement is built in as that is the trickiest with the 3D effect.
 Supply a motion angle (angle) and a motion distance (distance) about which the user will turn their head to see the content.
-Optional arrows are provided to map the boundaries of rotation and available as boundaryLeft and boundaryRight properties.
+Optional arrows are provided to map the boundaries of rotation and available as borderLeft and borderRight properties.
 You can manually apply vertical shift based on the ZIM Frame deviceOrientation event about the x axis
 
 Horizontal Parallax is provided if desired and will be based on the head rotation if no motion angle is provided
@@ -36851,9 +39708,9 @@ var vr = new VR(content, 160, 400, 2, 60).center(stage);
 // this would remove the outer rectangle:
 // vr.remove(vr.content.getChildAt(2));
 
-// this would remove the right hand boundary marker
-// which shows when angle is != 0 and boundaryMarkers is set to true (default)
-// vr.remove(vr.boundaryRight);
+// this would remove the right hand border marker
+// which shows when angle is != 0 and borderMarkers is set to true (default)
+// vr.remove(vr.borderRight);
 
 // this shows an inter-ocular adjuster when the stage is pressed
 stage.on("stagemousedown", function() {
@@ -37376,6 +40233,13 @@ as well as a way to remake the canvas if necessary.
 Frame handles loading Bitmap and Sound assets by wrapping PreloadJS
 see https://zimjs.com/frame.html for sample templates using Frame.
 
+CANVAS ALTERNATIVE CONTENT
+Frame will move any tag with an id of canvasIDAlternative into the canvas tag
+By default, the canvasID is "myCanvas" so use an id of "myCanvasAlternative"
+This allows you to show content for non-canvas browsers
+The content may also be indexed by search engines - one would hope
+and is read by screen readers (see also ZIM Accessibility)
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -37488,7 +40352,7 @@ path - (default null) - a string path for the assets
 progress - (default null) - set to a Waiter() or ProgressBar() object to show while loading
 rollover - (default true) activates rollovers
 touch - (default true) activates touch on mobile
-scrollTop - (default true) activates scrolling on older apple devices to hide the url bar
+scrollTop - (default false) activates scrolling on older apple devices to hide the url bar
 align - (default "center") for fit and outside, the horizontal alignment "left", "center/middle", "right"
 valign - (default "center") for fit and outside, the vertical alignment "top", "center/middle", "bottom"
 canvasID - (default "myCanvas" or if subsequent frame, myCanvas+randomID) will be set to tagIDCanvas if a tagID is provided - eg. scaling="test", canvasID="testCanvas"
@@ -37678,7 +40542,6 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 "error" - fired when there is a problem loading an asset with loadAssets()
 
 --*///+83
-	var zimDefaultFrame
 	zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors) {
 		var sig = "scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
@@ -37709,7 +40572,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		if (zot(scaling)) scaling = "full";
 		if (zot(rollover)) rollover = !mobile;
 		if (zot(touch)) touch = true;
-		if (zot(scrollTop)) scrollTop = true;
+		if (zot(scrollTop)) scrollTop = false;
 		if (zot(align)) align = "center";
 		if (zot(valign)) valign = "center";
 		var randomCanvas = "";
@@ -37891,6 +40754,8 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				canvas.setAttribute("width", stageW);
 				canvas.setAttribute("height", stageH);
 			}
+			var alternative = zid(canvasID + "Alternative");
+			if (alternative) canvas.appendChild(alternative);
 			if (scaling == "tag" || scaling  == "inline") {
 				tag.appendChild(canvas);
 			} else {
@@ -38896,6 +41761,13 @@ function zimify(obj, list) {
 		gestureRect:function(boundary, update) {
 			return zim.gestureBoundary(this, boundary, update);
 		},
+		addPhysics:function(dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.addPhysics(arguments[0]);}
+			else {return zim.addPhysics(this, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics);}
+		},
+		removePhysics:function() {
+			return zim.removePhysics(this);
+		},
 		hitTestPoint:function(x, y, boundsCheck) {
 			return zim.hitTestPoint(this, x, y, boundsCheck);
 		},
@@ -38975,8 +41847,8 @@ function zimify(obj, list) {
 		hov:function(value, type) {
 			return zim.hov(this, value, type);
 		},
-		rot:function(rotation) {
-			return zim.rot(this, rotation);
+		rot:function(rotation, x, y) {
+			return zim.rot(this, rotation, x, y);
 		},
 		siz:function(width, height, only) {
 			return zim.siz(this, width, height, only);
@@ -39053,11 +41925,11 @@ function zimify(obj, list) {
 			clone.mouseEnabled = this.mouseEnabled;
 			clone.tickEnabled = this.tickEnabled;
 			clone.name = this.name;
-			clone.regX = this.regX;
-			clone.regY = this.regY;
+			clone.regX = this.regX*clone.width/this.width;
+			clone.regY = this.regY*clone.height/this.height;
 			clone.visible = this.visible;
 			clone.shadow = this.shadow;
-			zim.copyMatrix(clone, this);
+			if (!this.type || this.type=="Shape") zim.copyMatrix(clone, this);
 			clone.compositeOperation = this.compositeOperation;
 			clone.snapToPixel = this.snapToPixel;
 			clone.filters = this.filters==null?null:this.filters.slice(0);
@@ -39065,7 +41937,7 @@ function zimify(obj, list) {
 			clone.hitArea = this.hitArea;
 			// clone.cursor = this.cursor;
 			// clone._bounds = zim.copy(this._bounds); // can't copy as _bounds is not an {} or []
-			if (this._bounds) clone.setBounds(this._bounds.x, this._bounds.y, this._bounds.width, this._bounds.height);
+			if ((!this.type || this.type=="Shape") && this._bounds) clone.setBounds(this._bounds.x, this._bounds.y, this._bounds.width, this._bounds.height);
 			return clone;
 		},
 		cloneChildren:function(clone) {
