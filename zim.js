@@ -3908,11 +3908,11 @@ DESCRIPTION
 Pick() provides a system to handle dynamic parameters.
 It does so by providing formats for options and a choose() method to pick from the options.
 
-For example, a particle emitter has an obj parameter to receive what type of particle to emmit.
+For example, a particle emitter has an obj parameter to receive what type of particle to emit.
 If a particle were randomly chosen from a rectangle, circle or triangle and passed into obj
-then the emitter would only emitt the randomly chosen particle - say, a bunch of triangles.
+then the emitter would only emit the randomly chosen particle - say, a bunch of triangles.
 What is desired is that the emitter emitt rectangles, circles and triangles randomly.
-Pick() provides a way to pass in all three shapes and have the emitter choose each time it emitts.
+Pick() provides a way to pass in all three shapes and have the emitter choose each time it emits.
 
 FORMATS
 The Pick() formats handle:
@@ -4017,7 +4017,7 @@ Pick.rand(a, b, integer, negative) - gets a random number - same as zim.rand()
 Pick.series(array|item1, item2, item3, etc.) - same as zim.series()
 	returns a function that can be called many times each time returning the next value in the series (eventually looping)
 	array|item1 - the first item - or an array of results that will be called in order as the resulting function is called
-    item2 - the second item if the first is not an array
+	item2 - the second item if the first is not an array
 	item3 - the third item, etc. to as many items as needed
 
 PROPERTIES
@@ -5298,7 +5298,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.7
 
 /*--
-zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, style, group, inherit)
+zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, style, group, inherit)
 
 Sprite
 zim class - extends a createjs.Sprite
@@ -5379,6 +5379,17 @@ frame.on("complete", function() {
 END EXAMPLE
 
 EXAMPLE
+// using Sprite as a texture atlas - or spritesheet of different images
+// see: https://zimjs.com/explore/fruit.html
+// load in assets and path
+var frame = new Frame({assets:["fruit.png", "fruit.json"], path:"assets/"});
+frame.on("ready", function() {
+	new Sprite({json:frame.asset("fruit.json"), label:"apple"}).center();
+	frame.stage.update();
+});
+END EXAMPLE
+
+EXAMPLE
 // Here is an example with CreateJS SpriteSheet data
 // robot.png is a sprite sheet made by ZOE based on a Flash swf
 // you can also make your own with Photoshop or Texture Packer
@@ -5439,6 +5450,7 @@ id - (default randomly assigned) an id you can use in other animations - availab
 	use this id in other animations for pauseRun and stopRun to act on these as well
 globalControl - (default true) pauseRun and stopRun will control other animations with same id
 spriteSheet - (default null) pass in a CreateJS SpriteSheet to build a Sprite from that
+label - (default null) pass in a label to stop on initially - to play from a label use the run({label:val}) method
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -5532,8 +5544,8 @@ EVENTS
 See the CreateJS Easel Docs for Sprite events, such as:
 animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.8
-	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, style, group, inherit) {
-		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, style, group, inherit";
+	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, style, group, inherit) {
+		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, style, group, inherit";
 		var duo; if (duo = zob(zim.Sprite, arguments, sig, this)) return duo;
 		z_d("50.8");
 		this.type = "Sprite";
@@ -5611,7 +5623,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		}
 
 		this.animations = animations;
-		this.cjsSprite_constructor(sheet);
+		this.cjsSprite_constructor(sheet, label);
+		if (!zot(label)) this.stop();
 
 		if (zot(id)) id = zim.makeID();
 		this.id = id;
@@ -6059,1175 +6072,740 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 --*///+50.95
 
 	zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit) {
-	    var sig = "svg, splitTypes, geometric, style, group, inherit";
-	    var duo; if (duo = zob(zim.SVGContainer, arguments, sig, this)) return duo;
-	    z_d("50.95");
-	    this.group = group;
-	    var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
+		var sig = "svg, splitTypes, geometric, style, group, inherit";
+		var duo; if (duo = zob(zim.SVGContainer, arguments, sig, this)) return duo;
+		z_d("50.95");
+		this.group = group;
+		var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
 
-	    var parser = new DOMParser();
-	    var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
-	    var list = svg.getElementsByTagName("svg");
-	    var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
-	    var w, h;
-	    if (!zot(tag)){
-	        var w = tag.getAttribute("width");
-	        var h = tag.getAttribute("height");
-	    }
-	    if (w) w = Number(w.trim());
-	    if (h) h = Number(h.trim());
-	    this.zimContainer_constructor(w, h);
-	    this.type = "SVGContainer";
+		var parser = new DOMParser();
+		var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
+		var list = svg.getElementsByTagName("svg");
+		var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
+		var w, h;
+		if (!zot(tag)){
+			var w = tag.getAttribute("width");
+			var h = tag.getAttribute("height");
+		}
+		if (w) w = Number(w.trim());
+		if (h) h = Number(h.trim());
+		this.zimContainer_constructor(w, h);
+		this.type = "SVGContainer";
 
-	    if (zot(tag)) return;
-	    if (zot(splitTypes)) splitTypes = true;
-	    if (zot(geometric)) geometric = true;
+		if (zot(tag)) return;
+		if (zot(splitTypes)) splitTypes = true;
+		if (zot(geometric)) geometric = true;
 
-	    var that = this;
+		var that = this;
 
-	    var defaultFill = black, generalFill = black;
-	    var defaultStroke = black, generalStroke = black;
-	    var defaultStrokeSize = 2, generalStrokeSize = 2;
-	    var defaultAlpha = 1, generalAlpha = 1;
-	    var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
-	    var currentTransform;
+		var defaultFill = black, generalFill = black;
+		var defaultStroke = black, generalStroke = black;
+		var defaultStrokeSize = 2, generalStrokeSize = 2;
+		var defaultAlpha = 1, generalAlpha = 1;
+		var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
+		var currentTransform;
 
-	    var startPosition = new Point(0,0); // the x,y of the last shape
+		var startPosition = new Point(0,0); // the x,y of the last shape
+		var aCommand=[];	//kv adjust logic
 
-	    function processTag(tag) {
-	        loop(tag, function (t) {
-	            var tn = t.tagName.toLowerCase();
-	            if (tn == "path") processPath(t);
-	            if (tn == "circle") processShape("circle", t);
-	            if (tn == "rect") processShape("rect", t);
-	            if (tn == "ellipse") processShape("ellipse", t);
-	            if (tn == "line") processShape("line", t);
-	            if (tn == "polygon") processShape("polygon", t);
-	            if (tn == "polyline") processShape("polyline", t);
-	            if (tn == "g") {
-	                // styles can be overwritten by parameters in the general tag
-	                // so find styles first
-	                var style = t.getAttribute("style");
-	                var f,s,ss,a,aa;
-	                if (style) {
-	                    var styles = processStyle(style);
-	                    f = styles[0];
-	                    s = styles[1];
-	                    ss = styles[2];
-	                    a = styles[3];
-	                    aa = styles[4];
-	                }
-	                // then overwrite styles with any attribute values
-	                currentTransform = t.getAttribute("transform");
-	                generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
-	                generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
-	                generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
-	                generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
-	                generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
-	            }
-	            // general settings can wrap any number of tags - the tags are processed here:
-	            processTag(t.children);
-	            // after this nest of tags are processed, clear the general settings
-	            if (t.tagName.toLowerCase() == "g") {
-	                generalFill = defaultFill;
-	                generalStroke = defaultStroke;
-	                generalStrokeSize = defaultStrokeSize;
-	                generalAlpha = defaultAlpha;
-	                generalStrokeAlpha = defaultStrokeAlpha;
-	                currentTransform = null;
-	            }
-	        })
-	    }
-	    processTag(svg.getElementsByTagName("svg"));
+		function processTag(tag) {
+			loop(tag, function (t) {
+				var tn = t.tagName.toLowerCase();
+				if (tn == "path") processPath(t);
+				if (tn == "circle") processShape("circle", t);
+				if (tn == "rect") processShape("rect", t);
+				if (tn == "ellipse") processShape("ellipse", t);
+				if (tn == "line") processShape("line", t);
+				if (tn == "polygon") processShape("polygon", t);
+				if (tn == "polyline") processShape("polyline", t);
+				if (tn == "g") {
+					// styles can be overwritten by parameters in the general tag
+					// so find styles first
+					var style = t.getAttribute("style");
+					var f,s,ss,a,aa;
+					if (style) {
+						var styles = processStyle(style);
+						f = styles[0];
+						s = styles[1];
+						ss = styles[2];
+						a = styles[3];
+						aa = styles[4];
+					}
+					// then overwrite styles with any attribute values
+					currentTransform = t.getAttribute("transform");
+					generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
+					generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
+					generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
+					generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
+					generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
+				}
+				// general settings can wrap any number of tags - the tags are processed here:
+				processTag(t.children);
+				// after this nest of tags are processed, clear the general settings
+				if (t.tagName.toLowerCase() == "g") {
+					generalFill = defaultFill;
+					generalStroke = defaultStroke;
+					generalStrokeSize = defaultStrokeSize;
+					generalAlpha = defaultAlpha;
+					generalStrokeAlpha = defaultStrokeAlpha;
+					currentTransform = null;
+				}
+			})
+		}
+		processTag(svg.getElementsByTagName("svg"));
 
-	    function processStyle(style) {
-	        var st = style.split(";");											//kv notes: it bugs when style contains ; at the end of the string
-	                                                                            //kv        haven't done a full test yet
-	        var f,s,ss,a,aa;
-	        loop(st, function (sty) {
-	            var sty = sty.replace(/,/g,"");
-	            var styl = sty.split(":");
-	            var prop = styl[0].trim().toLowerCase();
-	            var val = styl[1].trim().toLowerCase().replace("px", "");
-	            if (prop=="fill") f = val;
-	            if (prop=="stroke") s = val;
-	            if (prop=="stroke-width") ss = val;
-	            if (prop=="opacity") a = val, aa = val;
-	            if (prop=="fill-opacity") a = val;
-	            if (prop=="stroke-opacity") aa = val;
-	        });
-	        return [f,s,ss,a,aa];
-	    }
+		function processStyle(style) {
+			var st = style.split(";");											//kv note: there si bug when style contains ; at the end of the string
+			var f,s,ss,a,aa;
+			loop(st, function (sty) {
+				var sty = sty.replace(/,/g,"");
+				var styl = sty.split(":");
+				var prop = styl[0].trim().toLowerCase();
+				var val = styl[1].trim().toLowerCase().replace("px", "");
+				if (prop=="fill") f = val;
+				if (prop=="stroke") s = val;
+				if (prop=="stroke-width") ss = val;
+				if (prop=="opacity") a = val, aa = val;
+				if (prop=="fill-opacity") a = val;
+				if (prop=="stroke-opacity") aa = val;
+			});
+			return [f,s,ss,a,aa];
+		}
 
-	    function processGeneral(tag) {
-	        // any styles on the tag overwrites general styles or attributes
-	        var f,s,ss,a,aa;
-	        var style = tag.getAttribute("style");
-	        if (style) {
-	            var styles = processStyle(style);
-	            f = styles[0];
-	            s = styles[1];
-	            ss = styles[2];
-	            a = styles[3];
-	            aa = styles[4];
-	        }
-	        // any attributes on the tag overwrites styles or general
-	        f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
-	        s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
-	        ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:generalStrokeSize;
-	        a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
-	        aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
+		function processGeneral(tag) {
+			// any styles on the tag overwrites general styles or attributes
+			var f,s,ss,a,aa;
+			var style = tag.getAttribute("style");
+			if (style) {
+				var styles = processStyle(style);
+				f = styles[0];
+				s = styles[1];
+				ss = styles[2];
+				a = styles[3];
+				aa = styles[4];
+			}
+			//kv comments: need to apply string cleansing, application bugs when there is a semi column character used in tags.
+			// get rid of semi column,
+			// any attributes on the tag overwrites styles or general
+			f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
+			s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
+			ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:generalStrokeSize;
+			a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
+			aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
 
-	        var x = tag.getAttribute("x")?tag.getAttribute("x"):0;
-	        x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
-	        var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
-	        y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
-	        if (!zot(a) && !zot(f)) f = convertColor(f, "rgba", Number(a));
-	        if (!zot(aa) && !zot(s)) s = convertColor(s, "rgba", Number(aa));
-	        return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
-	    }
+			var x = tag.getAttribute("x")?tag.getAttribute("x"):0;
+			x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
+			var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
+			y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
+			if (!zot(a) && !zot(f)) f = convertColor(f, "rgba", Number(a));
+			if (!zot(aa) && !zot(s)) s = convertColor(s, "rgba", Number(aa));
+			return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
+		}
 
-	    function processShape(type, tag) {
-	        var shape;
-	        var g = processGeneral(tag); // want ES6
-	        var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
-	        if (type == "circle") {
-	            var r = Number(tag.getAttribute("r").trim());
-	            var d = r*.5523;
-	            if (geometric) shape = new Circle(Number(tag.getAttribute("r")), f, s, ss);
-	            else shape = new Blob(f, s, ss, 4, r, d, "mirror");
-	        } else if (type == "rect") {
-	            if (geometric) shape = new Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
-	            else {
-	                var w = Number(tag.getAttribute("width"));
-	                var h = Number(tag.getAttribute("height"));
-	                var rx = Number(tag.getAttribute("rx"));
-	                var ry = Number(tag.getAttribute("ry"));
-	                if (rx && ry) {
-	                    var dx = rx*.5523;
-	                    var dy = ry*.5523;
-	                    shape = new Blob(f, s, ss, [
-	                        [rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
-	                        [w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
-	                        [w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
-	                        [0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
-	                } else {
-	                    shape = new Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
-	                }
-	            }
-	        } else if (type == "line") {
-	            shape = new Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
-	        } else if (type == "polygon" || type == "polyline") {
-	            var p = tag.getAttribute("points");
-	            p = p.replace(/-/g, " -");
-	            p = p.replace(/\s+/g, " ");
-	            var points = [];
-	            loop(p.split(" "), function (point) {
-	                var pp = point.split(",");
-	                points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
-	            })
-	            if (type=="polygon") shape = new Blob(f, s, ss, points);
-	            else shape = new Squiggle(s, ss, points);
-	        } else if (type == "ellipse") {
-	            shape = new Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
-	        }
-	        shape.loc(x,y,that);
-	        var transform = tag.getAttribute("transform");
-	        if (transform || currentTransform) processTransform(shape, transform || currentTransform);
-	        if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
-	    }
+		function processShape(type, tag) {
+			var shape;
+			var g = processGeneral(tag); // want ES6
+			var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
+			if (type == "circle") {
+				var r = Number(tag.getAttribute("r").trim());
+				var d = r*.5523;
+				if (geometric) shape = new Circle(Number(tag.getAttribute("r")), f, s, ss);
+				else shape = new Blob(f, s, ss, 4, r, d, "mirror");
+			} else if (type == "rect") {
+				if (geometric) shape = new Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
+				else {
+					var w = Number(tag.getAttribute("width"));
+					var h = Number(tag.getAttribute("height"));
+					var rx = Number(tag.getAttribute("rx"));
+					var ry = Number(tag.getAttribute("ry"));
+					if (rx && ry) {
+						var dx = rx*.5523;
+						var dy = ry*.5523;
+						shape = new Blob(f, s, ss, [
+							[rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
+							[w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
+							[w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
+							[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
+					} else {
+						shape = new Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
+					}
+				}
+			} else if (type == "line") {
+				shape = new Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
+			} else if (type == "polygon" || type == "polyline") {
+				var p = tag.getAttribute("points");
+				p = p.replace(/-/g, " -");
+				p = p.replace(/\s+/g, " ");
+				var points = [];
+				loop(p.split(" "), function (point) {
+					var pp = point.split(",");
+					points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
+				})
+				if (type=="polygon") shape = new Blob(f, s, ss, points);
+				else shape = new Squiggle(s, ss, points);
+			} else if (type == "ellipse") {
+				shape = new Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
+			}
+			shape.loc(x,y,that);
+			var transform = tag.getAttribute("transform");
+			if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+			if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
+		}
 
-	    function processTransform(shape, transform) {
-	        var tr = transform.split(")");
-	        // apply all transforms in the order given
-	        loop(tr, function (tra) {
-	            if (tra=="") return;
-	            var tran = tra.trim().split("(");
-	            var prop = tran[0].trim().toLowerCase();
-	            var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
-	            if (prop=="translate") {
-	                var m = val.split(",");
-	                shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
-	            }
-	            if (prop=="scale"){
-	                var s = val.split(",");
-	                if (shape.type=="Blob" || shape.type=="Squiggle") {
-	                    if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
-	                    else if (s.length == 2) {
-	                        shape.transformPoints("scaleX", Number(s[0].trim()));
-	                        shape.transformPoints("scaleY", Number(s[1].trim()));
-	                    }
-	                } else {
-	                    if (s.length == 1) shape.sca(Number(s[0].trim()))
-	                    else if (s.length == 2) {
-	                        shape.sca(Number(s[0].trim()), Number(s[1].trim()));
-	                    }
-	                }
-	            }
-	            if (prop=="rotate") {
-	                var r = val.split(",");
-	                // if (shape.type=="Blob" || shape.type=="Squiggle") {
-	                    // rotation is a different way for SVG and transform() - too bad
-	                    // it rotates around 0,0 unless a different point is chosen
-	                    // so shape.transformPoints which is a registration point system
-	                    // is unlikely to work - and too complex to add rotate around a given point
-	                    // so we will use zim rot() to which we have added rotating around a different point
-	                    // but this will rotate the little box handles
-	                    // maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
-	                    // if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
-	                if (r.length == 1) r.push(0,0);
-	                else if (r.length == 2) r.push(0);
-	                shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
-	            }
+		function processTransform(shape, transform) {
+			var tr = transform.split(")");
+			// apply all transforms in the order given
+			loop(tr, function (tra) {
+				if (tra=="") return;
+				var tran = tra.trim().split("(");
+				var prop = tran[0].trim().toLowerCase();
+				var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
+				if (prop=="translate") {
+					var m = val.split(",");
+					shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
+				}
+				if (prop=="scale"){
+					var s = val.split(",");
+					if (shape.type=="Blob" || shape.type=="Squiggle") {
+						if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
+						else if (s.length == 2) {
+							shape.transformPoints("scaleX", Number(s[0].trim()));
+							shape.transformPoints("scaleY", Number(s[1].trim()));
+						}
+					} else {
+						if (s.length == 1) shape.sca(Number(s[0].trim()))
+						else if (s.length == 2) {
+							shape.sca(Number(s[0].trim()), Number(s[1].trim()));
+						}
+					}
+				}
+				if (prop=="rotate") {
+					var r = val.split(",");
+					// if (shape.type=="Blob" || shape.type=="Squiggle") {
+						// rotation is a different way for SVG and transform() - too bad
+						// it rotates around 0,0 unless a different point is chosen
+						// so shape.transformPoints which is a registration point system
+						// is unlikely to work - and too complex to add rotate around a given point
+						// so we will use zim rot() to which we have added rotating around a different point
+						// but this will rotate the little box handles
+						// maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
+						// if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
+					if (r.length == 1) r.push(0,0);
+					else if (r.length == 2) r.push(0);
+					shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
+				}
 
-	            if (prop=="skewX") shape.skewX = val;
-	            if (prop=="skewY") shape.skewY = val;
-	        });
-	    }
+				if (prop=="skewX") shape.skewX = val;
+				if (prop=="skewY") shape.skewY = val;
+			});
+		}
 
-	    // beatgammit on StackOverflow
-	    function ellipse(x, y, xDis, yDis) {
-	        var kappa = 0.5522848, // 4 * ((√(2) - 1) / 3)
-	            ox = xDis * kappa,  // control point offset horizontal
-	            oy = yDis * kappa,  // control point offset vertical
-	            xe = x + xDis,      // x-end
-	            ye = y + yDis;      // y-end
-	        var points = [ // modified by Dan Zen to relative
-	            [x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
-	            [x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
-	            [xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
-	            [x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
-	        ];
-	        return points;
-	    }
+		// beatgammit on StackOverflow
+		function ellipse(x, y, xDis, yDis) {
+			var kappa = 0.5522848, // 4 * ((√(2) - 1) / 3)
+				ox = xDis * kappa,  // control point offset horizontal
+				oy = yDis * kappa,  // control point offset vertical
+				xe = x + xDis,      // x-end
+				ye = y + yDis;      // y-end
+			var points = [ // modified by Dan Zen to relative
+				[x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
+				[x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
+				[xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
+				[x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
+			];
+			return points;
+		}
 
 
-	    function processPath(path) {
-	        var commands = ["M","m","L","l","H","h","V","v","C","c","S","s","Q","q","T","t","A","a","z","Z"];
+		function processPath(path) {
+			var commands = ["M","m","L","l","H","h","V","v","C","c","S","s","Q","q","T","t","A","a","z","Z"];
+			var commandsRelative = ["m","l","h","v","c","s","q","t","a","z"];
 
-	        var position = new Point(0,0); // the current position - relative places based on this
-	        var id = path.getAttribute("id");
-	        var d = path.getAttribute("d");
-	        // m251.85 119.04c7.85 10.45-9.81
-	        d = d.replace(/,/g ," ");
-	        d = d.replace(/([a-zA-Z])/g, " $1 ");
-	        d = d.replace(/-/g, " -");
-	        d = d.replace(/\s+/g, " ");
+			var position = new Point(0,0); // the current position - relative places based on this
+			var id = path.getAttribute("id");
+			var d = path.getAttribute("d");
+			// m251.85 119.04c7.85 10.45-9.81
+			d = d.replace(/,/g ," ");
+			d = d.replace(/([a-zA-Z])/g, " $1 ");
+			d = d.replace(/-/g, " -");
+			d = d.replace(/\s+/g, " ");
 
-	        var g = processGeneral(path); // want ES6
-	        var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
+			var g = processGeneral(path); // want ES6
+			var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
 
-	        //kv var points = [[0,0]];											//kv adjust logic
-	        var points = [];													//kv adjust logic
-	        var line = new Point(0,0);
-	        var quad = new Point(0,0,0,0);
-	        var cube = new Point(0,0,0,0,0,0);
-	        var arc = new Point(0,0,0,0,0,0,0);
-	        //kv var data = d.split(" ");										//kv adjust logic
-	        var dataOrigin = d.split(" ");										//kv adjust logic
-	        var data = dataOrigin.slice(1,dataOrigin.length);					//kv adjust logic
-	        var missingCommand = false;											//kv adjust logic (not used)
-	        var adding = false;
-	        var what;
-	        var type = "squiggle";
-	        var dataType = null;
-	            //kv loop(data, function (command) {											//kv adjust logic
-	            loop(data, function (command,i) {												//kv adjust logic
-	                if (i==0) {startPosition.x = 0; startPosition.y=0};
-	            if (commands.indexOf(command) == -1) {
-	                if (what == "lxo") {what="lx"; aCommand.push("l");missingCommand=true};		//kv adjust logic
-	                if (what == "lyo") {what="ly"; missingCommand=true};						//kv adjust logic
-	                if (what == "Lxo") {what="Lx"; aCommand.push("L");missingCommand=true};		//kv adjust logic
-	                if (what == "Lyo") {what="Ly"; missingCommand=true};						//kv adjust logic
+			var shape;																									//kv adjust logic
+			var aNumber;																								//kv adjust logic
+			//var points = [[0,0]];																						//kv adjust logic
+			var points = [];																							//kv adjust logic
+			var lastTempPoint = [0,0];																					//kv adjust logic
+			var line = new Point(0,0);
+			var quad = new Point(0,0,0,0);
+			var cube = new Point(0,0,0,0,0,0);
+			var arc = new Point(0,0,0,0,0,0,0);
+			//kv var data = d.split(" ");																				//kv adjust logic
+			var dataOrigin = d.split(" ");																				//kv adjust logic
+			var data = dataOrigin.slice(1,dataOrigin.length);															//kv adjust logic
+			var aCommand = [];																							//kv adjust logic
+			var missingCommand = false;													//not used yet					//kv adjust logic
+			var lastCommand = "";																						//kv adjust label
+			var previousCommand = "";													//not used yet					//kv adjust logic
+			var adding = false;
+			var what;
+			var type = "squiggle";
+			var dataType = null;
+			//kv loop(data, function (command) {																		//kv adjust logic
+			loop(data, function (command,i) {																			//kv adjust logic
+				if (i==0) {startPosition.x = 0; startPosition.y=0;lastTempPoint = [0,0];lastCommand = "";previousCommand = ""};
+				if (commands.indexOf(command) == -1) {
+					if (what == "lxo") {what="lx"; aCommand.push("l");missingCommand=true};								//kv adjust logic
+					if (what == "lyo") {what="ly"; missingCommand=true};												//kv adjust logic
+					if (what == "Lxo") {what="Lx"; aCommand.push("L");missingCommand=true};								//kv adjust logic
+					if (what == "Lyo") {what="Ly"; missingCommand=true};												//kv adjust logic
+					aNumber = Number(command);																			//kv adjust logic
+					aNumber = Math.round(aNumber * 100) / 100;															//kv adjust logic
+					// position
+					if (what == "X") {
+						startPosition.x = aNumber;
+						what = "Y";
+					} else if (what == "Y") {
+						startPosition.y = aNumber;
+						//kv what = "Lx"; // in case no letters come next												//kv adjust logic
+						what = "Lxo"; // in case no letters come next													//kv adjust logic
+						points.push([startPosition.x, startPosition.y]);												//kv adjust logic
+						// what = null;
+					} else if (what == "x") {
+						//if (points.length > 1) {
+						//	startPosition.x = points[points.length-1][0]; 												//kv adjust logic
+						//	startPosition.y = points[points.length-1][1]												//kv adjust logic
+						//} else {
+						//	startPosition.x = lastTempPoint[0];															//kv adjust logic
+						//	startPosition.y = lastTempPoint[1]															//kv adjust logic
+						//};
+						startPosition.x = startPosition.x+aNumber;
+						what = "y";
+					} else if (what == "y") {
+						startPosition.y = startPosition.y+aNumber;
+						what = "lxo";																					//kv adjust logic
+						//kv what = "lx"; // in case no letters come next												//kv adjust logic
+						points.push([startPosition.x, startPosition.y]);												//kv adjust logic
+						// what = null;
+					}
 
-	                // position
-	                if (what == "X") {
-	                    startPosition.x = Number(command);
-	                    what = "Y";
-	                } else if (what == "Y") {
-	                    startPosition.y = Number(command);
-	                    //kv what = "Lx"; // in case no letters come next		//kv adjust logic
-	                    what = "Lxo"; // in case no letters come next			//kv adjust logic
-	                    points.push([startPosition.x, startPosition.y]);		//kv adjust logic
-	                    // what = null;
-	                } else if (what == "x") {
-	                    if (points.length > 1) {								//kv adkust logic
-	                        startPosition.x = points[points.length-1][0]; 		//kv adjust logic
-	                        startPosition.y = points[points.length-1][1]		//kv adjust logic
-	                    };														//kv adjust logic
-	                    startPosition.x = startPosition.x+Number(command);
-	                    what = "y";
-	                } else if (what == "y") {
-	                    startPosition.y = startPosition.y+Number(command);
-	                    what = "lxo";											//kv adjust logic
-	                    //kv what = "lx"; // in case no letters come next		//kv adjust logic
-	                    points.push([startPosition.x, startPosition.y]);		//kv adjust logic
-	                    // what = null;
-	                }
+					// left, right, top or bottom
+					if (what == "H" || what == "h") {
+						position.x = points[points.length-1][0];														//kv adjust logic
+						position.y = points[points.length-1][1];														//kv adjust logic
+						position.x = position.x + (what=="h"?aNumber:aNumber-startPosition.x);
+						points.push([position.x, position.y]);
+						what = "Lx"
+					} else if (what == "V" || what == "v") {
+						position.x = points[points.length-1][0];														//kv adjust logic
+						position.y = points[points.length-1][1];														//kv adjust logic
+						position.y = position.y + (what=="v"?aNumber:aNumber-startPosition.y);
+						points.push([position.x, position.y]);
+						what = "lx"
+					}
 
-	                // left, right, top or bottom
-	                if (what == "H" || what == "h") {
-	                    position.x = points[points.length-1][0];														//kv adjust logic
-	                    position.y = points[points.length-1][1];														//kv adjust logic
-	                    position.x = position.x + (what=="h"?Number(command):Number(command)-startPosition.x);
-	                    points.push([position.x, position.y]);
-	                    what = "Lx";
-	                } else if (what == "V" || what == "v") {
-	                    position.y = position.y + (what=="v"?Number(command):Number(command)-startPosition.y);
-	                    points.push([position.x, position.y]);
-	                    what = "lx";
-	                }
+					// line
+					if (what == "Lx") {
+						//kv line.x = aNumber-startPosition.x;							//kv adjust logic
+						line.x = aNumber;												//kv adjust logic
+						what = "Ly";
+					} else if (what == "Ly") {
+						//kv line.y = aNumber-startPosition.y;							//kv adjust logic
+						line.y = aNumber;												//kv adjust logic
+						position.x = line.x;
+						position.y = line.y;
+						points.push([position.x, position.y]);
+						what = "Lx"
+					} else if (what == "lx") {
+						if (aCommand.length > 0) {										//kv adjust logic
+							if (position.x != 0 && position.y != 0 ) {
+								startPosition.x = position.x;
+								startPosition.y = position.y
+							}
+							else {
+							startPosition.x = position.x + startPosition.x;				//kv adjust logic
+							startPosition.y = position.y + startPosition.y;				//kv adjust logic
+							//startPosition.x = position.x + lastTempPoint[0];			//kv adjust logic
+							//startPosition.y = position.y + lastTempPoint[1];			//kv adjust logic
+							}
+						};																//kv adjust logic
+						line.x = startPosition.x + aNumber;								//kv adjust logic
+						//kv line.x = line.x + aNumber;									//kv adjust logic
+						if (missingCommand) {what="lyo"} else							//kv adjust logic
+						what = "ly";
+					} else if (what == "ly") {
+						line.y = startPosition.y + aNumber;								//kv adjust logic
+						//line.y = line.y + aNumber;									//kv adjust logic
+						position.x = line.x;
+						position.y = line.y;
+						points.push([position.x, position.y]);
+						what = "lx";
+					}
 
-	                // line
-	                if (what == "Lx") {
-	                    //kv line.x = Number(command)-startPosition.x;				//kv adjust logic
-	                    line.x = Number(command);									//kv adjust logic
-	                    what = "Ly";
-	                } else if (what == "Ly") {
-	                    //kv line.y = Number(command)-startPosition.y;				//kv adjust logic
-	                    line.y = Number(command);									//kv adjust logic
-	                    position.x = line.x;
-	                    position.y = line.y;
-	                    points.push([position.x, position.y]);
-	                    what = "Lx";
-	                } else if (what == "lx") {
-	                    line.x = startPosition.x + Number(command);					//kv adjust logic
-	                    //kv line.x = line.x + Number(command);						//kv adjust logic
-	                    if (missingCommand) {what="lyo"} else						//kv adjust logic
-	                    what = "ly";
-	                } else if (what == "ly") {
-	                    line.y = startPosition.y + Number(command);					//kv adjust logic
-	                    //line.y = line.y + Number(command);						//kv adjust logic
-	                    position.x = line.x;
-	                    position.y = line.y;
-	                    points.push([position.x, position.y]);
-	                    what = "lx";
-	                }
+					// Quadratic
+					if (what == "qx" || what == "Qx") {
+						if (points.length > 0) {								//kv adjust logic
+							startPosition.x = points[points.length-1][0]; 		//kv adjust logic
+							startPosition.y = points[points.length-1][1]		//kv adjust logic
+						} else {												//kv adjust logic
+							startPosition.x = 0;						 		//kv adjust logic
+							startPosition.y = 0									//kv adjust logic
+						};														//kv adjust logic
 
-	                // Quadratic
-	                if (what == "qx" || what == "Qx") {
-	                    var lastPoint = points[points.length-1];
-	                    quad.x = what=="qx"?position.x+Number(command):Number(command)-startPosition.x;
-	                    what = what=="qx"?"qy":"Qy";
-	                } else if (what == "qy" || what == "Qy") {
-	                    quad.y = what=="qy"?position.y+Number(command):Number(command)-startPosition.y;
-	                    what = what=="qy"?"qz":"Qz";
-	                    if (adding) {
-	                        adding = false;
-	                        var lastPoint = points[points.length-1];
-	                        lastPoint[6] = -lastPoint[4];
-	                        lastPoint[7] = -lastPoint[5];
-	                        lastPoint[8] = "mirror";
-	                        position.x = quad.x;
-	                        position.y = quad.y;
-	                        points[points.length] = [
-	                            position.x, position.y,
-	                            0, 0,
-	                            -lastPoint[6], lastPoint[7],
-	                            0,0,
-	                            "free"
-	                        ];
-	                        what = what=="qy"?"qx":"Qx";
-	                    }
-	                } else if (what == "qz" || what == "Qz") {
-	                    quad.z = what=="qz"?position.x+Number(command):Number(command)-startPosition.x;
-	                    what = what=="qz"?"qq":"Qq";
-	                } else if (what == "qq" || what == "Qq") {
-	                    quad.w = what=="qq"?position.y+Number(command):Number(command)-startPosition.y;
-	                    var lastPoint = points[points.length-1];
-	                    lastPoint[6] = 2/3 *(quad.x - position.x); // relative needs position and absolute does not it
-	                    lastPoint[7] = 2/3 *(quad.y - position.y);
-	                    lastPoint[8] = "free";
-	                    position.x = quad.z; // assign this point's position - fix this and apply throughout...
-	                    position.y = quad.w;
-	                    points[points.length] = [
-	                        position.x, position.y,
-	                        0, 0,
-	                        // relative needs - startPosition and absolute does not
-	                        2/3*(quad.x-position.x), 2/3*(quad.y-position.y),
-	                        0,0,
-	                        "free"
-	                    ];
-	                    what = what=="qq"?"qx":"Qx";
-	                }
+						//kv quad.x = what=="qx"?position.x+aNumber:aNumber-startPosition.x;
+						quad.x = what=="qx"?startPosition.x+aNumber:aNumber;	//kv adjust logic
+						what = what=="qx"?"qy":"Qy";
+					} else if (what == "qy" || what == "Qy") {
+						//kv quad.y = what=="qy"?position.y+aNumber:aNumber-startPosition.y;
+						quad.y = what=="qy"?startPosition.y+aNumber:aNumber;	//kv adjust logic
+						what = what=="qy"?"qz":"Qz";
+						if (adding) {
+							adding = false;
+							var lastPoint = points[points.length-1];
+							lastPoint[6] = -lastPoint[4];
+							lastPoint[7] = -lastPoint[5];
+							lastPoint[8] = "mirror";
+							position.x = quad.x;
+							position.y = quad.y;
+							points[points.length] = [
+								position.x, position.y,
+								0, 0,
+								-lastPoint[6], lastPoint[7],
+								0,0,
+								"free"
+							];
+							what = what=="qy"?"qx":"Qx";
+						}
+					} else if (what == "qz" || what == "Qz") {
+						//kv quad.z = what=="qz"?position.x+aNumber:aNumber-startPosition.x;
+						quad.z = what=="qz"?startPosition.x+aNumber:aNumber;							//kv adjust logic
+						what = what=="qz"?"qq":"Qq";
+					} else if (what == "qq" || what == "Qq") {
+						//kv quad.w = what=="qq"?position.y+aNumber:aNumber-startPosition.y;
+						quad.w = what=="qq"?startPosition.y+aNumber:aNumber;							//kv adjust logic
+                        var lastPoint = points[points.length-1];
+                        position.x = lastPoint[0]; 													    //kv adjust logic
+                        position.y = lastPoint[1];													    //kv adjust logic
+						if (points.length == 1) {														//kv adust logic
+							lastPoint[2] = 0; lastPoint[3] = 0; lastPoint[4] = 0; lastPoint[5] = 0;		//kv adjust logic    																	//kv debug
+							lastPoint[6] = 2/3 *(quad.x - position.x); // relative needs position and absolute does not it
+							lastPoint[7] = 2/3 *(quad.y - position.y);
+							lastPoint[8] = "free"
+						}																				//kv adjust logic
+						else {																			//kv adjust logic
+							points[points.length] = [													//kv adjust logic
+								position.x, position.y,													//kv adjsut logic
+								0, 0, 0, 0,																//kv adjust logic
+								2/3*(quad.x-position.x), 												//kv adjust logic
+								2/3*(quad.y-position.y),												//kv adjust logic
+								"free"																	//kv adjust logic
+							]																			//kv adjust logic
+						};																				//kv adjust logic
+						position.x = quad.z; // assign this point's position - fix this and apply throughout...
+						position.y = quad.w;
+						points[points.length] = [
+							position.x, position.y,
+							0, 0,
+							// relative needs - startPosition and absolute does not
+							2/3*(quad.x-position.x), 2/3*(quad.y-position.y),
+							0,0,
+							"free"
+						];
+						what = what=="qq"?"qx":"Qx"
+					};
+					// Cubic
+					if (what == "cx" || what == "Cx") {
+						if (points.length > 0) {														//kv adjust logic
+							startPosition.x = points[points.length-1][0]; 								//kv adjust logic
+							startPosition.y = points[points.length-1][1]								//kv adjust logic
+						} else {																		//kv adjust logic
+							startPosition.x = 0;						 								//kv adjust logic
+							startPosition.y = 0															//kv adjust logic
+						};																				//kv adjust logic
 
-	                // kv note: I have not fully completed the test. i will wait for you to finish your cubic command test first
-	                // Cubic
-	                if (what == "cx" || what == "Cx") {
-	                    position.x = points[points.length-1][0];														//kv adjust logic
-	                    position.y = points[points.length-1][1];														//kv adjust logic
-	                    zog("last position.x = " + position.x);
-	                    zog("last position.y = " + position.y);
-	                    //kv cube.x = what=="cx"?position.x+Number(command):Number(command)-startPosition.x;
-	                    cube.x = what=="cx"?position.x+Number(command):Number(command);									//kv adjust logic
-	                    zog("cube.x = " + cube.x);
-	                    what = what=="cx"?"cy":"Cy";
-	                    zog("next is " + what)
-	                } else if (what == "cy" || what == "Cy") {
-	                    zog("last position.x = " + position.x);
-	                    zog("last position.y = " + position.y);
-	                    //kv cube.y = what=="cy"?position.y+Number(command):Number(command)-startPosition.y;
-	                    cube.y = what=="cy"?position.y+Number(command):Number(command);									//kv adjust logic
-	                    zog("cube.y = " + cube.y);
-	                    what = what=="cy"?"cz":"Cz";
-	                    zog("next is " + what)
-	                } else if (what == "cz" || what == "Cz") {
-	                    zog("last position.x = " + position.x);
-	                    zog("last position.y = " + position.y);
-	                    //kv cube.z = what=="cz"?position.x+Number(command):Number(command)-startPosition.x;
-	                    cube.z = what=="cz"?position.x+Number(command):Number(command);									//kv adjust logic
-	                    zog("cube.z = " + cube.z);
-	                    what = what=="cz"?"cq":"Cq";
-	                    zog("next is " + what)
-	                } else if (what == "cq" || what == "Cq") {
-	                    zog("last position.x = " + position.x);
-	                    zog("last position.y = " + position.y);
-	                    //kv cube.q = what=="cq"?position.y+Number(command):Number(command)-startPosition.y;
-	                    cube.q = what=="cq"?position.y+Number(command):Number(command);									//kv adjust logic
-	                    zog("cube.q = " + cube.q);
-	                    what = what=="cq"?"cr":"Cr";
-	                    zog("next is " + what)
-	                    if (adding) {
-	                        adding = false;
-	                        var lastPoint = points[points.length-1];
-	                        lastPoint[6] = -lastPoint[4];
-	                        lastPoint[7] = -lastPoint[5];
-	                        lastPoint[8] = "mirror";
-	                        position.x = cube.z;
-	                        position.y = cube.q;
-	                        points[points.length] = [
-	                            position.x, position.y,
-	                            0, 0,
-	                            cube.x-position.x, cube.y-position.y,
-	                            0,0,
-	                            "free"
-	                        ];
-	                        what = what=="cq"?"cx":"Cx";
-	                    }
-	                } else if (what == "cr" || what == "Cr") {
-	                    zog("last position.x = " + position.x);
-	                    zog("last position.y = " + position.y);
-	                    //kv cube.r = what=="cr"?position.x+Number(command):Number(command)-startPosition.x;
-	                    cube.r = what=="cr"?position.x+Number(command):Number(command);									//kv adjust logic
-	                    zog("cube.r = " + cube.r);
-	                    what = what=="cr"?"cs":"Cs";
-	                    zog("next is " + what)
-	                } else if (what == "cs" || what == "Cs") {
-	                    zog("last position.x = " + position.x);
-	                    zog("last position.y = " + position.y);
-	                    //kv cube.s = what=="cs"?position.y+Number(command):Number(command)-startPosition.y;
-	                    cube.s = what=="cs"?position.y+Number(command):Number(command);									//kv adjust logic
-	                    zog("cube.s = " + cube.s);
-	                    var lastPoint = points[points.length-1];
-	                    lastPoint[6] = cube.x;
-	                    lastPoint[7] = cube.y;
-	                    lastPoint[8] = "free";
-	                    position.x = cube.r;
-	                    position.y = cube.s;
-	                    points[points.length] = [
-	                        position.x, position.y,
-	                        0, 0,
-	                        cube.z-position.x, cube.q-position.y,
-	                        0,0,
-	                        "free"
-	                    ];
-	                    what = what=="cs"?"cx":"Cx";
-	                }
+						//kv cube.x = what=="cx"?position.x+aNumber:aNumber-startPosition.x;
+						cube.x = what=="cx"?startPosition.x+aNumber:aNumber;							//kv adjust logic
+						what = what=="cx"?"cy":"Cy";
+					} else if (what == "cy" || what == "Cy") {		// y Control Point 1
+						//kv cube.y = what=="cy"?position.y+aNumber:aNumber-startPosition.y;
+						cube.y = what=="cy"?startPosition.y+aNumber:aNumber;							//kv adjust logic
+						what = what=="cy"?"cz":"Cz";
+					} else if (what == "cz" || what == "Cz") {		// x Control Point 2
+						//kv cube.z = what=="cz"?position.x+aNumber:aNumber-startPosition.x;
+						cube.z = what=="cz"?startPosition.x+aNumber:aNumber;							//kv adjust logic
+						what = what=="cz"?"cq":"Cq";
+					} else if (what == "cq" || what == "Cq") {		// y Control Point 2
+						//kv cube.q = what=="cq"?position.y+aNumber:aNumber-startPosition.y;
+						cube.q = what=="cq"?startPosition.y+aNumber:aNumber;							//kv adjust logic
+						what = what=="cq"?"cr":"Cr";
+						if (adding) {
+							if (lastCommand=="s") {previousCommand = "s"} else {previousCommand = "S"};
+							//kv adding = false;
+							//kv update previous point
+							var lastPoint = points[points.length-1];
+								lastPoint[2] = 0;							//kv adjust logic
+								lastPoint[3] = 0;							//kv adjust logic
+								if(zot(lastPoint[4])) {lastPoint[4] =0};	//kv adjust logic
+								if(zot(lastPoint[5])) {lastPoint[5] =0};	//kv adjust logic
+								//kv lastPoint[6] = -lastPoint[4];
+								//kv lastPoint[7] = -lastPoint[5];
+								lastPoint[6] = - (cube.x-cube.z);			//kv adjust logic
+								lastPoint[7] = - (cube.y-cube.q);			//kv adjust logic
+								lastPoint[8] = "mirror";
+								//kv create very lastPoint
+								position.x = cube.z;
+								position.y = cube.q;
+								points[points.length] = [
+									position.x, position.y,
+									0, 0,
+									cube.x-position.x, cube.y-position.y,
+									0,0,
+									"free"
+								];
+							//kv what = what=="cq"?"cx":"Cx";
+							what = what=="cr"?"cx":"Cx"																			//kv adjust logic
+						}
+					} else if (what == "cr" || what == "Cr") {
+						//kv cube.r = what=="cr"?position.x+aNumber:aNumber-startPosition.x;
+						cube.r = what=="cr"?startPosition.x+aNumber:aNumber;													//kv adjust logic
+						what = what=="cr"?"cs":"Cs";
+					} else if (what == "cs" || what == "Cs") {																	// y 2nd Point
+						//kv cube.s = what=="cs"?position.y+aNumber:aNumber-startPosition.y;
+						cube.s = what=="cs"?startPosition.y+aNumber:aNumber;													//kv adjust logic
+						//points.push([cube.r, cube.s]);																		//kv adjust logic
+						//[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType],					//kv debug
+						var lastPoint = points[points.length-1];
+						if (points.length == 1) {lastPoint[2] = 0; lastPoint[3] = 0; lastPoint[4] = 0; lastPoint[5] = 0};		//kv adjust logic
+						lastPoint[6] = cube.x-lastPoint[0];
+						lastPoint[7] = cube.y-lastPoint[1];
+						lastPoint[8] = "free";
+						position.x = cube.r;
+						position.y = cube.s;
+						points[points.length] = [
+							position.x, position.y,
+							0, 0,
+							cube.z-position.x, cube.q-position.y,
+							0,0,
+							"free"
+						];
+						what = what=="cs"?"cx":"Cx";
+					}
 
-	            };
+					// // Arc - TODO - equation does not seem to work
+					// // https://github.com/colinmeinke/svg-arc-to-cubic-bezier/issues/7
+					// // rx ry x-axis-rotation large-arc-flag sweep-flag x y
+					// if (what == "ax" || what == "Ax") {
+					// 	arc.x = aNumber; // radius x
+					// 	what = what=="ax"?"ay":"Ay";
+					// } else if (what == "ay" || what == "Ay") {
+					// 	arc.y = aNumber; // radius y
+					// 	what = what=="ay"?"az":"Az";
+					// } else if (what == "az" || what == "Az") {
+					// 	arc.z = aNumber; // x-axis-rotation
+					// 	what = what=="az"?"aq":"Aq";
+					// } else if (what == "aq" || what == "Aq") {
+					// 	arc.q = aNumber; // large-arc-flag
+					// 	what = what=="aq"?"ar":"Ar";
+					// } else if (what == "ar" || what == "Ar") {
+					// 	arc.r = aNumber; // sweep-flag
+					// 	what = what=="ar"?"as":"As";
+					// } else if (what == "as" || what == "As") {
+					// 	arc.s = what=="as"?position.x+aNumber:aNumber-startPosition.x;
+					// 	//zog(arc.s)
+					// 	what = what=="as"?"at":"At";
+					// } else if (what == "at" || what == "At") {
+					// 	arc.t = what=="at"?position.y+aNumber:aNumber-startPosition.y;
+					// 	//zog(arc.t)
+					// 	// rx ry x-axis-rotation large-arc-flag sweep-flag x y
+					//
+					// 	zta(arc)
+					// 	var curves = arcToBezier({
+					// 	  px: position.x,
+					// 	  py: position.y,
+					// 	  cx: arc.s,
+					// 	  cy: arc.t,
+					// 	  rx: arc.x,
+					// 	  ry: arc.y,
+					// 	  xAxisRotation: arc.z,
+					// 	  largeArcFlag: arc.q,
+					// 	  sweepFlag: arc.r,
+					// 	});
+					//
+					// 	//zta(curves)
+					//
+					// 	loop(curves, function (curve) {
+					// 		lastPoint = points[points.length-1];
+					// 		lastPoint[6] = curve.x1-position.x;
+					// 		lastPoint[7] = curve.y1-position.y;
+					// 		lastPoint[8] = "free";
+					// 		//zog(curve.x, curve.y)
+					// 		position.x = curve.x;
+					// 		position.y = curve.y;
+					// 		points[points.length] = [
+					// 			position.x, position.y,
+					// 			0, 0,
+					// 			curve.x2-position.x, curve.y2-position.y,
+					// 			0,0,
+					// 			"free"
+					// 		];
+					// 	});
+					// 	what = what=="at"?"ax":"Ax";
+					// }
+				}
+				else {
+					aCommand.push(command);													// kv adjust logic
 
-	            // Commands
-	            if (command=="M") {
-	                what = "X";
-	            } else if (command=="m") {
-	                what = "x";
-	            } else if (command=="L") {
-	                what = "Lx";
-	                if (splitTypes && dataType && (dataType != "l")) makeShape();
-	                dataType = "l";
-	            } else if (command=="l") {
-	                what = "lx";
-	                if (splitTypes && dataType && (dataType != "l")) makeShape();
-	                dataType = "l";
-	            } else if (command=="H") {
-	                what = "H";
-	                if (splitTypes && dataType && (dataType != "l")) makeShape();
-	                dataType = "l";
-	            } else if (command=="h") {
-	                what = "h";
-	                if (splitTypes && dataType && (dataType != "l")) makeShape();
-	                dataType = "l";
-	            } else if (command=="V") {
-	                what = "V";
-	                if (splitTypes && dataType && (dataType != "l")) makeShape();
-	                dataType = "l";
-	            } else if (command=="v") {
-	                what = "v";
-	                if (splitTypes && dataType && (dataType != "l")) makeShape();
-	                dataType = "l";
-	            } else if (command=="C") {
-	                what = "Cx";
-	                if (splitTypes && dataType && (dataType != "c")) makeShape();
-	                dataType = "c";
-	            } else if (command=="c") {
-	                what = "cx";
-	                if (splitTypes && dataType && (dataType != "c")) makeShape();
-	                dataType = "c";
-	            } else if (command=="S") {
-	                adding = true;
-	                what = "Cx";
-	                if (splitTypes && dataType && (dataType != "c")) makeShape();
-	                dataType = "c";
-	            } else if (command=="s") {
-	                adding = true;
-	                what = "cx";
-	                if (splitTypes && dataType && (dataType != "c")) makeShape();
-	                dataType = "c";
-	            } else if (command=="Q") {
-	                what = "Qx";
-	                if (splitTypes && dataType && (dataType != "q")) makeShape();
-	                dataType = "q";
-	            } else if (command=="q") {
-	                what = "qx";
-	                if (splitTypes && dataType && (dataType != "q")) makeShape();
-	                dataType = "q";
-	            } else if (command=="T") {
-	                adding = true;
-	                what = "Qx";
-	                if (splitTypes && dataType && (dataType != "q")) makeShape();
-	                dataType = "q";
-	            } else if (command=="t") {
-	                adding = true;
-	                what = "qx";
-	                if (splitTypes && dataType && (dataType != "q")) makeShape();
-	                dataType = "q";
-	            } else if (command=="A") {
-	                type = null;
-	            // 	what = "Ax";
-	            // 	if (splitTypes && dataType && (dataType != "a")) makeShape();
-	            // 	dataType = "a";
-	            // } else if (command=="a") {
-	            // 	what = "ax";
-	            // 	if (splitTypes && dataType && (dataType != "a")) makeShape();
-	            // 	dataType = "a";
-	            } else if (command=="z" || command=="Z") {
-	                type = "blob";
-	            }
+					// Commands
+					if (command != "s") {adding = false};									// kv adjust logic
+					if (aCommand.length > 1) {												// kv adjust logic
+						// if (aCommand[aCommand.length-2] != command) {
+						if (command=="M" || command=="m") {
+							makeShape(aCommand);
+							if (command=="M") {startPosition.x = 0; startPosition.y=0}
+							else {
+								startPosition.x = points[points.length-1][0]; startPosition.y=points[points.length-1][1];
+							};
+							points = [];
+							aCommand = [];
+							aCommand.push(command)
+						}
+					};																		// kv adjust logic
 
-	        }); // end of data loop
+					if (command=="M") {
+						what = "X";
+					} else if (command=="m") {
+						what = "x";
+					} else if (command=="L") {
+						what = "Lx";
+						if (splitTypes && dataType && (dataType != "l")) makeShape(aCommand);
+						dataType = "l";
+					} else if (command=="l") {
+						what = "lx";
+						if (splitTypes && dataType && (dataType != "l")) makeShape(aCommand);
+						dataType = "l";
+					} else if (command=="H") {
+						what = "H";
+						if (splitTypes && dataType && (dataType != "l")) makeShape(aCommand);
+						dataType = "l";
+					} else if (command=="h") {
+						what = "h";
+						if (splitTypes && dataType && (dataType != "l")) makeShape(aCommand);
+						dataType = "l";
+					} else if (command=="V") {
+						what = "V";
+						if (splitTypes && dataType && (dataType != "l")) makeShape(aCommand);
+						dataType = "l";
+					} else if (command=="v") {
+						what = "v";
+						if (splitTypes && dataType && (dataType != "l")) makeShape(aCommand);
+						dataType = "l";
+					} else if (command=="C") {
+						what = "Cx";
+						if (splitTypes && dataType && (dataType != "c")) makeShape(aCommand);
+						dataType = "c";
+					} else if (command=="c") {
+						what = "cx";
+						if (splitTypes && dataType && (dataType != "c")) makeShape(aCommand);
+						dataType = "c";
+					} else if (command=="S") {
+						adding = true;
+						what = "Cx";
+						if (splitTypes && dataType && (dataType != "c")) makeShape(aCommand);
+						dataType = "c";
+					} else if (command=="s") {
+						adding = true;
+						what = "cx";
+						if (splitTypes && dataType && (dataType != "c")) makeShape(aCommand);
+						dataType = "c";
+					} else if (command=="Q") {
+						what = "Qx";
+						if (splitTypes && dataType && (dataType != "q")) makeShape(aCommand);
+						dataType = "q";
+					} else if (command=="q") {
+						what = "qx";
+						if (splitTypes && dataType && (dataType != "q")) makeShape(aCommand);
+						dataType = "q";
+					} else if (command=="T") {
+						adding = true;
+						what = "Qx";
+						if (splitTypes && dataType && (dataType != "q")) makeShape(aCommand);
+						dataType = "q";
+					} else if (command=="t") {
+						adding = true;
+						what = "qx";
+						if (splitTypes && dataType && (dataType != "q")) makeShape(aCommand);
+						dataType = "q";
+					} else if (command=="A") {
+						type = null;
+					// 	what = "Ax";
+					// 	if (splitTypes && dataType && (dataType != "a")) makeShape();
+					// 	dataType = "a";
+					// } else if (command=="a") {
+					// 	what = "ax";
+					// 	if (splitTypes && dataType && (dataType != "a")) makeShape();
+					// 	dataType = "a";
+					} else if (command=="z" || command=="Z") {
+						type = "blob";
+					}
 
-	        function makeShape() {
-	            var shape;
-	            if (points.length >= 2)
-	            // M 100 350 l 150 -300
-	            if (type == "squiggle") shape = new Squiggle(s, ss, points);
-	            else shape = new Blob(f, s, ss, points);
-	            shape.loc(0,0);																//kv adjust logic
-	            //kv shape.loc(startPosition.x, startPosition.y, that);
-	            //kv startPosition.x = startPosition.x + position.x;
-	            //kv startPosition.y = startPosition.y + position.y;
-	            position.x = 0;
-	            position.y = 0;
-	            points = [[0,0]];
+				}	// end of Command process
 
-	            var transform = path.getAttribute("transform");
-	            if (transform || currentTransform) processTransform(shape, transform || currentTransform);
-	        }
-	        makeShape();
-	    } // end process path
-	    if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
-	    this.clone = function() {
-	        return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, style, this.group, inherit));
-	    }
+			}); // end of data loop
+
+			function makeShape(myCommand) {
+				var myCommand;
+				//var shape;																							//kv adjust logic
+				lastCommand = aCommand[aCommand.length-1];																//kv adjust logic
+				if (points.length >= 2)
+					// M 100 350 l 150 -300
+					if (lastCommand == "z" || lastCommand == "Z") {type = "blob"};										//kv adjust logic
+					//if (zot(shape)) {																					//kv adjust logic
+						if (type == "squiggle") shape = new Squiggle(s, ss, points);
+						else shape = new Blob(f, s, ss, points);
+						shape.loc(0,0);																					//kv adjust logic
+					//} else {																							//kv adjust logic
+					//	var dataPointsArray = [];																		//kv adjust logic
+					//	dataPointsArray = shape.recordPoints().concat(points);											//kv adjust logic
+					//	//shape.removeFrom();																			//kv adjust logic
+					//	if (type == "squiggle") shape = new Squiggle(s, ss, dataPointsArray)							//kv adjust logic
+					//	else shape = new Blob(f, s, ss, dataPointsArray)												//kv adjust logic
+					//};
+					//kv shape.loc(startPosition.x, startPosition.y, that);												//kv adjust logic
+					//kv startPosition.x = startPosition.x + position.x;												//kv adjust logic
+					//kv startPosition.y = startPosition.y + position.y;												//kv adjust logic
+					lastCommand = aCommand[aCommand.length-1];															//kv adjust logic
+					previousCommand = aCommand[aCommand.length-2];														//kv adjust logic
+					if (commandsRelative.indexOf(lastCommand) >= 0) {
+						//if (aCommand[aCommand.length-1] == "m") {														//kv adjust logic
+						lastTempPoint[0] = points[points.length-1][0]; lastTempPoint[1] = points[points.length-1][1];	//kv adjust logic
+						startPosition.x = points[points.length-1][0]; startPosition.y = points[points.length-1][1];		//kv adjust logic
+						points = [];																					// LATEST CHANGES
+						points.push([lastTempPoint[0], lastTempPoint[1]]);												//kv adjust logic
+					} else {lastTempPoint = [0,0]; points = [[0,0]]};
+
+					aCommand = [];																						//kv adjust logic
+					if (lastCommand != "z" && lastCommand != "Z") aCommand.push(lastCommand);							//kv adjust logic
+
+					position.x = 0;
+					position.y = 0;
+					//kv points = [[0,0]];
+
+				var transform = path.getAttribute("transform");
+				if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+			};
+
+			makeShape();
+		} // end process path
+
+		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
+		this.clone = function() {
+			return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, style, this.group, inherit));
+		}
 	}
 	zim.extend (zim.SVGContainer, zim.Container, "clone", "zimContainer", false);
 	//-51
-
-	// zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit) {
-	// 	var sig = "svg, splitTypes, geometric, style, group, inherit";
-	// 	var duo; if (duo = zob(zim.SVGContainer, arguments, sig, this)) return duo;
-	// 	z_d("50.95");
-	// 	this.group = group;
-	// 	var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
-	//
-	// 	var parser = new DOMParser();
-	// 	var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
-	// 	var list = svg.getElementsByTagName("svg");
-	// 	var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
-	// 	var w, h;
-	// 	if (!zot(tag)){
-	// 		var w = tag.getAttribute("width");
-	// 		var h = tag.getAttribute("height");
-	// 	}
-	// 	if (w) w = Number(w.trim());
-	// 	if (h) h = Number(h.trim());
-	// 	this.zimContainer_constructor(w, h);
-	// 	this.type = "SVGContainer";
-	//
-	// 	if (zot(tag)) return;
-	// 	if (zot(splitTypes)) splitTypes = true;
-	// 	if (zot(geometric)) geometric = true;
-	//
-	// 	var that = this;
-	//
-	// 	var defaultFill = black, generalFill = black;
-	// 	var defaultStroke = black, generalStroke = black;
-	// 	var defaultStrokeSize = 2, generalStrokeSize = 2;
-	// 	var defaultAlpha = 1, generalAlpha = 1;
-	// 	var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
-	// 	var currentTransform;
-	//
-	// 	var startPosition = new Point(0,0); // the x,y of the last shape
-	//
-	// 	function processTag(tag) {
-	// 		loop(tag, function (t) {
-	// 			// zog("parsing " + t.tagName);
-	// 			var tn = t.tagName.toLowerCase();
-	// 			if (tn == "path") processPath(t);
-	// 			if (tn == "circle") processShape("circle", t);
-	// 			if (tn == "rect") processShape("rect", t);
-	// 			if (tn == "ellipse") processShape("ellipse", t);
-	// 			if (tn == "line") processShape("line", t);
-	// 			if (tn == "polygon") processShape("polygon", t);
-	// 			if (tn == "polyline") processShape("polyline", t);
-	// 			if (tn == "g") {
-	// 				// styles can be overwritten by parameters in the general tag
-	// 				// so find styles first
-	// 				var style = t.getAttribute("style");
-	// 				var f,s,ss,a,aa;
-	// 				if (style) {
-	// 					var styles = processStyle(style);
-	// 					f = styles[0];
-	// 					s = styles[1];
-	// 					ss = styles[2];
-	// 					a = styles[3];
-	// 					aa = styles[4];
-	// 				}
-	// 				// then overwrite styles with any attribute values
-	// 				currentTransform = t.getAttribute("transform");
-	// 				generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
-	// 				generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
-	// 				generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
-	// 				generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
-	// 				generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
-	// 			}
-	// 			// general settings can wrap any number of tags - the tags are processed here:
-	// 			processTag(t.children);
-	// 			// after this nest of tags are processed, clear the general settings
-	// 			if (t.tagName.toLowerCase() == "g") {
-	// 				generalFill = defaultFill;
-	// 				generalStroke = defaultStroke;
-	// 				generalStrokeSize = defaultStrokeSize;
-	// 				generalAlpha = defaultAlpha;
-	// 				generalStrokeAlpha = defaultStrokeAlpha;
-	// 				currentTransform = null;
-	// 			}
-	// 		})
-	// 	}
-	// 	processTag(svg.getElementsByTagName("svg"));
-	//
-	// 	function processStyle(style) {
-	// 		var st = style.split(";");
-	// 		var f,s,ss,a,aa;
-	// 		loop(st, function (sty) {
-	// 			var styl = sty.split(":");
-	// 			var prop = styl[0].trim().toLowerCase();
-	// 			var val = styl[1].trim().toLowerCase().replace("px", "");
-	// 			if (prop=="fill") f = val;
-	// 			if (prop=="stroke") s = val;
-	// 			if (prop=="stroke-width") ss = val;
-	// 			if (prop=="opacity") a = val, aa = val;
-	// 			if (prop=="fill-opacity") a = val;
-	// 			if (prop=="stroke-opacity") aa = val;
-	// 		});
-	// 		return [f,s,ss,a,aa];
-	// 	}
-	//
-	// 	function processGeneral(tag) {
-	// 		// any styles on the tag overwrites general styles or attributes
-	// 		var f,s,ss,a,aa;
-	// 		var style = tag.getAttribute("style");
-	// 		if (style) {
-	// 			var styles = processStyle(style);
-	// 			f = styles[0];
-	// 			s = styles[1];
-	// 			ss = styles[2];
-	// 			a = styles[3];
-	// 			aa = styles[4];
-	// 		}
-	// 		// any attributes on the tag overwrites styles or general
-	// 		f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
-	// 		s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
-	// 		ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:generalStrokeSize;
-	// 		a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
-	// 		aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
-	//
-	// 		var x = tag.getAttribute("x")?tag.getAttribute("x"):0;
-	// 		x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
-	// 		var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
-	// 		y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
-	// 		if (!zot(a) && !zot(f)) f = convertColor(f, "rgba", Number(a));
-	// 		if (!zot(aa) && !zot(s)) s = convertColor(s, "rgba", Number(aa));
-	// 		return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
-	// 	}
-	//
-	// 	function processShape(type, tag) {
-	// 		var shape;
-	// 		var g = processGeneral(tag); // want ES6
-	// 		var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
-	// 		if (type == "circle") {
-	// 			var r = Number(tag.getAttribute("r").trim());
-	// 			var d = r*.5523;
-	// 			if (geometric) shape = new Circle(Number(tag.getAttribute("r")), f, s, ss);
-	// 			else shape = new Blob(f, s, ss, 4, r, d, "mirror");
-	// 		} else if (type == "rect") {
-	// 			if (geometric) shape = new Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
-	// 			else {
-	// 				var w = Number(tag.getAttribute("width"));
-	// 				var h = Number(tag.getAttribute("height"));
-	// 				var rx = Number(tag.getAttribute("rx"));
-	// 				var ry = Number(tag.getAttribute("ry"));
-	// 				if (rx && ry) {
-	// 					var dx = rx*.5523;
-	// 					var dy = ry*.5523;
-	// 					shape = new Blob(f, s, ss, [
-	// 						[rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
-	// 						[w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
-	// 						[w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
-	// 						[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
-	// 				} else {
-	// 					shape = new Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
-	// 				}
-	// 			}
-	// 		} else if (type == "line") {
-	// 			shape = new Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
-	// 		} else if (type == "polygon" || type == "polyline") {
-	// 			var p = tag.getAttribute("points");
-	// 			p = p.replace(/-/g, " -");
-	// 			p = p.replace(/\s+/g, " ");
-	// 			var points = [];
-	// 			loop(p.split(" "), function (point) {
-	// 				var pp = point.split(",");
-	// 				points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
-	// 			})
-	// 			if (type=="polygon") shape = new Blob(f, s, ss, points);
-	// 			else shape = new Squiggle(s, ss, points);
-	// 		} else if (type == "ellipse") {
-	// 			shape = new Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
-	// 		}
-	// 		shape.loc(x,y,that);
-	// 		var transform = tag.getAttribute("transform");
-	// 		if (transform || currentTransform) processTransform(shape, transform || currentTransform);
-	// 		if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
-	// 	}
-	//
-	// 	function processTransform(shape, transform) {
-	// 		var tr = transform.split(")");
-	// 		// apply all transforms in the order given
-	// 		loop(tr, function (tra) {
-	// 			if (tra=="") return;
-	// 			var tran = tra.trim().split("(");
-	// 			var prop = tran[0].trim().toLowerCase();
-	// 			var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
-	// 			if (prop=="translate") {
-	// 				var m = val.split(",");
-	// 				shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
-	// 			}
-	// 			if (prop=="scale"){
-	// 				var s = val.split(",");
-	// 				if (shape.type=="Blob" || shape.type=="Squiggle") {
-	// 					if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
-	// 					else if (s.length == 2) {
-	// 						shape.transformPoints("scaleX", Number(s[0].trim()));
-	// 						shape.transformPoints("scaleY", Number(s[1].trim()));
-	// 					}
-	// 				} else {
-	// 					if (s.length == 1) shape.sca(Number(s[0].trim()))
-	// 					else if (s.length == 2) {
-	// 						shape.sca(Number(s[0].trim()), Number(s[1].trim()));
-	// 					}
-	// 				}
-	// 			}
-	// 			if (prop=="rotate") {
-	// 				var r = val.split(",");
-	// 				// if (shape.type=="Blob" || shape.type=="Squiggle") {
-	// 					// rotation is a different way for SVG and transform() - too bad
-	// 					// it rotates around 0,0 unless a different point is chosen
-	// 					// so shape.transformPoints which is a registration point system
-	// 					// is unlikely to work - and too complex to add rotate around a given point
-	// 					// so we will use zim rot() to which we have added rotating around a different point
-	// 					// but this will rotate the little box handles
-	// 					// maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
-	// 					// if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
-	// 				if (r.length == 1) r.push(0,0);
-	// 				else if (r.length == 2) r.push(0);
-	// 				shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
-	// 			}
-	//
-	// 			if (prop=="skewX") shape.skewX = val;
-	// 			if (prop=="skewY") shape.skewY = val;
-	// 		});
-	// 	}
-	//
-	// 	// beatgammit on StackOverflow
-	// 	function ellipse(x, y, xDis, yDis) {
-	// 		var kappa = 0.5522848, // 4 * ((√(2) - 1) / 3)
-	// 			ox = xDis * kappa,  // control point offset horizontal
-	// 			oy = yDis * kappa,  // control point offset vertical
-	// 			xe = x + xDis,      // x-end
-	// 			ye = y + yDis;      // y-end
-	// 		var points = [ // modified by Dan Zen to relative
-	// 			[x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
-	// 			[x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
-	// 			[xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
-	// 			[x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
-	// 		];
-	// 		return points;
-	// 	}
-	//
-	// 	function processPath(path) {
-	// 		var commands = ["M","m","L","l","H","h","V","v","C","c","S","s","Q","q","T","t","A","a","z","Z"];
-	//
-	// 		var position = new Point(0,0); // the current position - relative places based on this
-	// 		var id = path.getAttribute("id");
-	// 		var d = path.getAttribute("d");
-	// 		// m251.85 119.04c7.85 10.45-9.81
-	// 		d = d.replace(/,/g ," ");
-	// 		d = d.replace(/([a-zA-Z])/g, " $1 ");
-	// 		d = d.replace(/-/g, " -");
-	// 		d = d.replace(/\s+/g, " ");
-	//
-	// 		var g = processGeneral(path); // want ES6
-	// 		var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
-	//
-	// 		var points = [[0,0]];
-	// 		var line = new Point(0,0);
-	// 		var quad = new Point(0,0,0,0);
-	// 		var cube = new Point(0,0,0,0,0,0);
-	// 		var arc = new Point(0,0,0,0,0,0,0);
-	// 		var data = d.split(" ");
-	// 		var adding = false;
-	// 		var what;
-	// 		var type = "squiggle";
-	// 		var dataType = null;
-	// 		loop(data, function (command) {
-	//
-	// 			if (commands.indexOf(command) == -1) {
-	// 				// position
-	// 				if (what == "X") {
-	// 					startPosition.x = Number(command);
-	// 					what = "Y";
-	// 				} else if (what == "Y") {
-	// 					startPosition.y = Number(command);
-	// 					what = "Lx"; // in case no letters come next
-	// 					// what = null;
-	// 				} else if (what == "x") {
-	// 					startPosition.x = startPosition.x+Number(command);
-	// 					what = "y";
-	// 				} else if (what == "y") {
-	// 					startPosition.y = startPosition.y+Number(command);
-	// 					what = "lx"; // in case no letters come next
-	// 					// what = null;
-	// 				}
-	//
-	// 				// left, right, top or bottom
-	// 				if (what == "H" || what == "h") {
-	// 					position.x = position.x + (what=="h"?Number(command):Number(command)-startPosition.x);
-	// 					points.push([position.x, position.y]);
-	// 					what = "Lx";
-	// 				} else if (what == "V" || what == "v") {
-	// 					position.y = position.y + (what=="v"?Number(command):Number(command)-startPosition.y);
-	// 					points.push([position.x, position.y]);
-	// 					what = "lx";
-	// 				}
-	//
-	// 				// line
-	// 				if (what == "Lx") {
-	// 					line.x = Number(command)-startPosition.x;
-	// 					what = "Ly";
-	// 				} else if (what == "Ly") {
-	// 					line.y = Number(command)-startPosition.y;
-	// 					position.x = line.x;
-	// 					position.y = line.y;
-	// 					points.push([position.x, position.y]);
-	// 					what = "Lx";
-	// 				} else if (what == "lx") {
-	// 					line.x = line.x + Number(command);
-	// 					what = "ly";
-	// 				} else if (what == "ly") {
-	// 					line.y = line.y + Number(command);
-	// 					position.x = line.x;
-	// 					position.y = line.y;
-	// 					points.push([position.x, position.y]);
-	// 					what = "ly";
-	// 				}
-	//
-	// 				// Quadratic
-	// 				if (what == "qx" || what == "Qx") {
-	// 					var lastPoint = points[points.length-1];
-	// 					quad.x = what=="qx"?position.x+Number(command):Number(command)-startPosition.x;
-	// 					what = what=="qx"?"qy":"Qy";
-	// 				} else if (what == "qy" || what == "Qy") {
-	// 					quad.y = what=="qy"?position.y+Number(command):Number(command)-startPosition.y;
-	// 					what = what=="qy"?"qz":"Qz";
-	// 					if (adding) {
-	// 						adding = false;
-	// 						var lastPoint = points[points.length-1];
-	// 						lastPoint[6] = -lastPoint[4];
-	// 						lastPoint[7] = -lastPoint[5];
-	// 						lastPoint[8] = "mirror";
-	// 						position.x = quad.x;
-	// 						position.y = quad.y;
-	// 						points[points.length] = [
-	// 							position.x, position.y,
-	// 							0, 0,
-	// 							-lastPoint[6], lastPoint[7],
-	// 							0,0,
-	// 							"free"
-	// 						];
-	// 						what = what=="qy"?"qx":"Qx";
-	// 					}
-	// 				} else if (what == "qz" || what == "Qz") {
-	// 					quad.z = what=="qz"?position.x+Number(command):Number(command)-startPosition.x;
-	// 					what = what=="qz"?"qq":"Qq";
-	// 				} else if (what == "qq" || what == "Qq") {
-	// 					quad.w = what=="qq"?position.y+Number(command):Number(command)-startPosition.y;
-	// 					var lastPoint = points[points.length-1];
-	// 					lastPoint[6] = 2/3 *(quad.x - position.x); // relative needs position and absolute does not it
-	// 					lastPoint[7] = 2/3 *(quad.y - position.y);
-	// 					lastPoint[8] = "free";
-	// 					position.x = quad.z; // assign this point's position - fix this and apply throughout...
-	// 					position.y = quad.w;
-	// 					points[points.length] = [
-	// 						position.x, position.y,
-	// 						0, 0,
-	// 						// relative needs - startPosition and absolute does not
-	// 						2/3*(quad.x-position.x), 2/3*(quad.y-position.y),
-	// 						0,0,
-	// 						"free"
-	// 					];
-	// 					what = what=="qq"?"qx":"Qx";
-	// 				}
-	//
-	// 				// Cubic
-	// 				if (what == "cx" || what == "Cx") {
-	// 					var lastPoint = points[points.length-1];
-	// 					cube.x = what=="cx"?position.x+Number(command):Number(command)-startPosition.x;
-	// 					what = what=="cx"?"cy":"Cy";
-	// 				} else if (what == "cy" || what == "Cy") {
-	// 					cube.y = what=="cy"?position.y+Number(command):Number(command)-startPosition.y;
-	// 					what = what=="cy"?"cz":"Cz";
-	// 				} else if (what == "cz" || what == "Cz") {
-	// 					cube.z = what=="cz"?position.x+Number(command):Number(command)-startPosition.x;
-	// 					what = what=="cz"?"cq":"Cq";
-	// 				} else if (what == "cq" || what == "Cq") {
-	// 					cube.q = what=="cq"?position.y+Number(command):Number(command)-startPosition.y;
-	// 					what = what=="cq"?"cr":"Cr";
-	// 					if (adding) {
-	// 						adding = false;
-	// 						var lastPoint = points[points.length-1];
-	// 						lastPoint[6] = -lastPoint[4];
-	// 						lastPoint[7] = -lastPoint[5];
-	// 						lastPoint[8] = "mirror";
-	// 						position.x = cube.z;
-	// 						position.y = cube.q;
-	// 						points[points.length] = [
-	// 							position.x, position.y,
-	// 							0, 0,
-	// 							cube.x-position.x, cube.y-position.y,
-	// 							0,0,
-	// 							"free"
-	// 						];
-	// 						what = what=="cq"?"cx":"Cx";
-	// 					}
-	// 				} else if (what == "cr" || what == "Cr") {
-	// 					cube.r = what=="cr"?position.x+Number(command):Number(command)-startPosition.x;
-	// 					what = what=="cr"?"cs":"Cs";
-	// 				} else if (what == "cs" || what == "Cs") {
-	// 					cube.s = what=="cs"?position.y+Number(command):Number(command)-startPosition.y;
-	// 					var lastPoint = points[points.length-1];
-	// 					lastPoint[6] = cube.x;
-	// 					lastPoint[7] = cube.y;
-	// 					lastPoint[8] = "free";
-	// 					position.x = cube.r;
-	// 					position.y = cube.s;
-	// 					points[points.length] = [
-	// 						position.x, position.y,
-	// 						0, 0,
-	// 						cube.z-position.x, cube.q-position.y,
-	// 						0,0,
-	// 						"free"
-	// 					];
-	// 					what = what=="cs"?"cx":"Cx";
-	// 				}
-	//
-	// 				// // Arc - TODO - equation does not seem to work
-	// 				// // https://github.com/colinmeinke/svg-arc-to-cubic-bezier/issues/7
-	// 				// // rx ry x-axis-rotation large-arc-flag sweep-flag x y
-	// 				// if (what == "ax" || what == "Ax") {
-	// 				// 	arc.x = Number(command); // radius x
-	// 				// 	what = what=="ax"?"ay":"Ay";
-	// 				// } else if (what == "ay" || what == "Ay") {
-	// 				// 	arc.y = Number(command); // radius y
-	// 				// 	what = what=="ay"?"az":"Az";
-	// 				// } else if (what == "az" || what == "Az") {
-	// 				// 	arc.z = Number(command); // x-axis-rotation
-	// 				// 	what = what=="az"?"aq":"Aq";
-	// 				// } else if (what == "aq" || what == "Aq") {
-	// 				// 	arc.q = Number(command); // large-arc-flag
-	// 				// 	what = what=="aq"?"ar":"Ar";
-	// 				// } else if (what == "ar" || what == "Ar") {
-	// 				// 	arc.r = Number(command); // sweep-flag
-	// 				// 	what = what=="ar"?"as":"As";
-	// 				// } else if (what == "as" || what == "As") {
-	// 				// 	arc.s = what=="as"?position.x+Number(command):Number(command)-startPosition.x;
-	// 				// 	//zog(arc.s)
-	// 				// 	what = what=="as"?"at":"At";
-	// 				// } else if (what == "at" || what == "At") {
-	// 				// 	arc.t = what=="at"?position.y+Number(command):Number(command)-startPosition.y;
-	// 				// 	//zog(arc.t)
-	// 				// 	// rx ry x-axis-rotation large-arc-flag sweep-flag x y
-	// 				//
-	// 				// 	zta(arc)
-	// 				// 	var curves = arcToBezier({
-	// 				// 	  px: position.x,
-	// 				// 	  py: position.y,
-	// 				// 	  cx: arc.s,
-	// 				// 	  cy: arc.t,
-	// 				// 	  rx: arc.x,
-	// 				// 	  ry: arc.y,
-	// 				// 	  xAxisRotation: arc.z,
-	// 				// 	  largeArcFlag: arc.q,
-	// 				// 	  sweepFlag: arc.r,
-	// 				// 	});
-	// 				//
-	// 				// 	//zta(curves)
-	// 				//
-	// 				// 	loop(curves, function (curve) {
-	// 				// 		lastPoint = points[points.length-1];
-	// 				// 		lastPoint[6] = curve.x1-position.x;
-	// 				// 		lastPoint[7] = curve.y1-position.y;
-	// 				// 		lastPoint[8] = "free";
-	// 				// 		//zog(curve.x, curve.y)
-	// 				// 		position.x = curve.x;
-	// 				// 		position.y = curve.y;
-	// 				// 		points[points.length] = [
-	// 				// 			position.x, position.y,
-	// 				// 			0, 0,
-	// 				// 			curve.x2-position.x, curve.y2-position.y,
-	// 				// 			0,0,
-	// 				// 			"free"
-	// 				// 		];
-	// 				// 	});
-	// 				// 	what = what=="at"?"ax":"Ax";
-	// 				// }
-	// 			}
-	//
-	// 			// Commands
-	// 			if (command=="M") {
-	// 				what = "X";
-	// 			} else if (command=="m") {
-	// 				what = "x";
-	// 			} else if (command=="L") {
-	// 				what = "Lx";
-	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
-	// 				dataType = "l";
-	// 			} else if (command=="l") {
-	// 				what = "lx";
-	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
-	// 				dataType = "l";
-	// 			} else if (command=="H") {
-	// 				what = "H";
-	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
-	// 				dataType = "l";
-	// 			} else if (command=="h") {
-	// 				what = "h";
-	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
-	// 				dataType = "l";
-	// 			} else if (command=="V") {
-	// 				what = "V";
-	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
-	// 				dataType = "l";
-	// 			} else if (command=="v") {
-	// 				what = "v";
-	// 				if (splitTypes && dataType && (dataType != "l")) makeShape();
-	// 				dataType = "l";
-	// 			} else if (command=="C") {
-	// 				what = "Cx";
-	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
-	// 				dataType = "c";
-	// 			} else if (command=="c") {
-	// 				what = "cx";
-	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
-	// 				dataType = "c";
-	// 			} else if (command=="S") {
-	// 				adding = true;
-	// 				what = "Cx";
-	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
-	// 				dataType = "c";
-	// 			} else if (command=="s") {
-	// 				adding = true;
-	// 				what = "cx";
-	// 				if (splitTypes && dataType && (dataType != "c")) makeShape();
-	// 				dataType = "c";
-	// 			} else if (command=="Q") {
-	// 				what = "Qx";
-	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
-	// 				dataType = "q";
-	// 			} else if (command=="q") {
-	// 				what = "qx";
-	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
-	// 				dataType = "q";
-	// 			} else if (command=="T") {
-	// 				adding = true;
-	// 				what = "Qx";
-	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
-	// 				dataType = "q";
-	// 			} else if (command=="t") {
-	// 				adding = true;
-	// 				what = "qx";
-	// 				if (splitTypes && dataType && (dataType != "q")) makeShape();
-	// 				dataType = "q";
-	// 			} else if (command=="A") {
-	// 				type = null;
-	// 			// 	what = "Ax";
-	// 			// 	if (splitTypes && dataType && (dataType != "a")) makeShape();
-	// 			// 	dataType = "a";
-	// 			// } else if (command=="a") {
-	// 			// 	what = "ax";
-	// 			// 	if (splitTypes && dataType && (dataType != "a")) makeShape();
-	// 			// 	dataType = "a";
-	// 			} else if (command=="z" || command=="Z") {
-	// 				type = "blob";
-	// 			}
-	//
-	// 		}); // end of data loop
-	//
-	// 		function makeShape() {
-	// 			var shape;
-	// 			if (points.length >= 2)
-	// 			// M 100 350 l 150 -300
-	// 			if (type == "squiggle") shape = new Squiggle(s, ss, points);
-	// 			else shape = new Blob(f, s, ss, points);
-	// 			shape.loc(startPosition.x, startPosition.y, that);
-	// 			startPosition.x = startPosition.x + position.x;
-	// 			startPosition.y = startPosition.y + position.y;
-	// 			position.x = 0;
-	// 			position.y = 0;
-	// 			points = [[0,0]];
-	//
-	// 			var transform = path.getAttribute("transform");
-	// 			if (transform || currentTransform) processTransform(shape, transform || currentTransform);
-	// 		}
-	// 		makeShape();
-	// 	} // end process path
-	// 	if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
-	// 	this.clone = function() {
-	// 		return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, style, this.group, inherit));
-	// 	}
-	// }
-	// zim.extend (zim.SVGContainer, zim.Container, "clone", "zimContainer", false);
-	// //-51
 
 
 // SUBSECTION ZIM SHAPES
@@ -8351,7 +7929,7 @@ Note the points property has been split into points and pointObjects (and there 
 			var mobile = zim.mobile();
 
 			sets = that.controls = new zim.Container({style:false}).addTo(that); // sets - a set contains a ball and two rects
-			if (that.move && that.interactive) sets.drag({onTop:!mobile});
+			if (that.interactive) sets.drag({onTop:!mobile});
 			_points = [];
 			_pointControls = [];
 			_pointCircles = [];
@@ -9853,7 +9431,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (borderColor && borderColor.style) {this.borderColorCommand = borderColor; borderColor = "black";}
 		if (zot(points)) points = DS.points!=null?DS.points:4;
 		var num = typeof points == "number" ? points : points.length;
-
+		var controlLengthOriginal = controlLength;
 		if (zot(controlLength)) controlLength = DS.controlLength!=null?DS.controlLength:(radius * 4 / num);
 		if (zot(controlType)) controlType = DS.controlType!=null?DS.controlType:"straight";
 		if (zot(lockControlType)) lockControlType = DS.lockControlType!=null?DS.lockControlType:false;
@@ -9937,7 +9515,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			num = typeof points == "number" ? points : points.length;
 			if (num <= 0) return;
-			controlLength = radius * 4 / num;
+			if (zot(controlLengthOriginal)) controlLength = radius * 4 / num;
 
 			shape = that.shape = new zim.Shape({style:false}).addTo(that);
 			var sticks = that.sticks = new zim.Shape({style:false}).addTo(that);
@@ -9953,7 +9531,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var mobile = zim.mobile();
 
 			sets = that.controls = new zim.Container({style:false}).addTo(that); // sets - a set contains a ball and two rects
-			if (that.move && that.interactive) sets.drag({onTop:!mobile});
+			if (that.interactive) sets.drag({onTop:!mobile});
 
 			_points = [];
 			_pointControls = [];
@@ -10157,6 +9735,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					s.mt(ballPoint.x, ballPoint.y).lt(control1Point.x, control1Point.y);
 					s.mt(ballPoint.x, ballPoint.y).lt(control2Point.x, control2Point.y);
 				}
+				g.cp();
 
 				g.append(that.colorCommand);
 				if (dashed) g.append(that.borderDashedCommand);
@@ -25034,6 +24613,7 @@ disable() - may show the controls if visible but cannot use them
 enable() - turns the using of the controls back on
 resize(dispatch) - call resize if the object is transformed in ways other than with the controls
 	set dispatch to true to dispatch a "transformed" event - if manually adjusted this will save to TransformManager
+dispose() - remove all aspects of transform on object
 
 EVENTS
 Adds a "transformed" event to obj that is dispatched when pressup on any of the controls or on click
@@ -25668,7 +25248,7 @@ RETURNS obj for chaining
 				var nc = p.numChildren-1;
 				if (p.getChildAt(nc).type == "Keyboard") nc--;
 				p.setChildIndex(obj, nc);
-				// addControls();
+				addControls();
 			}
 		}
 
@@ -25680,7 +25260,8 @@ RETURNS obj for chaining
 					var nc = stage.getChildIndex(obj)
 					stage.setChildIndex(controls, nc); // removes controls from before container so container drops one
 				} else {
-					stage.addChildAt(controls, stage.getChildIndex(obj)+1);
+					// stage.addChildAt(controls, stage.getChildIndex(obj)+1);
+					stage.addChildAt(controls, stage.getChildIndex(obj)+0);
 				}
 			} else {
 				var insert = p;
@@ -27963,7 +27544,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			// handles dragging to closest point on current or adjacent segments
 			// more easily could have tested whole path but then risk jumping to wrong places
 			// segments can wrap to handle blob
-			// dragging with rewind turned on lets you drag and relase to redirect animation
+			// dragging with rewind turned on lets you drag and release to redirect animation
 			// dragging with animation off lets you throw the animation
 			if (drag) {
 				target.cursor = "pointer";
@@ -28437,7 +28018,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			//target.pathRatio = null;
 			if (target.type == "Pen" && target.zimOnPath) {target.stop(); target.zimOnPath = false;}
 			delete target.zimTweens[id];
-			if (zim.isEmpty(target.zimTweens)) target.stopAnimate();
+			if (zim.isEmpty(target.zimTweens)) target.stopAnimate(null,null,false);
 
 
 			// handle zim.idSets
@@ -28506,10 +28087,17 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// METHODS ADDED TO TARGET
 		if (!target.stopAnimate || !target.stopAnimate.real) { // empty method gets added by default
-	        target.stopAnimate = function(ids, include) {
+	        target.stopAnimate = function(ids, include, command) {
+				if (zot(command)) command = true;
 				target.paused = null;
 				if (target.type == "Pen" && target.zimOnPath) {target.stop(); target.zimOnPath = false;}
 				if (zot(include)) include = true;
+				if (command && drag) {
+					target.off("mousedown", target.zimAnimateDragDown);
+		            target.off("pressmove", target.zimAnimateDragPress);
+		            target.off("pressup", target.zimAnimateDragUp);
+		            zim.Ticker.remove(target.zimDragAnimateTicker);
+				}
 				if (zot(ids)) {
 					if (!include) return target; // would be exclude all ids
 					target.zimBusy = null; // clear any busy properties
@@ -28530,8 +28118,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						if (target.zimTweens[id].requestID) {
 							cancelAnimationFrame(target.zimTweens[id].requestID);
 						}
-						if (include && actualIds.indexOf(id) >= 0) endTween(id);
-						if (!include && actualIds.indexOf(id) < 0) endTween(id);
+						if (include && actualIds.indexOf(id) >= 0) endTween(id, command);
+						if (!include && actualIds.indexOf(id) < 0) endTween(id, command);
 					}
 				}
 				return target;
@@ -30401,6 +29989,7 @@ METHODS (static)
 Ticker.always(stage) - overrides OPTIMIZE and always runs an update for the stage even with no function in queue
 Ticker.alwaysOff(stage) - stops an always Ticker for a stage
 Ticker.add(function, stage) - adds the function to the Ticker queue for a given stage and returns the function that was added
+	the function will receive a CreateJS tick object with delta, time, timeStamp, etc. properties
 Ticker.remove(function) - removes the function from the Ticker queue
 Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
 Ticker.has(function, stage) - returns a Boolean true if function is currently added to the Ticker for the stage - or false if not currently added
@@ -30413,6 +30002,7 @@ Ticker.raw(function) - a stand-alone direct call to RequestAnimationFrame for ma
 	Example: https://zimjs.com/raw/
  	Does not use Dictionary lookup that the add() uses so provides ultimate speed for generative art, etc.
 	Returns function as id so can use Ticker.removeRaw(id)
+	function will receive a single parameter that is a DOMHighResTimeStamp
 	raw() does not automatically update the stage so put a stage.update() in the function
 	raw() is for when you want to run one function much like the draw() in Processing, the animate() renderer in ThreeJS, etc.
 	add() is for when you want to run multiple functions with a single globally coordinated stage.update()
@@ -30477,21 +30067,21 @@ then set OPTIMIZE = false and then set Ticker.update = false
 		raw: function(f) {
 			z_d("30");
 			var id = zim.makeID(7, "letters");
-			-function raw() {f(); zim.Ticker.rawID[id] = requestAnimationFrame(raw);}();
+			-function raw(t) {f(t); zim.Ticker.rawID[id] = requestAnimationFrame(raw);}();
 			return id;
 		},
 		removeRaw: function(id) {
 			cancelAnimationFrame(zim.Ticker.rawID[id]);
 			delete zim.Ticker.rawID[id];
 		},
-		call: function(currentTime) {
+		call: function(e) {
 			var t = zim.Ticker;
 			var s, functions;
 			for (var i=0; i<t.list.length; i++) {
 				s = t.list.objects[i]; // stage
 				functions = t.list.values[i]; // list of functions for the stage
 				for (var j=0; j<functions.length; j++) {
-					functions[j]();
+					functions[j](e);
 				}
 				if (t.alwaysList.at(s)) {
 					s.update();
@@ -32246,7 +31836,10 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				if (zot(tile)) {
 					tile = new zim.Container(0,0,0,0);
 				}
-				if (clone && !(j==0 && i==0)) tile = tile.clone();
+				// if (clone && !(j==0 && i==0)) tile = tile.clone();
+				if (clone) {
+					if ((j!=0 || i!=0)) tile = tile.clone();
+				}
 				that.items.push(tile);
 				tile.tileNum = currentCount-1;
 			}
@@ -34146,10 +33739,10 @@ var circ = new Circle(100, red)
 	.mov(200)
 	.transform();
 
-var tm = new TransformManager([rect, circ], sample);
+var tm = new TransformManager([rect, circ], "sample");
 // or use methods:
 // tm.add([rect, circ]);
-// tm.persist("sample"); // now when a user comes back to page the transforms will be saved
+// tm.persist("sample"); // or add later to save transforms
 END EXAMPLE
 
 PARAMETERS
@@ -36462,7 +36055,7 @@ join(obj1, obj2, point1, point2, minAngle, maxAngle, type) - creates and returns
 	point2 - (default center of object) this is only needed on a distance joint
 	minAngle - (default null) the minimum angle the joint can make from its starting angle
 	maxAngle - (default null) the maximum angle the joint can make from its starting angle
-	type - (default "distance") the type of joint
+	type - (default "weld") the type of joint
 		set to "distance" to keep the same distance between two object anchors
 		set to "resolute" to rotate objects around a fixed point relative to the first object
 		set to "weld" to fix the objects together
@@ -36539,6 +36132,7 @@ force(x, y, targetX, targetY) - add a force over time on the object like a gravi
 	y - (default 0) the force in the y direction
 	targetX - (default center of object) the x location on the object where the force acts
 	targetY - (default center of object) the y location on the object where the force acts
+torque(amount) - add a torque turning force to an object
 removePhysics() - lets you remove the DisplayObject from the physics world
 	to add back to the physics world, use the addPhysics() method
 sleep() - puts object to sleep so no physics calculations are done
@@ -41924,6 +41518,12 @@ function zimify(obj, list) {
 			clone.rotation = this.rotation;
 			clone.mouseEnabled = this.mouseEnabled;
 			clone.tickEnabled = this.tickEnabled;
+			clone.x = this.x;
+			clone.y = this.y;
+			clone.scaleX = this.scaleX;
+			clone.scaleY = this.scaleY;
+			clone.skewX = this.skewX;
+			clone.skewY = this.skewY;
 			clone.name = this.name;
 			clone.regX = this.regX*clone.width/this.width;
 			clone.regY = this.regY*clone.height/this.height;
