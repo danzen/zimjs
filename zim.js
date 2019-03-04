@@ -6078,10 +6078,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
 
-		var parser = new DOMParser();
-		var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
-		var list = svg.getElementsByTagName("svg");
-		var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
+		if (!zot(svg.draggable)) {
+			var parser = new DOMParser();
+			var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
+			var list = svg.getElementsByTagName("svg");
+			var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
+		} else {
+			if (!svg.getAttribute) {
+				var parser = new DOMParser();
+				svg = parser.parseFromString(svg, "image/svg+xml").documentElement;
+			}
+			var tag = this.svg = svg;
+		}
 		var w, h;
 		if (!zot(tag)){
 			var w = tag.getAttribute("width");
@@ -6152,7 +6160,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			})
 		}
-		processTag(svg.getElementsByTagName("svg"));
+		var process = svg.getElementsByTagName("svg");
+		if (process.length == 0) process = [svg];
+		processTag(process);
 
 		function processStyle(style) {
 			var st = style.split(";");											//kv note: there si bug when style contains ; at the end of the string
@@ -6764,7 +6774,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					//if (zot(shape)) {																					//kv adjust logic
 						if (type == "squiggle") shape = new Squiggle(s, ss, points);
 						else shape = new Blob(f, s, ss, points);
-						shape.loc(0,0);																					//kv adjust logic
+						shape.loc(0,0,that);																					//kv adjust logic
 					//} else {																							//kv adjust logic
 					//	var dataPointsArray = [];																		//kv adjust logic
 					//	dataPointsArray = shape.recordPoints().concat(points);											//kv adjust logic
@@ -41221,6 +41231,15 @@ RETURNS - null
 --*///+83.27
 	zim.svgToBitmap = function(svg, callBack) {
 	 	z_d("83.27");
+
+		if (!zot(svg.draggable)) {
+			// CreateJS seems to wrap up an SVG with loadAssets as an SVG object
+			var parser = new DOMParser();
+			var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
+			var list = svg.getElementsByTagName("svg");
+			var tag = list?svg.getElementsByTagName("svg")[0]:null;
+			svg = tag;
+		}
 
         if (!XMLSerializer) {if (zon) {zog("ZIM svgToBitmap() - sorry, not supported in Browser"); return;}}
         var svgString = (typeof svg == "string") ? svg : new XMLSerializer().serializeToString(svg);
