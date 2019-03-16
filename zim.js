@@ -6976,7 +6976,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 			var h = _radius*2;
-			if (percent!=100) {
+			if (typeof percent == "number" && percent >= 0 && percent < 100) {
 				var p = 360*percent/100/2
 				g.arc(0, 0, _radius, (-p-90)*Math.PI/180, (p-90)*Math.PI/180, false).cp();
 				h = _radius-Math.cos(p*Math.PI/180)*_radius;
