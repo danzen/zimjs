@@ -5074,17 +5074,17 @@ http://www.createjs.com/docs/easeljs/classes/Graphics.html
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-var shape = new Shape();
-shape.graphics.beginFill("red").drawRect(0,0,200,100);
+var shape = new Shape().addTo();
+shape.graphics.beginFill(red).drawRect(0,0,200,100);
 // similar to Rectangle(200, 100, "Red");
 
 // we can draw lines, etc.
 var g = shape.graphics; // shorter reference to graphics object
-g.beginStroke("blue").moveTo(200,200).lineTo(300,300);
+g.beginStroke(blue).moveTo(200,200).lineTo(300,300);
 
 // we can continue to draw as much as we want in the same shape
 // there is also a tiny API with shortcuts: stroke, fill, etc.
-g.s("green").f("red").mt(500,500).qt(550,500,600,500);
+g.s(purple).ss(5).f(blue).mt(400,400).qt(500,300,600,400);
 END EXAMPLE
 
 PARAMETERS
@@ -5249,7 +5249,7 @@ zim class - extends a createjs.Bitmap
 
 DESCRIPTION
 Makes a Bitmap object from an image.
-It is best to use the loadAssets() method of ZIM Frame
+It is best to use the assets and path parameters of ZIM Frame or the loadAssets() method of Frame
 to preload the image and then use the asset() method to access the Bitmap.
 See the ZIM Frame class and asset example on the ZIM Frame page of templates.
 
@@ -6124,17 +6124,20 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 var movieClip = new MovieClip();
-var circle = new Circle(20, blue);
+var circle = new Circle(20, blue).animate({
+	props:{scale:3}, time:100, rewind:true, loop:true
+});
 
 // time is in frames NOT in ms - so 100 frames at the Ticker.framerate 60 fps by default is almost 2 seconds
 // note that to change the Ticker's framerate use setFPS(mobile, desktop) method
 // if you use one number then both mobile and desktop are set to that fps.
 // Note that the defaults are 30 fps mobile and 60 fps desktop
-movieClip.timeline.addTween(circle.animate({obj:{scale:3}, time:100, rewind:true}).zimTween);
+
+movieClip.timeline.addTween(circle.zimTween);
 movieClip.play();
-movieClip.center(stage);
+movieClip.center();
 stage.on("stagemousedown", function() {
-	movieClip.paused = !movieClip.paused;
+   movieClip.paused = !movieClip.paused;
 });
 END EXAMPLE
 
@@ -6234,6 +6237,12 @@ DESCRIPTION
 Parses SVG and adds items to a ZIM Container.
 Items are created as ZIM Shapes: Circle, Rectangle, Blob, Squiggle.
 If geometric is true then Circle and Rectangle are used otherwise Blob is used.
+Items can be accessed using svgcontainer.getChildAt(0), etc.
+See: https://zimjs.com/svg/
+See: https://zimjs.com/explore/svgcontainer.html
+
+An SVG path string can be passed directly to a Squiggle or Blob points parameter
+and so avoiding the SVGContainer - see ZIM Squiggle and Blob
 
 WARNING: this should be considered experimental
 The idea is that paths from SVG can be made editable in ZIM
@@ -6246,6 +6255,13 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 var svgContainer = new SVGContainer(frame.asset("sample.svg")).addTo();
+
+// OR
+
+var svg = `<svg  width="150" height="200" xmlns="h t t p ://www.w3.org/2000/svg">
+    <path id="lineAB" d="M 0 0 l 150 200" stroke="red" stroke-width="3" fill="none" />
+</svg>`;
+var svgContainer = new SVGContainer(svg).center();
 END EXAMPLE
 
 PARAMETERS
@@ -6259,6 +6275,7 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
+processPath(path) - path is an SVG path string - returns a ZIM Blob or Squiggle points array
 hasProp(property as String) - returns true if property exists on object else returns false
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -6299,108 +6316,227 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
 
-		if (!zot(svg.draggable)) {
-			var parser = new DOMParser();
-			var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
-			var list = svg.getElementsByTagName("svg");
-			var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
-		} else {
-			if (!svg.getAttribute) {
-				var parser = new DOMParser();
-				svg = parser.parseFromString(svg, "image/svg+xml").documentElement;
-			}
-			var tag = this.svg = svg;
-		}
-		var w, h;
-		if (!zot(tag)){
-			var w = tag.getAttribute("width");
-			var h = tag.getAttribute("height");
-		}
-		if (w) w = Number(w.trim());
-		if (h) h = Number(h.trim());
-		this.zimContainer_constructor(w, h);
-		this.type = "SVGContainer";
-
-		if (zot(tag)) return;
-		if (zot(splitTypes)) splitTypes = true;
-		if (zot(geometric)) geometric = true;
-
 		var that = this;
-
-		var defaultFill = black, generalFill = black;
-		var defaultStroke = black, generalStroke = black;
-		var defaultStrokeSize = 2, generalStrokeSize = 2;
-		var defaultAlpha = 1, generalAlpha = 1;
-		var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
-		var currentTransform;
-
-		var startPosition = new Point(0,0); // the x,y of the last shape
+		var startPosition = new zim.Point(0,0); // the x,y of the last shape
 		var aCommand=[];	//kv adjust logic
 
-		function processTag(tag) {
-			loop(tag, function (t) {
-				var tn = t.tagName.toLowerCase();
-				if (tn == "path") processPath(t);
-				if (tn == "circle") processShape("circle", t);
-				if (tn == "rect") processShape("rect", t);
-				if (tn == "ellipse") processShape("ellipse", t);
-				if (tn == "line") processShape("line", t);
-				if (tn == "polygon") processShape("polygon", t);
-				if (tn == "polyline") processShape("polyline", t);
-				if (tn == "g") {
-					// styles can be overwritten by parameters in the general tag
-					// so find styles first
-					var style = t.getAttribute("style");
-					var f,s,ss,a,aa;
-					if (style) {
-						var styles = processStyle(style);
-						f = styles[0];
-						s = styles[1];
-						ss = styles[2];
-						a = styles[3];
-						aa = styles[4];
-					}
-					// then overwrite styles with any attribute values
-					currentTransform = t.getAttribute("transform");
-					generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
-					generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
-					generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
-					generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
-					generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
-				}
-				// general settings can wrap any number of tags - the tags are processed here:
-				processTag(t.children);
-				// after this nest of tags are processed, clear the general settings
-				if (t.tagName.toLowerCase() == "g") {
-					generalFill = defaultFill;
-					generalStroke = defaultStroke;
-					generalStrokeSize = defaultStrokeSize;
-					generalAlpha = defaultAlpha;
-					generalStrokeAlpha = defaultStrokeAlpha;
-					currentTransform = null;
-				}
-			})
-		}
-		var process = svg.getElementsByTagName("svg");
-		if (process.length == 0) process = [svg];
-		processTag(process);
+		if (zot(splitTypes)) splitTypes = false;
+		if (zot(geometric)) geometric = true;
 
-		function processStyle(style) {
-			var st = style.split(";");											//kv note: there si bug when style contains ; at the end of the string
-			var f,s,ss,a,aa;
-			loop(st, function (sty) {
-				var sty = sty.replace(/,/g,"");
-				var styl = sty.split(":");
-				var prop = styl[0].trim().toLowerCase();
-				var val = styl[1].trim().toLowerCase().replace("px", "");
-				if (prop=="fill") f = val;
-				if (prop=="stroke") s = val;
-				if (prop=="stroke-width") ss = val;
-				if (prop=="opacity") a = val, aa = val;
-				if (prop=="fill-opacity") a = val;
-				if (prop=="stroke-opacity") aa = val;
-			});
-			return [f,s,ss,a,aa];
+		if (!zot(svg)) {
+
+			if (!zot(svg.draggable)) {
+				var parser = new DOMParser();
+				var svg = !svg.innerHTML?svg:parser.parseFromString(svg.innerHTML,"text/xml");
+				var list = svg.getElementsByTagName("svg");
+				var tag = this.svg = list?svg.getElementsByTagName("svg")[0]:null;
+			} else {
+				if (!svg.getAttribute) {
+					var parser = new DOMParser();
+					svg = parser.parseFromString(svg, "image/svg+xml").documentElement;
+				}
+				var tag = this.svg = svg;
+			}
+			var w, h;
+			if (!zot(tag)){
+				var w = tag.getAttribute("width");
+				var h = tag.getAttribute("height");
+			}
+			if (w) w = Number(w.trim());
+			if (h) h = Number(h.trim());
+			this.zimContainer_constructor(w, h);
+			this.type = "SVGContainer";
+
+			if (zot(tag)) return;
+
+			var defaultFill = zim.black, generalFill = zim.black;
+			var defaultStroke =zim. black, generalStroke = zim.black;
+			var defaultStrokeSize = 2, generalStrokeSize = 2;
+			var defaultAlpha = 1, generalAlpha = 1;
+			var defaultStrokeAlpha = 1, generalStrokeAlpha = 1;
+			var currentTransform;
+
+			function processTag(tag) {
+				zim.loop(tag, function (t) {
+					var tn = t.tagName.toLowerCase();
+					if (tn == "path") processPath(t);
+					if (tn == "circle") processShape("circle", t);
+					if (tn == "rect") processShape("rect", t);
+					if (tn == "ellipse") processShape("ellipse", t);
+					if (tn == "line") processShape("line", t);
+					if (tn == "polygon") processShape("polygon", t);
+					if (tn == "polyline") processShape("polyline", t);
+					if (tn == "g") {
+						// styles can be overwritten by parameters in the general tag
+						// so find styles first
+						var style = t.getAttribute("style");
+						var f,s,ss,a,aa;
+						if (style) {
+							var styles = processStyle(style);
+							f = styles[0];
+							s = styles[1];
+							ss = styles[2];
+							a = styles[3];
+							aa = styles[4];
+						}
+						// then overwrite styles with any attribute values
+						currentTransform = t.getAttribute("transform");
+						generalFill = t.getAttribute("fill")?t.getAttribute("fill"):!zot(f)?f:defaultFill;
+						generalStroke = t.getAttribute("stroke")?t.getAttribute("stroke"):!zot(s)?s:defaultStroke;
+						generalStrokeSize = t.getAttribute("stroke-width")?t.getAttribute("stroke-width"):!zot(ss)?ss:defaultStrokeSize;
+						generalAlpha = t.getAttribute("fill-opacity")?t.getAttribute("fill-opacity"):!zot(a)?a:defaultAlpha;
+						generalStrokeAlpha = t.getAttribute("stroke-opacity")?t.getAttribute("stroke-opacity"):!zot(aa)?aa:defaultStrokeAlpha;
+					}
+					// general settings can wrap any number of tags - the tags are processed here:
+					processTag(t.children);
+					// after this nest of tags are processed, clear the general settings
+					if (t.tagName.toLowerCase() == "g") {
+						generalFill = defaultFill;
+						generalStroke = defaultStroke;
+						generalStrokeSize = defaultStrokeSize;
+						generalAlpha = defaultAlpha;
+						generalStrokeAlpha = defaultStrokeAlpha;
+						currentTransform = null;
+					}
+				})
+			}
+			var process = svg.getElementsByTagName("svg");
+			if (process.length == 0) process = [svg];
+
+			function processStyle(style) {
+				var st = style.split(";");											//kv note: there si bug when style contains ; at the end of the string
+				var f,s,ss,a,aa;
+				loop(st, function (sty) {
+					var sty = sty.replace(/,/g,"");
+					var styl = sty.split(":");
+					var prop = styl[0].trim().toLowerCase();
+					var val = styl[1].trim().toLowerCase().replace("px", "");
+					if (prop=="fill") f = val;
+					if (prop=="stroke") s = val;
+					if (prop=="stroke-width") ss = val;
+					if (prop=="opacity") a = val, aa = val;
+					if (prop=="fill-opacity") a = val;
+					if (prop=="stroke-opacity") aa = val;
+				});
+				return [f,s,ss,a,aa];
+			}
+
+			function processShape(type, tag) {
+				var shape;
+				var g = processGeneral(tag); // want ES6
+				var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
+				if (type == "circle") {
+					var r = Number(tag.getAttribute("r").trim());
+					var d = r*.5523;
+					if (geometric) shape = new zim.Circle(Number(tag.getAttribute("r")), f, s, ss);
+					else shape = new zim.Blob(f, s, ss, 4, r, d, "mirror");
+				} else if (type == "rect") {
+					if (geometric) shape = new zim.Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
+					else {
+						var w = Number(tag.getAttribute("width"));
+						var h = Number(tag.getAttribute("height"));
+						var rx = Number(tag.getAttribute("rx"));
+						var ry = Number(tag.getAttribute("ry"));
+						if (rx && ry) {
+							var dx = rx*.5523;
+							var dy = ry*.5523;
+							shape = new zim.Blob(f, s, ss, [
+								[rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
+								[w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
+								[w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
+								[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
+						} else {
+							shape = new zim.Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
+						}
+					}
+				} else if (type == "line") {
+					shape = new zim.Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
+				} else if (type == "polygon" || type == "polyline") {
+					var p = tag.getAttribute("points");
+					p = p.replace(/-/g, " -");
+					p = p.replace(/\s+/g, " ");
+					var points = [];
+					loop(p.split(" "), function (point) {
+						var pp = point.split(",");
+						points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
+					})
+					if (type=="polygon") shape = new Blob(f, s, ss, points);
+					else shape = new zim.Squiggle(s, ss, points);
+				} else if (type == "ellipse") {
+					shape = new zim.Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
+				}
+				shape.loc(x,y,that);
+				var transform = tag.getAttribute("transform");
+				if (transform || currentTransform) processTransform(shape, transform || currentTransform);
+				if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
+			}
+
+			function processTransform(shape, transform) {
+				var tr = transform.split(")");
+				// apply all transforms in the order given
+				loop(tr, function (tra) {
+					if (tra=="") return;
+					var tran = tra.trim().split("(");
+					var prop = tran[0].trim().toLowerCase();
+					var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
+					if (prop=="translate") {
+						var m = val.split(",");
+						shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
+					}
+					if (prop=="scale"){
+						var s = val.split(",");
+						if (shape.type=="Blob" || shape.type=="Squiggle") {
+							if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
+							else if (s.length == 2) {
+								shape.transformPoints("scaleX", Number(s[0].trim()));
+								shape.transformPoints("scaleY", Number(s[1].trim()));
+							}
+						} else {
+							if (s.length == 1) shape.sca(Number(s[0].trim()))
+							else if (s.length == 2) {
+								shape.sca(Number(s[0].trim()), Number(s[1].trim()));
+							}
+						}
+					}
+					if (prop=="rotate") {
+						var r = val.split(",");
+						// if (shape.type=="Blob" || shape.type=="Squiggle") {
+							// rotation is a different way for SVG and transform() - too bad
+							// it rotates around 0,0 unless a different point is chosen
+							// so shape.transformPoints which is a registration point system
+							// is unlikely to work - and too complex to add rotate around a given point
+							// so we will use zim rot() to which we have added rotating around a different point
+							// but this will rotate the little box handles
+							// maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
+							// if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
+						if (r.length == 1) r.push(0,0);
+						else if (r.length == 2) r.push(0);
+						shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
+					}
+
+					if (prop=="skewX") shape.skewX = val;
+					if (prop=="skewY") shape.skewY = val;
+				});
+			}
+
+			// beatgammit on StackOverflow
+			function ellipse(x, y, xDis, yDis) {
+				var kappa = 0.5522848, // 4 * ((âˆš(2) - 1) / 3)
+					ox = xDis * kappa,  // control point offset horizontal
+					oy = yDis * kappa,  // control point offset vertical
+					xe = x + xDis,      // x-end
+					ye = y + yDis;      // y-end
+				var points = [ // modified by Dan Zen to relative
+					[x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
+					[x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
+					[xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
+					[x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
+				];
+				return points;
+			}
+
+			processTag(process);
+
 		}
 
 		function processGeneral(tag) {
@@ -6415,8 +6551,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				a = styles[3];
 				aa = styles[4];
 			}
-			// kv comments: need to apply string cleansing, application bugs when there is a semi column character used in tags.
-			// get rid of semi column,
+			// kv comments: need to apply string cleansing, application bugs when there is a semi colon character used in tags.
+			// get rid of semi colon,
 			// any attributes on the tag overwrites styles or general
 			f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
 			s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
@@ -6428,151 +6564,46 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
 			var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
 			y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
-			if (!zot(a) && !zot(f)) f = convertColor(f, "rgba", Number(a));
-			if (!zot(aa) && !zot(s)) s = convertColor(s, "rgba", Number(aa));
+			if (!zot(a) && !zot(f)) f = zim.convertColor(f, "rgba", Number(a));
+			if (!zot(aa) && !zot(s)) s = zim.convertColor(s, "rgba", Number(aa));
 			return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
 		}
 
-		function processShape(type, tag) {
-			var shape;
-			var g = processGeneral(tag); // want ES6
-			var f = g[0], s = g[1], ss = g[2], a = g[3], aa = g[4], x = g[5], y = g[6];
-			if (type == "circle") {
-				var r = Number(tag.getAttribute("r").trim());
-				var d = r*.5523;
-				if (geometric) shape = new Circle(Number(tag.getAttribute("r")), f, s, ss);
-				else shape = new Blob(f, s, ss, 4, r, d, "mirror");
-			} else if (type == "rect") {
-				if (geometric) shape = new Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
-				else {
-					var w = Number(tag.getAttribute("width"));
-					var h = Number(tag.getAttribute("height"));
-					var rx = Number(tag.getAttribute("rx"));
-					var ry = Number(tag.getAttribute("ry"));
-					if (rx && ry) {
-						var dx = rx*.5523;
-						var dy = ry*.5523;
-						shape = new Blob(f, s, ss, [
-							[rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
-							[w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
-							[w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
-							[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
-					} else {
-						shape = new Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
-					}
-				}
-			} else if (type == "line") {
-				shape = new Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
-			} else if (type == "polygon" || type == "polyline") {
-				var p = tag.getAttribute("points");
-				p = p.replace(/-/g, " -");
-				p = p.replace(/\s+/g, " ");
-				var points = [];
-				loop(p.split(" "), function (point) {
-					var pp = point.split(",");
-					points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
-				})
-				if (type=="polygon") shape = new Blob(f, s, ss, points);
-				else shape = new Squiggle(s, ss, points);
-			} else if (type == "ellipse") {
-				shape = new Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
-			}
-			shape.loc(x,y,that);
-			var transform = tag.getAttribute("transform");
-			if (transform || currentTransform) processTransform(shape, transform || currentTransform);
-			if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
-		}
-
-		function processTransform(shape, transform) {
-			var tr = transform.split(")");
-			// apply all transforms in the order given
-			loop(tr, function (tra) {
-				if (tra=="") return;
-				var tran = tra.trim().split("(");
-				var prop = tran[0].trim().toLowerCase();
-				var val = tran[1].trim().toLowerCase().replace("px", "").replace("deg", "");
-				if (prop=="translate") {
-					var m = val.split(",");
-					shape.mov(Number(m[0].trim()), m[1]?Number(m[1].trim()):0);
-				}
-				if (prop=="scale"){
-					var s = val.split(",");
-					if (shape.type=="Blob" || shape.type=="Squiggle") {
-						if (s.length == 1) shape.transformPoints("scale", Number(s[0].trim()))
-						else if (s.length == 2) {
-							shape.transformPoints("scaleX", Number(s[0].trim()));
-							shape.transformPoints("scaleY", Number(s[1].trim()));
-						}
-					} else {
-						if (s.length == 1) shape.sca(Number(s[0].trim()))
-						else if (s.length == 2) {
-							shape.sca(Number(s[0].trim()), Number(s[1].trim()));
-						}
-					}
-				}
-				if (prop=="rotate") {
-					var r = val.split(",");
-					// if (shape.type=="Blob" || shape.type=="Squiggle") {
-						// rotation is a different way for SVG and transform() - too bad
-						// it rotates around 0,0 unless a different point is chosen
-						// so shape.transformPoints which is a registration point system
-						// is unlikely to work - and too complex to add rotate around a given point
-						// so we will use zim rot() to which we have added rotating around a different point
-						// but this will rotate the little box handles
-						// maybe look into keeping those parallel in the blob and squiggle - no matter what the rotation
-						// if (r.length == 1) shape.transformPoints("rotation", Number(r[0].trim()))
-					if (r.length == 1) r.push(0,0);
-					else if (r.length == 2) r.push(0);
-					shape.rot(Number(r[0].trim()), Number(r[1].trim()), Number(r[2].trim()));
-				}
-
-				if (prop=="skewX") shape.skewX = val;
-				if (prop=="skewY") shape.skewY = val;
-			});
-		}
-
-		// beatgammit on StackOverflow
-		function ellipse(x, y, xDis, yDis) {
-			var kappa = 0.5522848, // 4 * ((√(2) - 1) / 3)
-				ox = xDis * kappa,  // control point offset horizontal
-				oy = yDis * kappa,  // control point offset vertical
-				xe = x + xDis,      // x-end
-				ye = y + yDis;      // y-end
-			var points = [ // modified by Dan Zen to relative
-				[x - xDis, y, 0, 0, x, ye+oy-yDis, x, y-oy, "mirror"],
-				[x, y - yDis, 0, 0, x-ox, y, xe+ox-xDis, y, "mirror"],
-				[xe, y, 0, 0, x, y-oy, x + ox-ox, ye+oy-yDis, "mirror"],
-				[x, ye, 0, 0, xe-xDis+ox, y, x-ox, y, "mirror"]
-			];
-			return points;
-		}
-
-
-		function processPath(path) {
+		function processPath (path, make) {
+			if (zot(make)) make = true;
 			var commands = ["M","m","L","l","H","h","V","v","C","c","S","s","Q","q","T","t","A","a","z","Z"];
 			var commandsRelative = ["m","l","h","v","c","s","q","t","a","z"];
 
-			var position = new Point(0,0); // the current position - relative places based on this
-			var id = path.getAttribute("id");
-			var d = path.getAttribute("d");
+			var position = new zim.Point(0,0); // the current position - relative places based on this
+
+			if (zot(path.getAttribute)) {
+				var d = path;
+			} else {
+				var id = path.getAttribute("id");
+				var d = path.getAttribute("d");
+			}
+
 			// m251.85 119.04c7.85 10.45-9.81
 			d = d.replace(/,/g ," ");
 			d = d.replace(/([a-zA-Z])/g, " $1 ");
 			d = d.replace(/-/g, " -");
 			d = d.replace(/\s+/g, " ");
 
-			var g = processGeneral(path); // want ES6
-			var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
+
+			if (make) {
+				var g = processGeneral(path); // want ES6
+				var f = g[0]; var s = g[1]; var ss = g[2]; var a = g[3]; var aa = g[4];
+			}
 
 			var shape;																									//kv adjust logic
 			var aNumber;																								//kv adjust logic
 			//var points = [[0,0]];																						//kv adjust logic
 			var points = [];																							//kv adjust logic
 			var lastTempPoint = [0,0];																					//kv adjust logic
-			var line = new Point(0,0);
-			var quad = new Point(0,0,0,0);
-			var cube = new Point(0,0,0,0,0,0);
-			var arc = new Point(0,0,0,0,0,0,0);
+			var line = new zim.Point(0,0);
+			var quad = new zim.Point(0,0,0,0);
+			var cube = new zim.Point(0,0,0,0,0,0);
+			var arc = new zim.Point(0,0,0,0,0,0,0);
 			//kv var data = d.split(" ");																				//kv adjust logic
 			var dataOrigin = d.split(" ");																				//kv adjust logic
 			var data = dataOrigin.slice(1,dataOrigin.length);															//kv adjust logic
@@ -6584,8 +6615,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var what;
 			var type = "squiggle";
 			var dataType = null;
-			//kv loop(data, function (command) {																		//kv adjust logic
-			loop(data, function (command,i) {																			//kv adjust logic
+			//kv loop(data, function (command) {					//kv adjust logic
+			zim.loop(data, function (command,i) {
+																					//kv adjust logic
 				if (i==0) {startPosition.x = 0; startPosition.y=0;lastTempPoint = [0,0];lastCommand = "";previousCommand = ""};
 				if (commands.indexOf(command) == -1) {
 					if (what == "lxo") {what="lx"; aCommand.push("l");missingCommand=true};								//kv adjust logic
@@ -6674,6 +6706,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						points.push([position.x, position.y]);
 						what = "lx";
 					}
+
 
 					// Quadratic
 					if (what == "qx" || what == "Qx") {
@@ -6780,10 +6813,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								lastPoint[3] = 0;							//kv adjust logic
 								if(zot(lastPoint[4])) {lastPoint[4] =0};	//kv adjust logic
 								if(zot(lastPoint[5])) {lastPoint[5] =0};	//kv adjust logic
-								//kv lastPoint[6] = -lastPoint[4];
-								//kv lastPoint[7] = -lastPoint[5];
-								lastPoint[6] = - (cube.x-cube.z);			//kv adjust logic
-								lastPoint[7] = - (cube.y-cube.q);			//kv adjust logic
+								lastPoint[6] = -lastPoint[4];
+								lastPoint[7] = -lastPoint[5];
+								// lastPoint[6] = - (cube.x-cube.z);			//kv adjust logic
+								// lastPoint[7] = - (cube.y-cube.q);			//kv adjust logic
 								lastPoint[8] = "mirror";
 								//kv create very lastPoint
 								position.x = cube.z;
@@ -6889,7 +6922,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					aCommand.push(command);													// kv adjust logic
 
 					// Commands
-					if (command != "s") {adding = false};									// kv adjust logic
+					if (command != "s") {
+						adding = false;
+					} 								// kv adjust logic
 					if (aCommand.length > 1) {												// kv adjust logic
 						// if (aCommand[aCommand.length-2] != command) {
 						if (command=="M" || command=="m") {
@@ -6985,16 +7020,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			}); // end of data loop
 
-			function makeShape(myCommand) {
+			function makeShape(myCommand, interest) {
 				var myCommand;
-				//var shape;																							//kv adjust logic
+				//var shape;																		//kv adjust logic
 				lastCommand = aCommand[aCommand.length-1];																//kv adjust logic
 				if (points.length >= 2)
 					// M 100 350 l 150 -300
 					if (lastCommand == "z" || lastCommand == "Z") {type = "blob"};										//kv adjust logic
 					//if (zot(shape)) {																					//kv adjust logic
-						if (type == "squiggle") shape = new Squiggle(s, ss, points);
-						else shape = new Blob(f, s, ss, points);
+						if (type == "squiggle") shape = new zim.Squiggle(s, ss, points);
+						else shape = new zim.Blob(f, s, ss, points);
 						shape.loc(0,0,that);																					//kv adjust logic
 					//} else {																							//kv adjust logic
 					//	var dataPointsArray = [];																		//kv adjust logic
@@ -7027,8 +7062,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (transform || currentTransform) processTransform(shape, transform || currentTransform);
 			};
 
-			makeShape();
+			if (make) makeShape();
+			return points;
+
 		} // end process path
+
+		that.processPath = function(path) {
+			return processPath(path,false);
+		}
 
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
@@ -7883,7 +7924,9 @@ PARAMETERS
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 color - (default green) the line color as any CSS color including "rgba()" for alpha
 thickness - (default 2) the thickness of the line in pixels
-points - (default 4) a number of points to start with on the line OR an array of points as follows:
+points - (default 4)a number of points to start with to make the shape
+	OR an SVG path like: points:"M0,129.5c22,0,40-31,40-41c0-8-3.2-13-10-13" etc. (also see SVGContainer)
+	OR an array of points as follows:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
 	rect1X, rect1Y, rect2X, rect2Y - (default based on controlLength) the x and y location of the control rectangles relative to the control location
@@ -7933,7 +7976,7 @@ interpolate(num, startPoint, spread) - get point data {x,y} for this existing po
 	used with hitTestPath
 	specify a startPoint to get points between the startPoint and the next point (one segment of points)
 	spread (default false) set to true to spread points evenly around path rather than evenly between segments
-	returns an array of points
+	returns an array of point objects with x, y properties and an r property for ratio of distance along path
 recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with setData() method
 	if toJSON (default false) is set to true, the return value is a JSON string
 	the points data comes from the points property
@@ -8098,6 +8141,10 @@ Note the points property has been split into points and pointObjects (and there 
 		if (zot(thickness)) thickness = DS.thickness!=null?DS.thickness:6;
 		if (zot(length)) length = DS.length!=null?DS.length:300;
 		if (zot(points)) points = DS.points!=null?DS.points:5;
+		if (typeof points == "string") {
+			var svgProcessor = new zim.SVGContainer();
+			points = svgProcessor.processPath(points);
+		}
 		var num = typeof points == "number" ? points : points.length;
 		if (num == 0) return;
 		if (zot(controlLength)) controlLength = DS.controlLength!=null?DS.controlLength:(length / num);
@@ -8108,7 +8155,9 @@ Note the points property has been split into points and pointObjects (and there 
 		if (zot(color)) color = DS.color!=null?DS.color:zim.blue;
 		if (color.style) {this.colorCommand = color; color = "black";}
 
-		if (zot(controlType)) controlType = DS.controlType!=null?DS.controlType:"mirror";
+		if (zot(controlType)) controlType = DS.controlType!=null?DS.controlType:null;
+		var originalControlType = controlType;
+		if (zot(controlType)) controlType = "mirror";
 		if (zot(lockControlType)) lockControlType = DS.lockControlType!=null?DS.lockControlType:false;
 		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:true;
 		if (zot(showControls)) showControls = DS.showControls!=null?DS.showControls:interactive;
@@ -8158,6 +8207,16 @@ Note the points property has been split into points and pointObjects (and there 
 		var mapMove;
 		var drawShape;
 		var sets;
+
+		if (originalControlType && typeof points != "number") {
+			// override controlType
+			loop(points, function(point) {
+				point[8]=originalControlType;
+				if (originalControlType == "none") {
+					point[4]=point[5]=point[6]=point[7]=0;
+				}
+			});
+		}
 
 		init();
 		function init() {
@@ -9468,12 +9527,15 @@ Note the points property has been split into points and pointObjects (and there 
 			});
 			var segment = that.segmentPoints[index];
 			var r = currentRatio > 0?(percent/100-lastRatio)/(currentRatio-lastRatio):0
+			// zog(percent)
+			// zog(percent/100-currentRatio/ratios.length)
+			// var r = currentRatio > 0?(percent/100-1/ratios.length*currentRatio)/(currentRatio-lastRatio):0
 
 			var point = zim.pointAlongCurve(segment, r)
 			var newPoint = [point.x,point.y, 0, 0];
 			if (skipPoint) return;
 			if (dataOnly) {
-				that.interpolatedPoints.push({x:point.x, y:point.y});
+				that.interpolatedPoints.push({x:point.x, y:point.y, r:percent/100});
 				return;
 			}
 			if (controlType != "none") {
@@ -9541,7 +9603,7 @@ Note the points property has been split into points and pointObjects (and there 
 				});
 				lastRatio = ratio;
 			});
-			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, !zot(startPoint) && j!=startPoint, dataOnly);
+			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, null, dataOnly);
 			if (that.stage) that.stage.update();
 			that.num = points.length;
 			return that;
@@ -9682,6 +9744,7 @@ num - get the number of points - to set, use the points property
 points - (default 4) a number of points to start with to make the shape
 	OR a shape string of "circle", "rectangle" or "triangle"
 	OR a ZIM Circle, Rectangle or Triangle with any dimensions that will be matched
+	OR an SVG path like: points:"M0,129.5c22,0,40-31,40-41c0-8-3.2-13-10-13" etc. (also see SVGContainer)
 	OR an array of points as follows:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
@@ -9733,7 +9796,7 @@ interpolate(num, startPoint, spread) - get point data {x,y} for this existing po
 	used with hitTestPath
 	specify a startPoint to get points between the startPoint and the next point (one segment of points)
 	spread (default false) set to true to spread points evenly around path rather than evenly between segments
-	returns an array of points
+	returns an array of point objects with x, y properties and an r property for ratio of distance along path
 recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with setData() method
 	if toJSON (default false) is set to true, the return value is a JSON string
 	the points data comes from the points property
@@ -9910,7 +9973,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var num = typeof points == "number" ? points : points.length;
 		var controlLengthOriginal = controlLength;
 		if (zot(controlLength)) controlLength = DS.controlLength!=null?DS.controlLength:(radius * 4 / num);
-		if (zot(controlType)) controlType = DS.controlType!=null?DS.controlType:"straight";
+		if (zot(controlType)) controlType = DS.controlType!=null?DS.controlType:null;
+		var originalControlType = controlType;
+		if (zot(controlType)) controlType = "straight";
 		if (zot(lockControlType)) lockControlType = DS.lockControlType!=null?DS.lockControlType:false;
 		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:true;
 		if (zot(showControls)) showControls = DS.showControls!=null?DS.showControls:interactive;
@@ -9995,6 +10060,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else {
 				return shape;
 			}
+		}
+		if (typeof points == "string") {
+			var svgProcessor = new zim.SVGContainer();
+			points = svgProcessor.processPath(points);
+		}
+
+		if (originalControlType && typeof points != "number") {
+			// override controlType
+			loop(points, function(point) {
+				point[8]=originalControlType;
+				if (originalControlType == "none") {
+					point[4]=point[5]=point[6]=point[7]=0;
+				}
+			});
 		}
 
 		init();
@@ -11276,6 +11355,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var currentRatio = 0;
 			if (percent == 100 && that.type == "Squiggle") percent = 99.99;
 			percent = (percent+100000)%100;
+
 			zim.loop(ratios, function (ratio, i) {
 				if (percent/100 < ratio) {
 					index = i;
@@ -11286,12 +11366,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			});
 			var segment = that.segmentPoints[index];
 			var r = currentRatio > 0?(percent/100-lastRatio)/(currentRatio-lastRatio):0
+			// zog(percent)
+			// zog(percent/100-currentRatio/ratios.length)
+			// var r = currentRatio > 0?(percent/100-1/ratios.length*currentRatio)/(currentRatio-lastRatio):0
 
 			var point = zim.pointAlongCurve(segment, r)
 			var newPoint = [point.x,point.y, 0, 0];
 			if (skipPoint) return;
 			if (dataOnly) {
-				that.interpolatedPoints.push({x:point.x, y:point.y});
+				that.interpolatedPoints.push({x:point.x, y:point.y, r:percent/100});
 				return;
 			}
 			if (controlType != "none") {
@@ -11359,7 +11442,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				});
 				lastRatio = ratio;
 			});
-			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, !zot(startPoint) && j!=startPoint, dataOnly);
+			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, null, dataOnly);
 			if (that.stage) that.stage.update();
 			that.num = points.length;
 			return that;
@@ -11588,6 +11671,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(maxSize)) DS.maxSize!=null?DS.maxSize:null;
 		size = maxSize?Math.min(size, maxSize):size;
 
+		var retina = (typeof zimDefaultFrame!="undefined"&&zimDefaultFrame.retina);
+
 		var that = this;
 		this.mouseChildren = false;
 		this.paddingVertical = paddingVertical;
@@ -11602,7 +11687,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var obj2 = this.outlineLabel = obj.clone();
 			obj2.color = outlineColor;
 			obj2.outline = outlineWidth;
-			this.addChild(obj2);
 		}
 		if (shadowColor != -1 && shadowBlur > 0) obj.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 		this.addChild(obj);
@@ -11614,12 +11698,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				yAdjust = b.y;
 			} else if (valign == "top") {
 				obj.y = size-size/6;
-				if (obj2) obj2.y = size-size/6;
+				if (!retina && obj2) obj2.y = size-size/6;
 				yAdjust = 0;
 			} else if (valign == "center" || valign == "middle") {
 				yAdjust = - b.height / 2;
 				obj.y = size*.3;
-				if (obj2) obj2.y = size*.3;
+				if (!retina && obj2) obj2.y = size*.3;
 			} else { // bottom align
 				yAdjust = -b.height;
 			}
@@ -11650,10 +11734,31 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			obj.x += shiftHorizontal;
 			obj.y += shiftVertical;
 			if (obj2) {
-				zim.center(obj2, that, that.numChildren-2);
-				if (valign != "baseline") obj2.y += size/(typeof zimDefaultFrame!="undefined"&&zimDefaultFrame.retina!=true?32:16);
-				obj2.x += shiftHorizontal;
-				obj2.y += shiftVertical;
+				if (retina) {
+					that.added(function(stage){
+						// CREATEJS NEEDS TO FIX their GLOBALTOLOCAL, etc. to work with scaled stage
+						var b = obj2.getBounds();
+						obj2.visible = true;
+						// ** problem here - bounds should be around Label - not taking on lineHeight
+						// because valign no longer works!
+						var shim = new zim.Container(b.x, b.y, b.width, b.height);
+						shim.addTo(that)
+						shim.addChild(obj2);
+						shim.center(that, that.numChildren-2);
+						if (valign != "baseline") shim.y += size/16;
+						shim.x += shiftHorizontal;
+						shim.y += shiftVertical;
+
+						stage.update();
+					});
+				} else {
+					that.addChild(obj2);
+					zim.center(obj2, that, that.numChildren-2);
+					if (valign != "baseline") obj2.y += size/32;
+					obj2.x += shiftHorizontal;
+					obj2.y += shiftVertical;
+					obj2.visible = true;
+				}
 			}
 		}
 	 	if (zot(backing) && zot(backgroundColor)) {
@@ -11710,6 +11815,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var reg = text.match(/^(.*\s)(\d*\.?\d*)+px(.*)$/i);
 				if (!reg) return;
 				this.label.font = reg[1] + value + "px" + reg[3];
+				if (obj2) obj2.font = reg[1] + value + "px" + reg[3];
 				setSize();
 			}
 		});
@@ -16753,7 +16859,7 @@ corner - (default 0) is the rounded corner of the list (does not accept corner a
 swipe - (default auto/true) the direction for swiping set to none / false for no swiping
 	also can set swipe to just vertical or horizontal
 scrollBarActive - (default true) shows scrollBar (set to false to not)
-scrollBarDrag - (default false) set to true to be able to drag the scrollBar
+scrollBarDrag - (default true) set to false to not be able to drag the scrollBar
 scrollBarColor - (default borderColor) the color of the scrollBar
 scrollBarAlpha - (default .3) the transparency of the scrollBar
 scrollBarFade - (default true) fades scrollBar unless being used
@@ -17061,7 +17167,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var nextSibling = tree.getNextSibling(that.selected.listZID);
 					if (zot(nextSibling)) var finalIndex = that.items.length-1;
 					else {
-						var finalIndex = loop(that.items, function (item, i) {
+						var finalIndex = zim.loop(that.items, function (item, i) {
 							if (item.listZID == nextSibling) return i-1;
 						});
 					}
@@ -22482,7 +22588,7 @@ Loader
 zim class - extends a zim.Button which extends a zim.Container
 
 DESCRIPTION
-Loader lets you upload images and acces them as a Bitmap (available in the loaded event function)
+Loader lets you upload images and access them as a Bitmap (available in the loaded event function)
 Loader uses the HTML input type=file tag and overlays this with a createjs DOMElement.
 Loader is a Button so can be displayed for the user to click on.
 It defaults to a dashed line region as you can also drag and drop files to the loader.
@@ -22701,9 +22807,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			// uploadTag.previosSibling.style.display = "block";
 			setTimeout(function() {
 				var point = that.localToGlobal(0, 0);
-				upload.x = frame.x + point.x * frame.scale/pRatio/pRatio;
-				upload.y = frame.y + point.y * frame.scale/pRatio/pRatio;
-				zim.sca(upload, frame.scale/pRatio/pRatio*that.scaleX, frame.scale/pRatio/pRatio*that.scaleY);
+				if (frame.retina) {
+					upload.x = frame.x/stage.scaleX + point.x/pRatio;
+					upload.y = frame.y/stage.scaleY + point.y/pRatio;
+					// CreateJS DOMElement is scaling tag as stage scales
+					zim.sca(upload, that.scaleX/pRatio, that.scaleY/pRatio);
+				} else {
+					upload.x = frame.x + point.x * frame.scale;
+					upload.y = frame.y + point.y * frame.scale;
+					zim.sca(upload, frame.scale*that.scaleX, frame.scale*that.scaleY);
+				}
 				stage.update();
 			}, 50);
 			return that;
@@ -23088,12 +23201,19 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.resize = function() {
 			setTimeout(function() {
 				var point = that.localToGlobal(padding, padding);
-				textarea.x = frame.x + point.x * frame.scale/pRatio/pRatio;
-				textarea.y = frame.y + point.y * frame.scale/pRatio/pRatio;
-				zim.sca(textarea, frame.scale*that.scaleX/pRatio/pRatio, frame.scale*that.scaleY/pRatio/pRatio);
+				if (frame.retina) {
+					textarea.x = frame.x/stage.scaleX + point.x/pRatio;
+					textarea.y = frame.y/stage.scaleY + point.y/pRatio;
+					// CreateJS DOMElement is scaling tag as stage scales
+					zim.sca(textarea, that.scaleX/pRatio, that.scaleY/pRatio);
+				} else {
+					textarea.x = frame.x + point.x * frame.scale;
+					textarea.y = frame.y + point.y * frame.scale;
+					zim.sca(textarea, frame.scale*that.scaleX, frame.scale*that.scaleY);
+				}
 				textarea.alpha = 1;
 				if (that.stage) stage.update();
-			}, 50);
+			}, 20);
 			return that;
 		}
 		this.resize();
@@ -23299,9 +23419,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.resize = function() {
 			setTimeout(function() {
 				var point = that.localToGlobal(0, 0);
-				cjsTag.x = frame.x + point.x * frame.scale/pRatio/pRatio;
-				cjsTag.y = frame.y + point.y * frame.scale/pRatio/pRatio;
-				zim.sca(cjsTag, frame.scale/pRatio/pRatio*that.scaleX, frame.scale/pRatio/pRatio*that.scaleY);
+				if (frame.retina) {
+					cjsTag.x = frame.x/stage.scaleX + point.x/pRatio;
+					cjsTag.y = frame.y/stage.scaleY + point.y/pRatio;
+					// CreateJS DOMElement is scaling tag as stage scales
+					zim.sca(cjsTag, that.scaleX/pRatio, that.scaleY/pRatio);
+				} else {
+					cjsTag.x = frame.x + point.x * frame.scale;
+					cjsTag.y = frame.y + point.y * frame.scale;
+					zim.sca(cjsTag, frame.scale*that.scaleX, frame.scale*that.scaleY);
+				}
 				cjsTag.alpha = 1;
 				if (that.stage) stage.update();
 			}, 50);
@@ -24197,7 +24324,7 @@ RETURNS obj for chaining
 				var diffX = x-obj.x;
 				var diffY = y-obj.y;
 				var inside = obj.parent.localToLocal(x, y, obj);
-				var outside = new Point(obj.x, obj.y);
+				var outside = new zim.Point(obj.x, obj.y);
 				obj.reg(inside.x, inside.y);
 				obj.rotation=rotation;
 				obj.x = x;
@@ -24660,7 +24787,7 @@ RETURNS obj for chainging
 	}//-47.95
 
 /*--
-obj.drag = function(boundary, overCursor, dragCursor, all, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect, currentTarget)
+obj.drag = function(boundary, overCursor, dragCursor, all, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect, currentTarget, offStage)
 
 drag
 zim DisplayObject method
@@ -24717,6 +24844,7 @@ removeTweens - (default true) will automatically remove tweens from dragged obje
 startBounds - (default true) set to false to ignore bound rect before dragging (sometimes handy when putting drag on container)
 rect - (depreciated) same as boundary - kept for backwards compatibility when using config object
 currentTarget - (default false) same as the all parameter - kept for backwards compatibility when using config object
+offStage - (default false) set to true to be able to drag object off stage (thanks Shammi!)
 
 note: will not update stage if OPTIMIZE is set to true
 unless Ticker.update is set to true or you run Ticker.always(stage) see Ticker
@@ -24726,8 +24854,8 @@ Adds a "slidestop" event to the drag object that is dispatched when the object c
 
 RETURNS obj for chaining
 --*///+31
-	zim.drag = function(obj, boundary, overCursor, dragCursor, all, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect, currentTarget) {
-		var sig = "obj, boundary, overCursor, dragCursor, all, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect, currentTarget";
+	zim.drag = function(obj, boundary, overCursor, dragCursor, all, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect, currentTarget, offStage) {
+		var sig = "obj, boundary, overCursor, dragCursor, all, swipe, localBounds, onTop, surround, slide, slideDamp, slideSnap, reg, removeTweens, startBounds, rect, currentTarget, offStage";
 		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
 		z_d("31");
 
@@ -24774,6 +24902,7 @@ RETURNS obj for chaining
 			var lastBackY;
 			var lastX; // used to see if sliding object is still moving
 			var lastY;
+			var hasMoved;
 		}
 
 		zim.setSwipe(obj, swipe);
@@ -24901,6 +25030,10 @@ RETURNS obj for chaining
 
 			// extra slide settings to project where the object will slide to
 			if (slide) {
+				obj.slideStartX = obj.x;
+				obj.slideStartY = obj.y;
+				hasMoved = false;
+
 				lastCount = 0;
 				backX = [point.x];
 				backY = [point.y];
@@ -24919,9 +25052,11 @@ RETURNS obj for chaining
 
 		obj.zimMove = obj.on("pressmove", function(e) {
 			if (!downCheck) return;
-			obj.dragMouseX = Math.round(e.stageX/stage.scaleX);
-			obj.dragMouseY = Math.round(e.stageY/stage.scaleY);
-			positionObject(dragObject, e.stageX/stage.scaleX, e.stageY/stage.scaleY);
+			var x = offStage?e.rawX:e.stageX;
+			var y = offStage?e.rawY:e.stageY;
+			obj.dragMouseX = Math.round(x/stage.scaleX);
+			obj.dragMouseY = Math.round(y/stage.scaleY);
+			positionObject(dragObject, x/stage.scaleX, y/stage.scaleY);
 			if (dragObject.ZIMoutlineShape) dragObject.outline();
 			if (obj.type == "Pen" && !moveCheck && obj.drawing) moveCheck = true;
 			else if (obj.type == "Tag" || obj.type == "TextArea" || obj.type == "Loader") obj.resize();
@@ -24986,6 +25121,7 @@ RETURNS obj for chaining
 				o.x = checkedPoint.x;
 				o.y = checkedPoint.y;
 			}
+			if (slide && !hasMoved && (o.slideStartX != o.x || o.slideStartY != o.y)) hasMoved = true;
 		}
 		obj.zimPosition = positionObject;
 
@@ -24995,7 +25131,13 @@ RETURNS obj for chaining
 			if (!downCheck) return;
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
 			if (slide) {
-				var point = dragObject.parent.globalToLocal(e.stageX/stage.scaleX, e.stageY/stage.scaleY);
+				if (dragObject.parent) {
+					var x = offStage?e.rawX:e.stageX;
+					var y = offStage?e.rawY:e.stageY;
+					var point = dragObject.parent.globalToLocal(x/stage.scaleX, y/stage.scaleY);
+				} else {
+					var point = new zim.Point(0,0);
+				}
 				downCheck = false;
 				upX = point.x;
 				upY = point.y;
@@ -25021,6 +25163,7 @@ RETURNS obj for chaining
 		// the bounds check for registration inside the bounds
 		// or if surround is set for the whole object staying outside the bounds
 		function checkBounds(o, x, y) {
+			if (!o.parent) return {x:x,y:y}
 			if (r) {
 				if (surround) {
 					var w = o.getBounds().width;
@@ -25076,9 +25219,15 @@ RETURNS obj for chaining
 		function setUpSlide() {
 			var stage = obj.stage;
 			obj.zimDragTicker = function() {
+				if (zot(obj.slideStartX)) return; // don't stop other things like window scrollbar from moving object
+
 				if (!dragObject) dragObject = obj; // could be risky if intending to drag children
 				if (downCheck) {
-					var point = dragObject.parent.globalToLocal(obj.dragMouseX, obj.dragMouseY);
+					if (dragObject.parent) {
+						var point = dragObject.parent.globalToLocal(obj.dragMouseX, obj.dragMouseY);
+					} else {
+						var point = new zim.Point(0,0);
+					}
 					lastCount++;
 					backX.push(point.x);
 					backY.push(point.y);
@@ -25115,7 +25264,9 @@ RETURNS obj for chaining
 					obj.zimDragMoving = false;
 					o.x = desiredX; // snap to final resting place
 					o.y = desiredY;
-					o.dispatchEvent("slidestop");
+					o.slideStartX = null;
+					o.slideStartY = null;
+					if (hasMoved) o.dispatchEvent("slidestop");
 					// extra pen drag
 					if (obj.type == "Pen") {
 						obj.zimDragCheck = false;
@@ -25393,6 +25544,13 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		}
 	} else if (typeof frame == "undefined" || frame==null) {
 		frame = zimDefaultFrame;
+	}
+	if (zot(obj.stage)) {
+		obj.added(function () {
+			if (obj.transformControls) {
+				obj.transformControls.resize();
+			}
+		});
 	}
 	var stage = obj.stage?obj.stage:frame.stage;
 	if (zot(frame.eventRemove)) {
@@ -25998,8 +26156,10 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		} else {
 			var insert = p;
 			while (insert.parent && insert.parent!=stage) {insert = insert.parent;}
-			if (controls.stage) stage.setChildIndex(controls, stage.getChildIndex(insert)+1);
-			else stage.addChildAt(controls, stage.getChildIndex(insert)+1);
+			if (obj.stage) {
+				if (controls.parent==stage) stage.removeChild(controls);
+				stage.addChildAt(controls, stage.getChildIndex(insert)+1);
+			}
 		}
 	}
 
@@ -26587,7 +26747,7 @@ RETURNS obj for chaining
 				aveX = aveX / obj.zimTouch.total;
 				aveY = aveY / obj.zimTouch.total;
 
-				var proxy = { // thanks 王晓东 for the alert that we were missing this!
+				var proxy = { // thanks çŽ‹æ™“ä¸œ for the alert that we were missing this!
  					x:obj.x,
 					y:obj.y,
 					scaleX:obj.scaleX,
@@ -28447,88 +28607,129 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			// DRAG SETUP
 			// Fairly complex system - to implement damping on drag
 			// dragging can be done when animation is on or off
-			// handles dragging to closest point on current or adjacent segments
-			// more easily could have tested whole path but then risk jumping to wrong places
-			// segments can wrap to handle blob
 			// dragging with rewind turned on lets you drag and release to redirect animation
 			// dragging with animation off lets you throw the animation
 			if (drag) {
+				ease = "linear";
 				target.cursor = "pointer";
 				var pathPercent = target.percentComplete;
 				var lastPause = startPaused?startPaused:target.paused;
-				var lastForward;
+				var lastForward = true;
+				var currentForward = true;
 				var stage;
+
+				var pixels = 10;
+				var segments = copy(pathObject.segmentPoints);
+			    var length = 0;
+			    zim.loop(segments, function (point) {
+			        length+=distanceAlongCurve(point);
+			    });
+			    var numPoints = Math.round(length/segments.length/pixels);
+			    var testPoints = pathObject.interpolate(numPoints, null, true);
+			    var currentDist = (pathPercent?pathPercent:0)/100*length;
+			    var targetDist = currentDist;
+				var dirTest = 0;
+			    var changed = false;
+			    var segmentRatios = zim.copy(pathObject.segmentRatios);
+			    target.zimAnimatePathChange = pathObject.on("change", function() {changed = true;});
+
 				target.zimAnimateDragDown = target.on("mousedown", function (e) {
-					stage = e.target.stage;s
+					stage = e.target.stage;
+					stage.mouseMoveOutside = true;
 					flipCheck = false; // sometimes picking up target changes its direction - not good
 					activeCheck = true;
 					setTimeout(function() {
 						flipCheck = true;
 					}, 50);
-					lastForward = tween.forward;
 					mouseCheck = true;
-					getPathPercent(e);
+
+					if (changed) {
+			            segments = zim.copy(pathObject.segmentPoints);
+			            length = 0;
+			            zim.loop(segments, function (point) {
+			                length+=distanceAlongCurve(point);
+			            });
+						numPoints = Math.round(length/segments.length/pixels);
+			            testPoints = pathObject.interpolate(numPoints, null, true);
+			            segmentRatios = zim.copy(pathObject.segmentRatios);
+			        }
+			        changed = false;
+
+					pathPercent = target.percentComplete;
 					dampPercent.immediate(pathPercent);
+					var calcPercent = dirTest = pathPercent;
+					if (rewind) { // handle rewind
+						if (tween.position > tween.duration/2) calcPercent = (100-pathPercent)*2;
+						else calcPercent = pathPercent*2;
+					}
+					currentDist = (calcPercent?calcPercent:0)/100*length;
+					targetDist = currentDist;
 				})
+
 				target.zimAnimateDragPress = target.on("pressmove", getPathPercent);
 				function getPathPercent(e) {
-					// do not locate nearest point on path but rather nearest point in current or adjacent segments
-					var adjacentData = pathObject.getAdjacentSegmentData(latestSegmentIndex);
-					var points = adjacentData[0]; // segment points for closestPointAlongCurve
-					var data = adjacentData[1]; // which segments were used - this could wrap for a blob - eg. [4,0,1]
-					var point = pathObject.globalToLocal(e.stageX/currentStage.scaleX, e.stageY/currentStage.scaleY);
-				 	var pp = closestPointAlongCurve(point, points, 20, false, true); // return percentage
-					pp = pp/100;
-					var ratO = pathObject.segmentRatios; // original cumulative ratios
-					ratO.unshift(0); // add 0 to start of these
-					// convert to ratios per segment rather than cumulative ratios
-					var rat = []
-					for (var i=ratO.length-2; i>=0; i--) {
-						rat.unshift(ratO[i+1]-ratO[i]);
+					var point = pathObject.globalToLocal(e.rawX/stage.scaleX, e.rawY/stage.scaleY);
+					var mousePlace = currentDist;
+					// do not changes currentForward if no change in dirSamples
+					if (pathObject == "Blob") {
+						if (dirSamples[0] < dirSamples[4]) currentForward = true;
+						else if (dirSamples[0] > dirSamples[4]) currentForward = false;
+						if (mousePlace < 10 && !currentForward) {
+							targetDist = currentDist = mousePlace = length-5;
+							dampPercent.immediate(targetDist/length*100);
+							dirSamples=[length-1,length-2,length,length-3,length-4];
+						} else if (mousePlace > length-10 && currentForward) {
+							targetDist = currentDist = mousePlace = 5;
+							dampPercent.immediate(targetDist/length*100);
+							dirSamples=[0,0,0,0,0];
+						}
 					}
-					// find total ratios of segments used to test point
-					// these may or may not be 100%
-					var totalRatios = 0;
-					for (i=0; i<data.length; i++) {
-						totalRatios += rat[data[i]]; // note using individual ratios
-					}
-					var convertedPP = pp * totalRatios; // convert ratio within used segments to ratio in all segments
-					var cumToStart = ratO[data[0]]; // get starting ratio using original cumulative array
-					if (cumToStart+convertedPP > 1) { // if the starting ratio + converted ratio is more than 1 it means it has wrapped
-						newPP = (cumToStart+convertedPP)-1; // leftover after wrapping
-					} else {
-						newPP = cumToStart+convertedPP; // otherwise did not wrap
-					}
-
-					newPP = newPP*100; // convert back from ratio to percentage
+					// thanks https://codepen.io/eliCrow/pen/MLdddR
+				    var dPoint = {x:point.x, y:point.y, r:mousePlace};
+			        testPoints.sort(function (a, b) {
+			          var aPoint = {x:a.x, y:a.y, r:a.r*length};
+			          var bPoint = {x:b.x, y:b.y, r:b.r*length};
+			          var aDiff = Math.sqrt(Math.pow(dPoint.x-aPoint.x, 2)+Math.pow(dPoint.y-aPoint.y, 2)+Math.pow(dPoint.r-aPoint.r, 2));
+					  var bDiff = Math.sqrt(Math.pow(dPoint.x-bPoint.x, 2)+Math.pow(dPoint.y-bPoint.y, 2)+Math.pow(dPoint.r-bPoint.r, 2));
+					  return aDiff-bDiff;
+			        })
+					targetDist = testPoints[0].r*length;
+					pathPercent = targetDist/length*100;
+					pathPercent = constrain(pathPercent,0,99.95); // get rid of end glitch
 					if (rewind) { // handle rewind
-						newPP = newPP/2;
-						if (tween.position > tween.duration/2) newPP = 100-newPP;
+						pathPercent/=2;
+						if (tween.position > tween.duration/2) pathPercent = 100-pathPercent;
 					}
-
-					pathPercent = constrain(newPP,0,99.5); // get rid of end glitch
-
-					// simple way to test whole path - sigh
-					// var newPoint = pathObject.localToLocal(closest.x, closest.y, target.parent);
-					// target.x = newPoint.x;
-					// target.y = newPoint.y;
 				}
+
 				target.zimAnimateDragUp = target.on("pressup", function () {
 					if (target.paused==false) mouseCheck = false;
 					flipCheck = false;
 					setTimeout(function() {
 						flipCheck = true;
 					}, 50);
-					if (!target.paused && rewind && lastForward != tween.forward && redirect) {
+					// do not changes currentForward if no change in dirSamples
+					if (dirSamples[0] < dirSamples[4]) currentForward = true;
+					else if (dirSamples[0] > dirSamples[4]) currentForward = false;
+					if (!target.paused && rewind && redirect && currentForward != lastForward) {
 						target.percentComplete = 100-target.percentComplete;
+						lastForward = currentForward;
 						// can't seem to get this to change direction when
 						// dragging when paused and then unpausing direction
 					}
-				})
-				var dampPercent = new zim.Damp(pathPercent, .2);
+				});
+
+				var dampPercent = new zim.Damp(pathPercent, .15);
 				var lastPercent = 0;
+				var dirCount = 0;
+				var dirSamples = [0,0,0,0,0];
 				target.zimDragAnimateTicker = zim.Ticker.add(function () {
 					if (!drag) return; // might be paused
+					if (++dirCount%20) {
+						dirSamples.push(targetDist);
+						dirSamples.shift();
+					}
+					currentDist = targetDist;
 					// this was still running (due to easing) when unpaused so set mouseCheck to false in pause() script to solve
 					if (mouseCheck || (activeCheck && target.paused==true)) {
 						if (pathObject.type == "Blob" && Math.abs(lastPercent-pathPercent)>(rewind?45:90)) {
@@ -28541,7 +28742,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							target.percentComplete = newPercent;
 							lastPercent = newPercent;
 						} else {
-							target.percentComplete = lastPercent;
+							target.percentComplete = newPercent; // changed lastPercent to newPercent
 							//if (!mouseCheck) {
 								activeCheck = false;
 							//}
@@ -29014,6 +29215,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (target.type == "Pen" && target.zimOnPath) {target.stop(); target.zimOnPath = false;}
 				if (zot(include)) include = true;
 				if (command && drag) {
+					if (pathObject) pathObject.off("change", target.zimAnimatePathChange);
 					target.off("mousedown", target.zimAnimateDragDown);
 		            target.off("pressmove", target.zimAnimateDragPress);
 		            target.off("pressup", target.zimAnimateDragUp);
@@ -29220,6 +29422,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (target.zimAnimateDragDown) {
 						drag = false;
 						target.cursor = "default";
+						if (pathObject) pathObject.off("change", target.zimAnimatePathChange);
 						target.off("mousedown", target.zimAnimateDragDown);
 						target.off("pressmove", target.zimAnimateDragPress);
 						target.off("pressup", target.zimAnimateDragUp);
@@ -29247,6 +29450,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (target.zimAnimateDragDown) {
 						drag = true;
 						target.cursor = "pointer";
+						if (pathObject) target.zimAnimatePathChange = pathObject.on("change", target.zimAnimatePathChange);
 						target.zimAnimateDragDown = target.on("mousedown", target.zimAnimateDragDown);
 						target.zimAnimateDragPress = target.on("pressmove", target.zimAnimateDragPress);
 						target.zimAnimateDragUp = target.on("pressup", target.zimAnimateDragUp);
@@ -34386,10 +34590,18 @@ Dispatches a "change" event when the screen reader is about to talk
 			if (item) {
 				var obj = item.obj;
 				var bounds = obj.boundsToGlobal();
-				tabTag.style.left = (frame.x + bounds.x * frame.scale/pRatio/pRatio)+"px";
-				tabTag.style.top = (frame.y + bounds.y * frame.scale/pRatio/pRatio)+"px";
-				tabTag.style.width = (bounds.width * frame.scale/pRatio/pRatio)+"px"
-				tabTag.style.height = (bounds.height * frame.scale/pRatio/pRatio)+"px"
+				zog("here")
+				if (frame.retina) {
+					tabTag.style.left = (frame.x + bounds.x*frame.scale/pRatio)+"px";
+					tabTag.style.top = (frame.y + bounds.y*frame.scale/pRatio)+"px";
+					tabTag.style.width = (bounds.width*frame.scale/pRatio)+"px";
+					tabTag.style.height = (bounds.height*frame.scale/pRatio)+"px";
+				} else {
+					tabTag.style.left = (frame.x + bounds.x * frame.scale)+"px";
+					tabTag.style.top = (frame.y + bounds.y * frame.scale)+"px";
+					tabTag.style.width = (bounds.width * frame.scale)+"px";
+					tabTag.style.height = (bounds.height * frame.scale)+"px";
+				}
 				item.obj.zimTabTag = tabTag;
 			} else {
 				tabTag.style.left = -1000+"px";
@@ -34613,10 +34825,18 @@ Dispatches a "change" event when the screen reader is about to talk
 				} else {
 					var bounds = obj.boundsToGlobal();
 					var tabTag = obj.zimTabTag;
-					tabTag.style.left = (frame.x + bounds.x * frame.scale/pRatio/pRatio)+"px";
-					tabTag.style.top = (frame.y + bounds.y * frame.scale/pRatio/pRatio)+"px";
-					tabTag.style.width = (bounds.width * frame.scale/pRatio/pRatio)+"px"
-					tabTag.style.height = (bounds.height * frame.scale/pRatio/pRatio)+"px"
+					if (frame.retina) {
+						zog("hjere")
+						tabTag.style.left = (frame.x + bounds.x*frame.scale/pRatio)+"px";
+						tabTag.style.top = (frame.y + bounds.y*frame.scale/pRatio)+"px";
+						tabTag.style.width = (bounds.width*frame.scale/pRatio)+"px";
+						tabTag.style.height = (bounds.height*frame.scale/pRatio)+"px";
+					} else {
+						tabTag.style.left = (frame.x + bounds.x * frame.scale/pRatio/pRatio)+"px";
+						tabTag.style.top = (frame.y + bounds.y * frame.scale/pRatio/pRatio)+"px";
+						tabTag.style.width = (bounds.width * frame.scale/pRatio/pRatio)+"px";
+						tabTag.style.height = (bounds.height * frame.scale/pRatio/pRatio)+"px";
+					}
 				}
 				tabTag.setAttribute("aria-hidden", !obj.stage);
 				tabTag.hidden = !obj.stage;
@@ -37706,8 +37926,10 @@ paused - read-only boolean whether the parallax is paused - see pause() and star
 			if (zot(state)) state = true;
 			if (that.paused != state) {
 				that.paused = state;
-				if (!state) zimTicker = zim.Ticker.add(zimTicker);
-				else zim.Ticker.remove(zimTicker);
+				if (zimTicker) {
+					if (!state) zimTicker = zim.Ticker.add(zimTicker);
+					else zim.Ticker.remove(zimTicker);
+				}
 			}
  		}
 
@@ -40608,14 +40830,14 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
                 right.dep(left.depth);
             }
             // recursive
-            loop(left, function(left, i){
+            zim.loop(left, function(left, i){
                 copyDepth(left, right.getChildAt(i), registerLeft, registerRight);
             });
         }
         copyDepth(contentLeft, contentRight);
 
         function setDepth(list, channel) {
-            loop(list, function(container) {
+            zim.loop(list, function(container) {
                 container.vrChannel = channel;
                 container.vrStartX = container.x;
                 if (angle != 0 && distance != 0) {
@@ -40699,11 +40921,11 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 			function doParallax(a) {
                 if (angle != 0 && distance != 0) { // movement and parallax
                     // content movement so base parallax on distance of content from center of view
-                    loop(leftVR, calculateDistance);
-                    loop(rightVR, calculateDistance);
+                    zim.loop(leftVR, calculateDistance);
+                    zim.loop(rightVR, calculateDistance);
                 } else { // only parallax
-                    loop(leftVR, function(container) {calculateDistance2(container, a)})
-                    loop(rightVR, function(container) {calculateDistance2(container, a)});
+                    zim.loop(leftVR, function(container) {calculateDistance2(container, a)})
+                    zim.loop(rightVR, function(container) {calculateDistance2(container, a)});
                 }
             }
             zim.Ticker.always();
@@ -40896,7 +41118,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
                 leftVR.splice(index, 1);
                 rightVR.splice(index, 1);
             }
-            loop(item, function(inside) {
+            zim.loop(item, function(inside) {
                 removeItem(inside);
             });
         }
@@ -40904,7 +41126,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
         this.remove = function(items) {
             // call to remove an item from VR
             // Note: arguments is an object with properties matching the index of the argument
-            loop(arguments, function(index, item) {
+            zim.loop(arguments, function(index, item) {
                 if (!content.contains(item)) return;
                 removeItem(item);
                 item.parent.removeChild(item);
@@ -40938,7 +41160,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 // Zim Frame provides code to help you set up your coding environment
 
 /*--
-zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retnal)
+zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -41225,7 +41447,7 @@ allowDefault - set to true to remove zil or false to set zil (see above) also af
 colors: orange, green, pink, blue, brown, yellow, red, purple, silver, tin, grey, lighter, moon, light, dark, darker, white, black, clear (0 alpha), faint (.01 alpha)
 altKey - true if the alt key is being pressed otherwise false
 ctrlKey - true if the ctrl key is being pressed otherwise false
-metaKey - true if the meta key (⌘ command on Mac or ⊞ windows key) is being pressed otherwise false
+metaKey - true if the meta key (âŒ˜ command on Mac or âŠž windows key) is being pressed otherwise false
 shiftKey - true if the shift key is being pressed otherwise false
 loadFailObj - the object that shows if images are broken - will be given a type property of "EmptyAsset"
 retina - read-only Boolean as to whether stage (as opposed to the canvas) was scaled for pixelDensity during Frame creation
