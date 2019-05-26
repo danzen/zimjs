@@ -11692,7 +11692,10 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-text - String for the the text of the label
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+
+text |ZIM VEE| - String for the the text of the label
 size - (default 36) the size of the font in pixels
 font - (default arial) the font or list of fonts for the text
 color - (default "black") color of font (any CSS color)
@@ -11803,6 +11806,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var DS = style===false?{}:zim.getStyle(this.type, this.group, inherit);
 
 		if (zot(text)) text=DS.text!=null?DS.text:"LABEL";
+		var originalText = text;
+		text = zim.Pick.choose(text);
 		var emptyText = false;
 		if (text === "") {
 			text = " ";
@@ -12114,8 +12119,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		zimStyleTransforms(this, DS)
-		this.clone = function() {
-			return that.cloneProps(new zim.Label(that.text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions,
+		this.clone = function(exact) {
+			return that.cloneProps(new zim.Label(exact?that.text:originalText, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, fontOptions,
 				!zot(backing)?backing.clone():null, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, this.group, inherit));
 		}
 	}
@@ -14801,7 +14806,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			this.on("pressup", function(e) {
 				display.cursor = "pointer";
-				stage.update();
+				if (that.stage) that.stage.update();
 			});
 		}
 
@@ -24119,8 +24124,17 @@ RETURNS obj for chaining
                 container.addChildAt(obj, index);
             }
         }
-		if (zot(cB)) return obj; // just add to container if no bounds on Container
-		if (zot(oB)) { // just add to middle of container
+		if (zot(cB)) { // just center on container origin
+			if (oB) {
+				obj.x = oB.x + obj.regX - oB.width/2;
+				obj.y = oB.y + obj.regY - oB.height/2;
+			} else {
+				obj.x = obj.y = 0;
+			}
+
+			return obj; // just add to container if no bounds on Container
+		}
+		if (zot(oB)) { // just set at middle of container
 			obj.x = container.getBounds().width/2;
 			obj.y = container.getBounds().height/2;
 			return obj;
@@ -28360,6 +28374,7 @@ override - (default true) subesequent tweens of any type on object cancel all ea
 from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
 set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
 id - (default null) set to String to use with pauseAnimate(state, id) and stopAnimate(id) - thanks Sean Berwick for typo catch
+	series animate gets only one overall id - so no id per animation object
 events - (default false) set to true to receive an "animation" event on the target (or Container with a Container sequence)
 sequenceTarget - (default null) used internally for processing sequence animations
 dynamic - (default false) set to true to turn on dynamic speed animation via the percentSpeed property
@@ -28571,6 +28586,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						rewindCall:o.rewindCall, rewindParams:o.rewindParams,
 						rewindWaitCall:o.rewindWaitCall, rewindWaitParams:o.rewindWaitParams,
 						set:zim.copy(o.masterSet),
+						events:events,
 						override:false,
 						id:id
 					}
@@ -28733,6 +28749,17 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		  return !!Object.getOwnPropertyDescriptor(obj, prop)['get'];
 		}
 
+		if (target.type == "Sprite" || !target.hasOwnProperty("paused")) {
+			Object.defineProperty(target, 'paused', {
+				get: function() {
+					return target.animatePaused;
+				},
+				set: function(value) {
+					target.animatePaused = value;
+				}
+			});
+		}
+
 		if (obj.path || dynamic) {
 			// can't risk turning percentComplete off when animation ends as only one per all animations
 			// instead, evaluate how percentComplete is set when starting an animation
@@ -28785,7 +28812,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		if (zim.isEmpty(obj)) return; // nothing left to animate
-		target.paused = false;
+		if (target.type != "Sprite") target.paused = false;
 		var lastMouseEnabled = target.mouseEnabled;
 		function addZimBusy() {
 			target.mouseEnabled = false;
@@ -28820,6 +28847,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			} else if (!zot(target.zimTweens[id])) { // not an idSet but already a tween so make an idSet
 				idSet = id;
 				id = zim.makeID(10);
+				// var idSet = target.zimTweens[id].zimIdSet;
 				target.zimIdSets[idSet] = [idSet]; // add original into set
 				target.zimTweens[idSet].zimIdSet = idSet; // reference back to idSet
 				target.zimIdSets[idSet].push(id); // push the second one in
@@ -28960,6 +28988,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var lastPause = startPaused?startPaused:target.paused;
 				var lastForward = true;
 				var currentForward = true;
+				var lastPathPercent = pathPercent;
 				var stage;
 
 				var pixels = 10;
@@ -29052,7 +29081,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					setTimeout(function() {
 						flipCheck = true;
 					}, 50);
-					// do not changes currentForward if no change in dirSamples
+					// do not change currentForward if no change in dirSamples
 					if (dirSamples[0] < dirSamples[4]) currentForward = true;
 					else if (dirSamples[0] > dirSamples[4]) currentForward = false;
 					if (!target.paused && rewind && redirect && currentForward != lastForward) {
@@ -29231,12 +29260,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
-					tween1();
+					tween1(tween);
 				});
 			} else {
 				tween1();
 			}
-			function tween1() {
+			function tween1(lastTween) {
 				var obj2 = getStart();
 				if (target.set && !from) target.set(set);
 				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
@@ -29248,6 +29277,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					.call(doneAnimating)
 					.wait(wait3, true)
 					.call(doLoopCall);
+				if (lastTween) {
+					tween.zimIdSet = lastTween.zimIdSet; // know we need this one - not sure about the rest 10.4.0
+					tween.zimObj = lastTween.zimObj;
+					tween.zimTicker = lastTween.zimTicker;
+					tween.zimExtraTickers = lastTween.zimExtraTickers;
+					tween.requestID = lastTween.requestID;
+				}
 				setZimTweenProps();
 			}
 
@@ -29256,18 +29292,25 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
-					tween2();
+					tween2(tween);
 				});
 			} else {
 				tween2();
 			}
-			function tween2() {
+			function tween2(lastTween) {
 				if (target.set && !from) {target.set(set);}
 				tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
 					.to(obj, t, createjs.Ease[ease])
 					.call(doneAnimating)
 					.wait(wait3, true)
 					.call(doLoopCall);
+				if (lastTween) {
+					tween.zimIdSet = lastTween.zimIdSet; // know we need this one - not sure about the rest 10.4.0
+					tween.zimObj = lastTween.zimObj;
+					tween.zimTicker = lastTween.zimTicker;
+					tween.zimExtraTickers = lastTween.zimExtraTickers;
+					tween.requestID = lastTween.requestID;
+				}
 				setZimTweenProps();
 			}
 		}
@@ -29312,8 +29355,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		var forwardStack = [1,1,1];
+
 		function handlePath() {
 			if (!target.parent || tween.passive || tween.startPaused) return;
+			if (drag && rewind && ((lastPathPercent < 50 && target.percentComplete > 50) || (lastPathPercent > 50 && target.percentComplete < 50))) {
+				lastForward = target.percentComplete<50;
+			}
+			lastPathPercent = target.percentComplete;
 			if (pathObject) {
 				if (dynamicPath) {
 					segments = pathObject.segmentPoints;
@@ -29400,7 +29448,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 			}
 			endTween(id);
-			target.paused = null;
+			// target.animatePaused = null;
+			// target.paused = true;
 			target.zimX = null;
 			target.zimY = null;
 			if (call && typeof call == 'function') {(call)(params);}
@@ -29443,9 +29492,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			tween.zimObj = obj;
 			tween.zimTicker = zimTicker;
 			tween.zimPaused = zimPaused;
-			if (idSet) {
-				tween.zimIdSet = idSet;
-			}
+			if (idSet) tween.zimIdSet = idSet;
 			if (providedID) {
 				// add to zim.idSets for global animation pause and stop by id
 				// zim.idSets = {id:[target, target], id:[target, target, target]}
@@ -29513,9 +29560,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						zim.Ticker.remove(target.zimTweens[id].extraTickers[k]);
 					}
 				}
-				setTimeout(function(){
-					if (ticker) zim.Ticker.remove(ticker); ticker = null;
-				},200);
+				if (ticker) zim.Ticker.remove(ticker); ticker = null;
 			}();
 		}
 		function pauseTicker(id, paused) {
@@ -29555,7 +29600,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				// then assumes percentComplete is desired else sets to 0 when starting an animation
 				// if (internal) target.percentComplete = target.pathRatio = 0;
 				if (zot(command)) command = true;
-				target.paused = null;
+				target.paused = true;
 				if (target.type == "Pen" && target.zimOnPath) {target.stop(); target.zimOnPath = false;}
 				if (zot(include)) include = true;
 				if (command && drag) {
@@ -30988,8 +31033,8 @@ STYLE
 zim constant
 
 DESCRIPTION
-STYLE can be used to set any parameter on a DisplayObject.
-For instance: Circle, Blob, Button, Pane, Bitmap, Sprite, etc.
+STYLE can be used to set any parameter on a DisplayObject and many of the Controls.
+For instance: Circle, Blob, Button, Pane, Bitmap, Sprite, Tile, Pen, Emitter, Scroller, etc.
 These are applied at the time the objects are made.
 They are cascading with each level overriding the previous level:
 
@@ -31003,6 +31048,7 @@ They are cascading with each level overriding the previous level:
 	new Button({corner:40}) will make this button have a corner of 40
 
 See: https://zimjs.com/style.html for an example
+And: https://zimjs.com/test/styles.html for Control Styles
 
 EXAMPLE
 STYLE = {
@@ -33247,6 +33293,7 @@ PARAMETERS
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 obj - |ZIM VEE| the display object to tile
+	Put a rotated object in a Container - unless rotated 180 degrees ;-)
 cols - (default 1) the columns to tile
 rows - (default 1) the rows to tile
 spacingH - (default 0) a spacing between columns - ignored if colSize is set
@@ -33638,55 +33685,55 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 					if (that.mirrorH && i%2==1) {
 						tile.scaleX = -scalesX[j][i];
-						tile.x = colTotal+w-b.x*2*tile.scaleX;
+						// tile.x = colTotal+w-b.x*2*tile.scaleX;
 					} else {
 						// tile.x = colTotal + (tile.regX-b.x);
-						tile.pos(colTotal, null)
 					}
+					tile.pos(colTotal, null);
 
 					if (!that.squeezeH && VEEAlign) {
 						if (zot(width) && (align=="center" || align=="middle")) {
-							tile.x += (widthMax[i]-tile.width*tile.scaleX)/2;
+							tile.x += (widthMax[i]-tile.width)/2;
 						} else if (zot(width) && align=="right") {
-							tile.x += widthMax[i]-tile.width*tile.scaleX;
+							tile.x += widthMax[i]-tile.width;
 						}
 					} else if (!that.squeezeH) { // this allows for dynamic setting of align (for non-VEE, non squeezeH)
 						if (zot(width) && (that.align=="center" || that.align=="middle")) {
-							tile.x += (widthMax[i]-tile.width*tile.scaleX)/2;
+							tile.x += (widthMax[i]-tile.width)/2;
 						} else if (zot(width) && that.align=="right") {
-							tile.x += widthMax[i]-tile.width*tile.scaleX;
+							tile.x += widthMax[i]-tile.width;
 						}
 					} else {
 						if (zot(width) && (that.align=="center" || that.align=="middle")) {
-							tile.x += (w-tile.width*tile.scaleX)/2;
+							tile.x += (w-tile.width)/2;
 						} else if (zot(width) && that.align=="right") {
-							tile.x += w-tile.width*tile.scaleX;
+							tile.x += w-tile.width;
 						}
 					}
 					if (that.mirrorV && j%2==1) {
 						tile.scaleY = -scalesY[j][i];
-						tile.y = rowTotals[i]+h-b.y*2*tile.scaleY;
+						// tile.y = rowTotals[i]+h-b.y*2;
 					} else {
 						// tile.y = rowTotals[i] + tile.regY-b.y;
-						tile.pos(null,rowTotals[i])
 					}
+					tile.pos(null,rowTotals[i]);
 					if (!that.squeezeV && VEEVAlign) {
 						if (zot(height) && (finalVAlign=="center" || finalVAlign=="middle")) {
-							tile.y += (heightMax[j]-tile.height*tile.scaleY)/2;
+							tile.y += (heightMax[j]-tile.height)/2;
 						} else if (zot(height) && finalVAlign=="bottom") {
-							tile.y += heightMax[j]-tile.height*tile.scaleY;
+							tile.y += heightMax[j]-tile.height;
 						}
 					} else if (!that.squeezeV) { // this allows for dynamic setting of valign (for non-VEE, non squeezeV)
 						if (zot(height) && (that.valign=="center" || that.valign=="middle")) {
-							tile.y += (heightMax[j]-tile.height*tile.scaleY)/2;
+							tile.y += (heightMax[j]-tile.height)/2;
 						} else if (zot(height) && that.valign=="bottom") {
-							tile.y += heightMax[j]-tile.height*tile.scaleY;
+							tile.y += heightMax[j]-tile.height;
 						}
 					} else {
 						if (zot(height) && (that.valign=="center" || that.valign=="middle")) {
-							tile.y += (h-tile.height*tile.scaleY)/2;
+							tile.y += (h-tile.height)/2;
 						} else if (zot(height) && that.valign=="bottom") {
-							tile.y += h-tile.height*tile.scaleY;
+							tile.y += h-tile.height;
 						}
 					}
 
@@ -43391,7 +43438,7 @@ function zimify(obj, list) {
 		get: function() {
 			// that.setBounds(null);
 			var b = this.getBounds();
-			return (zot(b))?null:b.width*this.scaleX;
+			return (zot(b))?null:Math.abs(b.width*this.scaleX);
 		},
 		set: function(value) {
 			var b = this.getBounds();
@@ -43408,7 +43455,7 @@ function zimify(obj, list) {
 		get: function() {
 			// that.setBounds(null);
 			var b = this.getBounds();
-			return (zot(b))?null:b.height*this.scaleY;
+			return (zot(b))?null:Math.abs(b.height*this.scaleY);
 		},
 		set: function(value) {
 			var b = this.getBounds();
@@ -43425,7 +43472,7 @@ function zimify(obj, list) {
 		get: function() {
 			// that.setBounds(null);
 			var b = this.getBounds();
-			return (zot(b))?null:b.width*this.scaleX;
+			return (zot(b))?null:Math.abs(b.width*this.scaleX);
 		},
 		set: function(value) {
 			var b = this.getBounds();
@@ -43439,7 +43486,7 @@ function zimify(obj, list) {
 		get: function() {
 			// that.setBounds(null);
 			var b = this.getBounds();
-			return (zot(b))?null:b.height*this.scaleY;
+			return (zot(b))?null:Math.abs(b.height*this.scaleY);
 		},
 		set: function(value) {
 			var b = this.getBounds();
