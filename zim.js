@@ -22997,6 +22997,8 @@ save(content, x, y, width, height, url, cached, cachedBounds, type) - save a pic
 	cachedBounds - if you are saving a different bounds than was previously cached
 		setting the bounds here (createjs.Rectangle) will restore the cache to the previous bounds
 	type - (default "png") set to "jpeg" for jpeg
+	data - (default false) set to true to save as base64 data - thanks Andi Ermi for the request
+		otherwise save returns the object for chaining
 
 Button methods:
 setBacking(type, newBacking) - dynamically set any type of backing for button (if null removes backing for that type)
@@ -23220,9 +23222,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			});
 		}
 
-		this.save = function(content, filename, x, y, width, height, cached, cachedBounds, type) {
+		this.save = function(content, filename, x, y, width, height, cached, cachedBounds, type, data) {
 
-			var sig = "content, filename, x, y, width, height, cached, cachedBounds, type";
+			var sig = "content, filename, x, y, width, height, cached, cachedBounds, type, data";
 			var duo; if (duo = zob(that.save, arguments, sig)) return duo;
 			if (zot(content)) content = frame.stage;
 
@@ -23250,6 +23252,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 
 			content.cache(x, y, width, height);
+
+			if (data) {
+				var image = content.cacheCanvas.toDataURL('image/' + type);
+				if (cached) {
+					if (cachedBounds) content.cache(cashedBound.x, cashedBound.y, cashedBound.width, cashedBound.height);
+				} else {
+					content.uncache();
+				}
+				return image;
+			}
 			// if (!zot(url)) {
 			// 	zim.async(url+"?data="+content.cacheCanvas.toDataURL('image/jpeg'), loaderReply);
 			// 	function loaderReply(result) {
@@ -23301,6 +23313,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			} else {
 				content.uncache();
 			}
+
 			return that;
 		}
 
@@ -25793,6 +25806,7 @@ PROPERTIES:
 visible - read only whether the controls are visible
 ghost - read only as to whether the ghost outline is showing - set with showGhost and hideGhost
 ghostEnabled - read only as to whether the ghost outline will be turned on and off - set with addGhost and removeGhost
+controls - reference to the Container that holds all the controls
 scaleControls - reference to the Container that holds the corner boxes for scaling
 stretchXControls - reference to the Container that holds the left and right boxes for stretching
 stretchYControls - reference to the Container that holds the top and bottom boxes for stretching
@@ -26835,6 +26849,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 			controls = carrier = carrier2 = null;
 			obj.transformControls = null;
 		},
+		controls:controls,
 		scaleControls:squares,
 		stretchXControls:sidesH,
 		stretchYControls:sidesV,
@@ -28044,7 +28059,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 // SUBSECTION ANIMATE, WIGGLE, LOOP
 
 /*--
-obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, obj)
+obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj)
 
 animate
 zim DisplayObject method
@@ -28389,6 +28404,11 @@ drag - (default false) used with path in props to drag along path
 clamp - (default true) used with dynamic and non-looping - set to false to let time pass beyond animation start and end
 startPaused - (default false - true if drag is true) Boolean - set to true to start the animation in the paused state
 	Good for animating manually with the percentComplete property
+clean - (default true) set to false to not delete animation ids etc. at end of animate()
+	Could then use percentComplete to position tween and pauseTween(false) to start animating again
+	Note... once tween has waited, percentComplete does not include wait period
+	So clean cannot be used to restart an animation with a wait after the animation has waited
+	Use the replayTween() method of the target to restart the latest animation on a target
 obj - (depreciated) the old version of props - kept for backwards compatibility
 
 PROPERTIES - zim.animate() adds the following properties to any object it animates:
@@ -28415,7 +28435,8 @@ METHODS - see pauseAnimate() and stopAnimate() under the METHODS module
 	This matches the pause() of Dynamo and Scroller and is used by Accelerator
 	   state - (default true) true pauses and setting the state to false will unpause the dynamic animation
 	   time - (default 0) time in milliseconds to slow the animation down if pausing or speed it up if unpausing
-
+	resetTween() - sets the target back to the state at the start of the last animate() call
+	replayTween() - resets and runs the last animate() on the target - calls the animate function with the same parameters as the last time
 EVENTS - zim animate() will add an "animation" event to the target IF the events parameter is set to true (default is false)
  	or the "animation" event will be added to the Container for a sequence in a Container
 	or the "animation" event is added to the targets of an animation series
@@ -28423,8 +28444,8 @@ EVENTS - zim animate() will add an "animation" event to the target IF the events
 
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, obj) {
-		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, obj";
+	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj) {
+		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
@@ -28494,7 +28515,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, obj); // do not send from!
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000) + ((wait)?wait:0); // wait only happens at start - no longer each time
@@ -28532,6 +28553,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(startPaused)) startPaused = drag?true:false;
 		if (zot(dynamic)) dynamic = false;
 		if (zot(clamp)) clamp = true;
+		if (zot(clean)) clean = true;
 		var tween;
 		var idSet;
 		var providedID;
@@ -28759,6 +28781,23 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 			});
 		}
+
+		// FOR RESET AND START of TWEEN
+		target.zimTweenOriginals = {}
+		zim.loop(obj, function (o) {
+			target.zimTweenOriginals[o] = target[o];
+		});
+		target.resetTween = function() {
+			zim.loop(target.zimTweenOriginals, function (o) {
+				target[o] = target.zimTweenOriginals[o];
+			});
+			if (target.stage) target.stage.update();
+		};
+		target.replayTween = function() {
+			target.resetTween();
+			zim.animate.apply(null, startParams);
+		}
+
 
 		if (obj.path || dynamic) {
 			// can't risk turning percentComplete off when animation ends as only one per all animations
@@ -29447,11 +29486,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					return;
 				}
 			}
-			endTween(id);
+			if (clean) endTween(id);
+			else target.pauseAnimate(true, id);
 			// target.animatePaused = null;
 			// target.paused = true;
-			target.zimX = null;
-			target.zimY = null;
 			if (call && typeof call == 'function') {(call)(params);}
 		}
 		function getStart() {
@@ -29511,6 +29549,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 		function endTween(id) {
 			if (zot(target.zimTweens) || zot(target.zimTweens[id])) return;
+			target.zimX = null;
+			target.zimY = null;
 			removeBusy(target.zimTweens[id].zimObj);
 			target.zimTweens[id].paused = true;
 			endTicker(id);
@@ -30837,13 +30877,17 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 			zim.copyMatrix(m, mask);
 			mask.addChildAt(m,0);
 			m.alpha = 0;
-			var p = mask.shape.localToLocal(mask.regX,mask.regY,obj.parent);
-			var o = obj.parent.getConcatenatedMatrix().decompose();
-			m.scaleX /= o.scaleX/stage.scaleX||1;
-			m.scaleY /= o.scaleY/stage.scaleY||1;
-			m.rotation = mask.rotation-o.rotation;
-			m.x = p.x;
-			m.y = p.y;
+
+			if (!obj.parent) {obj.mask = m; return;}
+			var point = mask.localToLocal(mask.regX,mask.regY,obj.parent);
+			var mm = mask.getConcatenatedMatrix().decompose();
+			var om = obj.parent.getConcatenatedMatrix().decompose();
+			m.scaleX = mm.scaleX/om.scaleX;
+			m.scaleY = mm.scaleY/om.scaleY;
+			m.rotation = (mm.rotation?mm.rotation:0)-(om.rotation?om.rotation:0);
+
+			m.x = point.x;
+			m.y = point.y;
 			if (obj.parent == mask.parent) {
 				m.x = mask.x+mask.shape.x;
 				m.y = mask.y+mask.shape.y;
@@ -33293,7 +33337,7 @@ PARAMETERS
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 obj - |ZIM VEE| the display object to tile
-	Put a rotated object in a Container - unless rotated 180 degrees ;-)
+	note: put rotated objects in a container (unless rotated 180 degrees) and tile the container
 cols - (default 1) the columns to tile
 rows - (default 1) the rows to tile
 spacingH - (default 0) a spacing between columns - ignored if colSize is set
@@ -42533,7 +42577,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					var ev = new createjs.Event("assetload");
 					ev.item = item; // createjs preload item
 					ev.asset = asset;
-					queue.dispatchEvent(e);
+					queue.dispatchEvent(ev);
 					if (!queueOnly) that.dispatchEvent(ev);
 				});
 				that.preloadEvent = preload.on("complete", function(e) {
@@ -43256,9 +43300,9 @@ function zimify(obj, list) {
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, obj) {
+		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, obj);}
+			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj);}
 		},
 		pauseAnimate:function(){return this;},
 		stopAnimate:function(){return this;},
