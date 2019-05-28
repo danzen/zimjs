@@ -6,7 +6,8 @@ https://zimjs.com
 
 A consistent, complete, simple and colorful Canvas Framework that provides quick visual results.  ZIM is great for learning to code but also powerful for professionals to make games, apps, art and more for desktop and mobile!
 
-Please see the About section at https://zimjs.com/about.html for why we use ZIM to make Interactive Media.
+Please see the About section for why we use ZIM to make Interactive Media.<br>
+https://zimjs.com/about.html
 
 ## Examples
 Latest examples can be found at https://zimjs.com/examples.html 
@@ -48,6 +49,12 @@ https://zimjs.com/tips.html
 ZIM DOCS has all the Classes and Functions broken down by module - expand the topics<br> 
 to see descriptions, examples, methods, properties, events, source, bits, vids, demos and more!<br>
 https://zimjs.com/docs.html
+
+ZIM NPM - here is some information on optionally using ZIM with Node Package Manager:
+https://zimjs.com/npm.html 
+
+ZIM TYPESCRIPT - here is some information on optionally using ZIM with TypeScript:
+https://zimjs.com/typescript.html
 
 
 ## Issues & Community
