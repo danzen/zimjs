@@ -10,7 +10,9 @@ Please see the About section for why we use ZIM to make Interactive Media.<br>
 https://zimjs.com/about.html
 
 ## Examples
-Latest examples can be found at https://zimjs.com/examples.html 
+There are many examples of things to be made with ZIM in the banner sections on the ZIM site<br>
+Here is the main example section including CodePen examples - we hope you like them!<br>
+https://zimjs.com/examples.html 
 
 Coding in ZIM looks like this:
 
@@ -50,10 +52,10 @@ ZIM DOCS has all the Classes and Functions broken down by module - expand the to
 to see descriptions, examples, methods, properties, events, source, bits, vids, demos and more!<br>
 https://zimjs.com/docs.html
 
-ZIM NPM - here is some information on optionally using ZIM with Node Package Manager:
+ZIM NPM - here is some information on optionally using ZIM with Node Package Manager:<br>
 https://zimjs.com/npm.html 
 
-ZIM TYPESCRIPT - here is some information on optionally using ZIM with TypeScript:
+ZIM TYPESCRIPT - here is some information on optionally using ZIM with TypeScript:<br>
 https://zimjs.com/typescript.html
 
 
