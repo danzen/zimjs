@@ -1,45 +1,79 @@
-ZIM
-===
+# ZIM 
+![npm](https://img.shields.io/npm/v/zimjs.svg) ![GitHub](https://img.shields.io/github/license/danzen/zimjs.svg)
 
-JavaScript Canvas Framework - Code Creativity
+JavaScript Canvas Framework - Code Creativity!<br>
+https://zimjs.com
 
-A consistent, complete, simple yet powerful Canvas Framework that provides very quick visual results.  ZIM is great for learning to code but also powerful enough for professionals for desktop and mobile games, apps, art and more!
+A consistent, complete, simple and colorful Canvas Framework that provides quick visual results.  ZIM is great for learning to code but also powerful for professionals to make games, apps, art and more for desktop and mobile!
 
-ZIM adds many conveniences, components and controls to the robust CreateJS library.
+Please see the About section at https://zimjs.com/about.html for why we use ZIM to make Interactive Media.
 
-https://zimjs.com has all the details
+## Examples
+Latest examples can be found at https://zimjs.com/examples.html 
 
-* One-line Drag and Drop
-* Multitouch Pan, Pinch and Rotate
-* Multiple Types of Hit Tests
-* Styles for all Objects (Like CSS)
-* Buttons, Panes and Tabs
-* Windows and Wrapable Text
-* Shapes, Sliders and Steppers
-* Waiters, ProgressBars and ColorPickers
-* Indicators, Dials and Pads
-* Keyboards, Loaders and TextAreas
-* Live Transformation Tools
-* Sound and AudioSprite Support
-* Scalable Template Framework
-* Accessibility for Screen Readers
-* Chaining and Configuration Objects
-* Easy Asset Loading
-* Custom Font Preloading and Support
-* Page and Layout Control
-* Mobile Optimization
-* Swipes and HotSpots
-* Guides, Grids and Outlines
-* Parallax, Scroll and Tiling
-* Dynamic Sprite and Scrollers
-* GamePad and Motion Controllers
-* Particle Emitter and SoundWave
-* Animation, Sequences and Damping
-* 3D and Physics Support Libraries
-* Multiuser and Asynchronous Calls
-* Dynamic Bezier Blobs & Squiggles
-* WebGL Support
+Coding in ZIM looks like this:
 
-ZIM js Interactive Media modules by Dan Zen http://danzen.com
+```
+new Rectangle(50, 50, green).center().drag(); // for a centered draggable rectangle!
 
-free to use - donations welcome of course! http://zimjs.com/donate
+new MotionController(new Emitter(), "mousemove"); // for a particle emitter following the mouse
+
+const squiggle = new Squiggle().loc(100, 100); // wavy line with Bezier handles
+new Circle(20, pink).addTo().animate({path:squiggle}, 1000); // animate along a squiggle
+
+new Button(200, 70, "TRY ME")
+  .pos(30,30,true,true) // bottom right corner
+  .tap(()=>{zgo("https://zimjs.com");}); // go to URL
+  
+```
+
+## Getting Started
+
+Copy the template on the Code page into an editor like Atom and view results in any Browser.<br>
+https://zimjs.com/code.html
+
+ZIM ZOO - lets you code in the browser and has a few examples to add and view<br> 
+https://zimjs.com/zoo.html
+
+ZIM LEARN has many code and video tutorials including:<br>
+ZIM Bits - 64 common techniques, ZIM Capture, What IZ tutorials, ZIM Badges, Code Zero and more!<br>
+https://zimjs.com/learn.html 
+
+ZIM SKOOL is great for learning with 8 full lessons including in Browser code examples.<br>
+https://zimjs.com/skool.html and for kids https://zimjs.com/kids.html - like Magic!
+
+ZIM TIPS has a listing of the elegant ways we code in ZIM<br>
+https://zimjs.com/tips.html
+
+ZIM DOCS has all the Classes and Functions broken down by module - expand the topics<br> 
+to see descriptions, examples, methods, properties, events, source, bits, vids, demos and more!<br>
+https://zimjs.com/docs.html
+
+
+## Issues & Community
+You are welcome to add issues here but we tend to use Slack at for issues and support<br>
+We would love to see you there!<br>
+https://zimjs.com/slack 
+
+An easy view of updates can be found here:<br>
+https://zimjs.com/updates.html
+
+## Dependencies
+ZIM is powered by the robust CreateJS Library and adds many conveniences, components and controls.<br>
+Cheers to Grant, Lanny and the CreateJS Team!<br>
+https://createjs.com
+ 
+## Authors
+* **Inventor Dan Zen**<br>
+Canadian New Media Awards Programmer of the Year 2008<br>
+Hamilton Arts Awards for Media Arts 2017<br>
+http://danzen.com - Museum of Interactive Works
+
+## License
+This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details
+
+## Acknowledgments
+* Thanks to the folks here and on Slack with reports, requests and enthusiasm!
+* Thanks Sheridan College and the Interactive Media Post Grad Program for the testing grounds!
+* Thanks to family for keeping me active in the "real world"
+* Thanks for giving us a STAR on GitHub!
