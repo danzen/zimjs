@@ -912,7 +912,10 @@ call - function to call when the time passes - will receive the id object as a s
 RETURNS a ZIM timeoutObject to pause and clear the timeout with the following methods and properties:
 
 METHODS - of ZIM timeoutObject
-pause(state) - (default true) will pause the timeout - set to false to unpause the timeout
+pause(state, immediate, restart) - (default true) will pause the timeout - set to false to unpause the timeout at the time remaining
+	immediate (default false) set to true to make the timeout function run right away when unpausing (no effect when pausing)
+	reset (default false) set to true to set the timeout back to 0 time passed when unpausing (no effect when pausing)
+
 clear() - will clear the timeout
 
 PROPERTIES - of ZIM timeoutObject
@@ -941,12 +944,14 @@ done - true if finished
 			obj.rid = requestAnimationFrame(next);
 		}
 
-		obj.pause = function(state) {
+		obj.pause = function(state, immediate, reset) {
 			if (zot(state)) state = true;
 			if (state) { // pausing
 				cancelAnimationFrame(obj.rid);
 			} else { // unpausing
-				lastTime = Date.now();
+				if (immediate) lastTime = 0; // a long time ago ;-)
+				else if (reset) {lastTime = Date.now(); obj.time=0}
+				else lastTime = Date.now();
 				next();
 			}
 			obj.paused = state;
@@ -1043,8 +1048,9 @@ immediate - (default false) set to true to call the function right away (and the
 RETURNS a ZIM intervalObject to pause and clear the interval with the following methods and properties:
 
 METHODS - of ZIM intervalObject
-pause(state, immediate) - (default true) will pause the interval - set to false to unpause the interval
-	immediate will make the interval function run right away when unpausing (no effect when pausing)
+pause(state, immediate, reset) - (default true) will pause the interval - set to false to unpause the interval with time left
+	immediate (default false) set to true to make the interval function run right away when unpausing (no effect when pausing)
+	reset (default false) set to true to set the interval back to 0 time passed when unpausing (no effect when pausing)
 clear() - will clear the interval
 
 PROPERTIES - of ZIM intervalObject
@@ -1088,7 +1094,7 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 			if (obj.count >= (immediate?obj.total-1:obj.total)) obj.clear();
 		}
 		var pausedTimeout;
-		obj.pause = function(state, immediate) {
+		obj.pause = function(state, immediate, reset) {
 			if (zot(state)) state = true;
 			if (state) { // pausing
 				clearTimeout(pausedTimeout);
@@ -1096,12 +1102,13 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 				cancelAnimationFrame(obj.rid);
 				obj.pauseTimeLeft = obj.interval - (Date.now()-obj.startTime);
 			} else { // unpausing
-					pausedTimeout = setTimeout(function() {
-						obj.count++;
-						(call)(obj);
-						interval();
-						checkTotal();
-					}, immediate?0:obj.pauseTimeLeft);
+				if (!obj.paused) obj.pause(true);
+				pausedTimeout = setTimeout(function() {
+					obj.count++;
+					(call)(obj);
+					interval();
+					checkTotal();
+				}, immediate?0:reset?obj.interval:obj.pauseTimeLeft);
 				obj.pauseTimeLeft = null;
 			}
 			obj.paused = state;
@@ -1142,6 +1149,9 @@ async will automatically add a random number to the end of your script call to d
 NOTE: async uses GET so data is limited to GET length (as of ZIM 10 - this is 2K to 8K depending on Browser)
 If more data is required, use an AJAX library
 
+Note: async uses an r CGI key to send a random number to defeat cache.
+Do not send an r property
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -1174,6 +1184,7 @@ END EXAMPLE
 
 PARAMETERS
 url - url to the server script (ie. php or node page)
+	Note: async uses an r CGI key to send a random number to defeat cache - do not send an r property
 callback - (default null) callback function that you define in your code (cannot be an anonymous function)
 
 calling the return function on async does two things:
@@ -7339,19 +7350,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 
 		this.linearGradient = function(colors,ratios,x0,y0,x1,y1) {
+			this.linearGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.linearGradient(colors,ratios,x0,y0,x1,y1);
 			return this;
 		}
 		this.radialGradient = function(colors,ratios,x0,y0,radius0,x1,y1,radius1) {
+			this.radialGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.radialGradient(colors,ratios,x0,y0,radius0,x1,y1,radius1);
 			return this;
 		}
 
 		this.clone = function(exact) {
-			return that.cloneProps(
+			var newShape = that.cloneProps(
 				exact?new zim.Circle(that.radius, that.color, that.borderColor, that.borderWidth, dashed, percent, strokeObj, style, this.group, inherit)
 				:new zim.Circle(oa[0],oa[1],oa[2],oa[3], dashed,oa[4], style, this.group, inherit)
 			);
+			if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
+			if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
+			return newShape;
 		}
 	}
 	zim.extend(zim.Circle, zim.Container, "clone", "zimContainer", false);
@@ -7600,20 +7616,25 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 
 		this.linearGradient = function(colors,ratios,x0,y0,x1,y1) {
+			this.linearGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.linearGradient(colors,ratios,x0,y0,x1,y1);
 			return this;
 		}
 		this.radialGradient = function(colors,ratios,x0,y0,radius0,x1,y1,radius1) {
+			this.radialGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.radialGradient(colors,ratios,x0,y0,radius0,x1,y1,radius1);
 			return this;
 		}
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function(exact) {
-			return that.cloneProps(
+			var newShape =  that.cloneProps(
 				exact?new zim.Rectangle(width, height, that.color, that.borderColor, that.borderWidth, corner, dashed, strokeObj, style, this.group, inherit)
 				:new zim.Rectangle(oa[0],oa[1],oa[2],oa[3],oa[4], corner, dashed, strokeObj, style, this.group, inherit)
 			);
+			if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
+			if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
+			return newShape;
 		}
 	}
 	zim.extend(zim.Rectangle, zim.Container, "clone", "zimContainer", false);
@@ -7919,20 +7940,25 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 
 		this.linearGradient = function(colors,ratios,x0,y0,x1,y1) {
+			this.linearGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.linearGradient(colors,ratios,x0,y0,x1,y1);
 			return this;
 		}
 		this.radialGradient = function(colors,ratios,x0,y0,radius0,x1,y1,radius1) {
+			this.radialGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.radialGradient(colors,ratios,x0,y0,radius0,x1,y1,radius1);
 			return this;
 		}
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function(exact) {
-			return that.cloneProps(
+			var newShape = that.cloneProps(
 				exact?new zim.Triangle(a, b, c, that.color, that.borderColor, that.borderWidth, center, adjust, dashed, strokeObj, style, this.group, inherit)
 				:new zim.Triangle(oa[0],oa[1],oa[2],oa[3],oa[4],oa[5], center, adjust, dashed, strokeObj, style, this.group, inherit)
 			);
+			if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
+			if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
+			return newShape;
 		}
 	}
 	zim.extend(zim.Triangle, zim.Container, "clone", "zimContainer");
@@ -8974,7 +9000,10 @@ Note the points property has been split into points and pointObjects (and there 
 			that.clone = function(commands) {
 				var color = commands?that.colorCommand:that.color;
 				var color = commands?that.colorCommand:that.color;
-				return that.cloneProps(new zim.Squiggle(commands?that.colorCommand:that.color, that.thickness, that.recordPoints(), length, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
+				var newShape =  that.cloneProps(new zim.Squiggle(commands?that.colorCommand:that.color, that.thickness, that.recordPoints(), length, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
+				if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
+				if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
+				return newShape;
 			}
 
 			// to add a control - make sure click in one spot - not drag
@@ -9720,10 +9749,14 @@ Note the points property has been split into points and pointObjects (and there 
 		}
 
 		this.linearGradient = function(colors,ratios,x0,y0,x1,y1) {
+			this.linearGradientParams = Array.prototype.slice.call(arguments);
 			this.thicknessCommand.linearGradient(colors,ratios,x0,y0,x1,y1);
+			return this;
 		}
 		this.radialGradient = function(colors,ratios,x0,y0,radius0,x1,y1,radius1) {
+			this.radialGradientParams = Array.prototype.slice.call(arguments);
 			this.thicknessCommand.radialGradient(colors,ratios,x0,y0,radius0,x1,y1,radius1);
+			return this;
 		}
 
 		this.dispose = function(temp) {
@@ -10860,7 +10893,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.clone = function(commands) {
 				var color = commands?that.colorCommand:that.color;
 				var color = commands?that.colorCommand:that.color;
-				return that.cloneProps(new zim.Blob(commands?that.colorCommand:that.color, commands?that.borderColorCommand:that.borderColor, that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
+				var newShape =  that.cloneProps(new zim.Blob(commands?that.colorCommand:that.color, commands?that.borderColorCommand:that.borderColor, that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
+				if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
+				if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
+				return newShape;
 			}
 
 			// to add a control - make sure click in one spot - not drag
@@ -11611,10 +11647,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		this.linearGradient = function(colors,ratios,x0,y0,x1,y1) {
+			this.linearGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.linearGradient(colors,ratios,x0,y0,x1,y1);
 			return this;
 		}
 		this.radialGradient = function(colors,ratios,x0,y0,radius0,x1,y1,radius1) {
+			this.radialGradientParams = Array.prototype.slice.call(arguments);
 			this.colorCommand.radialGradient(colors,ratios,x0,y0,radius0,x1,y1,radius1);
 			return this;
 		}
@@ -11941,17 +11979,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (backing.type == "Pattern") {
 				that.backing = new zim.Container(that.width, that.height, null, null, false).centerReg(null, null, false);
 				if (shadowColor != -1 && shadowBlur > 0) {
-					var shadowRect = new zim.Rectangle(that.width-2, that.height-2, "#666", null, null, null, null, null, false).center(that.backing);
+					var shadowRect = new zim.Rectangle(that.width-2, that.height-2, "#666", null, null, corner, null, null, false).center(that.backing);
 					shadowRect.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 				}
-				var mask = that.backing.mask = new zim.Rectangle(that.width, that.height, backgroundColor, null, null, null, null, null, false).addTo(that.backing);
+				var mask = new zim.Rectangle(that.width, that.height, backgroundColor, null, null, corner, null, null, false).addTo(that.backing);
 				backing.centerReg(mask);
-				backing.setMask(mask.shape);
+				backing.setMask(mask);
 				that.backing.pattern = backing;
 			} else {
 				that.backing = backing;
 			}
-			backing.center(that, 0);
+			that.backing.center(that, 0);
+			backing = that.backing;
 		}
 
 		Object.defineProperty(that, 'text', {
@@ -12690,7 +12729,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		that.addChild(that.backing);
 		if (borderWidth) {
-			that.border = new zim.Rectangle(width, height, "rgba(0,0,0,0)", borderColor, borderWidth, corner, null, null, false);
+			that.border = new zim.Rectangle(width, height, "rgba(0,0,0,0)", borderColor, borderWidth, corner, dashed, null, false);
 			that.addChild(that.border);
 		}
 		function setPattern(type, pattern) {
@@ -15493,14 +15532,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
-		if (interactive) {
+		// if (interactive) {
 			this.added(function (theStage) {
 				theStage.on("stagemousemove", function (e) {
 					that.windowMouseX = e.stageX/theStage.scaleX;
 					that.windowMouseY = e.stageY/theStage.scaleY;
 				});
 			});
-		}
+		// }
 
 		if (slide) {
 			content.on("slidestop", stageUp);
@@ -16610,9 +16649,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				pattern.center(newBacking);
 				var bounds = newBacking.getBounds();
 				pattern.setMask(newBacking.shape);
-				if (borderWidth) var border = that.border = new zim.Rectangle(width, height, "rgba(0,0,0,0)", borderColor, borderWidth, corner, null, null, false).addTo(that, index+1);
+				if (borderWidth) var border = that.border = new zim.Rectangle(width, height, "rgba(0,0,0,0)", borderColor, borderWidth, corner, dashed, null, false).addTo(that, index+1);
 			} else {
-				var newBacking = that.backing = zot(newBacking) ? new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner, null, null, false).addTo(that, index) : backing.addTo(that, index);
+				var newBacking = that.backing = zot(newBacking) ? new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner, dashed, null, false).addTo(that, index) : backing.addTo(that, index);
 			}
 			return newBacking;
 		}
@@ -22193,7 +22232,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (tekens[i] == "x") new zim.Rectangle(size, size, "black", null, null, corner, null, null, false).alp(shadeAlpha).addTo(bakking);
 		        button = new zim.Label({
 		            lineWidth:10,
-		            lineHeight:25,
+		            lineHeight:58, // ?
 		            text:tekens[i],
 					backing:bakking,
 					font:DS.font!=null?DS.font:null,
@@ -22287,7 +22326,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (!currentLabel.widthArrayCheck) makeWidthsArray();
 			maxWidth = currentLabel.label.lineWidth?currentLabel.label.lineWidth:10000;
 			// Dan Zen added 9.5.0 point relative to actual CreateJS Label - to avoid padding and backing issues
-			point = currentLabel.label.globalToLocal(e.stageX/e.target.stage.scaleX, e.stageY/e.target.stage.scaleY);
+			point = currentLabel.globalToLocal(e.stageX/e.target.stage.scaleX, e.stageY/e.target.stage.scaleY);
+			point.x -= currentLabel.label.x; // adjusted for retina - label is CreateJS with broken globalToLocal
+			point.y -= currentLabel.label.y;
 			// point opzoeken in array textfield door op te tellen
 			// for (var i=currentLabel.widthArray.length-1; i>=0; i--) {
 			// 	sumUp += currentLabel.widthArray[i];
@@ -22990,7 +23031,7 @@ resize() - call the resize event if the scale or position of the Loader is chang
 	this will sync the location of the HTML input tag
 	resize() is only needed if the scale or x, y of the Loader (or its container) is changed
 	it is not needed for general window resizing - the Loader handles this
-save(content, x, y, width, height, url, cached, cachedBounds, type) - save a picture (supports ZIM DUO)
+save(content, x, y, width, height, url, cached, cachedBounds, type, data) - save a picture (supports ZIM DUO)
 	content - the Display object to be saved such as a Container, Bitmap, etc.
 	x, y, width, height - the cropping bounds on that object otherwise defaults to 0,0,stageW,stageH
 	cached - (default false) set to true if the object is currently already cached
@@ -28059,7 +28100,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 // SUBSECTION ANIMATE, WIGGLE, LOOP
 
 /*--
-obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj)
+obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait)
 
 animate
 zim DisplayObject method
@@ -28410,6 +28451,7 @@ clean - (default true) set to false to not delete animation ids etc. at end of a
 	So clean cannot be used to restart an animation with a wait after the animation has waited
 	Use the replayTween() method of the target to restart the latest animation on a target
 obj - (depreciated) the old version of props - kept for backwards compatibility
+seriesWait - (internal) used internally to hold setting relative values in correct series order
 
 PROPERTIES - zim.animate() adds the following properties to any object it animates:
 	paused - read-only - when animating, paused is set to false
@@ -28444,8 +28486,8 @@ EVENTS - zim animate() will add an "animation" event to the target IF the events
 
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj) {
-		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj";
+	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait) {
+		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait";
 		var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		z_d("45");
 
@@ -28515,7 +28557,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					setTimeout(function() {
 						var t =	target[currentTarget];
 						currentTarget++;
-						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj); // do not send from!
+						zim.animate(t, t.zimObj, time, ease, call, params, wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait); // do not send from!
 						if (num == target.length-1 && sequenceCall) {
 							// calculate tween time
 							var duration = ((time)?time:1000) + ((wait)?wait:0); // wait only happens at start - no longer each time
@@ -28568,6 +28610,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			var currentCount = 1;
 			if (obj.length == 0) return this;
 
+			var lastParamTarget;
 			prepareSeries();
 			prepareIds();
 			runMaster();
@@ -28589,10 +28632,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						duration *= o.loopCount;
 						duration += (o.loopCount-1) * (o.loopWait?o.loopWait:0);
 					}
+					if (zot(o.params)) o.params = o.target;
+					lastParamTarget = o.target;
 					var currentObj = {
 						target:o.target,
 						obj:zim.copy(o.obj),
-						wait:lastEnd+w,
+						seriesWait:lastEnd,
+						wait:w,
 						waitedCall:o.waitedCall,
 						waitedParams:o.waitedParams,
 						time:o.time,
@@ -28643,6 +28689,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				} else {
 					currentObj.call = function() {
 						if (savedCall && typeof savedCall == 'function') {(savedCall)(savedParams);}
+						if (zot(params)) params = lastParamTarget;
 						if (call && typeof call == 'function') {(call)(params);}
 						endTween(id);
 					}
@@ -28907,15 +28954,19 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			cjsProps[i] = zim.Pick.choose(cjsProps[i]);
 		}
 
-		// PREPARE RELATIVE VALUES PASSED IN AS STRINGS
-		for (i in obj) {
-			if (typeof obj[i] == "string") {
-				obj[i] = target[i] + Number(obj[i].replace(/\s/g,""));
+		// MOVED call to after wait in tween section
+		// prepareRelative();
+		function prepareRelative() {
+			// PREPARE RELATIVE VALUES PASSED IN AS STRINGS
+			for (i in obj) {
+				if (typeof obj[i] == "string") {
+					obj[i] = target[i] + Number(obj[i].replace(/\s/g,""));
+				}
 			}
-		}
-		for (i in set) {
-			if (typeof set[i] == "string") {
-				set[i] = target[i] + Number(set[i].replace(/\s/g,""));
+			for (i in set) {
+				if (typeof set[i] == "string") {
+					set[i] = target[i] + Number(set[i].replace(/\s/g,""));
+				}
 			}
 		}
 
@@ -29296,14 +29347,27 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (call5 && typeof call5 == 'function') {(call5)(params5);}
 			}
 
-			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
+			if (seriesWait > 0 || wait > 0) { // do not want wait as part of future loops (use loopWait)
+				if (seriesWait > 0) {
+					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(seriesWait, true).call(function(){
+						preTween1(tween);
+					});
+				} else {
+					preTween1();
+				}
+			} else {
+				prepareRelative();
+				tween1();
+			}
+			function preTween1(lastTween) {
+				prepareRelative();
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
 					tween1(tween);
 				});
-			} else {
-				tween1();
+				if (lastTween) transferIds(lastTween, tween);
 			}
+			// fix lastTween from series wait!
 			function tween1(lastTween) {
 				var obj2 = getStart();
 				if (target.set && !from) target.set(set);
@@ -29316,25 +29380,31 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					.call(doneAnimating)
 					.wait(wait3, true)
 					.call(doLoopCall);
-				if (lastTween) {
-					tween.zimIdSet = lastTween.zimIdSet; // know we need this one - not sure about the rest 10.4.0
-					tween.zimObj = lastTween.zimObj;
-					tween.zimTicker = lastTween.zimTicker;
-					tween.zimExtraTickers = lastTween.zimExtraTickers;
-					tween.requestID = lastTween.requestID;
-				}
+				if (lastTween) transferIds(lastTween, tween);
 				setZimTweenProps();
 			}
 
 		} else {
 
-			if (wait > 0) { // do not want wait as part of future loops (use loopWait)
+			if (seriesWait > 0 || wait > 0) { // do not want wait as part of future loops (use loopWait)
+				if (seriesWait > 0) {
+					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(seriesWait, true).call(function(){
+						preTween2(tween);
+					});
+				} else {
+					preTween2();
+				}
+			} else {
+				prepareRelative();
+				tween2();
+			}
+			function preTween2(lastTween) {
+				prepareRelative();
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
 					tween2(tween);
 				});
-			} else {
-				tween2();
+				if (lastTween) transferIds(lastTween, tween);
 			}
 			function tween2(lastTween) {
 				if (target.set && !from) {target.set(set);}
@@ -29343,16 +29413,19 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					.call(doneAnimating)
 					.wait(wait3, true)
 					.call(doLoopCall);
-				if (lastTween) {
-					tween.zimIdSet = lastTween.zimIdSet; // know we need this one - not sure about the rest 10.4.0
-					tween.zimObj = lastTween.zimObj;
-					tween.zimTicker = lastTween.zimTicker;
-					tween.zimExtraTickers = lastTween.zimExtraTickers;
-					tween.requestID = lastTween.requestID;
-				}
+				if (lastTween) transferIds(lastTween, tween);
 				setZimTweenProps();
 			}
 		}
+
+		function transferIds(lastTween, tween) {
+			tween.zimIdSet = lastTween.zimIdSet; // know we need this one - not sure about the rest 10.4.0
+			tween.zimObj = lastTween.zimObj;
+			tween.zimTicker = lastTween.zimTicker;
+			tween.zimExtraTickers = lastTween.zimExtraTickers;
+			tween.requestID = lastTween.requestID;
+		}
+
 		tween.startPaused = startPaused; // turned off by pause(false) or pauseAnimate(false) or setting percentComplete
 		tween.rewinding = false;
 
@@ -29600,7 +29673,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						zim.Ticker.remove(target.zimTweens[id].extraTickers[k]);
 					}
 				}
-				if (ticker) zim.Ticker.remove(ticker); ticker = null;
+				// if (ticker) zim.Ticker.remove(ticker); ticker = null;
+				if (ticker) {
+					setTimeout(function(){
+						if (ticker) zim.Ticker.remove(ticker); ticker = null;
+					},200);
+				}
 			}();
 		}
 		function pauseTicker(id, paused) {
@@ -30879,6 +30957,7 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 			m.alpha = 0;
 
 			if (!obj.parent) {obj.mask = m; return;}
+
 			var point = mask.localToLocal(mask.regX,mask.regY,obj.parent);
 			var mm = mask.getConcatenatedMatrix().decompose();
 			var om = obj.parent.getConcatenatedMatrix().decompose();
@@ -32074,9 +32153,10 @@ you can define multiple pages objects add and remove pages objects as needed
 
 		this.addPage = function(page, swipeArray) {
 			preparePage(page, swipeArray)
+			that.pages.push({page:page});
 			if (!currentPage) {
 				currentPage = that.page = page;
-				that.addChild(currentPage);
+				holder.addChild(currentPage);
 			} else {
 				if (page.parent) page.parent.removeChild(page);
 			}
@@ -32089,6 +32169,9 @@ you can define multiple pages objects add and remove pages objects as needed
 				that.removeChild(page);
 				if (holder.stage) holder.stage.update(); // works even if holder is stage
 			}
+			zim.loop(that.pages, function (p, i) {
+				if (p.page == page || p == page) that.pages.splice(i, 1);
+			}, true);
 			page.zimSwipeArray = null;
 		}
 
@@ -32179,52 +32262,52 @@ you can define multiple pages objects add and remove pages objects as needed
 					newPage.y = -(slides[dirIndex].y | 0);
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
-					that.addChild(newPage);
-					that.addChild(currentPage);
+					holder.addChild(newPage);
+					holder.addChild(currentPage);
 					zim.animate(currentPage, slides[dirIndex], that.speed, null, transEnd, [currentPage, newPage]);
 					zim.animate(newPage, slides2[dirIndex], that.speed);
 				} else if (trans == "reveal") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
-					that.addChild(newPage); // put destination under current page
-					that.addChild(currentPage);
+					holder.addChild(newPage); // put destination under current page
+					holder.addChild(currentPage);
 					zim.animate(currentPage, reveals[dirIndex], that.speed, null, transEnd, [currentPage, newPage]);
 				} else if (trans == "fade") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 1;
-					that.addChild(newPage);
-					that.addChild(currentPage);
+					holder.addChild(newPage);
+					holder.addChild(currentPage);
 					zim.animate(currentPage, {alpha:0}, that.speed, null, transEnd, [currentPage, newPage]);
 				} else if (trans == "black") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 1;
-					that.addChild(newPage);
-					that.addChild(currentPage);
+					holder.addChild(newPage);
+					holder.addChild(currentPage);
 					black.alpha = 0;
-					that.addChild(black);
+					holder.addChild(black);
 					zim.animate(black, {alpha:1}, that.speed/2, null, transEndHalf, [black, currentPage, newPage]);
 				} else if (trans == "clear") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 0;
-					that.addChild(newPage);
-					that.addChild(currentPage);
+					holder.addChild(newPage);
+					holder.addChild(currentPage);
 					zim.animate(currentPage, {alpha:0}, that.speed/2);
 					zim.animate(newPage, {alpha:1}, that.speed/2, null, transEnd, [currentPage, newPage], that.speed/2);
 				} else if (trans == "white") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 1;
-					that.addChild(newPage);
-					that.addChild(currentPage);
+					holder.addChild(newPage);
+					holder.addChild(currentPage);
 					white.alpha = 0;
-					that.addChild(white);
+					holder.addChild(white);
 					zim.animate(white, {alpha:1}, that.speed/2, null, transEndHalf, [white, currentPage, newPage]);
 				} else {
 					that.transitioning = false;
-					that.addChild(newPage);
+					holder.addChild(newPage);
 					that.removeChild(currentPage);
 					goCheck = true;
 					// that.dispatchEvent("pagetransitioned"); // hmmm... no
@@ -32259,9 +32342,9 @@ you can define multiple pages objects add and remove pages objects as needed
 			// add all pages to the holder behind current page
 			// if milliseconds then this is the time to settle automatically
 			for (var i=0; i<pages.length; i++) {
-				that.addChild(pages[i].page);
+				holder.addChild(pages[i].page);
 			}
-			that.addChild(currentPage);
+			holder.addChild(currentPage);
 			if (milliseconds > 0) {
 				setTimeout(function() {
 					that.settle();
@@ -32270,8 +32353,8 @@ you can define multiple pages objects add and remove pages objects as needed
 		}
 
 		this.settle = function() {
-			that.removeAllChildren();
-			that.addChild(currentPage);
+			holder.removeAllChildren();
+			holder.addChild(currentPage);
 			that.dispatchEvent("puffed");
 		}
 
@@ -37169,7 +37252,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				}
 				if (d && d.dirX==0) {
 					var desired = that.boundary?that.boundary.width/2:stage.width/2;
-					var newTempX = that.x-(that.x-desired)*that.dampKeyup;
+					var newTempX = that.x-(that.x-desired)*(accelerator?that.dampKeyup:0);
 					tempX = newTempX
 					that.x = tempX;
 				}
@@ -37186,7 +37269,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				}
 				if (d && d.dirY==0) {
 					var desired = that.boundary?that.boundary.height/2:stage.height/2;
-					var newTempY = that.y-(that.y-desired)*that.dampKeyup;
+					var newTempY = that.y-(that.y-desired)*(accelerator?that.dampKeyup:0);
 					tempY = newTempY
 					that.y = tempY;
 				}
@@ -43300,9 +43383,9 @@ function zimify(obj, list) {
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj) {
+		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.animate(arguments[0]);}
-			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj);}
+			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait);}
 		},
 		pauseAnimate:function(){return this;},
 		stopAnimate:function(){return this;},
