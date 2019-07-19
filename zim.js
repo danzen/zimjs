@@ -23796,6 +23796,9 @@ resize() - call the resize event if the scale or position of the Loader is chang
 	this will sync the location of the HTML input tag
 	resize() is only needed if the scale or x, y of the Loader (or its container) is changed
 	it is not needed for general window resizing - the Loader handles this
+	Note: if the Frame itself changes location in the HTML document, call a frame.update()
+	this will then dispatch an update event to the Loader and it will resize()
+	this is not needed if resizing the window or scrolling - see Frame update() method docs
 save(content, x, y, width, height, url, cached, cachedBounds, type, data) - save a picture (supports ZIM DUO)
 	content - the Display object to be saved such as a Container, Bitmap, etc.
 	x, y, width, height - the cropping bounds on that object otherwise defaults to 0,0,stageW,stageH
@@ -23829,6 +23832,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 tag - the HTML input tag of type file - used for uploading
+frame - get or set the frame - set this if changing frames
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 
 Button properties:
@@ -23981,7 +23985,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			uploadTag.hidden = true;
 			uploadTag.style.display = "none";
 		});
-		frame.on("resize", that.resize);
 
 		function handleImage(e) {
 			var files;
@@ -24140,7 +24143,26 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			);
 			return that.cloneProps(u);
 		}
+		Object.defineProperty(this, 'frame', {
+			get: function() {
+				return frame;
+			},
+			set: function(value) {
+				if (value != frame) {
+					frame.off("update", that.updateEvent);
+					frame.off("resize", that.resizeEvent);
+					frame = value;
+					that.resizeEvent = frame.on("resize", that.resize);
+					that.updateEvent = frame.on("update", that.resize);
+					that.resize();
+				}
+			}
+		});
+		this.resizeEvent = frame.on("resize", that.resize);
+		this.updateEvent = frame.on("update", that.resize);
 		this.dispose = function() {
+			frame.off("update", that.updateEvent);
+			frame.off("resize", that.resizeEvent);
 			document.body.removeChild(uploadTag);
 			this.zimButton_dispose();
 			return true;
@@ -24223,10 +24245,13 @@ setFocus(type) - sets the focus of the TextArea tag (thanks Armin for the prompt
 	type is a Boolean that defaults to true - set to false to make the TextArea blur (loose focus)
 	might need timeout 100ms before setting
 	see also focus property
-resize() - call the resize event if the scale or position of the TextArea is changed
+resize() - call the resize method if the scale or position of the TextArea is changed
 	this will sync the location of the HTML textarea tag
 	resize() is only needed if the scale or x, y of the TextArea (or its container) is changed
 	it is not needed for general window resizing - the TextArea handles this
+	Note: if the Frame itself changes location in the HTML document, call a frame.update()
+	this will then dispatch an update event to the TextArea and it will resize()
+	this is not needed if resizing the window or scrolling - see Frame update() method docs
 hasProp(property as String) - returns true if property exists on object else returns false
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -24251,6 +24276,7 @@ background - access to the Rectangle() used for the background
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 keyFocus - get or set the keyboard focus on the component - see also zim.KEYFOCUS
 	will be set to true if this component is the first made or component is the last to be used
+frame - get or set the frame - set this if changing frames
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
@@ -24348,17 +24374,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var pRatio = frame.retina?(window.devicePixelRatio || 1):1;
 		this.resize = function() {
+			zog("textArea resizing");
 			setTimeout(function() {
+				zog("textArea timeout runs")
 				var point = that.localToGlobal(padding, padding);
 				if (frame.retina) {
 					textarea.x = frame.x/stage.scaleX + point.x/pRatio;
 					textarea.y = frame.y/stage.scaleY + point.y/pRatio;
 					// CreateJS DOMElement is scaling tag as stage scales
 					zim.sca(textarea, that.scaleX/pRatio, that.scaleY/pRatio);
+					zog("retina - textArea x = " + textarea.x)
 				} else {
 					textarea.x = frame.x + point.x * frame.scale;
 					textarea.y = frame.y + point.y * frame.scale;
 					zim.sca(textarea, frame.scale*that.scaleX, frame.scale*that.scaleY);
+					zog("non-retina - textArea x = " + textarea.x)
 				}
 				textarea.alpha = 1;
 				if (that.stage) stage.update();
@@ -24377,7 +24407,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			stage.removeChild(textarea);
 			textareaTag.style.display = "none";
 		});
-		frame.on("resize", that.resize);
 
 		Object.defineProperty(this, 'currentValue', {
 			get: function() {
@@ -24433,7 +24462,27 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var u = new zim.TextArea(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, inputType, frame, expand, style, this.group, inherit);
 			return that.cloneProps(u);
 		}
+
+		Object.defineProperty(this, 'frame', {
+			get: function() {
+				return frame;
+			},
+			set: function(value) {
+				if (value != frame) {
+					frame.off("update", that.updateEvent);
+					frame.off("resize", that.resizeEvent);
+					frame = value;
+					that.resizeEvent = frame.on("resize", that.resize);
+					that.updateEvent = frame.on("update", that.resize);
+					that.resize();
+				}
+			}
+		});
+		this.resizeEvent = frame.on("resize", that.resize);
+		this.updateEvent = frame.on("update", that.resize);
 		this.dispose = function() {
+			frame.off("update", that.updateEvent);
+			frame.off("resize", that.resizeEvent);
 			document.body.removeChild(textareaTag);
 			this.zimContainer_dispose();
 			return true;
@@ -24494,6 +24543,9 @@ resize() - call the resize event if the scale or position of the tag is changed
 	this will sync the location of the div tag
 	resize() is only needed if the scale or x, y of the tag (or its container) is changed
 	it is not needed for general window resizing - the Tag handles this
+	Note: if the Frame itself changes location in the HTML document, call a frame.update()
+	this will then dispatch an update event to the Tag and it will resize()
+	this is not needed if resizing the window or scrolling - see Frame update() method docs
 hasProp(property as String) - returns true if property exists on object else returns false
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -24511,6 +24563,7 @@ tagID - the assigned id of the tag
 tag - the HTML div tag - just a regular HMTL div tag which can be styled
 innerHTML - the innerHTML property of the tag (so myTag.tag.innerHTML is not needed)
 background - access to the ZIM Rectangle used as the background
+frame - get or set the frame - set this if changing frames
 style - the style property of the tag (so myTag.tag.style is not needed)
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 
@@ -24595,7 +24648,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			stage.removeChild(cjsTag);
 			tag.style.display = "none";
 		});
-		frame.on("resize", that.resize);
 
 		this.add = function(html) {
 			tag.innerHTML += html;
@@ -24625,7 +24677,26 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var u = new zim.Tag(width, height, id, frame, backgroundColor, padding, paddingHorizontal, paddingVertical, expand, style, this.group, inherit);
 			return that.cloneProps(u);
 		}
+		Object.defineProperty(this, 'frame', {
+			get: function() {
+				return frame;
+			},
+			set: function(value) {
+				if (value != frame) {
+					frame.off("update", that.updateEvent);
+					frame.off("resize", that.resizeEvent);
+					frame = value;
+					that.resizeEvent = frame.on("resize", that.resize);
+					that.updateEvent = frame.on("update", that.resize);
+					that.resize();
+				}
+			}
+		});
+		this.resizeEvent = frame.on("resize", that.resize);
+		this.updateEvent = frame.on("update", that.resize);
 		this.dispose = function() {
+			frame.off("update", that.updateEvent);
+			frame.off("resize", that.resizeEvent);
 			document.body.removeChild(tag);
 			this.zimContainer_dispose();
 			return true;
@@ -37661,11 +37732,10 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 var circle = new Circle(40, green).center(stage);
-var controller = new MotionController(stage, circle); // circle moves to mouse press position with damping
+var controller = new MotionController(circle); // circle moves to mouse press position with damping
 
 var rect = new Rectangle(50, 30, green).centerReg(stage);
 var controller = new MotionController({
-	container:stage,
 	target:rect,
 	type:"keydown",
 	diagonal:true,
@@ -39977,7 +40047,7 @@ var accel = new Accelerator(rect);
 // 0% at left, 50% in middle, 100% at right, etc.
 new MotionController(accel);
 // or
-new MotionController({target:accel, type:"mousemove", min:-200, max:200});
+new MotionController({target:accel, type:"mousemove", minPercentSpeed:-200, maxPercentSpeed:200});
 // will change speed from -200% to 200% as cursor is moved across screen
 END EXAMPLE
 
@@ -42815,6 +42885,8 @@ retina - (default true) scales stage to use pixelDensity (sharper when scaling u
 	ZIM overrides CreateJS localToGlobal, globalToLocal and localToLocal to accomodate stage scaling
 	This was a major adjustment to transform(), bezier controls, outline, physics, etc.
 	set to false to return to traditional PRE ZIM 10.3.0 unscaled stage
+mouseMoveOutside - (default false) set to true to capture mouse movement outside the stage
+	see also mouseX and mouseY properties of frame - these work with ZIM retina without adjusting for stage scale
 shim - (default null) used by ZIM SHIM 2 https://zimjs.com/animate/ to create Frame with pre-existing stage and canvas
 	accepts an object with stage and canvas properties - lets Adobe handle resize
 
@@ -42942,6 +43014,10 @@ makeCircles(radius, multiple) - returns ZIM Circles (centered reg)
 	multiple defaults to false which will return a ZIM Shape - set to true to return a ZIM Container of ZIM Circles
 remakeCanvas(width, height) - removes old canvas and makes a new one and a new stage
 	will have to set your local stage, stageW and stageH variables again
+update() - call this if frame position is moved on the HTML page
+	for instance, when a div to left has its display style set to none and the frame shifts over
+	calling update() will dispatch an update event to any TextArea, Loader or Tag objects
+	so they resize properly with the new frame.x and frame.y values
 dispose() - removes canvas, resize listener and stage
 
 PROPERTIES
@@ -42957,6 +43033,11 @@ isLoading - a Boolean to indicate whether loadAssets() is currently loading asse
 width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
+mouseX, mouseY - read only value of the mouse x and y positions on the canvas
+	the capture of this is turned off until it the first time it is requested
+	note: this value includes the division by the stage scale needed for ZIM Retina
+	whereas getting the mouse coordinates from a mouse event object does not include division by the stage scale
+	set frame's mouseMoveOutside parameter to true to capture movement outside the canvas
 orientation - "vertical" or "horizontal" (updated live with orientation change)
 visibleLeft, visibleTop, visibleRight, visibleBottom - in "outside" scale mode these give window edge locations relative to the stage
 	can be used to position items like navigation relative to window as the frame resize event is fired
@@ -42978,6 +43059,9 @@ EVENTS
 "ready" - fired when the stage is made
 "failed" - fired if no canvas support (and canvasCheck parameter is set to true - which is the default)
 "resize" - fired on resize of screen
+"update" - fired when frame.update() is called - read by Loader, TextArea and Tag objects
+	note: this is for when the frame is moved within an html page
+	for instance, when a div to the left has its display set to none - then call frame.update();
 "orientation" - fired on orientation change
 "keydown" - fired on keydown - just like the window keydown event with eventObject.keyCode, etc.
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
@@ -43011,8 +43095,8 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 "error" - fired when there is a problem loading an asset with loadAssets()
 
 --*///+83
-	zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, shim) {
-		var sig = "scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, shim";
+	zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, shim) {
+		var sig = "scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, shim";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		if (zon) zog("ZIM FRAME");
@@ -43063,6 +43147,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		if (zot(sensors)) sensors = false;
 		if (zot(retina)) retina = true;
 		this.retina = retina;
+		if (zot(mouseMoveOutside)) mouseMoveOutside = false;
 		if (zot(shim)) shim = false;
 
 
@@ -43329,18 +43414,18 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			sizeCanvas();
 			if (types.indexOf(scaling) != -1 && !allowDefault) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
 			stage = gpu?new zim.StageGL(canvasID, gpuObj):new zim.Stage(canvasID);
+			that.stage.mouseMoveOutside = mouseMoveOutside;
 			if (!zot(color) && gpu) stage.setClearColor(zim.convertColor(color));
 			stage.setBounds(0, 0, stageW, stageH);
 			stage.width = stageW;
 			stage.height = stageH;
 			if (retina) sizeCanvas();
-			if (rollover) stage.enableMouseOver(10); // if you need mouse rollover
+			if (rollover) stage.enableMouseOver(rollPerSecond); // if you need mouse rollover
 			if (touch) createjs.Touch.enable(stage, false, allowDefault); // added for mobile
 			if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
 		}
-
 
 		function sizeCanvas() {
 			if (!that) return;
@@ -43494,6 +43579,11 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			zim.scrollX(0);
 			zim.scrollY(0);
 			setVisible();
+		}
+
+		this.update = function() {
+			sizeCanvas();
+			that.dispatchEvent("update");
 		}
 
 		function setVisible() {
@@ -43882,6 +43972,42 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			var flip = 0;
 			window.addEventListener("deviceorientation",deviceorientationEvent);
 		}
+
+		var _mouseX;
+		var _mouseY;
+
+		Object.defineProperty(this, 'mouseX', {
+			get: function() {
+				if (!that.mouseEvent) {
+					that.mouseEvent = that.stage.on("stagemousemove", function (e) {
+						_mouseX = e.stageX/that.stage.scaleX;
+						_mouseY = e.stageY/that.stage.scaleY;
+					});
+					return that.stage.mouseX; // first time... does not work with touch screen
+				}
+				return _mouseX; // works with touch screen
+			},
+			set: function(value) {
+				if (zon) zog("zim.Frame - mouseX is read only")
+			}
+		});
+
+		Object.defineProperty(this, 'mouseY', {
+			get: function() {
+				if (!that.mouseEvent) {
+					that.stage.mouseMoveOutside = true;
+					that.mouseEvent = that.stage.on("stagemousemove", function (e) {
+						_mouseX = e.rawX/that.stage.scaleX;
+						_mouseY = e.rawY/that.stage.scaleY;
+					});
+					return that.stage.mouseY; // first time... does not work with touch screen
+				}
+				return _mouseY; // works with touch screen
+			},
+			set: function(value) {
+				if (zon) zog("zim.Frame - mouseY is read only")
+			}
+		});
 
 		this.remakeCanvas = function(width, height) {
 			if (scaling == "full") return;
