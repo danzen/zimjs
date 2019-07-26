@@ -1681,7 +1681,7 @@ RETURNS an array of points with numbers transformed
 	}//-27.95
 
 /*--
-zim.makeID = function(length, type, letterCase)
+zim.makeID = function(type, length, letterCase)
 
 makeID
 zim function
@@ -1693,16 +1693,16 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 var id1 = makeID(); // five random letters and numbers (starts with letter)
-var id2 = makeID(null, "string"); // five random uppercase letters
-var id3 = makeID(10, "number"); // ten random numbers
-var id4 = makeID(5, ["Z", "I", "M", 1, 2, 3, 4, 5, "-"]); // random five characters from array (possibly repeating)
+var id2 = makeID("string"); // five random uppercase letters
+var id3 = makeID("number", 10); // ten random numbers
+var id4 = makeID(["Z", "I", "M", 1, 2, 3, 4, 5, "-"], 5); // random five characters from array (possibly repeating)
 END EXAMPLE
 
 PARAMETERS
-length - (default 5) the length of the id
 type - (default "mixed") set to "letters" or "numbers" as well
 	note: no O, 0, 1, I or L due to identification problems
 	pass in an array of characters to make an id from only those characters
+length - (default 5) the length of the id
 letterCase - (default uppercase) - set to "lowercase" or "mixed" as well
 
 RETURNS a String id (even if type is number)
@@ -6330,7 +6330,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-50.9
 
 /*--
-zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit)
+zim.SVGContainer = function(svg, splitTypes, geometric, showControls, interactive, style, group, inherit)
 
 SVGContainer
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6372,6 +6372,8 @@ PARAMETERS
 svg - an SVG file loaded into a frame.asset() or SVG text
 splitTypes - (default false) - set to true to split different types of paths into separate objects
 geometric - (default true) - set to false to load Rectangle and Circle objects as Blob objects
+showControls - (default true) set to false to start with controls not showing
+interactive - (default true) set to false to turn off controls, move, toggle, select, edit - leaving just the shapes
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -6411,8 +6413,8 @@ See the CreateJS Easel Docs for Container events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.95
 
-	zim.SVGContainer = function(svg, splitTypes, geometric, style, group, inherit) {
-		var sig = "svg, splitTypes, geometric, style, group, inherit";
+	zim.SVGContainer = function(svg, splitTypes, geometric, showControls, interactive, style, group, inherit) {
+		var sig = "svg, splitTypes, geometric, showControls, interactive, style, group, inherit";
 		var duo; if (duo = zob(zim.SVGContainer, arguments, sig, this)) return duo;
 		z_d("50.95");
 		this.group = group;
@@ -6531,7 +6533,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var r = Number(tag.getAttribute("r").trim());
 					var d = r*.5523;
 					if (geometric) shape = new zim.Circle(Number(tag.getAttribute("r")), f, s, ss);
-					else shape = new zim.Blob(f, s, ss, 4, r, d, "mirror");
+					else shape = new zim.Blob(f, s, ss, 4, r, d, "mirror", null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 				} else if (type == "rect") {
 					if (geometric) shape = new zim.Rectangle(Number(tag.getAttribute("width")), Number(tag.getAttribute("height")), f, s, ss, Number(tag.getAttribute("rx")));
 					else {
@@ -6546,13 +6548,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								[rx,0,0,0,-dx,0,0,0,"free"],[w-rx,0,0,0,0,0,dx,0,"free"],
 								[w,ry,0,0,0,-dy,0,0,"free"],[w,h-ry,0,0,0,0,0,dy,"free"],
 								[w-rx,h,0,0,dx,0,0,0,"free"],[rx,h,0,0,0,0,-dx,0,"free"],
-								[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]]);
+								[0,h-ry,0,0,0,dy,0,0,"free"],[0,ry,0,0,0,0,0,-dy,"free"]], null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 						} else {
-							shape = new zim.Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]]);
+							shape = new zim.Blob(f, s, ss, [[0,0],[w,0],[w,h],[0,h]], null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 						}
 					}
 				} else if (type == "line") {
-					shape = new zim.Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]]);
+					shape = new zim.Squiggle(s, ss, [[Number(tag.getAttribute("x1")), Number(tag.getAttribute("y1"))],[Number(tag.getAttribute("x2")), Number(tag.getAttribute("y2"))]], null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 				} else if (type == "polygon" || type == "polyline") {
 					var p = tag.getAttribute("points");
 					p = p.replace(/-/g, " -");
@@ -6563,14 +6565,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						points.push([Number(pp[0].trim()), Number(pp[1].trim())]);
 					})
 					if (type=="polygon") shape = new Blob(f, s, ss, points);
-					else shape = new zim.Squiggle(s, ss, points);
+					else shape = new zim.Squiggle(s, ss, points, null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 				} else if (type == "ellipse") {
-					shape = new zim.Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))));
+					shape = new zim.Blob(f, s, ss, ellipse(0, 0, Number(tag.getAttribute("rx")), Number(tag.getAttribute("ry"))), null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 				}
 				shape.loc(x,y,that);
 				var transform = tag.getAttribute("transform");
 				if (transform || currentTransform) processTransform(shape, transform || currentTransform);
-				if (shape.type == "Rectangle" || shape.type=="Circle") shape.transform({showReg:false})
+				if (interactive && (shape.type == "Rectangle" || shape.type=="Circle")) shape.transform({showReg:false, visible:showControls})
 			}
 
 			function processTransform(shape, transform) {
@@ -7130,8 +7132,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					// M 100 350 l 150 -300
 					if (lastCommand == "z" || lastCommand == "Z") {type = "blob"};										//kv adjust logic
 					//if (zot(shape)) {																					//kv adjust logic
-						if (type == "squiggle") shape = new zim.Squiggle(s, ss, points);
-						else shape = new zim.Blob(f, s, ss, points);
+						if (type == "squiggle") shape = new zim.Squiggle(s, ss, points, null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
+						else shape = new zim.Blob(f, s, ss, points, null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, interactive);
 						shape.loc(0,0,that);																					//kv adjust logic
 					//} else {																							//kv adjust logic
 					//	var dataPointsArray = [];																		//kv adjust logic
@@ -7175,7 +7177,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
-			return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, style, this.group, inherit));
+			return that.cloneProps(new zim.SVGContainer(svg, splitTypes, geometric, showControls, interactive, style, this.group, inherit));
 		}
 	}
 	zim.extend (zim.SVGContainer, zim.Container, "clone", "zimContainer", false);
@@ -24374,21 +24376,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var pRatio = frame.retina?(window.devicePixelRatio || 1):1;
 		this.resize = function() {
-			zog("textArea resizing");
 			setTimeout(function() {
-				zog("textArea timeout runs")
 				var point = that.localToGlobal(padding, padding);
 				if (frame.retina) {
 					textarea.x = frame.x/stage.scaleX + point.x/pRatio;
 					textarea.y = frame.y/stage.scaleY + point.y/pRatio;
 					// CreateJS DOMElement is scaling tag as stage scales
 					zim.sca(textarea, that.scaleX/pRatio, that.scaleY/pRatio);
-					zog("retina - textArea x = " + textarea.x)
 				} else {
 					textarea.x = frame.x + point.x * frame.scale;
 					textarea.y = frame.y + point.y * frame.scale;
 					zim.sca(textarea, frame.scale*that.scaleX, frame.scale*that.scaleY);
-					zog("non-retina - textArea x = " + textarea.x)
 				}
 				textarea.alpha = 1;
 				if (that.stage) stage.update();
@@ -24396,6 +24394,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 		this.resize();
+		// timeout(100,function () {
+		// 	if (frame) frame.update()
+		// })
 		that.added(addedCallback);
 		function addedCallback() {
 			stage.addChild(textarea);
@@ -35390,7 +35391,7 @@ will fill up the rest of the height until they reach their maximum widths
 	//-80
 
 /*--
-zim.Accessibility = function(appName, tabOrder, tabIndex, cycle, frame, decimals, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale)
+zim.Accessibility = function(appName, tabOrder, tabIndex, cycle, decimals, frame, application, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale)
 
 Accessibility
 zim class - extends a createjs.EventDispatcher
@@ -35457,6 +35458,7 @@ tabIndex - (default -1) - a starting index for focus - or can set tabIndex prope
 cycle - (default false) set to true to keep tab order inside application rather than leaving application when an end is reached
 decimals - (default 2) number of decimals max to read for screen reader
 frame - (default currentFrame) the frame
+application - (default true - false on mobile) set to false to set role of buttons as buttons rather than application - may cause problems with NVDA unless set to forms mode
 alwaysHighlight - (default false) screen readers will add their own highlights - but this will set highlight to true even if there is no screen reader
 	Set to true to place a rectangle around the object being put into focus by pressing the tab key or swipe on mobile
 	This will replace screen reader highlights (eg. for Windows Narrator) except for when aria is true (eg. Apple Voice Over)
@@ -35526,8 +35528,8 @@ Dispatches a "change" event when the screen reader is about to talk
 	This could trigger a button press for instance
 
 --*///+30.5
-	zim.Accessibility = function(appName, tabOrder, tabIndex, cycle, decimals, frame, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale) {
-		var sig = "appName, tabOrder, tabIndex, cycle, decimals, frame, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale";
+	zim.Accessibility = function(appName, tabOrder, tabIndex, cycle, decimals, frame, application, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale) {
+		var sig = "appName, tabOrder, tabIndex, cycle, decimals, frame, application, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale";
 		var duo; if (duo = zob(zim.Accessibility, arguments, sig, this)) return duo;
 		z_d("30.5");
 		this.cjsEventDispatcher_constructor();
@@ -35537,6 +35539,7 @@ Dispatches a "change" event when the screen reader is about to talk
 		if (zot(cycle)) cycle = false;
 		if (zot(decimals)) decimals = 2;
 		if (zot(frame)) frame = zimDefaultFrame;
+		if (zot(application)) application = zim.mobile()?false:true;
 		if (zot(alwaysHighlight)) alwaysHighlight = false;
 		if (zot(AHTime)) AHTime = 700;
 		if (zot(AHColor)) AHColor = "brown";
@@ -36011,6 +36014,7 @@ Dispatches a "change" event when the screen reader is about to talk
 			else if (obj.type == "ColorPicker") item.title = item.title + " - currently at " + obj.selectedColor;
 			else if (obj.type == "TextArea") item.title = item.title + (obj.tag.value != "" ? "" : " - placeholder: " + obj.tag.placeholder); // text areas get read automatically (except placeholder)
 			else if (obj.type == "Indicator") item.title = item.title + " - currently " + (obj.selectedIndex>=0 ? "at " + (obj.selectedIndex+1) + " of " + obj.num :  "not indicating");
+			// else if (obj.type == "Button" && application) item.title = item.title + " button";
 			item.title += ".";
 		}
 
@@ -36072,7 +36076,8 @@ Dispatches a "change" event when the screen reader is about to talk
 				tabTag = document.createElement("div");
 				if (obj) tabTag.zimObject = obj;
 				tabTag.innerHTML = "tag"; // needs to have text for ipad to read it
-				tabTag.setAttribute("role", "button");
+				// tabTag.setAttribute("role", (obj&&obj.type=="Button"&&application)?"application":"button");
+				tabTag.setAttribute("role", application?"application":"button");
 			}
 			tabTag.setAttribute("id", id);
 			tabTag.setAttribute("tabindex", 0);
@@ -36088,7 +36093,6 @@ Dispatches a "change" event when the screen reader is about to talk
 			if (item) {
 				var obj = item.obj;
 				var bounds = obj.boundsToGlobal();
-				zog("here")
 				if (frame.retina) {
 					tabTag.style.left = (frame.x + bounds.x*frame.scale/pRatio)+"px";
 					tabTag.style.top = (frame.y + bounds.y*frame.scale/pRatio)+"px";
@@ -36291,7 +36295,6 @@ Dispatches a "change" event when the screen reader is about to talk
 			talkTag.setAttribute("aria-label", words);
 			talkTag.innerHTML = " "; // force change
 			talkTag.innerHTML = words;
-			zog(talkTag.innerHTML)
 			var readerEvent = new createjs.Event("change");
 			// TODO - remove talk in front of event
 			readerEvent.title = words;
@@ -38886,7 +38889,7 @@ join(obj1, obj2, point1, point2, minAngle, maxAngle, type) - creates and returns
 	maxAngle - (default null) the maximum angle the joint can make from its starting angle
 	type - (default "weld") the type of joint
 		set to "distance" to keep the same distance between two object anchors
-		set to "resolute" to rotate objects around a fixed point relative to the first object
+		set to "revolute" to rotate objects around a fixed point relative to the first object
 		set to "weld" to fix the objects together
 break(joint) - break a joint created with join()
 	to use, store the result of the join() method in a variable and pass that variable in to break()
@@ -42718,7 +42721,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster pannel
 // Zim Frame provides code to help you set up your coding environment
 
 /*--
-zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, shim)
+zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, captureMouse, shim)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -42887,6 +42890,7 @@ retina - (default true) scales stage to use pixelDensity (sharper when scaling u
 	set to false to return to traditional PRE ZIM 10.3.0 unscaled stage
 mouseMoveOutside - (default false) set to true to capture mouse movement outside the stage
 	see also mouseX and mouseY properties of frame - these work with ZIM retina without adjusting for stage scale
+captureMouse - (default true) set to false to not use stagemousemove event to set frame.mouseX and frame.mouseY (good with Retina)
 shim - (default null) used by ZIM SHIM 2 https://zimjs.com/animate/ to create Frame with pre-existing stage and canvas
 	accepts an object with stage and canvas properties - lets Adobe handle resize
 
@@ -43034,10 +43038,11 @@ width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
 mouseX, mouseY - read only value of the mouse x and y positions on the canvas
-	the capture of this is turned off until it the first time it is requested
+	note: the frame captureMouse parameter must be set to true (default)
 	note: this value includes the division by the stage scale needed for ZIM Retina
 	whereas getting the mouse coordinates from a mouse event object does not include division by the stage scale
 	set frame's mouseMoveOutside parameter to true to capture movement outside the canvas
+mouseEvent - a reference to the frame "stagemousemove" event - can set frame.off("stagemousemove", frame.mouseEvent)
 orientation - "vertical" or "horizontal" (updated live with orientation change)
 visibleLeft, visibleTop, visibleRight, visibleBottom - in "outside" scale mode these give window edge locations relative to the stage
 	can be used to position items like navigation relative to window as the frame resize event is fired
@@ -43095,8 +43100,8 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 "error" - fired when there is a problem loading an asset with loadAssets()
 
 --*///+83
-	zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, shim) {
-		var sig = "scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, shim";
+	zim.Frame = function(scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, captureMouse, shim) {
+		var sig = "scaling, width, height, color, outerColor, assets, path, progress, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, captureMouse, shim";
 		var duo; if (duo = zob(zim.Frame, arguments, sig, this)) return duo;
 		z_d("83");
 		if (zon) zog("ZIM FRAME");
@@ -43148,6 +43153,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		if (zot(retina)) retina = true;
 		this.retina = retina;
 		if (zot(mouseMoveOutside)) mouseMoveOutside = false;
+		if (zot(captureMouse)) captureMouse = true;
 		if (zot(shim)) shim = false;
 
 
@@ -43163,6 +43169,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		var types = ["fit","outside","full"];
 
 		if (shim) {
+			var canvas = this.canvas = shim.canvas;
 			this.scale = shim.stage.scale;
 			this.x = shim.stage.x;
 			this.y = shim.stage.y;
@@ -43413,8 +43420,9 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		function makeStage() {
 			sizeCanvas();
 			if (types.indexOf(scaling) != -1 && !allowDefault) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
+			if (that.mouseEvent && stage) stage.off("stagemousemove", that.mouseEvent);
 			stage = gpu?new zim.StageGL(canvasID, gpuObj):new zim.Stage(canvasID);
-			that.stage.mouseMoveOutside = mouseMoveOutside;
+			stage.mouseMoveOutside = mouseMoveOutside;
 			if (!zot(color) && gpu) stage.setClearColor(zim.convertColor(color));
 			stage.setBounds(0, 0, stageW, stageH);
 			stage.width = stageW;
@@ -43425,6 +43433,15 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
+
+			if (captureMouse) {
+				that.mouseX = 0;
+				that.mouseY = 0;
+				that.mouseEvent = stage.on("stagemousemove", function (e) {
+					that.mouseX = e.stageX/that.stage.scaleX;
+					that.mouseY = e.stageY/that.stage.scaleY;
+				});
+			}
 		}
 
 		function sizeCanvas() {
@@ -43511,9 +43528,31 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			} else if (scaling == "inline") {
 				// does not scale canvas but sets width and height
 				if (retina) {
+
+					// may put percentage style on canvas tag
+					// this only handles width and only on first styleSheet
+					if (document.styleSheets[0]) {
+						var rules = document.styleSheets[0].rules || document.styleSheets[0].cssRules;
+					    for (var i=0; i < rules.length; i++) {
+					        var rule = rules[i];
+					        if (rule.selectorText == "#"+canvasID) {
+								var ww = rule.style.getPropertyValue("width");
+								if (ww) {
+									var www = zum(can.style.width);
+									var hhh = zum(can.style.height);
+									can.style.width = ww;
+								}
+					        }
+					    }
+					}
 					var comp = window.getComputedStyle(can);
 					var wid = zum(comp.getPropertyValue('width'));
+					if (www) {
+						can.style.height = (hhh*wid/www) + "px";
+						comp = window.getComputedStyle(can);
+					}
 					var hei = zum(comp.getPropertyValue('height'));
+
 					var pRatio = window.devicePixelRatio || 1;
 					that.scale = wid/width*pRatio;
 					can.width = stageW*that.scale;
@@ -43972,42 +44011,6 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			var flip = 0;
 			window.addEventListener("deviceorientation",deviceorientationEvent);
 		}
-
-		var _mouseX;
-		var _mouseY;
-
-		Object.defineProperty(this, 'mouseX', {
-			get: function() {
-				if (!that.mouseEvent) {
-					that.mouseEvent = that.stage.on("stagemousemove", function (e) {
-						_mouseX = e.stageX/that.stage.scaleX;
-						_mouseY = e.stageY/that.stage.scaleY;
-					});
-					return that.stage.mouseX; // first time... does not work with touch screen
-				}
-				return _mouseX; // works with touch screen
-			},
-			set: function(value) {
-				if (zon) zog("zim.Frame - mouseX is read only")
-			}
-		});
-
-		Object.defineProperty(this, 'mouseY', {
-			get: function() {
-				if (!that.mouseEvent) {
-					that.stage.mouseMoveOutside = true;
-					that.mouseEvent = that.stage.on("stagemousemove", function (e) {
-						_mouseX = e.rawX/that.stage.scaleX;
-						_mouseY = e.rawY/that.stage.scaleY;
-					});
-					return that.stage.mouseY; // first time... does not work with touch screen
-				}
-				return _mouseY; // works with touch screen
-			},
-			set: function(value) {
-				if (zon) zog("zim.Frame - mouseY is read only")
-			}
-		});
 
 		this.remakeCanvas = function(width, height) {
 			if (scaling == "full") return;
