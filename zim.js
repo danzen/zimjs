@@ -1808,6 +1808,7 @@ The check looks at the navigator.userAgent for the following regular expression:
 /ip(hone|od|ad)|android|blackberry|nokia|opera mini|mobile|phone|nexus|webos/i
 Microsoft mobile gets detected by nokia, mobile or phone.
 
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -1832,7 +1833,10 @@ RETURNS a String or false
 		if (/blackberry/i.test(navigator.userAgent)) return "blackberry";
 		if (/nokia|phone|mobile/i.test(navigator.userAgent)) return "windows";
 		if (/opera mini|webos/i.test(navigator.userAgent)) return "other";
-		if (orientation && window.orientation !== undefined) return true;
+		if (orientation && window.orientation !== undefined) {
+			if (/safari/i.test(navigator.userAgent)) return "ios";
+			return true;
+		}
 		return false;
 	}//-28
 
@@ -5019,7 +5023,7 @@ METHODS
 * such as ZIM Rectangle, Circle, Triangle, BLob
 * as well as all components like: Label, Button, Slider, Dial, Tab, Pane, etc.
 * as well as the ZIM display wrappers: Container, Shape, Sprite, MovieClip and Bitmap
-cache(width||x, height||y, null||width, null||height, scale, options) - overrides CreateJS cache() and returns object for chaining
+cache(width||x, height||y, null||width, null||height, scale, options, margin) - overrides CreateJS cache() and returns object for chaining
 	If you do not provide the first four parameters, then the cache dimensions will be set to the bounds of the object
 	width||x - (default getBounds().x) the width of the chache - or the x if first four parameters are provided
 	height||y - (default getBounds().y) the height of the chache - or the y if first four parameters are provided
@@ -5027,6 +5031,9 @@ cache(width||x, height||y, null||width, null||height, scale, options) - override
 	height - (default getBounds().height) the height of the chache - or null if first two parameters are provided
 	scale - (default 1) set to 2 to cache with twice the fidelity if later scaling up
 	options - (default null) additional parameters for cache logic - see CreateJS somewhere for details
+	margin - (default 0) add or subtract a margin from the bounds
+		eg. margin:10 will make the cache size 10 pixels more on all sides
+		this can be handy when caching objects with borders - that go half outside the natural bounds
 setBounds(width||x, height||y, null||width, null||height) - overrides CreateJS setBounds() and returns object for chaining
 	If you do not provide the any parameters, then the bounds will be reset to the calculated bounds
 	width||x - (default null) the width of the bounds - or the x if four parameters are provided
@@ -5099,12 +5106,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		if (!zot(a)) this.setBounds(n[0],n[1],n[2],n[3]); // es6 to fix
 
-		this.cache = function(a,b,c,d,scale,options) {
-			var bounds = this.getBounds();
+		this.cache = function(a,b,c,d,scale,options,margin) {
+			var sig = "a,b,c,d,scale,options,margin";
+			var duo; if (duo = zob(that.cache, arguments, sig)) return duo;
+			var bounds = that.getBounds();
 			if (zot(c)) {
 				if (zot(a)) {
 					if (!zot(bounds)) {
-						var added = this.borderWidth > 0 ? this.borderWidth/2 : 0;
+						var added = that.borderWidth > 0 ? that.borderWidth/2 : 0;
 						a = bounds.x-added;
 						b = bounds.y-added;
 						c = bounds.width+added*2;
@@ -5117,15 +5126,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					b = 0;
 				}
 			}
-			if (this.type == "Triangle") {
-				a-=this.borderWidth?this.borderWidth:0;
-				c+=this.borderWidth?this.borderWidth*2:0;
-				b-=this.borderWidth?this.borderWidth:0;
-				d+=this.borderWidth?this.borderWidth*2:0;
+			if (that.type == "Triangle") {
+				a-=that.borderWidth?that.borderWidth:0;
+				c+=that.borderWidth?that.borderWidth*2:0;
+				b-=that.borderWidth?that.borderWidth:0;
+				d+=that.borderWidth?that.borderWidth*2:0;
 			}
-			this.cjsContainer_cache(a,b,c,d,scale,options);
-			if (bounds) this.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
-			return this;
+			if (zot(margin)) margin = 0;
+			that.cjsContainer_cache(a-margin,b-margin,c+margin*2,d+margin*2,scale,options);
+			if (bounds) that.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+			return that;
 		}
 		this.localToGlobal = function(x,y) {
 			return localToGlobal(x,y,this,this.cjsContainer_localToGlobal);
@@ -5211,7 +5221,7 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
-cache(width||x, height||y, null||width, null||height, scale, options) - overrides CreateJS cache() and returns object for chaining
+cache(width||x, height||y, null||width, null||height, scale, options, margin) - overrides CreateJS cache() and returns object for chaining
 	If you do not provide the first four parameters, then the cache dimensions will be set to the bounds of the object
 	width||x - (default getBounds().x) the width of the chache - or the x if first four parameters are provided
 	height||y - (default getBounds().y) the height of the chache - or the y if first four parameters are provided
@@ -5219,6 +5229,9 @@ cache(width||x, height||y, null||width, null||height, scale, options) - override
 	height - (default getBounds().height) the height of the chache - or null if first two parameters are provided
 	scale - (default 1) set to 2 to cache with twice the fidelity if later scaling up
 	options - (default null) additional parameters for cache logic - see CreateJS somewhere for details
+	margin - (default 0) add or subtract a margin from the bounds
+		eg. margin:10 will make the cache size 10 pixels more on all sides
+		this can be handy when caching objects with borders - that go half outside the natural bounds
 setBounds(width||x, height||y, null||width, null||height) - overrides CreateJS setBounds() and returns object for chaining
 	width||x - (default null) the width of the bounds - or the x if four parameters are provided
 	height||y - (default width) the height of the bounds - or the y if four parameters are provided
@@ -5291,12 +5304,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 		if (!zot(a)) this.setBounds(n[0],n[1],n[2],n[3]); // es6 to fix
 
-		this.cache = function(a,b,c,d,scale,options) {
+		this.cache = function(a,b,c,d,scale,options,margin) {
+			var sig = "a,b,c,d,scale,options,margin";
+			var duo; if (duo = zob(that.cache, arguments, sig)) return duo;
+			var bounds = that.getBounds();
 			if (zot(c)) {
 				if (zot(a)) {
-					var bounds = this.getBounds();
 					if (!zot(bounds)) {
-						var added = this.borderWidth > 0 ? this.borderWidth/2 : 0;
+						var added = that.borderWidth > 0 ? that.borderWidth/2 : 0;
 						a = bounds.x-added;
 						b = bounds.y-added;
 						c = bounds.width+added*2;
@@ -5309,8 +5324,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					b = 0;
 				}
 			}
-			this.cjsShape_cache(a,b,c,d,scale,options);
-			return this;
+			if (zot(margin)) margin = 0;
+			that.cjsContainer_cache(a-margin,b-margin,c+margin*2,d+margin*2,scale,options);
+			return that;
 		}
 		this.setBounds = function(a,b,c,d) {
 			var n = normalizeBounds(a, b, c, d);
@@ -8237,8 +8253,9 @@ getAdjacentSegmentData(index) - returns an array of two arrays:
 	each element is in the form of [point1, controlPoint1, controlPoint2, point2]
 	The second is an array of starting point indexes for the segments that were tested
 	used internally to drag an animation along the path
-getCurvePoint(ratio, segmentRatios, segmentPoints) gets a point along whole curve at the ratio (0-1) provided
+getCurvePoint(ratio, segmentRatios, segmentPoints, getAngle) gets a point along whole curve at the ratio (0-1) provided
 	along with x and y values, the point has a z value that is the index of the squiggle point before the calculated point
+	if the getAngle parameter is true (default false) the point also has an angle property which is the angle of the tangent at the point
 	ratio is 0-1 with 0 being at the first point and 1 being at the end of the last segment
 	segmentRatios and segmentPoints will be calculated if not provided
 	used internally for animating along the path - if lockControls is true, only animate will precalculate these values
@@ -8928,6 +8945,7 @@ Note the points property has been split into points and pointObjects (and there 
 				} else {
 					drawShape();
 				}
+				that.zimAnimateChanged = true;
 				return that;
 			}
 
@@ -10121,9 +10139,9 @@ getAdjacentSegmentData(index) - returns an array of two arrays:
 	The second is an array of starting point indexes for the segments that were tested
 	used internally to drag an animation along the path
 	will wrap around the blob if needed
-getCurvePoint(ratio, segmentRatios, segmentPoints) gets a point along whole curve at the ratio (0-1) provided
+getCurvePoint(ratio, segmentRatios, segmentPoints, getAngle) gets a point along whole curve at the ratio (0-1) provided
 	along with x and y values, the point has a z value that is the index of the blob point before the calculated point
-	the point also has an angle property which is the angle of the tangent at the point
+	if the getAngle parameter is true (default false) the point also has an angle property which is the angle of the tangent at the point
 	ratio is 0-1 with 0 being at the first point and 1 being at the end of the last segment (the first point)
 	segmentRatios and segmentPoints will be calculated if not provided
 	used internally for animating along the path - if lockControls is true, only animate will precalculate these values
@@ -10824,6 +10842,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else {
 					drawShape();
 				}
+				that.zimAnimateChanged = true;
 				return that;
 			}
 
@@ -19768,11 +19787,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			normalizedAmount = min;
 		}
 		var touchID;
+		var lastX;
 		this.on("mousedown", function(e) {
 			stage = e.target.stage;
 			if (that.zimAccessibility && that.zimAccessibility.aria) return;
 			lastAngle = indicator.rotation;
 			var p = that.parent.globalToLocal(e.stageX/stage.scaleX, e.stageY/stage.scaleY);
+			lastX = p.x;
 			var dX = p.x-that.x;
 			var dY = that.y-p.y;
 			startAngle = Math.atan2(dX,dY)*180/Math.PI;
@@ -19791,9 +19812,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var endAngle = Math.atan2(dX,dY)*180/Math.PI;
 				var angle = lastAngle + endAngle - startAngle;
 				angle = (angle + 360*10000) % 360;
-				if (limit && Math.abs(angle-lastA) > 180) return;
+				if (limit) {
+					if (angle-lastA > 180) angle = 0;
+				   	else if (angle-lastA < -180) angle = 359;
+				}
 				setValue(angle);
 				lastA = angle;
+				lastX = p.x;
 			});
 			upEvent = this.on("pressup", function(e) {
 				var deltaTime = new Date().getTime()-pressTime;
@@ -23541,7 +23566,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var content = this.content = new Container(width, height)
 			.loc(marginLeft,0,that)
 			.setMask(mask);
-		var pages = this.pages = new zim.Pages(null, transition, speed, null, content).addTo(that);
+		var pages = this.pages = new zim.Pages(null, transition, speed, null, content).addTo(content);
 
 		var startCheck = false;
 		this.add = function(obj, url, target, skip) {
@@ -24461,7 +24486,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					textarea.x = frame.x/stage.scaleX + point.x/pRatio;
 					textarea.y = frame.y/stage.scaleY + point.y/pRatio;
 					// CreateJS DOMElement is scaling tag as stage scales
-					zim.sca(textarea, displayProps.scaleX/pRatio, displayProps.scaleY/pRatio);
+					zim.sca(textarea, displayProps.scaleX/pRatio/stage.scaleX, displayProps.scaleY/pRatio/stage.scaleY);
 				} else {
 					textarea.x = frame.x + point.x * frame.scale;
 					textarea.y = frame.y + point.y * frame.scale;
@@ -25545,6 +25570,36 @@ RETURNS obj for chaining
 	}//-41.7
 
 /*--
+obj.ble = function(blendMode)
+
+ble
+zim DisplayObject method
+
+DESCRIPTION
+Chainable convenience function to set the blendMode (compositeOperation)
+See also the CreateJS set({prop:val, prop2:val}) method;
+
+EXAMPLE
+circle.ble("difference");
+END EXAMPLE
+
+PARAMETERS
+blendMode - (default difference) the blendMode string:
+	normal, multiply, screen, overlay, darken, lighten
+	color-dodge,color-burn,  hard-light, soft-light
+	difference, exclusion, hue, saturation, color, luminosity
+
+RETURNS obj for chaining
+--*///+41.72
+	zim.ble = function(obj, blendMode) {
+		z_d("41.72");
+		if (zot(obj)) return;
+		if (zot(blendMode)) blendMode = "difference";
+		obj.compositeOperation = blendMode;
+		return obj;
+	}//-41.72
+
+/*--
 obj.hov = function(value, prop)
 
 hov
@@ -25595,11 +25650,11 @@ RETURNS obj for chaining
 		obj.hovType = type;
 		obj.hovMouseover = obj.on("mouseover", function () {
 			obj[type] = obj.hovNew;
-			obj.stage.update();
+			if (obj.stage) obj.stage.update();
 		});
 		obj.hovMouseout = obj.on("mouseout", function () {
 			obj[type] = obj.hovOld;
-			obj.stage.update();
+			if (obj.stage) obj.stage.update();
 		});
 		return obj;
 	}//-41.75
@@ -29234,24 +29289,24 @@ props - the object literal holding properties and values to animate
 		EXTRA! - the following convenience properties are available for ZIM EXTRA! (also see extra below)
 			https://zimjs.com/nio/extra.html
 			zoom - an array that represents scale proportions based on target's y position
-				[inputMin, inputMax, outputMin(default 0), outputMax(defaunt stageH)] the outputs will be constrained to the provided values
+				[inputMin, inputMax, outputMin(default 0), outputMax(default stageH)] the outputs will be constrained to the provided values
 				zoom:[.5,1.5] scales the target based on its y position - animating y or along a path will show scaling
 				zoom:10 - is like zoom:[0,10]
 				zoom:true - is like zoom:[0,1]
 				zoom:[1,3,stageH/2-100,stageH/2+200] would scale from 1 to 3 in this region and stay at 1 or 3 outside this region
 			speed - an array that represents animation percentSpeed based on target's y position
-				[inputMin, inputMax, outputMin(default 0), outputMax(defaunt stageH)] the outputs will be constrained to the provided values
+				[inputMin, inputMax, outputMin(default 0), outputMax(default stageH)] the outputs will be constrained to the provided values
 				speed:[20,100] sets percentSpeed based on target y position - animating y or along a path will have changing speed
 				speed:40 - is like speed:[0,40]
 				speed:true - is like speed:[0,100]
 				** will set dynamic property to true - as percentSpeed needs dynamic property set to true
 			layer - an array that represents ratio of layer proportions based on target's y position
-				[inputMin, inputMax, outputMin(default 0), outputMax(defaunt stageH)] the outputs will be constrained to the provided values
+				[inputMin, inputMax, outputMin(default 0), outputMax(default stageH)] the outputs will be constrained to the provided values
 				layer:[0,1] sets current layer based on target y position - animating y or along a path will have changing layers
 				layer:1 - is like layer:[0,1]
 				layer:true - is like layer:[0,target.parent.numChildren-1]
 			fade - an array that represents ratio of alpha based on target's y position
-				[inputMin, inputMax, outputMin(default 0), outputMax(defaunt stageH)] the outputs will be constrained to the provided values
+				[inputMin, inputMax, outputMin(default 0), outputMax(default stageH)] the outputs will be constrained to the provided values
 				fade:[.5,1] sets current alpha based on target y position - animating y or along a path will have changing alpha
 				fade:1 - is like fade:[0,1]
 				fade:true - is like fade:[0,1]
@@ -30012,16 +30067,28 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				},
 				set: function(value) {
 					if (this.zimTween) {
-						this.zimTween.startPaused = false;
-						// if (!this.paused) this.pauseAnimate(true, id);
-						if (!dynamic) {
-							this.zimTween.setPosition(Math.round(value*this.zimTween.duration/100));
-						} else {
-							if (!zot(this.zimTween.currentTime)) {
-								this.zimTween.currentTime = this.zimTween.currentTime - this.zimTween.position + value*this.zimTween.duration/100;
-							}
-						}
-						handlePath();
+
+						// STICK ON PATH BEFORE DRAG FIX
+						immediateCheck = true;
+
+						setPercent(value, true);
+					} else {
+						// to handle being set prior to a subsequent animation
+						this.requestedPercentComplete = value;
+					}
+				}
+			});
+			Object.defineProperty(target, 'percentCompleteNoAngle', {
+				get: function() {
+					if (this.zimTween) {
+						return this.zimTween.duration ? this.zimTween.position / this.zimTween.duration * 100 : 0;
+					} else {
+						return 0;
+					}
+				},
+				set: function(value) {
+					if (this.zimTween) {
+						setPercent(value, false);
 					} else {
 						// to handle being set prior to a subsequent animation
 						this.requestedPercentComplete = value;
@@ -30030,13 +30097,36 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			});
 		}
 
+		function setPercent(value, setAngle) {
+			target.zimTween.startPaused = false;
+			// if (!this.paused) this.pauseAnimate(true, id);
+			if (!dynamic) {
+				target.zimTween.setPosition(Math.round(value*target.zimTween.duration/100));
+			} else {
+				if (!zot(target.zimTween.currentTime)) {
+					target.zimTween.currentTime = target.zimTween.currentTime - target.zimTween.position + value*target.zimTween.duration/100;
+				}
+			}
+			if (setAngle && pathObject && obj.orient !== false && pathObject.getCurvePoint) {
+				target.rotation = pathObject.getCurvePoint(value/100, null, null, true).angle + (startAngle?startAngle:0);
+			}
+
+			// STICK ON PATH BEFORE DRAG FIX
+			if (immediateCheck && typeof pathPercent != "undefined") pathPercent = value;
+
+			handlePath();
+		}
+
 		// PATH ANIMATION SETUP
 		var pathObject;
 		if (!zot(obj.path) && obj.path.segmentPoints) {
 			if (target.type == "Pen") target.infinite = true;
 			target.zimOnPath = true;
 			if (zot(target.pathRatio)) target.pathRatio = 0;
-			if (zot(obj.orient)) obj.orient = obj.path;
+			if (zot(obj.orient)) {
+				obj.orient = obj.path;
+				obj.startOrient = obj.rotation;
+			}
 			pathObject = obj.path;
 			var dynamicPath = !pathObject.lockControls;
 			delete obj.path;
@@ -30119,9 +30209,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			    var currentDist = (pathPercent?pathPercent:0)/100*length;
 			    var targetDist = currentDist;
 				var dirTest = 0;
-			    var changed = false;
+			    pathObject.zimAnimateChanged = false;
 			    var segmentRatios = zim.copy(pathObject.segmentRatios);
-			    target.zimAnimatePathChange = pathObject.on("change", function() {changed = true;});
+			    target.zimAnimatePathChange = pathObject.on("change", function() {pathObject.zimAnimateChanged = true;});
 
 				target.zimAnimateDragDown = target.on("mousedown", function (e) {
 					stage = e.target.stage;
@@ -30133,7 +30223,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}, 50);
 					mouseCheck = true;
 
-					if (changed) {
+					if (pathObject.zimAnimateChanged) {
 			            segments = zim.copy(pathObject.segmentPoints);
 			            length = 0;
 			            zim.loop(segments, function (point) {
@@ -30143,8 +30233,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			            testPoints = pathObject.interpolate(numPoints, null, true);
 			            segmentRatios = zim.copy(pathObject.segmentRatios);
 			        }
-			        changed = false;
 
+			        pathObject.zimAnimateChanged = false;
 					pathPercent = target.percentComplete;
 					dampPercent.immediate(pathPercent);
 					var calcPercent = dirTest = pathPercent;
@@ -30156,12 +30246,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					targetDist = currentDist;
 				})
 
-				target.zimAnimateDragPress = target.on("pressmove", getPathPercent);
+				var movingCheck = false;
+				target.zimAnimateDragPress = target.on("pressmove", function(e) {movingCheck=true; getPathPercent(e);});
 				function getPathPercent(e) {
 					var point = pathObject.globalToLocal(e.rawX/stage.scaleX, e.rawY/stage.scaleY);
 					var mousePlace = currentDist;
-					// do not changes currentForward if no change in dirSamples
-					if (pathObject == "Blob") {
+					// do not change currentForward if no change in dirSamples
+					if (pathObject.type == "Blob") {
 						if (dirSamples[0] < dirSamples[4]) currentForward = true;
 						else if (dirSamples[0] > dirSamples[4]) currentForward = false;
 						if (mousePlace < 10 && !currentForward) {
@@ -30224,6 +30315,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var lastPercent = 0;
 				var dirCount = 0;
 				var dirSamples = [0,0,0,0,0];
+
+				// STICK ON PATH BEFORE DRAG FIX
+				var immediateCheck = false;
+
 				target.zimDragAnimateTicker = zim.Ticker.add(function () {
 					if (!drag) return; // might be paused
 					if (++dirCount%20) {
@@ -30232,21 +30327,28 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 					currentDist = targetDist;
 					// this was still running (due to easing) when unpaused so set mouseCheck to false in pause() script to solve
+
+					// zog(mouseCheck, activeCheck)
+					mouseCheck = true;
 					if (mouseCheck || (activeCheck && target.paused==true)) {
-						if (pathObject.type == "Blob" && Math.abs(lastPercent-pathPercent)>(rewind?45:90)) {
+
+						// STICK ON PATH BEFORE DRAG FIX (immediateCheck added)
+						if (immediateCheck || (pathObject.type == "Blob" && Math.abs(lastPercent-pathPercent)>(rewind?45:90))) {
 							var newPercent = pathPercent
 							dampPercent.immediate(newPercent);
+							immediateCheck = false;
 						} else {
 							var newPercent = dampPercent.convert(pathPercent);
 						}
 						if (Math.abs(lastPercent-newPercent)>.1) {
-							target.percentComplete = newPercent;
+							target.percentCompleteNoAngle = newPercent;
 							lastPercent = newPercent;
 						} else {
-							target.percentComplete = newPercent; // changed lastPercent to newPercent
+							target.percentCompleteNoAngle = newPercent; // changed lastPercent to newPercent
 							//if (!mouseCheck) {
 								activeCheck = false;
 							//}
+							movingCheck = false;
 						}
 					} else {
 						activeCheck = false; // otherwise goes to last drag after animation turned off
@@ -30265,6 +30367,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			pathOrient = obj.orient;
 			delete obj.orient;
 			var startAngle = target.rotation;
+			target.rotation = pathObject.getPointAngle(0) + startAngle;
+
+
 			if (pathOrient != pathObject) {
 				var orientPoint;
 				if (pathOrient.parent) {
@@ -30487,7 +30592,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			// means to purposely start at end, must set rewind true and start at 50% and animate to 100% for instance
 			if (startPercentComplete) {
 				target.pathRatio = (target.percentComplete && Math.round(target.percentComplete) != 100)?target.percentComplete/100:0;
-				target.percentComplete = Math.round(startPercentComplete) != 100?startPercentComplete:0;
+				target.percentCompleteNoAngle = Math.round(startPercentComplete) != 100?startPercentComplete:0;
 			}
 			if (events && !zot(sequenceTarget) && sequenceTarget.dispatchEvent) {
 				zimTicker = zim.Ticker.add(function(){
@@ -30558,8 +30663,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					aa = zim.angle(target.x, target.y, orientPoint.x, orientPoint.y)+startAngle;
 				}
 				if (aa != 0) {
-					if (pathFlip && lastX-target.x > 0) aa += 180;
-					target.rotation = aa==startAngle?target.rotation:aa;
+					if (!target.paused || movingCheck) {
+						if (pathFlip && lastX-target.x > 0) aa += 180;
+						target.rotation = aa==startAngle?target.rotation:aa;
+					}
 				}
 			}
 
@@ -32973,8 +33080,7 @@ var pages = new Pages({
 	],
 	transition:"slide",
 	speed:1000 // slower than usual for demonstration
-});
-stage.addChild(pages);
+}).addTo();
 
 // handle any events inserted into the swipe arrays
 pages.on("info", function(){zog("info requested")});
@@ -32998,7 +33104,7 @@ back.center(find); // add triangle to find page
 // we want to click on the back button
 // so we have to set the mouseChildren of find to true
 find.mouseChildren = true;
-back.cursor = "pointer";
+back.cur();
 back.on("click", function() {pages.go(home, "up")});
 stage.update();
 END EXAMPLE
@@ -33141,7 +33247,7 @@ you can define multiple pages objects add and remove pages objects as needed
 		}
 		var currentPage = this.page = pages[0] ? pages[0].page : null;
 		if (!zot(this.page)) this.index = 0;
-		holder.addChild(currentPage);
+		this.addChild(currentPage);
 		addHTML(currentPage);
 
 		this.swipe = new zim.Swipe(holder);
@@ -33216,7 +33322,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			that.pages.push({page:page});
 			if (!currentPage) {
 				currentPage = that.page = page;
-				holder.addChild(currentPage);
+				that.addChild(currentPage);
 			} else {
 				if (page.parent) page.parent.removeChild(page);
 			}
@@ -33226,7 +33332,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			// deal with textarea and loader
 			removeHTML(page);
 			if (that.currentPage == page) {
-				holder.removeChild(page);
+				that.removeChild(page);
 				if (holder.stage) holder.stage.update(); // works even if holder is stage
 			}
 			zim.loop(that.pages, function (p, i) {
@@ -33300,15 +33406,15 @@ you can define multiple pages objects add and remove pages objects as needed
 					pages[1].uncache();
 					that.transitioning = false;
 					that.dispatchEvent("pagetransitioned");
-					holder.removeChild(that.lastPage);
-					holder.removeChild(black);
-					holder.removeChild(white);
+					that.removeChild(that.lastPage);
+					that.removeChild(black);
+					that.removeChild(white);
 					addHTML(currentPage);
 					goCheck = true;
 				}
 
 				function transEndHalf(pages) {
-					holder.removeChild(that.lastPage);
+					that.removeChild(that.lastPage);
 					zim.animate(pages.shift(), {alpha:0}, that.speed/2, null, transEnd, pages);
 				}
 
@@ -33322,53 +33428,53 @@ you can define multiple pages objects add and remove pages objects as needed
 					newPage.y = -(slides[dirIndex].y | 0);
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
-					holder.addChild(newPage);
-					holder.addChild(currentPage);
+					that.addChild(newPage);
+					that.addChild(currentPage);
 					zim.animate(currentPage, slides[dirIndex], that.speed, null, transEnd, [currentPage, newPage]);
 					zim.animate(newPage, slides2[dirIndex], that.speed);
 				} else if (trans == "reveal") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
-					holder.addChild(newPage); // put destination under current page
-					holder.addChild(currentPage);
+					that.addChild(newPage); // put destination under current page
+					that.addChild(currentPage);
 					zim.animate(currentPage, reveals[dirIndex], that.speed, null, transEnd, [currentPage, newPage]);
 				} else if (trans == "fade") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 1;
-					holder.addChild(newPage);
-					holder.addChild(currentPage);
+					that.addChild(newPage);
+					that.addChild(currentPage);
 					zim.animate(currentPage, {alpha:0}, that.speed, null, transEnd, [currentPage, newPage]);
 				} else if (trans == "black") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 1;
-					holder.addChild(newPage);
-					holder.addChild(currentPage);
+					that.addChild(newPage);
+					that.addChild(currentPage);
 					black.alpha = 0;
-					holder.addChild(black);
+					that.addChild(black);
 					zim.animate(black, {alpha:1}, that.speed/2, null, transEndHalf, [black, currentPage, newPage]);
 				} else if (trans == "clear") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 0;
-					holder.addChild(newPage);
-					holder.addChild(currentPage);
+					that.addChild(newPage);
+					that.addChild(currentPage);
 					zim.animate(currentPage, {alpha:0}, that.speed/2);
 					zim.animate(newPage, {alpha:1}, that.speed/2, null, transEnd, [currentPage, newPage], that.speed/2);
 				} else if (trans == "white") {
 					newPage.cache(0,0,(hW+1)/newPage.scaleX,(hH+1)/newPage.scaleY);
 					currentPage.cache(0,0,(hW+1)/currentPage.scaleX,(hH+1)/currentPage.scaleY);
 					newPage.alpha = 1;
-					holder.addChild(newPage);
-					holder.addChild(currentPage);
+					that.addChild(newPage);
+					that.addChild(currentPage);
 					white.alpha = 0;
-					holder.addChild(white);
+					that.addChild(white);
 					zim.animate(white, {alpha:1}, that.speed/2, null, transEndHalf, [white, currentPage, newPage]);
 				} else {
 					that.transitioning = false;
-					holder.addChild(newPage);
-					holder.removeChild(currentPage);
+					that.addChild(newPage);
+					that.removeChild(currentPage);
 					goCheck = true;
 					// that.dispatchEvent("pagetransitioned"); // hmmm... no
 				}
@@ -33402,9 +33508,9 @@ you can define multiple pages objects add and remove pages objects as needed
 			// add all pages to the holder behind current page
 			// if milliseconds then this is the time to settle automatically
 			for (var i=0; i<pages.length; i++) {
-				holder.addChild(pages[i].page);
+				that.addChild(pages[i].page);
 			}
-			holder.addChild(currentPage);
+			that.addChild(currentPage);
 			if (milliseconds > 0) {
 				setTimeout(function() {
 					that.settle();
@@ -33413,8 +33519,8 @@ you can define multiple pages objects add and remove pages objects as needed
 		}
 
 		this.settle = function() {
-			holder.removeAllChildren();
-			holder.addChild(currentPage);
+			that.removeAllChildren();
+			that.addChild(currentPage);
 			that.dispatchEvent("puffed");
 		}
 
@@ -34405,7 +34511,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 	//-78
 
 /*--
-zim.Tile = function(obj, cols, rows, spacingH, spacingV, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, group, style, inherit)
+zim.Tile = function(obj, cols, rows, spacingH, spacingV, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, events, group, style, inherit)
 
 Tile
 zim class - extends a zim.Container which extends a createjs.Container
@@ -34521,11 +34627,15 @@ mirrorH - (default false) flip alternating objects horizontally (works with top 
 mirrorV - (default false) flip alternating objects vertically (works with top left registration point)
 snapToPixel - (default true) sets the stage to snapToPixelEnabled and snaps to pixels to avoid small gaps when Tile is repositioned
 clone - (default true) set to false to prevent Tile from cloning objects - good for series
+events - (default false) Boolean - set to true to receive change events from elements of Tile
+	this allows using one change event (or change() method) for a set of components in the Tile
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
+get2DItems(rowsFirst) - returns a 2D array - the outer array holding rows and the inner arrays holding columns
+	set rowsFirst to false to have outer array hold columns and inner arrays hold rows
 remake(items) - pass in an array of items to tile - see items property for editing current list - returns tile for chaining
 	can also change rows and cols and remake()
 resize(width, height) - resize the tile with new width and/or height if the width and/or height parameters were set - returns tile for chaining
@@ -34543,6 +34653,8 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 items - an array of the tile items - or use tile.getChildAt() or tile.loop(function (item) {})
+items2D - read only array of rows each containing an array of colums of items
+items2DCols - read only array of columns each containing array of rows of items
 tileNum - this property is added to each object in the tile to give its number in the tile
 These properties can be changed by calling remake()
 	items - an array of items the tile uses
@@ -34573,8 +34685,8 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 --*///+66.5
-	zim.Tile = function(obj, cols, rows, spacingH, spacingV, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, group, style, inherit) {
-		var sig = "obj, cols, rows, spacingH, spacingV, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, group, style, inherit";
+	zim.Tile = function(obj, cols, rows, spacingH, spacingV, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, events, group, style, inherit) {
+		var sig = "obj, cols, rows, spacingH, spacingV, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, events, group, style, inherit";
 		var duo; if (duo = zob(zim.Tile, arguments, sig, this)) return duo;
 		z_d("66.5");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -34611,6 +34723,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 			else if (typeof(elem) !== 'undefined' && zimDefaultFrame) zimDefaultFrame.stage.snapToPixelEnabled = true;
 		}
 		if (zot(clone)) clone = DS.clone!=null?DS.clone:true;
+		if (zot(events)) events = DS.events!=null?DS.events:true;
 
 		var that = this;
 		that.cols = cols;
@@ -34646,6 +34759,14 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				// if (clone && !(j==0 && i==0)) tile = tile.clone();
 				if (clone) {
 					if ((j!=0 || i!=0)) tile = tile.clone();
+				}
+				if (events) {
+					tile.on("change", function (e) {
+						var evt = new createjs.Event("change");
+						evt.item = e.currentTarget;
+						zot(e.currentTarget.type)
+						that.dispatchEvent(evt);
+					});
 				}
 				that.items.push(tile);
 				tile.tileNum = currentCount-1;
@@ -34743,14 +34864,16 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				}
 			}
 			if (that.squeezeH === false) {
-				zim.loop(widthMax, function(val) {
+				for (var i=0; i<widthMax.length; i++) {
+					var val = widthMax[i];
 					widthUncompressedMax+=val;
-				})
+				}
 			}
 			if (that.squeezeV === false) {
-				zim.loop(heightMax, function(val) {
+				for (var i=0; i<heightMax.length; i++) {
+					var val = heightMax[i];
 					heightUncompressedMax+=val;
-				})
+				}
 			}
 
 		}
@@ -34963,10 +35086,46 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 			return that;
 		}
 
+		Object.defineProperty(this, "items2D", {
+			get:function(){
+				var nested = [];
+				var inner;
+				for (var i=0; i<that.items.length; i++) {
+					if (i%that.cols==0) {
+						inner = [];
+						nested.push(inner);
+					}
+					inner.push(that.items[i]);
+				}
+				return nested;
+			},
+			set:function(val) {
+				if (zon) zog("ZIM Tile() - items2D is read only")
+			}
+		});
+
+		Object.defineProperty(this, "items2DCols", {
+			get:function(){
+				var nested = [];
+				var inner;
+				for (var i=0; i<that.cols; i++) {
+					nested.push([]);
+				}
+				for (var i=0; i<that.items.length; i++) {
+					nested[i%that.cols][Math.floor(i/that.cols)] = that.items[i];
+				}
+				return nested;
+			},
+			set:function(val) {
+				if (zon) zog("ZIM Tile() - items2DCols is read only")
+			}
+		});
+
+
 		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 
 		this.clone = function() {
-			return that.cloneProps(new zim.Tile(obj.clone?obj.clone():obj, that.cols, that.rows, that.spacingH, that.spacingV, width, height, that.squeezeH, that.squeezeV, colSize, rowSize, align, valign, that.items.length, that.mirrorH, that.mirrorV, snapToPixel, this.style, this.group));
+			return that.cloneProps(new zim.Tile(obj.clone?obj.clone():obj, that.cols, that.rows, that.spacingH, that.spacingV, width, height, that.squeezeH, that.squeezeV, colSize, rowSize, align, valign, that.items.length, that.mirrorH, that.mirrorV, snapToPixel, clone, events, this.style, this.group));
 		}
 	}
 	zim.extend(zim.Tile, zim.Container, "clone", "zimContainer", false);
@@ -42815,15 +42974,20 @@ Frame creates a canvas and stage.
 Frame lets you decide how you want your stage to scale.
 It also provides events for ready, resizing and orientation change
 as well as a way to remake the canvas if necessary.
-Frame handles loading Bitmap and Sound assets by wrapping PreloadJS
-see https://zimjs.com/frame.html for sample templates using Frame.
+Frame handles loading Bitmap, Sound, etc. assets by wrapping PreloadJS
+See https://zimjs.com/frame.html for sample templates using Frame.
+
+ZIM ASSET TOOL
+See https://zimjs.com/assetlist/
+Optionally use this tool to prepare an array of assets from a folder.
+Thanks Richard Musgrave for the prompting.
 
 CANVAS ALTERNATIVE CONTENT
-Frame will move any tag with an id of canvasIDAlternative into the canvas tag
-By default, the canvasID is "myCanvas" so use an id of "myCanvasAlternative"
-This allows you to show content for non-canvas browsers
+Frame will move any tag with an id of canvasIDAlternative into the canvas tag.
+By default, the canvasID is "myCanvas" so use an id of "myCanvasAlternative".
+This allows you to show content for non-canvas browsers.
 The content may also be indexed by search engines - one would hope
-and is read by screen readers (see also ZIM Accessibility)
+and is read by screen readers (see also ZIM Accessibility).
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -42932,6 +43096,7 @@ assets - (default null) - 1. a string asset or 2. an array of assets or 3. an as
 		use loadAssets() for these if desired
 		the "ready" event will be dispatched when the canvas is ready and initial assets are loaded
 	NOTE: the loadAssets() method can still be used as desired
+	SEE: https://zimjs.com/assetlist/ for many files
 path - (default null) - a string path for the assets
 	if an assets object is provide with a path then this parameter is ignored
 progress - (default null) - set to a Waiter() or ProgressBar() object to show while loading
@@ -42981,6 +43146,7 @@ shim - (default null) used by ZIM SHIM 2 https://zimjs.com/animate/ to create Fr
 METHODS
 loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, crossOrigin, fileType, queueOnly) // also accepts ZIM DUO configuration object as single parameter
 	// see also assets and path parameters of Frame - which share the info below
+	// see https://zimjs.com/assetlist/ to get an array of many files
 	assets - a file (url String or asset object) or files in an Array
 		each asset String is how you then access the asset with the asset() method of Frame
 		asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML
@@ -44788,6 +44954,9 @@ function zimify(obj, list) {
 		alp:function(alpha) {
 			return zim.alp(this, alpha);
 		},
+		ble:function(blendMode) {
+			return zim.ble(this, blendMode);
+		},
 		hov:function(value, type) {
 			return zim.hov(this, value, type);
 		},
@@ -46000,10 +46169,10 @@ square = a string of "row-col" - so "0-0", "0-1", "0-2", etc. and "3-2" is third
 NOTE: the Board extends a zim.Container so also has all container properties
 
 EVENTS
-dispatches a "change" event for each time a different tile is selected or rolled over
-dispatches a "positioned" event when item is finally placed on a tile
-dispatches a "moving" event when item is being animated from tile to tile
-dispatches a "movingdone" event when item is finished being animated (500ms delay)
+dispatches a "change" event on board for each time a different tile is selected or rolled over
+dispatches a "positioned" event on item when item is finally placed on a tile
+dispatches a "moving" event on item when item is being animated from tile to tile
+dispatches a "movingdone" event on item when item is finished being animated (500ms delay)
 --*///+110
 
 	// THE CODE FOR THE GAME MODULE IS LINKED TO AT THE TOP OF THE DOCS
@@ -46136,7 +46305,7 @@ Note: if added to a ZIM Board, use the Board methods to manipulate
 	//-125
 
 /*--
-zim.Timer = function(time, step, colon, down, isometric, startPaused, size, font, color, backgroundColor, borderColor, borderWidth, align, valign, fontOptions, width, height)
+zim.Timer = function(time, step, colon, down, isometric, startPaused, size, font, color, backgroundColor, borderColor, borderWidth, align, valign, fontOptions, width, height, decimals)
 
 Timer
 zim class - extends a zim.Label which extends a CreateJS Container
@@ -46233,6 +46402,7 @@ borderColor - (default null) the color of the border
 borderWidth - (default null) thickness of the border
 width - (default 150) the width of the scorer - can also leave defaults and scale scorer
 height - (default 60) the height of the scorer
+decimals - (default 1) the number of decimals to show if there are decimals
 
 PROPERTIES
 type - "Scorer"
