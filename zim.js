@@ -1455,43 +1455,54 @@ points - an array of point objects (or objects with an x and y property)
 	for a cubic Bezier - point1, control1, control2, point2
 ratio - (default .5) the ratio where 0 is at the first point and 1 is at the second point
 getAngle - (default false) request a calculated angle of tangent at point
+even - (default false) use modified cubic equation for even spacing for percentages
+	even is used by Beads but not by placing a point along a path
 
 RETURNS a point object with x and y properties on the curve at the ratio
 	as well as an angle property for the tangent if getAngle is true
 --*///+27.7
-	zim.pointAlongCurve = function(points, ratio, getAngle) {
+	zim.pointAlongCurve = function(points, ratio, getAngle, even) {
 		z_d("27.7");
-		// Thanks markE - StackOverflow
 		if (!points || !points[0] || !points[1] || !points[2] || !points[3]) return;
-		var x=CubicN(ratio,points[0].x,points[1].x,points[2].x,points[3].x);
-		var y=CubicN(ratio,points[0].y,points[1].y,points[2].y,points[3].y);
+
+		if (zot(even)) even = false;
+		var cubic = new zim.Bezier(points[0],points[1],points[2],points[3]);
+		if (even) {
+			var x=cubic.mx(ratio);
+			var y=cubic.my(ratio);
+		} else {
+			var x=cubic.x(ratio);
+			var y=cubic.y(ratio);
+		}
+
 		if (getAngle) {
 			var nextRatio = ratio+.05;
 			if (nextRatio > 1) {
 				ratio -= .05;
 				nextRatio -= .05;
 				// redo the ratio
-				var x0=CubicN(ratio,points[0].x,points[1].x,points[2].x,points[3].x);
-				var y0=CubicN(ratio,points[0].y,points[1].y,points[2].y,points[3].y);
+				if (even) {
+					var x0=cubic.mx(ratio);
+					var y0=cubic.my(ratio);
+				} else {
+					var x0=cubic.x(ratio);
+					var y0=cubic.y(ratio);
+				}
 			} else {
 				var x0 = x;
 				var y0 = y;
 			}
-			var x2 = CubicN(nextRatio,points[0].x,points[1].x,points[2].x,points[3].x);
-			var y2 = CubicN(nextRatio,points[0].y,points[1].y,points[2].y,points[3].y);
+			if (even) {
+				var x2 = cubic.x(nextRatio);
+				var y2 = cubic.y(nextRatio);
+			} else {
+				var x2 = cubic.mx(nextRatio);
+				var y2 = cubic.my(nextRatio);
+			}
 			var angle = zim.angle(x0, y0, x2, y2);
 			return({x:x,y:y,angle:angle});
 		}
 		return({x:x,y:y});
-	}
-	// cubic helper formula at percent distance
-	function CubicN(pct, a,b,c,d) {
-		var t2 = pct * pct;
-		var t3 = t2 * pct;
-		return a + (-a * 3 + pct * (3 * a - a * pct)) * pct
-		+ (3 * b + pct * (-6 * b + b * 3 * pct)) * pct
-		+ (c * 3 - c * 3 * pct) * t2
-		+ d * t3;
 	}//-27.7
 
 /*--
@@ -1582,9 +1593,12 @@ RETURNS the index of the closest point in segmentPoints before the given point
 		if (zot(num)) num = 10;
 		zim.loop(segmentPoints, function(points, i, t) {
 			// add num more points to estimate closest
+			var cubic = new zim.Bezier(points[0],points[1],points[2],points[3]);
 			zim.loop(num, function (j, total) {
 				// var d = zim.dist(point, zim.pointAlongCurve(segmentPoints(that.points[i], that.points[i<t-1?i+1:0]), j/10));
-				var testPoint = zim.pointAlongCurve(points, j/total);
+				// var testPoint = zim.pointAlongCurve(points, j/total);
+				// var d = zim.dist(point, testPoint);
+				var testPoint = {x:cubic.x(j/total), y:cubic.y(j/total)};
 				var d = zim.dist(point, testPoint);
 				if (d < closest) {
 					closest = d;
@@ -2374,6 +2388,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 			for (var i=0; i<addZeros-(length-place-1); i++) {answer += "0";}
 		}
 		if (addZerosBefore > 0) {
+			// fix this - Dan Zen - negative decimal number problem
 			if (sign == -1) answer = answer.substr(1,answer.length-1);
 			var place = String(answer).indexOf(".");
 			var length = String(answer).length;
@@ -3337,6 +3352,124 @@ w - the w value of the point - very probably not used
 	}//-13.45
 
 /*--
+zim.Bezier = function(a, b, c, d)
+
+Bezier
+zim class
+
+DESCRIPTION
+Creates data for a Cubic Bezier to give x and y at a ratio of the curve
+Also gives mx and my for a modified x and y that is more evenly spaced
+Thanks Ivo Wetzel - StackExchange
+Used internally by zim.getCurvePoint() used by Squiggle, Blob, Beads, and animate() in path
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var a = {x:100, y:100}; // start point
+var b = {x:400, y:100}; // control point for start point
+var c = {x:100, y:300}; // control point for end point
+var d = {x:300, y:300}; // end point
+var bezier = new Bezier(a,b,c,d);
+new Shape().s(black).mt(a.x,a.y).bt(b.x,b.y, c.x,c.y, d.x,d.y).addTo();
+loop(10, function (i) {
+	// original spacing
+	// new Circle(5).loc(bezier.x(i/10), bezier.y(i/10));
+
+	// modified spacing to be more even
+	new Circle(5).loc(bezier.mx(i/10), bezier.my(i/10));
+});
+END EXAMPLE
+
+PARAMETERS
+// all parameters are points with x and y properties {x:val, y:val}
+a - start point of Bezier curve
+b - control point for the start point
+c - control point for the end point
+d - end point
+
+METHODS
+x(r) - the x position of a point at ratio r (0-1) on the curve
+y(r) - the y position of a point at ratio r (0-1) on the curve
+mx(r) - the evenly-spaced x position of a point at ratio r (0-1) on the curve
+my(r) - the evenly-spaced y position of a point at ratio r (0-1) on the curve
+
+PROPERTIES
+a, b, c, d - the points passed in - each having x and y properties
+
+--*///+13.47
+	zim.Bezier = function Bezier(a, b, c, d) {
+		z_d("13.47");
+        this.a = a;
+        this.b = b;
+        this.c = c;
+        this.d = d;
+
+        this.len = 100;
+        this.arcLengths = new Array(this.len + 1);
+        this.arcLengths[0] = 0;
+
+        var ox = this.x(0), oy = this.y(0), clen = 0;
+        for(var i = 1; i <= this.len; i += 1) {
+            var x = this.x(i * 0.01), y = this.y(i * 0.01);
+            var dx = ox - x, dy = oy - y;
+            clen += Math.sqrt(dx * dx + dy * dy);
+            this.arcLengths[i] = clen;
+            ox = x, oy = y;
+        }
+        this.length = clen;
+    }
+
+    zim.Bezier.prototype = {
+        map: function(u) {
+            var targetLength = u * this.arcLengths[this.len];
+            var low = 0, high = this.len, index = 0;
+            while (low < high) {
+                index = low + (((high - low) / 2) | 0);
+                if (this.arcLengths[index] < targetLength) {
+                    low = index + 1;
+
+                } else {
+                    high = index;
+                }
+            }
+            if (this.arcLengths[index] > targetLength) {
+                index--;
+            }
+
+            var lengthBefore = this.arcLengths[index];
+            if (lengthBefore === targetLength) {
+                return index / this.len;
+
+            } else {
+                return (index + (targetLength - lengthBefore) / (this.arcLengths[index + 1] - lengthBefore)) / this.len;
+            }
+        },
+
+        mx: function (u) {
+            return this.x(this.map(u));
+        },
+
+        my: function (u) {
+            return this.y(this.map(u));
+        },
+
+        x: function (t) {
+            return ((1 - t) * (1 - t) * (1 - t)) * this.a.x
+                   + 3 * ((1 - t) * (1 - t)) * t * this.b.x
+                   + 3 * (1 - t) * (t * t) * this.c.x
+                   + (t * t * t) * this.d.x;
+        },
+
+        y: function (t) {
+            return ((1 - t) * (1 - t) * (1 - t)) * this.a.y
+                   + 3 * ((1 - t) * (1 - t)) * t * this.b.y
+                   + 3 * (1 - t) * (t * t) * this.c.y
+                   + (t * t * t) * this.d.y;
+        }
+    };//-13.47
+
+/*--
 zim.Boundary = function(x, y, width, height)
 
 Boundary
@@ -3685,7 +3818,7 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 			}
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			clearInterval(interval);
 			return true;
 		}
@@ -3802,7 +3935,7 @@ values - array of values synched to keys
 			return this;
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			objects = null;
 			values = null;
 			this.length = null;
@@ -5234,15 +5367,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return (!zot(this[prop]) || this.hasOwnProperty(prop))
 		}
 	}
-	zim.Container.prototype.dispose = function() {
-		recursiveDispose(this);
+	zim.Container.prototype.dispose = function(disposing) {
+		recursiveDispose(this, disposing);
 		return true;
 	}
-	function recursiveDispose(obj) {
-		obj.removeAllEventListeners();
-		if (obj.numChildren) {
-			for (var i=obj.numChildren-1; i>=0; i--) {
-				recursiveDispose(obj.getChildAt(i));
+	function recursiveDispose(obj, disposing) {
+		// dispose was fixed in ZIM 10.7.0 in TWO ways:
+		// ONE
+		// Some classes have custom dispose - so may want to call these.
+		// If disposing is true then we are coming from a custom dispose already
+		// otherwise, call the custom dispose and pass true to say we are already disposing containers
+		// otherwise the custom dispose will try and call the container dispose and we have an endless loop
+		if (!disposing && obj.dispose && obj.dispose !== zim.Container.prototype.dispose) {
+			obj.dispose(null,null,true);
+		}
+		// TWO
+		// dispose was only disposing type=="CONTAINER"
+		// so should have been type=="Container" - but even that is too narrow
+		// as would not include components parts or Tile parts, etc.
+		// so fixed it to include all decendents of Container by testing for addChild
+		// zog(obj.type)
+		// if (obj.type == "Container") {
+		if (obj.addChild) {
+			obj.removeAllEventListeners();
+			if (obj.numChildren) {
+				for (var i=obj.numChildren-1; i>=0; i--) {
+					recursiveDispose(obj.getChildAt(i));
+				}
 			}
 		}
 		if (obj.parent) obj.parent.removeChild(obj);
@@ -5503,7 +5654,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.hasProp = function(prop) {
 			return (!zot(this[prop]) || this.hasOwnProperty(prop))
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			this.graphics.c();
 			this.removeAllEventListeners();
 			if (this.parent) this.parent.removeChild(this);
@@ -5770,7 +5921,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var d = myContext.getImageData(x, y, 1, 1).data;
 			return "rgba("+d[0]+","+d[1]+","+d[2]+","+d[3]+")";
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			this.removeAllEventListeners();
 			if (this.parent) this.parent.removeChild(this);
 		}
@@ -5944,7 +6095,7 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
-run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl)
+run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl)
 	The run() method animates the Sprite over an amount of time
 	Would recommend this method over the CreateJS play() and gotoAndPlay()
 	methods because the framerate for these get overwritten by other stage.update() calls
@@ -5979,6 +6130,9 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 	rewindParams - (default target) parameters to send rewindCall function
 	rewindWaitCall (default null) calls function at middle of rewind before rewindWait
 	rewindWaitParams - (default target) parameters to send rewindCall function
+	rewindTime - (default time) set to a time in ms to adjust the time to rewind
+	rewindEase - (default null) see ease parameter for options for rewind ease
+		note - this goes backwards - so "bounceOut" would happen at the end of the rewind
 	startFrame - (default null - or 0) the frame to start on - will be overridden by a label with frames
 	endFrame - (default null - or totalFrames) the frame to end on - will be overridden by a label with frames
 	tweek - (default 1) a factor for extra time on rewind and loops if needed
@@ -6196,8 +6350,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			return framesNormalized;
 		}
 
-		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl) {
-			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, startFrame, endFrame, tweek, id, globalControl";
+		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl) {
+			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl";
 			var duo; if (duo = zob(this.run, arguments, sig)) return duo;
 
 			var obj;
@@ -6298,6 +6452,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				rewind:rewind, rewindWait:rewindWait, // rewind is ignored by animation series
 				rewindCall:rewindCall, rewindParams:rewindParams,
 				rewindWaitCall:rewindWaitCall, rewindWaitParams:rewindWaitParams,
+				rewindTime:rewindTime, rewindEase:rewindEase,
 				override:false,
 				id:that.id
 			});
@@ -6385,7 +6540,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		this.hasProp = function(prop) {
 			return (!zot(this[prop]) || this.hasOwnProperty(prop))
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			this.removeAllEventListeners();
 			if (this.parent) this.parent.removeChild(this);
 		}
@@ -6505,7 +6660,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.localToLocal = function(x,y,target) {
 			return zim.localToLocal(x,y,target,this);
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			this.removeAllEventListeners();
 			if (this.parent) this.parent.removeChild(this);
 		}
@@ -8297,7 +8452,7 @@ PARAMETERS
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-color - (default green) the line color as any CSS color including "rgba()" for alpha
+color - |ZIM VEE| - (default green) the line color as any CSS color including "rgba()" for alpha
 thickness - (default 2) the thickness of the line in pixels
 points - (default 4)a number of points to start with to make the shape
 	OR an SVG path like: points:"M0,129.5c22,0,40-31,40-41c0-8-3.2-13-10-13" etc. (also see SVGContainer)
@@ -8342,6 +8497,10 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
+approximateBounds(num, showPoints) - update the bounds based on a Rectangle
+	that surrounds the number of points (default 80) distributed around the object path
+	set showPoints to true to draw little dots on points
+	use outline() after object has been added to the stage to see the bounds
 addPoint(percent, controlType) - add a point at a percent (100) of the total curve
 	this is handy to make path have the same number of points for animate() path tweens
 	controlType can be as specified in main points parameter
@@ -8352,10 +8511,12 @@ addPoints(num, controlType, startPoint, spread, dataOnly, points) - add num poin
 	spread (default false) set to true to spread points evenly around path rather than evenly between segments
 	dataOnly and points are used internally
 	returns object for chaining
-interpolate(num, startPoint, spread) - get point data {x,y} for this existing points and num (default 1) points inbetween
-	used with hitTestPath
+interpolate(num, startPoint, spread, points, even) - get point data {x,y} for existing points and num (default 1) points inbetween
+	used with hitTestPath() and animate() drag on path - also add points (note add points does not use even:true)
 	specify a startPoint to get points between the startPoint and the next point (one segment of points)
-	spread (default false) set to true to spread points evenly around path rather than evenly between segments
+	spread (default false) set to true to spread number of points around path rather equal number between segments
+	points (default all points) the points to work with in the same format as the points property
+	even (default false) set to true to use zim.Bezier() with even turned on for even percentage distribution
 	returns an array of point objects with x, y properties and an r property for ratio of distance along path
 recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with setData() method
 	if toJSON (default false) is set to true, the return value is a JSON string
@@ -8412,7 +8573,10 @@ radialGradient([colors],[ratios], x0,y0,radius0, x1,y1,radius1) - shortcut to th
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
 hasProp(property as String) - returns true if property exists on object else returns false
-clone() - makes a copy of the shape
+clone(commands, exact) - makes a copy of the object
+	commands (default false) makes clones with current color and borderColor commands of object
+	exact (default false) makes clones with color chosen with ZIM VEE (Pick)
+		this defaults to false to let ZIM VEE values work across cloned objects
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
@@ -8561,6 +8725,10 @@ Note the points property has been split into points and pointObjects (and there 
 		if (zot(onTop)) onTop = DS.onTop!=null?DS.onTop:true;
 		if (zot(editPoints)) editPoints = DS.editPoints!=null?DS.editPoints:interactive;
 		if (zot(strokeObj)) strokeObj = DS.strokeObj!=null?DS.strokeObj:{};
+
+		var oa = remember(color);
+		function remember() {return arguments;} // for cloning PICK
+		color = zim.Pick.choose(color);
 
 		var that = this;
 		var types = this.types = ["mirror", "straight", "free", "none"];
@@ -9293,10 +9461,8 @@ Note the points property has been split into points and pointObjects (and there 
 				return that;
 			}
 			if (style!==false) zimStyleTransforms(that, DS);
-			that.clone = function(commands) {
-				var color = commands?that.colorCommand:that.color;
-				var color = commands?that.colorCommand:that.color;
-				var newShape =  that.cloneProps(new zim.Squiggle(commands?that.colorCommand:that.color, that.thickness, that.recordPoints(), length, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
+			that.clone = function(commands, exact) {
+				var newShape =  that.cloneProps(new zim.Squiggle(commands?that.colorCommand:(exact?that.color:oa[0]), that.thickness, that.recordPoints(), length, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
 				if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
 				if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
 				return newShape;
@@ -9314,8 +9480,9 @@ Note the points property has been split into points and pointObjects (and there 
 					that.pressY = null;
 				}
 			});
-			that.addPointFactor = 20;
+			that.addPointFactor = 10;
 			that.addMinDistance = 15;
+
 			that.shape.on("pressup", function (e) {
 				if (!that.editPoints) return;
 				if (that.pressX && Math.abs(that.pressX-e.stageX/stage.scaleX) < min && Math.abs(that.pressY-e.stageY/stage.scaleY) < min) {
@@ -9323,7 +9490,6 @@ Note the points property has been split into points and pointObjects (and there 
 					var points = that.points;
 					var point = that.globalToLocal(e.stageX/stage.scaleX, e.stageY/stage.scaleY);
 					var pointBefore = zim.closestPointAlongCurve(point, that.segmentPoints);
-
 					if (that.editPoints == "anywhere") {
 						points.splice(pointBefore+1, 0, [point.x, point.y, 0,0, 0,0, 0,0]);
 						that.points = points;
@@ -9334,13 +9500,12 @@ Note the points property has been split into points and pointObjects (and there 
 						var cubic = that.getSegmentPoint(p[pointBefore], p[(pointBefore+1)%p.length]);
 						var length = zim.distanceAlongCurve(cubic);
 						var testNum = Math.round(length/that.addPointFactor);
-						var testPoints = that.interpolate(testNum, pointBefore, points);
+						var testPoints = that.interpolate(testNum, pointBefore, false, points);
+						// interpolate is setting 2 more points than asked
 						var closest=10000;
 						var closestPoint;
 						var closestIndex;
-
 						zim.loop(testPoints, function (p, k) {
-							if (k==0) return; // don't put on existing point
 							var d = zim.dist(p, point);
 							if (d < closest) {
 								closest = d;
@@ -9352,7 +9517,7 @@ Note the points property has been split into points and pointObjects (and there 
 							var ratios = that.segmentRatios;
 							var currentRatio = ratios[pointBefore];
 							var lastRatio = pointBefore>0?ratios[pointBefore-1]:0;
-							that.addPoint(100*(lastRatio+(currentRatio-lastRatio)*(closestIndex/testNum)));
+							that.addPoint(100*(lastRatio+(currentRatio-lastRatio)*((closestIndex)/(testNum+1))));
 						}
 					}
 					that.lastSelectedIndex = pointBefore+1;
@@ -9445,6 +9610,7 @@ Note the points property has been split into points and pointObjects (and there 
 						mapMove(pointObj);
 					}
 					drawShape();
+					that.dispatchEvent("update");
 					if (that.stage) that.stage.update();
 				}
 			}
@@ -9833,6 +9999,25 @@ Note the points property has been split into points and pointObjects (and there 
 			}
 		});
 
+		that.approximateBounds = function(num, showPoints) {
+			if (zot(num)) num = 80;
+			num /= that.num;
+			var points = that.interpolate(num, null, true, null, true);
+			var bounds = zim.boundsAroundPoints(points);
+			that.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+			if (showPoints) {
+				if (!that.hitPathPoints) that.hitPathPoints = new zim.Container().addTo();
+				else that.hitPathPoints.removeAllChildren();
+				that.hitPathPoints.top();
+				for (var i=0; i<points.length; i++) {
+					var point = points[i];
+					point = that.localToGlobal(point.x, point.y);
+					new zim.Circle(3).loc(point.x, point.y, that.hitPathPoints);
+				}
+			}
+			return that;
+		}
+
 		that.getPointAngle = function(index) {
 			var p = that.pointObjects[index][0]; // parent
 			var r1 = that.pointObjects[index][2];
@@ -9918,11 +10103,13 @@ Note the points property has been split into points and pointObjects (and there 
 			}
 		}
 
-		that.getCurvePoint = function(ratio, segmentRatios, segmentPoints, getAngle) {
+		that.getCurvePoint = function(ratio, segmentRatios, segmentPoints, getAngle, even) {
+
 			if (zot(ratio) || isNaN(ratio)) ratio = 0;
 			if (zot(segmentRatios)) segmentRatios = that.segmentRatios;
 			if (zot(segmentPoints)) segmentPoints = that.segmentPoints;
 			if (zot(getAngle)) getAngle = false;
+			if (zot(even)) even = false;
 			var percents = segmentRatios;
 			var segments = segmentPoints;
 			var afterIndex = zim.loop(percents, function (p, i) {
@@ -9932,7 +10119,7 @@ Note the points property has been split into points and pointObjects (and there 
 			var localTotal = afterIndex > 0 ? (percents[afterIndex]-percents[afterIndex-1]):percents[afterIndex];
 			if (!localTotal) return undefined;
 			var localPercent = (ratio-earlierPercent)/localTotal;
-			var finalPoint = zim.pointAlongCurve(segments[afterIndex], localPercent, getAngle);
+			var finalPoint = zim.pointAlongCurve(segments[afterIndex], localPercent, getAngle, true);
 			var finalFinalPoint = that.localToGlobal(finalPoint.x, finalPoint.y);
 			finalFinalPoint.angle = finalPoint.angle;
 			finalFinalPoint.z = afterIndex;
@@ -9945,13 +10132,13 @@ Note the points property has been split into points and pointObjects (and there 
 				y:p1.y + (p2.y-p1.y)*ratio
 			}
 		}
-		function insertPointData(points, controls, ratios, percent, controlType, skipPoint, dataOnly) {
+		function insertPointData(points, controls, ratios, percent, controlType, skipPoint, dataOnly, even) {
+
 			var index = points.length-1; // adjust for squiggle
 			var lastRatio = 0;
 			var currentRatio = 0;
 			if (percent == 100 && that.type == "Squiggle") percent = 99.99;
 			percent = (percent+100000)%100;
-
 			zim.loop(ratios, function (ratio, i) {
 				if (percent/100 < ratio) {
 					index = i;
@@ -9962,11 +10149,7 @@ Note the points property has been split into points and pointObjects (and there 
 			});
 			var segment = that.segmentPoints[index];
 			var r = currentRatio > 0?(percent/100-lastRatio)/(currentRatio-lastRatio):0
-			// zog(percent)
-			// zog(percent/100-currentRatio/ratios.length)
-			// var r = currentRatio > 0?(percent/100-1/ratios.length*currentRatio)/(currentRatio-lastRatio):0
-
-			var point = zim.pointAlongCurve(segment, r)
+			var point = zim.pointAlongCurve(segment, r, null, even)
 			var newPoint = [point.x,point.y, 0, 0];
 			if (skipPoint) return;
 			if (dataOnly) {
@@ -10007,7 +10190,7 @@ Note the points property has been split into points and pointObjects (and there 
 			return that;
 		}
 
-		this.addPoints = function(num, controlType, startPoint, spread, dataOnly, points) {
+		this.addPoints = function(num, controlType, startPoint, spread, dataOnly, points, even) {
 			if (zot(points)) points = zim.copy(that.points);
 			var ratios = zim.copy(that.segmentRatios);
 			var lastRatio = 0;
@@ -10028,25 +10211,28 @@ Note the points property has been split into points and pointObjects (and there 
 			// }
 			if (spread) var totalPoints = ratios.length*num;
 			zim.loop(ratios, function (ratio, j) {
-				if (dataOnly) insertPointData(points, that.pointControls, that.segmentRatios, lastRatio*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly);
+				if (dataOnly) insertPointData(points, that.pointControls, that.segmentRatios, lastRatio*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly, even);
 				var numCount = spread?Math.round(totalPoints*(ratio-lastRatio)):num
 				var div = 1/(numCount+1);
 				zim.loop(numCount, function(i) {
 					var r = lastRatio + (ratio-lastRatio)*div*(i+1);
-					insertPointData(points, that.pointControls, that.segmentRatios, r*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly);
+					insertPointData(points, that.pointControls, that.segmentRatios, r*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly, even);
 					if (!dataOnly && num > 0) that.points = points;
 				});
 				lastRatio = ratio;
 			});
-			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, null, dataOnly);
+			if (dataOnly && that.type == "Squiggle") {
+				// changed to skipPoint false in zim 10.7.0 - not sure why it was true...
+				insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, false, dataOnly, even);
+			}
 			if (that.stage) that.stage.update();
 			that.num = points.length;
 			return that;
 		}
-		this.interpolate = function(num, startPoint, spread, points) {
+		this.interpolate = function(num, startPoint, spread, points, even) {
 			if (zot(num)) num = 1;
 			// dataOnly will add Point to start point too
-			that.addPoints(num, "none", startPoint, spread, true, points)
+			that.addPoints(num, "none", startPoint, spread, true, points, even)
 			return that.interpolatedPoints;
 		}
 
@@ -10061,7 +10247,7 @@ Note the points property has been split into points and pointObjects (and there 
 			return this;
 		}
 
-		this.dispose = function(temp) {
+		this.dispose = function(temp, b, disposing) {
 			// if (that.toggleStageEvent) that.stage.off("stagemousedown", that.toggleStageEvent);
 			// this.zimContainer_dispose();
 			// return true;
@@ -10183,8 +10369,8 @@ PARAMETERS
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-color - (default green) the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
-borderColor - (default null) the stroke color
+color - |ZIM VEE| - (default green) the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
+borderColor - |ZIM VEE| - (default null) the stroke color
 borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
 num - get the number of points - to set, use the points property
 points - (default 4) a number of points to start with to make the shape
@@ -10233,6 +10419,10 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
+approximateBounds(num, showPoints) - update the bounds based on a Rectangle
+	that surrounds the number of points (default 80) distributed around the object path
+	set showPoints to true to draw little dots on points
+	use outline() after object has been added to the stage to see the bounds
 addPoint(percent, controlType) - add a point at a percent (100) of the total curve
 	this is handy to make path have the same number of points for animate() path tweens
 	controlType can be as specified in main points parameter
@@ -10243,10 +10433,12 @@ addPoints(num, controlType, startPoint) - add num points between existing points
 	spread (default false) set to true to spread points evenly around path rather than evenly between segments
 	dataOnly and points are used internally
 	returns object for chaining
-interpolate(num, startPoint, spread) - get point data {x,y} for this existing points and num (default 1) points inbetween
-	used with hitTestPath
+interpolate(num, startPoint, spread, points, even) - get point data {x,y} for existing points and num (default 1) points inbetween
+	used with hitTestPath() and animate() drag on path - also add points (note add points does not use even:true)
 	specify a startPoint to get points between the startPoint and the next point (one segment of points)
-	spread (default false) set to true to spread points evenly around path rather than evenly between segments
+	spread (default false) set to true to spread number of points around path rather equal number between segments
+	points (default all points) the points to work with in the same format as the points property
+	even (default false) set to true to use zim.Bezier() with even turned on for even percentage distribution
 	returns an array of point objects with x, y properties and an r property for ratio of distance along path
 recordData(toJSON) - returns an object with x, y, points, color, borderColor, borderWidth, move, toggle, controls PROPERTIES to be used with setData() method
 	if toJSON (default false) is set to true, the return value is a JSON string
@@ -10304,7 +10496,10 @@ radialGradient([colors],[ratios], x0,y0,radius0, x1,y1,radius1) - shortcut to co
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
 hasProp(property as String) - returns true if property exists on object else returns false
-clone() - makes a copy of the shape
+clone(commands, exact) - makes a copy of the object
+	commands (default false) makes clones with current color commands of object
+	exact (default false) makes clones with color chosen with ZIM VEE (Pick)
+		this defaults to false to let ZIM VEE values work across cloned objects
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
@@ -10396,7 +10591,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-dispatches a "change" event for when the bezier controls are adjusted (pressup only)
+dispatches a "change" event for when the bezier controls are adjusted (pressup only or moving with keys - thanks Yui Kim for find)
 	if monitoring constant change is needed add a pressmove event to Blob.sets
 	the change event object has a transformType property with values of "move", "bezierPoint", "bezierHandle", "bezierSwitch"
 dispatches "controlsshow" and "controlshide" events when clicked off and on and toggle is true
@@ -10449,6 +10644,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(onTop)) onTop = DS.onTop!=null?DS.onTop:true;
 		if (zot(editPoints)) editPoints = DS.editPoints!=null?DS.editPoints:interactive;
 		if (zot(strokeObj)) strokeObj = DS.strokeObj!=null?DS.strokeObj:{};
+
+		var oa = remember(color, borderColor);
+		function remember() {return arguments;} // for cloning PICK
+		color = zim.Pick.choose(color);
+		borderColor = zim.Pick.choose(borderColor);
 
 		var that = this;
 		this.interactive = interactive;
@@ -11196,10 +11396,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return that;
 			}
 			if (style!==false) zimStyleTransforms(that, DS);
-			that.clone = function(commands) {
-				var color = commands?that.colorCommand:that.color;
-				var color = commands?that.colorCommand:that.color;
-				var newShape =  that.cloneProps(new zim.Blob(commands?that.colorCommand:that.color, commands?that.borderColorCommand:that.borderColor, that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
+			that.clone = function(commands, exact) {
+				var newShape =  that.cloneProps(new zim.Blob(commands?that.colorCommand:(exact?that.color:oa[0]), commands?that.borderColorCommand:(exact?that.borderColor:oa[1]), that.borderWidth, that.recordPoints(), radius, controlLength, controlType, lockControlType, sets.visible, lockControls, handleSize, that.allowToggle, that.move, dashed, onTop, stickColor, selectColor, selectPoints, that.editPoints, interactive, strokeObj, style, that.group, inherit));
 				if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
 				if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.linearGradientParams);
 				return newShape;
@@ -11217,7 +11415,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					that.pressY = null;
 				}
 			});
-			that.addPointFactor = 20;
+			that.addPointFactor = 10;
 			that.addMinDistance = 15;
 			that.shapePressupEvent = that.shape.on("pressup", function (e) {
 
@@ -11227,6 +11425,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var points = that.points;
 					var point = that.globalToLocal(e.stageX/stage.scaleX, e.stageY/stage.scaleY);
 					var pointBefore = zim.closestPointAlongCurve(point, that.segmentPoints);
+
 					if (that.editPoints == "anywhere") {
 						points.splice(pointBefore+1, 0, [point.x, point.y, 0,0, 0,0, 0,0]);
 						that.points = points;
@@ -11255,9 +11454,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 							var ratios = that.segmentRatios;
 							var currentRatio = ratios[pointBefore];
 							var lastRatio = pointBefore>0?ratios[pointBefore-1]:0;
-							that.addPoint(100*(lastRatio+(currentRatio-lastRatio)*(closestIndex/testNum)));
+							that.addPoint(100*(lastRatio+(currentRatio-lastRatio)*(closestIndex/(testNum+1))));
 						}
 					}
+
 					that.lastSelectedIndex = pointBefore+1;
 					that.lastSelected = that.controls.getChildAt(that.lastSelectedIndex);
 					that.stage.update();
@@ -11346,6 +11546,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						mapMove(pointObj);
 					}
 					drawShape();
+					that.dispatchEvent("update");
 					if (that.stage) that.stage.update();
 				}
 			}
@@ -11472,6 +11673,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (!making && !draggingCheck) return;
 			draggingCheck = false;
 			shape.noDrag();
+			zog("noDrag")
 			shape.off("mousedown", moveDownEvent);
 			shape.off("pressmove", movePressEvent);
 			shape.off("pressup", moveUpEvent);
@@ -11740,6 +11942,25 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		});
 
+		that.approximateBounds = function(num, showPoints) {
+			if (zot(num)) num = 80;
+			num /= that.num;
+			var points = that.interpolate(num, null, true, null, true);
+			var bounds = zim.boundsAroundPoints(points);
+			that.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+			if (showPoints) {
+				if (!that.hitPathPoints) that.hitPathPoints = new zim.Container().addTo();
+				else that.hitPathPoints.removeAllChildren();
+				that.hitPathPoints.top();
+				for (var i=0; i<points.length; i++) {
+					var point = points[i];
+					point = that.localToGlobal(point.x, point.y);
+					new zim.Circle(3).loc(point.x, point.y, that.hitPathPoints);
+				}
+			}
+			return that;
+		}
+
 		that.getPointAngle = function(index) {
 			var p = that.pointObjects[index][0]; // parent
 			var r1 = that.pointObjects[index][2];
@@ -11841,7 +12062,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var earlierPercent = afterIndex > 0 ? percents[afterIndex-1] : 0;
 			var localTotal = afterIndex > 0 ? (percents[afterIndex]-percents[afterIndex-1]):percents[afterIndex];
 			var localPercent = (ratio-earlierPercent)/localTotal;
-			var finalPoint = zim.pointAlongCurve(segments[afterIndex], localPercent, getAngle);
+			var finalPoint = zim.pointAlongCurve(segments[afterIndex], localPercent, getAngle, true);
 			if (zot(finalPoint)) return undefined;
 			var finalFinalPoint = that.localToGlobal(finalPoint.x, finalPoint.y);
 			finalFinalPoint.angle = finalPoint.angle;
@@ -11855,7 +12076,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				y:p1.y + (p2.y-p1.y)*ratio
 			}
 		}
-		function insertPointData(points, controls, ratios, percent, controlType, skipPoint, dataOnly) {
+		function insertPointData(points, controls, ratios, percent, controlType, skipPoint, dataOnly, even) {
 			var index = points.length-1; // adjust for squiggle
 			var lastRatio = 0;
 			var currentRatio = 0;
@@ -11876,7 +12097,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			// zog(percent/100-currentRatio/ratios.length)
 			// var r = currentRatio > 0?(percent/100-1/ratios.length*currentRatio)/(currentRatio-lastRatio):0
 
-			var point = zim.pointAlongCurve(segment, r)
+			var point = zim.pointAlongCurve(segment, r, null, even)
 			var newPoint = [point.x,point.y, 0, 0];
 			if (skipPoint) return;
 			if (dataOnly) {
@@ -11917,7 +12138,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that;
 		}
 
-		this.addPoints = function(num, controlType, startPoint, spread, dataOnly, points) {
+		this.addPoints = function(num, controlType, startPoint, spread, dataOnly, points, even) {
 			if (zot(points)) points = zim.copy(that.points);
 			var ratios = zim.copy(that.segmentRatios);
 			var lastRatio = 0;
@@ -11938,25 +12159,25 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			// }
 			if (spread) var totalPoints = ratios.length*num;
 			zim.loop(ratios, function (ratio, j) {
-				if (dataOnly) insertPointData(points, that.pointControls, that.segmentRatios, lastRatio*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly);
+				if (dataOnly) insertPointData(points, that.pointControls, that.segmentRatios, lastRatio*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly, even);
 				var numCount = spread?Math.round(totalPoints*(ratio-lastRatio)):num
 				var div = 1/(numCount+1);
 				zim.loop(numCount, function(i) {
 					var r = lastRatio + (ratio-lastRatio)*div*(i+1);
-					insertPointData(points, that.pointControls, that.segmentRatios, r*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly);
+					insertPointData(points, that.pointControls, that.segmentRatios, r*100, controlType, !zot(startPoint) && j!=startPoint, dataOnly, even);
 					if (!dataOnly && num > 0) that.points = points;
 				});
 				lastRatio = ratio;
 			});
-			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, null, dataOnly);
+			if (dataOnly && that.type == "Squiggle") insertPointData(points, that.pointControls, that.segmentRatios, 100, controlType, null, dataOnly, even);
 			if (that.stage) that.stage.update();
 			that.num = points.length;
 			return that;
 		}
-		this.interpolate = function(num, startPoint, spread, points) {
+		this.interpolate = function(num, startPoint, spread, points, even) {
 			if (zot(num)) num = 1;
 			// dataOnly will add Point to start point too
-			that.addPoints(num, "none", startPoint, spread, true, points)
+			that.addPoints(num, "none", startPoint, spread, true, points, even)
 			return that.interpolatedPoints;
 		}
 
@@ -11971,7 +12192,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return this;
 		}
 
-		this.dispose = function(temp) {
+		this.dispose = function(temp, d, disposing) {
 			// if (that.toggleStageEvent) that.stage.off("stagemousedown", that.toggleStageEvent);
 			// this.zimContainer_dispose();
 			// return true
@@ -12796,9 +13017,9 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 	this.clone = function() {
 		return that.cloneProps(new zim.LabelOnPath(that.label.clone(), that.path.clone(), percentAngle, zim.copy(percents), showPath, allowToggle, interactive, onTop, style, this.group, inherit));
 	}
-	this.dispose = function() {
+	this.dispose = function(a,b,disposing) {
 		if (this.ticker) zim.Ticker.remove(this.ticker);
-		this.zimContainer_dispose();
+		if (!disposing) this.zimContainer_dispose(true);;
 		return true;
 	}
 }
@@ -12944,7 +13165,7 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
         rawAngles.push(ang);
         totalAngle += ang;
         // zog(letter.height)
-        var letterHolder = new Container(letter.width, letter.height);
+        var letterHolder = new zim.Container(letter.width, letter.height);
         letter.centerReg(letterHolder).rot(flip?180:0);
         letterHolder.centerReg(letters).reg(null,radius+spacing+letter.height + (flip?letter.height*.13:0));
     }
@@ -14796,7 +15017,7 @@ Tip
 zim class - extends a a zim.Label which extends a zim.Container which extends a createjs.Container
 
 DESCRIPTION
-A Tip() can be used to show some extra information - the tip disapears after an amount of time
+A Tip() can be used to show some extra information - the tip disappears after an amount of time
 Tip has easy positioning along the inside edges or the outside edges of a target.
 
 NOTE: Tip places the tip on the stage when the show() method is called
@@ -14970,7 +15191,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 				if (target.boundsToGlobal) var b = target.boundsToGlobal();
 				else var b = target.getBounds();
-				var container = new Container(b.x, b.y, b.width, b.height);
+				var container = new zim.Container(b.x, b.y, b.width, b.height);
 				container.zimTemp = true;
 				container.loc(0, 0, target.stage);
 
@@ -15773,8 +15994,8 @@ interactive - (default true) allows interaction with content in window
 	set to false and whole window will be swipeable but not interactive inside
 shadowColor - (default rgba(0,0,0,.3)) the color of the shadow
 shadowBlur - (default 20) set shadowBlur to -1 for no drop shadow
-paddingHorizontal - (default padding) places content in from top bottom (ignored if content x not 0)
-paddingVertical - (default padding) places content in from left and right (ignored if content y not 0)
+paddingHorizontal - (default padding) places content in from left and right (ignored if content x not 0)
+paddingVertical - (default padding) places content in from top and bottom (ignored if content y not 0)
 scrollWheel - (default true) scroll vertically with scrollWheel
 damp - (default null) set to .1 for instance to damp the scrolling
 titleBar - (default null - no titleBar) a String or ZIM Label title for the window that will be presented on a titleBar across the top
@@ -16411,7 +16632,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return w;
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (scrollWheel) {
 				window.removeEventListener("mousewheel", scrollEvent1);
 				window.removeEventListener("wheel", scrollEvent2);
@@ -16420,7 +16641,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			if (that.blurEvent) document.window.removeEventListener("blur", that.blurEvent);
 			if (!zot(timeMouse)) zim.Ticker.remove(timeMouse);
 			if (!zot(swipeMovescrollBars)) zim.Ticker.remove(swipeMovescrollBars);
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -16943,10 +17164,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.Layer(width, height, titleBarOriginal, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, originalTitleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			that.transformControls.remove();
 			that.transformControls.disable();
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -17168,7 +17389,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.Waiter(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (that.ticker) createjs.Ticker.off("tick", that.ticker);
 			createjs.Tween.removeTweens(that);
 			that.removeFrom();
@@ -17177,7 +17398,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				clearInterval(timeouts[i]);
 				createjs.Tween.removeTweens(circle);
 			}
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -17487,9 +17708,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.ProgressBar(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (that.backing.type == "Pattern" && that.backing.clearInterval) that.backing.clearInterval();
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -17798,6 +18019,7 @@ list - (default Options 1-30) an array of strings, numbers or zim Label objects 
 		dim - (default .1) the alpha of dark background overlay on sub menus - or false for no dimming
 		bloom - (default false) time in milliseconds for each submenu item to be added - or false to not animate sub menus in - if true default time is 10 ms
 		whither - (default false) time in milliseconds for each submenu item to be removed - or false to not animate sub menus out - if true default time is 10 ms
+		arrows - (default false) show arrows instead of +- for expanding and collapsing - thanks Christopher Browne for the request
 		subStyles - (default null) an array of style objects for each sublevel - with all the color and background color properties
 	note: the Accordion List is currently incompatible with the Organizer, addTo() and removeFrom()
 viewNum - (default 5) how many items to show in the width and height provided - for text list not custom objects...
@@ -17842,8 +18064,8 @@ slideSnap - (default "vertical") "auto" / true, "none" / false, "horizontal"
 	vertical snaps when dragging up and down but not if dragging horizontal
 shadowColor - (default rgba(0,0,0,.3)) the color of the shadow
 shadowBlur - (default 20) set shadowBlur to -1 for no drop shadow
-paddingHorizontal - (default padding) places content in from top bottom
-paddingVertical - (default padding) places content in from left and right
+paddingHorizontal - (default padding) places content in from left and right
+paddingVertical - (default padding) places content in from top and bottom
 scrollWheel - (default true) scroll vertically with scrollWheel
 damp - (default null) set to .1 for instance to damp the scrolling
 titleBar - (default null - no titleBar) a String or ZIM Label title for the list that will be presented on a titleBar across the top
@@ -17856,7 +18078,7 @@ onTop - (default true) set to false to not bring list to top of container when d
 close - (default false) - a close X for the top right corner that closes the list when pressed
 closeColor - (default #555) - the color of the close X if close is requested
 excludeCustomTap - (default false) set to true to exclude custom buttons from tap() which would override existing tap() on the custom buttons
-organizer - (default null) the ZIN Organizer for the list
+organizer - (default null) the ZIM Organizer for the list
 checkBox - (default false) set to true to turn labeled list into a list of ZIM CheckBox objects - thanks Dale789 for the prompting!
 	See: https://zimjs.com/ten/listcheckbox.html
 	use selected.checkBox to get access to the selected CheckBox
@@ -17888,16 +18110,12 @@ hasProp(property as String) - returns true if property exists on object else ret
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
-label, min, max, val, call, step, obj, property, paddingLeft, paddingRight
-label, checked, call, obj, property, paddingLeft, paddingRight
-label, color, picker, call, obj, property, paddingLeft, paddingRight
-
 COMPONENT LIST ITEMS
 These static methods make special List items with components
 See: https://zimjs.com/ten/pulldown.html
 Each may have a label, min, max, starting val, steps, etc.
 Each has a call parameter for the function to call when the component changes
-There are alternatively obj and property paramters
+There are alternatively obj and property parameters
 Setting these will change the property of the obj to the value of the component
 
 List.slider(label, min, max, val, call, step, obj, property, paddingLeft, paddingRight)
@@ -17938,6 +18156,8 @@ items (or list) - read-only array of list button objects or objects in the list
 	this will change from the list entered as parameters as strings are turned into tab buttons, etc.
 	use addAt() and removeAt() methods to manipulate
 	custom items can be accessed using item.content - as the item is a container with a backing then content
+	each item has the following properties:
+		index, label, accordion (Label for accordion +- or arrows), listZID (see Hierarchy) and other properties depending on the item
 checkBoxes - read-only array of CheckBox objects if checkBox parameter is true
 itemsText - read-only array of text for labels (or null element if no label)
 itemWidth - the width of each item (unless custom items)
@@ -18071,6 +18291,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var bloom = !zot(list.bloom)?list.bloom:!zot(DS.bloom)?DS.bloom:false;
 			var whither = !zot(list.whither)?list.whither:!zot(DS.whither)?DS.whither:false;
 			var open = !zot(list.open)?list.open:!zot(DS.open)?DS.open:false;
+			var arrows = !zot(list.arrows)?list.arrows:!zot(DS.arrows)?DS.arrows:false;
 			if (bloom === true) bloom = 10;
 			if (whither === true) whither = 10;
 			if (shift === true) shift = 15;
@@ -18185,7 +18406,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			loop(that.tabs.buttons, function (item) {
 				var data = tree.getData(item.listZID);
-				if (!isEmpty(data.list)) item.accordion = new Label({text:"+", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
+				// if (!isEmpty(data.list)) item.accordion = new Label({size:22, text:"▼", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
+				if (!isEmpty(data.list)) item.accordion = new Label({size:arrows?22:36, text:arrows?"▼":"+", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
 			});
 
 			function applyAccordion(item, id, data) {
@@ -18198,7 +18420,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var newData = tree.getData(id);
 				newData.obj = item;
 				if (newData.list && !isEmpty(newData.list)) {
-					item.accordion = new Label({text:(newData.open?"-":"+"), align:"center", color:convertColor(color, "rgba", .6)})
+					// item.accordion = new Label({text:(newData.open?"-":"+"), align:"center", color:convertColor(color, "rgba", .6)})
+					item.accordion = new Label({size:arrows?22:36, text:(newData.open?(arrows?"▲":"-"):(arrows?"▼":"+")), align:"center", color:convertColor(color, "rgba", .6)})
 						.center(item).alp(.7).pos(15, null, that.align!="right")
 						.mov(0,(newData.open?-3:0));
 				}
@@ -18210,7 +18433,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var data = tree.getData(that.selected.listZID);
 				if (data.open) { // close
 					if (that.selected.accordion) {
-						that.selected.accordion.text = "+";
+						// that.selected.accordion.text = "+";
+						that.selected.accordion.text = arrows?"▼":"+";
 						that.selected.accordion.mov(0,3)
 					}
 					data.open = false;
@@ -18235,7 +18459,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else { // open
 					data.open = true;
 					if (that.selected.accordion) {
-						that.selected.accordion.text = "-";
+						// that.selected.accordion.text = "-";
+						that.selected.accordion.text = arrows?"▲":"-";
 						that.selected.accordion.mov(0,-3)
 					}
 					var outer = tree.getLinearList(data.list);
@@ -18565,6 +18790,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		c.backing = new zim.Rectangle(c.width, c.height, dark).center(c);
 		if (label.type == "Label") c.label = label
 		else c.label = new zim.Label(label,null,null,white);
+		c.text = c.label.text;
 		c.label.center(c).loc(paddingLeft);
 	}
 
@@ -18588,7 +18814,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
         }).sca(1.5).center(c).mov(20).change(function () {
             c.stepper.currentValue = Math.round(c.slider.currentValue);
             if (obj && property) obj[property] = c.slider.currentValue;
-            if (call && typeof call == 'function') {(call)(c.slider.currentValue);}
+            if (call && typeof call == 'function') {(call)(c.slider.currentValue, c.parent);}
             if (c.slider.stage) c.slider.stage.update();
         });
         if (!zot(val)) c.slider.currentValue = val;
@@ -18601,7 +18827,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
         }).sca(.5).center(c).pos(paddingRight,null,true).change(function () {
             c.slider.currentValue = c.stepper.currentValue;
             if (obj && property) obj[property] = c.stepper.currentValue;
-            if (call && typeof call == 'function') {(call)(c.stepper.currentValue);}
+            if (call && typeof call == 'function') {(call)(c.stepper.currentValue, c.parent);}
             if (c.stepper.stage) c.stepper.stage.update();
         });
         if (!zot(val)) c.stepper.currentValue = val;
@@ -18611,18 +18837,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
     zim.List.checkBox = function(label, checked, call, obj, property, paddingLeft, paddingRight) {
         var sig = "label, checked, call, obj, property, paddingLeft, paddingRight";
         var duo; if (duo = zob(zim.List.checkBox, arguments, sig)) return duo;
-        var c = new Container(620, 100);
+        var c = new zim.Container(620, 100);
         c.type = "ListItem";
         c.listItem = "CheckBox";
         if (zot(paddingLeft)) paddingLeft = 20;
         if (zot(paddingRight)) paddingRight = 30;
         zim.List.makeBase(c, label, paddingLeft);
-        c.checkBox = new CheckBox({
+        c.checkBox = new zim.CheckBox({
             startChecked:checked,
             label:""
         }).sca(1.2).center(c).pos(256+paddingRight,null,true).change(function () {
             if (obj && property) obj[property] = c.checkBox.checked;
-            if (call && typeof call == 'function') {(call)(c.checkBox.checked);}
+            if (call && typeof call == 'function') {(call)(c.checkBox.checked, c.parent);}
             if (c.checkBox.stage) c.checkBox.stage.update();
         });
         return c;
@@ -18631,7 +18857,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	zim.List.colorPicker = function(label, color, picker, call, obj, property, paddingLeft, paddingRight) {
 		var sig = "label, color, picker, call, obj, property, paddingLeft, paddingRight";
 		var duo; if (duo = zob(zim.List.colorPicker, arguments, sig)) return duo;
-		var c = new Container(620, 100);
+		var c = new zim.Container(620, 100);
 		c.type = "ListItem";
 		c.listItem = "ColorPicker";
 		if (zot(paddingLeft)) paddingLeft = 20;
@@ -18656,7 +18882,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			c.colorLabel.text = c.swatch.color.toUpperCase();
 			c.colorPicker.hide();
 			if (obj && property) obj[property] = c.colorPicker.selectedColor;
-			if (call && typeof call == 'function') {(call)(c.colorPicker.selectedColor);}
+			if (call && typeof call == 'function') {(call)(c.colorPicker.selectedColor, c.parent);}
 			if (stage) stage.update();
 		});
 		return c;
@@ -18685,10 +18911,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(selectedColor)) selectedColor = DS.selectedColor!=null?DS.selectedColor:color;
 		if (zot(selectedRollColor)) selectedRollColor = DS.selectedRollColor!=null?DS.selectedRollColor:rollColor;
 
-		var c = new Container();
+		var c = new zim.Container();
 		c.type = "CheckItem"
-		c.checkBox = new CheckBox({size:size, label:label, color:color, tap:true}),
-		c.backing = new Rectangle(width-spacing*2, c.checkBox.height+paddingVertical*2, backgroundColor).addTo(c);
+		c.checkBox = new zim.CheckBox({size:size, label:label, color:color, tap:true}),
+		c.backing = new zim.Rectangle(width-spacing*2, c.checkBox.height+paddingVertical*2, backgroundColor).addTo(c);
 		c.checkBox.center(c)
 		if (align != "center" && align != "middle") c.checkBox.pos(paddingHorizontal,null,align=="right");
 		c.backing.tap(function () {
@@ -19593,10 +19819,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.Stepper(list, width, backgroundColor, borderColor, borderWidth, label.clone(), color, vertical, arrows, corner, shadowColor, shadowBlur, continuous, display, press, hold, holdDelay, holdSpeed, draggable, dragSensitivity, dragRange, stepperType, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			window.removeEventListener("keydown", that.keyDownEvent);
 			if (that.stage) that.stage.off(rawEvent);
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -19750,6 +19976,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			});
 		}
 		button.rollPersist = true;
+		if (!zot(DS.expand)) button.expand(DS.expand);
 
 		var width; var height;
 		if (vertical) {
@@ -19799,7 +20026,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (vertical) {
 			var start = (inside) ? button.height / 2 : 0;
 			bar = this.bar = new zim.Rectangle(barWidth, barLength, barColor, null, null, null, null, null, false);
-			bar.expand(20,0);
+			if (!zot(DS.expand)) bar.expand(DS.expand, 0);
+			else bar.expand(20,0);
 			bar.centerReg(this);
 			button.centerReg(this);
 			bounds = bar.getBounds();
@@ -19813,7 +20041,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		} else {
 			var start = (inside) ? button.width / 2 : 0;
 			bar = this.bar = new zim.Rectangle(barLength, barWidth, barColor, null, null, null, null, null, false);
-			bar.expand(0,20);
+			if (!zot(DS.expand)) bar.expand(0,DS.expand);
+			else bar.expand(0,20);
 			bar.centerReg(this);
 			button.centerReg(this);
 			bounds = bar.getBounds();
@@ -20061,10 +20290,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			window.removeEventListener("keydown", that.keyDownEvent);
 			window.removeEventListener("keyup", that.keyUpEvent);
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -20616,10 +20845,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.Dial(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, innerCircle, innerScale, useTicks, innerTicks, tickColor, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			window.removeEventListener("keydown", that.keyDownEvent);
 			window.removeEventListener("keyup", that.keyUpEvent);
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -20928,6 +21157,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
+
+
 		// Create Label Objects including Label and also get max width
 		function makeLabels(list, addStyle) {
 			for (i=0; i<list.length; i++) {
@@ -21023,6 +21254,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					else {
 						button = new zim.Container();
 						button.type = t.type;
+						var specialList = ["text", "backing", "label", "slider", "stepper", "checkBox", "colorPicker", "swatch", "colorLabel"];
+						for (var j=0; j<specialList.length; j++) {
+							if (t[specialList[j]]) {
+								button[specialList[j]] = t[specialList[j]];
+							}
+						}
 					}
 					button.content = t;
 					if (t.checkBox) button.checkBox = t.checkBox;
@@ -21066,6 +21303,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				});
 				labels.push(t.label);
 				buttons.push(button);
+				button.index = i;
 			}
 			return [buttons, labels];
 		}
@@ -21363,6 +21601,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				}
 			}
 		});
+
 
 		Object.defineProperty(this, 'rollBackgroundColor', {
 			get: function() {
@@ -21940,9 +22179,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.DPad(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (this.ticker) zim.Ticker.remove(this.ticker);
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -22153,7 +22392,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
             }
 
             var s = backdrop.width;
-            var buttons = this.buttons = new Container(-s/2, -s/2, s, s).centerReg(this);
+            var buttons = this.buttons = new zim.Container(-s/2, -s/2, s, s).centerReg(this);
 
             var gapInner = gap;
             if (!gapAsAngle) { // use circumference
@@ -22261,7 +22500,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
                 if (icons && icons.length > 0) {
                     var h = innerRadius+height/2+iconsShiftRadial;
-                    var holder = button.holder = new Container(3, h).addTo(this).reg(1,h).rot(lastAngle);
+                    var holder = button.holder = new zim.Container(3, h).addTo(this).reg(1,h).rot(lastAngle);
                     holder.mouseChildren = false;
                     holder.mouseEnabled = false;
                     button.icon = icons[i];
@@ -22270,11 +22509,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
                 } // end icons
 
                 if (labels && labels.length > 0) {
-                    // var buttons = this.buttons = new Container(-s/2, -s/2, s, s).centerReg(this);
+                    // var buttons = this.buttons = new zim.Container(-s/2, -s/2, s, s).centerReg(this);
                     var loa;
                     if (labels[i].type != "LabelOnArc") {
                         var label = (labels[i].type=="Label"?labels[i]:new Label(labels[i], size, font, color));
-                        loa = new LabelOnArc({
+                        loa = new zim.LabelOnArc({
                             label: label,
                             color:color,
                             size:size,
@@ -23453,10 +23692,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, style, this.group, inherit));
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			window.removeEventListener("keydown", that.keyDownEvent);
 			if (slider) slider.dispose();
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 	}
@@ -24590,7 +24829,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, style, this.group, inherit);
 			return that.cloneProps(kb);
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			background.removeAllEventListeners();
 			if (that.keydownEvent) window.removeEventListener("keydown", that.keydownEvent);
 			that.zimContainer_dispose();
@@ -24768,9 +25007,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			corner = [corner, corner, corner, corner];
 		}
 
+		if (!useAdd && !usePosition && !useRemove) return; // will lead to errors...
+		var buttonNum = (useAdd?1:0) + (usePosition?4:0) + (useRemove?1:0);
+		var buttonSize = (width+spacing) / buttonNum;
+
 		var buttonStyle = {
-			width:50,
-			height:50,
+			width:buttonSize,
+			height:buttonSize,
 			label:"",
 			shadowColor:-1,
 			gradient:gradient,
@@ -24783,6 +25026,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var addIcon = new zim.Shape();
 		addIcon.graphics.f(color).p("AAAA4Ih6B8Ig5g4IB8h8Ih7h6IA4g5IB6B8IB7h8IA5A5Ih8B6IB8B7Ig5A5g");
 		if (useAdd) buttons.push(new zim.Button({icon:addIcon.sca(.55).rot(-45).reg(1), inherit:buttonStyle}));
+
 		if (usePosition) {
 			var arrowIcon = new zim.Shape();
 			arrowIcon.graphics.f(color).p("AiJieIETCeIkTCfg");
@@ -24793,9 +25037,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			buttons.push(new zim.Button({icon:endIcon.sca(.62).rot(list&&!list.vertical?0:90).reg(0), inherit:buttonStyle}));
 			buttons.push(new zim.Button({icon:endIcon.clone().sca(.62).rot(list&&!list.vertical?180:-90).reg(0), inherit:buttonStyle}));
 		}
+
 		if (useRemove) buttons.push(new zim.Button({icon:addIcon.clone().rot(0).sca(.55), inherit:buttonStyle}));
 		if (buttons.length==0) buttons = [""]
-		this.zimTabs_constructor(width, width/buttons.length, buttons, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, false, spacing, true, false, corner, null, true, gradient, gloss, null, null, null, null, null, null, null, null, null, null, backdropColor);
+		this.zimTabs_constructor(width, buttonSize, buttons, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, false, spacing, true, false, corner, null, true, gradient, gloss, null, null, null, null, null, null, null, null, null, null, backdropColor);
 
 		var that = this;
 		that.list = list;
@@ -24803,10 +25048,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		that.setButtons = function() {
 			if (usePosition) {
-				that.buttons[1].icon.rotation = that.list&&!that.list.vertical?180:-90;
-				that.buttons[2].icon.rotation = that.list&&!that.list.vertical?0:90;
-				that.buttons[3].icon.rotation = that.list&&!that.list.vertical?0:90;
-				that.buttons[4].icon.rotation = that.list&&!that.list.vertical?180:-90;
+				var startIndex = useAdd?1:0;
+				if (buttons[startIndex+0]) buttons[startIndex+0].icon.rotation = that.list&&!that.list.vertical?180:-90;
+				if (buttons[startIndex+1]) buttons[startIndex+1].icon.rotation = that.list&&!that.list.vertical?0:90;
+				if (buttons[startIndex+2]) buttons[startIndex+2].icon.rotation = that.list&&!that.list.vertical?0:90;
+				if (buttons[startIndex+3]) buttons[startIndex+3].icon.rotation = that.list&&!that.list.vertical?180:-90;
 			}
 		}
 
@@ -25115,9 +25361,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.type = "Marquee";
 		this.speed = speed;
 
-		var mask = new Rectangle(width-1,height-1,clear).addTo(that).mov(marginLeft+.5, .5);
+		var mask = new zim.Rectangle(width-1,height-1,clear).addTo(that).mov(marginLeft+.5, .5);
 
-		var content = this.content = new Container(width, height)
+		var content = this.content = new zim.Container(width, height)
 			.loc(marginLeft,0,that)
 			.setMask(mask);
 		var pages = this.pages = new zim.Pages(null, transition, speed, null, content).addTo(content);
@@ -25208,13 +25454,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		// LEFT
 
 		var _paused = false;
-		var left = that.left = new Container(marginLeft-4,height-4);
+		var left = that.left = new zim.Container(marginLeft-4,height-4);
 
-		var pauseIcon = new Shape().sca(.6);
+		var pauseIcon = new zim.Shape().sca(.6);
 		pauseIcon.graphics.f(light).mt(0,0).p("AAhCLIAAkVIBXAAIAAEVgAh3CLIAAkVIBXAAIAAEVg");
-		var playIcon = new Shape().sca(.6).reg(-2,0);
+		var playIcon = new zim.Shape().sca(.6).reg(-2,0);
 		playIcon.graphics.f(light).mt(0,0).p("AiJieIETCeIkTCfg");
-		var pause = that.button = new Button({
+		var pause = that.button = new zim.Button({
 			label:"",
 			icon:pauseIcon,
 			toggleIcon:playIcon,
@@ -25242,7 +25488,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.indicator.dispose();
 				that.indicator.removeFrom();
 			}
-			if (!prop) prop = new Proportion(8,16,left.width+gutterLeft,left.width/2+gutterLeft,-1);
+			if (!prop) prop = new zim.Proportion(8,16,left.width+gutterLeft,left.width/2+gutterLeft,-1);
 			that.indicator = new zim.Indicator({
 				width:(pages.pages.length<=2?pages.pages.length:pages.pages.length-1)*(left.width-3),
 				height: prop.convert(pages.pages.length),
@@ -25287,7 +25533,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				zgo("https://zimjs.com/marquee", "_blank");
 			})
 
-			var lab = that.label = new Label({
+			var lab = that.label = new zim.Label({
 				text:"MARQUEE",
 				color:dark,
 				backgroundColor:lighter,
@@ -25358,16 +25604,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		if (!zot(borderColor)) {
-			var border = new Rectangle(width-1, height-1, zim.clear, borderColor, borderWidth).loc(mask,null,that);
+			var border = new zim.Rectangle(width-1, height-1, zim.clear, borderColor, borderWidth).loc(mask,null,that);
 			border.mouseEnabled = false;
 		}
 
 		if (style!==false) zimStyleTransforms(this, DS);
 		this.clone = function() {return that.cloneProps(new zim.Marquee(width, height, items, time, transition, speed, direction, marqueeType, borderColor, borderWidth, refresh, mix, style, this.group, inherit));}
 
-		this.dispose = function () {
+		this.dispose = function (a,b,disposing) {
 			if (that.interval) that.interval.clear();
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 
@@ -25819,10 +26065,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		this.resizeEvent = frame.on("resize", that.resize);
 		this.updateEvent = frame.on("update", that.resize);
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			frame.off("update", that.updateEvent);
 			frame.off("resize", that.resizeEvent);
-			document.body.removeChild(uploadTag);
+			if (uploadTag) document.body.removeChild(uploadTag);
+			uploadTag = null;
 			this.zimButton_dispose();
 			return true;
 		}
@@ -26139,11 +26386,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		this.resizeEvent = frame.on("resize", that.resize);
 		this.updateEvent = frame.on("update", that.resize);
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			frame.off("update", that.updateEvent);
 			frame.off("resize", that.resizeEvent);
-			document.body.removeChild(textareaTag);
-			this.zimContainer_dispose();
+			if (textareaTag) document.body.removeChild(textareaTag);
+			textareaTag = null;
+			if (!disposing) this.zimContainer_dispose(true);
 			return true;
 		}
 	}
@@ -26353,11 +26601,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		});
 		this.resizeEvent = frame.on("resize", that.resize);
 		this.updateEvent = frame.on("update", that.resize);
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			frame.off("update", that.updateEvent);
 			frame.off("resize", that.resizeEvent);
-			document.body.removeChild(tag);
-			this.zimContainer_dispose();
+			if (tag) document.body.removeChild(tag);
+			tag = null;
+			// if we are not coming from a container
+			// then call container's dispose
+			// let the container's dispose know
+			// that we have already disposed this custom dispose
+			// so it does not try and dispose it again
+			if (!disposing) this.zimContainer_dispose(true);
 			return true;
 		}
 	}
@@ -28417,7 +28671,7 @@ RETURNS obj for chaining
 	zim.noDrag = function(obj) {
 		z_d("32");
 		if (zot(obj) || !obj.on) return;
-		obj.cursor = "default";
+		obj.cursor = null; //"default";
 		zim.setSwipe(obj, true);
 		obj.off("added", obj.zimAdded);
 		obj.off("removed", obj.zimRemoved);
@@ -28460,6 +28714,71 @@ RETURNS obj for chaining
 		return obj;
 	}//-33
 	zim.dragRect = zim.dragBoundary; // backwards compatible
+
+/*--
+obj.mouse = function()
+
+mouse
+zim DisplayObject method
+
+DESCRIPTION
+Sets object's mouseChildren and mouseEnabled properties to true
+These are the defaults - used primarily to reverse ZIM noMouse()
+which can be used to turn off mouseChildren and mouseEnabled
+
+NOTE: just using mouse() does not add cursors or interactivity
+see cur(), hov(), drag(), transform(), gesture(), or various mouse events
+
+EXAMPLE
+var circle = new Circle().drag();
+timeout(1000, function () {
+	circle.noMouse(); // circle cannot not be dragged, etc.
+	timeout(1000, function () {
+		circle.mouse(); // circle can be dragged
+	});
+});
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+33.1
+	zim.mouse = function(obj) {
+		z_d("33.1");
+		obj.mouseChildren = true;
+		obj.mouseEnabled = true;
+		return obj;
+	}//-33.1
+
+/*--
+obj.noMouse = function()
+
+noMouse
+zim DisplayObject method
+
+DESCRIPTION
+Sets object's mouseChildren and mouseEnabled properties to false
+This can be used to save processing on complex objects that do not need interactivity
+
+NOTE: this will prevent interactivity for cur(), hov(), drag(), transform(), gesture()
+and any mouse events like mousedown, click, mouseover, etc.
+
+EXAMPLE
+var circle = new Circle().drag();
+timeout(1000, function () {
+	circle.noMouse(); // circle cannot not be dragged, etc.
+	timeout(1000, function () {
+		circle.mouse(); // circle can be dragged
+	});
+});
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+33.15
+	zim.noMouse = function(obj) {
+		z_d("33.15");
+		obj.mouseChildren = false;
+		obj.mouseEnabled = false;
+		return obj;
+	}//-33.15
 
 /*--
 obj.transform = function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden)
@@ -30720,9 +31039,9 @@ RETURNS a Boolean true if hitting, false if not
 			else point = a.globalToLocal(point.x*stage.scaleX,point.y*stage.scaleY);
 			if (a.hitTest(point.x, point.y)) return true;
 		}
-		var points = b.interpolate(num, null, true);
+		var points = b.interpolate(num, null, true, null, true);
 		if (showPoints) {
-			if (!b.hitPathPoints) b.hitPathPoints = new Container().addTo(stage);
+			if (!b.hitPathPoints) b.hitPathPoints = new zim.Container().addTo(stage);
 			else b.hitPathPoints.removeAllChildren();
 			b.hitPathPoints.top();
 			for (var i=0; i<points.length; i++) {
@@ -31016,6 +31335,19 @@ props - the object literal holding properties and values to animate
 			If the shape has lockControls set to false (the default) then the animation will be dynamic
 			and adjust as the shape is changed.
 			If a set animation path is desired then set the shape's lockControls to true
+			NOTE: Do not re-amimate an object that is being animated on a path
+			use a Container and animate the container on the path
+			and animate the object inside the container - otherwise percentComplete conflicts
+		startPercent - (default 0) set to a percent for where to start the target animating
+			ZIM Bead objects will be given a startPercent that matches their start percentage
+			currently not supported when dragging on path - it is very complicated
+		percent - (default 100) how much percent to animate from the startPercent
+			by default, the target will travel once along the path from its start position (startPercent)
+			this can be less than the startPercent to make animation travel backwards on the path
+			the percent can also be bigger than 100 as well as less than 0
+			so a percent:300 will travel three times along the path - and then rewind if rewind is set
+			and a percent of -150 will travel one and half times backwards along the path from the startPercent
+			currently not supported when dragging on path - it is very complicated
 		orient - an object with x and y to aim the target at
 			https://zimjs.com/nio/orient.html
 			when a path is used this will default to rotate to orient to path
@@ -31176,7 +31508,7 @@ clean - (default true) set to false to not delete animation ids etc. at end of a
 	Use the replayTween() method of the target to restart the latest animation on a target
 obj - (depreciated) the old version of props - kept for backwards compatibility
 seriesWait - (internal) used internally to hold setting relative values in correct series order
-sequenceWait - (internal) used internally to tie sqequence in to the animation chain for pauseAnimate and stopAnimate
+sequenceWait - (internal) used internally to tie sequence in to the animation chain for pauseAnimate and stopAnimate
 
 PROPERTIES - zim.animate() adds the following properties to any object it animates:
 	paused - read-only - when animating, paused is set to false
@@ -31227,10 +31559,33 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		obj = props;
 		if (zot(obj)) {if (zon) {zog("animate() - need props");}; return target;}
 
+		// added ZIM 10.7.0
+		if (target.type == "BeadsContainer") {
+			if (zot(sequence)) sequence = 0;
+		}
+
 		// zik supports passing array of options or an object with min, max, integer, negative properties and zik will pick or calculate a random value
-		time = zim.Pick.choose(time); ease = zim.Pick.choose(ease); wait = zim.Pick.choose(wait); loopCount = zim.Pick.choose(loopCount); loopWait = zim.Pick.choose(loopWait); rewind = zim.Pick.choose(rewind); rewindWait = zim.Pick.choose(rewindWait); sequenceReverse = zim.Pick.choose(sequenceReverse); from = zim.Pick.choose(from); set = zim.Pick.choose(set);
-		if (zot(rewindTime)) rewindTime = time;
-		else rewindTime = zim.Pick.choose(rewindTime);
+		if (!zot(sequence) && target.addChild) {
+			// do not process ZIM VEE until individual animates are called
+		} else {
+			time = zim.Pick.choose(time);
+			ease = zim.Pick.choose(ease);
+			wait = zim.Pick.choose(wait);
+			loopCount = zim.Pick.choose(loopCount);
+			loopWait = zim.Pick.choose(loopWait);
+			rewind = zim.Pick.choose(rewind);
+			rewindWait = zim.Pick.choose(rewindWait);
+			if (zot(rewindTime)) rewindTime = time;
+			else rewindTime = zim.Pick.choose(rewindTime);
+			sequenceReverse = zim.Pick.choose(sequenceReverse);
+			from = zim.Pick.choose(from);
+			set = zim.Pick.choose(set);
+			// when sequence recalls animate() some of have been put in cjsProps and not in main params like above
+			var zikTypes = ["loopCount","loopWait","rewind","rewindWait"];
+			for (var prop in cjsProps) {
+				if (zikTypes.indexOf(prop) >= 0) cjsProps[prop] = zim.Pick.choose(cjsProps[prop]);
+			}
+		}
 
 		// CJSPROPS
 		// convert loop and rewind properties into the legacy cjs props object
@@ -31303,9 +31658,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// SEQUENCE HANDLING
 		// handle multiple targets first if there is an array
 		// this just recalls the animate function for each element delayed by the sequence parameter
-		if (zot(sequence)) sequence = 0;
+		// if (zot(sequence)) sequence = 0;
 		var sequenceTarget;
-		if (sequence > 0 && target.addChild) { // container with sequence so convert target to array
+		if (!zot(sequence) && target.addChild) { // container with sequence so convert target to array
 			var newTarget = [];
 			for (var i=0; i<target.numChildren; i++) {
 				newTarget.push(target.getChildAt(i));
@@ -31313,6 +31668,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			sequenceTarget = target;
 			target = newTarget;
 		}
+
+		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
+		var extraTypes = ["extra", "zoom", "speed", "layer", "fade"];
+		var extraLookup = {zoom:target.type=="Pen"?"size":"scale", speed:"percentSpeed", layer:"layer", fade:"alpha"};
+
 		if (target instanceof Array) {
 			if (sequenceReverse) target.reverse();
 			var currentTarget = 0;
@@ -31323,19 +31683,21 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					var val;
 					tar.zimObj = {};
 					for (var prop in obj) {
-						val = zim.Pick.choose(obj[prop]);
+						if (extraTypes.indexOf(prop) >= 0) val = obj[prop];
+						else val = zim.Pick.choose(obj[prop]);
 						tar.zimObj[prop] = tar[prop];
 						tar[prop] = val;
 					}
 				} else {
 					tar.zimObj = {};
 					for (var prop in obj) {
-						tar.zimObj[prop] = zim.Pick.choose(obj[prop]);
+						if (extraTypes.indexOf(prop) >= 0) tar.zimObj[prop] = obj[prop];
+						else tar.zimObj[prop] = zim.Pick.choose(obj[prop]);
 					}
 				}
 				var seqTime = i*sequence;
-				if (i==0) seqTime = 20;
-				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, sequenceCall, sequenceParams, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime); // do not send from!
+				if (i==0) seqTime = 20; // this is causing a slight glitch sometimes with Beads in ZIM 10.7.0 where first one does not animate - if commented... first is out of sync
+				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, rewindTime, rewindEase, null, sequenceCall, sequenceParams, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime); // do not send from!
 
 				// -function () { // closure to store num (i) for timeout
 				// 	var num = i;
@@ -31437,7 +31799,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (zot(o.time)) o.time = t;
 					w += (o.wait?o.wait:0);
 					duration = o.time;
-					durationRewind = (zot(o.rewindTime)?o.rewindTime:duration);
+					durationRewind = (zot(o.rewindTime)?duration:o.rewindTime);
 					if (o.rewind) duration = duration + durationRewind + (o.rewindWait?o.rewindWait:0);
 					if (o.loop) {
 						// if loopCount is 0 (forever) then prepare series makes this the last animation
@@ -31667,7 +32029,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					var startPoint;
 					// if using traverse, a zimStartPercent is available
 					if (target.zimStartPercent) startPoint = target.zimPath.getCurvePoint(target.zimStartPercent/100)
-					else startPoint = target.zimPath.pointCircles[0]; // first point
+					else startPoint = target.zimPath.getCurvePoint(startPercent/100);
+					// target.zimPath.pointCircles[0]; // first point
 					target.loc(startPoint);
 				}
 				else setValue(target, o, target.zimTweenOriginals[o]);
@@ -31685,7 +32048,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			zim.animate.apply(null, startParams);
 			return target;
 		}
-
 
 		if (obj.path || dynamic) {
 			// can't risk turning percentComplete off when animation ends as only one per all animations
@@ -31728,6 +32090,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.setColorRange(target.color, color);
 			target.colorRange = 0;
 		}
+
+
 
 		// PROTECT LOOPS AND REWINDS WITH BUSY
 		// if protected or a loop or rewind is currently running for any of these properties
@@ -31785,8 +32149,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
-		var extraTypes = ["extra", "zoom", "speed", "layer", "fade"];
-		var extraLookup = {zoom:target.type=="Pen"?"size":"scale", speed:"percentSpeed", layer:"layer", fade:"alpha"};
 		for (var i in obj) {
 			if (extraTypes.indexOf(i) >= 0) continue; // skip for extras
 			obj[i] = zim.Pick.choose(obj[i]);
@@ -31797,6 +32159,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (i=="waitedCall" || i=="waitedParams" || i=="loopCall" || i=="rewindCall" || i=="loopWaitCall" || i=="rewindWaitCall") continue;
 			cjsProps[i] = zim.Pick.choose(cjsProps[i]);
 		}
+
 
 		// MOVED call to after wait in tween section
 		// prepareRelative();
@@ -31871,6 +32234,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			});
 		}
 
+
 		function setPercent(value, setAngle) {
 			target.zimTween.startPaused = false;
 			// if (!this.paused) this.pauseAnimate(true, id);
@@ -31887,8 +32251,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 			// STICK ON PATH BEFORE DRAG FIX
 			if (immediateCheck && typeof pathPercent != "undefined") pathPercent = value;
-
-			handlePath();
+			target.handlePath();
 		}
 
 		// PATH ANIMATION SETUP
@@ -31902,6 +32265,30 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				obj.startOrient = obj.rotation;
 			}
 			pathObject = obj.path;
+			// ZIM 10.7.0 ---
+			if (drag) {
+				delete obj.path;
+				delete obj.percent;
+				if (zon && (!zot(target.startPercent) || !zot(target.percent))) zog("ZIM.animate() - percentStart and percent currently not supported with drag on path");
+				// old code from 10.6.1 -
+				var newPoint = pathObject.getCurvePoint(target.pathRatio, percents, segments);
+				if (newPoint) {
+					latestSegmentIndex = newPoint.z; // point on path before the calculated point - used with drag
+					var locPoint = target.parent.globalToLocal(newPoint.x, newPoint.y);
+					target.x = locPoint.x;
+					target.y = locPoint.y;
+				}
+			} else {
+				if (zot(target.startPercent)) {
+					target.startPercent = zim.Pick.choose(!zot(obj.startPercent)?obj.startPercent:0);
+				}
+				if (zot(target.percent)) {
+					target.percent = zim.Pick.choose(!zot(obj.percent)?obj.percent:100);
+				}
+				delete obj.path;
+				delete obj.percent;
+			}
+			// ---
 			var dynamicPath = !pathObject.lockControls;
 			delete obj.path;
 			obj.pathRatio = 1; // this is what we are animating to
@@ -31950,13 +32337,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				segments = zim.copy(pathObject.segmentPoints);
 				percents = zim.copy(pathObject.segmentRatios);
 			}
-			var newPoint = pathObject.getCurvePoint(target.pathRatio, percents, segments);
+			var newPoint = pathObject.getCurvePoint(target.startPercent/100, percents, segments);
 
 			if (target.parent && newPoint) {
 				var locPoint = target.parent.globalToLocal(newPoint.x, newPoint.y);
 				target.x = locPoint.x;
 				target.y = locPoint.y;
 			}
+
 			// DRAG SETUP
 			// Fairly complex system - to implement damping on drag
 			// dragging can be done when animation is on or off
@@ -31974,22 +32362,22 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 				var pixels = 10;
 				var segments = copy(pathObject.segmentPoints);
-			    var length = 0;
-			    zim.loop(segments, function (point) {
-			        length+=distanceAlongCurve(point);
-			    });
-			    var numPoints = Math.round(length/segments.length/pixels);
-			    var testPoints = pathObject.interpolate(numPoints, null, true);
-			    var currentDist = (pathPercent?pathPercent:0)/100*length;
-			    var targetDist = currentDist;
+				var length = 0;
+				zim.loop(segments, function (point) {
+					length+=distanceAlongCurve(point);
+				});
+				var numPoints = Math.round(length/segments.length/pixels);
+				var testPoints = pathObject.interpolate(numPoints, null, true, null, true);
+				var currentDist = (pathPercent?pathPercent:0)/100*length;
+				var targetDist = currentDist;
 				var dirTest = 0;
-			    pathObject.zimAnimateChanged = false;
-			    var segmentRatios = zim.copy(pathObject.segmentRatios);
+				pathObject.zimAnimateChanged = false;
+				var segmentRatios = zim.copy(pathObject.segmentRatios);
 				target.zimAnimatePathChange = pathObject.on("change", function() {pathObject.zimAnimateChanged = true;});
 
 				// 10.6.0 patch to turn move target along path if not animating
 				target.zimAnimatePathDown = pathObject.on("mousedown", function() {if (target.paused==true) mouseCheck = true;});
-			    target.zimAnimatePathUp = pathObject.on("pressup", function() {mouseCheck = false;});
+				target.zimAnimatePathUp = pathObject.on("pressup", function() {mouseCheck = false;});
 
 				target.zimAnimateDragDown = target.on("mousedown", function (e) {
 					stage = e.target.stage;
@@ -32002,17 +32390,17 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					mouseCheck = true;
 
 					if (pathObject.zimAnimateChanged) {
-			            segments = zim.copy(pathObject.segmentPoints);
-			            length = 0;
-			            zim.loop(segments, function (point) {
-			                length+=distanceAlongCurve(point);
-			            });
+						segments = zim.copy(pathObject.segmentPoints);
+						length = 0;
+						zim.loop(segments, function (point) {
+							length+=distanceAlongCurve(point);
+						});
 						numPoints = Math.round(length/segments.length/pixels);
-			            testPoints = pathObject.interpolate(numPoints, null, true);
-			            segmentRatios = zim.copy(pathObject.segmentRatios);
-			        }
+						testPoints = pathObject.interpolate(numPoints, null, true, null, true);
+						segmentRatios = zim.copy(pathObject.segmentRatios);
+					}
 
-			        pathObject.zimAnimateChanged = false;
+					pathObject.zimAnimateChanged = false;
 					pathPercent = target.percentComplete;
 					dampPercent.immediate(pathPercent);
 					var calcPercent = dirTest = pathPercent;
@@ -32044,14 +32432,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						}
 					}
 					// thanks https://codepen.io/eliCrow/pen/MLdddR
-				    var dPoint = {x:point.x, y:point.y, r:mousePlace};
-			        testPoints.sort(function (a, b) {
-			          var aPoint = {x:a.x, y:a.y, r:a.r*length};
-			          var bPoint = {x:b.x, y:b.y, r:b.r*length};
-			          var aDiff = Math.sqrt(Math.pow(dPoint.x-aPoint.x, 2)+Math.pow(dPoint.y-aPoint.y, 2)+Math.pow(dPoint.r-aPoint.r, 2));
+					var dPoint = {x:point.x, y:point.y, r:mousePlace};
+					testPoints.sort(function (a, b) {
+					  var aPoint = {x:a.x, y:a.y, r:a.r*length};
+					  var bPoint = {x:b.x, y:b.y, r:b.r*length};
+					  var aDiff = Math.sqrt(Math.pow(dPoint.x-aPoint.x, 2)+Math.pow(dPoint.y-aPoint.y, 2)+Math.pow(dPoint.r-aPoint.r, 2));
 					  var bDiff = Math.sqrt(Math.pow(dPoint.x-bPoint.x, 2)+Math.pow(dPoint.y-bPoint.y, 2)+Math.pow(dPoint.r-bPoint.r, 2));
 					  return aDiff-bDiff;
-			        })
+					})
 					targetDist = testPoints[0].r*length;
 					pathPercent = targetDist/length*100;
 					pathPercent = constrain(pathPercent,0,99.95); // get rid of end glitch
@@ -32136,6 +32524,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 
+
 		// ORIENTATION SETUP
 		var pathOrient;
 		if (obj.orient) {
@@ -32195,6 +32584,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		var wait3 = 0;
 		if (cjsProps.loopWait) {
 			wait3 = cjsProps.loopWait;
+			loopWait = cjsProps.loopWait; // for dynamic
 			delete cjsProps.loopWait;
 		}
 		var call3;
@@ -32246,6 +32636,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 			var wait2 = 0;
 			delete cjsProps.rewind;
+
+			// if need to access it later in dynamic
+			rewind = true;
+			rewindWait = cjsProps.rewindWait;
+
 			if (cjsProps.rewindWait) {
 				wait2 = cjsProps.rewindWait;
 				delete cjsProps.rewindWait; // not a createjs prop so delete
@@ -32283,6 +32678,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						// 	if (sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(zot(sequenceParams)?target:sequenceParams);}
 						// })
 						.call(function(){
+							sequenceWait = seriesWait = 0;
 							preTween1(tween);
 						});
 				} else {
@@ -32296,6 +32692,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				prepareRelative();
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
+					wait = 0;
 					tween1(tween);
 				});
 				if (lastTween) transferIds(lastTween, tween);
@@ -32317,8 +32714,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 
 		} else {  // not rewinding
-
 			if (seriesWait > 0 || sequenceWait > 0 || wait > 0) { // do not want wait as part of future loops (use loopWait)
+
 				if (seriesWait > 0 || sequenceWait > 0) {
 					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override})
 						.wait(seriesWait>0?seriesWait:0, true)
@@ -32327,6 +32724,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						// 	if (sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(zot(sequenceParams)?target:sequenceParams);}
 						// })
 						.call(function(){
+							sequenceWait = seriesWait = 0;
 							preTween2(tween);
 						});
 				} else {
@@ -32339,6 +32737,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			function preTween2(lastTween) {
 				prepareRelative();
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
+					wait = 0;
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
 					tween2(tween);
 				});
@@ -32406,7 +32805,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		var forwardStack = [1,1,1];
 
-		function handlePath() {
+		var handlePath = function () {
 			if (!target.parent || tween.passive || tween.startPaused) return;
 			if (drag && rewind && ((lastPathPercent < 50 && target.percentComplete > 50) || (lastPathPercent > 50 && target.percentComplete < 50))) {
 				lastForward = target.percentComplete<50;
@@ -32417,7 +32816,15 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					segments = pathObject.segmentPoints;
 					percents = pathObject.segmentRatios;
 				}
-				var newPoint = pathObject.getCurvePoint(target.pathRatio, percents, segments);
+
+				if (drag) {
+					var newPoint = pathObject.getCurvePoint(target.pathRatio, percents, segments);
+				} else {
+					startPercent = target.startPercent + 1000000;
+					target.currentPercent = startPercent + target.percent*target.pathRatio;
+					var newPoint = pathObject.getCurvePoint(((1000000+target.currentPercent)%100)/100, percents, segments);
+				}
+
 				if (newPoint) {
 					latestSegmentIndex = newPoint.z; // point on path before the calculated point - used with drag
 					var locPoint = target.parent.globalToLocal(newPoint.x, newPoint.y);
@@ -32469,6 +32876,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			lastX = target.x;
 			lastY = target.y;
 		}
+		// there is only one percentComplete on a target
+		// this will overwrite the handlePath function used by that percentComplete
+		// so that the proper drag scope is used - complex - fixed in 10.6.1
+		// will not be able to animate properly after a drag - use containers
+		if (pathObject) target.handlePath = handlePath;
+
 
 		// SET MASK TO DYNAMIC
 		if (!zot(target.zimMaskDynamic)) target.zimMaskApply(); // set mask set by zimMask to dynamic
@@ -32660,7 +33073,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// METHODS ADDED TO TARGET
 		if (!target.stopAnimate || !target.stopAnimate.real) { // empty method gets added by default
-	        target.stopAnimate = function(ids, include, command, internal) {
+			target.stopAnimate = function(ids, include, command, internal) {
 				// can't risk turning percentComplete off as only one per all animations
 				// instead, evaluate how percentComplete is set when starting an animation
 				// if there is no getter setter or a value has been changed when not tweening
@@ -32673,14 +33086,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (command && drag) {
 					if (pathObject) pathObject.off("change", target.zimAnimatePathChange);
 					target.off("mousedown", target.zimAnimateDragDown);
-		            target.off("pressmove", target.zimAnimateDragPress);
-		            target.off("pressup", target.zimAnimateDragUp);
-		            zim.Ticker.remove(target.zimDragAnimateTicker);
+					target.off("pressmove", target.zimAnimateDragPress);
+					target.off("pressup", target.zimAnimateDragUp);
+					zim.Ticker.remove(target.zimDragAnimateTicker);
 				}
 				if (zot(ids)) {
 					if (!include) return target; // would be exclude all ids
 					target.zimBusy = null; // clear any busy properties
-		            createjs.Tween.removeTweens(target);
+					createjs.Tween.removeTweens(target);
 					for (var id in target.zimTweens) {endTicker(id);}
 					target.zimTweens = null;
 					target.zimIdSets = null;
@@ -32703,9 +33116,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 				}
 				return target;
-	        }
+			}
 			target.stopAnimate.real = true; // record this as real method instead of empty method
-	        target.pauseAnimate = function(paused, ids, include, ignoreDynamic) {
+			target.pauseAnimate = function(paused, ids, include, ignoreDynamic) {
 				if (target.type == "Pen") {
 					if (paused === false) {
 						if (target.zimOnPath) target.infinite = true;
@@ -32717,7 +33130,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					target.pause(paused, ids);
 					return target;
 				}
-	            if (zot(paused)) paused = true;
+				if (zot(paused)) paused = true;
 				mouseCheck = false;
 				target.paused = paused;
 				if (zot(include)) include = true;
@@ -32734,7 +33147,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 				}
 				return target;
-	        }
+			}
 		}
 
 		// start NIO updates 2
@@ -32797,9 +33210,18 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					return function () {
 						var newValue;
 						var eTarget = eO.outputObj;
-						if (eO.constrain) newValue = zim.constrain(eP.convert(eO.inputObj[eO.inputProp]), eO.outputMin, eO.outputMax);
-						else newValue = eP.convert(eO.inputObj[eO.inputProp]);
-						// various conveneince properties and exceptions
+						// adjusted for local to global ZIM 10.7.0
+						var iV = eO.inputObj[eO.inputProp];
+						if (eO.inputProp == "x" || eO.inputProp == "y") {
+							var ppp = eO.inputObj.parent.localToGlobal(iV,iV);
+							iV = ppp[eO.inputProp];
+						}
+						if (eO.constrain) newValue = zim.constrain(eP.convert(iV), eO.outputMin, eO.outputMax);
+						else newValue = eP.convert(iV);
+
+						// if (eO.constrain) newValue = zim.constrain(eP.convert(eO.inputObj[eO.inputProp]), eO.outputMin, eO.outputMax);
+						// else newValue = eP.convert(eO.inputObj[eO.inputProp]);
+						// various convenience properties and exceptions
 						if (eO.outputProp == "scale") {
 							eTarget.scaleX = zim.sign(eTarget.scaleX)*newValue;
 							eTarget.scaleY = zim.sign(eTarget.scaleY)*newValue;
@@ -32811,6 +33233,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							if (!eTarget.parent) return;
 							var newLayer = zim.constrain(Math.round(newValue),0,eTarget.parent.numChildren-1);
 							if (newLayer != eTarget.parent.getChildIndex(eTarget)) eTarget.parent.setChildIndex(eTarget, newLayer);
+						} else if (eO.outputProp == "percentSpeed") {
+							eTarget[eO.outputProp] = newValue*100;
 						} else {
 							eTarget[eO.outputProp] = newValue;
 						}
@@ -32820,55 +33244,56 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				tween.extraTickers.push(zim.Ticker.add(func, stage));
 			}
 		}
-
 		// DYNAMIC ANIMATION
 		var usingDynamic;
 		var requestID;
 		if (dynamic || target.zimAnimateDragDown) {
+			var dynamicObj = {};
 			if (dynamic) {
 				usingDynamic = true;
 				target.pauseAnimate(true, id, null, true); // last true overrides dynamic check
 				target.paused = false;
-			    tween.currentTime = 0;
-			    var myTween = tween;
+				tween.currentTime = 0;
+				var myTween = tween;
 				if (zot(target.percentSpeed)) target.percentSpeed = tween.startPaused?0:100;
-			    var baseSpeed = 1000/60;
-			    tween.currentTime = 0;
-			    var setToMiddle = (!wait && zot(loopCount) && loop);
-				if (clamp && loop && zot(loopCount)) clamp = false;
-				var calculatedDuration = time + (rewind?time:0) + (rewindWait?rewindWait:0) + (loopWait?loopWait:0);
+				var baseSpeed = 1000/60;
+				tween.currentTime = 0;
+				var setToMiddle = (!sequenceWait && !seriesWait && !wait && !count && cjsProps.loop);
+				if (clamp && cjsProps.loop && !count) clamp = false;
+				var calculatedDuration = time + (rewind?(rewindTime?rewindTime:time):0) + (rewindWait?rewindWait:0) + (loopWait?loopWait:0);
 				var clampMultiplier = 1;
-				if (loop && loopCount) clampMultiplier = loopCount;
+				if (cjsProps.loop && count) clampMultiplier = count;
 				var clampEnd;
 				if (clamp) clampEnd = calculatedDuration*clampMultiplier;
-
-			    function advanceTween() {
+				function advanceTween() {
 					tween.requestID = requestID = requestAnimationFrame(advanceTween);
+					// zog(dynamic)
 					if (!dynamic || (tween.startPaused && target.percentSpeed==0)) return;
 					tween.startPaused = false;
-
-			        if (wait>0 && tween != myTween) {
-			            wait = 0;
-			            tween.currentTime = 0;
-			            target.pauseAnimate(true, id);
+					if (tween != myTween) {
+						myTween = tween;
+						tween.currentTime = 0;
+						target.pauseAnimate(true, id, null, true);
 						target.paused = false;
-			            setToMiddle = (zot(loopCount) && loop);
-			        }
-			        if (setToMiddle) {
-			            tween.currentTime += 10000 * calculatedDuration;
-			            tween.setPosition(tween.currentTime, true);
-			            setToMiddle = false;
-			        }
+						setToMiddle = (!sequenceWait && !seriesWait && !wait && !count && cjsProps.loop);
+					}
+					if (setToMiddle) {
+						tween.currentTime += 10000 * calculatedDuration;
+						tween.setPosition(tween.currentTime, true);
+						setToMiddle = false;
+					}
+
 					var newTime = tween.currentTime+baseSpeed*target.percentSpeed/100;
 					if (clampEnd && wait==0) newTime = zim.constrain(newTime, 0, clampEnd);
 					tween.currentTime = newTime;
 
-			        tween.setPosition(tween.currentTime);
+					tween.setPosition(tween.currentTime);
 					if (pathObject || pathOrient || pathFlip || pathFlipVertical) {handlePath()};
-			        stage.update();
-			    }
-			    advanceTween();
+					stage.update();
+				}
+				advanceTween();
 			}
+
 
 			var lastSpeed;
 			var pausing = false;
@@ -33731,7 +34156,7 @@ RETURNS cloned object with cloned custom properties
 		z_d("45.6");
 		var d = obj.clone();
 		for (var prop in obj) {
-			if (obj.hasOwnProperty(prop) && d["prop"]==null) {
+			if (obj.hasOwnProperty(prop) && d[prop]==null) {
 				d[prop] = obj[prop];
 			}
 		}
@@ -33938,7 +34363,7 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 	}//-50.1
 
 /*--
-obj.outline = function(color, size)
+obj.outline = function(color, size, boundsOnly)
 
 outline
 zim DisplayObject method
@@ -33988,6 +34413,7 @@ END EXAMPLE
 PARAMETERS supports DUO - parameters or single object with properties below
 color - (default brown) the color of the outline
 size - (default 2) the stroke size of the outline
+boundsOnly - (default false) set to true to see only rectangle bounds
 
 PROPERTIES
 adds a ZIMoutlineShape and ZIMoutlineShapeC to object
@@ -34001,8 +34427,8 @@ adds an outlineToggle(state) method to the object that toggles the outline when 
 
 RETURNS the obj for chaining;
 --*///+47
-	zim.outline = function(obj, color, size) {
-		var sig = "obj, color, size";
+	zim.outline = function(obj, color, size, boundsOnly) {
+		var sig = "obj, color, size, boundsOnly";
 		var duo; if (duo = zob(zim.outline, arguments, sig)) return duo;
 		z_d("47");
 		if (obj.type && obj.type == "zimOultineShape") {
@@ -34061,22 +34487,25 @@ RETURNS the obj for chaining;
 		// subtract a scaled top left bounds from the top left point
 		// zero = {x:pTL.x-oB.x*obj.scaleX, y:pTL.y-oB.y*obj.scaleY};
 
-		// cross at 0 0
-		var s = 10;
-		var ss = s+1;
-		gC.s("white").ss(size+2);
-		gC.mt(-ss, 0).lt(ss, 0);
-		gC.mt(0, -ss).lt(0, ss);
-		gC.s(color).ss(size);
-		gC.mt(-s, 0).lt(s, 0);
-		gC.mt(0, -s).lt(0, s);
-		shapeC.x = pC.x;
-		shapeC.y = pC.y;
-		shapeC.rotation = obj.rotation;
+		if (!boundsOnly) {
+			// cross at 0 0
+			var s = 10;
+			var ss = s+1;
+			gC.s("white").ss(size+2);
+			gC.mt(-ss, 0).lt(ss, 0);
+			gC.mt(0, -ss).lt(0, ss);
+			gC.s(color).ss(size);
+			gC.mt(-s, 0).lt(s, 0);
+			gC.mt(0, -s).lt(0, s);
+			gC.cp();
+			shapeC.x = pC.x;
+			shapeC.y = pC.y;
+			shapeC.rotation = obj.rotation;
 
-		// circle at registration point
-		g.s("white").ss(size+2).dc(obj.x,obj.y,s+6);
-		g.s(color).ss(size).dc(obj.x,obj.y,s+6);
+			// circle at registration point
+			g.s("white").ss(size+2).dc(obj.x,obj.y,s+6);
+			g.s(color).ss(size).dc(obj.x,obj.y,s+6);
+		}
 
 		obj.parent.removeChild(shape);
 		obj.parent.removeChild(shapeC);
@@ -34287,7 +34716,7 @@ zim.getStyle = function(type, group, inherit) {
 }
 
 // sets x, y, alpha, rotation, scale, scaleX, scaleY, regX, regY, skewX, skewY, bounds, visible
-// also sets addTo, center, centerReg, transform, drag, gesture, animate, wiggle, and outline (used internally)
+// also sets addTo, center, centerReg, transform, drag, gesture, animate, wiggle, expand, and outline (used internally)
 var zimTransformList = ["visible","x","y","scale","scaleX","scaleY","rotation","alpha","skewX","skewY","regX","regY"];
 var zimStyleTransforms = function(obj, styles) {
 	if (styles) {
@@ -35333,9 +35762,9 @@ you can define multiple pages objects add and remove pages objects as needed
 
 		if (style!==false) zimStyleTransforms(this, DS);
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			that.swipe.off("swipe", swipeEvent);
-			this.zimContainer_dispose();
+			if (!disposing) this.zimContainer_dispose(true);;
 			return true;
 		}
 
@@ -35531,7 +35960,7 @@ the class creates HotSpot objects - see the class underneath this one
 			}
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			for (var i=0; i<hotSpots.length; i++) {
 				hs = hotSpots[i];
 				if (hs.button) {
@@ -35659,7 +36088,7 @@ The default is "mousedown" - if set to something else the component will act on 
 		this.hide = function() {
 			obj.removeChild(backing);
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (butEvent) but.off(eventType, butOverEvent);
 			if (butOverEvent) but.off("mouseover", butOverEvent);
 			if (butOutEvent) but.off("mouseout", butOutEvent);
@@ -35961,7 +36390,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 
 		if (style!==false) zimStyleTransforms(this, DS);
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (!that) return false;
 			zim.noDrag(line);
 			clearInterval(addedInterval);
@@ -36296,7 +36725,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 
 		if (style!==false) zimStyleTransforms(this, DS);
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			clearInterval(addedInterval);
 			that.removeAllChildren();
 			window.removeEventListener("keydown", keyEvent);
@@ -36622,7 +37051,7 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 				j=Math.floor(i/that.cols);
 				k=i%that.cols;
 				if (zot(objects[j])) objects[j] = [];
-				if (zot(that.items[i])) that.items[i] = new Container(0,0,0,0);
+				if (zot(that.items[i])) that.items[i] = new zim.Container(0,0,0,0);
 				objects[j][k] = that.items[i];
 			}
 			that.rows = Math.max(1, objects.length);
@@ -36929,6 +37358,226 @@ alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
 	}
 	zim.extend(zim.Tile, zim.Container, "clone", "zimContainer", false);
 	//-66.5
+
+
+/*--
+zim.Beads = function(path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit)
+
+Beads
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+
+Beads adds objects around a Squiggle or Blob path.
+Different objects can be specified with ZIM VEE (Pick) values
+to put random or sequenced objects around path.
+The objects should have center registration for the most part.
+Although animating, wiggling or customizing the registration can be cool.
+The count of the object and the start and end percents can be specified
+
+Beads can be used to make dotted borders or bead-like art.
+The path can be any Squiggle or Blob - see https://zimjs.com/nio/paths.html for example
+The beads property holds the beads and can be animated in sequence
+
+See https://zimjs.com/ten/beads.html for a mini-site of examples
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+new Beads({
+	path:new Blob({points:"rectangle"}),
+	obj:new Circle(5, series(red, blue)),
+	visible:false,
+	count:52
+}).center();
+END EXAMPLE
+
+EXAMPLE
+var sun = new Beads({
+	path:new Blob({color:yellow}), //.radialGradient([yellow,orange],[.2,.8],0,0,0, 0,0,100),
+	obj:new Triangle(60, 60, 60, series(orange,yellow,red)).reg(null, 60),
+	interactive:false,
+	count:9
+}).center().drag({all:true});
+
+// here we animate the beads property of Beads - which holds only the beads (not the path)
+// sequence is automatically set to 0 to animate each bead individually
+// to animate all the beads, animate on the main beads object
+// You can still set a sequence to a value to run a sequence
+sun.beads.animate({
+	props:{scaleY:1.7},
+	time:{min:1500, max:2000},
+	rewind:true,
+	loop:true,
+	// sequence:200
+});
+END EXAMPLE
+
+path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+   Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+path - (default new Blob({borderColor:blue})) a ZIM Squiggle or Blob on which to place the objects
+obj - |ZIM VEE| the display object to place along the path - or use [] or series() for alternatives - also, see clone()
+count - (default 10) the number of objects to place
+angle - (default null) set to a specific angle such as 0 to keep all objects upright
+	the default of null will align the objects normal (out from) the curve (at 90 degrees from the tangent at its placement point)
+startPercent - (default 0) a start percent around the path starting from the first point of the Blob or Squiggle
+endPercent - (default 100 or 100-spacing for Blob) an end percent for the last object
+	can be smaller than startPercent to wrap around past 100
+percents - (default null) an array of percent spacings to override default evenly spaced percents (also see percents property)
+onTop - (default false) set to true to let the blob or squiggle come to the top of the bead object when manipulated
+showControls - (default false) set to true to start off with the controls showing (also see interactive)
+visible - (default true) set to false to not see the Blob or Squiggle path
+interactive - (default true) set to false to not interact with the Blob or Squiggle path
+clone - (default true) set to false to prevent Beads from cloning objects - good for series if events or custom properties are placed on each object
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+resize() - call resize if programatically changing the Squiggle or Blob path
+	this will be done automatically when using path controls
+hasProp(property as String) - returns true if property exists on object else returns false
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes listeners and deletes object
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: See the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+path - the Squiggle or Blob path on which the bead objects are placed
+beads - a ZIM Container holding all the bead objects - this has a type of "BeadContainer"
+	this can be looped through for hitTests, etc
+	or can be animated and will automatically have a sequence of 0ms set
+	other sequence values can be set to animate beads in sequence
+	Each bead has the following properties added:
+		beadNum - the index number of the bead when created
+items - an array of the bead items for convenience - also see the beads property
+count - get the number of beads
+percents - get the array of percent spacings - see also percents parameter
+** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
+width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
+	use resize(width, height) for resetting the width of the Tile without rescaling
+height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
+	use resize(width, height) for resetting the height of the Tile without rescaling
+widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
+heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+group - used when the object is made to add STYLE with the group selector (like a CSS class)
+
+ALSO: See the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+--*///+66.7
+	zim.Beads = function(path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit) {
+		var sig = "path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit";
+		var duo; if (duo = zob(zim.Beads, arguments, sig, this)) return duo;
+		z_d("66.7");
+		this.zimContainer_constructor(null,null,null,null,false);
+		this.type = "Beads";
+
+		this.group = group;
+	    var DS = style===false?{}:zim.getStyle(this.type, this.group, inherit);
+		if (zot(onTop)) onTop = DS.onTop!=null?DS.onTop:false;
+		if (zot(showControls)) showControls = DS.showControls!=null?DS.showControls:false;
+		if (zot(visible)) visible = DS.visible!=null?DS.visible:true;
+		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:true;
+		if (zot(path)) path = DS.path!=null?DS.path:new zim.Blob({
+			color:null,
+			borderWidth:3,
+			borderColor:blue
+		});
+		path.visible = visible;
+		path.toggle(showControls);
+		path.interactive = interactive;
+		path.onTop = onTop;
+
+		if (zot(obj)) obj = DS.obj!=null?DS.obj:new zim.Circle(10);
+		if (zot(count)) count = DS.count!=null?DS.count:10;
+		if (zot(angle)) angle = DS.angle!=null?DS.angle:null;
+		if (zot(startPercent)) startPercent = DS.startPercent!=null?DS.startPercent:0;
+		if (zot(endPercent)) endPercent = DS.endPercent!=null?DS.endPercent:100;
+		if (zot(percents)) percents = DS.percents!=null?DS.percents:null;
+		var projectedEndPercent = endPercent;
+		if (endPercent < startPercent) projectedEndPercent = 100+endPercent;
+		if (zot(percents)) {
+			var percent;
+			if (path.type == "Squiggle") {
+				percent = (projectedEndPercent-startPercent) / (count-1);
+			} else {
+				percent = (projectedEndPercent-startPercent) / (count-(startPercent!=projectedEndPercent%100?1:0));
+			}
+			percents = [];
+			var lastPercent = startPercent-percent;
+			for (var i=0; i<count; i++) {
+				percents.push(lastPercent+percent);
+				lastPercent += percent;
+				if (lastPercent > 100) lastPercent -= 100;
+			}
+		}
+		if (zot(clone)) clone = DS.clone!=null?DS.clone:true;
+		var that = this;
+		that.count = count;
+		that.percents = percents;
+
+		// ~~~~~~~~~~~~~~~~~~~  GET ARRAY OF ITEMS  ~~~~~~~~~~~~~~~
+		// this list could be edited later and passed back into remake()
+		// so need to separate this part from the rest
+		// also, need to record what was made with zik so resize does not change items
+		that.items = [];
+		var item;
+		for (var i=0; i<count; i++) {
+			item = zim.Pick.choose(obj);
+			if (clone) {
+				if (i!=0) item = item.clone();
+			}
+			item.beadNum = i;
+			item.startPercent = percents[i];
+			that.items.push(item);
+		}
+
+		that.path = path.addTo(that);
+		that.beads = new zim.Container().addTo(that, onTop?0:null);
+		that.beads.type = "BeadsContainer";
+
+		this.resize = function() {
+			var segmentRatios = path.segmentRatios;
+			var segmentPoints = path.segmentPoints;
+			for (var i=0; i<that.count; i++) {
+				var point = path.getCurvePoint(Math.max(0, Math.min(.9999, percents[i]/100)), segmentRatios, segmentPoints, true);
+
+				if (!point) continue;
+				var locPoint = that.beads.globalToLocal(point.x, point.y);
+				if (!locPoint) continue;
+				that.items[i]
+					.loc(locPoint, null, that.beads)
+					.rot((zot(angle)?(point.angle>180?(point.angle-360):point.angle):angle)+that.items[i].rotation);
+			}
+			return this;
+		}
+		that.resize();
+		if (interactive) {
+			path.on("pressmove", that.resize);
+			path.on("update", that.resize);
+		}
+
+		if (style!==false) zimStyleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
+
+		this.clone = function(exact) {
+			return that.cloneProps(new zim.Beads(path.clone(), exact?series(that.items):obj, that.count, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, this.style, this.group));
+		}
+	}
+	zim.extend(zim.Beads, zim.Container, "clone", "zimContainer", false);
+	//-66.7
 
 /*--
 zim.Layout = function(holder, regions, lastMargin, backgroundColor, vertical, regionShape, scalingObject, hideKey, style, group, inherit)
@@ -37421,7 +38070,7 @@ will fill up the rest of the height until they reach their maximum widths
 
 		if (style!==false) zimStyleTransforms(this, DS);
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			// does not really dispose in case a resize is needed
 			// it has no events aside from the keydown
 			// which gets removed when we removeShape below
@@ -37649,6 +38298,7 @@ Dispatches a "change" event when the screen reader is about to talk
 		var firstDelay = 100; // ms to let component changes take place for mobile
 		var secondDelay = 150;
 		var lastAriaTag;
+		var lastMadeTag;
 		Object.defineProperty(this, 'tabOrder', {
 			get: function() {
 				return _tabOrder;
@@ -37673,7 +38323,7 @@ Dispatches a "change" event when the screen reader is about to talk
 				tabEvents = [];
 				_tabOrder = [];
 				var finalTabs = [];
-				var lastMadeTag = frame.canvas;
+				lastMadeTag = frame.canvas;
 
 				var subtotal = 0;
 				for (var i=0; i<array.length; i++) {
@@ -37778,6 +38428,38 @@ Dispatches a "change" event when the screen reader is about to talk
 			}
 		});
 
+		function removeOuterTags() {
+			if (prefixTab) {
+				prefixTab.removeEventListener("focus", clearAlert);
+				prefixTab.removeEventListener("focus", removeAriaEvent);
+				prefixTab.outerHTML = "";
+			}
+			if (noAriaTabPrefix) {
+				noAriaTabPrefix.removeEventListener("focus", ariaFalseEvent);
+				noAriaTabPrefix.outerHTML = "";
+			}
+			if (noAriaTabPrefix2) {
+				noAriaTabPrefix2.removeEventListener("focus", ariaFalseEvent);
+				noAriaTabPrefix2.outerHTML = "";
+			}
+			if (lastMadeTag) {
+				lastMadeTag.outerHTML = "";
+			}
+			if (suffixTab) {
+				suffixTab.removeEventListener("focus", clearAlert);
+				suffixTab.removeEventListener("focus", removeAriaEvent);
+				suffixTab.outerHTML = "";
+			}
+			if (noAriaTabSuffix) {
+				noAriaTabSuffix.removeEventListener("focus", ariaFalseEvent);
+				noAriaTabSuffix.outerHTML = "";
+			}
+			if (noAriaTabSuffix2) {
+				noAriaTabSuffix2.removeEventListener("focus", ariaFalseEvent);
+				noAriaTabSuffix2.outerHTML = "";
+			}
+		}
+
 
 		Object.defineProperty(this, 'tabIndex', {
 			get: function() {
@@ -37821,11 +38503,11 @@ Dispatches a "change" event when the screen reader is about to talk
 								var g = alwaysHighlightShape.graphics;
 								g.clear();
 								g.s(that.AHColor).ss(that.AHBorderWidth)
-									.mt(pTL.x, pTL.y)
-									.lt(pTR.x, pTR.y)
-									.lt(pBR.x, pBR.y)
-									.lt(pBL.x, pBL.y)
-									.lt(pTL.x, pTL.y)
+									.mt(pTL.x-that.AHBorderPadding, pTL.y-that.AHBorderPadding)
+									.lt(pTR.x+that.AHBorderPadding, pTR.y-that.AHBorderPadding)
+									.lt(pBR.x+that.AHBorderPadding, pBR.y+that.AHBorderPadding)
+									.lt(pBL.x-that.AHBorderPadding, pBL.y+that.AHBorderPadding)
+									.lt(pTL.x-that.AHBorderPadding, pTL.y-that.AHBorderPadding)
 									.cp();
 								alwaysHighlightShape.alpha = that.AHAlpha;
 								if (that.AHTime > 0) tabTimeout = setTimeout(function(){frame.stage.removeChild(alwaysHighlightShape); frame.stage.update();}, that.AHTime);
@@ -38411,10 +39093,12 @@ Dispatches a "change" event when the screen reader is about to talk
 			}
 		});
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (alwaysHighlightShape) alwaysHighlightShape.graphics.clear()
 			that.tabOrder = [];
 			for (var i=0; i<tabTags.length; i++) if (tabTags[i].parentElement) tabTags[i].outerHTML = "";
+			// remove the invisible tags...
+			removeOuterTags();
 			that.removeAllEventListeners();
 			frame.off("keydown", tabFrameEvent);
 		}
@@ -38467,7 +39151,7 @@ and in future perhaps OutlineManager
 				else that.items[i].toggle(state);
 			}
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			for (var i=that.items.length-1; i>=0; i--) {
 				that.items[i].dispose();
 			}
@@ -38879,7 +39563,7 @@ Dispatches a "persistcomplete" event when all persist data has been set + 100ms 
 		}
 		if (!zot(persistID)) that.persist(persistID);
 
-		this.dispose = function(removePersist, removeControls) {
+		this.dispose = function(removePersist, removeControls, disposing) {
 			if (zot(removePersist)) removePersist = true;
 			that.removeAllEventListeners();
 			if (that.persistID && removePersist) that.stopPersist();
@@ -39088,7 +39772,7 @@ items - an array of all Layout objects added with add()
 			}
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			for (var i=0; i<that.items.length; i++) {
 				that.items[i].removeShape(); // also removes key events
 			}
@@ -39219,7 +39903,7 @@ items - an array of all Layout objects added with add()
 			if (this.isSelected(item)) this.remove(item, multiple, match, unmatch);
 			else this.add(item, multiple, match, unmatch);
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			this.clear();
 			this.selections = null;
 			return true;
@@ -39772,7 +40456,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 			that.target.swiperTicker = zim.Ticker.add(that.target.swiperTicker, stage);
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			disable();
 			swiperDamp = null;
 		}
@@ -40516,7 +41200,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			zim.Ticker.remove(mainTicker);
 
 		}
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			disable();
 			if (gamepad) gamepad.dispose();
 			if (swiperX) swiperX.dispose();
@@ -40677,7 +41361,7 @@ dispatches a "data" event with axes and buttons array properties
 				that.dispatchEvent("gamepaddisconnected");
 			}
 		});
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			window.removeEventListener("gamepadconnected", init);
 			window.addEventListener("gamepaddisconnected", disconnectEvent);
 			cancelAnimationFrame(processPad);
@@ -40847,7 +41531,7 @@ dispatches an enter event on mouseover of the portal and an exit event on mouseo
 			}
 		});
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 
 		}
 	}
@@ -41500,7 +42184,7 @@ paused - read-only boolean whether the parallax is paused - see pause() and star
 			}
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			myLayers = null;
 			if (auto) zim.Ticker.remove(zimTicker);
 			return true;
@@ -41822,7 +42506,7 @@ Dispatches a "pause" event when paused is complete (sometimes a delay to slow to
 
 		if (style!==false) zimStyleTransforms(this, DS);
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			if (zon) zog("bye from Scroller");
 			zim.Ticker.remove(zimTicker);
 			return true;
@@ -42096,7 +42780,7 @@ dispatches a "pause" event when the Dynamo is paused - could be delayed
 
 		if (style!==false) zimStyleTransforms(this, DS);
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			cancelAnimationFrame(requestID);
 		}
 	}
@@ -42269,7 +42953,7 @@ items - an array of all objects added with add()
 				}
 			}
 		});
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			for (var i=0; i<that.items.length; i++) {
 				that.items[i].dispose();
 			}
@@ -43052,7 +43736,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			return that.cloneProps(new zim.Emitter(objClone, width, height, that.interval, that.num, that.life, that.fade, that.shrink, that.decayTime, that.decayStart, that.trace, that.traceFadeTime, that.traceShiftX, that.traceShiftY, that.angle, that.emitterForce, that.gravity, that.wind, that.layers, that.animation, zim.copy(that.random), that.horizontal, that.vertical, that.sink, that.sinkForce, cache, that.events, startPaused, that.pool, that.poolMin));
 	    }
 
-	    this.dispose = function() {
+	    this.dispose = function(a,b,disposing) {
 	        if (emitterTicker) {
 				zim.Ticker.remove(emitterTicker);
 			}
@@ -43961,13 +44645,15 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 			}
 			window.removeEventListener("keydown", that.zimkeydownEvent);
 			window.removeEventListener("keyup", that.zimkeyupEvent);
-			Ticker.remove(that.Ticker);
+			Ticker.remove(that.ticker);
 			that.removeAllEventListeners();
-			paper.removeAllEventListeners();
 			shape.graphics.clear();
-			if (cache) that.bitmap.removeFrom();
-			else shape.removeFrom();
-			nib.removeFrom();
+			if (cache) {
+				if (that.bitmap) that.bitmap.removeFrom();
+			} else {
+				shape.removeFrom();
+			}
+			if (nib) nib.removeFrom();
 			return true;
 		}
 
@@ -45228,7 +45914,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		// this may lead to problems if a second frame is used
 		// and the second frame stage is not used for the Ticker.add()
 		// but two frames are rarely used and this simplifies 99% of the tickers
-		if (typeof zimDefaultFrame == 'undefined' || !zimDefaultFrame.type) zimDefaultFrame = this;
+		if (typeof zimDefaultFrame == 'undefined' || zimDefaultFrame == null || !zimDefaultFrame.type) zimDefaultFrame = this;
 
 		if (zot(canvasCheck)) canvasCheck = true;
 		var canvasSupported = !!window.HTMLCanvasElement;
@@ -45280,7 +45966,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		var types = ["fit","outside","full"];
 
 		if (shim) {
-			stage.frame = this;
+			shim.stage.frame = this;
 			var canvas = this.canvas = shim.canvas;
 			this.scale = shim.stage.scaleX;
 			setTimeout(function() {
@@ -45850,7 +46536,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				if (soundCheck && firstSoundCheck) {
 					// dynamically make audio tag with sound to overcome some Apple devices not playing sounds
 					var audioTag = document.createElement("audio");
-					audioTag.setAttribute("src", (!zot(path)?path:"")+a);
+					audioTag.setAttribute("src", ((!zot(path) && !a.match(/^http:\/\/|https:\/\//i))?path:"")+a);
 					document.body.appendChild(audioTag);
 					firstSoundCheck = false;
 				}
@@ -46223,7 +46909,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			return obj;
 		}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 
 			// remove zil events
 			if (that.zil && that.zil.length) {
@@ -46251,6 +46937,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				if (obj.parent) obj.parent.removeChild(obj);
 			}
 			if (zid(canvasID)) zid(canvasID).parentNode.removeChild(zid(canvasID));
+			if (that === zimDefaultFrame) zimDefaultFrame = null;
 			stage = null;
 			that = null;
 			return true;
@@ -46631,6 +47318,8 @@ RETURNS - a ZIM Tab which is automatically added to the frame's stage
 			frame = zimDefaultFrame;
 			stage = frame.stage;
 		}
+		var stageW = frame.width;
+		var stageH = frame.height;
 
 		var a = audioSpriteData;
 		var tabs = [];
@@ -46808,6 +47497,12 @@ function zimify(obj, list) {
 		noDrag:function() {
 			return zim.noDrag(this);
 		},
+		mouse:function() {
+			return zim.mouse(this);
+		},
+		noMouse:function() {
+			return zim.noMouse(this);
+		},
 		dragBoundary:function(boundary) {
 			return zim.dragBoundary(this, boundary);
 		},
@@ -46960,9 +47655,9 @@ function zimify(obj, list) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.fit(arguments[0]);}
 			else {return zim.fit(this, left, top, width, height, inside);}
 		},
-		outline:function(color, size) {
+		outline:function(color, size, boundsOnly) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.outline(arguments[0]);}
-			else {return zim.outline(this, color, size);}
+			else {return zim.outline(this, color, size, boundsOnly);}
 		},
 		addTo:function(container, index, localToLocal) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.addTo(arguments[0]);}
@@ -47738,7 +48433,7 @@ dispose() - clear any event listeners, etc.
 		this.orderOff = function(keyword) {that.ordersOff[keyword] = 1;}
 		this.orderOn = function(keyword) {delete that.ordersOff[keyword];}
 
-		this.dispose = function() {
+		this.dispose = function(a,b,disposing) {
 			sendData();
 			clearInterval(wonderInterval);
 			clearInterval(wonderCheck);
