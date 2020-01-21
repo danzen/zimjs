@@ -41,7 +41,7 @@ https://codepen.io/topic/zim/
 ZIM ZOO - lets you code in the browser and has a few examples to add and view<br> 
 https://zimjs.com/zoo.html
 
-ZIM LEARN has many code and video tutorials including:<br><br>
+ZIM LEARN has many code and video tutorials including:<br>
 
 ZIM Bits - 64 common techniques, ZIM Capture, What IZ tutorials, ZIM Badges, Code Zero and more!<br>
 https://zimjs.com/learn.html 
