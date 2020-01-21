@@ -41,12 +41,16 @@ https://codepen.io/topic/zim/
 ZIM ZOO - lets you code in the browser and has a few examples to add and view<br> 
 https://zimjs.com/zoo.html
 
-ZIM LEARN has many code and video tutorials including:<br>
+ZIM LEARN has many code and video tutorials including:<br><br>
+
 ZIM Bits - 64 common techniques, ZIM Capture, What IZ tutorials, ZIM Badges, Code Zero and more!<br>
 https://zimjs.com/learn.html 
 
 ZIM SKOOL is great for learning with 8 full lessons including in Browser code examples.<br>
 https://zimjs.com/skool.html and for kids https://zimjs.com/kids.html - like Magic!
+
+LEARN JAVASCRIPT WITH CREATIVE CODING<br>
+https://zimjs.com/learnjavascript.html
 
 ZIM TIPS has a listing of the elegant ways we code in ZIM<br>
 https://zimjs.com/tips.html
