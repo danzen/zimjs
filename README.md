@@ -35,6 +35,9 @@ new Button(200, 70, "TRY ME")
 Copy the template on the Code page into an editor like Atom and view results in any Browser.<br>
 https://zimjs.com/code.html
 
+ZIM CODEPEN TOPIC 
+https://codepen.io/topic/zim/
+
 ZIM ZOO - lets you code in the browser and has a few examples to add and view<br> 
 https://zimjs.com/zoo.html
 
