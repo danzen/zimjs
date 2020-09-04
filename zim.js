@@ -743,19 +743,18 @@ RETURNS a Number
 	};//-9
 
 /*--
-zim.series = function(array|item1, item2, item3)
+zim.series = function(array|item1|obj, item2, item3)
 
 series
 zim function
 
 DESCRIPTION
 Returns a function that will return each value passed as a parameter (or an Array) in order
-This goes in sequence each time the function is called
-Use this to pass a series in to any ZIM VEE value so a looping series is obtained
+or an object literal with min and max.
+This goes in sequence each time the function is called.
+Use this to pass a series in to any ZIM VEE value so a looping series is obtained.
 
-As of ZIM 10.9.0 series has step, jump, bounce, reverse and constrain settings
-
-NOTE: was called makeSeries() which is now depricated (makeSeries does not have 10.9.0 settings)
+NOTE: was called makeSeries() which is now depricated
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -820,9 +819,10 @@ zogp(nums.index); // 1 - coming back 3 steps from 4 to 1 as current index
 END EXAMPLE
 
 PARAMETERS
-array|item1|{min,max} - the first item - or an array of results that will be called in order as the resulting function is called
-	or an object with min and max properties to make a series of numbers from and including min and max
-    // when used with ZIM VEE - the values may be further ZIM VEE values (including more series values)
+array|item1|{min,max,step} - the first item - or an array of results that will be called in order as the resulting function is called
+	or an object with min, max and step properties to make a series of numbers from and including min and max (step defaults to 0)
+	this will make an array of values and then it is just like an array was entered initially.
+    when used with ZIM VEE - the values may be further ZIM VEE values (including more series values)
 item2 - the second item if the first is not an array
 item3 - the third item, etc. to as many items as needed
 
@@ -845,18 +845,19 @@ RETURNS a function that can be called many times - each time returning the next 
 		z_d("13.61");
 		var array;
 		var range;
-//		var color;
 		if (arguments.length == 0) return function(){};
 		if (arguments.length == 1 && Array.isArray(arguments[0])) {
 			array = arguments[0];
 		} else if (arguments.length == 1 && arguments[0].constructor == {}.constructor) {
 			range = arguments[0];
-			if (typeof range.min == "string" || typeof range.max == "string") {
-				// color = true;
-			} else {
-				if (zot(range.min)) range.min = 0;
-				if (zot(range.max)) range.max = 1;
-			}
+			if (zot(range.min)) range.min = 0;
+			if (zot(range.max)) range.max = 1;
+			if (zot(range.step)) range.step = 1;
+			array = [];
+			zim.loop(Math.floor(Math.abs(range.max-range.min)/range.step)+range.step, function (i) {
+				array.push(i+range.min);
+			}, null, range.step);
+			range = null;
 		} else {
 			array = Array.prototype.slice.call(arguments);
 		}
@@ -875,55 +876,26 @@ RETURNS a function that can be called many times - each time returning the next 
 				return lastVal;
 			}
 			everyCount++;
-			var length = range?(range.max-range.min)/step:array.length;
+			var length = array.length;
 			var val;
-			if (range) {
-				val = range.min + count*step%(range.max-range.min+1);
-			} else {
-				val = array[(length*10+count)%length];
-			}
+			val = array[(length*10+count)%length];
 
             if (bounce) {
-				if (range) {
-					if (dir > 0 && val > range.max) {
-						dir = -1;
-						count += 1*dir*2;
-						val = range.min + count*step;
-						count += 1*dir;
-					} else if (dir < 0 && val < range.min) {
-						dir = 1;
-						count += 1*dir*2;
-						val = range.min + count*step;
-						count += 1*dir;
-					} else {
-						count += 1*dir;
-					}
-				} else {
-					if (dir > 0 && count+dir*step >= length) {
-						dir = -1;
-						count = (length-1)-(count+step-(length-1));
-					} else if (dir < 0 && count+dir*step < range? range.min : 0) {
-						dir = 1;
-						count = step - count;
-					} else {
-						count += dir*step;
-					}
-				}
-			} else if (constrain) {
-				if (range) {
-					if (val > range.max) val = range.max;
-					if (val < range.min) val = range.min;
-				} else {
-					if (dir > 0 && count+dir*step >= length) count = length-1;
-					else if (dir < 0 && count+dir*step < 0) count = 0;
-					else count += dir*step;
-				}
-			} else {
-				if (range) {
-					count += dir*1;
+				if (dir > 0 && count+dir*step >= length) {
+					dir = -1;
+					count = (length-1)-(count+step-(length-1));
+				} else if (dir < 0 && count+dir*step < 0) {
+					dir = 1;
+					count = step - count;
 				} else {
 					count += dir*step;
 				}
+			} else if (constrain) {
+				if (dir > 0 && count+dir*step >= length) count = length-1;
+				else if (dir < 0 && count+dir*step < 0) count = 0;
+				else count += dir*step;
+			} else {
+				count += dir*step;
 			}
 			lastVal = val;
 			return val;
@@ -932,7 +904,7 @@ RETURNS a function that can be called many times - each time returning the next 
 		f.type = "series";
 		Object.defineProperty(f, 'index', {
 			get: function() {
-				var length = range?(range.max-range.min)/step:array.length;
+				var length = array.length;
 				return (length*10+count)%length;
 			},
 			set: function(value) {
@@ -947,19 +919,20 @@ RETURNS a function that can be called many times - each time returning the next 
 			if (zot(value)) value = true;
 			if (value) dir = -1;
 			else dir = 1;
+			count = array.length-1;
 			return f;
 		};
 		f.bounce = function(value) {
 			// normalize count
 			if (zot(value)) value = true;
-			var length = range?(range.max-range.min)/step:array.length;
+			var length = array.length;
 			count = (length*10+count)%length;
 			bounce = value;
 			return f;
 		};
 		f.step = function(value) {
 			if (zot(value)) value = 1;
-			step = range?value:Math.floor(value);
+			step = Math.floor(value);
 			return f;
 		};
 		f.every = function(value) {
@@ -6397,6 +6370,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - holds the class name as a String
+draggable - set to true for a default drag() and false for a noDrag()
 ** bounds must be set first (or width and height parameters set) for these to work
 ** setting these adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -6410,7 +6384,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scale, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -6521,6 +6495,28 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			e2.stageY=e.stageY;
 			this.dispatchEvent(e2);
 		});
+		var _name;
+		Object.defineProperty(that, 'name', {
+			get: function() {
+				return _name;
+			},
+			set: function(value) {
+				_name = value;
+				zim.zimObjectIDs[value] = that;
+			}
+		});
+		this._draggable;
+		Object.defineProperty(that, 'draggable', {
+			get: function() {
+				return this._draggable;
+			},
+			set: function(value) {
+				if (value == this._draggable) return;
+				this._draggable = value;
+				if (this._draggable) this.drag();
+				else this.noDrag();
+			}
+		});
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function(exact) {
 			if (this.type=="AC"&&zdf) {zdf.ac("clone", arguments, this); return this;}
@@ -6543,6 +6539,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	};
 
 	function recursiveDispose(obj, disposing) {
+		if (obj.name && zim.zimObjectIDs[obj.name] == obj) delete zim.zimObjectIDs[obj.name];
 		// dispose was fixed in ZIM 10.7.0 in TWO ways:
 		// ONE
 		// Some classes have custom dispose - so may want to call these.
@@ -6699,6 +6696,7 @@ PROPERTIES
 command - save a previously chained operation as a command
 	then can use the command to change the operation later (see example above)
 type - holds the class name as a String
+draggable - set to true for a default drag() and false for a noDrag()
 ** bounds must be set first (or width and height parameters set) for these to work
 ** setting these adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -6837,7 +6835,30 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			e2.stageY=e.stageY;
 			this.dispatchEvent(e2);
 		});
+		var _name;
+		Object.defineProperty(that, 'name', {
+			get: function() {
+				return _name;
+			},
+			set: function(value) {
+				_name = value;
+				zim.zimObjectIDs[value] = that;
+			}
+		});
+		this._draggable;
+		Object.defineProperty(that, 'draggable', {
+			get: function() {
+				return this._draggable;
+			},
+			set: function(value) {
+				if (value == this._draggable) return;
+				this._draggable = value;
+				if (this._draggable) this.drag();
+				else this.noDrag();
+			}
+		});
 		this.dispose = function(a,b,disposing) {
+			if (this.name && zim.zimObjectIDs[this.name] == this) delete zim.zimObjectIDs[this.name];
 			this.graphics.c();
 			this.dispatchEvent("removed");
 			this.removeAllEventListeners();
@@ -7031,6 +7052,7 @@ imageData - data for the pixels stored in a data property of an ImageData object
 	eg. 0,0,0,255,255,255,255,255 is a black pixel with 1 alpha and a white pixel with 1 alpha
 	You set this before calling the Bitmap drawImageData() method
  	See also https://developer.mozilla.org/en-US/docs/Web/API/ImageData - but let ZIM do the work
+draggable - set to true for a default drag() and false for a noDrag()
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
@@ -7177,7 +7199,30 @@ zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit
 		var d = myContext.getImageData(x, y, 1, 1).data;
 		return "rgba("+d[0]+","+d[1]+","+d[2]+","+d[3]+")";
 	};
+	var _name;
+	Object.defineProperty(that, 'name', {
+		get: function() {
+			return _name;
+		},
+		set: function(value) {
+			_name = value;
+			zim.zimObjectIDs[value] = that;
+		}
+	});
+	this._draggable;
+	Object.defineProperty(that, 'draggable', {
+		get: function() {
+			return this._draggable;
+		},
+		set: function(value) {
+			if (value == this._draggable) return;
+			this._draggable = value;
+			if (this._draggable) this.drag();
+			else this.noDrag();
+		}
+	});
 	this.dispose = function(a,b,disposing) {
+		if (this.name && zim.zimObjectIDs[this.name] == this) delete zim.zimObjectIDs[this.name];
 		this.dispatchEvent("removed");
 		this.removeAllEventListeners();
 		if (this.parent) this.parent.removeChild(this);
@@ -7424,6 +7469,7 @@ runPaused - is the sprite animation paused (also returns paused if not running) 
 	note: this only syncs to pauseRun() and stopRun() not pauseAnimate() and stopAnimate()
 	note: CreateJS has paused, etc. but use that only if running the CreateJS methods
 	such as gotoAndPlay(), gotoAndStop(), play(), stop()
+draggable - set to true for a default drag() and false for a noDrag()
 ** bounds must be set first for these to work
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -7811,7 +7857,30 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		this.hasProp = function(prop) {
 			return (!zot(this[prop]) || this.hasOwnProperty(prop));
 		};
+		var _name;
+		Object.defineProperty(that, 'name', {
+			get: function() {
+				return _name;
+			},
+			set: function(value) {
+				_name = value;
+				zim.zimObjectIDs[value] = that;
+			}
+		});
+		this._draggable;
+		Object.defineProperty(that, 'draggable', {
+			get: function() {
+				return this._draggable;
+			},
+			set: function(value) {
+				if (value == this._draggable) return;
+				this._draggable = value;
+				if (this._draggable) this.drag();
+				else this.noDrag();
+			}
+		});
 		this.dispose = function(a,b,disposing) {
+			if (this.name && zim.zimObjectIDs[this.name] == this) delete zim.zimObjectIDs[this.name];
 			this.dispatchEvent("removed");
 			this.removeAllEventListeners();
 			if (this.parent) this.parent.removeChild(this);
@@ -7882,6 +7951,7 @@ on(), off(), getBounds(), setBounds(), dispatchEvent(), etc.
 
 PROPERTIES
 type - holds the class name as a String
+draggable - set to true for a default drag() and false for a noDrag()
 ** bounds must be set first for these to work
 ** setting widths and heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
@@ -7943,7 +8013,30 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			e2.stageY=e.stageY;
 			this.dispatchEvent(e2);
 		});
+		var _name;
+		Object.defineProperty(that, 'name', {
+			get: function() {
+				return _name;
+			},
+			set: function(value) {
+				_name = value;
+				zim.zimObjectIDs[value] = that;
+			}
+		});
+		this._draggable;
+		Object.defineProperty(that, 'draggable', {
+			get: function() {
+				return this._draggable;
+			},
+			set: function(value) {
+				if (value == this._draggable) return;
+				this._draggable = value;
+				if (this._draggable) this.drag();
+				else this.noDrag();
+			}
+		});
 		this.dispose = function(a,b,disposing) {
+			if (this.name && zim.zimObjectIDs[this.name] == this) delete zim.zimObjectIDs[this.name];
 			this.dispatchEvent("removed");
 			this.removeAllEventListeners();
 			if (this.parent) this.parent.removeChild(this);
@@ -8031,7 +8124,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -9157,7 +9250,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -9366,7 +9459,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -9574,7 +9667,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -9827,7 +9920,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -10087,7 +10180,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -10840,7 +10933,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event for when the bezier controls are adjusted (pressup only)
@@ -12721,7 +12814,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event for when the bezier controls are adjusted (pressup only or moving with keys - thanks Yui Kim for find)
@@ -14475,7 +14568,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -15128,7 +15221,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -15355,7 +15448,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -15590,7 +15683,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -16141,7 +16234,7 @@ level - gets or sets the level of the object in its parent container (or the sta
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -16414,7 +16507,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -16599,7 +16692,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -16870,7 +16963,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -17586,7 +17679,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -17867,7 +17960,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -18201,7 +18294,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event when pressed but not when toggle() is used
@@ -18483,7 +18576,7 @@ text - get or set the text of the Tip
 ALSO: See all properties of a Label() such as size, color, etc.
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -18720,7 +18813,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event when arrow is pressed to go to the next panel
@@ -19037,7 +19130,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -19509,7 +19602,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "select" event when clicked on in a traditional manner (fast click with little movement)
@@ -20323,7 +20416,7 @@ level - gets or sets the level of the object in its parent container (or the sta
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -20539,7 +20632,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 ALSO: See the transformControls property described below for more options.
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 TRANSFORM CONTROL OBJECT
 Layer receives a transformControls property
@@ -20990,7 +21083,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
@@ -21254,7 +21347,7 @@ blendMode - how the object blends with what is underneath - such as "difference"
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 
 EVENTS
@@ -21586,7 +21679,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event if press is true and indicator is pressed on and lights change
@@ -21982,7 +22075,7 @@ ALSO: All Window properties - like titleBar, titleBarLabel, etc.
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event - then use selectedIndex or text to find data
@@ -22892,7 +22985,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -23798,7 +23891,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -24401,7 +24494,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event when selector finishes animating to a new selection
@@ -24835,7 +24928,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -25527,7 +25620,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -26379,7 +26472,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -26602,7 +26695,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event with dirX and dirY provided as well on the event object
@@ -26844,7 +26937,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -27312,7 +27405,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -27691,7 +27784,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 ACTIONEVENT
 This component is affected by the general ACTIONEVENT setting
@@ -28415,7 +28508,7 @@ ALSO: See all the properties of the ZIM Panel including close, titleBar, etc.
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 ACTIONEVENT
 This component is affected by the general ACTIONEVENT setting
@@ -28921,7 +29014,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 Dispatches a "keydown" event with an event object having a letter property
@@ -30030,7 +30123,7 @@ ALSO: All Tab properties
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "change" event when the buttons are pressed (may be the same button again)
@@ -30378,7 +30471,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "complete" event when the tile changes to the same order as the start order
@@ -30891,7 +30984,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "connection" event when a node is made
@@ -31830,7 +31923,7 @@ Each item can have a marqueeTime property set to ms to customize its view time
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "page" event when item starts to change
@@ -32299,7 +32392,7 @@ blendMode - how the object blends with what is underneath - such as "difference"
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 ACTIONEVENT
 This component is affected by the general ACTIONEVENT setting
@@ -32784,7 +32877,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 focus, blur are dispatched when the text area gains and loses focus
@@ -33090,7 +33183,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
@@ -34595,6 +34688,58 @@ RETURNS obj for chaining
 		return obj;
 	};//-41.65
 
+/*--
+obj.nam = function(name)
+
+nam
+zim DisplayObject method
+
+DESCRIPTION
+A chainable method to set the name property of a DisplayObject.
+The object can then be accessed with object("name") (or zim.object("name") if zns is true)
+
+BACKGROUND
+CreateJS provides Containers with a name property and a getChildByName() method
+but you have to remember to ask the parent container for the child and it is a little lengthy.
+In ZIM Cat 01, nam() and object() were introduced as a global way to handle object names.
+Usually, a variable name is used to reference objects but the name offers an alternative.
+
+Note: naming an object with the same name will overwrite earlier names accessible through object()
+This will NOT remove the name property from the previous object
+So it is possible that the previous object can still be accessed with parent.getChildByName()
+parent.getChildByName() will find the first child with that name in the container
+object() will find the last named object with that name anywhere
+We could remove previous name properties with the same name but we decided not to
+Let us know your thoughts at zimjs.com/slack
+
+EXAMPLE
+new Circle().nam("ball").center();
+
+// see what names there are:
+zog(object.getNames()); // ["ball"] - if only "ball" has been named
+
+if (mobile()) object("ball").sca(2);
+else object.ball.dispose();
+
+zog(object.getNames()); // [] - if only "ball" has been named
+END EXAMPLE
+
+PARAMETERS
+name - a String to set the name property of the object
+
+RETURNS obj for chaining
+--*///+41.67
+	zim.nam = function(obj, name) {
+		z_d("41.67");
+		if (zot(obj) || zot(name)) return;
+		obj.name = name;
+		// decided not to remove any existing same-name properties
+		// would have to add this to name properties too
+		// if (var o = zim.zimObjectIDs[name]) o.name = null;
+		zim.zimObjectIDs[name] = obj;
+		return obj;
+	};//-41.67
+
 // SUBSECTION MOVEMENT, TAP, HOLD, CHANGE, DRAG, MOUSE, BIND, TRANSFORM, GESTURE, PHYSICS
 
 
@@ -35085,6 +35230,8 @@ RETURNS obj for chaining
 			obj.zimDragTicker = function(){};
 		}
 
+		obj._draggable = true;
+
 		zim.setSwipe(obj, swipe);
 		obj.zimBoundary = boundary;
 		obj.zimLocalBounds = localBounds;
@@ -35517,6 +35664,7 @@ RETURNS obj for chaining
 		undrag(obj); // also undrag the parent to be sure
 		function undrag(obj) {
 			obj.cursor = null; //"default";
+			obj._draggable = false;
 			zim.setSwipe(obj, true);
 			obj.off("added", obj.zimAdded);
 			obj.off("removed", obj.zimRemoved);
@@ -43537,7 +43685,7 @@ blendMode - how the object blends with what is underneath - such as "difference"
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 Pages dispatches a "page" event when the page changes (to a page in the swipe array)
@@ -45275,7 +45423,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 --*///+78.5
 
@@ -46145,7 +46293,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a change event if items inside tile dispatch a change event
@@ -46826,7 +46974,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 --*///+66.7
 	zim.Beads = function(path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit) {
@@ -52820,7 +52968,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "flip" event when the fipper starts the flip
@@ -53839,7 +53987,7 @@ blendMode - how the object blends with what is underneath - such as "difference"
 
 ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 ** the below events all have a particle property that gives access to the particle (not the particle container for a traced particle - ask for the particle.parent for that)
@@ -54815,7 +54963,7 @@ colorStrokeStack - current array of push() remembered color, strokeColor, stroke
 ALSO See the CreateJS Easel Docs for Container properties, such as:
 ** THESE NEED to be used on the Generator drawing property
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "drawing" event each time the draw function is called - not used for stamp function
@@ -55648,14 +55796,12 @@ borderWidth - |ZIM VEE| get or set the borderWidth of the pen
 penType - get or set the type of pen - this will NOT set default properties like setPen()
 undoLevels - get or set the number of undo levels
 undoKeys - get or set if CTRL Z and CTRL Y / CTRL SHIFT Z are used for undo and redo
-draggable - read-only if pen is draggable
-	to make pen not draggable set pen.paper.mouseEnabled = false;
 immediateStop - get or set how drawing segments ends - "both", "pressup", "mousemove" and "either" are options (see parameter for more info)
 infinite - boolean to keep recording until stop() is called
 
 ALSO See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, mouseChildren, mouseEnabled, parent, numChildren, etc.
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
 dispatches a "drawing" event when drawing - note lastSegment is assigned when the drawing is stopped
@@ -55750,7 +55896,6 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 		this.immediateStop = immediateStop;
 		this.undoLevels = undo;
 		this.undoKeys = undoKeys;
-		this.draggable = draggable;
 		this.lineAlpha = lineAlpha;
 		this.lineBlendMode = lineBlendMode;
 		var shape = new zim.Shape();
@@ -58862,6 +59007,7 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 	It is recommended to use the Queue any time you use multiple LoadAssets() calls at the same time
 	You still access assets with frame.asset() as outlined below whether you use the Queue or not
 asset(file, width, height) - access an asset such as an image or sound - see loadAssets() for more on types
+	** asset() is available as a global function asset() or if zns (ZIM name space) is true then as zim.asset()
 	** traditionally, these have been preloaded into the Frame asset parameter or with Frame loadAssets()
 	** As of ZIM Cat, using asset() without preloading will automatically load the asset (and display an image as a Bitmap) - thanks Ami Hanya for suggestion
 	** asset() will add "complete" and "assetLoad" event to the asset object
@@ -58879,6 +59025,13 @@ asset(file, width, height) - access an asset such as an image or sound - see loa
 		for instance, an image will have type "Bitmap" as it is a ZIM Bitmap object
 		but an auto-loaded image will have type "Image" as it is actually a Container holding a Bitmap
 		and its Bitmap can be accessed with the bitmap property - so asset("auto.png").bitmap will access the Bitmap
+	asset.getIDs() will return an array of asset IDs.
+object(name) - get a DisplayObject (for example a Circle or Button) by its name.
+	** object() is available as a global function object() or if zns (ZIM name space) is true then as zim.object()
+	DisplayObjects do not start with a name but can be named if desired. Usually, we use variable names to reference an object
+	See the DisplayObject name property and the nam() short chainable method to set a name
+	object.getNames() will return an array of object names that have been set.
+	any object that is named the same name as another object will overwrite the other object and will not be in the object() list anymore
 follow(obj, boundary, damp, dampY, leftOffset, rightOffset, upOffset, downOffset, offsetDamp, offsetDampY, horizontal, vertical, borderLock, lag)
 	moves obj container to keep provided object in middle of stage view
 	pass in null for obj to stop following
@@ -59961,7 +60114,8 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 
 		// create a global asset function
 		// and a Frame asset method
-		window.asset = this.asset = function(n, w, h, second) {
+		// change to not window.asset for Cat 02
+		window.asset = zim.asset = this.asset = function(n, w, h, second) {
 			if (zot(n)) return;
 			var fromID = that.assetIDs[n];
 
@@ -60020,13 +60174,37 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				return assetHolder;
 			}
 		};
-
-		// create a global image function
-		// that uses CORS busting and then calls asset()
-		window.image = function(n, w, h, second) {
-			if (n.match(/^htt/i)) n = "https://cors.zimjs.com/" + n;
-			return window.asset(n, w, h, second);
+		zim.asset.getIDs = function() {
+			var ids = [];
+			for (name in that.assetIDs) {
+				ids.push(name);
+			}
+			return ids;
 		};
+
+		// that uses CORS busting and then calls asset()
+		zim.image = function(n, w, h, second) {
+			if (n.match(/^htt/i)) n = "https://cors.zimjs.com/" + n;
+			return zim.asset(n, w, h, second);
+		};
+
+		zim.zimObjectIDs = {};
+		zim.object = this.object = function(name) {
+			return zim.zimObjectIDs[name];
+		};
+		zim.object.getNames = function() {
+			var names = [];
+			for (name in zim.zimObjectIDs) {
+				names.push(name);
+			}
+			return names;
+		};
+
+		if (!window.zns) {
+			window.asset = this.asset;
+			window.image = this.image;
+			window.object = this.object;
+		}
 
 		this.setDefault = function() {
 			zimDefaultFrame = zdf = that;
@@ -61411,6 +61589,9 @@ function zimify(obj, list) {
 		dep:function(depth) {
 			return zim.dep(this, depth);
 		},
+		nam:function(name) {
+			return zim.nam(this, name);
+		},
 		alp:function(alpha) {
 			return zim.alp(this, alpha);
 		},
@@ -61713,7 +61894,7 @@ var ignore;
 function zimplify(exclude) {
 	z_d("83.35");
 
-	document.window = window;
+	document.Window = Window;
 	document.Blob = Blob;
 	ignore = "ignore";
 	if (zot(exclude)) exclude = [];
@@ -61725,11 +61906,6 @@ function zimplify(exclude) {
 			window[command] = zim[command];
 		}
 	}
-	window["KEYFOCUS"] = zim.KEYFOCUS;
-	window["OPTIMIZE"] = zim.OPTIMIZE;
-	window["ACTIONEVENT"] = zim.ACTIONEVENT;
-	window["STYLE"] = zim.STYLE;
-	window["TIME"] = zim.TIME;
 }//-83.35
 
 /*--
