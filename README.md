@@ -38,8 +38,8 @@ https://zimjs.com/code.html
 ZIM CODEPEN TOPIC<br>
 https://codepen.io/topic/zim/
 
-ZIM ZOO - lets you code in the browser and has a few examples to add and view<br> 
-https://zimjs.com/zoo.html
+ZIM LAB - lets you code in the browser and has a few examples to add and view<br> 
+https://zimjs.com/lab.html
 
 ZIM LEARN has many code and video tutorials including:<br>
 
