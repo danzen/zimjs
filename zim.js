@@ -6108,7 +6108,7 @@ but will be overwritten if an actual Frame is made
 EVENTS
 See the CreateJS Easel Docs for Stage events, such as:
 mouseenter, mouseleave, stagemousedown, stagemousemove, stagemouseup, drawstart, drawend, etc.
-and all the Container events (plus a ZIM pressdown - same as mousedown) such as:
+and all the Container events such as:
 click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.44
 zim.Stage = function(canvasID) {
@@ -6147,13 +6147,7 @@ zim.Stage = function(canvasID) {
 		this.hitTestGrid = function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		};
-		this.on("mousedown", function (e) {
-			var e2 = new createjs.Event("pressdown");
-			e2.stageX=e.stageX;
-			e2.stageY=e.stageY;
-			this.dispatchEvent(e2);
-		});
-
+	
 		var frame = zdf || 1;
 		if (createjs && !createjs.stageTransformable && (zdf.retina || typeof exportRoot != "undefined")) {
 			Object.defineProperty(this, 'scale', {
@@ -6255,10 +6249,9 @@ Note: also makes a partial zdf allowing circle.center() to work
 but will be overwritten if an actual Frame is made
 
 EVENTS
-ZIM adds a pressdown event to match a pressup event - it is the same as mousedown
 See the CreateJS Easel Docs for StageGL events, such as:
 mouseenter, mouseleave, stagemousedown, stagemousemove, stagemouseup, drawstart, drawend, etc.
-and all the Container events (plus a ZIM pressdown - same as mousedown) such as:
+and all the Container events such as:
 click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.45
 zim.StageGL = function(canvasID, options) {
@@ -6297,13 +6290,7 @@ zim.StageGL = function(canvasID, options) {
 		this.hitTestGrid = function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		};
-		this.on("mousedown", function (e) {
-			var e2 = new createjs.Event("pressdown");
-			e2.stageX=e.stageX;
-			e2.stageY=e.stageY;
-			this.dispatchEvent(e2);
-		});
-
+		
 		var frame = zdf || 1;
 		if (createjs && !createjs.stageTransformable && (zdf.retina || typeof exportRoot != "undefined")) {
 			Object.defineProperty(this, 'scale', {
@@ -6486,7 +6473,7 @@ x, y, rotation, scale, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.5
 
@@ -6588,12 +6575,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			this.cjsContainer_setBounds(n[0],n[1],n[2],n[3]);
 			return this;
 		};
-		this.on("mousedown", function (e) {
-			var e2 = new createjs.Event("pressdown");
-			e2.stageX=e.stageX;
-			e2.stageY=e.stageY;
-			this.dispatchEvent(e2);
-		});
+	
 		var _name;
 		Object.defineProperty(that, 'name', {
 			get: function() {
@@ -6812,7 +6794,6 @@ graphics, x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseEnabled, etc.
 
 EVENTS
-ZIM adds a pressdown event to match a pressup event - it is the same as mousedown
 See the CreateJS Easel Docs for Shape events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.6
@@ -6928,12 +6909,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.hasProp = function(prop) {
 			return (!zot(this[prop]) || this.hasOwnProperty(prop));
 		};
-		this.on("mousedown", function (e) {
-			var e2 = new createjs.Event("pressdown");
-			e2.stageX=e.stageX;
-			e2.stageY=e.stageY;
-			this.dispatchEvent(e2);
-		});
+		
 		var _name;
 		Object.defineProperty(that, 'name', {
 			get: function() {
@@ -7170,7 +7146,6 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseEnabled, etc.
 
 EVENTS
-ZIM adds a pressdown event to match a pressup event - it is the same as mousedown
 See the CreateJS Easel Docs for Bitmap events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.7
@@ -7239,12 +7214,6 @@ zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit
 
 	if (image && image.nodeName && image.nodeName.toLowerCase() != "video") that.sourceRect = {x:left, y:top, width:width, height:height};
 
-	this.on("mousedown", function (e) {
-		var e2 = new createjs.Event("pressdown");
-		e2.stageX=e.stageX;
-		e2.stageY=e.stageY;
-		this.dispatchEvent(e2);
-	});
 	this.cache = function(a,b,c,d,scale,options) {
 		if (zot(c)) {
 			if (zot(a)) {
@@ -7604,7 +7573,6 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseEnabled, etc.
 
 EVENTS
-ZIM adds a pressdown event to match a pressup event - it is the same as mousedown
 See the CreateJS Easel Docs for Sprite events, such as:
 animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.8
@@ -7968,12 +7936,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				return zim.localToLocal(x,y,target,this);
 			};
 		}
-		this.on("mousedown", function (e) {
-			var e2 = new createjs.Event("pressdown");
-			e2.stageX=e.stageX;
-			e2.stageY=e.stageY;
-			this.dispatchEvent(e2);
-		});
+		
 		this.hasProp = function(prop) {
 			return (!zot(this[prop]) || this.hasOwnProperty(prop));
 		};
@@ -8089,7 +8052,6 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, mouseEnabled, parent, etc.
 
 EVENTS
-ZIM adds a pressdown event to match a pressup event - it is the same as mousedown
 See the CreateJS Easel Docs for MovieClip events, such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.9
@@ -8127,12 +8089,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return zim.localToLocal(x,y,target,this);
 			};
 		}
-		this.on("mousedown", function (e) {
-			var e2 = new createjs.Event("pressdown");
-			e2.stageX=e.stageX;
-			e2.stageY=e.stageY;
-			this.dispatchEvent(e2);
-		});
+		
 		var _name;
 		Object.defineProperty(that, 'name', {
 			get: function() {
@@ -8248,7 +8205,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+50.95
 
@@ -9569,7 +9526,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+51
 	zim.Circle = function(radius, color, borderColor, borderWidth, dashed, percent, percentClose, strokeObj, style, group, inherit) {
@@ -9778,7 +9735,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+52
 zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner, dashed, strokeObj, style, group, inherit) {
@@ -9986,7 +9943,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53
 zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust, dashed, strokeObj, style, group, inherit) {
@@ -10239,7 +10196,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.1
 	zim.Poly = function(radius, sides, pointSize, color, borderColor, borderWidth, dashed, strokeObj, style, group, inherit) {
@@ -10499,7 +10456,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.15
 	zim.Line = function(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, style, group, inherit) {
@@ -11260,7 +11217,7 @@ dispatches an "update" event if the points are changed or a point is added or re
 	this removes all listeners on the old shape and controls
 	so any custom listeners on shape and controls will need to be re-applied - use the update event to do so
 dispatches a "traversed" event when traverse() is done - the event object has an obj property for the traversing object
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 
 MORE
@@ -13141,7 +13098,7 @@ dispatches an "update" event if the points are changed or a point is added or re
 	this removes all listeners on the old shape and controls
 	so any custom listeners on shape and controls will need to be re-applied - use the update event to do so
 dispatches a "traversed" event when traverse() is done - the event object has an obj property for the traversing object
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.5
 	zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, stickColor, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit) {
@@ -14887,7 +14844,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.6
 	zim.Flare = function(color, borderColor, borderWidth, crossAngle, thickness, thicknessA, thicknessB, pin, startX, startY, lengths, angles, anglesA, anglesB, anglesEnd, cross, crossColors, close, dashed, strokeObj, spineColor, spineBorderWidth, spineBorderColor, spineDashed, spineStrokeObj, closeColor, closeBorderWidth, closeBorderColor, closeDashed, closeStrokeObj, style, group, inherit) {
@@ -15540,7 +15497,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.7
 	zim.MultiFlare = function(flares, pins, angles, endToEnd, style, group, inherit) {
@@ -15767,7 +15724,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+53.8
 	zim.FlareBox = function(width, height, color, borderColor, borderWidth, flares, corners, pins, style, group, inherit) {
@@ -16006,7 +15963,7 @@ This component is affected by the general OPTIMIZE setting (default is false)
 if set to true, you will have to stage.update() after setting certain properties
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+54
 	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit) {
@@ -16553,7 +16510,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+54.5
 
@@ -16829,7 +16786,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+54.55
 
@@ -17041,7 +16998,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+54.57
 
@@ -17718,7 +17675,7 @@ for example seeing toggle take effect
 
 EVENTS
 dispatches a "waited" event if button is in wait state and the wait time has completed
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+55
 	zim.Button = function(width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBackgroundColor, rollToggleBackgroundColor, toggleColor, rollToggleColor, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, align, valign, indent, indentHorizontal, indentVertical, style, group, inherit) {
@@ -18437,7 +18394,7 @@ The default is "mousedown" - if set to something else the component will act on 
 EVENTS
 dispatches a "change" event when pressed on but not when the checked property is set
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+56
 	zim.CheckBox = function(size, label, startChecked, color, backgroundColor, borderColor, borderWidth, corner, margin, indicatorType, indicatorColor, tap, style, group, inherit) {
@@ -18720,7 +18677,7 @@ EVENTS
 dispatches a "change" event when pressed but not when selectedIndex is set
 then ask for the properties above for info
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57
 	zim.RadioButtons = function(size, buttons, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, selectedIndex, style, group, inherit) {
@@ -19044,7 +19001,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 EVENTS
 dispatches a "change" event when pressed but not when toggle() is used
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57.5
 	zim.Toggle = function(width, height, label, startToggled, backgroundColor, margin, indicatorType, indicatorColor, tap, toggleBackgroundColor, color, borderColor, borderWidth, corner, indicatorCorner, shadowColor, shadowBlur, time, labelLeft, style, group, inherit) {
@@ -19324,7 +19281,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57.6
 	zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, style, group, inherit) {
@@ -19564,7 +19521,7 @@ EVENTS
 dispatches a "change" event when arrow is pressed to go to the next panel
 dispatches a "close" event when closed with close button if there is a close button
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57.7
 	zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, style, group, inherit) {
@@ -19891,7 +19848,7 @@ dispatches a "close" event when closed by clicking on backing, display, close, e
 dispatches a "fadedin" event if fadeTime is set and pane has finished its fade in animation
 dispatches a "fadedout" event if fadeTime is set and pane has finished its fade out animation
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58
 	zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, group, inherit) {
@@ -20360,7 +20317,7 @@ dispatches a "close" event when the window is closed with the x on the titleBar 
 dispatches a "slidestart" event if slide is true and window starts sliding (on pressup)
 dispatches a "slidestop" event if slide is true and window stops sliding
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.1
 	zim.Window = function(width, height, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, style, group, inherit) {
@@ -21219,7 +21176,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.3
 	zim.Page = function(width, height, color, color2, vertical, pattern, scalePattern, cache, style, group, inherit) {
@@ -21482,7 +21439,7 @@ dispatches a "transformed" event when being transformed
 dispatches "transformshow" and "transformhide" events for when click to hide or show controls
 If TransformManager() is used there are more events available such as "persistset", etc.
 
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+58.5
 	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
@@ -21886,7 +21843,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+59
 	zim.Waiter = function(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group, inherit) {
@@ -22152,7 +22109,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 
 EVENTS
 Dispatches a "complete" event when the loading or running is complete
-See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+59.5
 	zim.ProgressBar = function(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, style, group, inherit) {
@@ -22484,7 +22441,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 EVENTS
 dispatches a "change" event if press is true and indicator is pressed on and lights change
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+60
 	zim.Indicator = function(width, height, num, foregroundColor, backgroundColor, borderColor, borderWidth, backdropColor, corner, indicatorType, fill, scale, lightScale, interactive, shadowColor, shadowBlur, selectedIndex, style, group, inherit) {
@@ -22882,7 +22839,7 @@ dispatches a "change" event - then use selectedIndex or text to find data
 
 ALSO: All Window events including "scrolling"
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+60.5
 
@@ -23802,7 +23759,7 @@ EVENTS
 dispatches a "change" event when changed by pressing an arrow or a keyboard arrow
 (but not when setting selectedIndex or currentValue properties)
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+61
 	zim.Stepper = function(list, width, backgroundColor, borderColor, borderWidth, label, color, vertical, arrows, corner,
@@ -24711,7 +24668,7 @@ and stage.update() in change event to see component change its graphics
 EVENTS
 dispatches a "change" event when button is slid on slider (but not when setting currentValue property)
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+62
 	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, style, group, inherit) {
@@ -25311,7 +25268,7 @@ EVENTS
 dispatches a "change" event when selector finishes animating to a new selection
 note that a tap() or mousedown/click function can be used if the selectedIndex is desired right away
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+62.5
 	zim.Selector = function(tile, borderColor, borderWidth, backgroundColor, corner, dashed, paddingHorizontal, paddingVertical, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, style, group, inherit) {
@@ -25756,7 +25713,7 @@ and stage.update() in change event to see component change its graphics
 EVENTS
 dispatches a "change" event when dial changes value (but not when setting currentValue property)
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+63
 	zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, style, group, inherit) {
@@ -26453,7 +26410,7 @@ The default is "mousedown" - if set to something else the component will act on 
 EVENTS
 dispatches a "change" event when a tab changes (but not when setting selectedIndex property)
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+65
 	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, style, group, inherit) {
@@ -27305,7 +27262,7 @@ The default is "mousedown" - if set to something else the component will act on 
 EVENTS
 dispatches a "change" event when a pad changes (but not when setting selectedIndex property)
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+66
 	zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, selectedIndex, style, group, inherit) {
@@ -27519,7 +27476,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 EVENTS
 dispatches a "change" event with dirX and dirY provided as well on the event object
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+66.2
 	zim.DPad = function(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit) {
@@ -27771,7 +27728,7 @@ EVENTS
 dispatches a "change" event when the button changes (but not when setting selectedIndex property)
 see also currentEnabled to get change event for each press - or use tap()
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+66.4
 	zim.Radial = function(labels, size, font, height, coreRadius, coreColor, startAngle, totalAngle, angles, flip, shiftRadial, icons, rollIcons, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, selectedIndex, style, group, inherit) {
@@ -28241,7 +28198,7 @@ dispatches a "change" event when the button changes (but not when setting select
 see also selectedIndex, selectedLevel, selected and text properties
 see also currentEnabled to get change event for each press - or use tap()
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+66.6
 	zim.RadialMenu = function(menu, size, font, height, coreRadius, coreColor, title, titleIcon, startAngle, totalAngle, flip, shiftRadial, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, open, under, style, group, inherit) {
@@ -28620,7 +28577,7 @@ dispatches a "change" event when the OK button is activated and the color or alp
 	or if buttonBar is false dispatches "change" when a new color or alpha is selected
 dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67
 	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, style, group, inherit) {
@@ -29344,7 +29301,7 @@ dispatches an "update" event when any property is changed and where text is chan
 dispatches a "set" event when button is pressed
 dispatches a "close" event when closed
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.1
 	zim.TextEditor = function(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, style, group, inherit) {
@@ -29857,7 +29814,7 @@ Dispatches a "keydown" event with an event object having a letter property
 Dispatches a "special" event if the special parameter is used and the special key is pressed
 Dispatches a "close" event when close keyboard icon at bottom right is pressed
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.2
 	zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, style, group, inherit) {
@@ -30970,7 +30927,7 @@ dispatches a "change" event when the buttons are pressed (may be the same button
 
 ALSO: All Tab events
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.3
 	zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit) {
@@ -31326,7 +31283,7 @@ EVENTS
 dispatches a "complete" event when the tile changes to the same order as the start order
 dispatches a "scrambled" event when the tile is finished scrambling
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.35
 	zim.Scrambler = function(tile, keys, keyProperty, scramble, time, wait, num, shadowColor, shadowBlur, swap, swapLock, style, group, inherit) {
@@ -31844,7 +31801,7 @@ dispatches a "connection" event when a node is made
 dispatches a "noconnection" event if a connection is not made
 dispatches a "complete" event in linear mode when the connections are complete
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.39
 	zim.Connectors = function(width, height, points, node, line, linear, linearWrap, linearOrder, num, snapH, snapV, dropType, deleteNode, dblclick, fullMove, min, max, boundary, expand, nodeRollColor, nodeRollBorderColor, nodeSelectedColor, nodeSelectedBorderColor, baseColor, baseBorderColor, baseRollover, rootLock, grandChildren, dblclickTime, style, group, inherit) {
@@ -32782,7 +32739,7 @@ EVENTS
 dispatches a "page" event when item starts to change
 dispatches a "pagetransitioned" event when item finishes changing
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.4
 
@@ -33276,7 +33233,7 @@ loaded - is dispatched when the files(s) are uploaded - the event object comes w
 		e.lastJSON - the last JSON object loaded
 		e.total - the total number of JSON files loaded
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.5
 
@@ -33750,7 +33707,7 @@ input is dispatched when the text area is typed or pasted into
 change is dispatched when the text area is different after losing focus
 These are just the html events passed on through - note the difference between input and change!
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.6
 	zim.TextArea = function(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, inputType, wrap, maxLength, frame, expand, style, group, inherit) {
@@ -34055,7 +34012,7 @@ ALSO: See the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
-EVENTS: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+EVENTS: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+67.7
 	zim.Tag = function(width, height, id, frame, backgroundColor, padding, paddingHorizontal, paddingVertical, expand, style, group, inherit) {
@@ -53924,7 +53881,7 @@ EVENTS
 dispatches a "flip" event when the fipper starts the flip
 dispatches a "flipped" event when the fipper ends the flip
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+68.5
 	zim.Flipper = function(front, back, interactive, time, vertical, flipped, easeRoot, frontPress, backPress, style, group, inherit) {
@@ -54096,6 +54053,10 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 page - get or set the index number of page - will animate at a .1 speed (see gotoPage())
+nextPage - get the index number of the page being animated to (available in pageanimate event)
+	note: pages may skip by 2
+lastPage - get the index number of the page that was just animated (available in page event)
+	note: pages may skip by 2
 pages - read only array of pages - this are the original pages array passed in
 	note: at this time, the Book must be remade to add or remove pages
 
@@ -54106,11 +54067,11 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 EVENTS
 dispatches a "page" event when the page is turned
 dispatches a "pageanimate" event when the page is starts to animate to new page
-dispatches a "pageturn" event when gotoPage() or page property starts to turn a page
-dispatches a "pagedone" event when gotoPage() or page property finishes animating its last page
+dispatches a "pageturn" event when gotoPage() or page property starts to turn a page (not user dragged page)
+dispatches a "pagedone" event when gotoPage() or page property finishes animating its last page (not user dragged page)
 dispatches a "rollup" event when corner starts to roll up if rollup is true
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+68.7
 	zim.Book = function(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows) {
@@ -54366,7 +54327,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (that.upEvent) stage.off("stagemouseup", that.upEvent);
 				that.currentW = 0;
 				that.currentH = 0;
-				that.dispatchEvent("pageanimate");
+				that.lastPage = zim.constrain(that._currentPage);
+				that.direction = "right";
+				that.dispatchEvent("pageanimate");				
 				that.animate({
 					ease:"quadOut",
 					props:{currentW:width/2},
@@ -54405,6 +54368,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (that.upEvent) stage.off("stagemouseup", that.upEvent);
 				that.currentW = 0;
 				that.currentH = 0;
+				that.lastPage = zim.constrain(that._currentPage);
+				that.direction = "left";
 				that.dispatchEvent("pageanimate");
 				that.animate({
 					ease:"quadOut",
@@ -55429,7 +55394,7 @@ dispatches an "emitted" event when a particle is made
 dispatches a "decayed" event when the particle's decayStart + decayTime ms has elapsed
 dispatches a "fizzed" event when the particle's life ms has elapsed
 
-ALSO: See the CreateJS Easel Docs for Container events (plus a ZIM pressdown - same as mousedown) such as:
+ALSO: See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+69.9
 	zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles, style, group, inherit) {
