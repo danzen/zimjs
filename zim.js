@@ -33734,6 +33734,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(inputType)) inputType=DS.inputType!=null?DS.inputType:false;
 		if (zot(wrap)) wrap=DS.wrap!=null?DS.wrap:true;
 		if (zot(maxLength)) maxLength=DS.maxLength!=null?DS.maxLength:null;
+		if (zot(spellCheck)) spellCheck=DS.spellCheck!=null?DS.spellCheck:true;
+		if (zot(readOnly)) readOnly=DS.readOnly!=null?DS.readOnly:false;
+		if (zot(placeholder)) placeholder=DS.placeholder!=null?DS.placeholder:null;
 		this.maxLength = maxLength;
 		if (zot(expand)) expand = DS.expand!=null?DS.expand:20;
 		if (expand === true) expand = 20;
@@ -33766,9 +33769,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		} else if (inputType) {
 			textareaTag.setAttribute("type", inputType);
 		}
-		if (readOnly) textareaTag.readOnly = true;
-		if (!spellCheck) textareaTag.spellcheck = false;
-		if (!zot(placeholder)) textareaTag.setAttribute("placeholder", placeholder);
+		textareaTag.readOnly = readOnly;
+		textareaTag.spellcheck = spellCheck;
+		if (placeholder) textareaTag.setAttribute("placeholder", placeholder);
 		textareaTag.style.cssText = "background-color:rgba(0,0,0,.01); color:" + color + "; "
 			+ "resize:none; z-index:3; width:" + (width - padding * 2) + "px; height:" + (height - padding * 2) + "px; overflow:hidden; outline:none;"
 			+ "font-size:" + size + "px; font-family:" + (DS.font != null ? DS.font : "arial") + "; border:none; position:absolute; left:0px; top:0px; display:none;";
@@ -60841,8 +60844,10 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 
 		// asset parameter
 		that.loadAssetsCount = 0;
-		that.assets = {}; // store asset Bitmap or play function for sound
-		that.assetIDs = {}; // store ids for assets
+		if (zot(zim.assets)) {
+			zim.assets = {}; // store asset Bitmap or play function for sound
+			zim.assetIDs = {}; // store ids for assets
+		}		
 		
 		var preExistingCanvas = false;
 		function init() {
@@ -61370,7 +61375,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 						    img.src = a.src;
 							img.id = a.id;
 						    img.onload = function() {
-								var asset = that.assets[img.id] = new zim.Bitmap(img).expand(0);
+								var asset = zim.assets[img.id] = new zim.Bitmap(img).expand(0);
 								var ev = new createjs.Event("assetload");
 								ev.asset = asset;
 								queue.dispatchEvent(ev);
@@ -61383,7 +61388,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 								if (queue.loadAssetsCount == 0) endAssetLoad();
 						    };
 						} else {
-							that.assetIDs[a.id] = a.src;
+							zim.assetIDs[a.id] = a.src;
 							var maxNum = a.maxNum;
 							var aType = a.type;
 							var aLoadTimeout = zot(a.loadTimeout)?loadTimeout:a.loadTimeout;
@@ -61506,13 +61511,13 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 						for (var i=0; i<soundIDs.length; i++) {
 							~function() { // wrap soundID in a closure
 								var soundID = soundIDs[i];
-								asset = that.assets[soundID] = {
+								asset = zim.assets[soundID] = {
 			                        type:"sound",
 									path:path,
 			                        id:soundID,
 			                        play:function(volume, loop, loopCount, pan, offset, delay, interrupt) {
 										var sig = "volume, loop, loopCount, pan, offset, delay, interrupt";
-										var duo; if (duo = zob(that.assets[soundID].play, arguments, sig)) return duo;
+										var duo; if (duo = zob(zim.assets[soundID].play, arguments, sig)) return duo;
 										var added = {
 											volume:volume,
 											loop:loop,
@@ -61541,11 +61546,11 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 						}
 					} else if (type == "image") {
 						if (e.result.width) {
-							asset = that.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, null, null, item.id);
+							asset = zim.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, null, null, item.id);
 							if (item.avoidCORS) asset.expand(0);
 						}
 					} else {
-						asset = that.assets[item.id] = e.result;
+						asset = zim.assets[item.id] = e.result;
 					}
 					var ev = new createjs.Event("assetload");
 					ev.item = item; // createjs preload item
@@ -61608,13 +61613,13 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		// change to not window.asset for Cat 02
 		window.asset = zim.asset = this.asset = function(n, w, h, second) {
 			if (zot(n)) return;
-			var fromID = that.assetIDs[n];
+			var fromID = zim.assetIDs[n];
 
 			if (fromID) n = fromID;
 
 			// getting {type:"sound", path:"assets/", id:732}
 			// want    {type:"sound", path:"assets/", id:"bird.mp3"}
-			if (that.assets[n]) return that.assets[n];
+			if (zim.assets[n]) return zim.assets[n];
 
 			// regular asset has been returned above
 			// now check auto load assets or broken if second
@@ -61636,7 +61641,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				assetLoader.on("complete", function () {
 					// return;
 					var loaded = that.asset(n, null, null, true);
-					that.assets[n] = assetHolder; // assign assetHolder back to asset in case used again
+					zim.assets[n] = assetHolder; // assign assetHolder back to asset in case used again
 					if (loaded.play) {
 						assetHolder.play = loaded.play();
 					} else if (loaded.type == "Bitmap") {
@@ -61668,7 +61673,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		};
 		zim.asset.getIDs = function() {
 			var ids = [];
-			for (name in that.assetIDs) {
+			for (name in zim.assetIDs) {
 				ids.push(name);
 			}
 			return ids;
