@@ -9510,6 +9510,8 @@ borderDashedCommand - access to the CreateJS stroke dashed command (segments, of
 radius - gets or sets the radius.
 	The radius is independent of scaling and can be different than the width/2
 	Setting the radius redraws the circle but any current scaling is kept
+percent - get or set the percent of the circle (see percent parameter)
+percentClose - get or set the percent close of the circle (see percentClose parameter)
 ** setting widths, heights adjusts scale not bounds and getting these uses the bounds dimension times the scale
 width - gets or sets the width. Setting the width will scale the height to keep proportion (see widthOnly below)
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
@@ -9605,6 +9607,27 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.drawShape();
 			}
 		});
+		
+		Object.defineProperty(that, 'percent', {
+			get: function() {
+				return percent;
+			},
+			set: function(value) {
+				percent = value;
+				that.drawShape();
+			}
+		});
+		
+		Object.defineProperty(that, 'percentClose', {
+			get: function() {
+				return percentClose;
+			},
+			set: function(value) {
+				percentClose = value;
+				that.drawShape();
+			}
+		});
+
 
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		// NOTE: extends ZIM CustomShape for more properties and a few functions.
@@ -23665,7 +23688,7 @@ PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 list - (default 1-10) pass in an array of strings or numbers to display one at a time
-	change the stepperType parameter to display other than numbers
+	passing in an array will change the stepperType parameter from "number" to "list"
 	for instance a set of words ["hello", "goodbye", "wow", "omg!"]
 	would need a stepperType of "list" to be set
 width - (default 100) is the width of the text box (you can scale the whole stepper if needed)
@@ -23688,7 +23711,7 @@ holdSpeed - (default .2) time (seconds) between steps as holding (also see ZIM T
 draggable - (default true) set to false to not step when dragging
 dragSensitivity - (default .1) .01 changes really quickly - 1 changes at base rate
 dragRange - (default 200) absolute distance (pixels) from press the drag will reach maximum
-stepperType - (default "number") makes numbers, words, letters to step through
+stepperType - (default "number" unless passing in an array to list) makes numbers, words, letters to step through
 	also stepperType "list", "letter" - these get ranges below
 min - (default 0 for number and "A" for letter) the minimum value (can make min bigger than max) (not for list stepperType)
 max - (default 10 for number and "Z" for letter) the maximum value (can make max smaller than min) (not for list stepperType)
@@ -23802,7 +23825,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(draggable)) draggable=DS.draggable!=null?DS.draggable:true;
 		if (zot(dragSensitivity) || dragSensitivity <= 0) dragSensitivity=DS.dragSensitivity!=null?DS.dragSensitivity:.1;
 		if (zot(dragRange)) dragRange=DS.dragRange!=null?DS.dragRange:200;
-		if (zot(stepperType)) stepperType=DS.stepperType!=null?DS.stepperType:"number";
+		if (zot(stepperType)) stepperType=DS.stepperType!=null?DS.stepperType:list.length>0?"list":"number";
 		if (zot(min)) min=DS.min!=null?DS.min:0;
 		if (zot(max)) max=DS.max!=null?DS.max:10;
 		if (zot(step)) step=DS.step!=null?DS.step:1;
