@@ -6655,7 +6655,8 @@ clone(exact) - clones the container, its properties and all its children
 	then its clone might be blue or green
 	If exact is set to true then the clone will be whatever color was picked for the original circle
 disposeAllChildren() - removes and disposes all children but leaves the container (see also CreateJS removeAllChildren() which does not dispose them) 
-dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+dispose(disposing) - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+	if calling dispose() on the super class from a custom class then pass in true to indicate already started dispose (otherwise infinite loops)
 
 ALSO: see the CreateJS Easel Docs for Container methods, such as:
 on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
@@ -6675,8 +6676,10 @@ draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
 depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+effects - an object that holds effects added such as blur, glow, shadow, color, multi and alpha - see effect() under ZIM Methods 
 ** the following are convenience Effects that run a ZIM MultiEffect()
 ** these can use a lot of processing when animating - see Docs for effects() 
+** batch versions are available too as hueBatch, etc. these will not update the effect until updateEffects() is called on the object
 hue - the tint of an object between -180 and 180 with 0 being no change 
 saturation - the amount of color of an object between -100 and 100 with 0 being no change 
 brightness - the lightness or darkness of an object between -255 and 255 with 0 being no change 
@@ -6993,8 +6996,10 @@ draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
 depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+effects - an object that holds effects added such as blur, glow, shadow, color, multi and alpha - see effect() under ZIM Methods 
 ** the following are convenience Effects that run a ZIM MultiEffect()
 ** these can use a lot of processing when animating - see Docs for effects() 
+** batch versions are available too as hueBatch, etc. these will not update the effect until updateEffects() is called on the object
 hue - the tint of an object between -180 and 180 with 0 being no change 
 saturation - the amount of color of an object between -100 and 100 with 0 being no change 
 brightness - the lightness or darkness of an object between -255 and 255 with 0 being no change 
@@ -7328,8 +7333,10 @@ draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
 depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+effects - an object that holds effects added such as blur, glow, shadow, color, multi and alpha - see effect() under ZIM Methods 
 ** the following are convenience Effects that run a ZIM MultiEffect()
 ** these can use a lot of processing when animating - see Docs for effects() 
+** batch versions are available too as hueBatch, etc. these will not update the effect until updateEffects() is called on the object
 hue - the tint of an object between -180 and 180 with 0 being no change 
 saturation - the amount of color of an object between -100 and 100 with 0 being no change 
 brightness - the lightness or darkness of an object between -255 and 255 with 0 being no change 
@@ -7708,6 +7715,7 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 	id - (default randomly assigned) an id you can use in other animations - available as sprite.id
 		use this id in other animations for pauseRun and stopRun to act on these as well
 	globalControl - (default true) pauseRun and stopRun will control other animations with same id
+	pauseOnBlur - (default true) pause the sprite when the window is not seen or set to false to keep playing the sprite
 pauseRun(state) - pause or unpause the animation (including an animation series)
 	state - (default true) when true the animation is paused - set to false to unpause
 	returns object for chaining
@@ -7749,8 +7757,10 @@ draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
 depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+effects - an object that holds effects added such as blur, glow, shadow, color, multi and alpha - see effect() under ZIM Methods 
 ** the following are convenience Effects that run a ZIM MultiEffect()
 ** these can use a lot of processing when animating - see Docs for effects() 
+** batch versions are available too as hueBatch, etc. these will not update the effect until updateEffects() is called on the object
 hue - the tint of an object between -180 and 180 with 0 being no change 
 saturation - the amount of color of an object between -100 and 100 with 0 being no change 
 brightness - the lightness or darkness of an object between -255 and 255 with 0 being no change 
@@ -7940,8 +7950,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			return framesNormalized;
 		};
 
-		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl) {
-			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl";
+		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl, pauseOnBlur) {
+			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl, pauseOnBlur";
 			var duo; if (duo = zob(this.run, arguments, sig)) return duo;
 
 			var timeType = getTIME();
@@ -8011,8 +8021,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			// if already running the sprite then stop the last run
 			if (that.running) that.stopAnimate(that.id);
 			that.running = true;
-
-
+			
 			if (!Array.isArray(obj)) {
 				var extraTime = 0;
 				if (endFrame-startFrame > 0) extraTime = time / Math.abs(endFrame-startFrame) / 2; // slight cludge - seems to look better?
@@ -8046,6 +8055,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				rewindWaitCall:rewindWaitCall, rewindWaitParams:rewindWaitParams,
 				rewindTime:rewindTime, rewindEase:rewindEase,
 				override:false,
+				pauseOnBlur:pauseOnBlur,
 				id:that.id
 			});
 			that.runPaused = false;
@@ -8223,8 +8233,10 @@ draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
 depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+effects - an object that holds effects added such as blur, glow, shadow, color, multi and alpha - see effect() under ZIM Methods 
 ** the following are convenience Effects that run a ZIM MultiEffect()
 ** these can use a lot of processing when animating - see Docs for effects() 
+** batch versions are available too as hueBatch, etc. these will not update the effect until updateEffects() is called on the object
 hue - the tint of an object between -180 and 180 with 0 being no change 
 saturation - the amount of color of an object between -100 and 100 with 0 being no change 
 brightness - the lightness or darkness of an object between -255 and 255 with 0 being no change 
@@ -19712,7 +19724,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-57.6
 
 /*--
-zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, style, group, inherit)
+zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, collapse, collapsed, style, group, inherit)
 
 Panel
 zim class - extends a zim.Container which extends a createjs.Container
@@ -19777,6 +19789,8 @@ boundary - (default null) set to ZIM Boundary() object - or CreateJS.rectangle()
 extraButton - (default null) creates a little square button with the letter R for reset
 	this is made with the group style id of "extraButton"
 	use the extraButton property to access the button to change its label or capture an event, etc.
+collapse - (default false) set to true to double click panel title bar to collapse and unCollapse panel
+collapsed - (default false) set to true to start the panel collapsed
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -19806,6 +19820,7 @@ text - access to the text of the current panel
 titleBar - gives access to the titleBar Container - which also has a background property
 titleBarLabel - gives access to the titleBar label
 close - access to the close button
+collapsed - pass in true to collapse the panel and false to unCollapse the panel
 arrow - access to the next arrow
 background - access to the background Rectangle
 extraButton - access to the Label for the extra button if extraButton parameter is set to true
@@ -19830,8 +19845,8 @@ dispatches a "close" event when closed with close button if there is a close but
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
 --*///+57.7
-	zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, style, group, inherit) {
-        var sig = "width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, style, group, inherit";
+	zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, collapse, collapsed, style, group, inherit) {
+        var sig = "width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, collapse, collapsed, style, group, inherit";
         var duo; if (duo = zob(zim.Panel, arguments, sig, this)) return duo;
 		z_d("57.7");
 
@@ -19862,6 +19877,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(closeColor)) closeColor = DS.closeColor != null ? DS.closeColor : !zot(titleBarColor) ? titleBarColor : "#555";
 		if (zot(arrow)) arrow=DS.arrow!=null?DS.arrow:zim.vee(titleBar);
 		if (!Array.isArray(corner)) corner = [corner,corner,corner,corner];
+		if (zot(collapse)) collapse=DS.collapse!=null?DS.collapse:false;
+		if (zot(collapsed)) collapsed=DS.collapsed!=null?DS.collapsed:false;
 
 		var that = this;
 		var background = this.background = new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner).addTo(this);
@@ -19910,7 +19927,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				s.update();
 			});
 		}
-
+		
+		if (collapse) {
+			if (collapsed) that.collapsed = true;                                                                                                     
+		    that.collapseEvent = that.titleBar.on("dblclick", function () {
+				collapsed = !collapsed;
+		        that.collapsed = collapsed;
+		    });
+		}
 
 		this.nextPanel = function(index, event) {
 			var t = zot(index)||zot(titleBarValue.array)?zim.Pick.choose(titleBarValue):titleBarValue.array[index];
@@ -19948,7 +19972,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				that.drag({rect:boundary, currentTarget:true});
 			});
 			titleBar.on("pressup", function() {
-				that.noDrag();
+				that.noDrag(false); // false for not recursive - leave objects inside so they do not lose their own cursors
 			});
 		}
 
@@ -19981,7 +20005,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
-		var overlay = that.overlay = new zim.Rectangle(width, height).alp(.7);
+		var overlay = that.overlay = new zim.Rectangle(width, height, null, null, null, corner).alp(.3);
 
 		Object.defineProperty(that, 'panelHeight', {
 			get: function() {
@@ -19998,6 +20022,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (!OPTIMIZE && that.stage) that.stage.update();
 			}
 		});
+		
+		Object.defineProperty(that, 'collapsed', {
+			get: function() {
+				return collapsed;
+			},
+			set: function(value) {
+				collapsed = value;
+				if (collapsed) that.setMask(that.titleBar.backing, true);                                                                                                     
+				else that.setMask(null);
+				if (that.stage) that.stage.update();
+			}
+		});		
 
 		this._enabled = true;
 		Object.defineProperty(that, 'enabled', {
@@ -20014,10 +20050,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style !== false) zim.styleTransforms(this, DS);
 		this.clone = function () {
-			return that.cloneProps(new zim.Toggle(width, height, titleBar ? titleBar.clone() : "", titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, style, this.group, inherit));
+			return that.cloneProps(new zim.Toggle(width, height, titleBar ? titleBar.clone() : "", titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, collapse, collapsed, style, this.group, inherit));
 		};
 		this.doDispose = function(a,b,disposing) {
 			// need to dispose properly for Panel
+			if (collapse) this.titleBar.off("dblclick", this.collapseEvent);
 			if (!disposing) this.zimContainer_dispose(true);
 			return true;
 		}
@@ -26044,6 +26081,7 @@ continuousMax - get or set the continuousMax if continuous is set to true
 backing - gives access to the dial backing Circle
 inner and inner2 give access to any inner circles
 ticks - gives access to the ticks (to scale these for example)
+labels - access to the labels container if useLabels is true
 accent - gives access to the access Shape
 accentBacking - gives access to the accessBacking Shape
 indicator - gives access to the indicator container with registration point at the dial center
@@ -36224,7 +36262,7 @@ PARAMETERS
 call - the function to call when clicked
 	call will receive the event object as a parameter (with target, currentTarget, etc. properties)
 distance - (default 5) distance in pixels within which the mouseup must occur for a click to be counted
-time - (default 10000) time in ms within which the mouseup must occur for a click to be counted
+time - (default 8) time in ms within which the mouseup must occur for a click to be counted
 once - (default false) set to true to capture only one click then auto-remove listeners
 
 RETURNS obj for chaining
@@ -36233,7 +36271,8 @@ RETURNS obj for chaining
 		z_d("47.8");
 		if (zot(obj) || zot(call) || typeof call != "function") return;
 		if (zot(distance)) distance = 5;
-		if (zot(time)) time = 10000;
+		var timeType = getTIME(time);
+		if (zot(time)) time = timeType=="s"?8:8000;
 		if (zot(once)) once = false;
 		obj.cursor = "pointer";
 		var stage;
@@ -36248,7 +36287,7 @@ RETURNS obj for chaining
 			var lastY = e.stageY / zim.scaY;
 			var startTime = Date.now();
 			obj.zimClickUpEvent = obj.on("pressup", function (e) {
-				if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < time) {
+				if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
 					if (obj.excludeTap) return;
 					call(e);
 				}
@@ -37170,7 +37209,7 @@ RETURNS obj for chaining
 	};//-33.15
 	
 /*--
-obj.effect = function()
+obj.effect = function(effect, x, y, width, height)
 
 effect
 zim DisplayObject method
@@ -37311,7 +37350,7 @@ EXAMPLE
 pic.wiggle("saturation", 0, 50, 100, 1, 3);
 
 // This is the same as the following (so may as well use above)
-pic.effect(new MultiEffect()).wiggle("effect.multi.saturation", 0, 50, 100, 1, 3);
+pic.effect(new MultiEffect()).wiggle("effects.multi.saturation", 0, 50, 100, 1, 3);
 END EXAMPLE
 
 PARAMETERS 
@@ -37339,7 +37378,7 @@ RETURNS obj for chaining
 				if (eff instanceof createjs.BlurFilter) eff.type = "BlurEffect";
 				else if (eff instanceof createjs.ColorFilter) eff.type = "ColorEffect";
 				else if (eff instanceof createjs.AlphaMaskFilter) eff.type = "AlphaEffect";
-				else if (eff instanceof createjs.ColorMatrixFilter) eff.type = "MultiEffect";			
+				else if (eff instanceof createjs.ColorMatrixFilter) eff.type = "MultiEffect";		
 	            else if (zot(eff.type)) eff.type = "custom"+customCount++;
 			}
 			var e = eff.type.replace(/effect/i, "");
@@ -37350,7 +37389,6 @@ RETURNS obj for chaining
             obj.filters.push(obj.effects[i]);
         } 
         obj.cache(x,y,width,height); 
-		
 		return obj;
 	};//-33.16
 	
@@ -37391,7 +37429,7 @@ RETURNS obj for chaining
 	};//-33.163
 
 /*--
-obj.noEffect = function()
+obj.noEffect = function(effects, cache)
 
 noEffect
 zim DisplayObject method
@@ -41275,12 +41313,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// -----------------------------
 		// NORMALIZED TWEEN COMING THROUGH
-
+		
 		if (zot(target)) return;		
 		if (!target.tweenStates) target.tweenStates = {all:true};	
 		
 		var fromCheck = false;
 		
+								
 		// Handle notes
 		if (obj.note) {
 			if (Array.isArray(obj.note)) { // random
@@ -41307,7 +41346,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		function isGetter (obj, prop) {
 		  return !!Object.getOwnPropertyDescriptor(obj, prop)['get'];
 		}
-
+		
+	
 		if (target.type == "Sprite" || !target.hasOwnProperty("paused")) {
 			Object.defineProperty(target, 'paused', {
 				get: function() {
@@ -41317,8 +41357,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					target.animatePaused = value;
 				}
 			});
-		}
-
+			target.paused = true;
+		}	
+		
 		// FOR END, RESET AND START of TWEEN
 		target.endTween = function(callType, ids) {
 			target.stopAnimate(ids);
@@ -41378,7 +41419,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				else if (o.match(/^.effects/)) {effectCheck = true;}
 			// } 
 		});
-				
+		
+			
 		target.resetTween = function(paused) {
 			if (zot(paused)) paused = true;
 			target.pauseAnimate();
@@ -41437,7 +41479,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.pathRatio = 0; // could be wrong setting this to 0
 			target.zimStartRotation = target.rotation;
 		}
-
+	
 		if (css) ticker = false;
 		if (zot(target.zimTweens)) target.zimTweens = {};
 
@@ -41473,7 +41515,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			obj.scaleX = obj.scaleY = zim.Pick.choose(obj.scale);
 			delete obj.scale;
 		}
-
 
 		// PROTECT LOOPS AND REWINDS WITH BUSY
 		// if protected or a loop or rewind is currently running for any of these properties
@@ -44654,7 +44695,6 @@ zim.Style = {
 	add:function(obj) {
 		if (!STYLE) STYLE = {};
 		STYLE = zim.merge(STYLE, obj);
-		zogg(STYLE)
 		return zim.Style;
  	},
 	addType:function(typeName, obj) {
@@ -46333,7 +46373,7 @@ Additional "mousedown", "click" or other button events can be added if desired
 
 	};
 	zim.extend(zim.Arrow, zim.Button, "clone", "zimButton", false);
-	//-71.2	
+	//-71.2
 		
 /*--
 zim.HotSpots = function(spots, local, mouseDowns)
@@ -49617,7 +49657,7 @@ will fill up the rest of the height until they reach their maximum widths
 				}
 				var diff = (tot-totP)/autoCount;				
 				for (i=0; i<autoMargins.length; i++) {
-					if (autoMargins[i]) {
+					if (autoMargins[i] && regions[i]) {
 						r = regions[i];
 						r.marginGiven = (r[marginMinPrimary]?r[marginMinPrimary]:0) + diff;
 					}
@@ -55301,16 +55341,13 @@ hideObject - boolean whether to true to hide the object but leave effect beneath
 			return new zim.GlowFilter(
 				(exact||!zim.isPick(oa[0]))?color :oa[0],
 				(exact||!zim.isPick(oa[1]))?alpha :oa[1],
-
 				(exact||!zim.isPick(oa[2]))?blurX :oa[2],
 				(exact||!zim.isPick(oa[3]))?blurY :oa[3],
 				(exact||!zim.isPick(oa[4]))?quality :oa[4],
-
 				(exact||!zim.isPick(oa[5]))?strength :oa[5],
 				(exact||!zim.isPick(oa[6]))?inner :oa[6],
 				(exact||!zim.isPick(oa[7]))?knockout :oa[7],
 				(exact||!zim.isPick(oa[8]))?knockout :oa[8],
-
 				style,this.group,inherit
 			);
 		};
@@ -55612,16 +55649,13 @@ hideObject - boolean whether to true to hide the object but leave effect beneath
 				(exact||!zim.isPick(oa[1]))?angle :oa[1],
 				(exact||!zim.isPick(oa[2]))?color :oa[2],
 				(exact||!zim.isPick(oa[3]))?alpha :oa[3],
-
 				(exact||!zim.isPick(oa[4]))?blurX :oa[4],
 				(exact||!zim.isPick(oa[5]))?blurY :oa[5],
 				(exact||!zim.isPick(oa[6]))?quality :oa[6],
-
 				(exact||!zim.isPick(oa[7]))?strength :oa[7],
 				(exact||!zim.isPick(oa[8]))?inner :oa[8],
 				(exact||!zim.isPick(oa[9]))?knockout :oa[9],
 				(exact||!zim.isPick(oa[10]))?hideObject :oa[10],
-
 				style,this.group,inherit
 			);
 		};
@@ -55968,36 +56002,24 @@ Consider pre-processing images if effects do not have to be dynamic.
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-// add a blur effect then remove it after 2 seconds
-var rect = new Rectangle()
-   .center()
-   .effect(new BlurEffect(20, 20));
-timeout(2, function () {
-   rect.effects.noEffect(); 
-   // // or if other effects to keep use: 
-   // rect.effects.noEffect("blur"); 
-   // // or to update effect use:
-   // rect.effects.blur.blurY = 200;
-   // rect.updateEffects();
-   // // can also store effect in variable and access properties on the variable
-   // // rather than on the effects property of the object
-   stage.update();
-});
+// add alpha mask effect with a transparent background png
+// ** preload the pic.png in the Frame call or with frame.loadAssets()
+var tile = new Tile(new Circle(10, purple), 20, 20)
+	.center()
+	.effect(new AlphaEffect(frame.asset("pic.png")))
+	.drag({all:true});
 END EXAMPLE
 
 EXAMPLE
-// add a 200 blurX effect and animate it to 0 rewind and looping
-STYLE = {blurX:200} // just showing using style...
-asset("image.png") // preloaded asset
-   .center()
-   .effect(new BlurEffect())
-   .animate({
-	   props:{"effects.blur.blurX":0},
-	   time:.7,
-	   rewind:true,
-	   rewindWait:.5,
-	   loop:true
-   });
+// add alpha mask as a gradient crop for an image
+// ** preload the pic.png in the Frame call or with frame.loadAssets()
+var pic = frame.asset("pic.png").center();
+var gradient = new RadialColor(
+	[clear,black],[.3,.5], // colors and ratios
+	pic.width/2,pic.height/2,Math.max(pic.width/2,pic.height/2), // start x, y and radius (or use Math.min())
+	pic.width/2,pic.height/2,0 // end x, y and radius
+);
+pic.effect(new AlphaEffect(new Rectangle(pic.width, pic.height, gradient)));
 END EXAMPLE
 
 PARAMETERS
@@ -56005,16 +56027,9 @@ PARAMETERS
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
 Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-color - |ZIM VEE| (default white) the color of the effect
-alpha - |ZIM VEE| (default 1) the alpha of the effect
-blurX - |ZIM VEE| (default 30) the blur in the x
-blurY - |ZIM VEE| (default 30) the blur in the y
-strength - |ZIM VEE| (default 1) the strength is how thickly the effect is applied
-quality - |ZIM VEE| (default 1) the number of effect iterations
-	A value of 2 will produce a smoother effect, but take twice as long to run, etc.
-inner - |ZIM VEE| (default false) set to true to add the effect to the inside of the object
-knockout - |ZIM VEE| (default false) set to true to cut out where the object is (including the effect)
-hideObject - |ZIM VEE| (default false) set to true to hide the object but leave effect beneath
+mask - |ZIM VEE| a ZIM Bitmap (or Canvas object) that will be the mask for the object
+	or can be any ZIM DisplayObject - this will be cached and use the cacheCanvas as the mask 
+	so for instance, could use a Rectangle with a GradientColor or RadialColor for a gradient mask
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -56023,19 +56038,11 @@ METHODS
 clone(exact) - clone the effect - set exact to true to match the ZIM VEE values exactly on cloning
 ALSO See the CreateJS Easel Docs for Filter methods, such as: getBounds()
 
-PROPERTIES
-** a reference to the effect object is also avalailable as obj.effects.blur 
-** after setting these properties call obj.updateEffects()
-** animate() and wiggle() do this automatically
-blurX - the blur in the x
-blurY - the blur in the y
-quality - the number of effect iterations
-
 --*///+69.9745
    zim.AlphaEffect = function(mask, style, group, inherit) {
 	   var sig = "mask, style, group, inherit";
 	   var duo; if (duo = zob(zim.AlphaEffect, arguments, sig, this)) return duo;
-	   z_d("69.9745");	
+	   z_d("69.9745");
 	   this.group = group;
 	   var DS = style===false?{}:zim.getStyle("AlphaEffect", group, inherit);
 
@@ -56046,6 +56053,8 @@ quality - the number of effect iterations
 	   var oa = remember(mask);	
 	   function remember() {return arguments;} 
 	   mask = zik(mask);
+	   if (mask.type == "Bitmap") mask = mask.image;
+	   else if (mask.cache) mask = mask.cache().cacheCanvas
 		   
 	   this.createjsAlphaMaskFilter_constructor(mask);
 	   this.type = "AlphaEffect";		
@@ -56059,7 +56068,7 @@ quality - the number of effect iterations
    }	
    zim.extend(zim.AlphaEffect, createjs.AlphaMaskFilter, "clone", "createjsAlphaMaskFilter", false);
    //-69.9745
-
+   
 /*--
 zim.Parallax = function(layers, damp, auto, stage, startPaused, mouseMoveOutside, clamp)
 
@@ -56365,6 +56374,7 @@ A flipped property tells you if it is flipped.
 There is a "flip" event for when it starts to flip and a "flipped" event for when it is done flipping.
 
 See: https://zimjs.com/cat/flipper.html
+See: https://zimjs.com/elearning/match.html
 See: https://codepen.io/zimjs/pen/LYRxprK
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
@@ -58432,6 +58442,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function sendEvent(type, object) {
+			if (zot(object)) return;
 			var e = new createjs.Event(type);
 			e.particle = object.trace?object.getChildAt(0):object;
 			that.dispatchEvent(e);
@@ -58448,6 +58459,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		function lastSpurt(p) {
 			that.pauseEmitter();
 			that.spurtCount = that.spurtNum = null;
+			if (zot(p)) return;
 			sendEvent("spurted", p);
 			p.endSpurt = true;
 		}
@@ -66327,7 +66339,7 @@ zim.setBlurDetect = function() {
 			setTimeout(function(){		
 				
 				// coming back from blur into focus so set back animations 	
-									
+													
 				if (zim.pauseOnBlur) {					
 					for (var i=0; i<zim.pauseOnBlur.length; i++) {
 						var obj = zim.pauseOnBlur[i];
@@ -66337,11 +66349,10 @@ zim.setBlurDetect = function() {
 				if (zim.pauseAnimateOnBlur && zim.animatedObjects) {	
 					for (var i=0; i<zim.animatedObjects.objects.length; i++) {
 						var obj = zim.animatedObjects.objects[i];	
-						var currentStates = zim.copy(obj.tweenStates);	
-																
+						var currentStates = zim.copy(obj.tweenStates);							
 						if (!obj.tweenStates) {
 							obj.pauseAnimate(false);
-						} else if (zot(currentStates.all) || currentStates.all) {						
+						} else if (zot(currentStates.all) || currentStates.all) {	
 							obj.pauseAnimate(false);
 							for (id in currentStates) {
 								if (id=="all") continue;
@@ -66349,13 +66360,14 @@ zim.setBlurDetect = function() {
 									obj.pauseAnimate(true, id);
 								}
 							}
-						} else {
+						} else {	
 							obj.pauseAnimate(true);
 							for (id in currentStates) {
 								if (id=="all") continue;
 								if (currentStates[id]) obj.pauseAnimate(false, id);
 							}
-						}										
+						}	
+						if (obj.type == "Sprite") obj.paused = true;										
 					}
 				}
 			},300);
@@ -68279,7 +68291,8 @@ https://codepen.io/zimjs/pen/ZqNYxX
 
 	//-151
 
-
 	return zim;
 } (zim || {});
+
+
 if (!window.zns) zimplify();
