@@ -639,7 +639,7 @@ var zim = function(zim) {
 // SUBSECTION FEATURED
 
 /*--
-zim.chop = function(obj, cols, rows, tile)
+zim.chop = function(obj, cols, rows, tile, margin)
 
 chop
 zim function
@@ -675,21 +675,30 @@ obj - a ZIM DisplayObject like an asset() or Circle(), etc.
 cols - the number of cols to break object into 
 rows - the number of rows to break object into 
 tile - (default true) return a Tile - set to false to return an array of Bitmaps 
+margin - (default 0) add a margin to image - will be outside bounds
 
 RETURNS a Tile or an array of Bitmaps depending on tile parameter
 --*///+7.8
-	zim.chop = function(obj, cols, rows, tile) {
+	zim.chop = function(obj, cols, rows, tile, margin) {
 		z_d("7.8");
 		if (zot(obj)) return;
 		if (zot(cols)) cols = 3;
 		if (zot(rows)) rows = 3;
 		if (zot(tile)) tile = true;
+		if (zot(margin)) margin = 0;
 		var w = obj.width/cols;
 		var h = obj.height/rows;
+		var m = margin;
 		var pieces = [];
 		loop(rows, function (r) {
 			loop(cols, function (c) {
-				pieces.push(new Bitmap(obj, w, h, c*w, r*h));
+				var p = new Bitmap(obj, w+m*2, h+m*2, c*w-m, r*h-m);
+				if (margin != 0) {
+					p.setBounds(m,m,w,h);
+					p.regX = m;
+					p.regY = m;
+				}
+				pieces.push(p);
 			});
 		});
 		if (tile) return new Tile(pieces,cols,rows,0,0,true);
@@ -1130,7 +1139,6 @@ end - (default length-1 or 0 for reverse) index to end
 RETURNS any value returned from the loop - or true if no value is returned from a loop
 --*///+9.5
 	zim.loop = function(obj, call, reverse, step, start, end) {
-
 		var sig = "obj, call, reverse, step, start, end";
 		var duo; if (duo = zob(zim.loop, arguments, sig)) return duo;
 		z_d("9.5");
@@ -1291,6 +1299,7 @@ button.on("click", function() {
 END EXAMPLE
 
 PARAMETERS
+** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 time - |ZIM VEE| seconds to wait until function is called
@@ -1316,6 +1325,8 @@ done - true if finished
 timeUnit - get the timeUnit used at start
 --*///+9.7
 	zim.timeout = function(time, call, pauseOnBlur, timeUnit) {
+		var sig = "time, call, pauseOnBlur, timeUnit";
+		var duo; if (duo = zob(zim.timeout, arguments, sig, this)) return duo;
 		z_d("9.7");
 		if (zot(call)) return;
 		if (typeof call != 'function') return;
@@ -1434,6 +1445,7 @@ interval(increase, dropBombs); // bombs will fall at 1 second, then again after 
 END EXAMPLE
 
 PARAMETERS
+** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 time - |ZIM VEE| (default 1) seconds for the interval (delay until the function runs - again and again)
@@ -1470,10 +1482,11 @@ paused - get the paused state of the interval (see pause() method)
 pauseTimeLeft - if paused, get how much time is left once unpaused
 --*///+9.8
 	zim.interval = function(time, call, total, immediate, pauseOnBlur, timeUnit) {
+		var sig = "time, call, total, immediate, pauseOnBlur, timeUnit";
+		var duo; if (duo = zob(zim.interval, arguments, sig, this)) return duo;
 		z_d("9.8");
 		if (zot(call)) return;
 		if (typeof call != 'function') return;
-
 
 		var timeType = getTIME(time, timeUnit);
 		if (zot(time)) time = timeType=="s"?1:1000;
@@ -2155,6 +2168,229 @@ RETURNS a hex color string
 		if (zot(ratio)) ratio = .5;
 		return zim.convertColor(String(color), "rgba", ratio);
 	};//-27.68
+	
+/*--
+zim.zimEase = function(points, polynomials, convert)
+
+zimEase
+zim function
+
+DESCRIPTION
+Returns an easing function to pass in to ZIM animate() - or CreateJS TweenJS 
+The points to pass in to zimEase() can be created at https://zimjs.com/ease
+At the top of the app there are default easing functions 
+but just use the build in easing function for most of these such as "quadOut", etc.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// go to https://zimjs.com/ease use the sliders and TEST the motion 
+// then press SAVE and copy the zimEase() code into ZIM animate()
+// this example makes very big forward, back, forward motion
+new Circle().loc(200,200).animate({
+	props:{x:400},
+	ease:zimEase([2.5,-0.5,-1,1]),
+	time:1.5
+});
+END EXAMPLE
+
+EXAMPLE
+// passing an array of two arrays will play the first for the first half 
+// and the second for the second half 
+// so here we pass an array of two arrays for a snapInOut effect
+// this is cool so it is now a set of eases: "snapIn", "snapOut", "snapInOut" - cheers GreenSock!
+new Circle().loc(200,200).animate({
+	props:{x:400},
+	ease:zimEase([[1.45,-0.57,0.67,0.55], [0.34,0.44,1.43,-0.31]]),
+	// ease:"snapInOut", // or use the new ZIM ease
+	time:2
+});
+END EXAMPLE
+
+PARAMETERS
+points - (default [.2,.4,.6,.8]) an array of 4 points to feed the equation - or an array of two arrays
+	use the tool at https://zimjs.com/ease and press SAVE to get these
+	the two ends are anchored at 0 and 1 and are the input to the quintic Bezier formula
+	If an array of two arrays is provided the first array is used for the first half of the tween (In) 
+	and the second array is used for the second half of the tween (Out)
+polynomials - (default null) an array of 5 points that are the results of the quintic Bezier formula 
+	linear would be [0,0,0,0,1] - use this if you are given the polynomials - who knows! 
+	otherwise see points.
+mirror - (default null) will duplicate the ease equation and reverse the second copy all within the provided time
+reverse - (default false) reverses the ease equation (does not work with mirror)
+lockEnds - (default true) this snaps the start and end to the real values - set to false to draw curve based on data, for instance.
+
+PROPERTIES  
+** The function result is an object that holds the easing equation in a noPick property 
+** this allows it to bypass the dynamic setting of ZIM VEE ease parameter.
+** Also in this object are the additional properties 
+points - the array of points or the array of arrays of points 
+polynomials - the array of final values or an array of arrays of final values
+
+RETURNS an easing function for ZIM animate() or CreateJS TweenJS 
+--*///+27.69
+	zim.zimEase = function(points, polynomials, mirror, reverse, lockEnds) {
+		z_d("27.69");
+		// with thanks to Timothée Groleau and all before
+		// http://www.timotheegroleau.com/Flash/experiments/easing_function_generator.htm
+		var two = false;
+		if (zot(lockEnds)) lockEnds=true;
+			
+		if (points) {
+			if (Array.isArray(points[1])) {
+				two = true;
+				points2 = points[1];
+				points = points[0];
+				var c0z = 0;
+				var c1z = points2[0];
+				var c2z = points2[1];
+				var c3z = points2[2];
+				var c4z = points2[3]; 
+				var c5z = 1; 
+				var ez = 5*(c1z - c0z);
+				var dz = 10*(c2z - c0z) - 4*ez;
+				var cz = 10*(c3z - c0z) + 30*(c1z - c2z);
+				var bz = 5*(c4z + c0z) - 20*(c3z + c1z) + 30*c2z;
+				var az = c5z - c0z - bz - cz - dz - ez; 
+			}
+			var c0 = 0;
+			var c1 = points[0];
+			var c2 = points[1];
+			var c3 = points[2];
+			var c4 = points[3]; 
+			var c5 = 1;	
+			var e = 5*(c1 - c0);
+			var d = 10*(c2 - c0) - 4*e;
+			var c = 10*(c3 - c0) + 30*(c1 - c2);
+			var b = 5*(c4 + c0) - 20*(c3 + c1) + 30*c2;
+			var a = c5 - c0 - b - c - d - e;  
+		} else if (polynomials) {
+			var a = polynomials[0];
+			var b = polynomials[1];
+			var c = polynomials[2];
+			var d = polynomials[3];
+			var e = polynomials[4];            
+			// calculate points - for consistent points property
+			var c1 = e / 5;
+			var c2 = (d+4*e)/10;
+			var c3 = (c + 6*e + 3*d)/10;
+			var c4 = (b + 4*e + 3*d + 2*c)/5;			
+		} else {
+			var a = 0;
+			var b = 0;
+			var c = 0;
+			var d = 0;
+			var e = 1;
+		}     
+		// return CreateJS ratio format with variables in enclosure
+		// looks like a lot of code but the tween code is just the function in noPick 
+		// so we are putting the conditionals outside this during the single assignment 
+		// this keeps the tween function fast as that runs at the framerate
+		
+		if (mirror) {
+			var rF = function(){
+				return zim.zimEase(null,[a,b,c,d,e],true) // mirror would be the same
+			};
+			var obj = {
+				reverse:rF,
+				points:[c1,c2,c3,c4], 
+				polynomials:[a,b,c,d,e]
+			}
+			obj.noPick = function(k) {				
+				if (lockEnds) {	
+					if (k<.025) return 0;
+					if (k>.975) return 1;		
+				}			
+				if (k<.5) {	
+					k*=2; // k needs to be 0-1 to get full tween			
+					var t = k*100;
+					var di = 100;
+					var ts=(t/=di)*t;
+					var tc=ts*t;        
+					// the completeness is divided by 2 	
+					return (a*tc*ts + b*ts*ts + c*tc + d*ts + e*t)/2;
+				} else {
+					k=1-(k-.5)*2; // we use the second half of k but spread it out from 0 to 1 for complete formula (reversed for mirror)
+					var t = k*100;
+					var di = 100;
+					var ts=(t/=di)*t;
+					var tc=ts*t;   
+					// the completeness is added to the second half and still divided by 2 (1 - for mirror)     
+					return 1-(a*tc*ts + b*ts*ts + c*tc + d*ts + e*t)/2;
+				}			
+			}					
+		} else if (two) { 
+			var rF = function(){
+				if (zon) zogy("zimEase - multi array points cannot be reversed");
+				return zim.zimEase(null,[a,b,c,d,e]) 
+			};
+			var obj = {
+				reverse:rF,
+				points:[[c1,c2,c3,c4],[c1z,c2z,c3z,c4z]], 
+				polynomials:[[a,b,c,d,e],[az,bz,cz,dz,ez]]
+			}
+			obj.noPick = function(k) {	
+				if (lockEnds) {	
+					if (k<.025) return 0;
+					if (k>.975) return 1;		
+				}				
+				if (k<.5) {	
+					k*=2; // k needs to be 0-1 to get full tween			
+					var t = k*100;
+					var di = 100;
+					var ts=(t/=di)*t;
+					var tc=ts*t;        
+					// the completeness is divided by 2      
+					return (a*tc*ts + b*ts*ts + c*tc + d*ts + e*t)/2;
+				} else {
+					k=(k-.5)*2; // we use the second half of k but spread it out from 0 to 1 for complete formula
+					var t = k*100;
+					var di = 100;
+					var ts=(t/=di)*t;
+					var tc=ts*t;        
+					// the completeness is added to the second half and still divided by 2      
+					return .5+(az*tc*ts + bz*ts*ts + cz*tc + dz*ts + ez*t)/2;
+				}
+			}				 				
+		} else {
+			var rF = function(){
+				return zim.zimEase(null,[a,b,c,d,e],null,true)
+			};			
+			var obj = {
+				reverse:rF,
+				points:[c1,c2,c3,c4], 
+				polynomials:[a,b,c,d,e]
+			}
+			if (reverse) {			
+				obj.noPick = function(k) {	
+					if (lockEnds) {	
+						if (k<.025) return 0;
+						if (k>.975) return 1;		
+					}				
+					var t = 100-k*100; // reverse the time
+					var di = 100;
+					var ts=(t/=di)*t;
+					var tc=ts*t;					   
+					return 1-(a*tc*ts + b*ts*ts + c*tc + d*ts + e*t); // reverse the percent done			    
+				} 	
+			} else {
+				obj.noPick = function(k) {
+					if (lockEnds) {	
+						if (k<.025) return 0;
+						if (k>.975) return 1;		
+					}	
+					var t = k*100;
+					var di = 100;
+					var ts=(t/=di)*t;
+					var tc=ts*t;					   
+					return (a*tc*ts + b*ts*ts + c*tc + d*ts + e*t);				    
+				} 	
+			}
+		}
+		obj.noPick.reverse = rF; // for once it is picked...
+		return obj;
+		
+	}//-27.69
 
 /*--
 zim.pointAlongCurve = function(points, ratio, getAngle)
@@ -3689,12 +3925,12 @@ lock - get or set the lock data being sent with each get() or post() (not put())
 			};
 			if (!zim.isJSON(data)) data = JSON.stringify(data);
 			if (that.couple) data = zim.couple(data);
-			var addMaster = !zot(that.master)?"&master="+encodeURI(that.master):"";
-			var addLock = !zot(that.lock)?"&lock="+encodeURI(that.lock):"";
+			var addMaster = !zot(that.master)?"&master="+encodeURIComponent(that.master):"";
+			var addLock = !zot(that.lock)?"&lock="+encodeURIComponent(that.lock):"";
 //			var addUnique = that.unique?"&unique=true":"";
-			var addCommand = !zot(command)?"&command="+encodeURI(command):"";
-			var addExtra = !zot(extra)?"&extra="+encodeURI(extra):"";
-			http.send("data="+data+addMaster+addLock+addCommand+addExtra);
+			var addCommand = !zot(command)?"&command="+encodeURIComponent(command):"";
+			var addExtra = !zot(extra)?"&extra="+encodeURIComponent(extra):"";
+			http.send("data="+encodeURIComponent(data)+addMaster+addLock+addCommand+addExtra);
 		};
 
 		this.put = function(url, data, callback) {
@@ -5566,7 +5802,7 @@ choices - a reference to the choices object provided as the Pick(choices) parame
                 if (zot(c.integer)) c.integer = false;
                 var val = zim.Pick.rand(c.min, c.max, c.integer, c.negative);
                 return val; // this is just a number in a range - no need for recursive
-            } else if (typeof c == "function") {
+            } else if (c instanceof Function) {
 				if (c.count==null) c.count=0;
 				else c.count++;
                 return zim.Pick.choose((c)(target)); // recursive
@@ -5838,7 +6074,7 @@ DESCRIPTION
 Matches PHP urlencode and urldecode functions
 for passing data on end of URL.
 NOTE: only encode values of key=value pairs (not keys and not both keys and values)
-NOTE: JSON automatically encodes and decodes
+NOTE: JSON automatically encodes and decodes - except maybe &
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -6071,7 +6307,7 @@ Might have set these on CreateJS DisplayObject
 	zim.displayBase = function(obj) {
 		if (!zim.zimDBCheck) {z_d("50.432"); zim.zimDBCheck=true;}
 		var that = obj;	
-		
+			
 		Object.defineProperty(obj, 'width', {
 			enumerable: true,
 			get: function() {
@@ -6170,16 +6406,18 @@ Might have set these on CreateJS DisplayObject
 			}
 		});
 			
-		var _name;
-		Object.defineProperty(that, 'name', {
-			get: function() {
-				return _name;
-			},
-			set: function(value) {
-				_name = value;
-				zim.zimObjectIDs[value] = that;
-			}
-		});
+		if (!that.name) {
+			var _name;
+			Object.defineProperty(that, 'name', {
+				get: function() {
+					return _name;
+				},
+				set: function(value) {
+					_name = value;
+					zim.zimObjectIDs[value] = that;
+				}
+			});
+		}
 		this._draggable;
 		Object.defineProperty(that, 'draggable', {
 			get: function() {
@@ -6300,7 +6538,7 @@ EVENTS
 See the CreateJS Easel Docs for Stage events, such as:
 mouseenter, mouseleave, stagemousedown, stagemousemove, stagemouseup, drawstart, drawend, etc.
 and all the Container events such as:
-click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.44
 zim.Stage = function(canvasID) {
 	z_d("50.44");
@@ -6332,6 +6570,11 @@ zim.Stage = function(canvasID) {
 		this.cjsStage_cache(a,b,c,d,scale,options);
 		return this;
 	};
+	this.on("mousedown", function(e) {
+		var e2 = e.clone();
+		e2.type = "pressdown";
+		e.target.dispatchEvent(e2);
+	}, undefined, false, undefined, true);	
 	this.loop = function(call, reverse, step, start, end) {
 		return zim.loop(this, call, reverse, step, start, end);
 	};
@@ -6451,7 +6694,7 @@ EVENTS
 See the CreateJS Easel Docs for StageGL events, such as:
 mouseenter, mouseleave, stagemousedown, stagemousemove, stagemouseup, drawstart, drawend, etc.
 and all the Container events such as:
-click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.45
 zim.StageGL = function(canvasID, options) {
 		z_d("50.45");
@@ -6483,6 +6726,11 @@ zim.StageGL = function(canvasID, options) {
 			this.cjsStageGL_cache(a,b,c,d,scale,options);
 			return this;
 		};
+		this.on("mousedown", function(e) {
+			var e2 = e.clone();
+			e2.type = "pressdown";
+			e.target.dispatchEvent(e2);
+		}, undefined, false, undefined, true);	
 		this.loop = function(call, reverse, step, start, end) {
 			return zim.loop(this, call, reverse, step, start, end);
 		};
@@ -6639,9 +6887,10 @@ cache(width||x, height||y, null||width, null||height, scale, options, margin) - 
 		eg. margin:10 will make the cache size 10 pixels more on all sides
 		this can be handy when caching objects with borders - that go half outside the natural bounds
 uncache() - uncaches and returns object for chaining
-setBounds(width||x, height||y, null||width, null||height) - overrides CreateJS setBounds() and returns object for chaining
+setBounds(width||x||Boundary, height||y, null||width, null||height) - overrides CreateJS setBounds() and returns object for chaining
 	If you do not provide the any parameters, then the bounds will be reset to the calculated bounds
-	width||x - (default null) the width of the bounds - or the x if four parameters are provided
+	width||x||Boundary - (default null) the width of the bounds - or the x if four parameters are provided
+		or a ZIM Boundary Object {x,y,width,height} - same as CreateJS Rectangle - thanks Joseph Diefenbach
 	height||y - (default width) the height of the bounds - or the y if four parameters are provided
 	width - (default null) the width of the bounds - or null if only the first two parameters are provided
 	height - (default null) the height of the bounds - or null if only the first two parameters are provided
@@ -6691,7 +6940,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.5
 	zim.Container = function(a, b, c, d, style, group, inherit) {
 		var sig = "a, b, c, d, style, group, inherit";
@@ -6717,15 +6966,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var bounds = [];
 			if (zot(a)) {
 				bounds = [a,b,c,d];
+			} else if (zot(b)) {
+				bounds = [a.x, a.y, a.width, a.height]; 			
 			} else if (!zot(c)) {
 				bounds[0] = a;
-				bounds[2] = c;
 				bounds[1] = b;
+				bounds[2] = c;
 				bounds[3] = d;
 			} else {
 				bounds[0] = 0;
-				bounds[2] = a;
 				bounds[1] = 0;
+				bounds[2] = a;
 				bounds[3] = b;
 			}
 			if (zot(bounds[3])) bounds[3] = bounds[2];
@@ -6802,7 +7053,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			return this;
 		};
-		
+			
 		zim.displayBase(that);
 		
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
@@ -6929,7 +7180,8 @@ lt()	lineTo
 a() 	arc
 at()	arcTo
 bt()	bezierCurveTo
-qt()	quadraticCurveTo
+ct()	curveTo
+qt()	quadraticCurveTo (same as curveTo)
 r() 	rect
 cp()	closePath
 c() 	clear
@@ -6951,6 +7203,7 @@ rc()	drawRoundRectComplex
 dc()	drawCircle
 de()	drawEllipse
 dp()	drawPolyStar
+pg()	polygon // added in ZIM CreateJS 1.3.3 (Diamond)
 p() 	decodePath
 cache(width||x, height||y, null||width, null||height, scale, options, margin) - overrides CreateJS cache() and returns object for chaining
 	If you do not provide the first four parameters, then the cache dimensions will be set to the bounds of the object
@@ -7011,7 +7264,7 @@ alpha, cursor, shadow, mouseEnabled, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Shape events, such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.6
 	zim.Shape = function(a, b, c, d, graphics, optimize, style, group, inherit) {
 		var sig = "a, b, c, d, graphics, optimize, style, group, inherit";
@@ -7050,14 +7303,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (!zot(a)) this.setBounds(n[0],n[1],n[2],n[3]); // es6 to fix
 
 		if (!optimize) {
-			var shorts = ["mt","lt","a","at","bt","qt","cp","c",
+			var shorts = ["mt","lt","a","at","bt","ct","qt","cp","c",
 			"f","lf","rf","bf","ef","ss","sd","s",
-			"ls","rs","bs","es","dr","rr","rc","dc","de","dp","p"];
+			"ls","rs","bs","es","dr","rr","rc","dc","de","dp","pg","p"];
 			for (var i=0; i<shorts.length; i++) {
 				~function() { // store each in closure to maintain name
 					var n = i;
 					that[shorts[n]] = function(){
-						that.graphics[shorts[n]].apply(that.graphics, arguments);
+						if (shorts[n]=="ct") that.graphics.curveTo.apply(that.graphics, arguments);
+						else that.graphics[shorts[n]].apply(that.graphics, arguments);
 						return that;
 					};
 				}();
@@ -7125,6 +7379,26 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.hasProp = function(prop) {
 			return (!zot(this[prop]) || this.hasOwnProperty(prop));
 		};
+		// this.pg = function(points, close) {
+		// 	if (!Array.isArray(points)) points = Array.from(arguments);
+		// 	var type = 	points[0].x != null?"obj":points[0][0] != null?"arr":"par";	
+		// 
+		// 	var p, fp, sp;
+		// 	if (type=="obj") p = points[0];
+		// 	else if (type=="arr") p = {x:points[0][0], y:points[0][1]||0};
+		// 	else p = {x:points[0], y:points[1]||0};
+		// 	fp = {x:p.x, y:p.y};
+		// 	this.mt(fp.x, fp.y);			
+		// 	for (var i=1; i<points.length; i++) {
+		// 		if (type=="obj") p = points[i];
+		// 		else if (type=="arr") p = {x:points[i][0], y:points[i][1]||0};
+		// 		else p = {x:points[i*2], y:points[i*2+1]||0};
+		// 		if (i==1) sp = {x:p.x, y:p.y};
+		// 		this.lt(p.x, p.y);								
+		// 	}	
+		// 	this.lt(fp.x, fp.y).lt(sp.x, sp.y); // go around to second point to get correct end bevel/miter
+		// 	return this;
+		// }
 		
 		zim.displayBase(that);	
 		
@@ -7348,7 +7622,7 @@ alpha, cursor, shadow, mouseEnabled, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Bitmap events, such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.7
 zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit) {
 	var sig = "image, width, height, left, top, id, style, group, inherit";
@@ -7440,7 +7714,7 @@ zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit
 	};
 		
 	this.clone = function() {
-		var c = this.cloneProps(new zim.Bitmap(image, null, null, null, null, that.fileID, style, this.group, inherit));
+		var c = this.cloneProps(new zim.Bitmap(image, width, height, left, top, that.fileID, style, this.group, inherit));
 		c.cloned = true;
 		return c;
 	};
@@ -7773,7 +8047,7 @@ alpha, cursor, shadow, mouseEnabled, etc.
 
 EVENTS
 See the CreateJS Easel Docs for Sprite events, such as:
-animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.8
 	zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, frame, style, group, inherit) {
 		var sig = "image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, frame, style, group, inherit";
@@ -8173,6 +8447,9 @@ The zimTween property returns a CreateJS Tween object.
 Primarily made to support Adobe Animate MovieClip export.
 *Consider this experimental for the moment...
 
+NOTE: to use animate() on a MovieClip, add the MovieClip to a Container and animate() the Container
+otherwise the animate() may advance the MovieClip.
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -8181,10 +8458,10 @@ var circle = new Circle(20, blue).animate({
 	props:{scale:3}, time:.1, rewind:true, loop:true
 });
 
-// time is in frames NOT in ms - so 100 frames at the Ticker.framerate 60 fps by default is almost 2 seconds
-// note that to change the Ticker's framerate use setFPS(mobile, desktop) method
-// if you use one number then both mobile and desktop are set to that fps.
-// Note that the defaults are 30 fps mobile and 60 fps desktop
+// Time is in frames NOT in ms - so 100 frames at the Ticker.framerate 60 fps by default is almost 2 seconds
+// To change the Ticker's framerate use setFPS(mobile, desktop) method
+// If you use one number then both mobile and desktop are set to that fps.
+// The defaults are 60 fps mobile (as of ZIM Cat 04) and 60 fps desktop
 
 movieClip.timeline.addTween(circle.zimTween);
 movieClip.play();
@@ -8249,7 +8526,7 @@ alpha, cursor, shadow, mouseEnabled, parent, etc.
 
 EVENTS
 See the CreateJS Easel Docs for MovieClip events, such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.9
 	zim.MovieClip = function(mode, startPosition, loop, labels, style, group, inherit) {
 		var sig = "mode, startPosition, loop, labels, style, group, inherit";
@@ -8327,7 +8604,7 @@ Thank you https://github.com/colinmeinke/svg-arc-to-cubic-bezier for the Arc con
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-var svgContainer = new SVGContainer(frame.asset("sample.svg")).addTo();
+var svgContainer = new SVGContainer(asset("sample.svg")).addTo();
 
 // OR
 
@@ -8340,7 +8617,7 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-svg - an SVG file loaded into a frame.asset() or SVG text
+svg - an SVG file loaded into an asset() or SVG text
 splitTypes - (default false) - set to true to split different types of paths into separate objects
 geometric - (default true) - set to false to load Rectangle and Circle objects as Blob objects
 showControls - (default true) set to false to start with controls not showing
@@ -8376,7 +8653,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.95
 
 	zim.SVGContainer = function(svg, splitTypes, geometric, showControls, interactive, style, group, inherit) {
@@ -8385,6 +8662,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		z_d("50.95");
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("SVGContainer", this.group, inherit);
+
+		if (svg && svg.type == "Bitmap") svg = svg.svg; // svg is now loaded into a Bitmap automatically in Frame
 
 		var that = this;
 		var startPosition = new zim.Point(0,0); // the x,y of the last shape
@@ -9702,7 +9981,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+51
 	zim.Circle = function(radius, color, borderColor, borderWidth, dashed, percent, percentClose, strokeObj, style, group, inherit) {
 		var sig = "radius, color, borderColor, borderWidth, dashed, percent, percentClose, strokeObj, style, group, inherit";
@@ -9928,7 +10207,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+52
 zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner, dashed, strokeObj, style, group, inherit) {
     var sig = "width, height, color, borderColor, borderWidth, corner, dashed, strokeObj, style, group, inherit";
@@ -10023,7 +10302,7 @@ zim.extend(zim.Rectangle, zim.CustomShape, "clone", "zimCustomShape", false);
 //-52
 
 /*--
-zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust, dashed, strokeObj, style, group, inherit)
+zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center, adjust, dashed, strokeObj, style, group, inherit)
 
 Triangle
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -10065,6 +10344,8 @@ a, b and c - |ZIM VEE| (default 100) the lengths of the sides
 color - |ZIM VEE| (default "black") the fill color as any CSS color including "rgba()" for alpha fill (set a to 0 for tranparent fill)
 borderColor - |ZIM VEE| (default null) the stroke color
 borderWidth - |ZIM VEE| (default 1 if stroke is set) the size of the stroke in pixels
+corner - (default 0) the round of corner
+   can also be an array of [bottomLeft, bottomRight, top]
 center - (default true) puts the registration point to the center
 adjust - (default 0) pixels to bring center towards vertical base
 	the actual center is not really the weighted center
@@ -10122,6 +10403,7 @@ borderColorCommand - access to the CreateJS stroke command for bitmap, linearGra
 borderWidth - get and set the stroke size in pixels
 borderWidthCommand - access to the CreateJS stroke style command (width, caps, joints, miter, ignoreScale)
 	See: https://www.createjs.com/docs/easeljs/classes/Graphics.StrokeStyle.html
+corner - get or set the corner or array of corners (see corner parameter)
 dashed - get and set the dashed - use true / false or an array (see dashed parameter)
 dashedOffset - get and set the offset of the dash (50 default) - can animate this property for a marquee effect
 borderDashedCommand - access to the CreateJS stroke dashed command (segments, offset)
@@ -10142,10 +10424,10 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53
-zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust, dashed, strokeObj, style, group, inherit) {
-    var sig = "a, b, c, color, borderColor, borderWidth, center, adjust, dashed, strokeObj, style, group, inherit";
+zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center, adjust, dashed, strokeObj, style, group, inherit) {
+    var sig = "a, b, c, color, borderColor, borderWidth, corner, center, adjust, dashed, strokeObj, style, group, inherit";
     var duo; if (duo = zob(zim.Triangle, arguments, sig, this)) return duo;
     z_d("53");
     this.zimCustomShape_constructor(null,null,null,null,false);
@@ -10157,6 +10439,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust
     if (zot(b)) b = DS.b!=null?DS.b:a;
     if (zot(c)) c = DS.c!=null?DS.c:b;
     if (c==-1) c = Math.sqrt(Math.pow(a,2)+Math.pow(b,2));
+	if (zot(corner)) corner = DS.corner!=null?DS.corner:0;
     if (zot(center)) center = DS.center!=null?DS.center:true;
     if (zot(adjust)) adjust = DS.adjust!=null?DS.adjust:0;
     if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
@@ -10186,6 +10469,8 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust
     that._borderWidth = borderWidth;
     that._dashed = dashed;
     if (that._dashed && !Array.isArray(that._dashed)) that._dashed = [10, 10];
+	that._corner = corner;
+
 
     var lines = [a,b,c];
     lines.sort(function(a, b){return b-a;});
@@ -10205,6 +10490,13 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust
 
     var g = tri.graphics;
     that.drawShape = function() {
+		var corners = [];		
+		if (Array.isArray(that._corner)) corners = that._corner;
+		else corners.push(that._corner, that._corner, that._corner);
+		for(var i=0; i<3; i++) {
+			if (corner[i] < 0 || typeof corner[i] != "number") corner[i] = 0;
+		}
+		
         g.c();
         that.colorCommand = g.f(that._color).command;
         if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color);
@@ -10218,9 +10510,12 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust
                 if (that._dashed) that.borderDashedCommand = g.sd(Array.isArray(that._dashed)?that._dashed:[10, 10], that._dashedOffset).command;
             }
         }
-        g.mt(0,0);
-        that.one={x:0,y:0};
-        g.lt(a,0);
+		
+		// g.mt(5,100)
+		// g.at(100,100, 0,0, 15).at(0,0, 0,100, 5).at(0,100,100,100, 5)
+		
+        
+        that.one={x:0,y:0};        
         that.two={x:a,y:0};
 
         // find biggest angle with cosine rule
@@ -10246,10 +10541,18 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, center, adjust
         var height = upY;
         that.setBounds(0,adjust,width,height);
         tri.y = height;
-
-        g.lt(a-backX,0-upY);
+			
         that.three={x:a-backX,y:0-upY};
-        g.cp();
+				
+		var sX = a*corners[0]/((corners[0]+corners[1])||1);
+		g
+			.mt(sX,0)
+			.at(a,0, a-backX,0-upY, corners[1])
+			.at(a-backX,0-upY, 0,0, corners[2])
+			.at(0,0, a,0, corners[0])
+			.lt(sX,0);
+			
+		g.cp();
 
         if (center) {
             that.regX = width/2;
@@ -10391,7 +10694,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.1
 	zim.Poly = function(radius, sides, pointSize, color, borderColor, borderWidth, dashed, strokeObj, style, group, inherit) {
 		var sig = "radius, sides, pointSize, color, borderColor, borderWidth, dashed, strokeObj, style, group, inherit";
@@ -10647,7 +10950,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.15
 	zim.Line = function(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, style, group, inherit) {
 		var sig = "length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, style, group, inherit";
@@ -10684,7 +10987,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		endHead = zim.Pick.choose(endHead);
 		// do below otherwise will be the same head and get moved if cloned
 		if (startHead && startHead.clone) startHead = startHead.clone();
-		if (startHead && endHead.clone) endHead = endHead.clone();
+		if (endHead && endHead.clone) endHead = endHead.clone();
 
 		var that = this;
 		that._length = length;
@@ -11404,7 +11707,7 @@ dispatches an "update" event if the points are changed or a point is added or re
 	so any custom listeners on shape and controls will need to be re-applied - use the update event to do so
 dispatches a "traversed" event when traverse() is done - the event object has an obj property for the traversing object
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 
 MORE
 https://zimjs.com/squiggle
@@ -12219,7 +12522,7 @@ Note the points property has been split into points and pointObjects (and there 
 						var textArea = that.textArea = new zim.TextArea(Math.min(400, that.stage.width-70), Math.min(400, that.stage.height-70));
 						textArea.centerReg(pane);
 					}
-					that.textArea.text = JSON.stringify(points);
+					that.textArea.text = JSON.stringify(points);					
 					that.pane.show();
 				}
 				return points;
@@ -13348,7 +13651,7 @@ dispatches an "update" event if the points are changed or a point is added or re
 	so any custom listeners on shape and controls will need to be re-applied - use the update event to do so
 dispatches a "traversed" event when traverse() is done - the event object has an obj property for the traversing object
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.5
 	zim.Blob = function(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, stickColor, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit) {
 		var sig = "color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, stickColor, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit";
@@ -14121,9 +14424,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						});
 						var textArea = that.textArea = new zim.TextArea(Math.min(400, that.stage.width-70), Math.min(400, that.stage.height-70));
 						textArea.centerReg(pane);
-					}
+					} 
+					pane.show();		
 					textArea.text = JSON.stringify(points);
-					pane.show();
 				}
 				return points;
 			};
@@ -15130,7 +15433,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.6
 	zim.Flare = function(color, borderColor, borderWidth, crossAngle, thickness, thicknessA, thicknessB, pin, startX, startY, lengths, angles, anglesA, anglesB, anglesEnd, cross, crossColors, close, dashed, strokeObj, spineColor, spineBorderWidth, spineBorderColor, spineDashed, spineStrokeObj, closeColor, closeBorderWidth, closeBorderColor, closeDashed, closeStrokeObj, style, group, inherit) {
 		var sig = "color, borderColor, borderWidth, crossAngle, thickness, thicknessA, thicknessB, pin, startX, startY, lengths, angles, anglesA, anglesB, anglesEnd, cross, crossColors, close, dashed, strokeObj, spineColor, spineBorderWidth, spineBorderColor, spineDashed, spineStrokeObj, closeColor, closeBorderWidth, closeBorderColor, closeDashed, closeStrokeObj, style, group, inherit";
@@ -15777,7 +16080,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.7
 	zim.MultiFlare = function(flares, pins, angles, endToEnd, style, group, inherit) {
 		var sig = "flares, pins, angles, endToEnd, style, group, inherit";
@@ -15999,7 +16302,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.8
 	zim.FlareBox = function(width, height, color, borderColor, borderWidth, flares, corners, pins, style, group, inherit) {
 		var sig = "width, height, color, borderColor, borderWidth, flares, corners, pins, style, group, inherit";
@@ -16076,7 +16379,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 // SUBSECTION COMPONENTS
 
 /*--
-zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit)
+zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, group, inherit)
 
 Label
 zim class - extends a zim.Container which extends a createjs.Container
@@ -16165,6 +16468,7 @@ labelHeight - (default null) the height of the text - setting this will probably
 	for labelHeight to work, the labelWidth must also be set
 	using labelWidth and labelHeight together allow you to fit as much text into specified width and height dimensions
 maxSize - (default null) set to limit the font size when using labelWidth and labelHeight
+splitWords - (default false) set to true when lineWidth > 0 to split words at the line width
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -16235,10 +16539,10 @@ if set to true, you will have to stage.update() after setting certain properties
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54
-	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit) {
-		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit";
+	zim.Label = function(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, group, inherit) {
+		var sig = "text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, group, inherit";
 		var duo; if (duo = zob(zim.Label, arguments, sig, this)) return duo;
 		z_d("54");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -16252,7 +16556,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(color)) color=DS.color!=null?DS.color:"black";
 		if (zot(bold)) bold=DS.bold!=null?DS.bold:false;
 		if (zot(italic)) italic=DS.italic!=null?DS.italic:false;
-
 
 		var oa = remember(text, size, font, color, bold, italic);
 		function remember() {return arguments;}
@@ -16294,6 +16597,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(labelHeight)) labelHeight = DS.labelHeight!=null?DS.labelHeight:null;
 		if (zot(maxSize)) maxSize = DS.maxSize!=null?DS.maxSize:null;
 		size = maxSize?Math.min(size, maxSize):size;
+		if (zot(splitWords)) splitWords=DS.splitWords!=null?DS.splitWords:false;
 
 		var retina = (typeof zdf!="undefined"&&zdf.retina);
 		
@@ -16308,12 +16612,75 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		options[2] = bold?"bold":"normal";
 		options[3] = size+"px";
 		options[4] = font;
-
-		var obj = this.label = new createjs.Text(String(text), options.join(" "), color);
+		var opt = options.join(" ");
+		var text = String(text);
+		var obj;
+		
+		function makeLabel(t) {
+			var o = new createjs.Text(t, opt, color);
+			o.lineWidth = lineWidth;
+			o.lineHeight = lineHeight;
+			return o;	
+		}	
+		obj = makeLabel(text);
+		
+		if (splitWords && lineWidth > size * 1.2) { // approximate
+			// measure lines to make sure not going past lineWidth		
+			function testLine(l, w, line) {
+				var endIndex = Math.ceil(lineWidth/w*line.length);
+				var start = line.substr(0,endIndex);
+				var l2 = makeLabel(start);
+				var w2 = l2.getMeasuredWidth();
+				if (w2 > lineWidth) {
+					while (w2 > lineWidth) {
+						endIndex--;
+						start = line.substr(0,endIndex)
+						l2 = makeLabel(start);
+						w2 = l2.getMeasuredWidth();
+					}
+				} else if (w2 < lineWidth) {
+					while (w2 < lineWidth) {
+						endIndex++;
+						start = line.substr(0,endIndex)
+						l2 = makeLabel(start);
+						w2 = l2.getMeasuredWidth();
+					}							
+					endIndex--;
+					start = line.substr(0,endIndex)
+				} 
+				var end = line.substr(endIndex, line.length);
+				return {endIndex:endIndex, start:start, end:end};
+			}		
+			var metrics = obj.getMetrics();
+			var wCount = 0;
+			while (metrics.width > lineWidth && wCount < 1000) {
+				wCount++;
+				zim.loop(metrics.lines, function(line, i) {
+					line = line.replace(/^[\s\t]+/, "");
+					var l = makeLabel(line);
+					var w = l.getMeasuredWidth();					
+					if (w > lineWidth) {						
+						var dat = testLine(l, w, line);	
+						metrics.lines[i] = dat.start;
+						// move extra letters into the next line if there is one
+						if (metrics.lines.length > i+1) {  							
+							dat.end.trim();
+							metrics.lines[i+1] = dat.end + " " + metrics.lines[i+1];
+						} else {
+							metrics.lines.push(dat.end);
+						}
+						obj = makeLabel(metrics.lines.join(" "));
+						metrics = obj.getMetrics();
+						return false;
+					}					
+				}); // end line loop					
+			} // end while	
+		} // end split test		
+		
+		this.label = obj;
 		obj.textAlign = align;
-		obj.lineWidth = lineWidth;
-		obj.lineHeight = lineHeight;
 		obj.textBaseline = "alphabetic";
+		
 		if (outlineWidth > 0) {
 			var obj2 = this.outlineLabel = obj.clone();
 			obj2.color = outlineColor;
@@ -16672,7 +17039,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		zim.styleTransforms(this, DS);
 		this.clone = function(exact) {
 			return that.cloneProps(new zim.Label((exact||!zim.isPick(oa[0]))?that.text:oa[0], (exact||!zim.isPick(oa[1]))?size:oa[1], (exact||!zim.isPick(oa[2]))?font:oa[2], (exact||!zim.isPick(oa[3]))?color:oa[3], rollColor, shadowColor, shadowBlur, align, valign, (exact||!zim.isPick(oa[4]))?bold:oa[4], (exact||!zim.isPick(oa[5]))?italic:oa[5], variant, lineWidth, lineHeight,
-				!zot(backing)?backing.clone(exact):null, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, this.group, inherit));
+				!zot(backing)?backing.clone(exact):null, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, this.group, inherit));
 		};
 	};
 	zim.extend(zim.Label, zim.Container, "clone", "zimContainer");
@@ -16779,7 +17146,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.5
 
 zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowToggle, interactive, onTop, style, group, inherit) {
@@ -17054,7 +17421,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.55
 
 zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, letterSpacing, angles, showCircle, arcColor, arcBorderColor, arcBorderWidth, radiusSpread, style, group, inherit) {
@@ -17288,7 +17655,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.57
 
 	zim.LabelLetters = function(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, style, group, inherit) {
@@ -17328,6 +17695,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			label.text = data.text;
 		}
 		that.text = data.original;
+		that._color = label.color;
 		
 		function parseHTML(html) {
 			var data = [];
@@ -17755,13 +18123,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		this.regX = this.getBounds().x;
 		this.regY = this.getBounds().y;
 
+		
 		Object.defineProperty(this, 'color', {
 			get: function () {
-				return this.color;
+				return this._color;
 			},
 			set: function (value) {
-				this.color = value;
-				for (var i = 0; i < that.numChildren; i++) { that.getChildAt(i).color = this.color; }
+				this._color = value;
+				for (var i = 0; i < that.numChildren; i++) { that.getChildAt(i).color = this._color; }
 				if (that.stage) that.stage.update();
 			}
 		});
@@ -17987,7 +18356,7 @@ for example seeing toggle take effect
 EVENTS
 dispatches a "waited" event if button is in wait state and the wait time has completed
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+55
 	zim.Button = function(width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBackgroundColor, rollToggleBackgroundColor, toggleColor, rollToggleColor, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, align, valign, indent, indentHorizontal, indentVertical, style, group, inherit) {
 		var sig = "width, height, label, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBackgroundColor, rollToggleBackgroundColor, toggleColor, rollToggleColor, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, waitBacking, rollWaitBacking, waitIcon, rollWaitIcon, align, valign, indent, indentHorizontal, indentVertical, style, group, inherit";
@@ -18003,6 +18372,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (zot(backgroundColor)) backgroundColor=DS.backgroundColor!=null?DS.backgroundColor:"#C60";
 		if (zot(rollBackgroundColor)) rollBackgroundColor=DS.rollBackgroundColor!=null?DS.rollBackgroundColor:"#F93";
+		var oColor = color;
+		var oRollColor = rollColor;
 		if (zot(color)) color=DS.color!=null?DS.color:"white";
 		if (zot(rollColor)) rollColor=DS.rollColor!=null?DS.rollColor:"white";
 
@@ -18036,7 +18407,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (toggleOkay && zot(toggleEvent)) toggleEvent = zim.mobile()?"mousedown":"click";
 		// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
 		if (typeof label === "string" || typeof label === "number") label = new zim.Label({
-			text:label, size:DS.size!=null?DS.size:36, font:DS.font!=null?DS.font:"arial", color:DS.color!=null?DS.color:color, rollColor:DS.rollColor!=null?DS.rollColor:rollColor, align:align, valign:valign, rollPersist:DS.rollPersist!=null?DS.rollPersist:false,
+			text:label, size:DS.size!=null?DS.size:36, font:DS.font!=null?DS.font:"arial", color:DS.color!=null&&oColor==null?DS.color:color, rollColor:DS.rollColor&&oRollColor==null!=null?DS.rollColor:rollColor, align:align, valign:valign, rollPersist:DS.rollPersist!=null?DS.rollPersist:false,
 			backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", padding:"ignore", backgroundColor:"ignore", shiftVertical:DS.shiftVertical!=null?DS.shiftVertical:0, shiftHorizontal:DS.shiftHorizontal!=null?DS.shiftHorizontal:0,
 			style:false, group:this.group
 		});
@@ -18717,7 +19088,7 @@ EVENTS
 dispatches a "change" event when pressed on but not when the checked property is set
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+56
 	zim.CheckBox = function(size, label, startChecked, color, backgroundColor, borderColor, borderWidth, corner, margin, indicatorType, indicatorColor, tap, style, group, inherit) {
 		var sig = "size, label, startChecked, color, backgroundColor, borderColor, borderWidth, corner, margin, indicatorType, indicatorColor, tap, style, group, inherit";
@@ -18996,7 +19367,7 @@ dispatches a "change" event when pressed but not when selectedIndex is set
 then ask for the properties above for info
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+57
 	zim.RadioButtons = function(size, buttons, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, selectedIndex, style, group, inherit) {
 		var sig = "size, buttons, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, selectedIndex, style, group, inherit";
@@ -19316,7 +19687,7 @@ EVENTS
 dispatches a "change" event when pressed but not when toggle() is used
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+57.5
 	zim.Toggle = function(width, height, label, startToggled, backgroundColor, margin, indicatorType, indicatorColor, tap, toggleBackgroundColor, color, borderColor, borderWidth, corner, indicatorCorner, shadowColor, shadowBlur, time, labelLeft, style, group, inherit) {
         var sig = "width, height, label, startToggled, backgroundColor, margin, indicatorType, indicatorColor, tap, toggleBackgroundColor, color, borderColor, borderWidth, corner, indicatorCorner, shadowColor, shadowBlur, time, labelLeft, style, group, inherit";
@@ -19479,7 +19850,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-57.5
 
 /*--
-zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, inherit)
+zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, splitWords, style, group, inherit)
 
 Tip
 zim class - extends a a zim.Label which extends a zim.Container which extends a createjs.Container
@@ -19562,9 +19933,10 @@ labelHeight - (default null) the height of the text - setting this will probably
    for labelHeight to work, the labelWidth must also be set
    using labelWidth and labelHeight together allow you to fit as much text into specified width and height dimensions
 maxSize - (default null) set to limit the font size when using labelWidth and labelHeight
-bold - (default null) set to true to bold the tip
-italic - (default null) set to true to italic the tip
-variant - (default null) set to true to set the tip to small caps
+bold - (default false) set to true to bold the tip
+italic - (default false) set to true to italic the tip
+variant - (default false) set to true to set the tip to small caps
+splitWords - (default false) set to true to split words when wrapping
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -19602,10 +19974,10 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+57.6
-	zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, style, group, inherit) {
-        var sig = "text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, style, group, inherit";
+	zim.Tip = function(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, splitWords, style, group, inherit) {
+        var sig = "text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, splitWords, style, group, inherit";
         var duo; if (duo = zob(zim.Tip, arguments, sig, this)) return duo;
 		z_d("57.6");
 
@@ -19628,7 +20000,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(shadowColor) || shadowColor=="ignore") shadowColor=(DS.shadowColor!=null&&shadowColor!="ignore")?DS.shadowColor:"rgba(0,0,0,.3)";
 		if (zot(shadowBlur) || shadowBlur=="ignore") shadowBlur=(DS.shadowBlur!=null&&shadowBlur!="ignore")?DS.shadowBlur:1;
 
-		this.zimLabel_constructor(text, size, font, color, rollColor, null, null, textAlign, textValign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, group, zim.copy(DS));
+		this.zimLabel_constructor(text, size, font, color, rollColor, null, null, textAlign, textValign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, group, zim.copy(DS));
 		this.type = "Tip";
 
 		if (outside) {
@@ -19717,7 +20089,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style !== false) zim.styleTransforms(this, DS);
 		this.clone = function () {
-			return that.cloneProps(new zim.Tip(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, style, this.group, inherit));
+			return that.cloneProps(new zim.Tip(text, align, valign, margin, marginH, marginV, outside, target, size, font, color, rollColor, shadowColor, shadowBlur, textAlign, textValign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, this.group, inherit));
 		};
     };
 	zim.extend(zim.Tip, zim.Label, "clone", "zimLabel", false);
@@ -19843,7 +20215,7 @@ dispatches a "change" event when arrow is pressed to go to the next panel
 dispatches a "close" event when closed with close button if there is a close button
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+57.7
 	zim.Panel = function(width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, collapse, collapsed, style, group, inherit) {
         var sig = "width, height, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, arrow, align, shadowColor, shadowBlur, draggable, boundary, extraButton, collapse, collapsed, style, group, inherit";
@@ -20115,8 +20487,8 @@ resets - (default true) resets position to start on re-open - set to false to ke
 modal - (default true) pane will close when user clicks off the pane - set to false to keep pane open
 corner - (default 20) is the corner radius - set to 0 for no corner
 	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
-backdropColor - (default rgba(0,0,0,.2)) the color of the background that fills the stage
-shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
+backdropColor - (default "rgba(0,0,0,.2)") the color of the background that fills the stage
+shadowColor - (default "rgba(0,0,0,.3)") set to -1 for no shadow
 shadowBlur - (default 20) how blurred the shadow is if shadow is set
 center - (default true) centers the pane
 	if center is false you will have to set x and y for the pane
@@ -20195,7 +20567,7 @@ dispatches a "fadedin" event if fadeTime is set and pane has finished its fade i
 dispatches a "fadedout" event if fadeTime is set and pane has finished its fade out animation
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+58
 	zim.Pane = function(width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, group, inherit) {
 		var sig = "width, height, label, backgroundColor, color, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, style, group, inherit";
@@ -20513,6 +20885,8 @@ NOTE: if zim namespace zns = true then this overwrites a JS Window - so the JS W
 NOTE: set the enable property to false if animating the position of the whole Window
 then set the enable property to true on the animate call function.  See update() method for more.
 
+NOTE: to add ZIM Swipe() to objects in window set the overrideNoSwipe parameter of Swipe to true
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -20659,7 +21033,7 @@ dispatches a "slidestart" event if slide is true and window starts sliding (on p
 dispatches a "slidestop" event if slide is true and window stops sliding
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+58.1
 	zim.Window = function(width, height, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, style, group, inherit) {
 		var sig = "width, height, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, interactive, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, style, group, inherit";
@@ -21179,7 +21553,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						that.dispatchEvent("slidestart");
 					});
 					content.removeAllEventListeners("slidestop");
-					content.on("slidestop", function () {
+					content.on("slidestop", function (e) {
+						if (slide) stageUp(e);
 						that.dispatchEvent("slidestop");
 					});
 					if (content.getBounds() && content.getBounds().width > 0) {
@@ -21327,12 +21702,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			window.addEventListener("DOMMouseScroll", that.scrollWindow);
 		}
 		var dampCheck = false;
-		var dampY;
+		var dampY;		
 		function makeDamp(obj) {
 			if (damp && !dampCheck && obj.stage) {
 				dampCheck = true;
 				dampY = new zim.Damp(that.scrollY, damp);
-				zim.Ticker.add(function() {
+				that.dampTicker = zim.Ticker.add(function() {
 					if (swipeCheck) return;
 					if (!zot(desiredY)) that.scrollY = dampY.convert(desiredY);
 				}, obj.stage);
@@ -21464,6 +21839,7 @@ SEE: Docs for ZIM Pages() as well to handle multiple pages.
 SEE: ZIM Panel(), ZIM Pane() and ZIM Window() for alternatives.
 
 NOTE A Page object will start with one child or two children if a pattern is specified.
+NOTE Do not use Page with Layout as it will overlay the region backgroundColors - instead use a Container 
 NOTE as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -21524,7 +21900,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+58.3
 	zim.Page = function(width, height, color, color2, vertical, pattern, scalePattern, cache, style, group, inherit) {
 		var sig = "width, height, color, color2, vertical, pattern, scalePattern, cache, style, group, inherit";
@@ -21783,7 +22159,7 @@ dispatches "transformshow" and "transformhide" events for when click to hide or 
 If TransformManager() is used there are more events available such as "persistset", etc.
 
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+58.5
 	zim.Layer = function(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit) {
 		var sig = "width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, style, group, inherit";
@@ -22194,7 +22570,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+59
 	zim.Waiter = function(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group, inherit) {
 		var sig = "container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group, inherit";
@@ -22456,7 +22832,7 @@ group - used when the object is made to add STYLE with the group selector (like 
 EVENTS
 Dispatches a "complete" event when the loading or running is complete
 See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+59.5
 	zim.ProgressBar = function(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, style, group, inherit) {
 		var sig = "barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, style, group, inherit";
@@ -22784,7 +23160,7 @@ EVENTS
 dispatches a "change" event if press is true and indicator is pressed on and lights change
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+60
 	zim.Indicator = function(width, height, num, foregroundColor, backgroundColor, borderColor, borderWidth, backdropColor, corner, indicatorType, fill, scale, lightScale, interactive, shadowColor, shadowBlur, selectedIndex, style, group, inherit) {
 		var sig = "width, height, num, foregroundColor, backgroundColor, borderColor, borderWidth, backdropColor, corner, indicatorType, fill, scale, lightScale, interactive, shadowColor, shadowBlur, selectedIndex, style, group, inherit";
@@ -22979,6 +23355,8 @@ See: https://zimjs.com/explore/organizer.html
 NOTE: set the enable property to false as animating the position of the List object (or its parent Window)
 then set the enable property to true on the animate call function.  See update() in Window docs for more
 
+NOTE: to add ZIM Swipe() to objects in List set the overrideNoSwipe parameter of Swipe to true
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -23009,8 +23387,9 @@ list - (default Options 1-30) an array of strings, numbers or zim Label objects 
 		dim - (default .1) the alpha of dark background overlay on sub menus - or false for no dimming
 		bloom - (default false) time in seconds for each submenu item to be added - or false to not animate sub menus in - if true default time is .1 second
 		whither - (default false) time in seconds for each submenu item to be removed - or false to not animate sub menus out - if true default time is .1 second
-		arrows - (default false) show arrows instead of +- for expanding and collapsing - thanks Christopher Browne for the request
+		expander - (default "plus") set to "arrow" or "none" to change the expander icon - thanks Christopher Browne and Ofweird Top for the suggestions
 		subStyles - (default null) an array of style objects for each sublevel - with all the color and background color properties
+		See: https://zimjs.com/ten/accordion.html
 	note: the Accordion List is currently incompatible with the Organizer, addTo() and removeFrom()
 viewNum - (default 5) how many items to show in the width and height provided
 	adjusting this number will also change the overall scale of custom items
@@ -23082,7 +23461,7 @@ pulldown - (default false) set to true to have List act like a Pulldown
 clone - (default false) set to true to add clones of the list items rather than the items themselves
 cancelCurrentDrag - (default false) - set to true to cancel window dragging when document window loses focus
 	this functionality seems to work except if ZIM is being used with Animate - so we have left it turned off by default
-selectedIndex - (default 0) - set the selectedIndex at start
+selectedIndex - (default 0) - set the selectedIndex at start - set to -1 for no selection
 noScale - (default false) - set to true to not scale custom items - this ignores viewNum
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
@@ -23096,6 +23475,11 @@ removeAt(number, index) - remove a number of elements (default 1) from the list 
 clear() - clears the list
 first() - select first list element - returns object to chain
 last() - select last list element - returns object to chain
+toggle(state, element) - for an accordion, will close the accordion if open or open if closed 
+	passing in true will open (or keep opened), passing in false will close (or keep closed)
+	if no element is provided then it will assume the root (outer) element
+	if the element has no children then its parent element will be opened or closed
+	also see toggled property (which only works on the root element)
 setCheck(index, type) - set the CheckBox at an index to true or false (the type parameter)
 setChecks(type) - set all CheckBoxes to true or false (the type parameter) returns object for chaining
 getCheck(index) - get the checked value of the CheckBox at an index
@@ -23155,7 +23539,7 @@ items (or list) - read-only array of list button objects or objects in the list
 	use addAt() and removeAt() methods to manipulate
 	custom items can be accessed using item.content - as the item is a container with a backing then content
 	each item has the following properties:
-		index, label, accordion (Label for accordion +- or arrows), listZID (see Hierarchy) and other properties depending on the item
+		index, label, expander (Label for accordion +- or arrows), listZID (see Hierarchy) and other properties depending on the item
 checkBoxes - read-only array of CheckBox objects if checkBox parameter is true
 itemsText - read-only array of text for labels (or null element if no label)
 itemWidth - the width of each item (unless custom items)
@@ -23164,6 +23548,8 @@ length - read-only length of the list
 tabs - a reference to the tabs object used in the list
 organizer - a reference to the organizer object if used
 vertical - read-only true if list is vertical or false if horizontal
+toggled - for accordion get or set whether the main (root) accordion is open (true) or closed (false)
+	also see toggled() chainable method for more options
 enabled - default is true - set to false to disable
 
 ALSO: see all Window properties - like titleBar, titleBarLabel, etc.
@@ -23182,7 +23568,7 @@ dispatches a "change" event - then use selectedIndex or text to find data
 ALSO: All Window events including "scrolling"
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+60.5
 
 	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, selectedIndex, noScale, style, group, inherit) {
@@ -23290,7 +23676,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var bloom = !zot(list.bloom)?list.bloom:!zot(DS.bloom)?DS.bloom:false;
 			var whither = !zot(list.whither)?list.whither:!zot(DS.whither)?DS.whither:false;
 			var open = !zot(list.open)?list.open:!zot(DS.open)?DS.open:false;
-			var arrows = !zot(list.arrows)?list.arrows:!zot(DS.arrows)?DS.arrows:false;
+			var expander = !zot(list.expander)?list.expander:!zot(DS.expander)?DS.expander:"plus";
+			expender = expander.toLowerCase();
+			if (expander == "arrows") expander = "arrow";
+			if (expander != "none" && expander != "arrow") expander = "plus";
 			if (bloom === true) bloom = timeType=="s"?.01:10;
 			if (whither === true) whither = timeType=="s"?.01:10;
 			checkTIME(bloom);
@@ -23395,6 +23784,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				indent:indent,
 				useTap:true,
 				excludeCustomTap:excludeCustomTap,
+				keyWrap:false,
 				style:style,
 				group:group,
 				inherit:inheritedStyles
@@ -23405,6 +23795,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				// tabs.setBounds(0,0,vertical?b.width:(b.width+spacing*2+4),vertical?(b.height+spacing*2+4):b.height);
 			that.add(tabs);
 			// tabs.loc(paddingHorizontal, paddingVertical)
+			zim.loop(tabs.labels, function (label) {				
+				if (label) label.backgroundColor = zim.clear;
+			})
 		}
 		makeTabs(zim.copy(list, clone));
 
@@ -23422,8 +23815,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 			zim.loop(that.tabs.buttons, function (item) {
 				var data = tree.getData(item.listZID);
-				// if (!isEmpty(data.list)) item.accordion = new Label({size:22, text:"▼", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
-				if (!zim.isEmpty(data.list)) item.accordion = new zim.Label({size:arrows?22:36, text:arrows?"▼":"+", align:"center", color:zim.convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
+				// if (!isEmpty(data.list)) item.expander = new Label({size:22, text:"▼", align:"center", color:convertColor(color, "rgba", .6)}).center(item).alp(.7).pos(15, null, that.align!="right");
+				if (!zim.isEmpty(data.list)) item.expander = new zim.Label({size:expander=="arrow"?22:36, text:expander=="arrow"?"▼":"+", align:"center", color:zim.convertColor(color, "rgba", .6)}).center(item).alp(expander=="none"?0:.7).pos(15, null, that.align!="right");
 			});
 
 			function applyAccordion(item, id, data) {
@@ -23436,22 +23829,41 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				var newData = tree.getData(id);
 				newData.obj = item;
 				if (newData.list && !zim.isEmpty(newData.list)) {
-					// item.accordion = new Label({text:(newData.open?"-":"+"), align:"center", color:convertColor(color, "rgba", .6)})
-					item.accordion = new zim.Label({size:arrows?22:36, text:(newData.open?(arrows?"▲":"-"):(arrows?"▼":"+")), align:"center", color:zim.convertColor(color, "rgba", .6)})
-						.center(item).alp(.7).pos(15, null, that.align!="right")
+					// item.expander = new Label({text:(newData.open?"-":"+"), align:"center", color:convertColor(color, "rgba", .6)})
+					item.expander = new zim.Label({size:expander=="arrow"?22:36, text:(newData.open?(expander=="arrow"?"▲":"-"):(expander=="arrow"?"▼":"+")), align:"center", color:zim.convertColor(color, "rgba", .6)})
+						.center(item).alp(expander=="none"?0:.7).pos(15, null, that.align!="right")
 						.mov(0,(newData.open?-3:0));
 				}
 			}
+			
+			var _toggled = open;
+			that.toggle = function(state) {
+				if (zot(state)) state = !_toggled;
+				else if (state == _toggled) return;				
+				that.selectedIndex = 0;	
+				_toggled = state;
+				tapList();
+			} 
+			
+			Object.defineProperty(that, 'toggled', {
+				get: function() {
+					return _toggled;
+				},
+				set: function(value) {
+					if (_toggled == value) return;
+					else that.toggle();
+				}
+			});
 
 			that.tap(tapList);
 			function tapList() {
-				if (!that.selected.accordion) return;
+				if (!that.selected.expander) return;
 				var data = tree.getData(that.selected.listZID);
 				if (data.open) { // close
-					if (that.selected.accordion) {
-						// that.selected.accordion.text = "+";
-						that.selected.accordion.text = arrows?"▼":"+";
-						that.selected.accordion.mov(0,3);
+					if (that.selected.expander) {
+						// that.selected.expander.text = "+";
+						that.selected.expander.text = expander=="arrow"?"▼":"+";
+						that.selected.expander.mov(0,3);
 					}
 					data.open = false;
 					var nextSibling = tree.getNextSibling(that.selected.listZID);
@@ -23474,10 +23886,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					}
 				} else { // open
 					data.open = true;
-					if (that.selected.accordion) {
-						// that.selected.accordion.text = "-";
-						that.selected.accordion.text = arrows?"▲":"-";
-						that.selected.accordion.mov(0,-3);
+					if (that.selected.expander) {
+						// that.selected.expander.text = "-";
+						that.selected.expander.text = expander=="arrow"?"▲":"-";
+						that.selected.expander.mov(0,-3);
 					}
 					var outer = tree.getLinearList(data.list);
 					var ids = tree.getLinearIDs(data.list);
@@ -23503,6 +23915,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 									var id = ids[count];
 									var item = that.items[that.selectedIndex+1+count];
 									applyAccordion(item, id, data);
+									item.label.backgroundColor = zim.clear;
 									if (obj.total == obj.count+1) that.enabled = true;
 									count++;
 									if (that.stage) that.stage.update();
@@ -23521,6 +23934,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 								zim.loop(ids, function (id, i) {
 									var item = that.items[that.selectedIndex+1+i];
 									applyAccordion(item, id, data);
+									item.label.backgroundColor = zim.clear;
 								});
 							}
 						}
@@ -23554,6 +23968,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.dispatchEvent("change");
 			e.preventDefault();
 		});
+		tabs.on("keychange", function (e) {
+			if (e.target.selectedIndex == that.selectedIndex) return;
+			that.selectedIndex = tabs.selectedIndex;			
+			setTimeout(function () { 
+                if (vertical) {       
+					var position = that.selected.y+that.scrollY;
+                	if (position < 0 || position > that.height-that.selected.height) that.animateTo(that.selectedIndex,timeType=="ms"?100:.1);
+                } else {
+					var position = that.selected.x+that.scrollX;
+                	if (position < 0 || position > that.width-that.selected.width) that.animateTo(that.selectedIndex,timeType=="ms"?100:.1);
+                }
+            },100);
+			
+			that.dispatchEvent("change");
+		})
 
 		this.getItemIndex = function(item) {
 			return that.items.indexOf(item);
@@ -23567,11 +23996,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			var newPos = getScrollPosition(index);
 			if (vertical) {
 				var itemsToTravel = Math.abs(that.scrollY-newPos)/that.itemHeight;
-				that.animate({scrollY:newPos}, itemsToTravel*timePerItem/(timeType=="s"?1000:1));
+				that.animate({scrollY:newPos}, itemsToTravel*timePerItem/(timeType=="s"?1:1000));
 				// that.scrollY = newPos;
 			} else {
 				var itemsToTravel = Math.abs(that.scrollX-newPos)/that.itemWidth;
-				that.animate({scrollX:newPos}, itemsToTravel*timePerItem/(timeType=="s"?1000:1));
+				that.animate({scrollX:newPos}, itemsToTravel*timePerItem/(timeType=="s"?1:1000));
 				// that.scrollX = newPos;
 			}
 			return that;
@@ -23645,7 +24074,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			});
 			return that;
 		};
-
+		
 		Object.defineProperty(that, 'items', {
 			get: function() {
 				return that.tabs.buttons;
@@ -23654,6 +24083,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (zon) zogy("List() - items is read only - use addAt() and removeAt() to change");
 			}
 		});
+		
 
 		Object.defineProperty(that, 'list', {
 			get: function() {
@@ -24110,7 +24540,7 @@ dispatches a "change" event when changed by pressing an arrow or a keyboard arro
 (but not when setting selectedIndex or currentValue properties)
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+61
 	zim.Stepper = function(list, width, backgroundColor, borderColor, borderWidth, label, color, vertical, arrows, corner,
 			shadowColor, shadowBlur, continuous, display, press, hold, holdDelay, holdSpeed, draggable,
@@ -24931,10 +25361,12 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-min - (default 0) the minimum value for the slider
-max - (default 10) the maximum value for the slider
-step - (default 0) 0 is continuous decimal - 1 would provide steps of 1, 2 would provide steps of 2, etc.
+min - |ZIM VEE| (default 0) the minimum value for the slider
+max - |ZIM VEE| (default 10) the maximum value for the slider
+step - |ZIM VEE| (default 0) 0 is continuous decimal - 1 would provide steps of 1, 2 would provide steps of 2, etc.
 button - (default small button with no label) - a zim Button or string as follows:
 	"pill" - a narrow rectangle with rounded corners
 	"aztec" - a quadrilateral with fat side and skinny side (default for sound)
@@ -24968,7 +25400,7 @@ keyArrowsV - (default true) use up and down arrows when keyArrows is true
 damp - (default null) set to value such as .1 to damp the slider currentValue
 	use with Ticker rather than "change" event - eg:
 	Ticker.add(function () {circle.x = slider.currentValue;});
-currentValue - (default min) a starting value for the slider
+currentValue |ZIM VEE| - (default min) a starting value for the slider
 expand - (default null or 10 for mobile) set to value to expand the interactive area of the slider button
 expandVertical - (default expand) set to value to expand the vertical interactive area of the slider button
 expandBar - (default 20 or 0 for horizontal) set to value to expand the interactive area of the slider bar
@@ -25025,7 +25457,7 @@ EVENTS
 dispatches a "change" event when button is slid on slider (but not when setting currentValue property)
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+62
 	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, style, group, inherit) {
 		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, style, group, inherit";
@@ -25072,7 +25504,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(labelMargin)) labelMargin = DS.labelMargin!=null?DS.labelMargin:20;
 		var stage;
 		var that = this;
-
+		
+		// PICK
+		var oa = remember(min,max,step,currentValue);
+		function remember() {return arguments;} // for cloning PICK
+		min = zim.Pick.choose(min);
+		max = zim.Pick.choose(max);
+		step = zim.Pick.choose(step);
+		currentValue = zim.Pick.choose(currentValue);
+		
 		if (accentSize) {
 			var accentBacking = that.accentBacking = new zim.Rectangle(barLength-.25, accentSize+accentDifference, accentBackgroundColor)
 				.addTo(this).rot(vertical?90:0).mov(
@@ -25241,13 +25681,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			bounds = bar.getBounds();
 			rect = new createjs.Rectangle(bar.x, bounds.y+start, 0, bounds.height-start*2);
 			if (useTicks) {
+				if (useLabels) {
+					var labels = that.labels = new Container().addTo(that);
+				}
 				for (var i=0; i<=Math.abs(stepsTotal); i++) {
 					var tickLarge = (i%(semiTicks+1)==0);
 					var x = (tickLarge?25*tickScale:15*semiTickScale);
 					var y = start+spacing*i;
 					g.mt(0, y).lt(x, y);
-					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {
-						var labels = that.labels = new Container(that.width,that.height).addTo(that);
+					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {						
 						new Label({
 							text:max-(max-min)/Math.abs(stepsTotal)*i,
 							size:DS.size?DS.size:10,
@@ -25256,7 +25698,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						})
 							.centerReg({add:false})
 							.reg(0)
-							.loc(x+labelMargin+2,y-1,labels)
+							.loc(x+labelMargin+2,y-1,labels);
 					}
 				}
 				ticks.x = bar.x+15;
@@ -25271,13 +25713,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			bounds = bar.getBounds();
 			rect = new createjs.Rectangle(bounds.x+start, bar.y, bounds.width-start*2, 0);
 			if (useTicks) {
+				if (useLabels) {
+					var labels = that.labels = new Container().addTo(that);
+				}
 				for (var i=0; i<=Math.abs(stepsTotal); i++) {
 					var tickLarge = (i%(semiTicks+1)==0);
 					var x = start+spacing*i;
 					var y = -(tickLarge?25*tickScale:15*semiTickScale);
 					g.mt(x,0).lt(x,y);
-					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {
-						var labels = that.labels = new Container(that.width,that.height).addTo(that);
+					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {						
 						new Label({
 							text:min+(max-min)/Math.abs(stepsTotal)*i,
 							size:DS.size?DS.size:10,
@@ -25528,8 +25972,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 
-		this.clone = function() {
-			return that.cloneProps(new zim.Slider(min, max, step, button.clone(), barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, style, this.group, inherit));
+		this.clone = function(exact) {
+			return that.cloneProps(new zim.Slider((exact||!zim.isPick(oa[0]))?that.min:oa[0], (exact||!zim.isPick(oa[1]))?that.max:oa[1], (exact||!zim.isPick(oa[2]))?that.step:oa[2], button.clone(), barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, (exact||!zim.isPick(oa[3]))?that.currentValue:oa[3], expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, style, this.group, inherit));
 		};
 
 		this.dispose = function(a,b,disposing) {
@@ -25543,7 +25987,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-62
 
 /*--
-zim.Selector = function(tile, borderColor, borderWidth, backgroundColor, corner, dashed, padding, paddingVertical, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, style, group, inherit);
+zim.Selector = function(tile, borderColor, borderWidth, backgroundColor, corner, dashed, paddingHorizontal, paddingVertical, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, style, group, inherit);
 
 Selector
 zim class - extends a zim.Container which extends a createjs.Container
@@ -25651,7 +26095,7 @@ dispatches a "change" event when selector finishes animating to a new selection
 note that a tap() or mousedown/click function can be used if the selectedIndex is desired right away
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+62.5
 	zim.Selector = function(tile, borderColor, borderWidth, backgroundColor, corner, dashed, paddingHorizontal, paddingVertical, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, style, group, inherit) {
 		var sig = "tile, borderColor, borderWidth, backgroundColor, corner, dashed, paddingHorizontal, paddingVertical, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, style, group, inherit";
@@ -25821,6 +26265,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				if (diagonal || (dX+dY)*s <= 0) {
 					sel.animate({x:point.x, y:point.y},(dY+dX)*s);
 				} else {
+					sel.stopAnimate();
 					if (dX>=dY) {
 						sel.animate([
 							{props:{x:point.x}, time:Math.max(timeType=="s"?.1:100,dX*s/(timeType=="s"?1000:1))},
@@ -25858,6 +26303,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			that.added(function () {
 				that.keyEvent = that.stage.frame.on("keydown", function (e) {
 					if (!that.stage) return;
+					if (!that.enabled) return;
 					if (that.animating) return;
 					if ((that.zimAccessibility && that.focus) || (!that.zimAccessibility && that.keyFocus)) {
 						var answer = zim.loop(tile.items2D, function (row, j) {
@@ -25931,6 +26377,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				go(currentItem);
 			}
 		});
+		
+		this._enabled = true;
+		Object.defineProperty(that, 'enabled', {
+			get: function() {
+				return that._enabled;
+			},
+			set: function(value) {
+				if (value) {
+					that.mouse();
+				} else {
+					that.noMouse();
+				}
+				that._enabled = value;
+			}
+		});
 
 		if (typeof KEYFOCUS !== typeof undefined) zim.KEYFOCUS = KEYFOCUS;
 		Object.defineProperty(this, 'keyFocus', {
@@ -26000,10 +26461,12 @@ END EXAMPLE
 
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-min - (default 0) the minimum value for the dial
-max - (default 10) the maximum value for the dial
-step - (default 1) 1 provides steps of 1, 0 is continuous decimal, 2 would provide steps of 2, etc.
+min |ZIM VEE| - (default 0) the minimum value for the dial
+max |ZIM VEE| - (default 10) the maximum value for the dial
+step |ZIM VEE| - (default 1) 1 provides steps of 1, 0 is continuous decimal, 2 would provide steps of 2, etc.
 width - (default 100) the width of the dial (diameter)
 backgroundColor - (default "#666") the background color of the dial
 indicatorColor - (default "#222") the color of the indicator
@@ -26050,7 +26513,7 @@ damp - (default null) set to value such as .1 to damp the slider currentValue
 	IGNORED when limit set to false - otherwise may damp incorrectly
 	use with Ticker rather than "change" event - eg:
 	Ticker.add(function () {circle.x = slider.currentValue;});
-currentValue - (default min value) - set the currentValue at start
+currentValue |ZIM VEE| - (default min value) - set the currentValue at start
 useLabels - (default false) - add Labels to ticks if useTicks is true - can apply STYLE 
 labelMargin - (default 10) - distance from ticks to Label if useLabels is true
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
@@ -26109,7 +26572,7 @@ EVENTS
 dispatches a "change" event when dial changes value (but not when setting currentValue property)
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+63
 	zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, style, group, inherit) {
 		var sig = "min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, style, group, inherit";
@@ -26157,6 +26620,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(continuous)) continuous = DS.continuous!=null?DS.continuous:false;
 		if (continuous) limit = DS.limit!=null?DS.limit:false; // continuous sets the limit to false
 		if (zot(damp)) damp = DS.damp!=null?DS.damp:false;
+		if (zot(currentValue)) currentValue = DS.currentValue!=null?DS.currentValue:false;		
 		if (zot(useLabels)) useLabels = DS.useLabels!=null?DS.useLabels:false;
 		if (zot(labelMargin)) labelMargin = DS.labelMargin!=null?DS.labelMargin:10;
 		if (limit == false) damp = null;
@@ -26164,7 +26628,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		var that = this;
 		this.cursor = "pointer";
-
+		
+		// PICK
+		var oa = remember(min,max,step,currentValue);
+		function remember() {return arguments;} // for cloning PICK
+		min = zim.Pick.choose(min);
+		max = zim.Pick.choose(max);
+		step = zim.Pick.choose(step);
+		currentValue = zim.Pick.choose(currentValue);
+		
 		var r = width / 2;
 		var height = width;
 		var myValue = min; // includes the min
@@ -26213,6 +26685,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (useTicks) {
 			var ticks = this.ticks = new zim.Container({style:false});
 			this.addChild(ticks);
+			if (useLabels) {					
+				var labels = that.labels = new Container(width*2,height*2).centerReg(that);
+			}
 			for (var i=0; i<ticksTotal; i++) {
 				var tickLarge = (i%(semiTicks+1)==0);
 				var tick = new zim.Rectangle(1, r*(tickLarge?.2*tickScale:.1*semiTickScale), tickColor, null, null, null, null, null, false);
@@ -26221,8 +26696,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				tick.rotation = (360-360*gap)/(ticksTotal-(gap?1:0)) * i + 360*gap/2;
 				ticks.addChild(tick);
 			
-				if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {					
-					var labels = that.labels = new Container(width,height).centerReg(that);
+				if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {	
 					new Label({
 						text:min+(max-min)/Math.abs(stepsTotal)*i,
 						size:DS.size?DS.size:10,
@@ -26642,6 +27116,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					window.removeEventListener("keydown", that.keyDownEvent);
 					window.removeEventListener("keyup", that.keyUpEvent);
 				}
+				that._enabled = value;
 			}
 		});
 
@@ -26649,8 +27124,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		that.currentValue = currentValue;
 
 		if (style!==false) zim.styleTransforms(this, DS);
-		this.clone = function() {
-			return that.cloneProps(new zim.Dial(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, style, this.group, inherit));
+		this.clone = function(exact) {
+			return that.cloneProps(new zim.Dial((exact||!zim.isPick(oa[0]))?that.min:oa[0], (exact||!zim.isPick(oa[1]))?that.max:oa[1], (exact||!zim.isPick(oa[2]))?that.step:oa[2], width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, (exact||!zim.isPick(oa[3]))?that.currentValue:oa[3], useLabels, labelMargin, style, this.group, inherit));
 		};
 
 		this.dispose = function(a,b,disposing) {
@@ -26666,7 +27141,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 //***************** RADIAL  64
 
 /*--
-zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, style, group, inherit)
+zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, keyWrap, style, group, inherit)
 
 Tabs
 zim class - extends a zim.Container which extends a createjs.Container
@@ -26749,6 +27224,7 @@ useTap - (default false) set to true to use tap to activate otherwise uses ACTIO
 excludeCustomTap - (default false) set to true to exclude custom buttons from tap() which would override existing tap() on the buttons
 selectedIndex - (default 0) - set the selectedIndex at start
 styleLabels - (default false) - set to true to pass styles to Tab labels
+keyWrap - (default true) - set to false to not wrap around Tabs when tab key reaches end or start
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -26819,10 +27295,10 @@ EVENTS
 dispatches a "change" event when a tab changes (but not when setting selectedIndex property)
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+65
-	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, style, group, inherit) {
-		var sig = "width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, style, group, inherit";
+	zim.Tabs = function(width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, keyWrap, style, group, inherit) {
+		var sig = "width, height, tabs, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, keyWrap, style, group, inherit";
 		var duo; if (duo = zob(zim.Tabs, arguments, sig, this)) return duo;
 		z_d("65");
 
@@ -26875,6 +27351,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		if (zot(excludeCustomTap)) excludeCustomTap = DS.excludeCustomTap!=null?DS.excludeCustomTap:false;
 		if (zot(backdropColor)) backdropColor = DS.backdropColor!=null?DS.backdropColor:null;
 		if (zot(styleLabels)) styleLabels = DS.styleLabels!=null?DS.styleLabels:null;
+		if (zot(keyWrap)) keyWrap = DS.keyWrap!=null?DS.keyWrap:true;
 		if (base != "none" && corner != 0 && !Array.isArray(corner)) {
 			switch (base) {
 				case "bottom":
@@ -27193,6 +27670,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		prepareAllButtons(); // operates on buttons array - not tabs array
 
 		function change(num) {
+			if (num==myIndex) return;
 			var b = buttons[myIndex];
 			if (b && currentSelected) {
 				if (b.tabInfo && zot(b.tabInfo.wait)) {
@@ -27252,7 +27730,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					if (buttons[i].tabInfo.backgroundColor) buttons[i].backgroundColor = buttons[i].tabInfo.backgroundColor;
 					if (buttons[i].tabInfo.color && buttons[i].label) buttons[i].color = buttons[i].tabInfo.color;
 				}
-
 				if (useTap) buttons[i].noTap();
 				else buttons[i].off((!zns?ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", buttons[i].zimTabEvent);
 				buttons[i].removeFrom();
@@ -27263,17 +27740,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			prepareAllButtons(); // operates on buttons array - not tabs array
 			return that;
 		};
-		 		
+		 
 		that.keyEvent = function(e) {
 			if (!that.keyEnabled || !that.keyFocus || that.zimAccessibility) return;
 			if (e.keyCode == 9) {
 				var next = myIndex; // note that change updates the index
 				if (e.shiftKey) {
-					change((--next<0)?tabs.length-1:next);
+					change((--next<0)?(keyWrap?tabs.length-1:0):next);
 				} else {
-					change((++next>tabs.length-1)?0:next);
+					change((++next>tabs.length-1)?(keyWrap?0:tabs.length-1):next);
 				}
 				that.dispatchEvent("change");
+				that.dispatchEvent("keychange");
 				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 				e.preventDefault();
 			}
@@ -27516,7 +27994,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				return that._enabled;
 			},
 			set: function(value) {
-				zenable(that, value);
+				zenable(that, value);				
 			}
 		});
 
@@ -27546,7 +28024,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for (var i=0; i<tabsCopy.length; i++) {
 				tabsCopy[i].label = tabsCopy[i].label.clone();
 			}
-			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, style, this.group, inherit));
+			return that.cloneProps(new zim.Tabs(width, height, tabsCopy, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, useTap, excludeCustomTap, selectedIndex, styleLabels, keyWrap, style, this.group, inherit));
 		};
 		
 		this.doDispose = function(a,b,disposing) {
@@ -27680,7 +28158,7 @@ EVENTS
 dispatches a "change" event when a pad changes (but not when setting selectedIndex property)
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+66
 	zim.Pad = function(width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, selectedIndex, style, group, inherit) {
 		var sig = "width, cols, rows, keys, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, currentEnabled, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, selectedIndex, style, group, inherit";
@@ -27899,7 +28377,7 @@ EVENTS
 dispatches a "change" event with dirX and dirY provided as well on the event object
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+66.2
 	zim.DPad = function(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit) {
 		var sig = "axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit";
@@ -28148,7 +28626,7 @@ dispatches a "change" event when the button changes (but not when setting select
 see also currentEnabled to get change event for each press - or use tap()
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+66.4
 	zim.Radial = function(labels, size, font, height, coreRadius, coreColor, startAngle, totalAngle, angles, flip, shiftRadial, icons, rollIcons, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, selectedIndex, style, group, inherit) {
 		var sig = "labels, size, font, height, coreRadius, coreColor, startAngle, totalAngle, angles, flip, shiftRadial, icons, rollIcons, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, selectedIndex, style, group, inherit";
@@ -28614,7 +29092,7 @@ see also selectedIndex, selectedLevel, selected and text properties
 see also currentEnabled to get change event for each press - or use tap()
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+66.6
 	zim.RadialMenu = function(menu, size, font, height, coreRadius, coreColor, title, titleIcon, startAngle, totalAngle, flip, shiftRadial, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, open, under, style, group, inherit) {
 		var sig = "menu, size, font, height, coreRadius, coreColor, title, titleIcon, startAngle, totalAngle, flip, shiftRadial, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, open, under, style, group, inherit";
@@ -28877,7 +29355,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-66.6
 
 /*--
-zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, style, group, inherit)
+zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, selectedColor, style, group, inherit)
 
 ColorPicker
 zim class - extends a zim.Container which extends a createjs.Container
@@ -28990,10 +29468,10 @@ dispatches a "change" event when the OK button is activated and the color or alp
 dispatches a "close" event if the OK button is activated and the color has not changed or the X button is pressed
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67
-	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, style, group, inherit) {
-		var sig = "width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, style, group, inherit";
+	zim.ColorPicker = function(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, selectedColor, style, group, inherit) {
+		var sig = "width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, selectedColor, style, group, inherit";
 		var duo; if (duo = zob(zim.ColorPicker, arguments, sig, this)) return duo;
 		z_d("67");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -29544,10 +30022,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (zot(selectedIndex)) selectedIndex=DS.selectedIndex!=null?DS.selectedIndex:0;
 		that.selectedIndex = selectedIndex;
+		if (zot(selectedColor)) selectedColor=DS.selectedColor!=null?DS.selectedColor:null;
+		if (selectedColor!=null) that.selectedColor = selectedColor;
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, style, this.group, inherit));
+			return that.cloneProps(new zim.ColorPicker(width, standard?null:colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, selectedIndex, selectedColor, style, this.group, inherit));
 		};
 
 		this.dispose = function(a,b,disposing) {
@@ -29716,7 +30196,7 @@ dispatches a "close" event when closed
 dispatches a "color" event when ColorPicker is opened
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.1
 	zim.TextEditor = function(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, style, group, inherit) {
 		var sig = "width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, style, group, inherit";
@@ -30098,7 +30578,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 	//-67.1
 	
 /*--
-zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, style, group, inherit)
+zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, layout, style, group, inherit)
 
 Keyboard
 zim class - extends a zim.Container which extends a createjs.Container
@@ -30174,13 +30654,21 @@ shadowColor - (default "rgba(0,0,0,.2)") set to -1 for no shadow
 shadowBlur - (default 14) how blurred the shadow is if the shadow is set
 container - (default zimCurrentFrame stage) if placing Keyboard in different container or stage
 data - (default see below) pass in data for the letters on the three sets of keyboards
+	also see the layout parameter for current default layouts like "arabic", "hebrew", etc.
 	Below is the default data - change any of the keys to change keyboard
 	There must be three boards (you can request more)
 	There must be a button specified on the fourth row to toggle to the second screen and back
 	There must be a button on the second and third screen at the start of the third row
 	to toggle between the second and third screen
 	The "shift" and "delete" keys are optional and can be moved or removed
-	Where 10 keys can fit, there is a maximum of 10 keys but there can be less
+	There is a "back" key that is like the "backspace" key but takes the space of one key and not two keys
+	There will be at least 10 key places but there can be more than 10 keys per row
+	The last element of the outer array is a an object with special characters for e,u,i,o,a,n
+	If left off then it will use the characters below in the example.
+	These can be changed to any characters showing an extra set of any characters.
+	The fifth and sixth elements are lowercase to uppercase and uppercase to lowercase override mappings 
+	For instance, in the turkish layout ı:"I" and i:"İ" for lowercase to uppercase 
+	and I:"ı" and İ:"i" for uppercase to lowercase.
 	Use the data property to get this array if desired:
 	var data = [
 		[
@@ -30198,12 +30686,28 @@ data - (default see below) pass in data for the letters on the three sets of key
 			["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
 			["2/2","_","\\","|","《","》","¡","¿","backspace"],
 			["ABC"] // rest of bottom line automatically added
-		]
+		],{
+			e:["ė","ē","ę","ê","é","ë","è"],
+			u:["ū","û","ú","ü","ù"],
+			i:["ī","į","ì","í","ï","î"],
+			o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+			a:["ā","ã","å","â","á","ä","à","æ"],
+			n:["ñ","ń"]
+		},{
+			lowercaseletter:"uppercaseletter", // override lowercase to uppercase map
+			lc2:"uc2"
+		},{
+			uppercaseletter:"lowercaseletter", // override uppercase to lowercase map
+			uc2:"lc2"
+		}		
 	];
 place (default true) - set to false to not add place arrows when selecting Label
 special (default null) - set to a string to add a special key to the left of the space bar
 rtl (default false) - (Experimental) set to true to use right-to-left text
 hardKeyboard (default true) - set to false to not include keypresses from physical keyboard
+layout (default "qwerty") - set to change the layout (also see data parameter for custom layout)
+	additionally supported layouts are "azerty", "hebrew", "turkish", "arabic" - thanks to those who submitted layouts!
+	please let us know at https://zimjs.com/slack if you are using a layout that others would use!
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -30255,10 +30759,10 @@ Dispatches a "special" event if the special parameter is used and the special ke
 Dispatches a "close" event when close keyboard icon at bottom right is pressed
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.2
-	zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, style, group, inherit) {
-		var sig = "labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, style, group, inherit";
+	zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, layout, style, group, inherit) {
+		var sig = "labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, layout, style, group, inherit";
 		var duo; if (duo = zob(zim.Keyboard, arguments, sig, this)) return duo;
 		z_d("67.2");
 		this.zimContainer_constructor(1000,400,null,null,false);
@@ -30304,25 +30808,149 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					["ABC"] // rest of bottom line automatically added
 				]
 			];
-		var that = this;
-		that.data = data;
+		if (!data[3]) data[3] = {
+			e:["ė","ē","ę","ê","é","ë","è"],
+			u:["ū","û","ú","ü","ù"],
+			i:["ī","į","ì","í","ï","î"],
+			o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+			a:["ā","ã","å","â","á","ä","à","æ"],
+			n:["ñ","ń"]
+		};
+		var that = this;		
 		if (zot(place)) place = DS.place!=null?DS.place:true;
 		if (zot(rtl)) rtl = DS.rtl!=null?DS.rtl:false;
 		if (zot(hardKeyboard)) hardKeyboard = DS.hardKeyboard!=null?DS.hardKeyboard:true;
-
+		if (zot(layout)) layout = DS.layout!=null?DS.layout:"qwerty";
+		layout = layout.toLowerCase();
+		if (layout != "qwerty") {
+			if (layout == "arabic") {
+				data = [
+				   [
+					   ["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج"],
+					   ["ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"],
+					   ["ذ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ", "د","back"],
+					   ["?123","ـ"] // rest of bottom line automatically added
+				   ],[
+					   ["1","2","3","4","5","6","7","8","9","0","*"],
+					   ["!","@","#","$","/","^","&","*","(",")","*"],
+					   ["1/2","-","'", "\"",":",";",",","?","*","backspace"],
+					   ["ABC","*"] // rest of bottom line automatically added
+				   ],[
+					   ["+","x","%","=","<",">","{","}","[","]","*"],
+					   ["€","£","¥", "$", "￦", "~", "`","¤","♡","☆","*"],
+					   ["2/2","_","\\","|","《","》","¡","¿","*","backspace"],
+					   ["ABC","*"] // rest of bottom line automatically added
+				   ],{
+					   ا:["أ","إ","آ","ء"],
+					   ى:["ئ"],
+					   ء:["ئ","ؤ"],
+					   و:["ؤ"],
+					   ـ:["ٍ", "ً", "ٌ", "ْ", "ُ", "ِ", "َ", "ّ"],
+					   "*":["ٍ", "ً", "ٌ", "ْ", "ُ", "ِ", "َ", "ّ"],
+					   n:["ñ","ń"]
+				   }
+			   ];
+			} else if (layout == "hebrew") {
+				data = [
+				   [
+					   ["ק", "ר", "א", "ט", "ו", "ן", "ם", "פ", "backspace"],
+					   ["ש", "ד", "ג", "כ", "ע", "י", "ח", "ל", "ך", "ף"],
+					   ["ז", "ס", "ב", "נ", "ה", "מ", "צ", "ת", "ץ"],
+					   ["?123", ","] // rest of bottom line automatically added
+				   ], [
+					   ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+					   ["!", "@", "#", "$", "/", "^", "&", "*", "(", ")"],
+					   ["1/2", "-", "'", "\"", ":", ";", ",", "?", "backspace"],
+					   ["ABC", ","] // rest of bottom line automatically added
+				   ], [
+					   ["+", "x", "%", "=", "<", ">", "{", "}", "[", "]"],
+					   ["€", "£", "¥", "$", "￦", "~", "`", "¤", "♡", "☆"],
+					   ["2/2", "_", "\\", "|", "《", "》", "¡", "¿", "backspace"],
+					   ["ABC", ","] // rest of bottom line automatically added
+				   ], {
+					   e: ["ė", "ē", "ę", "ê", "é", "ë", "è"],
+					   u: ["ū", "û", "ú", "ü", "ù"],
+					   i: ["ī", "į", "ì", "í", "ï", "î"],
+					   o: ["ō", "œ", "ø", "õ", "ô", "ó", "ö", "ò"],
+					   a: ["ā", "ã", "å", "â", "á", "ä", "à", "æ"],
+					   n: ["ñ", "ń"]
+				   }
+			   ];
+			} else if (layout == "azerty") {
+				data = [
+				   [
+					   ["a","z","e","r","t","y","u","i","o","p"],
+					   ["q","s","d","f","g","h","j","k","l","m"],
+					   ["shift","w","x","c","v","b","n","´","backspace"],
+					   ["?123",","] // rest of bottom line automatically added
+				   ],[
+					   ["1","2","3","4","5","6","7","8","9","0"],
+					   ["!","@","#","$","/","^","&","*","(",")"],
+					   ["1/2","-","'", "\"",":",";",",","?","backspace"],
+					   ["ABC",","] // rest of bottom line automatically added
+				   ],[
+					   ["+","x","%","=","<",">","{","}","[","]"],
+					   ["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
+					   ["2/2","_","\\","|","《","》","¡","¿","backspace"],
+					   ["ABC",","] // rest of bottom line automatically added
+				   ],{
+					   e:["ė","ē","ę","ê","é","ë","è"],
+					   u:["ū","û","ú","ü","ù"],
+					   i:["ī","į","ì","í","ï","î"],
+					   o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+					   a:["ā","ã","å","â","á","ä","à","æ"],
+					   n:["ñ","ń"]
+				   }
+			   ];
+			} else if (layout == "turkish") {
+				data = [
+					[
+						["q","w","e","r","t","y","u","ı","o","p","ğ","ü"],
+						["a","s","d","f","g","h","j","k","l","ş","i"],
+						["shift","z","x","c","v","b","n","m","ö","ç","backspace"],
+						["?123","*"] // rest of bottom line automatically added
+					],[
+						["1","2","3","4","5","6","7","8","9","0","*"],
+						["!","@","#","$","/","^","&","*","(",")","*"],
+						["1/2","-","'", "\"",":",";",",","?","*","backspace"],
+						["ABC","*"] // rest of bottom line automatically added
+					],[
+						["+","x","%","=","<",">","{","}","[","]","*"],
+						["€","£","¥", "$", "￦", "~", "`","¤","♡","☆","*"],
+						["2/2","_","\\","|","《","》","¡","¿","*","backspace"],
+						["ABC","*"] // rest of bottom line automatically added
+					],{
+						e:["ė","ē","ę","ê","é","ë","è"],
+						u:["ū","û","ú","ü","ù"],
+						i:["ī","į","ì","í","ï","î"],
+						o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+						a:["ā","ã","å","â","á","ä","à","æ"],
+						n:["ñ","ń"]
+					},{
+						ı:"I", // lowercase to uppercase map
+						i:"İ"
+					},{
+						I:"ı", // uppercase to lowercase map
+						İ:"i"
+					}					
+				];
+			} 
+		}
+		that.data = data;
+		
 		var mess = "zim display - Keyboard(): Please pass in a reference to a container with bounds set";
 		if (zot(container)) {
 			if (zdf) {
 				container = zdf.stage;
 			} else {
-				zog(mess);
+				zogy(mess);
 				return;
 			}
 		} else if (!container.getBounds) {
-			zog(mess);
+			zogy(mess);
 			return;
 		} else if (zot(container.stage)) {
-			zog("zim display - Keyboard(): The container must have a stage property");
+			zogy("zim display - Keyboard(): The container must have a stage property");
 			return;
 		}
 
@@ -30333,7 +30961,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		that.labels = labels;
 		var maxWidth;
-		var numH = 10;
+		
+		// Dan Zen Cat 03 - to handle any number of keys in row (always at least 10)
+		var maxNum = 10;
+		zim.loop(data[0], function (d) {
+			if (d.length> maxNum) maxNum = d.length;
+		});
+		var numH = maxNum;
 
 		var botArray = ["@","",".","/","away"];
 		if (!zot(special)) botArray.splice(1,0,special);
@@ -30369,17 +31003,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		//     ["2/2","_","\\","|","《","》","¡","¿","backspace"],
 		//     ["ABC", "@","",".","/","away"]
 		// ];
-		var eLetters = ["ė","ē","ę","ê","é","ë","è"];//ĒĘÊÉËÈ
-		var uLetters = ["ū","û","ú","ü","ù"];//ŪÛÚÜÙ
-		var iLetters = ["ī","į","ì","í","ï","î"];//ĪĮÌÍÏÎ
-		var oLetters = ["ō","œ","ø","õ","ô","ó","ö","ò"];// ŌŒØÕÔÓÖÒ
-		var aLetters = ["ā","ã","å","â","á","ä","à","æ"];// ĀÃÅÂÁÄÀÆ
-		var nLetters = ["ñ","ń"];
+		// var eLetters = data[3][0]; // ["ė","ē","ę","ê","é","ë","è"];//ĒĘÊÉËÈ
+		// var uLetters = data[3][1]; // ["ū","û","ú","ü","ù"];//ŪÛÚÜÙ
+		// var iLetters = data[3][2]; // ["ī","į","ì","í","ï","î"];//ĪĮÌÍÏÎ
+		// var oLetters = data[3][3]; // ["ō","œ","ø","õ","ô","ó","ö","ò"];// ŌŒØÕÔÓÖÒ
+		// var aLetters = data[3][4]; // ["ā","ã","å","â","á","ä","à","æ"];// ĀÃÅÂÁÄÀÆ
+		// var nLetters = data[3][5]; // ["ñ","ń"];
 
 		var textKeyButtons = [];
 
 		//maateenheid horizontaal
-		var size = (1000-(9*5))/numH;
+		var size = (1000-((numH-1)*5))/numH;
 
 		//statuses toestenbord
 		var statuses = {
@@ -30400,6 +31034,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		var buttonsCursor = [];
 		var shiftKeyIcon;
 		var backspaceIcon;
+		var backIcon;
 		var hideKeyBoardIcon;
 		var dragButton;
 		var dragY;
@@ -30452,16 +31087,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				} else if (e.target.na === "away") {
 					hideKeyboard();
 					that.dispatchEvent("close");
-				} else if (e.target.na === "e" ||
-					e.target.na === "u" ||
-					e.target.na === "i" ||
-					e.target.na === "o" ||
-					e.target.na === "a" ||
-					e.target.na === "n") { //VARIATIES LETTERS euioan
-					makeAlternativeLetters(e.target.na);
+				} else if (data[3] && data[3][e.target.na]) {
+					makeAlternativeLetters(e.target.na);					
+					// e.target.na === "e" ||
+					// e.target.na === "u" ||
+					// e.target.na === "i" ||
+					// e.target.na === "o" ||
+					// e.target.na === "a" ||
+					// e.target.na === "n") { //VARIATIES LETTERS euioan
+					// makeAlternativeLetters(e.target.na);
 				} else if (e.target.na === "return") {
 					addToLabel("\n");
 				} else if (e.target.na === "backspace") {
+					backspaceRemovesLetter();
+				} else if (e.target.na === "back") {
 					backspaceRemovesLetter();
 				} else if (e.target.na === "") {
 					addToLabel(" ");
@@ -30472,8 +31111,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 		}
 
-		that.addChar = function (char) {
-			if (!zot(char) && char.match(/^.$/)) addToLabel(char);
+		that.addChar = function (chara) { // do not use char - it is a keyword
+			if (!zot(chara) && chara.match(/^.$/)) addToLabel(chara);
 		};
 		that.removeChar = function () {
 			backspaceRemovesLetter(true);
@@ -30491,8 +31130,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var tkb = textKeyButtons[i];
 					if (tkb.label.text.length > 0) {
 						if (tkb.na.length === 1) {
-							tkb.label.text = tkb.label.text.toUpperCase();
-							tkb.label.centerReg(tkb).mov(0, 6);
+							if (data[4] && data[4][tkb.label.text]) tkb.label.text = data[4][tkb.label.text];									
+						 	else tkb.label.text = tkb.label.text.toUpperCase();
+							tkb.label.centerReg(tkb).mov(0, 6);							
 						} else {
 							tkb.label.centerReg(tkb);
 						}
@@ -30514,7 +31154,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					var tkb = textKeyButtons[i];
 					if (tkb.label.text.length > 0) {
 						if (tkb.na.length === 1) {
-							tkb.label.text = tkb.label.text.toLowerCase();
+							if (data[5] && data[5][tkb.label.text]) tkb.label.text = data[5][tkb.label.text];
+							else tkb.label.text = tkb.label.text.toLowerCase();
 							tkb.label.centerReg(tkb).mov(0, 3);
 						} else {
 							tkb.label.centerReg(tkb);
@@ -30571,7 +31212,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			//alle toetsen, door arrays heen wandelen
 			for (var i = 0; i < typeKeyboard.length; i++) {
 				if (i <= 1 || (which == statuses.def && i == 2 && typeKeyboard[2][0] != "shift")) {
-					xPos = (size / 2 + 2.5) * (10 - typeKeyboard[i].length);
+					xPos = (size / 2 + 2.5) * (numH - typeKeyboard[i].length);
 				}
 				for (var j = 0; j < typeKeyboard[i].length; j++) {
 					thisIsSpacekey = false;
@@ -30581,6 +31222,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 						bigKey = true;
 						thisKeyLetter = backspaceIcon;
 						dark = true;
+					} else if (typeKeyboard[i][j] == "back") {
+						bigKey = false;
+						thisKeyLetter = backspaceIcon;
+						dark = true;					
 					} else if (typeKeyboard[i][j] == "shift") {
 						bigKey = true;
 						thisKeyLetter = shiftKeyIcon;
@@ -30600,8 +31245,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					//brede toets: breedte instellen
 					if (bigKey) {
 						thisWidth = (size * 1.5 + 2.5);
-					} else if (thisIsSpacekey) {
-						thisWidth = (size + 5) * (zot(special) ? 4 : 3) - 5;
+					} else if (thisIsSpacekey) {	
+						// Dan Zen Cat 03 patch - make spacebar take up available space					
+						thisWidth = (size + 5) * ((zot(special) ? 4 : 3) + numH-10+1-data[0][3].length) - 5;
+						if (data[0][3].indexOf("backspace") != -1) {
+							thisWidth -= size/2;
+						} 
 					} else {
 						thisWidth = size;
 					}
@@ -30654,33 +31303,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		}
 
 		function makeAlternativeLetters(letter) {
-			var thisArray;
+			var thisArray = data[3][letter];
 			var mouseReleased = false;
 			var alternativeMenuIsmade = false;
-			var timeWait;
-			switch (letter) {
-				case "e":
-					thisArray = eLetters;
-					break;
-				case "u":
-					thisArray = uLetters;
-					break;
-				case "i":
-					thisArray = iLetters;
-					break;
-				case "o":
-					thisArray = oLetters;
-					break;
-				case "a":
-					thisArray = aLetters;
-					break;
-				case "n":
-					thisArray = nLetters;
-					break;
-				default:
-					break;
-			}
-			timeWait = zim.timeout(makeAlternatemenu, 500, null, "ms");
+			var timeWait;			
+			// switch (letter) {
+			// 	case "e":
+			// 		thisArray = eLetters;
+			// 		break;
+			// 	case "u":
+			// 		thisArray = uLetters;
+			// 		break;
+			// 	case "i":
+			// 		thisArray = iLetters;
+			// 		break;
+			// 	case "o":
+			// 		thisArray = oLetters;
+			// 		break;
+			// 	case "a":
+			// 		thisArray = aLetters;
+			// 		break;
+			// 	case "n":
+			// 		thisArray = nLetters;
+			// 		break;
+			// 	default:
+			// 		break;
+			// }
+			timeWait = zim.timeout(500, makeAlternatemenu, null, "ms");
 			var mouseUpEvent = that.on("pressup", mouseUp);
 			function mouseUp(e) {
 				mouseReleased = true;
@@ -30806,7 +31455,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			currentStage.off("pressmousemove", that.tickerMouseEvent);
 			zim.Ticker.remove(startDragging);
 		}
-
+		
+		that.setBounds(1000,400-(numH-10)*26); // Dan Zen for any size keyboard
 
 		// ~~~~~~~~~~~~~~~~~  LABELS AND CURSOR
 
@@ -31077,6 +31727,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			textBlinker = null;
 			currentLabel = null;
 		}
+		
 
 		// ~~~~~~~~~~~~~~~ GETTER SETTER PROPS
 
@@ -31223,7 +31874,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, style, this.group, inherit);
+			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, special, rtl, hardKeyboard, layout, style, this.group, inherit);
 			return that.cloneProps(kb);
 		};
 		this.dispose = function(a,b,disposing) {
@@ -31233,6 +31884,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			for(var i=0; i<that.labels.length; i++) {
 				that.labels[i].removeAllEventListeners();
 			}
+			if (textBlinker) textBlinker.dispose();
 			that.labels = currentLabel = null;
 			if (currentStage) currentStage.off("pressmousemove", that.tickerMouseEvent);
 			if (!disposing) that.zimContainer_dispose(true);
@@ -31379,7 +32031,7 @@ dispatches a "change" event when the buttons are pressed (may be the same button
 ALSO: All Tab events
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.3
 	zim.Organizer = function(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit) {
 		var sig = "width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit";
@@ -31746,7 +32398,7 @@ dispatches a "complete" event when the tile changes to the same order as the sta
 dispatches a "scrambled" event when the tile is finished scrambling
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.35
 	zim.Scrambler = function(tile, keys, keyProperty, scramble, time, wait, num, shadowColor, shadowBlur, swap, swapLock, style, group, inherit) {
 		var sig = "tile, keys, keyProperty, scramble, time, wait, num, shadowColor, shadowBlur, swap, swapLock, style, group, inherit";
@@ -32269,7 +32921,7 @@ dispatches a "noconnection" event if a connection is not made
 dispatches a "complete" event in linear mode when the connections are complete
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.39
 	zim.Connectors = function(width, height, points, node, line, linear, linearWrap, linearOrder, num, snapH, snapV, dropType, deleteNode, dblclick, fullMove, min, max, boundary, expand, nodeRollColor, nodeRollBorderColor, nodeSelectedColor, nodeSelectedBorderColor, baseColor, baseBorderColor, baseRollover, rootLock, grandChildren, dblclickTime, style, group, inherit) {
 		var sig = "width, height, points, node, line, linear, linearWrap, linearOrder, num, snapH, snapV, dropType, deleteNode, dblclick, fullMove, min, max, boundary, expand, nodeRollColor, nodeRollBorderColor, nodeSelectedColor, nodeSelectedBorderColor, baseColor, baseBorderColor, baseRollover, rootLock, grandChildren, dblclickTime, style, group, inherit";
@@ -32690,7 +33342,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				});
 			}
 
-			var double = false;
+			var dbl = false;
 			if (!linear && downCount > 1) { // double click
 				clearTimeout(downID);
 				var n = node.adding?node.creator:node;
@@ -32700,7 +33352,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					selectNode(n, !frame.ctrlKey);
 				}
 				downCount = 0;
-				double = true;
+				dbl = true;
 			}
 
 			if (!linear && !that.base) {
@@ -32714,7 +33366,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					removeNode(node);
 				} else {
 					node.loc(node.startX, node.startY);
-					if (!double) drawLines(node); // drawing twice on double was causing bug
+					if (!dbl) drawLines(node); // drawing twice on double was causing bug
 				}
 				that.stage.update();
 				that.dispatchEvent("noconnection");
@@ -33225,7 +33877,7 @@ dispatches a "page" event when item starts to change
 dispatches a "pagetransitioned" event when item finishes changing
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.4
 
 	zim.Marquee = function(width, height, items, time, transition, speed, direction, marginLeft, marginRight, marqueeType, borderColor, borderWidth, refresh, mix, style, group, inherit) {
@@ -33727,7 +34379,7 @@ loaded - is dispatched when the files(s) are uploaded - the event object comes w
 		e.total - the total number of JSON files loaded
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.5
 
 	zim.Loader = function(width, height, label, type, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderRollColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, frame, multiple, accept, style, group, inherit) {
@@ -34230,7 +34882,7 @@ change is dispatched when the text area is different after losing focus
 These are just the html events passed on through - note the difference between input and change!
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.6
 	zim.TextArea = function(width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, inputType, wrap, maxLength, frame, expand, style, group, inherit) {
 		var sig = "width, height, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, placeholder, readOnly, spellCheck, password, inputType, wrap, maxLength, frame, expand, style, group, inherit";
@@ -34238,7 +34890,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 		z_d("67.6");
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("TextArea", this.group, inherit);
-
+		
 		if (zot(width)) width = DS.width!=null?DS.width:250;
 		if (zot(height)) height = DS.height!=null?DS.height:70;
 		if (zot(size)) size = DS.size!=null?DS.size:20;
@@ -34310,7 +34962,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}
 			that.dispatchEvent("input");
 		}
-		that.taFocus = function() {
+		that.taFocus = function() {			
 			if (frame.zil) window.removeEventListener("keydown", frame.zil[0]);
 			that.dispatchEvent("focus");
 		}
@@ -34576,7 +35228,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS: See the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.7
 	zim.Tag = function(width, height, id, frame, backgroundColor, padding, paddingHorizontal, paddingVertical, expand, style, group, inherit) {
 		var sig = "width, height, id, frame, backgroundColor, padding, paddingHorizontal, paddingVertical, expand, style, group, inherit";
@@ -34890,6 +35542,8 @@ END EXAMPLE
 PARAMETERS
 callback - the function to call when added - will call right away if object is already added
 	call will receive a reference to the stage and the object as parameters
+** these two parameters are depricated as added no longer uses an interval as of ZIM Cat 03 patch
+** but rather uses the "added" event and then checks to make sure it was the stage container the target was added to
 interval - (default .1) time in seconds to check (also see ZIM TIME constant)
 	keeps repeating until stage is there or maxTime is reached
 maxTime - (default null) time in seconds to keep checking or forever if not provided
@@ -34899,6 +35553,18 @@ RETURNS id of interval so clearInterval(id) will stop added() from checking for 
 	zim.added = function(obj, call, interval, maxTime) {
 		z_d("47.7");
 		if (zot(obj) || zot(call) || typeof call != "function") return;
+		
+		// // Can't do it this way as object's container may be added after object is added to container
+		// if (obj.stage) (call)(obj.stage, obj);
+		// else {
+		// 	obj.on("added", function(e) {
+		// 		if (obj.stage) {
+		// 			(call)(obj.stage, obj);
+		// 			e.remove();
+		// 		}
+		// 	}); 
+		// }	
+		
 		var timeType = getTIME(interval);
 		if (zot(interval)) interval = timeType=="s"?.1:100;
 		if (obj.stage) {(call)(obj.stage, obj); return;}
@@ -34930,6 +35596,7 @@ RETURNS id of interval so clearInterval(id) will stop added() from checking for 
 			}
 		}, t);
 		return id;
+		
 	};//-47.7
 
 /*--
@@ -35628,6 +36295,7 @@ zim DisplayObject method
 DESCRIPTION
 Chainable convenience function to set the alpha
 See also the CreateJS set({prop:val, prop2:val}) method;
+See also vis() and visible to keep hitTests as alp(0) does not
 
 EXAMPLE
 circle.alp(.5);
@@ -35651,6 +36319,36 @@ RETURNS obj for chaining
 		}
 		return obj;
 	};//-41.7
+	
+/*--
+obj.vis = function(visible)
+
+vis
+zim DisplayObject method
+
+DESCRIPTION
+Chainable convenience function to set the visible
+Also see alp() and alpha
+
+EXAMPLE
+circle.vis(false);
+END EXAMPLE
+
+PARAMETERS
+visible - (default true) boolean for visibility
+
+RETURNS obj for chaining
+--*///+41.71
+	zim.vis = function(obj, visible) {
+		z_d("41.71");
+		if (zot(obj)) return;
+		obj.visible = visible;
+		if (obj.tag && obj.tag.style) {
+			if (!visible) obj.tag.style.display = obj.tag.zimDisplay = "none";
+			else obj.tag.style.display = obj.tag.zimDisplay = "inline-block";			
+		}
+		return obj;
+	};//-41.71
 
 /*--
 obj.ble = function(blendMode)
@@ -36230,7 +36928,7 @@ RETURNS obj for chaining
 	};//-47.76
 
 /*--
-obj.tap = function(call, distance, time, once)
+obj.tap = function(call, distance, time, once, dbl, dblTime, call2)
 
 tap
 zim DisplayObject method
@@ -36258,41 +36956,89 @@ new Circle(50, "red").tap(function (e) {
 });
 END EXAMPLE
 
-PARAMETERS
+PARAMETERS supports DUO - parameters or single object with properties below
 call - the function to call when clicked
 	call will receive the event object as a parameter (with target, currentTarget, etc. properties)
 distance - (default 5) distance in pixels within which the mouseup must occur for a click to be counted
-time - (default 8) time in ms within which the mouseup must occur for a click to be counted
+time - (default 8) time in seconds within which the mouseup must occur for a click to be counted - also see TIME constant
 once - (default false) set to true to capture only one click then auto-remove listeners
+dbl - (default false) set to true to capture a double click - this works on mobile where dblclick may not
+dblTime - (default 1) time in seconds from first pressup to pressup a second time to count as a double tap - also see TIME constant
+call2 - (default null) a function to call on pressup if a tap (or double tap) is not made
 
 RETURNS obj for chaining
 --*///+47.8
-	zim.tap = function(obj, call, distance, time, once) {
+	zim.tap = function(obj, call, distance, time, once, dbl, dblTime, call2) {
+		var sig = "obj, call, distance, time, once, dbl, dblTime, call2";
+		var duo; if (duo = zob(zim.tap, arguments, sig)) return duo;
 		z_d("47.8");
 		if (zot(obj) || zot(call) || typeof call != "function") return;
 		if (zot(distance)) distance = 5;
 		var timeType = getTIME(time);
 		if (zot(time)) time = timeType=="s"?8:8000;
 		if (zot(once)) once = false;
+		if (zot(dbl)) dbl = false;
+		if (zot(dblTime)) dblTime = timeType=="s"?1:1000;
 		obj.cursor = "pointer";
 		var stage;
-		obj.zimClickDownEvent = obj.on("mousedown", function (e) {
-			stage = e.target.stage;
-			if (e.currentTarget.type == "List") {
-				if (e.target.type == "WindowBacking") return;
-				var local = e.currentTarget.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
-				if (local.y <= 0) return; // avoid titleBar and organizer
-			}
-			var lastX = e.stageX / zim.scaX;
-			var lastY = e.stageY / zim.scaY;
-			var startTime = Date.now();
-			obj.zimClickUpEvent = obj.on("pressup", function (e) {
-				if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
-					if (obj.excludeTap) return;
-					call(e);
+		var firstTap = false;
+		var doubleCheck = false;
+		
+		if (dbl) {
+			obj.zimDblClickDownEvent = obj.on("mousedown", function (e) {
+				
+				if (firstTap) {firstTap = false; return;}
+				firstTap = true;
+				
+				stage = e.target.stage;
+				if (e.currentTarget.type == "List") {
+					if (e.target.type == "WindowBacking") return;
+					var local = e.currentTarget.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
+					if (local.y <= 0) return; // avoid titleBar and organizer
 				}
-			}, null, true); // just once
-		}, null, once);
+				var lastX = e.stageX / zim.scaX;
+				var lastY = e.stageY / zim.scaY;
+				var startTime = Date.now();
+				
+				doubleCheck = true;
+				if (obj.zimDoubleTimeout) clearTimeout(obj.zimDoubleTimeout);
+				obj.zimDoubleTimeout = setTimeout(function(){
+					doubleCheck = false;
+					firstTap = false;
+					if (obj.zimDblClickUpEvent) obj.off("pressup", obj.zimDblClickUpEvent);
+				}, timeType=="s"?dblTime*1000:dblTime);
+				
+				obj.zimDblClickUpEvent = obj.on("pressup", function (e) {	
+					if (firstTap || !doubleCheck) return;					
+					if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
+						if (obj.excludeTap) return;
+						call(e);
+					} else if (call2) call2(e);
+					e.remove();
+				}); 
+			}, null, once);
+			
+		} else {
+			obj.zimClickDownEvent = obj.on("mousedown", function (e) {				
+				stage = e.target.stage;
+				if (e.currentTarget.type == "List") {
+					if (e.target.type == "WindowBacking") return;
+					var local = e.currentTarget.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
+					if (local.y <= 0) return; // avoid titleBar and organizer
+				}
+				var lastX = e.stageX / zim.scaX;
+				var lastY = e.stageY / zim.scaY;
+				var startTime = Date.now();
+				obj.zimClickUpEvent = obj.on("pressup", function (e) {					
+					if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
+						if (obj.excludeTap) return;
+						call(e);
+					} else if (call2) call2(e);
+					e.remove();
+				}); 
+			}, null, once);
+		}
+		
 		return obj;
 	};//-47.8
 
@@ -36319,8 +37065,9 @@ RETURNS obj for chaining
 		z_d("47.9");
 		if (zot(obj)) return;
 		if (obj.cursor) obj.cursor = "default";
-		obj.off("mousedown", obj.zimClickDownEvent);
-		obj.off("pressup", obj.zimClickUpEvent);
+		if (obj.zimClickDownEvent) obj.off("mousedown", obj.zimClickDownEvent);
+		if (obj.zimClickUpEvent) obj.off("pressup", obj.zimClickUpEvent);
+		if (obj.zimDoubleTimeout) clearInterval(obj.zimDoubleTimeout);
 		return obj;
 	};//-47.9
 
@@ -36518,6 +37265,11 @@ Handles scaled, rotated nested objects.
 Also see draggable property for setting a default drag() and noDrag()
 and to indicate whether a drag has been set.
 
+NOTE: drag() will stop ZIM Swipe() from triggering a swipe event.
+Set the overridNoSwipe parameter of ZIM Swipe() to true to capture swipe events.
+
+NOTE: also see the draggable property - set to true for basic drag() and false for noDrag()
+
 EXAMPLE
 var radius = 50;
 var circle = new Circle(radius, "red");
@@ -36553,6 +37305,7 @@ boundary - (default null) a ZIM Boundary object for the drag boundary
 		if the drag is on a container and the "all" parameter is false
 		then ZIM will recall the drag methods on each child of the container
 		so the bound calculations are easier
+	note: boundary will only work in 90-degree-rotated containers - as such, do slant Window and List, etc.
 	if surround is true then it will make sure the obj surrounds the boundary rather than stays within it
 	this boundary is relative to the stage (global)
 	if a boundary relative to the object's parent is desired then set the localBounds parameter to true
@@ -36580,6 +37333,10 @@ offStage - (default false) set to true to be able to drag object off stage (than
 
 note: will not update stage if OPTIMIZE is set to true
 unless Ticker.update is set to true or you run Ticker.always(stage) see zim.Ticker
+
+PROPERTIES 
+adds a dragPaused property to get or set the pause of the drag - which allows setting to be kept
+	see also noDrag() where settings will be removed
 
 EVENTS
 Adds a "slidestart" event to the drag object that is dispatched when the object starts sliding - if slide is true
@@ -36628,7 +37385,9 @@ RETURNS obj for chaining
 		if (zot(removeTweens)) removeTweens = true;
 		if (zot(startBounds)) startBounds = true;
 		if (zot(boundary) && !zot(rect)) boundary = rect;
-
+		
+		obj.dragPaused = false;
+		
 		if (slide) {
 			// set up damping for slide and variables used to predict future locations
 			// these get populated in a setTimeout in the init function
@@ -36652,15 +37411,15 @@ RETURNS obj for chaining
 		}
 
 		obj._draggable = true;
-
 		zim.setSwipe(obj, swipe);
 		obj.zimBoundary = boundary;
 		obj.zimLocalBounds = localBounds;
-		var downCheck = false;
+		obj.downCheck = false;		
 		var moveCheck = false;
 
 		var diffX; var diffY; var point; var r;	var rLocal;
 
+		// initialize happens possibly before added to stage - only checking for parent
 		obj.zimAdded = obj.on("added", initializeObject, null, true); // if not added to display list
 		obj.zimRemoved = obj.on("removed", unInitializeObject, null, true);
 		if (obj.parent) initializeObject();
@@ -36682,7 +37441,7 @@ RETURNS obj for chaining
 				boundary.height -= bounds.height+bw;
 				obj.zimBoundary = boundary;
 			}
-
+					
 			// check position right away if there is a bounding box
 			// there is no mousedown so set the diffX and diffY to 0
 			diffX = 0; diffY = 0;
@@ -36703,7 +37462,6 @@ RETURNS obj for chaining
 				positionObject(obj, point.x, point.y);
 			}
 			if (slide) {
-
 				// little delay to in case position is set directly after drag is called
 				setTimeout(function() {
 					// set up damping for slide and variables used to predict future locations
@@ -36744,8 +37502,14 @@ RETURNS obj for chaining
 		var stage;
 		obj.pointers = {};
 		obj.zimDown = obj.on("mousedown", function(e) {
-			if (!obj.stage) return;
+			if (!obj.stage || obj.dragPaused) return;
 			stage = obj.stage;
+			if (!obj.zmu) obj.zmu = stage.frame.on("mouseupplus", function(e) {					
+				if (obj.downCheck) {
+					if (!slide) obj.downCheck = false;						
+					doUp(e, true); // true for cancel slide						
+				}					
+			});		
 			obj.dragMouseX = Math.round(e.stageX/zim.scaX)+stage.x;
 			obj.dragMouseY = Math.round(e.stageY/zim.scaY)+stage.y;
 			var id = "id"+Math.abs(e.pointerID+1);
@@ -36756,7 +37520,7 @@ RETURNS obj for chaining
 			// could use e.localX and e.localY but might be dragging container or contents
 			dragObject = (currentTarget)?e.currentTarget:e.target;
 			if (obj.zimBoundary && !dragObject.getBounds()) {zog("zim.drag() - drag object needs bounds set"); return;}
-			downCheck = true;
+			obj.downCheck = true;
 			obj.stage.mouseMoveOutside = true;
 
 			if (!zim.Ticker.has(obj.zimDragTicker)) zim.Ticker.add(obj.zimDragTicker, obj.stage);
@@ -36813,7 +37577,7 @@ RETURNS obj for chaining
 		}, true);
 
 		obj.zimMove = obj.on("pressmove", function(e) {
-			if (!downCheck) return;
+			if (!obj.downCheck || obj.dragPaused) return;
 			var x = (offStage?e.rawX:e.stageX)/zim.scaX+stage.x;
 			var y = (offStage?e.rawY:e.stageY)/zim.scaY+stage.y;
 			obj.dragMouseX = Math.round(x);
@@ -36877,7 +37641,7 @@ RETURNS obj for chaining
 					checkedPoint = checkBounds(o,point.x-diffX, point.y-diffY);
 					o.x = point.x-diffX;
 					o.y = checkedPoint.y;
-				} else {
+				} else {					
 					o.x = point.x-diffX;
 					o.y = point.y-diffY;
 				}
@@ -36892,10 +37656,12 @@ RETURNS obj for chaining
 
 		obj.zimPosition = positionObject;
 
-		obj.zimUp = obj.on("pressup", function(e) {
+		obj.zimUp = obj.on("pressup", function(e){doUp(e);}, true);
+				
+		function doUp(e, outsideUp) {
 			var id = "id"+Math.abs(e.pointerID+1);
 			delete obj.pointers[id];
-			if (!downCheck) return;
+			if (!obj.downCheck || obj.dragPaused) return;
 			obj.cursor = (zot(overCursor))?"pointer":overCursor;
 			if (slide) {
 				dragObject.dispatchEvent("slidestart");
@@ -36905,12 +37671,16 @@ RETURNS obj for chaining
 					var point = dragObject.parent.globalToLocal(x/zim.scaX, y/zim.scaY);
 				} else {
 					var point = new zim.Point(0,0);
-				}
-				downCheck = false;
+				}				
+				obj.downCheck = false;
 				upX = point.x;
 				upY = point.y;
 				objUpX = dragObject.x;
 				objUpY = dragObject.y;
+				if (outsideUp) {
+					lastBackX = upX = 0;
+					lastBackY = upY = 0;
+				}
 				dampX.immediate(dragObject.x);
 				dampY.immediate(dragObject.y);
 			} else {
@@ -36922,11 +37692,12 @@ RETURNS obj for chaining
 				// extra pen drag
 				if (obj.type == "Pen") {
 					obj.zimDragCheck = false;
-					if (moveCheck) obj.stopCheck();
+					if (moveCheck && obj.drawing) obj.stopCheck(); // added drawing check Cat 04
+					// if (moveCheck) obj.stopCheck(); 
 				}
 			}
 			if (obj.stage) obj.stage.update();
-		}, true);
+		}
 
 		// the bounds check for registration inside the bounds
 		// or if surround is set for the whole object staying outside the bounds
@@ -36995,7 +37766,7 @@ RETURNS obj for chaining
 				if (zot(obj.slideStartX)) return; // don't stop other things like window scrollbar from moving object
 
 				if (!dragObject) dragObject = obj; // could be risky if intending to drag children
-				if (downCheck) {
+				if (obj.downCheck) {
 					if (dragObject.parent) {
 						var point = dragObject.parent.globalToLocal(obj.dragMouseX, obj.dragMouseY);
 					} else {
@@ -37046,7 +37817,8 @@ RETURNS obj for chaining
 					// extra pen drag
 					if (obj.type == "Pen") {
 						obj.zimDragCheck = false;
-						if (moveCheck) obj.stopCheck();
+						if (moveCheck && obj.drawing) obj.stopCheck(); // added drawing check Cat 04
+						// if (moveCheck) obj.stopCheck(); 
 					}
 				} else {
 					lastX = x;
@@ -37098,6 +37870,10 @@ RETURNS obj for chaining
 			obj.off("mousedown", obj.zimDown);
 			obj.off("pressmove", obj.zimMove);
 			obj.off("pressup", obj.zimUp);
+			if (obj.zmu) {
+				if (obj.stage) obj.stage.frame.off("mouseupplus", obj.zmu);
+				else zdf.off("mouseupplus", obj.zmu);
+			}		
 			if (zim.Ticker) {
 				if (obj.zimDragSlide) zim.Ticker.remove(obj.zimDragSlide);
 				if (obj.zimDragTicker) zim.Ticker.remove(obj.zimDragTicker);
@@ -37394,7 +38170,7 @@ RETURNS obj for chaining
 	
 //
 /*--
-obj.updateEffects = function()
+obj.updateEffects = function(redoChache)
 
 updateEffects
 zim DisplayObject method
@@ -37420,11 +38196,18 @@ rect.on("mousedown", function () {
 });
 END EXAMPLE
 
+PARAMETERS 
+redoCache - (default false) set to true to remake the cache the size of the bounds of the object 
+	if some other size is desired, use obj.cache(width, height) or obj.cache(x,y,width,height) instead of updateEffects()
+
 RETURNS obj for chaining
 --*///+33.163
-	zim.updateEffects = function(obj) {
+	zim.updateEffects = function(obj, redoChache) {
 		z_d("33.163");
-		if (obj.updateCache) obj.updateCache();
+		if (obj.updateCache) {
+			if (!redoChache) obj.updateCache();
+			else obj.cache();
+		}
 		return obj;
 	};//-33.163
 
@@ -39769,7 +40552,7 @@ x and y - the point we are testing to see if it hits the shape of the object
 boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
---*///+35	
+--*///+35
 	zim.hitTestPoint = function(obj, x, y, boundsCheck) {
 		if (!zim.zimhtp) {z_d("35"); zim.zimhtp=true;}
 		if (!obj.stage || zot(x) || zot(y)) return false;
@@ -39815,7 +40598,7 @@ other - the object whose registration point we are checking against
 boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
---*///+36	
+--*///+36
 	zim.hitTestReg = function(a, b, boundsCheck) {
 		if (!zim.zimhtr) {z_d("36"); zim.zimhtr=true;}
 		if (!a.stage || !b.stage) return false;
@@ -39869,7 +40652,7 @@ num - (default 0) the number of points along each edge to check
 boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
---*///+37	
+--*///+37
 	zim.hitTestRect = function(a, b, num, boundsCheck) {
 		if (!zim.zimhtr) {z_d("37"); zim.zimhtr=true;}
 		if (!a.stage || !b.stage) return false;
@@ -39946,7 +40729,7 @@ num - (default 8) the number of points evenly distributed around the circle
 boundsCheck (default true) do a bounds check first (faster) but if bounds are wrong - might not work
 
 RETURNS a Boolean true if hitting, false if not
---*///+38	
+--*///+38
 	zim.hitTestCircle = function(a, b, num, boundsCheck) {
 		if (!zim.zimhtc) {z_d("38"); zim.zimhtr=true;}
 		z_d("38");
@@ -40015,7 +40798,7 @@ other - the object whose bounds are used to see if circle shape is hitting
 margin (default 0) pixels the distance between the circle and the bounds is increased or decreased to effect the hit
 
 RETURNS a Boolean true if hitting, false if not
---*///+38.2	
+--*///+38.2
 	zim.hitTestCircleRect = function(a, b, margin) {
 		if (!zim.zimhtcr) {z_d("38.2"); zim.zimhtcr=true;}
 		if (!a.stage || !b.stage) return;
@@ -40075,7 +40858,7 @@ other - the object whose circle based on the bounding rect we are using
 margin (default 0) pixels the distance between circles is increased or decreased to effect the hit
 
 RETURNS a Boolean true if hitting, false if not
---*///+38.5	
+--*///+38.5
 	zim.hitTestCircles = function(a, b, margin) {
 		if (!zim.zimhtcs) {z_d("38.5"); zim.zimhtcs=true;}
 		if (!a.stage || !b.stage) return;
@@ -40192,7 +40975,7 @@ num - (default 2) the number of points added to the path roughly between each po
 showPoints (default false) will draw small circles along the path where the hits will be tested
 
 RETURNS a Boolean true if hitting, false if not
---*///+37.5	
+--*///+37.5
 	zim.hitTestPath = function(a, b, num, showPoints) {
 		if (!zim.zimhtpa) {z_d("37.5"); zim.zimhtpa=true;}
 		if (!a.stage || !b.stage) return;
@@ -40269,7 +41052,7 @@ type - (default index) which means the hitTestGrid returns the index of the cell
 		these will report depending on less than half the spacing or more than half the spacing between cells
 
 RETURNS an index Number (or undefined) | col | row | an Array of [index, col, row]
---*///+41	
+--*///+41
 	zim.hitTestGrid = function(obj, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 		if (!zim.zimhtg) {z_d("41"); zim.zimhtg=true;}
 		if (!obj.stage) return false;
@@ -40621,9 +41404,11 @@ props - the object literal holding properties and values to animate
 		Set the css parameter to true and see the CSS parameter for more details
 	ANIMATION SERIES: if you pass in an array for the props value, then this will run an animation series
 		The array must hold animate configuration objects:
-		[{props:{scale:2}, time:1, rewind:true}, {target:different, props:{x:100}}, etc.]
+		[{props:{scale:2}, time:1, rewind:true}, {target:different, props:{x:100}}, etc.]		
 		If you run animate as a method on an object then this is the default object for the series
 		but you can specify a target to override the default
+		By default, each animation runs after the other, but a negative wait can be set 
+		eg. if wait:-1 is set on the third animation in the series it starts 1 second before the second animation ends
 		The default time and tween are as provided in the main parameters
 		but you can specify these to override the default
 		The id of the main parameters is used for the whole series and cannot be overridden
@@ -40638,11 +41423,17 @@ props - the object literal holding properties and values to animate
 time - |ZIM VEE| (default 1) the time for the tween in seconds (also see ZIM TIME constant)
 	see also the rate parameter and property to dynamically change the time the animation takes (its speed)
 ease - |ZIM VEE| (default "quadInOut") the equation type for easing ("bounceOut", "elasticIn", "backInOut", "linear", etc)
+	also ZIM preset eases: "snapIn", "snapOut", "snapInOut", "balisticIn", "balisticOut", "balisticInOut", "slowmoIn", "slowmoOut", "slowmoInOut"
+	** CUSTOM EASE: see https://zimjs.com/ease for custom ease which can be passed in here as a value like so:
+		ease:zimEase([.2,.4,.6,.8]) // would be linear  
+		ease:zimEase([[1.45,-0.57,0.67,0.55], [0.34,0.44,1.43,-0.31]]) // is the same as "snapInOut"
+		// see the zimEase() function in the docs for the Code module
 	see CreateJS easing: https://www.createjs.com/docs/tweenjs/classes/Ease.html
 	also see easeAmount and easeFrequency parameters to adjust certain eases like back and elastic
 call - (default null) the function to call when the animation is done
 params - (default target) a single parameter for the call function (eg. use object literal or array)
 wait - |ZIM VEE| (default 0) seconds to wait before doing animation
+	can be negative for series to start animation before previous animation ends
 waitedCall - (default null) calls function after wait is done if there is a wait
 waitedParams - (default target) parameters to send waitedCall function
 loop - (default false) set to true to loop animation
@@ -40673,7 +41464,8 @@ sequence - (default 0) the delay time in seconds to run on children of a contain
 	If the loop prop is true then sequenceCall below would activate for each loop
 	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 	Note: a sequence cannot be seriesed and a series cannot be sequenced
-sequenceCall - (default null) the function that will be called when the sequence ends or on a sequence loop
+sequenceCall - (default null) the function that will be called for each sequence animation 
+	Note: the value of the call parameter will go once at the end of all sequences
 sequenceParams - (default null) a parameter sent to the sequenceCall function
 sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
 ticker - (default true) set to false to not use an automatic Ticker function
@@ -40994,7 +41786,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var seqTime = i*sequence;
 				if (i==0 && sequence!=0) seqTime = timeType=="s"?.02:20; // patched in 10.7.0 and 10.7.1
 
-				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, null, (i==target.length-1?sequenceCall:null), (i==target.length-1?sequenceParams:null), null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck); // do not send from!
+				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, null, sequenceCall, sequenceParams, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck); // do not send from!
 
 			}
 			return sequenceTarget;
@@ -41071,7 +41863,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (zot(o.time)) o.time = t;
 					w += (o.wait?o.wait:0);
 					duration = o.time;
-
+					
 					durationRewind = (zot(o.rewindTime)?duration:o.rewindTime);
 					if (o.rewind) duration = duration + durationRewind + (o.rewindWait?o.rewindWait:0);
 					if (o.loop) {
@@ -41081,6 +41873,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 					if (zot(o.params)) o.params = o.target;
 					lastParamTarget = o.target;
+					if (w < 0) {
+						lastEnd += w;
+						w = 0;
+					}
 					var currentObj = {
 						target:o.target,
 						obj:zim.copy(o.obj),
@@ -41313,7 +42109,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// -----------------------------
 		// NORMALIZED TWEEN COMING THROUGH
-		
+				
 		if (zot(target)) return;		
 		if (!target.tweenStates) target.tweenStates = {all:true};	
 		
@@ -41581,10 +42377,24 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 
-		// MOVED call to after wait in tween section
-		// prepareRelative();
+		// In ZIM Cat 00 we moved prepareRelative to tween section to handle loopPick 
+		// In ZIM Cat 02 patch we moved getFrom() to at end of preparing relative to fix froms based on relative
+		// In ZIM Cat 03 we repatched Cat 02 and 03 because if a series is set then we need to getFrom() before the wait in tweens
+		// so we call prepareRelative2() later in the tweens to both set relatives and froms after loopPick
+		prepareRelative();
 		function prepareRelative() {
 			// PREPARE RELATIVE VALUES PASSED IN AS STRINGS
+			relativeAdjust();
+			relativeSetAdjust();
+			if (target.seriesTweens) target.seriesTweens[0] = obj;			
+			if (from && !fromCheck) obj = getFroms(target, obj, set, true);
+		}
+		function prepareRelative2() {
+			relativeAdjust();			
+			if (from && !fromCheck) obj = getFroms(target, obj, set, true);
+		}
+		
+		function relativeAdjust() {
 			var newStart;
 			if (!target.zimLastObj) target.zimLastObj = {};
 			for (i in obj) {
@@ -41596,6 +42406,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 				target.zimLastObj[i] = rewind?target.zimTweenOriginals[i]:obj[i];
 			}
+		}
+		function relativeSetAdjust() {
+			var newStart;
 			for (i in set) {
 				if (typeof set[i] == "string") {
 					if (set[i].substr(0,1)=="+") continue;
@@ -41605,9 +42418,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 				target.zimLastObj[i] = rewind?target.zimTweenOriginals[i]:obj[i];
 			}
-			if (target.seriesTweens) target.seriesTweens[0] = obj;
-			if (from && !fromCheck) obj = getFroms(target, obj, set, true);
-		}
+		}	
 		
 
 		// start NIO updates 1
@@ -41705,7 +42516,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (drag) {
 				delete obj.path;
 				delete obj.percent;
-				if (zon && (!zot(target.startPercent) || !zot(target.percent))) zog("ZIM.animate() - percentStart and percent currently not supported with drag on path");
+				if (zon && (target.startPercent>0 || target.percent!=100)) zog("ZIM.animate() - startPercent and percent currently not supported with drag on path");
 				// old code from 10.6.1 -
 				var newPoint = pathObject.getCurvePoint(target.pathRatio, percents, segments);
 				if (newPoint) {
@@ -41820,9 +42631,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				// 10.6.0 patch to turn move target along path if not animating
 				target.zimAnimatePathDown = pathObject.on("mousedown", function() {pathDownCheck=true; if (target.paused==true) mouseCheck = true;});
 				target.zimAnimatePathUp = pathObject.on("pressup", function() {mouseCheck = false;});
-
-				target.zimAnimateDragDown = target.on("mousedown", function (e) {
+				
+				target.zimAnimateDragDown = target.on("mousedown", function (e) {					
 					stage = e.target.stage;
+					if (!target.amu) target.amu = stage.frame.on("mouseupplus", function() {					
+						mouseCheck = false;				
+					});		
 					stage.mouseMoveOutside = true;
 					flipCheck = false; // sometimes picking up target changes its direction - not good
 					activeCheck = true;
@@ -41969,8 +42783,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}, stage);
 			}
 		}
-
-
+	
 		// ORIENTATION SETUP
 		var pathOrient;
 		if (obj.orient) {
@@ -42043,7 +42856,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			params3 = cjsProps.loopParams;
 			delete cjsProps.loopParams;
 		}
-
+		
 		// checkTIME will test to make sure they are in the right units probably
 		if (TIMECHECK && timeCheck) {
 			if (t) checkTIME(t, timeType);
@@ -42071,9 +42884,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		function doLoopCall() {
+			if (!cjsProps.loop) return; // added Cat 03 - was being called even if not looping
 			if (sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(sequenceParams);}
-			if (call3 && typeof call3 == 'function') {(call3)(params3);}
-			
+			if (call3 && typeof call3 == 'function') {(call3)(params3);}			
 			// added 10.8.0 for loopPick
 			if (loopPick) {
 
@@ -42091,22 +42904,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var adjustedScale;
 				if (!zot(savedPicks.scale)) {
 					adjustedScale = zim.Pick.choose(savedPicks.scale);
-				}
-
-				function prepareRelative() {
-					// PREPARE RELATIVE VALUES PASSED IN AS STRINGS					
-					var newStart;
-					if (!target.zimLastObj) target.zimLastObj = {};
-					for (i in obj) {
-						if (typeof obj[i] == "string") {
-							if (obj[i].substr(0,1)=="+") continue; // let createjs relative through
-							if (target.zimLastObj && !zot(target.zimLastObj[i])) newStart = target.zimLastObj[i];
-							else newStart = target[i];
-							obj[i] = newStart + Number(obj[i].replace(/\s/g,""));
-						}
-						target.zimLastObj[i] = rewind?target.zimTweenOriginals[i]:obj[i];
-					}
-					if (from && !fromCheck) obj = getFroms(target, obj, set, true);
 				}
 
 				if (!from) {
@@ -42165,17 +42962,42 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 
 		// ADJUST EASE
-
+		
+		var customEases = [
+			"ballisticIn", "ballisticOut", "ballisticInOut", 
+			"snapIn", "snapOut", "snapInOut", 
+			"slowmoIn", "slowmoOut", "slowmoInOut", 
+		];
+		if (customEases.indexOf(ease) != -1) {
+			var ba = [0.4,0.75,0.9,.95];
+			var sn = [0.99,-0.69,0.53,0.014];	
+			var sm = [1.18,0.69,1,0.96];		
+			
+			if (ease == "ballisticIn") ease = zik(zim.zimEase(ba));
+			else if (ease == "ballisticOut") ease = zik(zim.zimEase(ba).reverse());
+			else if (ease == "ballisticInOut") ease = zik(zim.zimEase(ba, null, true)); // mirror
+			else if (ease == "snapIn") ease = zik(zim.zimEase(sn));
+			else if (ease == "snapOut") ease = zik(zim.zimEase(sn).reverse());
+			else if (ease == "snapInOut") ease = zik(zim.zimEase(sn, null, true)); // mirror
+			else if (ease == "slowmoIn") ease = zik(zim.zimEase(sm));
+			else if (ease == "slowmoOut") ease = zik(zim.zimEase(sm).reverse());
+			else if (ease == "slowmoInOut") ease = zik(zim.zimEase(sm, null, true)); // mirror
+		}
+		
 		if (cjsProps.rewind) {
-			// flip second ease
+			// flip second ease			
 			if (ease) {
-				// backIn backOut backInOut
-				var ease2 = ease;
-				if (ease2.indexOf("InOut") == -1) {
-					if (ease2.indexOf("Out") != -1) {
-						ease2 = ease2.replace("Out", "In");
-					} else if (ease2.indexOf("In") != -1) {
-						ease2 = ease2.replace("In", "Out");
+				if (ease instanceof Function) { // zimEase
+					var ease2 = zik(ease.reverse());
+				} else {
+					// backIn backOut backInOut
+					var ease2 = ease;
+					if (ease2.indexOf("InOut") == -1) {
+						if (ease2.indexOf("Out") != -1) {
+							ease2 = ease2.replace("Out", "In");
+						} else if (ease2.indexOf("In") != -1) {
+							ease2 = ease2.replace("In", "Out");
+						}
 					}
 				}
 			}
@@ -42184,29 +43006,38 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 
-		var equation = "get" + ease.charAt(0).toUpperCase()+ease.slice(1);
-		var ea = zik(easeAmount);
-		var ef = zik(easeFrequency);
-		if ((!zot(ea) || !zot(ef)) && createjs.Ease[equation]) {
-			if (!zot(ef) && zot(ea)) ea = 1;
-			if (!zot(ea) && zot(ef)) ef = .3*1.5;
-			var finalEase = createjs.Ease[equation](ea, ef);
+		if (ease instanceof Function) {			
+			var finalEase = ease;
 		} else {
-			var finalEase = createjs.Ease[ease];
-		}
-		if (ease2) {
-			equation = "get" + ease2.charAt(0).toUpperCase()+ease2.slice(1);
-			ea = zik(easeAmount);
-			ef = zik(easeFrequency);
+			var equation = "get" + ease.charAt(0).toUpperCase()+ease.slice(1);
+			var ea = zik(easeAmount);
+			var ef = zik(easeFrequency);
 			if ((!zot(ea) || !zot(ef)) && createjs.Ease[equation]) {
 				if (!zot(ef) && zot(ea)) ea = 1;
 				if (!zot(ea) && zot(ef)) ef = .3*1.5;
-				var finalEase2 = createjs.Ease[equation](ea, ef);
+				var finalEase = createjs.Ease[equation](ea, ef);
 			} else {
-				var finalEase2 = createjs.Ease[ease2];
+				var finalEase = createjs.Ease[ease];
+			}
+			
+		}
+		if (ease2) {
+			if (ease2 instanceof Function) {
+				var finalEase2 = ease2;
+			} else {
+				equation = "get" + ease2.charAt(0).toUpperCase()+ease2.slice(1);
+				ea = zik(easeAmount);
+				ef = zik(easeFrequency);
+				if ((!zot(ea) || !zot(ef)) && createjs.Ease[equation]) {
+					if (!zot(ef) && zot(ea)) ea = 1;
+					if (!zot(ea) && zot(ef)) ef = .3*1.5;
+					var finalEase2 = createjs.Ease[equation](ea, ef);
+				} else {
+					var finalEase2 = createjs.Ease[ease2];
+				}
 			}
 		}
-
+		
 
 		// REWIND TWEENS
 		if (cjsProps.rewind) {
@@ -42262,11 +43093,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					preTween1();
 				}
 			} else {
-				prepareRelative();
+				prepareRelative2();
 				tween1();
 			}
 			function preTween1(lastTween) {
-				prepareRelative();				
+				prepareRelative2();				
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
 					wait = 0;
@@ -42313,11 +43144,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					preTween2();
 				}
 			} else {
-				prepareRelative();				
+				prepareRelative2();				
 				tween2();
 			}
 			function preTween2(lastTween) {
-				prepareRelative();				
+				prepareRelative2();				
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
 					wait = 0;
 					if (waitedCall && typeof waitedCall == 'function') {(waitedCall)(zot(waitedParams)?target:waitedParams);}
@@ -42511,8 +43342,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (clean) endTween(id);
 			else target.pauseAnimate(true, id);
 
-
-			if (sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(sequenceParams);}
+			// calling sequenceCall in loop as well so don't call here if looping - ZIM Cat 03
+			if (!cjsProps.loop && sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(sequenceParams);}
 			if (call && typeof call == 'function') {(call)(params);}
 		}
 		function getStart() {
@@ -42520,7 +43351,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			// which could be modified by the set parameter
 			var startObj = {};
 			for (var i in obj) {
-				if (css) {
+				if (css && target.style) {
 					if (!zot(set[i]) && !from) {
 						startObj[i] = set[i];
 					} else {
@@ -42712,6 +43543,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					target.off("mousedown", target.zimAnimateDragDown);
 					target.off("pressmove", target.zimAnimateDragPress);
 					target.off("pressup", target.zimAnimateDragUp);
+					if (target.amu) stage.frame.off("mouseupplus", target.amu);	
 					zim.Ticker.remove(target.zimDragAnimateTicker);
 				}
 				if (zot(ids)) {
@@ -43318,7 +44150,9 @@ RETURNS target for chaining
 				zim.animate({target:target, obj:obj, ease:ease, time:time, wait:zik(wait), override:false, call:wiggleMe, id:id, ticker:(target.stage?true:false), timeCheck:false});
 			}
 		}
-		wiggleMe();
+		if (target.addTo && !target.stage) {
+			target.added(wiggleMe);
+		} else wiggleMe();
 		return target;
 	};//-45.25
 
@@ -43900,7 +44734,7 @@ Sets whether we want to swipe an object or not using ZIM Swipe.
 Recursively sets children to same setting.
 
 EXAMPLE
-circle.swipe();
+circle.setSwipe();
 END EXAMPLE
 
 PARAMETERS
@@ -44786,9 +45620,10 @@ TIMECHECK
 zim constant
 
 DESCRIPTION
-Check to see if time is in right units - default true
+Check to see if time is in right units - default false (false as of ZIM Cat 04)
 logs a warning if ((TIME=="seconds" && time>10) || (TIME=="milliseconds" && time<9))
-Set TIMECHECK = false to turn off check if desired - for instance if getting false positives
+Set TIMECHECK = true to turn on check if desired 
+for instance when converting an old file to ZIM Cat and want to check for milliseconds
 
 NOTE: as of ZIM Cat - time is in seconds rather than milliseconds
 the TIMECHECK helps catch any conversion issues
@@ -44798,16 +45633,13 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 // default time is in seconds
-// the 20 seconds will cause a console log warning that time is in seconds
-// as this is a pretty long time for most things and perhaps milliseconds was expected
-// setting the TIMECHECK to false will prevent this message
-// but there will be no warnings for other times either
+// setting TIMECHECK to true will test for any time over 10 as that may be ms 
 
-TIMECHECK = false;
-new Circle().center().wiggle("x", 100,200, 20, 40); // wiggle from 20 seconds to 40 seconds
+TIMECHECK = true;
+new Circle().center().wiggle("x", 100,200, 2000, 4000); // will give warning in console about time not being in MS
 END EXAMPLE
 --*///+29.45
-zim.TIMECHECK = true;
+zim.TIMECHECK = false;
 //-29.45
 
 /*--
@@ -45060,9 +45892,6 @@ transform()
 // customCursors = mobile?false:true;
 // handleSize = mobile?20:10;
 
-Ticker.framerate = mobile?30:60;
-// use Ticker.setFPS() to adjust
-
 Accessibility()
 // application = mobile?false:true;
 
@@ -45153,7 +45982,8 @@ Ticker.add(function, stage) - adds the function to the Ticker queue for a given 
 Ticker.remove(function) - removes the function from the Ticker queue
 Ticker.removeAll([stage]) - removes all functions from the Ticker queue (optionally per stage)
 Ticker.has(function, stage) - returns a Boolean true if function is currently added to the Ticker for the stage - or false if not currently added
-Ticker.setFPS(30, 60) - (mobile, pc) default is set at natural requestAnimationFrame speed - this seems to be the smoothest
+Ticker.setFPS(60, 60) - (mobile, pc) default is set at natural requestAnimationFrame speed - this seems to be the smoothest
+	Note: as of ZIM Cat 04, mobile default speed is 60fps - previous to ZIM Cat 04 mobile default speed was 30fps
 Ticker.setTimingMode(mode) - (default "raf") RAF uses RequestAnimationFrame without framerate synching - gets screen synch (smooth) and background throttling
 	set to "synched" for framerate synching - but will add some variance between updates
 	set to "timeout" for setTimeout synching to framerate - no screen synch or background throttling (if RAF is not supported falls back to this mode)
@@ -45200,9 +46030,9 @@ then set OPTIMIZE = false and then set Ticker.update = false
 		wire:new zim.Dictionary(),
 		setFPS: function(m, d) {
 			if (zot(m) && zot(d)) {
-				m = 30; d = 60;
+				m = 60; d = 60;
 			} else if (zot(m)) {
-				m = 30;
+				m = 60;
 			} else if (zot(d)) {
 				d = m;
 			}
@@ -46816,7 +47646,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 
 		function makeBox(fill, stroke, color) {
 			var box = new zim.Container({style:false});
-			box.shape = new createjs.Shape();
+			box.shape = new zim.Shape();
 			box.shape.graphics.s(stroke).ss(1).f(fill).r(0,0,boxW,boxH);
 			box.shape.alpha = .9;
 			box.addChild(box.shape);
@@ -46855,7 +47685,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 				box.x = objW/2;
 				box.label.text = "y:" + ((!that.percent) ? Math.round(objH*70/100) : "70%");
 			}
-			line = new createjs.Shape();
+			line = new zim.Shape();
 			that.addChild(line);
 			(vertical) ? line.x = objW*.7 : line.y = objH*.7;
 
@@ -47056,6 +47886,9 @@ color - (default black) the color of the grid
 percent - (default true) set to false to show pixels
 hideKey - (default G) key to press to hide grid
 pixelKey - (default P) key to press to swap percent and pixels
+allowToggle - (default true) set to false to not allow grid to toggle between percent and pixels with key
+cache - (default true) cache the grid
+numbers - (default true) show numbers on grid
 
 METHODS
 resize() - resize the grid if the container changes size (eg. put in frame resize event)
@@ -47067,11 +47900,14 @@ dispose() - clears keyboard events and grid
 
 PROPERTIES
 type - holds the class name as a String
+grid - access to grid Container
+numbersX - access to horizontal numbers 
+numbersY - access to vertical numbers
 toggled - boolean - read only true if controls are showing or false if controls are hidden
 pixels - boolean - set to true to change to pixels, false to go to percent
 --*///+78
-	zim.Grid = function(obj, color, percent, hideKey, pixelKey, style, group, inherit) {
-		var sig = "obj, color, percent, hideKey, pixelKey, style, group, inherit";
+	zim.Grid = function(obj, color, percent, hideKey, pixelKey, allowToggle, cache, numbers, style, group, inherit) {
+		var sig = "obj, color, percent, hideKey, pixelKey, allowToggle, cache, numbers, style, group, inherit";
 		var duo; if (duo = zob(zim.Grid, arguments, sig, this)) return duo;
 		z_d("78");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -47093,6 +47929,9 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		if (zot(percent)) percent = DS.percent!=null?DS.percent:true;
 		if (zot(hideKey)) hideKey = DS.hideKey!=null?DS.hideKey:"G";
 		if (zot(pixelKey)) pixelKey = DS.pixelKey!=null?DS.pixelKey:"P";
+		if (zot(allowToggle)) allowToggle = DS.allowToggle!=null?DS.allowToggle:true;
+		if (zot(cache)) cache = DS.cache!=null?DS.cache:true;
+		if (zot(numbers)) numbers = DS.numbers!=null?DS.numbers:true;
 
 		var that = this;
 		var pixels = 10; // for grid
@@ -47105,13 +47944,18 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 		var boxW = 80;
 		var boxH = 26;
 
-		var top = makeBox("#dddddd", color, "#333333");
+		var top = that.numbersX = makeBox("#dddddd", color, "#333333");
 		top.shape.regX = boxW/2; top.shape.regY = -boxH/4;
 		top.label.y = boxH*3/4;
-
-		var left = makeBox("#dddddd", color, "#333333");
+		
+		var left = that.numbersY = makeBox("#dddddd", color, "#333333");
 		left.shape.regX = -boxW/6; left.shape.regY = boxH/2;
 		left.label.x = boxW/2 + boxW/6;
+
+		if (!numbers) {
+			top.visible = false;
+			left.visible = false;
+		}
 
 		function makeBox(fill, stroke, color) {
 			var box = new zim.Container({style:false});
@@ -47201,7 +48045,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 			maxX = objW-boxW*2/3;
 			maxY = objH-boxH - boxH;
 
-			cached = new zim.Container({style:false});
+			cached = that.grid = new zim.Container({style:false});
 			that.addChild(cached);
 			var grid = new createjs.Shape();
 			cached.addChild(grid);
@@ -47234,7 +48078,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 
 			} else { // percent - every 5 percent
 
-				for (var i=1; i<20+2; i++) {
+				for (var i=1; i<20+1; i++) {
 					g.mt(i*objW/20, 0).lt(i*objW/20, objH);
 				}
 				for (var i=1; i<20; i++) {
@@ -47263,11 +48107,11 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 			g.mt(objW/2-crossSize/2, objH/2).lt(objW/2+crossSize/2, objH/2);
 
 			// draw a border
-			g.s(color).ss(3);
+			g.s(color).ss(cache?3:2);
 			g.dr(0,0,objW,objH);
 
 			grid2.alpha = .5;
-			cached.cache(0,0,objW,objH);
+			if (cache) cached.cache(0,0,objW,objH);
 
 			that.addChild(top);
 			that.addChild(left);
@@ -47290,7 +48134,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 
 		function keyEvent(e) {
 			if (!e) e=event;
-			if (!stage) return;
+			if (!stage || !allowToggle) return;
 			if (String.fromCharCode(e.keyCode) == hideKey.toUpperCase()) { // G
 				that.toggle();
 			}
@@ -49235,7 +50079,8 @@ For example:
 	content.type = "Region"; // this now will have its bounds set to the region size
 If the object is a Container (usual choice) then it must be given a starting width and height
 which will be reset to the region size and resized to continue to match the region size.
-See: https://zimjs.com/explore/layouts.html
+SEE: https://zimjs.com/explore/layouts.html
+SEE: https://zimjs.com/cat/layout.html
 
 SEE: https://zimjs.com/pages
 SEE: https://codepen.io/zimjs/pen/oMRprj
@@ -49281,7 +50126,8 @@ PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 holder - object to hold layout (stage, container, etc) that must have bounds set
-regions - an array of region objects with specific properties for each
+regions - an array of region DisplayObjects with specific properties for each region 
+	(or array of DisplayObjects for defaults)
 	Example VERTICAL region objects - all dimensions are percents
 		[{object:title, marginTop:10, maxWidth:80, minHeight:20, align:"left", valign:"top"},
 		{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
@@ -49386,6 +50232,9 @@ will fill up the rest of the height until they reach their maximum widths
 
 		if (zot(regions)) regions = DS.regions!=null?zim.copy(DS.regions):null;
 		if (zot(regions)) return;
+		zim.loop(regions, function (r, i) {
+			if (r instanceof createjs.DisplayObject) regions[i] = {object:r};
+		});
 		this.regions = regions; // expose the regions object for dynamic adjustments then manual resize
 
 		var r; // used to hold a region in a loop
@@ -49731,7 +50580,8 @@ will fill up the rest of the height until they reach their maximum widths
 				}
 				// increase our primary position
 				pPos += p;
-			}			
+				if (r.object.ZIMoutlineShape) r.object.outline();
+			}	
 			
 		}; // end resize 
 		
@@ -51565,7 +52415,7 @@ NOTE: to just hide bounds, you use the B key
 PROPERTIES
 type - holds the class name as a String
 items - an array of all Layout objects added with add()
---*///+81		
+--*///+81
 	zim.LayoutManager = function() {
 		z_d("81");
 		zim.Manager.call(this, "LayoutManager");
@@ -52077,7 +52927,7 @@ bindType - (default LOCALSTORAGE) or set to GET or POST
 		there is virtually no limit to the amount of data
 		files will need to be on the same server or a CORS header set up
 master - (default null) information to send with each server call (not localStorage)
-	this could be an id, etc. and will have uriEncode() applied
+	this could be an id, etc. and will have encodeURIComponent() applied
 	eg. in php it can be received as $_GET["master"] or $_POST["master"] depending on bindType
 masterFilter - (default null) a function to run before TO and after FROM
 	this will receive the data (plus command and extra)
@@ -52394,7 +53244,6 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
 
 			if (report) sendReport("Bind Report: ADD ["+id+"]", (props?" "+props:"")+(extra?" "+extra:""));
 
-
 			if (that.bindType==LOCALSTORAGE) {
 				that.from(null, id, props, extra);
 				if (!that.data || zim.isEmpty(that.data)) that.to(id, props);
@@ -52402,6 +53251,7 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
 				applyFilters("bind", null, [filter], that.data, extra);
 				that.applyData();
 			}
+			
 			return that;
         };
 
@@ -52688,17 +53538,21 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
 					var f = filtered;
 					if (!zim.isJSON(f)) f = JSON.stringify(f);
 					if (couple) f = zim.couple(f);
+					if (report) sendReport("Bind Report: TO [bindings]",f);
 					f = zim.urlEncode(f);
 					var addMaster = !zot(that.master)?"&master="+zim.urlEncode(master):"";
 					var addLock = !zot(lock)?"&lock="+zim.urlEncode(lock):"";
 					var addUnique = !zot(unique)?"&unique="+zim.urlEncode(unique):"";
 					var addExtra = !zot(extra)?"&extra="+zim.urlEncode(extra):"";
-                    zim.async(that.connection + conType + "command=to&data=" + f + addMaster + addLock + addUnique + addExtra, callbackTo, "callbackTo");
+					var fLine = that.connection + conType + "command=to&data=" + f + addMaster + addLock + addUnique + addExtra;
+					if (report) sendReport("Bind Report: TO [url]",fLine);
+                    zim.async(fLine, callbackTo, "callbackTo");
 				} else if (that.bindType==POST) {
 					that.ajax.master = master;
 					that.ajax.couple = couple;
 					that.ajax.lock = lock;
 					that.ajax.unique = unique;
+					if (report) sendReport("Bind Report: TO [bindings]",filtered);
                     that.ajax.post(that.connection + conType, filtered, "to", extra, callbackTo);
                 } else if (that.bindType==SOCKET) {
                     // socket
@@ -52750,6 +53604,11 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
 			var m = zim.copy(that.data);
 			if (that==zimDefaultBind) zogl(t,m);
 			else zogd(t,m);
+			
+			var t = "Bind {BINDINGS} Report:";
+			var m = zim.copy(that.bindings);
+			if (that==zimDefaultBind) zogl(t,m);
+			else zogd(t,m);
 		};
 
         this.from = function(call, targets, props, extra, filter, lock) {
@@ -52772,18 +53631,22 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
                 callbackFrom(that.data);
             } else {
                	if (that.bindType == GET) {
-					var f = filtered;
+					var f = filtered;					
 					if (!zim.isJSON(f)) f = JSON.stringify(f);
 					if (couple) f = zim.couple(f);
+					if (report) sendReport("Bind Report: FROM [bindings]",f);
 					f = zim.urlEncode(f);
 					var addMaster = !zot(that.master)?"&master="+zim.urlEncode(master):"";
 					var addLock = !zot(lock)?"&lock="+zim.urlEncode(lock):"";
 					var addExtra = !zot(extra)?"&extra="+zim.urlEncode(extra):"";
-                    zim.async(that.connection + conType + "data=" + f + "&command=from"+addMaster+addLock+addExtra, callbackFrom, "callbackFrom");
+					var fLine = that.connection + conType + "data=" + f + "&command=from"+addMaster+addLock+addExtra;
+					if (report) sendReport("Bind Report: FROM [url]",fLine);
+                    zim.async(fLine, callbackFrom, "callbackFrom");
                 } else if (that.bindType == POST) {
 					that.ajax.master = master;
 					that.ajax.couple = couple;
 					that.ajax.lock = lock;
+					if (report) sendReport("Bind Report: FROM [bindings]",filtered);
                     that.ajax.post(that.connection + conType, filtered, "from", extra, callbackFrom);
                 } else if (that.bindType == SOCKET) {
 
@@ -52964,6 +53827,7 @@ this can be used to snap back to an original location
 
 		var startX;
 		var startY;
+		var downCheck;
 		var mouseX;
 		var mouseY;
 		var downCheck;
@@ -53388,6 +54252,35 @@ new MotionController({
 	type:"pressmove",
 	damp:.5, // pen has damp too so can up this number
 	speed:20
+});
+END EXAMPLE
+
+EXAMPLE 
+const background = asset("background.png").addTo(); // assuming loaded in Frame
+const ball = new Circle().centerReg();
+const scroller = new Scroller(background); 
+const accelerator = new Accelerator(scroller);
+
+// control speed of Accelerator with MotionController
+new MotionController({
+	target:accelerator,
+	type:"mousemove", // or "pressmove"
+	axis:HORIZONTAL,
+	// allow pressing on Scroller backings and ball to control scroller
+	mousedownIncludes:[scroller.backing1, scroller.backing2, ball],
+	speed:30,            
+	minPercentSpeed:-1000,
+	maxPercentSpeed:1000,
+	boundary:new Boundary(0,0,stageW,0) // setting a boundary and speed will balance the control
+});
+
+// control position of ball with MotionController
+new MotionController({
+	target:ball,
+	type:"mousemove",
+	// allow press on Scroller backings
+	mousedownIncludes:[scroller.backing1, scroller.backing2],
+	speed:10            
 });
 END EXAMPLE
 
@@ -54083,10 +54976,11 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		this.paused = false;
 		var lastSpeed;
 
-		this.pause = function(state, time) {
+		this.pause = function(state, time, reset) {
 			var pausing; // not sure what pausing is doing ZIM Cat 01
 			if (zot(state)) state = true;
 			if (zot(time)) time = 0;
+			if (zot(reset)) reset = false;
 			if (state) {
 				lastSpeed = that.speed;
 				if (time > 0) {
@@ -54099,6 +54993,24 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 						that.immediate(that.target.x, that.target.y);
 						that.dispatchEvent("pause");
 					}});
+					
+					if (reset) {
+						pressing = false;
+						if (mouseEvent2) stage.off("stagemousemove", mouseEvent2);
+						if (mouseEvent4) zim.Ticker.remove(mouseEvent4);
+						if (target.type == "Pen") {
+							target.write = false;
+							target.zimDragCheck = false;
+						}
+						if (mouseEvent3) stage.off("stagemouseup", mouseEvent3);
+						if (moveCheck) target.stopCheck();							
+						if (type == "keydown") {
+						 	if (keyupEvent) frame.off("keyup", keyupEvent);
+						} else {
+							if (buttonupEvent) gamepad.off("buttonup", buttonupEvent);
+						}
+					} // end reset						
+					
 				} else {
 					pausing = false;
 					that.speed = 0;
@@ -54653,7 +55565,7 @@ join(obj1, obj2, point1, point2, minAngle, maxAngle, type) - creates and returns
 		set to "weld" to fix the objects together
 break(joint) - break a joint created with join()
 	to use, store the result of the join() method in a variable and pass that variable in to break()
-debug() - activates the debugging
+debug() - activates the debugging - returns object for chaining
 updateDebug() - updates the debug canvas if the frame has been scaled (put in frame resize event)
 removeDebug() - removes the debug canvas - you can add it again later (or toggle, etc.)
 // FOR BODIES ONLY (legacy - but may not need a visual ZIM object)
@@ -56440,7 +57352,7 @@ dispatches a "flip" event when the fipper starts the flip
 dispatches a "flipped" event when the fipper ends the flip
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+68.5
 	zim.Flipper = function(front, back, interactive, time, vertical, flipped, easeRoot, frontPress, backPress, style, group, inherit) {
 		var sig = "front, back, interactive, time, vertical, flipped, easeRoot, frontPress, backPress, style, group, inherit";
@@ -56639,6 +57551,8 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 page - get or set the index number of page - will animate at a .1 speed (see gotoPage())
+pageDirect - get or set the index number of a page - will NOT animate in going to the page
+	note: the book must be on the stage (or in a container on the stage) before using this property
 direction - get the direction the page is animating to - either "left" or "right"
 lastPage - get the index number of the page that was just animated (available in page event)
 	note: pages may skip by 2
@@ -56662,7 +57576,7 @@ dispatches a "pagedone" event when gotoPage() or page property finishes animatin
 dispatches a "rollup" event when corner starts to roll up if rollup is true
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+68.7
 	zim.Book = function(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows) {
 		var sig = "width, height, pages, startPage, rollUp, radius, backgroundColor, arrows";
@@ -56718,10 +57632,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				peel.addTo(that);
 				peel.c().f(black).dr(0,0,0,0);
 				that.moving = false;
-									
+													
 				// backwards                    
 				if (pages[num-1]) {
-					leftPage = pages[num-1].rot(0).loc(0,0,that);
+					leftPage = pages[num-1].reg(0,0).rot(0).loc(0,0,that);
 				} else if (num > 0) {                        
 					lastPage.reg(0,0).rot(0).loc(0,0,that).setMask(null);
 				}     
@@ -56740,7 +57654,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 					
 				// forewards
 				if (pages[num]) {
-					rightPage = pages[num].rot(0).pos(0,0,RIGHT,TOP,that); 
+					rightPage = pages[num].rot(0).reg(0,0).pos(0,0,RIGHT,TOP,that); 
 				} else {
 					// need to make a first or last page here
 					stage.update();
@@ -56760,6 +57674,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 				stage.update();                                                       
 			} 
 			toPage(startPage); 
+			
+			Object.defineProperty(that, 'directPage', {
+				get: function() {
+					return that._currentPage;
+				},
+				set: function(num) {
+					if (startPage%2==1) {
+						num = Math.ceil(num/2)*2-1
+					} else {
+						num = Math.ceil(num/2)*2
+					}					
+					toPage(num)
+				}
+			});
 			
 			var turningCheck = false;
 						
@@ -57057,34 +57985,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, remo
 			}, Math.floor(Math.abs(num-that._currentPage)/2+1), true);
 		}
 		
-		
 		Object.defineProperty(that, 'page', {
-		  get: function() {
-			 return that._currentPage;
-		  },
-		  set: function(num) {
-			  that.gotoPage(num, timeType=="s"?.1:100);
-		  }
-	  });
-	  
-	  Object.defineProperty(that, 'pages', {
-		get: function() {
-		   return pages;
-		},
-		set: function(num) {
-			if (zon) zogy("Book() - pages is read only");
-		}
-	});
+			get: function() {
+			 	return that._currentPage;
+			},
+			set: function(num) {
+			  	that.gotoPage(num, timeType=="s"?.1:100);
+			}
+		});
+		
+		Object.defineProperty(that, 'pages', {
+			get: function() {
+				return pages;
+			},
+			set: function(num) {
+				if (zon) zogy("Book() - pages is read only");
+			}
+		});
 
-	  this.dispose = function(a,b,disposing) {
-		  if (that.stageEvent) stage.off("stagemousedown", that.stageEvent);
-		  if (that.moveEvent) stage.off("stagemousemove", that.moveEvent);
-		  if (that.upEvent) stage.off("stagemouseup", that.upEvent);
-		  if (that.keydown) frame.off("keydown", that.keydown);
-		  that.removeFrom();
-		  if (!disposing) this.zimContainer_dispose(true);
-		  return true;
-	  };                
+		this.dispose = function(a,b,disposing) {
+			if (that.stageEvent) stage.off("stagemousedown", that.stageEvent);
+			if (that.moveEvent) stage.off("stagemousemove", that.moveEvent);
+			if (that.upEvent) stage.off("stagemouseup", that.upEvent);
+			if (that.keydown) frame.off("keydown", that.keydown);
+			that.removeFrom();
+			if (!disposing) this.zimContainer_dispose(true);
+			return true;
+		};                
 	}      
 
 zim.extend(zim.Book, zim.Container, ["clone", "dispose"], "zimContainer");
@@ -58014,7 +58941,7 @@ dispatches a "decayed" event when the particle's decayStart + decayTime ms has e
 dispatches a "fizzed" event when the particle's life ms has elapsed
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
-added, click, dblclick, mousedown, mouseout, mouseover, pressmove, pressup, removed, rollout, rollover
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+69.9
 	zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles, style, group, inherit) {
 	    var sig = "obj, width, height, interval, num, life, fade, shrink, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles, style, group, inherit";
@@ -60149,7 +61076,7 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 					that.drawing = false;
 					that.infinite = false;
 				}
-				that.immediate(that.x, that.y);
+				that.immediate(that.x, that.y);				
 		
 				setTimeout(function(){
 					if (that.drawing) return;
@@ -60182,8 +61109,8 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 			var count = 0;
 			that.dampX.immediate(that.x);
 			that.dampY.immediate(that.y);
-			that.lastX = that.x;
-			that.lastY = that.y;
+			that.lastX = that.lastMidX = that.x;
+			that.lastY = that.lastMidY = that.y;
 			that.ticker = zim.Ticker.add(function () {
 		
 				if (!that.parent) return;
@@ -60198,18 +61125,18 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 					if (that.drawing) {
 						that.drawing = false;
 						if (that.zimDown) { // being dragged
-							that.x = that.lastX = _draw?that.x:that.finishX;
-							that.y = that.lastY = _draw?that.y:that.finishY;
+							that.x = that.lastX = that.lastMidX = _draw?that.x:that.finishX;
+							that.y = that.lastY = that.lastMidY = _draw?that.y:that.finishY;
 							that.dampX.immediate(that.x);
 							that.dampY.immediate(that.y);
 						} else {
-							that.x = that.finishX = that.lastX = newX;
-							that.y = that.finishY = that.lastY = newY;
+							that.x = that.finishX = that.lastX = that.lastMidX = newX;
+							that.y = that.finishY = that.lastY = that.lastMidY = newY;
 						}
 						that.stopCheck();
 					}
-					that.lastX = newX;
-					that.lastY = newY;
+					that.lastX = that.lastMidX = newX;
+					that.lastY = that.lastMidY = newY;
 					return;
 				} else {
 					if (!that.drawing) {
@@ -60221,6 +61148,9 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 					that.dispatchEvent("drawing");
 				}
 		
+				var lastPoint = that.parent.localToLocal(that.lastX, that.lastY, shape);
+				var lastMidPoint = that.parent.localToLocal(that.lastMidX, that.lastMidY, shape);				
+				
 				if (penType == "splatter") {
 					for (var i=0; i<=3; i++) {
 						var angle = zim.rand(360)*Math.PI/180;
@@ -60257,17 +61187,25 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 					} else {
 						var midX = that.lastX+(newX-that.lastX)/2;
 						var midY = that.lastY+(newY-that.lastY)/2;
-					}
+					}			
 					var midPoint = that.parent.localToLocal(midX,midY, shape);
-					shape.graphics.qt(midPoint.x, midPoint.y, newPoint.x, newPoint.y);
+					if (penType != "line") {					
+						shape.graphics
+							// .mt(lastMidPoint.x, lastMidPoint.y)
+							.qt(lastPoint.x, lastPoint.y, midPoint.x, midPoint.y); // adjusted Cat 04
+					}
 				}
 		
-				var lastPoint = that.parent.localToLocal(that.lastX, that.lastY, shape);
+				
 				if (borderWidth>0 && penType != "line") {
 					var midX = that.lastX+(newX-that.lastX)/2;
 					var midY = that.lastY+(newY-that.lastY)/2;
 					var midPoint = that.parent.localToLocal(midX,midY, shape);
-					shape.graphics.s(zim.Pick.choose(borderColor)).ss(zim.Pick.choose(borderWidth)).mt(lastPoint.x, lastPoint.y).qt(midPoint.x, midPoint.y, newPoint.x, newPoint.y);
+					shape.graphics
+						.s(zim.Pick.choose(borderColor))
+						.ss(zim.Pick.choose(borderWidth))
+						.mt(lastMidPoint.x, lastMidPoint.y)
+						.qt(lastPoint.x, lastPoint.y, midPoint.x, midPoint.y); // adjusted Cat 04
 					if (penType == "splatter") shape.graphics.es();
 				}
 		
@@ -60279,13 +61217,18 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				}
 				if (penType != "grass" && penType != "hair" && penType != "city" && penType != "splatter") {				
 					shape.graphics
-						.mt(lastPoint.x, lastPoint.y)
-						.qt(midPoint.x, midPoint.y, newPoint.x, newPoint.y);
+						.mt(lastMidPoint.x, lastMidPoint.y)
+						.qt(lastPoint.x, lastPoint.y, midPoint.x, midPoint.y);
 				}
 				that.lastX = newX;
 				that.lastY = newY;
+				if (midPoint) {
+					that.lastMidX = midPoint.x;
+					that.lastMidY = midPoint.y;
+				}
 			});
-		
+
+	
 			that.upEvent = stage.on("stagemouseup", function () {
 				draggingCheck = false; // make sure as cleared paper will not trigger pressup - sigh
 			});
@@ -60443,8 +61386,8 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 				paper.shape = shape;
 				that.dampX.immediate(that.x);
 				that.dampY.immediate(that.y);
-				that.lastX = that.finishX = that.x;
-				that.lastY = that.finishY = that.y;
+				that.lastX = that.lastMidX = that.finishX = that.x;
+				that.lastY = that.lastMidY = that.finishY = that.y;
 				if (penType == "barbwire") {
 					shape.graphics.s(zim.Pick.choose(color)).ss(zim.Pick.choose(size)*that.sizeScale*that.sizeFactor, end);
 				}
@@ -60537,8 +61480,8 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
                     shape.graphics.ef();
 					that.dampX.immediate(that.x);
 					that.dampY.immediate(that.y);
-					that.lastX = that.x;
-					that.lastY = that.y;
+					that.lastX = that.lastMidX = that.x;
+					that.lastY = that.lastMidY = that.y;
 				}
 				_draw = value;
 			}
@@ -60665,8 +61608,8 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 		that.setPen = function(newPen) {
 			that.dampX.immediate(that.x);
 			that.dampY.immediate(that.y);
-			that.lastX = that.finishX = that.x;
-			that.lastY = that.finishY = that.y;
+			that.lastX = that.lastMidX = that.finishX = that.x;
+			that.lastY = that.lastMidY = that.finishY = that.y;
 			if (zot(newPen)) newPen = penType;
 			if (zot(defaults[newPen])) newPen = "line";
 			that.penType = penType = newPen;
@@ -60683,12 +61626,12 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 			if (!zot(x)) {
 				that.x = x;
 				that.dampX.immediate(that.x);
-				that.lastX = that.finishX = that.x;
+				that.lastX = that.lastMidX = that.finishX = that.x;
 			}
 			if (!zot(y)) {
 				that.y = y;
 				that.dampY.immediate(that.y);
-				that.lastY = that.finishY = that.y;
+				that.lastY = that.lastMidY = that.finishY = that.y;
 			}
 			return that;
 		};
@@ -63109,6 +64052,7 @@ assets - (default null) - 1. a string asset or 2. an array of assets, 3. ZIM ass
 		use loadAssets() for these if desired
 		the "ready" event will be dispatched when the canvas is ready and initial assets are loaded
 	NOTE: the loadAssets() method can still be used as desired
+	NOTE: as of ZIM Cat 04, SVG will be automatically converted to a Bitmap with and svg property of the original SVG.
 	SEE: https://zimjs.com/assetlist/ for many files
 path - (default null) - a string path for the assets
 	if an assets object is provide with a path then this parameter is ignored
@@ -63166,6 +64110,7 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 	assets - a file (url String, asset object or multi-asset object) or files in an Array
 		each asset String is how you then access the asset with the asset() method of Frame
 		asset types (from CreateJS PreloadJS): Image, JSON, Sound, SVG, Text, XML		
+		NOTE: as of ZIM Cat 04, SVG will be automatically converted to a Bitmap with and svg property of the original SVG.
 		asset can also be an ZIM asset object:
 			{id:"string", src:"filename", path:"dir/", loadTimeout:1, maxNum:num, noCORSonImage:true}
 			then can use the id to access the asset in the asset() method of Frame
@@ -63275,7 +64220,9 @@ asset(file, width, height) - access an asset such as an image or sound - see loa
 	** asset() is available as a global function asset() or if zns (ZIM name space) is true then as zim.asset()
 	** if there are two or more frames, then use frame.asset() not asset()
 	** traditionally, these have been preloaded into the Frame asset parameter or with Frame loadAssets()
-	** As of ZIM Cat, using asset() without preloading will automatically load the asset (and display an image as a Bitmap) - thanks Ami Hanya for suggestion
+	** As of ZIM Cat, using asset() without preloading will automatically load the asset - thanks Ami Hanya for suggestion
+	   this works only for images and sound and should be used sparingly as each asset has its own preloading
+	   and some things like sprite assets may have issues.
 	** asset() will add "complete" and "assetLoad" event to the asset object
 	** Adding a width and height will help the auto-loading otherwise, ZIM will recall positioning applied before the asset is loaded
 	** otherwise there is no need to add a width and height - only do so to optionally help auto-loading
@@ -63362,6 +64309,9 @@ canvas - a reference to the frame's canvas tag
 canvasID - a reference to the frame's canvas ID
 color - the color of the frame background - any css color
 outerColor - the color of the body of the HTML page - set with styles
+scaling - holds the scaling mode - "full", "fit", "outside", "tag" or "inline"
+	tag is tag mode with no dimensions and inline is tag mode with dimensions
+	also see the tag property below if mode is tag or inline
 tag - the containing tag if scaling is set to an HTML tag id (else null)
 isDefault - a Boolean to indicate whether the Frame is the default frame (see setDefault() method)
 	the default frame has the stage that addTo(), center(), etc. will use as the default container
@@ -63375,6 +64325,9 @@ mouseX, mouseY - read only value of the mouse x and y positions on the canvas
 	note: this value includes the division by the stage scale needed for ZIM Retina
 	whereas getting the mouse coordinates from a mouse event object does not include division by the stage scale
 	set frame's mouseMoveOutside parameter to true to capture movement outside the canvas
+leftMouseDown - read only value as to whether the left mouse button is down
+	used internally by drag and others to make sure pressup on iFrames is handled when the mouse comes back on the stage
+	also see "mouseupplus" event
 mousedownEvent - a reference to the frame "stagemousedown" event - can set frame.off("stagemousedown", frame.mousedownEvent)
 mousemoveEvent - a reference to the frame "stagemousemove" event - can set frame.off("stagemousemove", frame.mousemoveEvent)
 orientation - "vertical" or "horizontal" (updated live with orientation change)
@@ -63406,6 +64359,16 @@ EVENTS
 "keydown" - fired on keydown - just like the window keydown event with eventObject.keyCode, etc.
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
 "keyup" - fired on keyup - just like the window keyup event with eventObject.keyCode, etc.
+"mouseupplus" - fired when the browser window receives a mouseup event 
+	also fired when the mouse enters the stage from an iFrame and is no longer down.
+	mouseup, pressup, stagemouseup, etc. do not work when the mouse is up over an iframe or outside an iframe
+	ZIM drag() makes use of this event to stop the drag if the mouse was up over an iframe or outside the an iframe holding the canvas.
+	This could have been done with setting events on parent windows but this runs into CORS errors in many cases
+	This event fires on the bubbling phase so can be ignored if a real press up is in place - for instance: 
+	record a check variable as true when mousedown and false when pressup which also calls an up function.
+	In a mouseupplus event function, activate the up function only if the check variable is still true.
+	This will call the up function as the mouse comes back onto the stage 
+	if the mouse was down when leaving the stage and let up outside the iframe the canvas is in - goodness.
 "wheel" - fired on mousewheel (Window wheel event)
 	can get eventObject.deltaX and eventObject.deltaY
 	these vary greatly in value based on Browser
@@ -63670,13 +64633,15 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				tagID = scaling;
 				if (zot(zid(tagID))) {zogy("Frame - scaling: HTML tag with id="+scaling+" must exist"); return;}
 				tag = that.tag = zid(tagID);
-				scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
+				that.scaling = scaling = (zot(width) || zot(height)) ? "tag" : "inline"; // tag with no dimensions or dimensions
 				if (canvasID.indexOf("myCanvas") == 0) canvasID = tagID + "Canvas"; // removed in 6.9.0 + randomCanvas;
 				if (tag.tagName.toLowerCase() == "canvas") {
 					preExistingCanvas = true;
 					canvasID = tagID; // the tag is a canvas (added in Cat 01)
 				}
-			}			
+			} else {
+				that.scaling = scaling;
+			}
 			that.canvasID = canvasID;
 
 			// now assign default width and height (ignored by full and tag)
@@ -63815,6 +64780,20 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					that.mouseY = e.stageY/zim.scaY;
 				});
 			}
+			window.addEventListener("mousedown", leftButton, true);
+			window.addEventListener("mousemove", leftButton, true); // tell actual mousemove there was a mouseup
+			window.addEventListener("mouseup", leftButton); // give actual mouseup a chance to act
+		}
+		
+		var oldLeft = false;
+		this.leftMouseDown = false;
+		function leftButton(e) {
+			// e = e.nativeEvent;
+		  	that.leftMouseDown = e.buttons === undefined 
+			    ? e.which === 1 
+			    : e.buttons === 1;
+			if (oldLeft && !that.leftMouseDown) that.dispatchEvent("mouseupplus");
+			oldLeft = that.leftMouseDown;
 		}
 
 		function makeStage() {
@@ -63832,7 +64811,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			if (retina) sizeCanvas();
 			if (rollover) stage.enableMouseOver(rollPerSecond); // if you need mouse rollover
 			if (touch) createjs.Touch.enable(stage, false, allowDefault); // added for mobile
-			if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip
+			// if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip // causes double mouse events
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
 			setMousemove();
@@ -64302,6 +65281,24 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					queue.loadAssetsCount++;
 				}
 			}
+			
+			function svgDone(bitmap, params) {
+				queue.loadAssetsCount--;
+				var item = params.item;				
+				var asset = zim.assets[item.id] = bitmap;	
+				asset.svg = params.svg; // add SVG to Bitmap as property
+				var ev = new createjs.Event("assetload");
+				ev.item = item; // createjs preload item
+				ev.asset = asset;
+				queue.dispatchEvent(ev);
+				if (!queueOnly) {
+					var ev = new createjs.Event("assetload");
+					ev.item = item;
+					ev.asset = asset;
+					that.dispatchEvent(ev);
+				 }				 
+				if (queue.loadAssetsCount == 0) endAssetLoad();				 
+			}
 
 			var startLoad = Date.now();
 			var completeEventObject = new createjs.Event("complete");
@@ -64312,7 +65309,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				if (soundCheck) preload.installPlugin(createjs.Sound);
 				preload.on("progress", function(e) {queue.dispatchEvent(e); if (!queueOnly) that.dispatchEvent(e);});
 				preload.on("error", function(e) {queue.dispatchEvent(e); if (!queueOnly) that.dispatchEvent(e);});
-				preload.on("fileload", function(e) {
+				preload.on("fileload", function(e) {					
 					var item = e.item;
 					var type = e.item.type;
 					var ext = item.id.match(re);
@@ -64368,9 +65365,14 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 							asset = zim.assets[item.id] = new zim.Bitmap(e.result, e.result.width, e.result.height, null, null, item.id);
 							if (item.avoidCORS) asset.expand(0);
 						}
+					} else if (type == "svg") {
+						queue.loadAssetsCount++;
+						zim.svgToBitmap(e.result, svgDone, null, null, {svg:e.result, item:item, type:type, ext:ext});				
+						return;				
 					} else {
 						asset = zim.assets[item.id] = e.result;
 					}
+														
 					var ev = new createjs.Event("assetload");
 					ev.item = item; // createjs preload item
 					ev.asset = asset;
@@ -64456,12 +65458,52 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				if (w && h) assetHolder.type = "ACWD"; // AssetContainer with Dimensions - does not recall methods
 				else assetHolder.type = "AC"; // AssetContainer
 				var assetLoader = that.loadAssets(n);
+				var parts = n.split(".");
+				if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(parts[parts.length-1]) >= 0) {
+					assetHolder.type = "Sound";
+					assetHolder.play = function() {
+						assetHolder.playParams = arguments;
+						assetHolder.proxy = new createjs.EventDispatcher();
+						Object.defineProperty(assetHolder.proxy, 'volume', {
+							get: function() {
+								if (assetHolder.sound) return assetHolder.sound.volume;
+							},
+							set: function(value) {
+								assetHolder.volume = value;
+								if (assetHolder.sound) assetHolder.sound.volume = value;
+							}
+						});
+						Object.defineProperty(assetHolder.proxy, 'pan', {
+							get: function() {
+								if (assetHolder.sound) return assetHolder.sound.pan;
+							},
+							set: function(value) {
+								assetHolder.pan = value;
+								if (assetHolder.sound) assetHolder.sound.pan = value;
+							}
+						});
+						return assetHolder.proxy;
+					}
+				}
 				assetLoader.on("complete", function () {
-					// return;
+														
+					// thanks Xuntar for the adjustment Cat 03
+					// to handle lazy load with asset({id:"etc", src:"https:domain/etc.png"});
+					if (n.id) n = n.id; 
+					else if (n.src) n = n.src;
+										
 					var loaded = that.asset(n, null, null, true);
 					zim.assets[n] = assetHolder; // assign assetHolder back to asset in case used again
 					if (loaded.play) {
-						assetHolder.play = loaded.play();
+						assetHolder.play = loaded.play;
+						if (assetHolder.playParams) {
+							assetHolder.sound = assetHolder.play.apply(null, assetHolder.playParams);
+							if (assetHolder.volume != null) assetHolder.sound.volume = assetHolder.volume;
+							if (assetHolder.pan != null) assetHolder.sound.pan = assetHolder.pan;
+						}
+						assetHolder.sound.on("complete", function () {
+							assetHolder.proxy.dispatchEvent("complete")
+						});
 					} else if (loaded.type == "Bitmap") {
 						loaded.addTo(assetHolder);
 						assetHolder.mouseChildren = false;
@@ -64655,9 +65697,12 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			if (Math.abs(z-lastZ) > 180 - 45 && Math.abs(z-lastZ) < 180 + 45) flip = flip == 0 ? 180 : 0;
 			lastZ = z;
 			e.rotation = {x:e.beta, y:e.gamma, z:(z + flip) % 360};
-			that.dispatchEvent(e);
+			that.dispatchEvent(e);			
 		}
 		if (sensors && window.DeviceOrientationEvent) {
+			// zim.timeout(.2, function () {
+			// 	that.dispatchEvent("yes");
+			// });
 			var lastZ = 0;
 			var flip = 0;
 			window.addEventListener("deviceorientation",deviceorientationEvent);
@@ -64751,7 +65796,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				window.removeEventListener("wheel", that.zil[1]);
 				window.removeEventListener("DOMMouseScroll", that.zil[2]);
 			}
-
+			
 			// remove frame events
 			// var realWindow = window.parent || window;
 			if (shimResizeEvent) window.removeEventListener('resize', shimResizeEvent);
@@ -64941,14 +65986,14 @@ asset("pic.png").clone().pos(100,100,RIGHT,BOTTOM);
 As of ZIM Cat, asset() can also load an image directly without loading through the Frame.
 This will just call loadAsset() in behind the scenes so for multiple assets,
 it is better to batch these in an array and use the traditional assets parameter of Frame.
-Also, just using asset() must re-apply any chained methods the need the dimensions (like center() and pos()).
+Also, just using asset() must re-apply any chained methods that need the dimensions (like center() and pos()).
 So, while asset() works as a form of lazy-loading, perhaps use it sparingly.
 
 ERRORS
 Loading assets onto the canvas when users interact with the canvas can cause a CORS error.
 CORS stands for Cross Origin Resource Sharing.
 This error can happen as you test locally or if you are loading images from another server.
-See https://zimjs.com/tips.html#IMAGES for tips on how to avoid this error as testing.
+See https://zimjs.com/tips.html#IMAGES for tips on how to avoid this error when testing.
 
 See the solution linked to above as a first solution.
 A way to avoid the CORS error when using images and sound from other servers (without CORS permission)
@@ -65052,6 +66097,14 @@ The full docs on Sound can be found here https://www.createjs.com/docs/soundjs/c
 DO NOT make a new Sound() - rather, pass the sound url into the Frame assets parameter.
 Or load sounds when desired with Frame loadAssets() and wait for a complete event.
 In either case, use asset() to play the sound
+**************
+
+**************
+As of ZIM Cat 04 sound can be lazy loaded so asset("sound.mp3").play() can be used without preloading. 
+This should be used sparingly as individual preloads for each one are done behind the scene. 
+Lazy loaded asset() for sound will actually be a Container of type "Sound" uppercase 
+that has a proxy play() method that returns a proxy object with volume and pan properties and complete event.
+Sound, not loaded with lazy loading, has an asset() with type "sound" lowercase. 
 **************
 
 The sound(s) will be available as asset("sound.mp3")
@@ -65165,6 +66218,9 @@ play(volume, loop, loopCount, pan, offset, interrupt) - play the sound
 ABSTRACT SOUND INSTANCE
 The return result of the play() makes a CreateJS AbstractSoundInstance
 var sound = asset("sound.mp3").play(); // sound is an AbstractSoundInstance
+// note: if lazy loaded then the result of a play() before the sound has loaded 
+// will be a proxy object with only volume and pan properties and will dispatch a complete event
+// methods, other properties and events will only be available on a play() after the sound is loaded
 
 METHODS (of AbstractSoundInstance)
 ** full docs here: https://www.createjs.com/docs/soundjs/classes/AbstractSoundInstance.html
@@ -65613,13 +66669,18 @@ RETURNS - a ZIM Tab which is automatically added to the frame's stage
 	};//-83.26
 
 /*--
-zim.svgToBitmap = function(svg, callback)
+zim.svgToBitmap = function(svg, callback, width, height, params)
 
 svgToBitmap
 zim function
 
 DESCRIPTION
 Function to convert SVG to ZIM Bitmap
+
+NOTE: as of ZIM Cat 04, svg passed into the assets parameter of Frame or loadAssets() 
+will be converted to a Bitmap automatically and available as an asset() 
+prior to ZIM Cat 04 it was available as SVG as an asset and would need to be converted with svgToBitmap()
+The original SVG is available as an svg property on the Bitmap asset.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -65638,12 +66699,15 @@ END EXAMPLE
 PARAMETERS
 svg - an SVG tag or SVG string
 callback - function to call when creation is done
+width - (default null) - force a width of the Bitmap
+height - (default null) - force a height of the Bitmap
+params - (default null) pass an object literal of values, etc. for callback to receive after bitmap
 
 RETURNS - null
 --*///+83.27
-	zim.svgToBitmap = function(svg, callback, width, height) {
+	zim.svgToBitmap = function(svg, callback, width, height, params) {
 	 	z_d("83.27");
-
+		
 		if (!zot(svg.draggable)) {
 			// CreateJS seems to wrap up an SVG with loadAssets as an SVG object
 			var parser = new DOMParser();
@@ -65684,11 +66748,8 @@ RETURNS - null
         var img = new Image();
         img.onload = function() {
             var bitmap = new zim.Bitmap(img, width, height);
-            //timeout(1500, function() {
-                // bitmap.cache(0,0,bitmap.width,bitmap.height);
-                callback(bitmap);
-				DOMURL.revokeObjectURL(obu);
-            //});
+            callback(bitmap, params);
+			DOMURL.revokeObjectURL(obu);
         };
 		var obu = DOMURL.createObjectURL(new document.Blob([svgString], {type: "image/svg+xml"}));
         img.src = obu;
@@ -65805,8 +66866,8 @@ function zimify(obj, list) {
 		noEffect:function(effects, cache) {
 			return zim.noEffect(this, effects, cache);
 		},
-		updateEffects:function() {
-			return zim.updateEffects(this);
+		updateEffects:function(redoCache) {
+			return zim.updateEffects(this, redoCache);
 		},
 		wire:function(target, prop, twoWay, setSource, filter, call, input) {
 			if (isDUO(arguments)) {arguments[0].source = this; return zim.wire(arguments[0]);}
@@ -65961,6 +67022,9 @@ function zimify(obj, list) {
 		alp:function(alpha) {
 			return zim.alp(this, alpha);
 		},
+		vis:function(visibility) {
+			return zim.vis(this, visibility);
+		},
 		ble:function(blendMode) {
 			return zim.ble(this, blendMode);
 		},
@@ -66010,8 +67074,9 @@ function zimify(obj, list) {
 		noMovement:function() {
 			return zim.noMovement(this);
 		},
-		tap:function(call, distance, time, once) {
-			return zim.tap(this, call, distance, time, once);
+		tap:function(call, distance, time, once, dbl, dblTime, call2) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.tap(arguments[0]);}
+			else {return zim.tap(this, call, distance, time, once, dbl, dblTime, call2);}			
 		},
 		noTap:function() {
 			return zim.noTap(this);
@@ -66930,12 +67995,11 @@ getLatestVersions(function(versions) {
 });
 END EXAMPLE
 --*///+82.1
-zim.VERSION = "cat/02/zim";
+zim.VERSION = "cat/04/zim";
 //-82.1
 
-//
 /*--
-zim.getLatestVersions(call)
+zim.getLatestVersions = function(call)
 
 getLatestVersions
 zim function
@@ -66977,6 +68041,191 @@ call - a callback function with a versions object is provided to the parameter
 		}
 		zim.async(latestURL, returnLatestVersions, "returnLatestVersions");
 	};//-82.2
+	
+/*--
+zim.PWA = function(call, label, backgroundColor, color, backdropColor, pane, noScale)
+
+PWA
+zim class extends a CreateJS EventDispatcher
+
+DESCRIPTION
+Class to insert a message for the user to add the app 
+to their mobile device home screen.
+
+PWA
+Progressive Web Apps (PWA) are a way to run Web apps similar to native apps.
+These are used primarily for mobile so the app runs without the Browser interface 
+and also can run without the Internet, if a proper service worker is set up.
+See https://zimjs.com/mobile 
+
+ZIM ZAPPS
+There are a few requirements and files that need to be set up for PWA.
+See the ZIM Zapps PWA page at https://zimjs.com/zapps.html 
+The extra PWA files can be made with a tool at https://zimjs.com/zapps 
+
+The PWA class inserts a message into a ZIM app if both the following are true:
+
+1. the app is on mobile
+2. the app is not being launched already from the device home screen 
+
+The message encourages the user to add the file to the home screen (A2HS).
+https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Add_to_home_screen
+
+HOW IT WORKS 
+Make a new PWA() object and pass it an optional function that runs your app.
+In either case, an invite the user to add to the home screen message will pop up 
+if the app is on mobile running from a browser - otherwise there will be no message.
+
+A. If there is no function then the pane can be closed and that is it.
+If you want the pane to show up on top then add new PWA() at the end.
+ 
+B. If a function is provided - eg. new PWA(init); then
+when the pane is closed it will call the init function.
+If there is no need for a message then PWA() calls the init function right away.
+
+NOTE: the ZIM Zapps tool will insert a PWA call - which can be adjusted if necessary.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+frame.on("ready", function() {
+	
+	// PWA will show a message if user is on mobile and launching from a browser 
+	// The app will wait until the message is closed then start 
+	// or will run right away if there is no message needed 
+	// such as when not on mobile or already launching from home screen on mobile
+	// to test the app on desktop, use new PWA(init).show();
+	
+	new PWA(init);
+	function init() {
+		// your app code
+		// init is a common function name to start an app 
+		// but the function can be called whatever you want 
+		// such as startApp, playGame, etc.
+	}
+}); // end ready 
+END EXAMPLE
+
+EXAMPLE
+frame.on("ready", function() {
+	
+	// Here we run the app and just add a PWA message on top 
+	// only if user is on mobile and launching from a browser
+	// no message would appear if not on mobile or already running from home screen on mobile
+	
+	// add app code here
+	
+	new PWA(); // add at end to pop on top of app
+	
+}); // end ready 
+END EXAMPLE
+
+EXAMPLE
+frame.on("ready", function() {
+	
+	// like the last example but may want to start the app 
+	// when the user closes the message or if there is no message
+	
+	// add app code here
+	// etc.
+	
+	// function to start animation, for example
+	function startAnimation() {
+	
+	}
+	
+	var pwa = new PWA(); // add at end to pop on top of app
+	// this event will fire if there is no message or when message is closed
+	pwa.on("ready", startAnimation);
+	
+}); // end ready 
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+call - (default null) the function to call to start the app 
+	if left out then nothing will happen when the PWA closes (also see ready event)
+label - (default "Please add to home screen as an app") along with an icon at left
+	can add different words here or add a custom ZIM Label
+backgroundColor - (default yellow) background color of pane (any CSS color)
+color - (default "black") font color of label on pane (any CSS color)
+backdropColor - (default "rgba(0,0,0,.2)") the color of the background that fills the stage
+pane - (default null) can specify a custom Pane instead of the last four parameters 
+	this will be scaled to the 105% the stage width unless noScale is set to true (see below)
+noScale - (default false) set to true to not scale the Pane (see pane parameter for custom pane)
+
+METHODS 
+show() - test the PWA message on desktop for instance - remember to remove the show!
+
+
+EVENTS 
+dispatches a ready event if the pane is closed or if there was no pane
+but usually, just pass the callback as the first parameter
+--*///+82.4
+	zim.PWA = function(call, label, backgroundColor, color, backdropColor, pane, noScale) {
+		var sig = "call, label, backgroundColor, color, backdropColor, pane, noScale";
+		var duo; if (duo = zob(zim.PWA, arguments, sig, this)) return duo;
+		z_d("82.4");
+		
+		this.cjsEventDispatcher_constructor();
+		this.type = "PWA";
+							
+		var pwa;
+		var that = this;		
+		
+		if (zot(label)) label = new zim.Label({text:"Please add to home screen as an app", align:LEFT, lineHeight:44, color:color});
+		if (zot(backgroundColor)) backgroundColor = zim.yellow;
+		if (zot(pane)) {
+			pane = new zim.Pane({
+				width:1200,
+				height:230,			
+				label:label,  
+				backgroundColor:backgroundColor,
+				backdropColor:backdropColor
+			});			
+			pane.label.align = LEFT;
+			pane.label.center();
+			pane.label.mov(40);
+			var pwaShape = new zim.Shape().s(dark).ss(3,1,0,3).p("AAAj0IAAFJAA8hoIBuAAIAAFdIlTAAIAAldIBuAA")
+				.sca(1.6).center(pane).mov(-pane.label.width/2-20,-10)
+			var pwaShape2 = new zim.Shape().s(dark).ss(3,1,0,3).p("AhGAlIBGhGIBHBG")
+				.sca(1.6).center(pane).mov(-pane.label.width/2-20,-38-10)
+		}
+					
+		if (zim.mobile() && !( window.matchMedia('(display-mode: standalone)').matches || (window.navigator.standalone) || document.referrer.includes('android-app://') )) {		
+			showMessage();
+		} else {
+			if (call && call.constructor === Function) call();
+			setTimeout(function () {
+				that.dispatchEvent("ready");
+			},20); // cannot dispatch directly in a constructor
+		}	
+		
+		function showMessage() {
+			this.pane = pwa = pane.show();			
+			pwa.on("close", function () {
+				if (call && call.constructor === Function) call();
+				if (that.scaleEvent) frame.off("resize", that.scaleEvent);
+				that.dispatchEvent("ready");
+			});			
+			var frame = frame || zimDefaultFrame;
+			if (frame && !noScale) {
+				pwa.scaleTo(frame.stage, 105).center();
+				if (frame.scaling == "full" || frame.scaling == "tag") {
+					that.scaleEvent = frame.on("resize", function () {
+						pwa.scaleTo(frame.stage, 105).center();
+					});
+				}
+				frame.stage.update();
+			}
+		}
+		
+		this.show = function() {
+			showMessage();
+			return this;
+		}	
+		
+	};//-82.4
+	zim.extend(zim.PWA, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
 
 
 ////////////////  ZIM GAME  //////////////
@@ -67796,10 +69045,10 @@ https://zimjs.com/control.html // works with control.html
 NOTE as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-<!-- up top after loading CreateJS and ZIM add the latest versions of these files -->
-<!-- https://zimjs.org/cdn/2.3.0/socket.io.js" -->
-<!-- https://zimjs.org/cdn/zimserver_urls.js" -->
-<!-- https://zimjs.org/cdn/zimsocket_1.1.js" -->
+// up top after loading CreateJS and ZIM add the latest versions of these files
+// https://zimjs.org/cdn/2.3.0/socket.io.js
+// https://zimjs.org/cdn/zimserver_urls.js
+// https://zimjs.org/cdn/zimsocket_1.1.js
 
 // We will make a single Ball that multiple people can drag around
 // In the ZIM Frame here is the preparation and the code:
