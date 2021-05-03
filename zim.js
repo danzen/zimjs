@@ -6234,7 +6234,7 @@ RETURNS a Boolean indicating success
 		return true;
 	};//-27
 
-if (createjs == null) {if (zon) {zog("ZIM >= 4.3.0 requires createjs namespace to be loaded (import createjs before zim)");} return zim;}
+if (createjs == null) {if (zon) {zogr("ZIM >= 4.3.0 requires createjs namespace to be loaded (import createjs before zim)");} return zim;}
 
 
 
@@ -16572,7 +16572,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		bold = zim.Pick.choose(bold);
 		italic = zim.Pick.choose(italic);
 
-		if (zot(rollColor)) rollColor=DS.rollColor!=null?DS.rollColor:color;
+		if (zot(rollColor)) rollColor=DS.rollColor!=null?DS.rollColor:null;
 		if (zot(shadowColor) || shadowColor=="ignore") shadowColor=(DS.shadowColor!=null&&shadowColor!="ignore")?DS.shadowColor:-1;
 		if (zot(shadowBlur) || shadowBlur=="ignore") shadowBlur=(DS.shadowBlur!=null&&shadowBlur!="ignore")?DS.shadowBlur:14;
 		if (zot(align)) align=DS.align!=null?DS.align:"left";
@@ -16957,6 +16957,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				return rollColor;
 			},
 			set: function(value) {
+				if (!that.mouseoverEvent && value) setRollColors();
+				if (value==null && that.mouseoverEvent) removeRollColors();
 				rollColor = value;
 			}
 		});
@@ -16985,9 +16987,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return that;
 		};
 
-		this.mouseoverEvent = this.on("mouseover", function(e) {if (that.showRollColor) that.showRollColor();});
-		this.mouseoutEvent = this.on("mouseout", function(e) {if (!that.rollPersist) that.showRollColor(false);});
-		this.pressupEvent = this.on("pressup", function(e) {if (that.rollPersist) that.showRollColor(false);});
+		function setRollColors() {
+			that.mouseoverEvent = that.on("mouseover", function(e) {if (that.showRollColor) that.showRollColor();});
+			that.mouseoutEvent = that.on("mouseout", function(e) {if (!that.rollPersist) that.showRollColor(false);});
+			that.pressupEvent = that.on("pressup", function(e) {if (that.rollPersist) that.showRollColor(false);});
+		}
+		function removeRollColors() {
+			that.off("mouseover", that.mouseoverEvent);
+			that.off("mouseout", that.mouseoutEvent);
+			that.off("pressup", that.pressupEvent);
+		}
+		if (rollColor) setRollColors();
 
 		Object.defineProperty(that, 'labelWidth', {
 			get: function() {
@@ -18719,8 +18729,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 		}
 
-		var reallyOn = false;
-		this.on("mouseover", buttonOn);
+		var reallyOn = false;		
+		this.on("mouseover", function (e) {
+			if (frame.leftMouseDown && !onCheck) return;
+			buttonOn(e);
+		});
 		function buttonOn(e) {
 			that.rolled = true;
 			reallyOn = true;
@@ -18754,6 +18767,34 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (that.label.showRollColor) that.label.showRollColor();
 			if (that.stage) that.stage.update();
 		}
+		
+		// for mobile with no mouseover 
+		// and to stop rollover if pressed off button and rollover ZIM Cat 04
+		var onCheck = false;
+		var touchCheck = false;
+		this.on("mousedown", function (e) {
+			onCheck = true;
+			if (that.rolled) return;
+			touchCheck = true;
+			buttonOn(e);			
+		});
+		this.on("pressup", function (e) {			
+			onCheck = false;
+			if (touchCheck) { // touch screen
+				touchCheck = false;
+				buttonOff(e);
+			}
+		});
+		this.on("pressmove", function (e) {
+			var hitting = that.hitTestPoint(frame.mouseX, frame.mouseY);
+			if (onCheck && !hitting) {
+				buttonOff(e);
+				onCheck = false;
+			} else if (!onCheck && hitting) {
+				buttonOn(e);
+				onCheck = true;
+			}
+		});
 
 		this.on("mouseout", buttonOff); // thanks Maxime Riehl
 		function buttonOff(e) {
@@ -19390,6 +19431,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		else if (borderColor!=null && borderWidth==null) borderWidth = size/10;
 		if (zot(spacing)) spacing = (vertical) ? DS.spacing!=null?DS.spacing:size*.2 : DS.spacing!=null?DS.spacing:size;
 		if (zot(margin)) margin =  DS.margin!=null?DS.margin:size/5;
+		if (zot(always)) always =  DS.always!=null?DS.always:false;
 		if (zot(indicatorColor)) indicatorColor =  DS.indicatorColor!=null?DS.indicatorColor:borderWidth>0?borderColor:"black";
 
 		var that = this;
@@ -19667,7 +19709,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - holds the class name as a String
-toggled - gets the toggled state of the toggle - same as selected
+toggled - gets and sets the toggled state of the toggle 
 text - gets the selected label text or "on" / "off" if no label
 indicator - access to the indicator object
 background - access to background Rectangle
@@ -19718,6 +19760,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         if (zot(startToggled)) startToggled=DS.startToggled!=null?DS.startToggled:false;
 		var timeType = getTIME(time);
 		if (zot(time)) time = DS.time!=null?DS.time:timeType=="s"?.1:100;
+		if (zot(label)) label=DS.label!=null?DS.label:null;
+		if (zot(labelLeft)) labelLeft=DS.labelLeft!=null?DS.labelLeft:null;
+		
 
 		var that = this;
         that.cursor = "pointer";
@@ -19737,8 +19782,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         this.background = new zim.Rectangle(width, height, backgroundColor, borderColor, borderWidth, corner).addTo(this);
         if (indicatorType=="rectangle" || indicatorType=="square") this.indicator = new zim.Rectangle(height*.65, height*.65, indicatorColor, null, null, indicatorCorner).center(this.background).pos(height*.2, null, startToggled);
         else this.indicator = new zim.Circle(height*.35, indicatorColor).center(this.background).pos(height*.175, null, startToggled);
-        this.toggled = startToggled;
-        that.background.color = that.toggled?toggleBackgroundColor:backgroundColor;
+        var _toggled = startToggled;
+        that.background.color = _toggled?toggleBackgroundColor:backgroundColor;
 
         if (shadowColor != -1 && shadowBlur > 0) {
             this.background.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
@@ -19766,9 +19811,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.tap(function (e) {
 			if (labelLeft) {
 				var point = that.localToGlobal(labelLeft.width+3+margin+borderWidth+width/2, 0);
-				if ((e.stageX/zim.scaX < (point.x-width/2) && !that.toggled) || (e.stageX/zim.scaX >= (point.x+width/2) && that.toggled)) return;
+				if ((e.stageX/zim.scaX < (point.x-width/2) && !_toggled) || (e.stageX/zim.scaX >= (point.x+width/2) && _toggled)) return;
 			}
-			that.toggled = !that.toggled;
+			_toggled = !_toggled;
 			setToggle();
 			that.dispatchEvent("change");
 		}, zim.mobile()?20:10);
@@ -19777,12 +19822,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		swipe.on("swipe", function (e) {
 			if (e.swipeX==0) {
 				return;
-			} else if (e.swipeX==1 && that.toggled) {
+			} else if (e.swipeX==1 && _toggled) {
 				return;
-			} else if (e.swipeX==-1 && !that.toggled) {
+			} else if (e.swipeX==-1 && !_toggled) {
 				return;
 			}
-			that.toggled = !that.toggled;
+			_toggled = !_toggled;
             setToggle();
 			that.dispatchEvent("change");
 		});
@@ -19792,22 +19837,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var t = time;
 			if (immediate===true) t = 0;
             if (indicatorType=="rectangle" || indicatorType=="square") {
-                that.indicator.pos(height*.2, null, that.toggled);
+                that.indicator.pos(height*.2, null, _toggled);
 				if (time>0) that.indicator.animate({props:{x:oldX}, from:true, time:t});
             } else {
-                that.indicator.pos(height*.175, null, that.toggled);
+                that.indicator.pos(height*.175, null, _toggled);
 				if (time>0) that.indicator.animate({props:{x:oldX}, from:true, time:t});
 			}
-            that.background.color = that.toggled?toggleBackgroundColor:backgroundColor;
+            that.background.color = _toggled?toggleBackgroundColor:backgroundColor;
 
-			that.text = that.toggled?(that.label?that.label.text:"on"):(that.labelLeft?that.labelLeft.text:"off");
+			that.text = _toggled?(that.label?that.label.text:"on"):(that.labelLeft?that.labelLeft.text:"off");
 
 			if (that.zimAccessibility) {
-				var string = "Toggle set to " + (that.toggled?(that.label?that.label.text+".":"on."):(that.labelLeft?that.labelLeft.text+".":"off."));
+				var string = "Toggle set to " + (_toggled?(that.label?that.label.text+".":"on."):(that.labelLeft?that.labelLeft.text+".":"off."));
 				setTimeout(function() {that.zimAccessibility.talk(string);}, 50);
 			}
         }
-
+		
 		Object.defineProperty(that, 'textLeft', {
 			get: function() {
 				if (labelLeft) return labelLeft.text;
@@ -19823,13 +19868,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
         that.toggle = function(state, immediate) {
-            var lastToggle = that.toggled;
+            var lastToggle = _toggled;
             if (zot(state)) state = true;
-            that.toggled = state;
-            if (lastToggle != that.toggled) setToggle(immediate);
+            _toggled = state;
+            if (lastToggle != _toggled) setToggle(immediate);
             return that;
         };
-		that.text = that.toggled?(that.label?that.label.text:"on"):(that.labelLeft?that.labelLeft.text:"off");
+		that.text = _toggled?(that.label?that.label.text:"on"):(that.labelLeft?that.labelLeft.text:"off");
+
+		Object.defineProperty(that, 'toggled', {
+			get: function() {
+				return _toggled;
+			},
+			set: function(value) {
+				that.toggle(value);
+			}
+		});
 
 		this._enabled = true;
 		Object.defineProperty(that, 'enabled', {
@@ -25041,7 +25095,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 			},
 			set: function(value) {
-				if(zot(value)) return;
+				if(zot(value)) return;				
 				if (stepperType=="number") {
 					value = Number(value);
 					// original parameters are corrected
@@ -25053,7 +25107,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					} else {
 						if (value < that.max || value > that.min) return;
 					}
-					var newIndex = that.stepperArray.indexOf(value);
+					var newIndex = that.stepperArray.indexOf(value);					
 					if (newIndex < 0) return;
 					index = newIndex;
 					numVal = that.stepperArray[index];
@@ -30044,7 +30098,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 //
 /*--
-zim.TextEditor = function(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, style, group, inherit)
+zim.TextEditor = function(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, fontListHeight, fontListViewNum, style, group, inherit)
 
 TextEditor
 zim class - extends a zim.Panel which extends a zim.Container which extends a createjs.Container
@@ -30132,6 +30186,8 @@ shadowBlur - (default 14 if shadowColor) the shadow blur - set to -1 for no shad
 draggable - (default true if titleBar) set to false to not allow dragging titleBar to drag window
 boundary - (default null) set to ZIM Boundary() object - or CreateJS.rectangle()
 frame - (default zdf - ZIM Default Frame) pass in a frame if not the default frame - lets TextArea and ColorPicker work
+fontListHeight - (default 100) the height of the font list if there is one 
+fontListViewNum - (default 3) the number of fonts to show in the font list if there is one
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -30198,8 +30254,8 @@ dispatches a "color" event when ColorPicker is opened
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.1
-	zim.TextEditor = function(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, style, group, inherit) {
-		var sig = "width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, style, group, inherit";
+	zim.TextEditor = function(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, fontListHeight, fontListViewNum, style, group, inherit) {
+		var sig = "width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, fontListHeight, fontListViewNum, style, group, inherit";
 		var duo; if (duo = zob(zim.TextEditor, arguments, sig, this)) return duo;
 		z_d("67.1");
 		this.group = group;
@@ -30226,6 +30282,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(fieldColor)) fieldColor = DS.fieldColor!=null?DS.fieldColor:null;
 		if (zot(fieldHeight)) fieldHeight = DS.fieldHeight!=null?DS.fieldHeight:null;
 		if (zot(textSize)) textSize = DS.textSize!=null?DS.textSize:null;
+		if (zot(fontListHeight)) fontListHeight = DS.fontListHeight!=null?DS.fontListHeight:100;
+		if (zot(fontListViewNum)) fontListViewNum = DS.fontListViewNum!=null?DS.fontListViewNum:3;
 		
 		if (zot(frame)) {
 			if (zdf) {
@@ -30457,8 +30515,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 			var font = that.fonts = new zim.List({
 				width:width-margin*2,
-				height:100,
-				viewNum:3,
+				height:fontListHeight,
+				viewNum:fontListViewNum,
 				backgroundColor:zim.moon,
 				color:zim.grey,
 				rollColor:zim.dark,
@@ -30553,7 +30611,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.TextEditor(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, style, this.group, inherit));
+			return that.cloneProps(new zim.TextEditor(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, fontListHeight, fontListViewNum, style, this.group, inherit));
 		};
 
 		this.dispose = function(a,b,disposing) {
@@ -36844,7 +36902,7 @@ RETURNS obj for chaining
 		return obj;
 	};//-41.67
 
-// SUBSECTION MOVEMENT, TAP, HOLD, CHANGE, DRAG, MOUSE, EFFECT, WIRE, BIND, TRANSFORM, GESTURE, PHYSICS
+// SUBSECTION INTERACTIONS, EFFECTS AND PHYSICS
 
 
 
@@ -37985,301 +38043,6 @@ RETURNS obj for chaining
 	};//-33.15
 	
 /*--
-obj.effect = function(effect, x, y, width, height)
-
-effect
-zim DisplayObject method
-
-DESCRIPTION
-Adds an effect to a DisplayObject such as:
-blur, glow, shadow, color and alpha mask effects.
-Also see hue, saturation, brightness and contrast convenience effects 
-that are available as properties directly on the DisplayObject.
-
-SEE: https://zimjs.com/cat/effects.html
-
-BATCHING
-Effects are processor heavy.  Too many can slow down the application.
-ZIM uses effect() to allow multiple effects to be added at once. 
-These are then internally batched and updated with a single update
-rather than making each effect a stand-alone method requiring individual updates.
-
-EFFECTS PROPERTY
-The effects added with effect() are stored on the object's effects property.
-The effects themselves have properties that can be changed to change the effect.
-If an effect is changed the updateEffects() method needs to be called.
-ZIM does not do this automatically, allowing the changes to be batched with one call.
-See updateEffects() - also see noEffect() to remove effects.
-
-The effect properties and convenience effects can be animated and wiggled.
-In this case, the effects will be automatically updated by ZIM.
-
-CREATEJS FILTERS
-ZIM Effects wrap the CreateJS filters array and cache/updateCache system. 
-Using effect() will overwrite manual usage of CreateJS filters array. 
-The ZIM Effects system remembers effects in the effects property 
-and overwrites the filters array each time an effect is added or updated.
-To update an effect, all the effects need to be re-applied regardless
-and all this is automatically handled by ZIM.
-
-EFFECT OBJECTS
-The following Effect objects can be passed into effect()
-These all have parameters that accept ZIM DUO, VEE and OCT. 
-See the Doc entries under Controls > Effects.
-	new BlurEffect() - apply blur
-	new GlowEffect() - apply glow and knock out - thanks kudox.jp 
-	new ShadowEffect() - apply drop shadows and knock out - thanks kudox.jp
-	new ColorEffect() - change colors
-	new MultiEffect() - combination of hue, saturation, brightness, and contrast
-	new AlphaEffect() - apply alpha mask
-	
-EFFECT IDS
-The effects are referred to by id and have ids as follows (case insensitve):
-	blur, glow, shadow, color, multi, alpha
-The id is the property name used to identify the effect
-in the object's effects property (plural s):
-	obj.effects.glow.strength = 20; // using the glow id
-	obj.updateEffects(); // this must be called to see the change
-Effect ids are used when animating (and wiggling):
-	props:{"effects.blur.blurX":200} // no update is needed
-To remove effects use noEffect (singular) and use the id as follows:
-	obj.noEffect(); // remove all effects (except convenience effects - see below)
-	obj.noEffect("glow"); // remove the glow effect
-	obj.noEffect(["glow", "color"]); // remove glow and color effects
-
-CONVENIENCE EFFECTS
-hue, saturation, brightness, contrast can be used directly on the object
-	obj.hue = 100; // no need to updateEffects()
-	// or
-	obj.hueBatch = 100; // will set the effect 
-	obj.updateEffects(); // but updateEffects must be called to see the change
-Convenience effects can also be accessed through the multi id:
-	obj.effects.multi.hue = 100;
-Any of the four properties can be removed by setting them to 0 
-	obj.hue = 0;  
-Convenience effects can also ALL be removed together with:
-	obj.effects.noEffect("multi");
-The following will NOT remove the convenience effects:
-	obj.effects.noEffect(); // will not remove hue, saturation, brightness and contrast
-	
-NOTE: Effects are quite processor intensive so use sparingly.
-Each effect processes every pixel - when animating this results in hundreds of thousands of loops.
-ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate system
-to make accessing filters easy - but apps will slow down if they are over-used.
-Keep the quality at 1 for animating filters at a decent framerate.
-Consider pre-processing images if effects do not have to be dynamic.
-	
-EXAMPLE
-// create a Label with a GlowEffect that shows through to the image below
-asset("background.jpg").center();
-new Label("WOW", 200, "impact")
-	.center()
-	.effect(new GlowEffect({
-		color:red,
-		blurX:50,
-		blurY:50,
-		strenght:2,
-		quality:2,
-		knockout:true
-	}));
-END EXAMPLE	
-
-EXAMPLE
-// add a glow and shadow effect
-// remove only the glow when pressed
-var circle = new Circle(100,blue)
-	.center()	
-	.effect([ // apply two effects in an array		
-		new GlowEffect({color:purple, blurX:100, inner:true}),		
-		new ShadowEffect(20) // 20 is distance
-	]); 
-circle.on("mousedown", function () {	
-	// specify type of effect to remove - otherwise removes all
-	circle.noEffect("glow"); 
-	stage.update();
-});
-END EXAMPLE
-
-EXAMPLE
-// add a 200 blurX effect and animate it to 0 rewind and looping
-STYLE = {blurX:200} // just showing using style...
-asset("image.png") // preloaded asset
-	.center()
-	.effect(new BlurEffect())
-	.animate({
-		// the blur effect is stored on the effects property of the object 
-		// and available through the effect id (blur)
-		// we are animating the blurX of that 
-		// note the quotes around the DOT property format
-		props:{"effects.blur.blurX":0},
-		time:.7,
-		rewind:true,
-		rewindWait:.5,
-		loop:true
-	});
-END EXAMPLE
-	 
-EXAMPLE 
-// wiggle the saturation of an image asset stored in pic
-// so its saturation goes from 50-100 negative or positive in 1-3 seconds
-// here we use a convenience effect (hue, saturation, brightness, contrast)
-pic.wiggle("saturation", 0, 50, 100, 1, 3);
-
-// This is the same as the following (so may as well use above)
-pic.effect(new MultiEffect()).wiggle("effects.multi.saturation", 0, 50, 100, 1, 3);
-END EXAMPLE
-
-PARAMETERS 
-effect - (default null) a ZIM Effect object as detailed above
-	or an array of ZIM Effect objects.
-	Effects of a specific type are not compounded. 
-	For example, adding two blur effects will just use the last blur effect added.
-x - (default null) the x position of the cache bounds - will cache object bounds by default
-y - (default null) the y position of the cache bounds - will cache object bounds by default
-width - (default null) the width of the cache bounds - will cache object bounds by default 
-height - (default null) the height of the cache bounds - will cache object bounds by default 
-
-RETURNS obj for chaining
---*///+33.16
-	zim.effect = function(obj, effect, x, y, width, height) {
-		z_d("33.16");				
-		if (zot(effect)) return obj;		
-		
-		if (zot(obj.effects)) obj.effects = {};
-        if (!Array.isArray(effect)) effect = [effect];   
-        var customCount = 0;     
-        for (var j=0; j<effect.length; j++) {
-            var eff = effect[j];
-			if (!eff.type) {
-				if (eff instanceof createjs.BlurFilter) eff.type = "BlurEffect";
-				else if (eff instanceof createjs.ColorFilter) eff.type = "ColorEffect";
-				else if (eff instanceof createjs.AlphaMaskFilter) eff.type = "AlphaEffect";
-				else if (eff instanceof createjs.ColorMatrixFilter) eff.type = "MultiEffect";		
-	            else if (zot(eff.type)) eff.type = "custom"+customCount++;
-			}
-			var e = eff.type.replace(/effect/i, "");
-            obj.effects[e.toLowerCase()] = eff;
-        }
-        obj.filters = [];
-        for (var i in obj.effects) {
-            obj.filters.push(obj.effects[i]);
-        } 
-        obj.cache(x,y,width,height); 
-		return obj;
-	};//-33.16
-	
-//
-/*--
-obj.updateEffects = function(redoChache)
-
-updateEffects
-zim DisplayObject method
-
-DESCRIPTION
-Updates an effect when its property or the object's internals are changed.
-For example a Sprite changes frame.  Not needed for position, alpha, scale or rotation. 
-This basically updates the cache on the object so the effects are applied.
-
-Note: setting hue, saturation, brightness and contrast directly on the object will update automatically.
-These can be batched by using hueBatch, saturationBatch, etc. which will change but not update 
-until an obj.updateEffects() is called.
-
-EXAMPLE
-// make an object more blurry in x each time it is pressed
-var rect = new Rectangle(200,200,red)
-	.center()
-	.effect(new BlurEffect(10, 0)); // set to 0 in y otherwise it would take default blurY
-rect.on("mousedown", function () {
-	rect.effects.blur.blurX += 20;
-	rect.updateEffects();
-	stage.update();
-});
-END EXAMPLE
-
-PARAMETERS 
-redoCache - (default false) set to true to remake the cache the size of the bounds of the object 
-	if some other size is desired, use obj.cache(width, height) or obj.cache(x,y,width,height) instead of updateEffects()
-
-RETURNS obj for chaining
---*///+33.163
-	zim.updateEffects = function(obj, redoChache) {
-		z_d("33.163");
-		if (obj.updateCache) {
-			if (!redoChache) obj.updateCache();
-			else obj.cache();
-		}
-		return obj;
-	};//-33.163
-
-/*--
-obj.noEffect = function(effects, cache)
-
-noEffect
-zim DisplayObject method
-
-DESCRIPTION
-Removes the effects or specified effects from an object.
-
-EXAMPLE
-// add a glow and shadow effect
-// remove only the glow when pressed
-var circle = new Circle(100,blue)
-	.center()	
-	.effect([ // apply two effects in an array		
-		new GlowEffect({color:purple, blurX:100, inner:true}),		
-		new ShadowEffect(20) // 20 is distance
-	]); 
-circle.on("mousedown", function () {	
-	// specify type of effect to remove - otherwise removes all
-	circle.noEffect("glow"); 
-	stage.update();
-});
-END EXAMPLE
-
-PARAMETERS 
-effects - (default null) will remove all effects applied with effect() unless 
- 	an effect string or array of effect strings is provided 
-	Effect strings are (case insensitive):
-	"blur", "glow", "shadow", "multi", "alpha" 
-	alternately, "Effect" can be added such as "BlurEffect"
-	To remove hue, saturation, brightness and contrast set the object property to 0
-	for instance obj.hue = 0;
-	Or to remove all four then can explicitly use obj.noEffect("multi")
-cache - (default false) will uncache object if all effects are gone 
- 	set to true to leave object cached
-
-RETURNS obj for chaining
---*///+33.165
-	zim.noEffect = function(obj, effects, cache) {
-		z_d("33.165");
-		if (zot(cache)) cache = false;
-		if (zot(effects)) {
-			var storeMulti;
-			if (obj.effects.multi) storeMulti = obj.effects.multi;
-			obj.effects = {};		
-			if (storeMulti) obj.effects.multi = storeMulti;	
-		} else {
-			if (!obj.effects) obj.effects = {};
-			if (!Array.isArray(effects)) effects = [effects];   
-	        for (var j=0; j<effects.length; j++) {
-				var e = effects[j].replace(/effect/i, "");
-				delete obj.effects[e.toLowerCase()];
-			}			
-		}
-		obj.filters = [];
-		for (var i in obj.effects) {
-			obj.filters.push(obj.effects[i]);
-		} 
-		if (cache || obj.filters.length > 0) {
-			if (obj.updateCache) obj.updateCache();
-		} else {
-			if (obj.uncache) obj.uncache();
-		}
-		return obj;
-	};//-33.165
-
-
-/*--
 obj.wire = function(target, prop, twoWay, setSource, filter, call, input)
 
 wire
@@ -38359,7 +38122,7 @@ var rect = new Rectangle(100, 100, blue, dark)
 
 new Slider({min:0, max:stageW-100, currentValue:rect.x})
 	.pos(0,100,CENTER,BOTTOM)
-	.wire(rect, "x", true, function (data) {
+	.wire(rect, "x", true, null, function (data) {
 		if (data < 100 || data > stageW-100-100) rect.color = red;
 		return data; // filter must return data - even if not changing it
 	}, function (data) {
@@ -38389,6 +38152,49 @@ timeout(.01, function () { // must wait for Ticker to go
 	zog(shirt.num); // 3
 	zog(shirt.color); // blue
 });
+END EXAMPLE
+
+EXAMPLE 
+// wire a bunch of on/off components together
+STYLE = {
+	color:blue.darken(.3), 
+	backgroundColor:blue.lighten(.3), 
+	borderColor:blue.darken(.3),
+	always:true, // for RadioButtons
+	Toggle:{
+		backgroundColor:blue.darken(.3), 
+		toggleBackgroundColor:blue.lighten(.3)
+	}
+}
+
+const radio = new RadioButtons(50,["OFF","ON"]).center();
+const check = new CheckBox(50,"ON").center().mov(300);
+const toggle = new Toggle(100,50,"ON").center().mov(-300)
+Style.add({
+	backgroundColor:blue.toAlpha(.3),
+	Label:{size:40, backgroundColor:frame.color}
+});
+const selector = new Selector(new Tile({
+	obj:[new Label("OFF").centerReg(), new Label("ON").centerReg()],
+	cols:2,
+	spacingH:30,
+	spacingV:20,
+	unique:true
+})).center().mov(0,200);
+
+radio
+	.wire(check, "checked", true, null, convert)
+	.wire(toggle, "toggled", true, null, convert)
+	.wire(selector, "selectedIndex", true);
+
+// convert true/false to 0/1 and visa versa
+function convert(data) {
+	if (data===true) data = 1;
+	else if (data===false) data = 0;
+	else if (data===1) data = true;
+	else if (data===0) data = false;
+	return data;
+}
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -40403,6 +40209,300 @@ RETURNS obj for chaining
 		obj.y = result.y;
 		return obj;
 	};//-34.7
+	
+//
+/*--
+obj.effect = function(effect, x, y, width, height)
+
+effect
+zim DisplayObject method
+
+DESCRIPTION
+Adds an effect to a DisplayObject such as:
+blur, glow, shadow, color and alpha mask effects.
+Also see hue, saturation, brightness and contrast convenience effects 
+that are available as properties directly on the DisplayObject.
+
+SEE: https://zimjs.com/cat/effects.html
+
+BATCHING
+Effects are processor heavy.  Too many can slow down the application.
+ZIM uses effect() to allow multiple effects to be added at once. 
+These are then internally batched and updated with a single update
+rather than making each effect a stand-alone method requiring individual updates.
+
+EFFECTS PROPERTY
+The effects added with effect() are stored on the object's effects property.
+The effects themselves have properties that can be changed to change the effect.
+If an effect is changed the updateEffects() method needs to be called.
+ZIM does not do this automatically, allowing the changes to be batched with one call.
+See updateEffects() - also see noEffect() to remove effects.
+
+The effect properties and convenience effects can be animated and wiggled.
+In this case, the effects will be automatically updated by ZIM.
+
+CREATEJS FILTERS
+ZIM Effects wrap the CreateJS filters array and cache/updateCache system. 
+Using effect() will overwrite manual usage of CreateJS filters array. 
+The ZIM Effects system remembers effects in the effects property 
+and overwrites the filters array each time an effect is added or updated.
+To update an effect, all the effects need to be re-applied regardless
+and all this is automatically handled by ZIM.
+
+EFFECT OBJECTS
+The following Effect objects can be passed into effect()
+These all have parameters that accept ZIM DUO, VEE and OCT. 
+See the Doc entries under Controls > Effects.
+	new BlurEffect() - apply blur
+	new GlowEffect() - apply glow and knock out - thanks kudox.jp 
+	new ShadowEffect() - apply drop shadows and knock out - thanks kudox.jp
+	new ColorEffect() - change colors
+	new MultiEffect() - combination of hue, saturation, brightness, and contrast
+	new AlphaEffect() - apply alpha mask
+	
+EFFECT IDS
+The effects are referred to by id and have ids as follows (case insensitve):
+	blur, glow, shadow, color, multi, alpha
+The id is the property name used to identify the effect
+in the object's effects property (plural s):
+	obj.effects.glow.strength = 20; // using the glow id
+	obj.updateEffects(); // this must be called to see the change
+Effect ids are used when animating (and wiggling):
+	props:{"effects.blur.blurX":200} // no update is needed
+To remove effects use noEffect (singular) and use the id as follows:
+	obj.noEffect(); // remove all effects (except convenience effects - see below)
+	obj.noEffect("glow"); // remove the glow effect
+	obj.noEffect(["glow", "color"]); // remove glow and color effects
+
+CONVENIENCE EFFECTS
+hue, saturation, brightness, contrast can be used directly on the object
+	obj.hue = 100; // no need to updateEffects()
+	// or
+	obj.hueBatch = 100; // will set the effect 
+	obj.updateEffects(); // but updateEffects must be called to see the change
+Convenience effects can also be accessed through the multi id:
+	obj.effects.multi.hue = 100;
+Any of the four properties can be removed by setting them to 0 
+	obj.hue = 0;  
+Convenience effects can also ALL be removed together with:
+	obj.effects.noEffect("multi");
+The following will NOT remove the convenience effects:
+	obj.effects.noEffect(); // will not remove hue, saturation, brightness and contrast
+	
+NOTE: Effects are quite processor intensive so use sparingly.
+Each effect processes every pixel - when animating this results in hundreds of thousands of loops.
+ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate system
+to make accessing filters easy - but apps will slow down if they are over-used.
+Keep the quality at 1 for animating filters at a decent framerate.
+Consider pre-processing images if effects do not have to be dynamic.
+	
+EXAMPLE
+// create a Label with a GlowEffect that shows through to the image below
+asset("background.jpg").center();
+new Label("WOW", 200, "impact")
+	.center()
+	.effect(new GlowEffect({
+		color:red,
+		blurX:50,
+		blurY:50,
+		strenght:2,
+		quality:2,
+		knockout:true
+	}));
+END EXAMPLE	
+
+EXAMPLE
+// add a glow and shadow effect
+// remove only the glow when pressed
+var circle = new Circle(100,blue)
+	.center()	
+	.effect([ // apply two effects in an array		
+		new GlowEffect({color:purple, blurX:100, inner:true}),		
+		new ShadowEffect(20) // 20 is distance
+	]); 
+circle.on("mousedown", function () {	
+	// specify type of effect to remove - otherwise removes all
+	circle.noEffect("glow"); 
+	stage.update();
+});
+END EXAMPLE
+
+EXAMPLE
+// add a 200 blurX effect and animate it to 0 rewind and looping
+STYLE = {blurX:200} // just showing using style...
+asset("image.png") // preloaded asset
+	.center()
+	.effect(new BlurEffect())
+	.animate({
+		// the blur effect is stored on the effects property of the object 
+		// and available through the effect id (blur)
+		// we are animating the blurX of that 
+		// note the quotes around the DOT property format
+		props:{"effects.blur.blurX":0},
+		time:.7,
+		rewind:true,
+		rewindWait:.5,
+		loop:true
+	});
+END EXAMPLE
+	 
+EXAMPLE 
+// wiggle the saturation of an image asset stored in pic
+// so its saturation goes from 50-100 negative or positive in 1-3 seconds
+// here we use a convenience effect (hue, saturation, brightness, contrast)
+pic.wiggle("saturation", 0, 50, 100, 1, 3);
+
+// This is the same as the following (so may as well use above)
+pic.effect(new MultiEffect()).wiggle("effects.multi.saturation", 0, 50, 100, 1, 3);
+END EXAMPLE
+
+PARAMETERS 
+effect - (default null) a ZIM Effect object as detailed above
+	or an array of ZIM Effect objects.
+	Effects of a specific type are not compounded. 
+	For example, adding two blur effects will just use the last blur effect added.
+x - (default null) the x position of the cache bounds - will cache object bounds by default
+y - (default null) the y position of the cache bounds - will cache object bounds by default
+width - (default null) the width of the cache bounds - will cache object bounds by default 
+height - (default null) the height of the cache bounds - will cache object bounds by default 
+
+RETURNS obj for chaining
+--*///+33.16
+	zim.effect = function(obj, effect, x, y, width, height) {
+		z_d("33.16");				
+		if (zot(effect)) return obj;		
+		
+		if (zot(obj.effects)) obj.effects = {};
+        if (!Array.isArray(effect)) effect = [effect];   
+        var customCount = 0;     
+        for (var j=0; j<effect.length; j++) {
+            var eff = effect[j];
+			if (!eff.type) {
+				if (eff instanceof createjs.BlurFilter) eff.type = "BlurEffect";
+				else if (eff instanceof createjs.ColorFilter) eff.type = "ColorEffect";
+				else if (eff instanceof createjs.AlphaMaskFilter) eff.type = "AlphaEffect";
+				else if (eff instanceof createjs.ColorMatrixFilter) eff.type = "MultiEffect";		
+	            else if (zot(eff.type)) eff.type = "custom"+customCount++;
+			}
+			var e = eff.type.replace(/effect/i, "");
+            obj.effects[e.toLowerCase()] = eff;
+        }
+        obj.filters = [];
+        for (var i in obj.effects) {
+            obj.filters.push(obj.effects[i]);
+        } 
+        obj.cache(x,y,width,height); 
+		return obj;
+	};//-33.16
+	
+/*--
+obj.updateEffects = function(redoChache)
+
+updateEffects
+zim DisplayObject method
+
+DESCRIPTION
+Updates an effect when its property or the object's internals are changed.
+For example a Sprite changes frame.  Not needed for position, alpha, scale or rotation. 
+This basically updates the cache on the object so the effects are applied.
+
+Note: setting hue, saturation, brightness and contrast directly on the object will update automatically.
+These can be batched by using hueBatch, saturationBatch, etc. which will change but not update 
+until an obj.updateEffects() is called.
+
+EXAMPLE
+// make an object more blurry in x each time it is pressed
+var rect = new Rectangle(200,200,red)
+	.center()
+	.effect(new BlurEffect(10, 0)); // set to 0 in y otherwise it would take default blurY
+rect.on("mousedown", function () {
+	rect.effects.blur.blurX += 20;
+	rect.updateEffects();
+	stage.update();
+});
+END EXAMPLE
+
+PARAMETERS 
+redoCache - (default false) set to true to remake the cache the size of the bounds of the object 
+	if some other size is desired, use obj.cache(width, height) or obj.cache(x,y,width,height) instead of updateEffects()
+
+RETURNS obj for chaining
+--*///+33.163
+	zim.updateEffects = function(obj, redoChache) {
+		z_d("33.163");
+		if (obj.updateCache) {
+			if (!redoChache) obj.updateCache();
+			else obj.cache();
+		}
+		return obj;
+	};//-33.163
+
+/*--
+obj.noEffect = function(effects, cache)
+
+noEffect
+zim DisplayObject method
+
+DESCRIPTION
+Removes the effects or specified effects from an object.
+
+EXAMPLE
+// add a glow and shadow effect
+// remove only the glow when pressed
+var circle = new Circle(100,blue)
+	.center()	
+	.effect([ // apply two effects in an array		
+		new GlowEffect({color:purple, blurX:100, inner:true}),		
+		new ShadowEffect(20) // 20 is distance
+	]); 
+circle.on("mousedown", function () {	
+	// specify type of effect to remove - otherwise removes all
+	circle.noEffect("glow"); 
+	stage.update();
+});
+END EXAMPLE
+
+PARAMETERS 
+effects - (default null) will remove all effects applied with effect() unless 
+ 	an effect string or array of effect strings is provided 
+	Effect strings are (case insensitive):
+	"blur", "glow", "shadow", "multi", "alpha" 
+	alternately, "Effect" can be added such as "BlurEffect"
+	To remove hue, saturation, brightness and contrast set the object property to 0
+	for instance obj.hue = 0;
+	Or to remove all four then can explicitly use obj.noEffect("multi")
+cache - (default false) will uncache object if all effects are gone 
+ 	set to true to leave object cached
+
+RETURNS obj for chaining
+--*///+33.165
+	zim.noEffect = function(obj, effects, cache) {
+		z_d("33.165");
+		if (zot(cache)) cache = false;
+		if (zot(effects)) {
+			var storeMulti;
+			if (obj.effects.multi) storeMulti = obj.effects.multi;
+			obj.effects = {};		
+			if (storeMulti) obj.effects.multi = storeMulti;	
+		} else {
+			if (!obj.effects) obj.effects = {};
+			if (!Array.isArray(effects)) effects = [effects];   
+	        for (var j=0; j<effects.length; j++) {
+				var e = effects[j].replace(/effect/i, "");
+				delete obj.effects[e.toLowerCase()];
+			}			
+		}
+		obj.filters = [];
+		for (var i in obj.effects) {
+			obj.filters.push(obj.effects[i]);
+		} 
+		if (cache || obj.filters.length > 0) {
+			if (obj.updateCache) obj.updateCache();
+		} else {
+			if (obj.uncache) obj.uncache();
+		}
+		return obj;
+	};//-33.165
 
 /*--
 obj.addPhysics = function(dynamic, contract, shape, friction, linear, angular, density, bounciness, maskBits, categoryBits, physics, restitution)
@@ -40441,7 +40541,7 @@ physics.drag();
 END EXAMPLE
 
 PARAMETERS
-dynamic - (default true) - set to true to not move the physics body (static)
+dynamic - (default true) - set to false to not move the physics body (static)
 contract - (default 0) - make the physics body smaller (or bigger with negative) than bounds
 shape - (default object shape) - "rectangle" for any object other than Cirlce, Dial and Triangle
  	but can specify a "circle" for a Sprite or Bitmap, for instance - to try and match shape
@@ -41135,20 +41235,25 @@ NOTE: see pauseAnimate(state, ids) and stopAnimate(ids) for controlling tweens w
 NOTE: set mouseEnabled of target before calling animate as animate itself sets mouseEnabled and then resets to original after a delay
 
 EXAMPLE
-var circle = new Circle(50, "red");
-circle.center();
-circle.alpha = 0;
-circle.sca(0);
-circle.animate({alpha:1, scale:1}, .7, null, done);
+var circle = new Circle(50, "red")
+	.center()
+	.alp(0)
+	.sca(0)
+	.animate({alpha:1, scale:1}, .7, null, done);
+	
 function done(target) {
 	// target is circle if params is not set
 	target.drag();
 }
 
 // or with ZIM DUO and from parameter:
-var circle = new Circle(50, "red");
-circle.center();
-circle.animate({props:{alpha:0, scale:0}, time:.7, from:true});
+var circle = new Circle(50, "red")
+	.center()
+	.animate({
+		props:{alpha:0, scale:0}, 
+		time:.7, 
+		from:true
+	});
 
 // note: there was no need to set alpha and scale to 0 before the animation
 // because from will animate from property values in props {alpha:0, scale:0}
@@ -41163,10 +41268,16 @@ circle.animate({props:{alpha:0, scale:0}, time:.7, from:true});
 rectangle.animate({rotation:"360"});
 
 // pulse circle
-var circle = new Circle(50, "red");
-circle.center();
-// pulse circle from scale 0 - 1 every second (use ZIM DUO)
-circle.animate({props:{scale:0}, time:.5, loop:true, rewind:true, from:true});
+var circle = new Circle(50, "red")
+	.center()
+	// pulse circle from scale 0 - 1 every second (use ZIM DUO)
+	.animate({
+		props:{scale:0}, 
+		time:.5, 
+		loop:true, 
+		rewind:true, 
+		from:true
+	});
 // toggle pause the circle when stage is pressed
 stage.on("stagemousedown", function() {
 	circle.pauseAnimate(!circle.paused);
@@ -41193,10 +41304,11 @@ var rect = new Rectangle(200,200,red)
 	});
 
 // example using a Slider to set speed from 0 to 5 times as fast
-var slider = new Slider(0,500).pos(100, 100);
-slider.on("change", function () {
-	rect.percentSpeed = slider.currentValue;
-});
+var slider = new Slider(0,500)
+	.pos(100, 100)
+	.change(function () {
+		rect.percentSpeed = slider.currentValue;
+	});
 
 // example using an Accelerator and MotionController
 // to set speed from -200 to 200 percent
@@ -41465,7 +41577,7 @@ sequence - (default 0) the delay time in seconds to run on children of a contain
 	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 	Note: a sequence cannot be seriesed and a series cannot be sequenced
 sequenceCall - (default null) the function that will be called for each sequence animation 
-	Note: the value of the call parameter will go once at the end of all sequences
+	Note: the value of the sequenceCall parameter will be the object that just ended animation unless there is a sequenceParams value
 sequenceParams - (default null) a parameter sent to the sequenceCall function
 sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
 ticker - (default true) set to false to not use an automatic Ticker function
@@ -42885,7 +42997,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		function doLoopCall() {
 			if (!cjsProps.loop) return; // added Cat 03 - was being called even if not looping
-			if (sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(sequenceParams);}
+			if (sequenceCall && typeof sequenceCall == 'function') {				
+				var sp = zot(sequenceParams) ? target : sequenceParams;
+				(sequenceCall)(sp);
+			}
 			if (call3 && typeof call3 == 'function') {(call3)(params3);}			
 			// added 10.8.0 for loopPick
 			if (loopPick) {
@@ -43343,7 +43458,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			else target.pauseAnimate(true, id);
 
 			// calling sequenceCall in loop as well so don't call here if looping - ZIM Cat 03
-			if (!cjsProps.loop && sequenceCall && typeof sequenceCall == 'function') {(sequenceCall)(sequenceParams);}
+			if (!cjsProps.loop && sequenceCall && typeof sequenceCall == 'function') {
+				var sp = zot(sequenceParams) ? target : sequenceParams;
+				(sequenceCall)(sp);
+			}
 			if (call && typeof call == 'function') {(call)(params);}
 		}
 		function getStart() {
@@ -44348,6 +44466,7 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.scaleTo, arguments, sig)) return duo;
 		if (obj.type=="AC"&&zdf) {zdf.ac("scaleTo", arguments); return obj;}
 		z_d("43");
+		if (zot(boundObj)) boundObj = zdf&&zdf.stage?zdf.stage:null;
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim methods - scaleTo(): please provide an object (with setBounds) to scale"); return obj;}
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim methods - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return obj;}
 		if (zot(percentX)) percentX = -1;
@@ -44369,6 +44488,7 @@ RETURNS obj for chaining
 			}
 			return obj;
 		}
+		zog(type)
 		if (type == "both" || type == "stretch") {
 			obj.scaleX = (percentX != -1) ? w/obj.getBounds().width : obj.scaleX;
 			obj.scaleY = (percentY != -1) ? h/obj.getBounds().height : obj.scaleY;
@@ -47846,7 +47966,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 	//-76
 
 /*--
-zim.Grid = function(obj, color, percent, hideKey, pixelKey, style, group, inherit)
+zim.Grid = function(obj, color, percent, hideKey, pixelKey, allowToggle, cache, numbers, style, group, inherit)
 
 Grid
 zim class - extends a zim.Container which extends a createjs.Container
@@ -51804,7 +51924,6 @@ dispose(obj) - disposes objects in the manager
 				}				
 			}			
 			return that;
-			return that;
 		};
 		this.dispose = function(obj) {
 			if (!that) return;
@@ -55615,7 +55734,7 @@ METHODS - FOR OBJECTS - also see BODY METHODS below
 ** all the methods below addPhysics are the methods added to the DisplayObject
 addPhysics(dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics)
 	** supports DUO - parameters or single object with properties below
-	dynamic - (default true) - set to true to not move the physics body (static)
+	dynamic - (default true) - set to false to not move the physics body (static)
 	contract - (default 0) - make the physics body smaller (or bigger with negative) than bounds
 	shape - (default object shape) - "rectangle" for any object other than Cirlce, Dial and Triangle
 	 	but can specify a "circle" for a Sprite or Bitmap, for instance - to try and match shape
@@ -57570,7 +57689,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 EVENTS
 dispatches a "page" event when the page is turned
-dispatches a "pageanimate" event when the page is starts to animate to new page
+dispatches a "pageanimate" event when the page starts to animate to new page
 dispatches a "pageturn" event when gotoPage() or page property starts to turn a page (not user dragged page)
 dispatches a "pagedone" event when gotoPage() or page property finishes animating its last page (not user dragged page)
 dispatches a "rollup" event when corner starts to roll up if rollup is true
@@ -63941,6 +64060,12 @@ NOTE: addTo(), center(), centerReg(), loc(), pos(), new Ticker.add()
 default to the stage of the first frame made
 use the setDefault() method to set a frame to the default frame
 
+NOTE: here are some tips that relate to Frame: 
+https://zimjs.com/tips#FRAME
+https://zimjs.com/tips#IMAGES
+https://zimjs.com/tips#SOUND
+https://zimjs.com/tips#FULLSCREEN
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -64278,6 +64403,10 @@ setDefault() - sets the frame to be the default frame
 	by default ;=) the default frame is the first frame made
 	the default frame has the stage that addTo(), center(), etc. will use as the default container
 	a global varible called zdf is also available
+fullscreen(mode) - set Frame to HTML fullscreen - mode defaults to true - set to false to come out of fullscreen 
+	also see isFullscreen property and two fullscreen events 
+	note: this is nothing to do with "full" scaling mode but rather the Browser window F11 fullscreen 
+	see: https://zimjs.com/expand to go from ZIM "tag" scaling mode to ZIM "fit" scaling mode
 makeCat(height) - returns a ZIM Cat icon - provide height rather than scaling for better caching if cached
 	if mobile, the icon will be cached - can uncache() it if desired
 makeIcon(edges, box, slats, borderColor, borderWidth) - returns a ZIM Z icon
@@ -64317,6 +64446,7 @@ isDefault - a Boolean to indicate whether the Frame is the default frame (see se
 	the default frame has the stage that addTo(), center(), etc. will use as the default container
 	a global varible called zdf is also available
 isLoading - a Boolean to indicate whether loadAssets() is currently loading assets (also, each queue has an isLoading property)
+isFullscreen - a Boolean to indicate if Frame is in HTML fullscreen mode - see fullscreen() method and events
 width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
@@ -64397,6 +64527,8 @@ EVENTS
 		label.text = e.acceleration.x +","+ e.acceleration.y +","+ e.acceleration.z;
 		stage.update();
 	});
+"fullscreenenter" - dispatched going into fullscreen - see fullscreen() method
+"fullscreenexit" - dispatched if coming out of fullscreen - see fullscreen(false) method 
 
 ASSET EVENTS
 loadAssets() will trigger these events on the Frame object and on the specific queue (eg. var queue = frame.loadAssets();)
@@ -64728,7 +64860,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				var canvas = that.canvas = document.createElement("canvas");
 				canvas.setAttribute("id", canvasID);
 			}
-			canvas.setAttribute("tabindex", 0);
+			canvas.setAttribute("tabindex", 0);				
 			var w = zim.windowWidth();
 			var h = zim.windowHeight();
 			var pRatio = window.devicePixelRatio || 1;
@@ -64764,6 +64896,9 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			if (scaling == "full" || scaling == "fit" || scaling == "outside") {
 				canvas.style.position = "absolute";
 				if (!allowDefault) document.body.style.overflow = "hidden";
+			} else {
+				// helps position Tag, TextArea, etc. when parent is scaled with CSS
+				if (getComputedStyle(canvas.parentElement).position=="static") canvas.parentElement.style.position = "relative";
 			}
 		}
 
@@ -65707,6 +65842,43 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			var flip = 0;
 			window.addEventListener("deviceorientation",deviceorientationEvent);
 		}
+		
+		this.isFullscreen = document.fullscreenElement?true:false;
+		this.htmlobc = zet("html").css("backgroundColor");
+		this.fullscreen = function(mode) {
+			if (zot(mode)) mode = true;
+			if (mode) { // go fullscreen
+				if (document.fullscreenElement) return;
+				var elem = that.canvas.parent?that.canvas.parent:document.body;
+				if (elem.requestFullscreen) {
+					elem.requestFullscreen();
+				} else if (elem.webkitRequestFullscreen) { /* Safari */
+					elem.webkitRequestFullscreen();
+				} else if (elem.msRequestFullscreen) { /* IE11 */
+					elem.msRequestFullscreen();
+				}
+			} else { // exit fullscreen
+				if (!document.fullscreenElement) return;
+				if (document.exitFullscreen) {
+					document.exitFullscreen();
+				} else if (document.webkitExitFullscreen) { /* Safari */
+					document.webkitExitFullscreen();
+				} else if (document.msExitFullscreen) { /* IE11 */
+					document.msExitFullscreen();
+				}
+			}
+			this.isFullscreen = mode;
+		}
+		document.addEventListener("fullscreenchange", function() {
+			that.isFullscreen = document.fullscreenElement?true:false;
+			if (document.fullscreenElement) {
+				zet("html").css("backgroundColor", that.color);
+				that.dispatchEvent("fullscreenenter");
+			} else {
+				zet("html").css("backgroundColor", that.htmlobc?that.htmlobc:"transparent");
+				that.dispatchEvent("fullscreenexit");				
+			}			
+		});
 
 		this.remakeCanvas = function(width, height) {
 			if (scaling == "full") return;
