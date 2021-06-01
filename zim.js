@@ -6304,6 +6304,8 @@ DESCRIPTION
 Used internally by ZIM to set common properties on basic DisplayObjects 
 Container, Shape, Bitmap, Sprite, MovieClip 
 Also called by zimify() if object does not already have these (hueBatch used for test)
+Turns off and on allowDefault if allowDefault is true as object is interacted with 
+this prevents the page from scrolling on mobile when drag, gesture, transform, etc. are happening
 Might have set these on CreateJS DisplayObject
 
 --*///+50.432
@@ -6420,7 +6422,7 @@ Might have set these on CreateJS DisplayObject
 				}
 			});
 		}
-		this._draggable;
+		that._draggable;
 		Object.defineProperty(that, 'draggable', {
 			get: function() {
 				return this._draggable;
@@ -6431,6 +6433,21 @@ Might have set these on CreateJS DisplayObject
 				if (this._draggable) this.drag();
 				else this.noDrag();
 			}
+		});
+		
+		var frame;
+		var adCheck;
+		that.on("mousedown", function (e) {
+			if (e.target.stage) {
+				frame = e.target.stage.frame;
+				if (frame.allowDefault) {
+					adCheck = true;
+					frame.allowDefault = false;
+				}
+			}
+		});
+		that.on("pressup", function (e) {
+			if (frame && adCheck) frame.allowDefault = true;
 		});
 		
 		// EFFECTS
@@ -25806,9 +25823,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var point = that.globalToLocal(e.stageX/zim.scaX, e.stageY/zim.scaY);
 			diffX = point.x - button.x;
 			diffY = point.y - button.y;
-			if (that.stage) that.stage.mouseMoveOutside = true;
+			if (stage) stage.mouseMoveOutside = true;
 		});
-
+	
 		button.on("pressmove", function(e) {
 			setValue(e);
 		});
@@ -39820,7 +39837,6 @@ RETURNS obj for chaining
 			var maxTouches;
 
 			obj.zimTouch.mousedown = obj.on("mousedown", function(e) {
-
 				if (zot(maxTouches)) maxTouches = 1;
 				else maxTouches++;
 
