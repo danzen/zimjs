@@ -1,6 +1,6 @@
 // ZIM Cat - Interactive Media Framework at https://zimjs.com - code creativity!
 // Also see https://zimjs.com/distill to minify only the functions in your app
-// (c) 2021 Dan Zen - free to use - donations welcome of course! https://zimjs.com/donate
+// (c) 2021 ZIM - free to use - donations welcome of course! https://zimjs.com/donate
 
 // With thanks...
 // Thanks to ZzFX - Zuper Zmall Zound Zynth - Micro Edition for play() method of Synth
@@ -61,6 +61,9 @@ var LOCALSTORAGE = window.LOCALSTORAGE;
 var GET = window.GET;
 var POST = window.POST;
 var SOCKET = window.SOCKET;
+var FIT = window.FIT;
+var FILL = window.FILL;
+var FULL = window.FULL;
 var zimContactListener = window.zimContactListener;
 var zimDefaultPhysics = window.zimDefaultPhysics;
 var b2ContactListener = window.b2ContactListener;
@@ -690,9 +693,9 @@ RETURNS a Tile or an array of Bitmaps depending on tile parameter
 		var h = obj.height/rows;
 		var m = margin;
 		var pieces = [];
-		loop(rows, function (r) {
-			loop(cols, function (c) {
-				var p = new Bitmap(obj, w+m*2, h+m*2, c*w-m, r*h-m);
+		zim.loop(rows, function (r) {
+			zim.loop(cols, function (c) {
+				var p = new zim.Bitmap(obj, w+m*2, h+m*2, c*w-m, r*h-m);
 				if (margin != 0) {
 					p.setBounds(m,m,w,h);
 					p.regX = m;
@@ -701,7 +704,7 @@ RETURNS a Tile or an array of Bitmaps depending on tile parameter
 				pieces.push(p);
 			});
 		});
-		if (tile) return new Tile(pieces,cols,rows,0,0,true);
+		if (tile) return new zim.Tile(pieces,cols,rows,0,0,true);
 		else return pieces;
 	};//-7.8
 	
@@ -1974,9 +1977,9 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 EXAMPLE
 zog(colorRange(green, blue, .5)); // #7ecb7c
 var rect = new Rectangle(100,100,red).center().setColorRange(purple);
-rect.colorRange = .1; will change color to #f1455e (closer to red than purple)
+rect.colorRange = .1; // will change color to #f1455e (closer to red than purple)
 rect.animate({color:purple}, 1000); // will animate color to purple in one second
-rect.wiggle("colorRange", .5, .2, .5, 1000, 5000); // wiggles the color in the range
+rect.wiggle("colorRange", .5, .2, .5, 1, 5); // wiggles the color in the range
 END EXAMPLE
 
 PARAMETERS
@@ -6306,8 +6309,7 @@ Might have set these on CreateJS DisplayObject
 --*///+50.432
 	zim.displayBase = function(obj) {
 		if (!zim.zimDBCheck) {z_d("50.432"); zim.zimDBCheck=true;}
-		var that = obj;	
-			
+		var that = obj;				
 		Object.defineProperty(obj, 'width', {
 			enumerable: true,
 			get: function() {
@@ -6459,7 +6461,7 @@ Might have set these on CreateJS DisplayObject
 		}	
 	
 	}		
-	//-50.435
+	//-50.432
 
 /*--
 zim.gD = function()
@@ -6852,22 +6854,6 @@ a, b, c, d - (default null) - the x, y, width and height of the bounds
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
-
-
-NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
-
-EXAMPLE
-var circle = new Circle();
-circle.center(); // add circle to stage and center
-circle.drag();
-
-// alternatively, we can still use the traditional ZIM functions:
-center(circle, stage);
-drag(circle);
-
-// ZIM DUO works the same way as before - eg.
-circle.drag({slide:true});
-END EXAMPLE
 
 METHODS
 * This class has all the DISPLAY METHODS introduced in ZIM 4TH
@@ -7421,7 +7407,7 @@ Bitmap
 zim class - extends a createjs.Bitmap
 
 DESCRIPTION
-Makes a Bitmap object from an image.
+Makes a Bitmap object from an image source (image, video or canvas).
 It is best to use the assets and path parameters of ZIM Frame or the loadAssets() method of Frame
 to preload the image and then use the asset() method to access the Bitmap.
 See the ZIM Frame class and asset example on the ZIM Frame page of templates.
@@ -8563,7 +8549,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			};
 		}
 		
-		zim.displayBase(that);
+		zim.displayBase(this);
 		
 		this.dispose = function(a,b,disposing) {
 			zim.gD(this); // globalDispose function for common elements
@@ -16391,7 +16377,8 @@ Text seems to come in different sizes so we do our best.
 Have tended to find that left and alphabetic are most consistent across browsers.
 Custom fonts loaded through css can be used as well.
 
-NOTE: can wrap text at given width using lineWidth parameter.
+NOTE: can wrap text at given width using lineWidth (or labelWidth) parameter.
+To dynamically change the width without changing the font size use the labelWidth property.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -16411,6 +16398,16 @@ var label = new Label({
 stage.addChild(label);
 label.x = label.y = 100;
 label.on("click", function(){zog("clicking");});
+END EXAMPLE
+
+EXAMPLE
+// with text that wraps at labelWidth
+// can also set this as a property later to dynamically change width of text 
+// without changing the size
+const label = new Label({
+	text:"this is a long bunch of text, this is a long bunch of text, this is a long bunch of text",
+	labelWidth:200
+}).center();
 END EXAMPLE
 
 EXAMPLE
@@ -18731,7 +18728,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		var reallyOn = false;		
 		this.on("mouseover", function (e) {
-			if (frame.leftMouseDown && !onCheck) return;
+			if (that.stage && that.stage.frame.leftMouseDown && !onCheck) return;
 			buttonOn(e);
 		});
 		function buttonOn(e) {
@@ -18786,6 +18783,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 		});
 		this.on("pressmove", function (e) {
+			var frame = that.stage ? that.stage.frame : zdf;
 			var hitting = that.hitTestPoint(frame.mouseX, frame.mouseY);
 			if (onCheck && !hitting) {
 				buttonOff(e);
@@ -19104,7 +19102,8 @@ type - holds the class name as a String
 checked - gets or sets the check of the box
 label - gives access to the label
 text - the text of the label
-background - the Rectangle of the checkBox
+box - the Rectangle of the checkBox
+box2 - the border Rectangle of the checkBox
 indicator - gives access to the check mark ie. indicator.sca(.8);
 indicatorColor - get or set the color of the indicator
 enabled - default is true - set to false to disable
@@ -19166,8 +19165,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var that = this;
 		this.cursor = "pointer";
 
-		var box = new zim.Rectangle(size, size, backgroundColor, null, null, corner);
-		var box2 = new zim.Rectangle(size*5/7, size*5/7,"rgba(0,0,0,0)", borderColor, borderWidth, corner);
+		var box = this.box = new zim.Rectangle(size, size, backgroundColor, null, null, corner);
+		var box2 = this.box2 = new zim.Rectangle(size*5/7, size*5/7, "rgba(0,0,0,0)", borderColor, borderWidth, corner);
 		box2.x = size/7; box2.y = size/7;
 		this.addChild(box, box2);
 
@@ -21916,11 +21915,11 @@ vertical - (default true) the direction for the gradient if there is a gradient
 pattern - (default null) a DisplayObject that will be added to the page above the backing
 	For instance, import ZIM pizzazz_03.js and use:
 	pizzazz.makePattern("slants", series([grey,dark]), 20, 52, 40).alp(.2)
-scalePattern - (default "bigger" / "outside") scale the pattern so it fits outside the window
+scalePattern - (default "fill") scale the pattern so it fills the window (formerly "bigger" or "outside")
 	set to false for no scaling or:
-	"smallest" uses the smallest scaling keeping proportion (fit)
-   	"biggest" uses the largest scaling keeping proportion (outside)
-   	"both" keeps both x and y scales - may stretch object (stretch)
+	"fit" fits inside the Page keeping proportion (formerly "smallest")
+   	"fill" fills the Page keeping proportion (formerly "biggest" or "outside")
+   	"full" keeps both x and y scales - may stretch object (formerly "both")
 cache - (default false or true for gradient or pattern) whether the backing and pattern is cached
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
@@ -21978,7 +21977,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(color)) color=DS.color!=null?DS.color:zim.light;
 		if (zot(color2)) color2=DS.color2!=null?DS.color2:null;
 		if (zot(pattern)) pattern=DS.pattern!=null?DS.pattern:null;
-		if (zot(scalePattern)) scalePattern=DS.scalePattern!=null?DS.scalePattern:"outside";
+		if (zot(scalePattern)) scalePattern=DS.scalePattern!=null?DS.scalePattern:"fill";		
 		if (zot(cache)) cache=DS.cache!=null?DS.cache:false;
 
         if (!zot(color2)) {
@@ -23550,14 +23549,14 @@ Each has a call parameter for the function to call when the component changes
 There are alternatively obj and property parameters
 Setting these will change the property of the obj to the value of the component
 
-List.slider(label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset)
+List.slider(label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset, backgroundColor)
 	A static method (use it like List.slider("fps", 0, 60, 20, fps)) to make a slider List item
 	factor will multiply the slider value only in the stepper (at right)
 	offset will start the stepper offset by that amount 
 	this lets the stepper value be factored and offset from the actual slider value
-List.checkBox(label, checked, call, obj, property, paddingLeft, paddingRight)
+List.checkBox(label, checked, call, obj, property, paddingLeft, paddingRight, backgroundColor)
 	A static method (use it like List.slider("fps", 0, 60, 20, fps)) to make a slider List item
-List.colorPicker(label, color, picker, call, obj, property, paddingLeft, paddingRight)
+List.colorPicker(label, color, picker, call, obj, property, paddingLeft, paddingRight, backgroundColor)
 	A static method (use it like List.slider("fps", 0, 60, 20, fps)) to make a slider List item
 	picker is an optional custom ZIM ColorPicker
 
@@ -24317,16 +24316,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	};
 	zim.extend(zim.List, zim.Window, ["clone","dispose"], "zimWindow", false);
 
-	zim.List.makeBase = function(c, label, paddingLeft) {
-		c.backing = new zim.Rectangle(c.width, c.height, zim.dark).center(c);
+	zim.List.makeBase = function(c, label, paddingLeft, backgroundColor) {
+		if (zot(backgroundColor)) backgroundColor = zim.dark;
+		c.backing = new zim.Rectangle(c.width, c.height, backgroundColor).center(c);
 		if (label.type == "Label") c.label = label;
 		else c.label = new zim.Label(label,null,null, zim.white);
 		c.text = c.label.text;
 		c.label.center(c).loc(paddingLeft);
 	};
 
-	zim.List.slider = function(label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset) {
-        var sig = "label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset";
+	zim.List.slider = function(label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset, backgroundColor) {
+        var sig = "label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset, backgroundColor";
 		var duo; if (duo = zob(zim.List.slider, arguments, sig)) return duo;
         var c = new zim.Container(620, 100);
         c.type = "ListItem";
@@ -24335,7 +24335,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(paddingRight)) paddingRight = 30;
 		if (zot(factor)) factor = 1;
         if (zot(offset)) offset = 0;
-        zim.List.makeBase(c, label, paddingLeft);
+		
+        zim.List.makeBase(c, label, paddingLeft, backgroundColor);
         c.slider = new zim.Slider({
             inside:true,
             barWidth:40,
@@ -24356,9 +24357,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
             arrows:false,
             stepperType:"number",
             min:offset+min*factor,
-			max:offset+max*factor
+			max:offset+max*factor,
+			step:step
         }).sca(.5).center(c).pos(paddingRight,null,true).change(function () {
-            c.slider.currentValue = c.stepper.currentValue/(factor?factor:1)-offest;
+            c.slider.currentValue = c.stepper.currentValue/(factor?factor:1)-offset;
             if (obj && property) obj[property] = c.slider.currentValue;
             if (call && typeof call == 'function') {(call)(c.slider.currentValue, c.parent);}
             if (c.stepper.stage) c.stepper.stage.update();
@@ -24367,15 +24369,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         return c;
     };
 
-    zim.List.checkBox = function(label, checked, call, obj, property, paddingLeft, paddingRight) {
-        var sig = "label, checked, call, obj, property, paddingLeft, paddingRight";
+    zim.List.checkBox = function(label, checked, call, obj, property, paddingLeft, paddingRight, backgroundColor) {
+        var sig = "label, checked, call, obj, property, paddingLeft, paddingRight, backgroundColor";
         var duo; if (duo = zob(zim.List.checkBox, arguments, sig)) return duo;
         var c = new zim.Container(620, 100);
         c.type = "ListItem";
         c.listItem = "CheckBox";
         if (zot(paddingLeft)) paddingLeft = 20;
         if (zot(paddingRight)) paddingRight = 30;
-        zim.List.makeBase(c, label, paddingLeft);
+        zim.List.makeBase(c, label, paddingLeft, backgroundColor);
         c.checkBox = new zim.CheckBox({
             startChecked:checked,
             label:""
@@ -24387,17 +24389,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         return c;
     };
 
-	zim.List.colorPicker = function(label, color, picker, call, obj, property, paddingLeft, paddingRight) {
-		var sig = "label, color, picker, call, obj, property, paddingLeft, paddingRight";
+	zim.List.colorPicker = function(label, color, picker, call, obj, property, paddingLeft, paddingRight, backgroundColor) {
+		var sig = "label, color, picker, call, obj, property, paddingLeft, paddingRight, backgroundColor";
 		var duo; if (duo = zob(zim.List.colorPicker, arguments, sig)) return duo;
 		var c = new zim.Container(620, 100);
 		c.type = "ListItem";
 		c.listItem = "ColorPicker";
 		if (zot(paddingLeft)) paddingLeft = 20;
 		if (zot(paddingRight)) paddingRight = 30;
-		zim.List.makeBase(c, label, paddingLeft);
+		zim.List.makeBase(c, label, paddingLeft, backgroundColor);
 		if (zot(color)) color = zim.pink;
-		c.colorPicker = picker?picker:new zim.ColorPicker({alphaPicker:false});
+		c.colorPicker = picker?picker:new zim.ColorPicker({alphaPicker:false, selectedColor:color});
 		c.swatch = new zim.Rectangle(132,66,color,zim.lighter,5).center(c).pos(270,null,true).cur();
 		c.swatch.on("mousedown", function () {
 			c.colorPicker.selectedColor = c.swatch.color;
@@ -44453,10 +44455,11 @@ boundObj - the object that we are scaling to with percents below
 percentX - (default no scaling) the scale in the x
 percentY - (default no scaling) the scale in the y
 	if both percentX and percentY are missing then assumes 100, 100 for each
-type - (default "smallest") to fit inside or outside or stretch to bounds
-	smallest: uses the smallest scaling keeping proportion (fit)
-	biggest: uses the largest scaling keeping proportion (outside)
-	both: keeps both x and y scales - may stretch object (stretch)
+type - (default FIT) the scaling to match bounds
+	Note: as of ZIM Cat 04 the constant FIT or the string "fit", etc. can be used
+	FIT: to keep proportion (aspect ratio) and fit within bounds (formerly "smallest")
+	FILL: to keep proportion (aspect ratio) and fill the bounds (formerly "biggest")
+	FULL: match bounds dimensions - may stretch object (formerly "both" or "stretch")
 boundsOnly - (default false) set to true to scale to the boundObj's bounds only - ignoring current boundObj scale
 
 RETURNS obj for chaining
@@ -44472,7 +44475,10 @@ RETURNS obj for chaining
 		if (zot(percentX)) percentX = -1;
 		if (zot(percentY)) percentY = -1;
 		if (percentX == -1 && percentY == -1) percentX = percentY = 100;
-		if (zot(type)) type = "smallest";
+		if (zot(type)) type = "fit";
+		if (type=="smallest") type = "fit";
+		else if (type=="biggest" || type=="outside" || type=="largest") type = "fill";
+		else if (type=="both" || type=="stretch") type = "full";
 		if (zot(boundsOnly)) boundsOnly = false;
 		var w = boundObj.getBounds().width * percentX / 100 * (boundsOnly?1:boundObj.scaleX);
 		var h = boundObj.getBounds().height * percentY / 100 * (boundsOnly?1:boundObj.scaleY);
@@ -44480,7 +44486,7 @@ RETURNS obj for chaining
 			w = boundObj.width * percentX / 100;
 			h = boundObj.height * percentY / 100;
 		}
-		if ((percentX == -1 || percentY == -1) && type != "both" && type != "stretch") {
+		if ((percentX == -1 || percentY == -1) && type != "full") {
 			if (percentX == -1) {
 				zim.sca(obj, h/obj.getBounds().height);
 			} else {
@@ -44488,14 +44494,13 @@ RETURNS obj for chaining
 			}
 			return obj;
 		}
-		zog(type)
-		if (type == "both" || type == "stretch") {
+		if (type == "full") {
 			obj.scaleX = (percentX != -1) ? w/obj.getBounds().width : obj.scaleX;
 			obj.scaleY = (percentY != -1) ? h/obj.getBounds().height : obj.scaleY;
 			return obj;
-		} else if (type == "biggest" || type == "largest" || type == "outside") {
+		} else if (type == "fill") {
 			var scale = Math.max(w/obj.getBounds().width, h/obj.getBounds().height);
-		} else { // smallest or fit
+		} else { // fit 
 			var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
 		}
 		zim.sca(obj, scale);
@@ -44503,13 +44508,13 @@ RETURNS obj for chaining
 	};//-43
 
 /*--
-obj.fit = function(left, top, width, height, inside)
+obj.fit = function(left, top, width, height, type)
 
 fit
 zim DisplayObject method
 
 DESCRIPTION
-Scale an object to fit inside (or outside) a rectangle and center it.
+Scale an object to rectangular dimensions and center it.
 Actually scales and positions the object.
 Object must have bounds set (setBounds()).
 
@@ -44519,15 +44524,17 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 left, top, width, height - (default stage dimensions) the rectangle to fit
-inside - (default true) fits the object inside the rectangle
-	if inside is false then it fits the object around the bounds
-	in both cases the object is centered
+type - (default fit) the scaling to match rectangle dimensions
+	Note: as of ZIM Cat 04 the constant FIT or the string "fit", etc. can be used
+	FIT: to keep proportion (aspect ratio) and fit within rectangle 
+	FILL: to keep proportion (aspect ratio) and fill the rectangle 
+	FULL: match rectange dimensions - may stretch object 
 
 RETURNS an Object literal with the new and old details (bX is rectangle x, etc.):
-{x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height}
+{x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, scaleX:scaleX, scaleY:scaleY, bX:left, bY:top, bWidth:width, bHeight:height}
 --*///+46
-	zim.fit = function(obj, left, top, width, height, inside) {
-		var sig = "obj, left, top, width, height, inside";
+	zim.fit = function(obj, left, top, width, height, type) {
+		var sig = "obj, left, top, width, height, type";
 		var duo; if (duo = zob(zim.fit, arguments, sig)) return duo;
 		if (obj.type=="AC"&&zdf) {zdf.ac("fit", arguments); return obj;}
 		z_d("46");
@@ -44550,42 +44557,55 @@ RETURNS an Object literal with the new and old details (bX is rectangle x, etc.)
 			left = 0; top = 0;
 			width = stageW; height = stageH;
 		}
-		if (zot(inside)) inside = true;
-
+		if (type===true) type = "fit";
+		else if (type===false) type = "fill";
+		if (zot(type)) type = "fit";
+		
 		obj.scaleX = obj.scaleY = 1;
 
 		var w = width;
 		var h = height;
 		var objW = obj.getBounds().width;
 		var objH = obj.getBounds().height;
+
+		var newW;
+		var newH;
+		var scaleX;
+		var scaleY;
 		var scale;
-
-		if (inside) { // fits dimensions inside screen
-			if (w/h >= objW/objH) {
-				scale = h / objH;
-			} else {
-				scale = w / objW;
-			}
-		} else { // fits dimensions outside screen
-			if (w/h >= objW/objH) {
-				scale = w / objW;
-			} else {
-				scale = h / objH;
-			}
+		if (type=="full") {
+			obj.scaleX = scaleX = w/objW;
+			obj.scaleY = scaleY = h/objH;
+			newW = w;
+			newH = h;
+		} else {
+			if (type=="fit") { // fits dimensions inside rectangle
+				if (w/h >= objW/objH) {
+					scale = h / objH;
+				} else {
+					scale = w / objW;
+				}				
+			} else if (type=="fill") { // fills rectangle (outside)
+				if (w/h >= objW/objH) {
+					scale = w / objW;
+				} else {
+					scale = h / objH;
+				}
+			} 		
+			scaleX = scaleY = scale;	
 		}
-
-		obj.scaleX = obj.scaleY = scale;
-
-		var newW = objW * scale;
-		var newH = objH * scale;
+		obj.scaleX = scaleX;
+		obj.scaleY = scaleY;
+		newW = objW * scaleX;
+		newH = objH * scaleY;
 
 		// horizontal center
-		obj.x = (obj.regX-obj.getBounds().x)*scale + left + (w-newW)/2;
+		obj.x = (obj.regX-obj.getBounds().x)*scaleX + left + (w-newW)/2;
 
 		// vertical center
-		obj.y = (obj.regY-obj.getBounds().y)*scale + top + (h-newH)/2;
+		obj.y = (obj.regY-obj.getBounds().y)*scaleY + top + (h-newH)/2;
 
-		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, bX:left, bY:top, bWidth:width, bHeight:height};
+		return {x:obj.x, y:obj.y, width:newW, height:newH, scale:scale, scaleX:scaleX, scaleY:scaleY, bX:left, bY:top, bWidth:width, bHeight:height};
 
 	};//-46
 
@@ -49243,8 +49263,11 @@ var tile = new Tile({
 }).center();
 // use tile.getChildAt(0) to access first Dial - or:
 tile.items[0].on("change", function () {zog("changing dial 1")});
+// See next example if events are already on items
+END EXAMPLE 
 
-// OR if previously specified with events
+EXAMPLE
+// Like the previous example but with events specified before Tile is made
 var d1 = new Dial().on("change", function () {zog("changing dial 1")});
 var d2 = new Dial();
 var s1 = new Slider();
@@ -50222,7 +50245,7 @@ stage.addChild(header, content, footer);
 var layout = new Layout({
 	holder:stage,
 	regions:[
-		{object:header, marginTop:10, maxWidth:80, minHeight:10, valign:"top"},
+		{object:header, marginTop:10, maxWidth:80, minHeight:10, valign:TOP},
 		{object:content, marginTop:5, maxWidth:90}, // note, middle gets no minHeight
 		{object:footer, marginTop:5, maxWidth:80, height:10}
 	],
@@ -50267,7 +50290,7 @@ lastMargin - (default 0) the margin at the bottom (vertical) or at the right (ho
 lastMarginMin - (default 0) the minimum margin at the bottom (vertical) or at the right (horizontal)
 backgroundColor - (default null) background color for the whole holder
 vertical - (default true) set to false for horizontal layout
-regionShape - (default null) a zim or createjs Shape object to show bounds (gets added to holder)
+showRegions - (default null) show boundaries of regions (formerly regionShape)
 	can toggle on and off with B key - but must pass in the Shape to use the B key
 scalingObject - (default holder) an object used as the bounds of the region scaling
 	setting a scalingObject will also set the bounds of the holder to the scalingObject bounds
@@ -57612,7 +57635,7 @@ EXAMPLE
 
 var path = "covers/"; // the folder with the images
 var assets = ["build.jpg", "castle.jpg", "ganymede.jpg", "lastyear.jpg", "martian.jpg"];
-const frame = new Frame("fit", 1024, 768, darker, darker, assets, path);
+const frame = new Frame(FIT, 1024, 768, darker, darker, assets, path);
 frame.on("ready", () => {
     const stage = frame.stage;
 
@@ -58902,7 +58925,7 @@ var particles = new Emitter({
 	.sca(2);
 
 // eg. 3 use a StageGL Frame and createjs.SpriteSheetBuilder for circles:
-var frame = new Frame({scale:"fit", width:1024, height:768, gpu:true});
+var frame = new Frame({scale:FIT, width:1024, height:768, gpu:true});
 frame.on("ready", function() {
 	var stage = frame.stage;
 	// if we pass in just a Circle then we would have to turn on cache
@@ -59638,13 +59661,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (particle) particle.dispose();
 	        });			
 			if (particles && particles.dispose) particles.dispose();
-			that.currentParticle.dispose();
+			if (that.currentParticle && that.currentParticle.dispose) that.currentParticle.dispose();
 			if (obj && Array.isArray(obj)) {
 				zim.loop(obj, function (el) {
 					if (el.dispose) el.dispose();
 				})
 			} else {
-				if (obj.dispose) obj.dispose();
+				if (obj && obj.dispose) obj.dispose();
 			}
 			particles = that.currentParticle = that.particles = obj = that.obj = poolList = that.poolList = null;
 	        return true;
@@ -61772,11 +61795,13 @@ dispatches a "recordUndo" when any type of undo is recorded - new segment, delet
 			return that;
 		};
 		
-		this.delete = function(index) {
-			// paper.getChildAt(index).alpha = 0;
-			paper.getChildAt(index).visible = false;
-			if (that.undoLevels > 0) that.saveState(paper.getChildAt(index));
-		};
+		// REMOVED in ZIM Cat 04
+		// this.delete = function(index) {
+		// 	// paper.getChildAt(index).alpha = 0;
+		// 	paper.getChildAt(index).visible = false;
+		// 	if (that.undoLevels > 0) that.saveState(paper.getChildAt(index));
+		// };
+		
 		this.deleteSegment = function(segment) {
 			// segment.alpha = 0;
 			segment.visible = false;
@@ -62321,12 +62346,16 @@ METHODS (Synth)
 			then the start times will play the note
 			this avoids inconsistencies in interval() and animate()
 			But... it depends on the application
+		pauseOnBlur (default false) - set to true to pause sound when window is reduced or another tab gains focus
 
 		METHODS (Tone)
 			ramp(volume, time) - set a volume with optional fade time
 				there is a volume property but ramp() tends to avoid crackle and pop
 				so would recommend using volume only for animating
-			stop(time) - stop the tone at the given time in seconds (default audioContext.currentTime)
+			stop(releaseTime) - stop the tone and fade an optional releaseTime in seconds
+				note: to stop a tone at a given time use the duration parameter (or a stop in a timeout)
+			pause(state) - not really a pause but turns volume down and up 
+				state defaults to true for pause - set to false to unpause 
 			addNote(volume, note, shape, toWah, toVibrato, startTime) add a new note to the tone - returns a Note() object
 				** also see notes property of tone() for array of notes - and removeNote() below
 				volume (default 1) - the volume of the note - 1 will be fine even if main volume is .1 for instance...
@@ -62353,7 +62382,7 @@ METHODS (Synth)
 			wire() - wire property values to another object. See wire() in Docs under DisplayMethods for parameters
 			noWire() - turn off wire
 			wired() - set tone to have property values set by another object. See wire() in Docs under DisplayMethods for parameters
-			noWired() - turn off wired
+			noWired() - turn off wired			
 
 		PROPERTIES (Tone)
 			type - holds the class name as a String (Tone)
@@ -62362,7 +62391,7 @@ METHODS (Synth)
 			note - ramps the tone to the provided note ("A", "Bb", "C1", "D#", etc.) - or frequency
 			frequency - ramps main frequency (note) to given value (see also note)
 			shape - Wave form SINE, SQUARE, TRIANGLE, SAW, ZAP - see parameters for details
-			duration - the duration of the tone if any
+			duration - get the duration of the tone if any (to set use duration parameter of Tone)
 			currentTime - gets the current time in seconds since the start of the tone
 			attack - seconds to ramp up volume or note
 			release - seconds to ramp down volume or note
@@ -62706,8 +62735,8 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 
 		// NOTE PLAYING:
 
-		this.Tone = function(volume, note, shape, duration, attack, release, wahAmount, wahRate, wahShape, wahThroat, wahNote, vibratoAmount, vibratoRate, vibratoShape, tremeloAmount, tremeloRate, tremeloShape, startTime) {
-			var sig = "volume, note, shape, duration, attack, release, wahAmount, wahRate, wahShape, wahThroat, wahNote, vibratoAmount, vibratoRate, vibratoShape, tremeloAmount, tremeloRate, tremeloShape, startTime";
+		this.Tone = function(volume, note, shape, duration, attack, release, wahAmount, wahRate, wahShape, wahThroat, wahNote, vibratoAmount, vibratoRate, vibratoShape, tremeloAmount, tremeloRate, tremeloShape, startTime, pauseOnBlur) {
+			var sig = "volume, note, shape, duration, attack, release, wahAmount, wahRate, wahShape, wahThroat, wahNote, vibratoAmount, vibratoRate, vibratoShape, tremeloAmount, tremeloRate, tremeloShape, startTime, pauseOnBlur";
 			var duo; if (duo = zob(that.Tone, arguments, sig, this)) return duo;
 			this.type = "Tone";
 
@@ -62793,9 +62822,14 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 			start(startTime);
 
 			this.stop = function(releaseTime) {
-
 				if (zot(releaseTime)) releaseTime = that.release;
-				if (gain) ramp(gain.gain, 0, true, releaseTime);
+				if (gain) {
+					if (audioContext.currentTime < 200) {
+						timeout(.2-audioContext.currentTime/1000, function () {
+							ramp(gain.gain, 0, true, releaseTime);
+						});
+					} else ramp(gain.gain, 0, true, releaseTime);
+				}
 				if (tremeloGain) ramp(tremeloGain.gain, 0, true, releaseTime);
 				if (vibratoGain) ramp(vibratoGain.gain, 0, true, releaseTime);
 
@@ -62812,7 +62846,9 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 					if (wah) that2.removeWah();
 				}, (releaseTime+1)*1000);
 			};
-			if (duration) this.stop(startTime+duration-.1);
+			if (duration) timeout(duration, function () {
+				that2.stop();
+			});
 
 			var notes = this.notes = [oscillator];
 
@@ -63037,6 +63073,23 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 					// gain.gain.linearRampToValueAtTime(volume*that.hush, audioContext.currentTime+that.rampDuration);
 				}
 			});
+			
+			this.paused = false;
+			var rV = volume;
+			this.pause = function(state) {
+				if (zot(state)) state = true;
+				if (state) {
+					rV = that2.volume;
+					that2.volume = 0;
+				} else {
+					that2.volume = rV;
+				}
+			}
+			
+			if (pauseOnBlur) {
+				if (zot(zim.blurCheck)) zim.setBlurDetect();
+				zim.pauseOnBlur.push(this);
+			}
 
 			Object.defineProperty(this, 'frequency', {
 				get: function() {
@@ -63238,7 +63291,7 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 		};
 		zim.extend(this.Tone, createjs.EventDispatcher);
 
-		this.tone = function(volume, note, shape, duration, attack, release, wahAmount, wahRate, wahShape, wahThroat, vibratoAmount, vibratoRate, vibratoShape, tremeloAmount, tremeloRate, tremeloShape, startTime) {
+		this.tone = function(volume, note, shape, duration, attack, release, wahAmount, wahRate, wahShape, wahThroat, vibratoAmount, vibratoRate, vibratoShape, tremeloAmount, tremeloRate, tremeloShape, startTime, pauseOnBlur) {
 			Array.prototype.unshift.call(arguments, null);
 			return new (Function.prototype.bind.apply(that.Tone, arguments)); // yum? // rest in ES6
 		};
@@ -64072,7 +64125,7 @@ EXAMPLE
 // load assets right in Frame call
 // see the assets and path and progress are optional
 
-var frame = new Frame("fit", 1024, 768, "#ddd", "#333", "image.png", "assets/", new Waiter());
+var frame = new Frame(FIT, 1024, 768, "#ddd", "#333", "image.png", "assets/", new Waiter());
 frame.on("ready", function() {
 	var stage = frame.stage;
 	var stageW = frame.width;
@@ -64088,7 +64141,7 @@ END EXAMPLE
 EXAMPLE
 // load assets on-demand inside ready event
 
-var frame = new Frame("fit", 1024, 768, dark, light);
+var frame = new Frame(FIT, 1024, 768, dark, light);
 frame.on("ready", function() {
 	var stage = frame.stage;
 	var stageW = frame.width;
@@ -64148,13 +64201,14 @@ EXAMPLE
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
-scaling - (default "full") can have values as follows
-	"fit"      sets canvas and stage to dimensions and scales to fit inside window size
-	"outside"  sets canvas and stage to dimensions and scales to fit outside window size
-	"full"     sets stage to window size with no scaling
-	"tagID"    add canvas to HTML tag of ID - set to dimensions if provided - no scaling
+scaling - (default FULL) can have values as follows 
+Note: as of ZIM Cat 04, the constant FIT or the string "fit", etc. can be used
+FIT      sets canvas and stage to dimensions and scales to fit inside window size
+FILL     sets canvas and stage to dimensions and scales to fill window size (previously "outside")
+FULL     sets stage to window size with no scaling
+"tagID"  add canvas to HTML tag of ID - set to dimensions if provided - no scaling
 
-FIT and OUTSIDE: width and height will set the stage width and height and the canvas is then scaled
+FIT and FILL: width and height will set the stage width and height and the canvas is then scaled
 this is handy because all your dimensions are set to start
 FULL: width and height are ignored when scaling as these are set to the window width and height
 TAG: if width and height are provided then the canvas and stage will be these dimensions
@@ -64185,8 +64239,8 @@ progress - (default null) - set to a Waiter() or ProgressBar() object to show wh
 rollover - (default true) activates rollovers
 touch - (default true) activates touch on mobile
 scrollTop - (default false) activates scrolling on older apple devices to hide the url bar
-align - (default "center") for fit and outside, the horizontal alignment "left", "center/middle", "right"
-valign - (default "center") for fit and outside, the vertical alignment "top", "center/middle", "bottom"
+align - (default "center") for fit and fill, the horizontal alignment "left", "center/middle", "right"
+valign - (default "center") for fit and fill, the vertical alignment "top", "center/middle", "bottom"
 canvasID - (default "myCanvas" or if subsequent frame, myCanvas+randomID) will be set to tagIDCanvas if a tagID is provided - eg. scaling="test", canvasID="testCanvas"
 rollPerSecond - (default 20) times per second rollover is activated (if rollover parameter is true)
 delay - (default .03 and 1 for mobile) seconds to resize at load and after orientation change (also see ZIM TIME constant)
@@ -64206,7 +64260,7 @@ nextFrame - (default null) set to zim Frame object of Frame underneath current F
 nextStage - (default null) alternative to nextFrame if the stage beneath current Frame is not a ZIM Frame but just a CreateJS Stage
 allowDefault - (default false - true for tag mode) set to true to allow default mouse, key and scrollwheel events on canvas
 	See also the zil property of frame that allows you to add and remove these events dynamically (except for mouse swipe scroll and zoom on mobile)
-	allowDefault of false also sets body overflow to hidden - which is good for full, fit and outside modes
+	allowDefault of false also sets body overflow to hidden - which is good for full, fit and fill modes
 	also see allowDefault property
 loadFailObj - (default result of frame.makeCircles) object that shows if asset() does not exist or did not load withing loadTimeout
 	This will be given a type property of "EmptyAsset"
@@ -64300,7 +64354,7 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 		when accessing the asset with the asset() method you do NOT include the path
 		assets with an absolute URL (http[s]://etc.) will ignore path
 	progress - (default null) - set to a Waiter() or ProgressBar() object to show while loading
-	xhr (default false or true if Progress is a ProgressBar) set to true to load text and WebAdio (not needed for normal sound mp3, wav, etc.)
+	xhr (default false or true if Progress is a ProgressBar) set to true to load text and WebAudio (not needed for normal sound mp3, wav, etc.)
 	time (default 0) is the minimum number of seconds for the complete event to trigger
 		use this for testing or to always have time to show a loading message
 	loadTimeout (default 8) is how many seconds to wait for asset before error and a complete fires even though asset not loaded
@@ -64354,6 +64408,7 @@ asset(file, width, height) - access an asset such as an image or sound - see loa
 	if the asset was loaded with a string then use the string (less the path if provided)
 	if the asset was loaded with a full URL then use the full URL here
 	if the asset uses an asset object with an id then use the id
+	file can be a |ZIM VEE| value so for instance, an array and asset will pick randomly - or a series, etc.
 	** warning, if the assets are loaded with ZIM Multi-asset Objects with assets and path 
 	** and an asset has the same name as a previous asset, then the later asset id will have the path added to its id
 	if the asset is an image then this is a Bitmap which can be added to the stage, etc.	
@@ -64438,7 +64493,7 @@ canvas - a reference to the frame's canvas tag
 canvasID - a reference to the frame's canvas ID
 color - the color of the frame background - any css color
 outerColor - the color of the body of the HTML page - set with styles
-scaling - holds the scaling mode - "full", "fit", "outside", "tag" or "inline"
+scaling - holds the scaling mode - "full", "fit", "fill", "tag" or "inline"
 	tag is tag mode with no dimensions and inline is tag mode with dimensions
 	also see the tag property below if mode is tag or inline
 tag - the containing tag if scaling is set to an HTML tag id (else null)
@@ -64461,9 +64516,9 @@ leftMouseDown - read only value as to whether the left mouse button is down
 mousedownEvent - a reference to the frame "stagemousedown" event - can set frame.off("stagemousedown", frame.mousedownEvent)
 mousemoveEvent - a reference to the frame "stagemousemove" event - can set frame.off("stagemousemove", frame.mousemoveEvent)
 orientation - "vertical" or "horizontal" (updated live with orientation change)
-visibleLeft, visibleTop, visibleRight, visibleBottom - in "outside" scale mode these give window edge locations relative to the stage
+visibleLeft, visibleTop, visibleRight, visibleBottom - in "fill" scale mode these give window edge locations relative to the stage
 	can be used to position items like navigation relative to window as the frame resize event is fired
-	in all scale modes other than "outside", the values are 0, stageW, 0, stageH
+	in all scale modes other than "fill", the values are 0, stageW, 0, stageH
 zil - reference to zil events that stop canvas from shifting or scrolling - also see allowDefaults parameter
 	can set allowDefault property to false then allow specific defaults by removing zil events - see zil global function
 	example: window.removeEventListener("keydown", frame.zil[0]); removes keydown preventions (for page up, page down, home, end, etc)
@@ -64570,6 +64625,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		}
 		var mobile = zim.mobile();
 		if (zot(scaling)) scaling = "full";
+		if (scaling=="outside") scaling = "fill"; // handle legacy outside value
 		// if (zot(width)) width = "1024";
 		// if (zot(height)) height = "768";
 		if (zot(rollover)) rollover = !mobile;
@@ -64611,10 +64667,21 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		// if so it dispatches "ready" otherwise it sets the readyToDispatch to true
 		// when other process is done, it does the same
 		var readyToDispatch = false;
+		
+		var oldLeft = false;
+		this.leftMouseDown = false;
+		function leftEvent(e) {
+			// e = e.nativeEvent;
+		  	that.leftMouseDown = e.buttons === undefined 
+			    ? e.which === 1 
+			    : e.buttons === 1;
+			if (oldLeft && !that.leftMouseDown) that.dispatchEvent("mouseupplus");
+			oldLeft = that.leftMouseDown;
+		}
 
 		// setting a scaling of something other than this list will set the scaling to tag mode
 		// where the scaling parameter value is assumed to be the ID of an HTML tag to contain the Frame
-		var types = ["fit","outside","full"];
+		var types = ["fit","fill","full"];
 
 		if (shim) {
 			this.shim = true;
@@ -64893,7 +64960,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				}
 			}
 			if (!zot(color)) canvas.style.backgroundColor = color;
-			if (scaling == "full" || scaling == "fit" || scaling == "outside") {
+			if (scaling == "full" || scaling == "fit" || scaling == "fill") {
 				canvas.style.position = "absolute";
 				if (!allowDefault) document.body.style.overflow = "hidden";
 			} else {
@@ -64915,25 +64982,17 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					that.mouseY = e.stageY/zim.scaY;
 				});
 			}
-			window.addEventListener("mousedown", leftButton, true);
-			window.addEventListener("mousemove", leftButton, true); // tell actual mousemove there was a mouseup
-			window.addEventListener("mouseup", leftButton); // give actual mouseup a chance to act
-		}
-		
-		var oldLeft = false;
-		this.leftMouseDown = false;
-		function leftButton(e) {
-			// e = e.nativeEvent;
-		  	that.leftMouseDown = e.buttons === undefined 
-			    ? e.which === 1 
-			    : e.buttons === 1;
-			if (oldLeft && !that.leftMouseDown) that.dispatchEvent("mouseupplus");
-			oldLeft = that.leftMouseDown;
-		}
+			window.removeEventListener("mousedown", leftEvent, true);
+			window.removeEventListener("mousemove", leftEvent, true);
+			window.removeEventListener("mouseup", leftEvent);			
+			window.addEventListener("mousedown", leftEvent, true);
+			window.addEventListener("mousemove", leftEvent, true); // tell actual mousemove there was a mouseup
+			window.addEventListener("mouseup", leftEvent); // give actual mouseup a chance to act
+		}		
 
 		function makeStage() {
 			sizeCanvas();
-			if (types.indexOf(scaling) != -1 && !allowDefault) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, outside and full only)
+			if (types.indexOf(scaling) != -1 && !allowDefault) {that.zil = zil();} // keep canvas still (from arrows, scrollwheel, etc.) (fit, fill and full only)
 			if (that.mousedownEvent && stage) stage.off("stagemousedown", that.mousedownEvent);
 			if (that.mousemoveEvent && stage) stage.off("stagemousemove", that.mousemoveEvent);
 			stage = gpu?new zim.StageGL(canvasID, gpuObj):new zim.Stage(canvasID);
@@ -64946,7 +65005,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			if (retina) sizeCanvas();
 			if (rollover) stage.enableMouseOver(rollPerSecond); // if you need mouse rollover
 			if (touch) createjs.Touch.enable(stage, false, allowDefault); // added for mobile
-			// if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip // causes double mouse events
+			if (allowDefault) stage.preventSelection = false; // thanks Jonghyun for the tip // causes double mouse events
 			if (nextFrame) stage.nextStage = nextFrame.stage;
 			if (nextStage) stage.nextStage = nextStage;
 			setMousemove();
@@ -64969,7 +65028,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			if (scaling == "fit") {
 				// scales canvas to fit dimensions inside screen
 				that.scale = (w/h >= stageW/stageH) ? h/stageH : w/stageW;
-			} else if (scaling == "outside") {
+			} else if (scaling == "fill") {
 				// scales canvas so screen inside dimensions
 				that.scale = (w/h >= stageW/stageH) ? w/stageW : h/stageH;
 			} else if (scaling == "full") {
@@ -65152,7 +65211,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		};
 
 		function setVisible() {
-			if (scaling == "outside") {
+			if (scaling == "fill") {
 				var beside = (zum(that.canvas.style.width) - zim.windowWidth()) / 2;
 				if (align == "left") {
 					that.visibleLeft = 0;
@@ -65569,6 +65628,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		// change to not window.asset for Cat 02
 		window.asset = zim.asset = this.asset = function(n, w, h, second) {
 			if (zot(n)) return;
+			n = zik(n);			
 			var fromID = zim.assetIDs[n];
 			if (fromID) n = fromID;
 
@@ -65978,6 +66038,11 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			window.removeEventListener("wheel", wheelEvent);
 			window.removeEventListener("devicemotion", devicemotionEvent);
 			window.removeEventListener("deviceorientation", deviceorientationEvent);
+			
+			window.removeEventListener("mousedown", leftEvent, true);
+			window.removeEventListener("mousemove", leftEvent, true); 
+			window.removeEventListener("mouseup", leftEvent);
+						
 			if (!allowDefault) document.body.style.overflow = "auto";
 			recursiveDispose(stage);
 			function recursiveDispose(obj) {
@@ -66219,7 +66284,7 @@ var assets = [
 	{assets:["one.png", "two.png"], path:"images/"}, 
 	{assets:["big.mp3", "oof.mp3"], path:"sounds/"}
 ]
-var frame = new Frame(1024,768,red,orange,assets);
+var frame = new Frame(FIT,1024,768,red,orange,assets);
 frame.on("ready", function() {
 	asset("one.png").center().tap(function(){
 		asset("oof.mp3").play();
@@ -66420,9 +66485,9 @@ loop - dispatched when the sound loops (but not at end of last loop - that is co
 	//-83.8
 
 /*--
-LEFT, RIGHT, CENTER, MIDDLE, TOP, BOTTOM, HORIZONTAL, VERTICAL, BOTH, UP, DOWN, AUTO
+FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, TOP, BOTTOM, HORIZONTAL, VERTICAL, BOTH, UP, DOWN, AUTO
 
-LEFT, RIGHT, CENTER, MIDDLE, TOP, BOTTOM, HORIZONTAL, VERTICAL, BOTH, UP, DOWN, AUTO
+FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, TOP, BOTTOM, HORIZONTAL, VERTICAL, BOTH, UP, DOWN, AUTO
 zim constants
 
 DESCRIPTION
@@ -66438,6 +66503,9 @@ new Tip("hello", RIGHT, MIDDLE).show();
 new Tip("hello", "right", "middle").show();
 END EXAMPLE
 	--*///+83.5
+	zim.FIT = "fit";
+	zim.FILL = "fill";
+	zim.FULL = "full";
 	zim.LEFT = "left";
 	zim.RIGHT = "right";
 	zim.CENTER = "center";
@@ -66449,7 +66517,7 @@ END EXAMPLE
 	zim.BOTH = "both";
 	zim.UP = "up";
 	zim.DOWN = "down";
-	zim.AUTO = "auto";
+	zim.AUTO = "auto";	
 	//-83.5
 
 
@@ -67222,9 +67290,9 @@ function zimify(obj, list) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
 			else {return zim.scaleTo(this, boundObj, percentX, percentY, type, boundsOnly);}
 		},
-		fit:function(left, top, width, height, inside) {
+		fit:function(left, top, width, height, type) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.fit(arguments[0]);}
-			else {return zim.fit(this, left, top, width, height, inside);}
+			else {return zim.fit(this, left, top, width, height, type);}
 		},
 		outline:function(color, size, boundsOnly) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.outline(arguments[0]);}
