@@ -55628,8 +55628,7 @@ Contact can be tested for with contact() and contactEnd()
 each which receive a callback function that is provided with the other contacting body
 
 BOX2D
-http://www.box2dflash.org/docs/2.1a/reference/
-http://www.box2dflash.org/docs/2.0.2/manual
+https://box2d.org/documentation
 Box2D has many other features that can be accessed as well.
 Note that the ZIM Physics makes much of this easier
 so start with ZIM and use the Box2D docs and manuals for custom requirements.
@@ -65842,10 +65841,12 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					}
 				} else {
 					stage.preventSelection = true;
-					document.body.style.overflow = "hidden";
+					stage.enableDOMEvents(true);
+					if (scaling == "full" || scaling == "fit" || scaling == "fill") document.body.style.overflow = "hidden";
 					if (zot(that.zil)) that.zil = zil();
 				}
 				allowDefault = t;
+				if (stage.__touch) stage.__touch.preventDefault = !allowDefault;
 			}
 		});
 
