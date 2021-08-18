@@ -1,6 +1,7 @@
-// ZIM Cat - Interactive Media Framework at https://zimjs.com - code creativity!
-// Also see https://zimjs.com/distill to minify only the functions in your app
-// (c) 2021 ZIM - free to use - donations welcome of course! https://zimjs.com/donate
+// ZIM NFT - Interactive Media framework at https://zimjs.com - code creativity!
+// See https://zimjs.com/distill to minify only the functions in your app
+// See https://zimjs.com/crystal to load multiple scripts with one script call
+// (c) 2021 ZIM - free to use - donations welcome! https://zimjs.com/donate
 
 // With thanks...
 // Thanks to ZzFX - Zuper Zmall Zound Zynth - Micro Edition for play() method of Synth
@@ -2678,6 +2679,217 @@ RETURNS an array of points with numbers transformed
 		}
 		return points;
 	};//-27.95
+	
+/*--
+zim.trimEndPoints = function(points)
+
+trimEndPoints
+zim function
+
+DESCRIPTION
+Take outside Bezier rectangles off end points of Squiggle 
+Modifies the points but then will have to make Squiggle from modified points  
+Used internally, but might want to create a Squiggle from half the points or every other point
+this function would make sure ends are clean.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var s = new Squiggle();
+var p = copy(s.points).slice(1); // take off the first point
+s.points = trimEndPoints(p);
+s.center(); // a Squiggle with the first point gone
+END EXAMPLE
+
+PARAMETERS
+points - an array of points in the Squiggle format
+
+RETURNS an array of points with with the first point having no left control and the last point having no right control
+--*///+27.97
+	zim.trimPointEnds = function(points) {
+		z_d("27.97");	
+		points[0][4] = 0; // x
+		points[0][5] = 0; // y
+		points[0][8] = "free";                    
+		points[points.length-1][6] = 0; // x
+		points[points.length-1][7] = 0; // y
+		points[points.length-1][8] = "free"; 
+	};//-27.97
+
+/*--
+zim.reversePoints = function(points)
+
+reversePoints
+zim function
+
+DESCRIPTION
+Reverses Squiggle formatted points 
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var s = new Squiggle();
+var p = reversePoints(s.points);
+var path = new Squiggle({points:p, interactive:false}).center();
+new Circle(20,red).addTo().animate({path:path}, 10); // will go right to left
+// also see reversePoints() on Squiggle and Blob
+END EXAMPLE
+
+PARAMETERS
+points - an array of points in the Squiggle format to reverse
+
+RETURNS an array of points that is in reverse order to the input points
+--*///+27.975
+	zim.reversePoints = function(points) {
+		z_d("27.975");	
+			points.reverse();
+			loop(points, p=>{
+				var p6 = p[6];					
+				p[6] = p[4];
+				p[4] = p6;
+				var p7 = p[7];
+				p[7] = p[5];
+				p[5] = p7;
+				// [point[6], point[7], point[4], point[5]] = [point[4], point[5], point[6], point[7]];                        
+			});			
+			return points;
+	};//-27.975
+//
+/*--
+zim.appendPoints = function(original, points, controlType)
+
+appendPoints
+zim function
+
+DESCRIPTION
+Adds a set of Squiggle points to after an original set of Squiggle points
+The joining point is merged with the provided optional controlType
+** appendPoints() expects the first point on points (the second parameter) 
+to be at the last point of the original (the first parameter)
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var s = new Squiggle(); // not added
+// appendPoints expects the first point on points (the second parameter) 
+// to be at the last point of the original (the first parameter)
+var s2 = appendPoints(s.points, [s.points[s.points.length-1], [350,50]]); 
+// an array with an extra points added at the end - the joining point is merged
+new Squiggle({points:s2}).center();
+END EXAMPLE
+
+PARAMETERS
+original - an array of points in the Squiggle format
+points - an array of points in the Squiggle format to add to the end of the original
+controlType - (default "straight") one of four String values as follows:
+   none - there are no control rectangles (they are actually set at 0,0).  This makes a corner at the circle point.
+   mirror - the control rectangles reflect one another about the point circle - lengths are kept even
+   straight - the control rectangles keep a straight line through the point circle but length is independent
+   free - the control rectangle moves independently from the other control rectangle
+
+RETURNS the original array of points with the points added to the end
+--*///+27.98
+	zim.appendPoints = function(original, points, controlType) {
+		z_d("27.98");
+		if (zot(original) && zot(points)) return [];
+		if (zot(original)) return points;
+		if (zot(points)) return original;
+		original[original.length-1][6] = points[0][6];
+		original[original.length-1][7] = points[0][7];
+		if (controlType) original[original.length-1][8] = controlType;
+		points.shift(); // remove the first point             
+		original = original.concat(points);
+		return original;		
+	};//-27.98
+
+/*--
+zim.prependPoints = function(original, points, controlType)
+
+prependPoints
+zim function
+
+DESCRIPTION
+Adds a set of Squiggle points to before an original set of Squiggle points
+The joining point is merged with the provided optional controlType
+** prependPoints() expects the last point on points (the second parameter) 
+to be at the first point of the original (the first parameter)
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var s = new Squiggle(); // not added
+// prependPoints expects the last point on points (the second parameter) 
+// to be at the first point of the original (the first parameter)
+var s2 = prependPoints(s.points, [[-50,50], s.points[0]]); 
+// an array with an extra points added to the start - the joining point is merged
+new Squiggle({points:s2}).center();
+END EXAMPLE
+
+PARAMETERS
+original - an array of points in the Squiggle format
+points - an array of points in the Squiggle format to add to the start of the original
+controlType - (default "straight") one of four String values as follows:
+   none - there are no control rectangles (they are actually set at 0,0).  This makes a corner at the circle point.
+   mirror - the control rectangles reflect one another about the point circle - lengths are kept even
+   straight - the control rectangles keep a straight line through the point circle but length is independent
+   free - the control rectangle moves independently from the other control rectangle
+
+RETURNS the original array of points with the points added to the beginning
+--*///+27.985
+	zim.prependPoints = function(original, points, controlType) {
+		z_d("27.985");	
+		if (zot(original) && zot(points)) return [];
+		if (zot(original)) return points;
+		if (zot(points)) return original;
+		points[points.length-1][6] = original[0][6];
+		points[points.length-1][7] = original[0][7];
+		if (controlType) original[original.length-1][8] = controlType;
+		original.shift(); // remove the old first point   
+		original = points.concat(original);
+		zog(original)
+		return original;
+	};//-27.985
+
+/*--
+zim.splitPoints = function(points, index, trimEnds)
+
+splitPoints
+zim function
+
+DESCRIPTION
+Splits Squiggle points into two sets of Squiggle points 
+Also used by Squiggle splitPoints() and Blob makeSquiggle()
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var s = new Squiggle();
+var split = splitPoints(s.points, 2); // two arrays of three points each
+// also see Squiggle.splitPoints(2) // which splits squiggle into two squiggles
+END EXAMPLE
+
+PARAMETERS
+points - an array of points in the Squiggle format
+index - (default floor of half points length) the index at which to split the points into two sets
+	the first set gets the index 
+trimEnds - (default false) take ending Bezier sticks off split ends
+
+RETURNS an array if the first and second set of points
+--*///+27.99
+	zim.splitPoints = function(points, index, trimEnds) {
+		z_d("27.99");	
+		if (zot(points)) return;
+		if (zot(index)) index = Math.floor(points.length/2);
+		if (index < 0 || index > points.length-1) return;
+		if (zot(trimEnds)) trimEnds = true;
+		var first = zim.copy(points.slice(0,index+1));
+		var second = zim.copy(points.slice(index));
+		if (trimEnds) {
+			zim.trimPointEnds(first);
+			zim.trimPointEnds(second);
+		}
+		return [first, second];	
+	};//-27.99	
 
 /*--
 zim.makeID = function(type, length, letterCase)
@@ -3356,7 +3568,7 @@ PARAMETERS
 num - the Number to operate on
 places - (default 1) how many decimals to include (negative for left of decimal place)
 addZeros - (default 0) set to number of places to fill in zeros after decimal (and return String)
-addZerosBefore - (default 0) set to number of places to fill in zeros before decimal (and return String)
+addZerosBefore - (default 1) set to number of places to fill in zeros before decimal (and return String)
 includeZero - (default true) set to false to always have zero just be 0 without any extra zeros
 time - (default false) a swap of : for . to handle minutes and seconds (not hours)
 
@@ -3370,8 +3582,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 		if (zot(num)) return 0;
 		if (zot(places)) places = 1;
 		if (zot(addZeros)) addZeros = 0;
-		if (zot(addZerosBefore)) addZerosBefore = 0;
-		if (zot(addZerosBefore)) addZerosBefore = 0;
+		if (zot(addZerosBefore)) addZerosBefore = 1;
 		if (zot(includeZero)) includeZero = true;
 		if (zot(time)) time = false;
 		// if (addZeros && places < 0) {
@@ -3381,7 +3592,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 		// 	for (var i=0; i<-places-left; i++) {num = "0" + num;}
 		// 	return num;
 		// }
-		var answer = Math.round(num*Math.pow(10, places))/Math.pow(10, places);
+		var answer = Math.round(num*Math.pow(10, places))/Math.pow(10, places);		
 		if (time) {
 			var secs = answer - Math.floor(answer);
 			answer = zim.decimals(Math.floor(answer) + secs*60/100, 2);
@@ -3400,7 +3611,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 			if (place < 0) {place = length++; answer+=".";}
 			for (var i=0; i<addZeros-(length-place-1); i++) {answer += "0";}
 		}
-		if (addZerosBefore > 0) {
+		if (addZerosBefore > 1) {
 			// fix this - Dan Zen - negative decimal number problem
 			if (sign == -1) answer = answer.substr(1,answer.length-1);
 			var place = String(answer).indexOf(".");
@@ -3409,10 +3620,39 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 			for (var i=0; i<addZerosBefore-left; i++) {answer = "0" + answer;}
 			if (sign == -1) answer = "-" + answer;
 		}
+		if (addZerosBefore == 0) answer = answer.toString().replace(/^0\./,".");
 		if ((addZeros + addZerosBefore > 0) && !includeZero && Number(answer) == 0) answer = 0;
 		if (time) answer = String(answer).replace(".", ":");
 		return zim.zut(evt) ? answer : null;
 	};//-13
+
+/*--
+zim.countDecimals = function(num)
+
+countDecimals
+zim function
+
+DESCRIPTION
+Counts the number of decimals in a number
+Provided by Matthew Layton, A. Wolff - Stack Overflow
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var num1 = countDecimals(1.234); // num1 is 3
+var num2 = countDecimals(22); // num2 is 0
+END EXAMPLE
+
+PARAMETERS
+num - the Number for which to count decimals
+
+RETURNS the number of decimal places
+--*///+13.05
+	zim.countDecimals = function(num) {
+		if (!zim.zimCountDecimalsCheck) {z_d("13.05"); zim.zimCountDecimalsCheck = true;}
+		return num % 1?num.toString().split(".")[1].length:0;
+	};//-13.05
+	
 
 /*--
 zim.sign = function(num)
@@ -3539,7 +3779,6 @@ RETURNS a positive Number that is the distance (could be on an angle)
 		return Math.sqrt((Math.pow(c-a, 2) + Math.pow(d-b, 2)));
 	};//-13.3
 
-//
 /*--
 zim.rectIntersect = function(a, b, margin)
 
@@ -3576,8 +3815,7 @@ RETURNS a Boolean as to whether rectangles are intersecting
 			return true;
 		}
 	};//-13.32
-
-//
+	
 /*--
 zim.boundsAroundPoints = function(points)
 
@@ -10002,7 +10240,8 @@ borderDashedCommand - access to the CreateJS stroke dashed command (segments, of
 radius - gets or sets the radius.
 	The radius is independent of scaling and can be different than the width/2
 	Setting the radius redraws the circle but any current scaling is kept
-percent - get or set the percent of the circle (see percent parameter)
+percentage - get or set the percent of the circle (see percent parameter) 
+	NOTE not percent property which interferes with animate percent
 percentClose - get or set the percent close of the circle (see percentClose parameter)
 mouseChildren - set to false to avoid dragging the shape inside
 	to drag or interact with objects inside then set mouseChildren to true
@@ -10096,7 +10335,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 		});
 		
-		Object.defineProperty(that, 'percent', {
+		Object.defineProperty(that, 'percentage', {
 			get: function() {
 				return percent;
 			},
@@ -10604,7 +10843,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
 
     if (style!==false) zim.styleTransforms(this, DS);
     this.clone = function(exact) {
-        var newShape = that.cloneProps(new zim.Triangle((exact||!zim.isPick(oa[0]))?a:oa[0], (exact||!zim.isPick(oa[1]))?b:oa[1], (exact||!zim.isPick(oa[2]))?c:oa[2], (exact||!zim.isPick(oa[3]))?that.color:oa[3], (exact||!zim.isPick(oa[4]))?that.borderColor:oa[4], (exact||!zim.isPick(oa[5]))?that.borderWidth:oa[5], center, adjust, dashed, strokeObj, style, this.group, inherit));
+        var newShape = that.cloneProps(new zim.Triangle((exact||!zim.isPick(oa[0]))?a:oa[0], (exact||!zim.isPick(oa[1]))?b:oa[1], (exact||!zim.isPick(oa[2]))?c:oa[2], (exact||!zim.isPick(oa[3]))?that.color:oa[3], (exact||!zim.isPick(oa[4]))?that.borderColor:oa[4], (exact||!zim.isPick(oa[5]))?that.borderWidth:oa[5], corner, center, adjust, dashed, strokeObj, style, this.group, inherit));
         if (that.linearGradientParams) newShape.linearGradient.apply(newShape, that.linearGradientParams);
         if (that.radialGradientParams) newShape.radialGradient.apply(newShape, that.radialGradientParams);
         return newShape;
@@ -11491,6 +11730,8 @@ The Squiggle is set by default to show and hide controls when clicked
 It is also draggable by default when the controls are showing
 It can be set to copy with a shift click
 
+SEE:https://www.youtube.com/watch?v=P2hDe5JCINY for Blob and Squiggle Basics
+
 MULTIPLE SELECT
 Multiple points can be selected and dragged or moved with the keyboard arrows (moves 10 pixels with shift key down)
 
@@ -11508,6 +11749,45 @@ EXAMPLE
 // see https://zimjs.com/explore/squiggleAnimate.html for more
 var line = new Squiggle().center();
 new Circle(10, red).addTo().animate({path:line}, 1000);
+END EXAMPLE
+
+EXAMPLE
+// there are so many examples for Blob and Squiggle 
+// see https://www.youtube.com/watch?v=P2hDe5JCINY 
+// In this set of examples we show editing which is new in ZIM NFT
+
+// Add a new second smaller part to the Squiggle 
+// reverse points from right to left and animate along Squiggle
+var s = new Squiggle({showControls:false}).center();
+var s2 = new Squiggle()
+    .transformPoints("scale", .5)
+    .transformPoints("x", s.width);
+s.appendPoints(s2.points).reversePoints();
+new Circle(10).addTo().animate({path:s}, 5);
+END EXAMPLE 
+
+EXAMPLE 
+// split Squiggle and change color of second part
+var s1 = new Squiggle().center();
+var s2 = s1.splitPoints(2);
+s2.color = red;
+END EXAMPLE
+
+EXAMPLE 
+// split Blob into Squiggles
+var b1 = new Blob().center();
+var s1 = b1.makeSquiggle(0).loc(b1);
+var s2 = s1.splitPoints(2).loc(b1);
+s2.color = red;
+b1.removeFrom();
+
+// // and put back again
+// s1.appendPoints(s2.points, "mirror");
+// var b2 = s1.makeBlob().loc(s1);
+// b2.color = blue;
+// b2.borderColor = null;
+// s1.removeFrom();
+// s2.removeFrom();
 END EXAMPLE
 
 PARAMETERS
@@ -11607,6 +11887,26 @@ transformPoints(transformType, amount, x, y) - scale, rotate, move points withou
 	transformType - String any of: "scale", "scaleX", "scaleY", "rotation", "x", "y"
 	amount - the amount to transform
 	x, y - (default 0, 0) the x and y position to transform about
+reversePoints() - reverse the order of the points
+	this also swaps each rectangle in the Bezier controls 
+	also see the Code module for reversePoint(points) function to operate on data points in Squiggle format 	
+appendPoints(points, controlType) - add points at end of points - updates Squiggle
+	it is assumed that the first point of the new points is in the same place as the last point of the Squiggle 
+	by default these will transfer control types but can override with controlType
+	this will not have immediate effect but will be triggered when the joining point handle is moved	
+prependPoints(points, controlType) - add points at start of points - updates Squiggle
+	it is assumed that the last point of the new points is in the same place as the first point of the Squiggle 
+	by default these will transfer control types but can override with controlType
+	this will not have immediate effect but will be triggered when the joining point handle is moved
+splitPoints(index) - breaks the Squiggle into two Squiggles at the index (length / 2)
+	the original Squiggle is the first Squiggle 
+	returns a reference to the second Squiggle 
+makeBlob(controlType, mergeDist) - makes a new Blob from the Squiggle 
+	returns the new Blob - the Squiggle remains unchanged so may need to remove it
+	controlType (default "free" if not merged and "mirror" if merged) 
+		controlType for the joined end points - also see mergeDist below
+		this will not change the control sticks until their handles are dragged
+	mergeDist (default 5) merges overlapping end points (within this pixel distance) 
 update(normalize) - update the Squiggle if animating control points, etc. would do this in a Ticker
 	set normalize (default false) to true to use pointsAdjusted for rotated and scaled points
 	and if animating along the path after setting rotation or scale on point
@@ -12368,7 +12668,75 @@ Note the points property has been split into points and pointObjects (and there 
 				});
 				return that;
 			};
-
+			
+			that.reversePoints = function() {			
+				points = zim.copy(that.points);
+				that.points = zim.reversePoints(zim.copy(that.points));
+				that.update();
+				return that;
+			};
+						
+			that.appendPoints = function(points, controlType) {
+				var current = zim.copy(that.points);
+				that.points = zim.appendPoints(current, points, controlType);				
+				that.update();
+				return that;
+			};
+			
+			that.prependPoints = function(point, controlType) {
+				var current = zim.copy(that.points);
+				that.points = zim.rependPoints(current, points, controlType);				
+				that.update();
+				return that;
+			};
+			
+			that.splitPoints = function(index) {
+				var current = zim.copy(that.points);
+				if (index < 1 || index > current.length-1) return;
+				var split = zim.splitPoints(current, index);				
+				var first = split[0];
+				var second = split[1];
+				var s = that.clone();
+				that.points = first;
+				that.update();
+				s.points = second;
+				if (that.parent) s.addTo(that.parent);
+				return s;
+			};
+			
+			that.makeBlob = function(controlType, mergeDist) {	
+				if (zot(controlType)) controlType = "mirror";			
+				if (zot(mergeDist)) mergeDist = 5;			
+				var points = zim.copy(that.points);				
+				zim.loop(points, function (p, i, t) {					
+					if (!p[8]) p[8] = "mirror";
+					if (i==0) {
+						if (controlType == "free") p[4] = p[5] = 0;
+						p[8] = controlType;
+					}
+					if (i==t-1) {
+						if (controlType == "free") p[6] = p[7] = 0;
+						p[8] = controlType;
+					}					
+				});
+				// check if squiggle is already joined
+				if (Math.abs(points[0][0]-points[points.length-1][0]) < mergeDist && Math.abs(points[0][1]-points[points.length-1][1]) < mergeDist) {
+					points[0][4] = points[points.length-1][4];
+					points[0][5] = points[points.length-1][5];
+					points.pop(); // remove last point
+				}
+				var b = new zim.Blob({
+					points:points,
+					borderColor:that.color, 
+					borderWidth:that.thickness, 
+					showControls:that.controlsVisible,
+					interactive:that.interactive,
+					onTop:that.onTop,
+					dashed:that.dashed,
+					stickColor:that.stickColor
+				});
+				return b;
+			};
 
 			that.update = function(normalize) {
 				if (normalize) {
@@ -13446,6 +13814,23 @@ var blob = new Blob({radius:50, points:"circle", interactive:false})
 	});
 END EXAMPLE
 
+EXAMPLE 
+// split Blob into Squiggles
+var b1 = new Blob().center();
+var s1 = b1.makeSquiggle(0).loc(b1);
+var s2 = s1.splitPoints(2).loc(b1);
+s2.color = red;
+b1.removeFrom();
+
+// // and put back again
+// s1.appendPoints(s2.points, "mirror");
+// var b2 = s1.makeBlob().loc(s1);
+// b2.color = blue;
+// b2.borderColor = null;
+// s1.removeFrom();
+// s2.removeFrom();
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
@@ -13547,6 +13932,14 @@ transformPoints(transformType, amount, x, y) - scale, rotate, move points withou
 	transformType - String any of: "scale", "scaleX", "scaleY", "rotation", "x", "y"
 	amount - the amount to transform
 	x, y - (default 0, 0) the x and y position to transform about
+reversePoints(sameStart) - reverse the order of the points
+	sameStart defaults to true and will keep the start point the same 
+	set to false to make the last point before the start point, the start point
+	This also swaps each rectangle in the Bezier controls 
+	also see the Code module for reversePoint(points) function to operate on data points in Squiggle format
+	Note: reversing blob points with the reversePoints function will make the starting point the last point
+makeSquiggle(index) - create a new Squiggle by cutting Blob at index (default 0)
+	returns the new Squiggle - the Blob remains unchanged - so may need to remove it
 update(normalize) - update the Blob if animating control points, etc. would do this in a Ticker
 	set normalize (default false) to true to use pointsAdjusted for rotated and scaled points
 	use true for manually editing points after setting rotation or scale on point
@@ -14273,6 +14666,63 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					}
 				});
 				return that;
+			};
+			
+			that.reversePoints = function(sameStart) {	
+				if (zot(sameStart)) sameStart = true;		
+				points = zim.copy(that.points);				
+				points.reverse();
+				if (sameStart) points.unshift(points.pop()); // keep the start point the same
+				loop(points, p=>{
+					var p6 = p[6];					
+					p[6] = p[4];
+					p[4] = p6;
+					var p7 = p[7];
+					p[7] = p[5];
+					p[5] = p7;
+					// [point[6], point[7], point[4], point[5]] = [point[4], point[5], point[6], point[7]];                        
+				});
+				
+				that.points = points;
+				that.update();
+				return that;
+			};			
+			
+						
+			that.splitPoints = function(index) {
+				var current = zim.copy(that.points);
+				if (index < 1 || index > current.length-1) return;
+				var first = zim.copy(current.slice(0,index+1));
+				var second = zim.copy(current.slice(index));
+				zim.trimPointEnds(first);
+				zim.trimPointEnds(second);
+				var s = that.clone();
+				that.points = first;
+				that.update();
+				s.points = second;
+				if (that.parent) s.addTo(that.parent);
+				return s;
+			};
+			
+			that.makeSquiggle = function(index) {	
+				var current = zim.copy(that.points);
+				if (zot(index)) index = 0;
+				index = (index+current.length*1000)%current.length;
+				var first = zim.copy(current.slice(index));
+				var second = zim.copy(current.slice(0,index+1));
+				current = first.concat(second);
+				zim.trimPointEnds(current);
+				var s = new zim.Squiggle({
+					points:current,
+					color:that.borderColor, 
+					thickness:that.borderWidth, 
+					showControls:that.controlsVisible,
+					interactive:that.interactive,
+					onTop:that.onTop,
+					dashed:that.dashed,
+					stickColor:that.stickColor
+				});
+				return s;
 			};
 
 			that.update = function(normalize) {
@@ -16476,8 +16926,8 @@ color - (default "black") color of font (any CSS color)
 rollColor - (default color) the rollover color of the font
 shadowColor - (default -1) for no shadow - set to any css color to see
 shadowBlur - (default 14) if shadow is present
-align - ((default "left") text registration point alignment also "center" and "right"
-valign - (default "top") vertical registration point alignment alse "middle / center", "bottom"
+align - ((default LEFT) text registration point alignment also CENTER/MIDDLE and RIGHT
+valign - (default TOP) vertical registration point alignment alse CENTER/MIDDLE, BOTTOM
 bold - (default false) set the font to bold - note: fontOptions has been removed as of ZIM Cat
 italic - (default false) set the font to italic - note: fontOptions has been removed as of ZIM Cat
 variant - (default false) set to true to set the font to "small-caps" - note: fontOptions has been removed as of ZIM Cat
@@ -16677,7 +17127,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}	
 		obj = makeLabel(text);
 		
-		if (splitWords && lW > size * 1.2) { // approximate
+		if (splitWords && lW > size * 1.2) { // approximate			
+			
 			// measure lines to make sure not going past lineWidth		
 			function testLine(l, w, line) {
 				var endIndex = Math.ceil(lW/w*line.length);
@@ -17166,7 +17617,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	zim.extend(zim.Label, zim.Container, "clone", "zimContainer");
 	//-54
 
-
 /*--
 zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowToggle, interactive, onTop, style, group, inherit)
 
@@ -17515,7 +17965,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - the name of the class as a String
-text - get the text on the arc (make a new object if change of text is needed)
+text - get or set the text on the arc
 radius - get or set the radius of the arc (see radiusSpread parameter too)
 labels - an array of ZIM Label objects for the letters
 letters - access to ZIM Container of labels used for letters
@@ -17563,6 +18013,7 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
     if (zot(letterSpacing)) letterSpacing = DS.letterSpacing!=null?DS.letterSpacing:5;
     if (zot(angles)) angles = DS.angles!=null?DS.angles:null;
 	var anglesO = !zot(angles);
+	var anglesStart = zim.copy(angles);
     if (zot(showCircle)) showCircle = DS.showCircle!=null?DS.showCircle:false;
     if (zot(arcColor)) arcColor = DS.arcColor!=null?DS.arcColor:null;
     if (zot(arcBorderColor)) arcBorderColor = DS.arcBorderColor!=null?DS.arcBorderColor:null;
@@ -17577,30 +18028,48 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
 
     var that = this;
     if (label.type != "Label") label = new zim.Label(label, size, font, color);
-	that.text = label.text;
+	label.text;
+	
+	
+	var letters, labels, arc, circle, totalAngle, rawAngles 
+	function makeLabel() {	
+		that.disposeAllChildren();	
+	    if (flip) {
+	        var rev = label.text.split("").reverse().join("");
+	        label.text = rev;
+	    }
+	    letters = that.letters = new zim.Container(that.width, that.height).centerReg(that);
 
-    if (flip) {
-        var rev = label.text.split("").reverse().join("");
-        label.text = rev;
-    }
-    var letters = that.letters = new zim.Container(this.width, this.height).centerReg(this);
+	    that.numLetters = label.text.length;
+		that.letterHeight = label.height;
 
-    var totalAngle;
-    var rawAngles;
-    that.numLetters = label.text.length;
-	this.letterHeight = label.height;
-
-	var labels = that.labels = [];
-	for (var i=0; i<that.numLetters; i++) {
-		var letter = label.clone();
-		labels.push(letter);
-		letter.text = label.text[i];
-		letter.letterHolder = new zim.Container(letter.width, letter.height);
-        letter.centerReg(letter.letterHolder).rot(flip?180:0);
-	}
-	var circle = this.circle = new zim.Circle(radius);
-    if (showCircle) circle.addTo(this);
-	var arc = this.arc = new zim.Shape().addTo(this);
+		labels = that.labels = [];
+		for (var i=0; i<that.numLetters; i++) {
+			var letter = label.clone();
+			labels.push(letter);
+			letter.text = label.text[i];
+			letter.letterHolder = new zim.Container(letter.width, letter.height);
+	        letter.centerReg(letter.letterHolder).rot(flip?180:0);
+		}
+		circle = that.circle = new zim.Circle(radius);
+	    if (showCircle) circle.addTo(that);
+		arc = that.arc = new zim.Shape().addTo(that);
+		
+		makeArc();	
+				
+	    if (angles) {
+	        // overwrite totalAngle with given angles
+	        totalAngle = 0;
+	        for (var i=0; i<angles.length; i++) {
+	            totalAngle += angles[i];
+	        }
+	        totalAngle += angles[angles.length-1]/2; // whatever
+	    }    
+		
+		makeAngles();	
+	}	
+	makeLabel();
+	
 	function makeArc() {
 		totalAngle = 0;
 		rawAngles = [0];
@@ -17619,16 +18088,7 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
 			arc.graphics.c().f(null).s(arcBorderColor).ss(arcBorderWidth).arc(0,0,radius, (startAngle-90)*Math.PI/180, (startAngle-90+totalAngle)*Math.PI/180);
 		}
 	}		
-	makeArc();	
 	
-    if (angles) {
-        // overwrite totalAngle with given angles
-        totalAngle = 0;
-        for (var i=0; i<angles.length; i++) {
-            totalAngle += angles[i];
-        }
-        totalAngle += angles[angles.length-1]/2; // whatever
-    }    
 	function makeAngles() {
 		if (!anglesO) {
 			angles = [];
@@ -17645,7 +18105,6 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
 	        lastAngle = letter.rotation = lastAngle + angles[i];
 	    }		
 	}
-	makeAngles();
     
 		
 	Object.defineProperty(this, 'radius', {
@@ -17669,6 +18128,19 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
             if (that.stage) that.stage.update();
         }
     });
+	
+	Object.defineProperty(that, 'text', {
+		get: function() {
+			return label.text;
+		},
+		set: function(value) {
+			label.text = value;
+			if (anglesStart) angles = zim.copy(anglesStart);
+			else angles = null;
+			makeLabel();
+			// if (that.stage) that.stage.update();
+		}
+	});
 
 	zim.styleTransforms(this, DS);
     this.clone = function() {
@@ -20391,6 +20863,7 @@ This component is affected by the general ACTIONEVENT setting
 The default is "mousedown" - if set to something else the component will act on click (press)
 
 EVENTS
+dispatches a "closing" event when about to be closed - good for reloading a game for instance
 dispatches a "close" event when closed by clicking on backing, display, close, etc. when applicable
 dispatches a "fadedin" event if fadeTime is set and pane has finished its fade in animation
 dispatches a "fadedout" event if fadeTime is set and pane has finished its fade out animation
@@ -20469,9 +20942,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		backdrop.on((!zns?ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", backdropClose?closePane:function(e){e.stopImmediatePropagation();});
 		var htmlList = new zim.Dictionary(true);
 		function closePane(e) {
-			removePane();
-			that.container.stage.update();
-			that.dispatchEvent("close");
+			that.dispatchEvent("closing");
+			setTimeout(function() {
+				removePane();
+				that.dispatchEvent("close");
+			}, 10);
 			e.stopImmediatePropagation();
 		}
 		backdrop.on("mousedown", function(e) {
@@ -21159,6 +21634,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 backing - CreateJS Shape used for backing of Window
+backgroundColor - the color of the backing
 content - ZIM Container used to hold added content
 enabled - get or set whether the Window is enabled
 scrollEnabled - get or set whether the Window can be scrolled
@@ -21253,7 +21729,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(fullSize)) fullSize = DS.fullSize!=null?DS.fullSize:null;
 		if (zot(fullSizeColor)) fullSizeColor = DS.fullSizeColor!=null?DS.fullSizeColor:null;
 		if (zot(resizeHandle)) resizeHandle = DS.resizeHandle!=null?DS.resizeHandle:null;
-
+		
 		if (titleBar === false) titleBar = null;
 		if (!zot(titleBar)) {
 			if (zot(titleBarHeight)) titleBarHeight = 30;
@@ -21951,6 +22427,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				clearTimeout(that.d2Timeout);
 				if (content.zimDragImmediate) content.zimDragImmediate(content.x, content.y);
 				movescrollBars();
+			}
+		});
+		
+		Object.defineProperty(that, 'backgroundColor', {
+			get: function() {
+				return backgroundColor;
+			},
+			set: function(value) {
+				backgroundColor = value;
+				sizeWindow();
 			}
 		});
 
@@ -23474,6 +23960,620 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	};
 	zim.extend(zim.Indicator, zim.Container, "clone", "zimContainer", false);
 	//-60
+	
+
+/*--
+zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxSize, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, group, inherit)
+
+TextInput
+zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+Makes an input text field like an HTML form input type text field.
+This will be right on the canvas so can be layered with canvas objects 
+as opposed to the ZIM TextArea() which is an HTML tag overlay.
+Thanks Cajoek for coding the text for the class. 
+
+WARNING: currently a single line is available (so height is not at this point useful)
+The plan is to support multiline input in future versions of ZIM.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+var input = new TextInput().loc(100,100); // adds a default input field to the stage
+
+new Button().loc(100, 200, "SUBMIT").tap(function() {
+	zog(input.text); // whatever is typed into the LabelInput
+});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+width |ZIM VEE| - (default 300) - the width of the backgroundColor of the field - set to -1 for expanding width
+	This will limit the length of the text added to the field 
+	In the future, scrolling text may be provided
+height |ZIM VEE| - (default size plus paddingVertical) - the heigth of the backgroundColor for the label 
+	Currently, the text is always one line.
+	In the future, multi-line functionality may be provided 
+	Until then, use a ZIM TextArea for multiline.
+placeholder |ZIM VEE| - String to show when no text is entered - will disappear when there is text entered
+text |ZIM VEE| - String for the the text of the label
+size - (default 36) the size of the font in pixels
+font - (default arial) the font or list of fonts for the text
+color |ZIM VEE| - (default dark) color of font 
+backgroundColor |ZIM VEE| - (default lighter) background color - set to -1 for no background
+borderColor |ZIM VEE| - (default null) the background stroke color
+borderWidth - (default null) thickness of the background border
+maxLength - (default null) set to limit the number of characters in the field
+password - (default false) set to true to show **** for text to hide password
+selectionColor - (default color) the selection color of the text 
+selectionAlpha - (default .2) the alpha of the selection color
+cursorColor - (default color) the blinking cursor in the text
+cursorSpeed - (default .5) seconds for which the cursor blinks
+shadowColor - (default -1) for no shadow - set to any css color to see
+shadowBlur - (default 14) if shadow is present
+align - ((default LEFT) text registration point alignment also RIGHT
+corner - (default 0) the round of corner of the background if there is one
+	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
+padding - (default 5 if backgroundColor set) places the border this amount from text (see paddingHorizontal and paddingVertical)
+	padding parameters are ignored if there is no backgroundColor set 
+paddingHorizontal - (default padding) places border out at top bottom
+paddingVertical - (default padding) places border out at left and right
+shiftHorizontal - (default 0) move the label (CreateJS Text) inside the Label container horizontally
+shiftVertical - (default 0) move the label (CreateJS Text) inside the Label container vertically
+rollPersist - (default false) set to true to maintain rollover stage as long as mousedown or press is activated (used by Buttons)
+multiline - [not supported] (default false) set to true for multiline text - CURRENTLY not supported
+wrap - [not supported] (default false) set to true to wrap text at the width - CURRENTLY not supported
+scrollBarActive - (default false) set to true to show scrollBar
+scrollBarDrag - (default false) set to true to be able to drag the scrollBar
+scrollBarColor - (default borderColor) the color of the scrollBar
+scrollBarAlpha - (default .3) the transparency of the scrollBar
+scrollBarFade - (default true) fades scrollBar unless being used
+scrollBarH - (default true) if scrolling in horizontal is needed then show scrollBar
+scrollBarV - (default true) if scrolling in vertical is needed then show scrollBar
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+hasProp(property as String) - returns true if property exists on object else returns false
+resize(width, height) - resizes the field dimensions (inherited from Window) returns object for chaining
+clone(exact) - makes a copy with properties such as x, y, etc. also copied
+	exact (default false) ZIM VEE (Pick) values are active in clones unless exact is set to true
+	For instance, if the object's color is [blue, green]
+	then its clone might be blue or green - which could be different than the original
+	If exact is set to true then the clone will be the color of the original object
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: all methods of ZIM Window()
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+
+ALSO: see the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+text - references the text property of the CreateJS Text object
+label - references the ZIM Label object of the TextInput 
+	this is actually a LabelInput that extends a ZIM Label
+	see the STATIC PROPERTY LabelInput entry below 
+placeholderLabel - refrerence to the placeholder label
+htmlTag - access to the hidden HTML input tag
+selection - access to selection ZIM Rectangle 
+	use this to set color or blendMode of selection
+selectionAlpha - get or set the alpha of the selection 
+blinker - access to the blinking cursor ZIM Rectangle
+	use this to set color or blendMode of blinker
+size - the font size of the Label (without px)
+font - get or set the font of the text
+align - get or set the horizontal alignment of the text
+	values are LEFT and RIGHT
+color - gets or sets the label text color
+backgroundColor - gets or sets the background color
+enabled - default is true - set to false to disable
+
+ALSO: all properties of ZIM Window()
+
+ALSO: see ZIM Container for properties such as:
+width, height, widthOnly, heightOnly, draggable, level, depth, group 
+blendMode, hue, saturation, brightness, contrast, etc.
+
+ALSO: see the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+STATIC PROPERTY 
+LabelInput() - a static class so use new TextInput.LabelInput() to create.
+	This class is an editable label that expands in size as it is typed into 
+	The TextInput is a ZIM Window with a LabelInput inside
+	The LabelInput has all the parameters of a ZIM Label with the following added after the size parameter:
+		maxLength - (default null) the maximum number of characaters the text can have
+		password - (default false) turn text into password text * symbols
+		selectionColor - (default - the text color) the color of the selection
+		selectionAlpha - (default .2) the alpha of the selection
+		blinkerColor - (default - the text color) the color of the blinker cursor
+		blinkerSpeed - (default .5) the speed of the blinker cursor
+	Some parameters of LabelInput such as rollColor and rollPersist are ignored - but kept in the signature to match Label for ease
+
+OPTIMIZED
+This component is affected by the general OPTIMIZE setting (default is false)
+if set to true, you will have to stage.update() after setting certain properties
+
+EVENTS
+focus, blur are dispatched when the text gains and loses focus
+input is dispatched when the input text is typed or pasted into
+change is dispatched when the input text is different after losing focus
+See the events for HTML input field of type text
+See the events for ZIM Window()
+See the CreateJS Easel Docs for Container events such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
+--*///+54.2
+	zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, group, inherit) {
+		var sig = "width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, group, inherit";
+		var duo; if (duo = zob(zim.TextInput, arguments, sig, this)) return duo;
+		z_d("54.2");
+		
+		this.group = group;
+		var DS = style===false?{}:zim.getStyle("TextInput", this.group, inherit);
+		
+		if (zot(size)) size=DS.size!=null?DS.size:36;
+		if (zot(padding) || padding=="ignore") padding = (DS.padding!=null&&padding!="ignore")?DS.padding:5;
+		if (zot(paddingHorizontal)) paddingHorizontal = DS.paddingHorizontal!=null?DS.paddingHorizontal:padding;
+		if (zot(paddingVertical)) paddingVertical = DS.paddingVertical!=null?DS.paddingVertical:padding;
+		
+		if (zot(width)) width=DS.width!=null?DS.width:300;
+		if (zot(height)) height=DS.height!=null?DS.height:size+paddingVertical*2;		
+		if (zot(placeholder)) placeholder=DS.placeholder!=null?DS.placeholder:null;
+		if (zot(text)) text=DS.text!=null?DS.text:"";		
+		if (zot(font)) font=DS.font!=null?DS.font:"arial";
+		if (zot(color)) color=DS.color!=null?DS.color:zim.dark;
+		if (zot(backgroundColor)) backgroundColor=DS.backgroundColor!=null?DS.backgroundColor:zim.lighter;
+		if (zot(borderColor)) borderColor=DS.borderColor!=null?DS.borderColor:null;
+		if (zot(borderWidth)) borderWidth=DS.borderWidth!=null?DS.borderWidth:null;
+	
+		var oa = remember(width, height, placeholder, text, color, backgroundColor, borderColor);
+		function remember() {return arguments;}
+		width = zim.Pick.choose(width);
+		height = zim.Pick.choose(height);
+		placeholder = zim.Pick.choose(placeholder);
+		text = zim.Pick.choose(text);
+		color = zim.Pick.choose(color);
+		backgroundColor = zim.Pick.choose(backgroundColor);
+		borderColor = zim.Pick.choose(borderColor);
+
+		if (zot(selectionColor)) selectionColor=DS.selectionColor!=null?DS.selectionColor:color;
+		if (zot(selectionAlpha)) selectionAlpha=DS.selectionAlpha!=null?DS.selectionAlpha:.2;
+		if (zot(cursorColor)) cursorColor=DS.cursorColor!=null?DS.cursorColor:color;
+		if (zot(cursorSpeed)) cursorSpeed=DS.cursorSpeed!=null?DS.cursorSpeed:.5;
+		if (zot(shadowColor)) shadowColor=DS.shadowColor!=null?DS.shadowColor:"rgba(0,0,0,.3)";
+		if (zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:20;
+		if (zot(align)) align=DS.align!=null?DS.align:"left";
+		if (zot(corner)) corner=DS.corner!=null?DS.corner:0;		
+		if (zot(shiftHorizontal)) shiftHorizontal = DS.shiftHorizontal!=null?DS.shiftHorizontal:0;
+		if (zot(password)) password=DS.password!=null?DS.password:false;
+		if (zot(shiftVertical)) shiftVertical = DS.shiftVertical!=null?DS.shiftVertical:password?size*.25:0;
+		if (zot(maxLength)) maxLength=DS.maxLength!=null?DS.maxLength:null;
+		if (zot(multiline)) multiline=DS.multiline!=null?DS.multiline:false;
+		if (zot(wrap)) wrap=DS.wrap!=null?DS.wrap:false;
+		if (zot(scrollBarActive)) scrollBarActive=DS.scrollBarActive!=null?DS.scrollBarActive:false;
+		if (zot(scrollBarDrag)) scrollBarDrag=DS.scrollBarDrag!=null?DS.scrollBarDrag:false;
+		if (zot(scrollBarColor)) scrollBarColor=DS.scrollBarColor!=null?DS.scrollBarColor:borderColor;
+		if (zot(scrollBarAlpha)) scrollBarAlpha=DS.scrollBarAlpha!=null?DS.scrollBarAlpha:.3;
+		if (zot(scrollBarFade)) scrollBarFade=DS.scrollBarFade!=null?DS.scrollBarFade:true;
+		if (zot(scrollBarH)) scrollBarH = DS.scrollBarH!=null?DS.scrollBarH:true;
+		if (zot(scrollBarV)) scrollBarV = DS.scrollBarV!=null?DS.scrollBarV:true;		
+		if (scrollBarDrag) scrollBarFade = DS.scrollBarFade!=null?DS.scrollBarFade:false;
+				
+		this.zimWindow_constructor(width, height, backgroundColor, borderColor, borderWidth, padding, corner, false, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, false, null, false, true, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, true, null, null, null, null, null, false, null, null, null, null, null, false, null, false, style, group, zim.copy(DS));
+		this.type = "TextInput";
+		var that = this;
+		
+		this.placeholderLabel = new zim.Label({text:placeholder||"", size:size, color:color}).alp(.5);
+		if (text=="") this.add(this.placeholderLabel);
+		
+		// the Window usually masks but masks to the edge and not to inside the padding
+		// so add a custom mask
+		var mask = new Rectangle(width-padding*2, height-padding*2, zim.clear).center(this);
+		this.cursor = "text";
+				
+		var label = this.label = new zim.TextInput.LabelInput(text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftHorizontal, shiftVertical, null, null, null, maxLength, null, style, group, inherit);
+		this.add(label); // this is a Window - which has an add() method for adding content
+		label.setMask(mask);
+		this.htmlTag = this.label.hiddenInput
+		this.selection = this.label.selection
+		this.blinker = this.label.blinker
+		
+		if (align=="right") {
+			label.x = width-label.width;
+			this.placeholderLabel.x = width-this.placeholderLabel.width-paddingHorizontal;
+		}
+		
+		// the LabelInput was receiving a mousedown on its edges which is not desired 
+		// so capture those with rectangle padding shields 
+		// these can be used to capture a mousedown for selection swipe though
+		// but just start the selection at the visible letter on that side
+		var edgeLeft = new Rectangle(padding,height,zim.clear).addTo(this).expand(0);
+		edgeLeft.on("mousedown", function(e){
+			label.onMousedown(e);
+			e.stopImmediatePropagation();
+		});
+		edgeLeft.on("pressmove", function(e){
+			label.onPressmove(e);
+			e.stopImmediatePropagation();
+		});
+		edgeLeft.on("dblclick", function(e){
+			label.onDblclick(e);
+			e.stopImmediatePropagation();
+		});
+		var edgeRight = new Rectangle(padding,height,zim.clear).pos(0,0,RIGHT,TOP,this).expand(0)
+		edgeRight.on("mousedown", function(e){
+			label.onMousedown(e);
+			e.stopImmediatePropagation();
+		});
+		edgeRight.on("pressmove", function(e){
+			label.onPressmove(e);
+			e.stopImmediatePropagation();
+		});
+		edgeRight.on("dblclick", function(e){
+			label.onDblclick(e);
+			e.stopImmediatePropagation();
+		});
+			
+		var lastText = "";
+		this.on("mousedown", function (e) {
+			label.onMousedown(e);
+			lastText = label.text;
+		});
+		this.on("pressmove", function(e){
+			label.onPressmove(e);
+			e.stopImmediatePropagation();
+		});
+		this.on("dblclick", function(e){
+			label.onDblclick(e);
+			e.stopImmediatePropagation();
+		});
+		this.added(function (stage) {
+			stage.on("stagemousedown", function (e) {				
+				if (!that.hitTestPoint(e.stageX, e.stageY)) {
+					label.focus = false;
+					if (label.text != lastText) that.dispatchEvent("change");
+					lastText = label.text;
+				}
+			});
+		});
+		this.label.on("focus", function () {
+			that.dispatchEvent("focus");
+		});
+		this.label.on("blur", function () {
+			that.dispatchEvent("blur");
+		});
+		this.label.on("input", function () {
+			if (label.text != "" && that.placeholderLabel.parent) {
+				that.placeholderLabel.removeFrom();
+				if (that.stage) that.stage.update();
+			}
+			if (label.text == "" && !that.placeholderLabel.parent) {
+				that.placeholderLabel.addTo(that);
+				if (that.stage) that.stage.update();
+			}
+			that.dispatchEvent("input");
+		});	
+		this.label.on("keydown", function () {
+			that.dispatchEvent("keydown");
+		});	
+		this.label.on("blinker", function () {
+			// A simple system where the cursor is kept within the box 
+			var x = label.x + label.blinker.x;
+			newX = zim.constrain(x, paddingHorizontal, width-paddingHorizontal-label.blinker.width);
+			if (x != newX) label.x -= x-newX;		
+			
+			// *************
+			// the above may need to be adjusted if label is aligned right
+			
+			if (that.stage) that.stage.update();
+		});
+				
+				
+		Object.defineProperty(that, 'text', {
+			get: function() {
+				return label.hiddenInput.value;
+			},
+			set: function(value) {
+				label.setText(value);
+				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+		
+		Object.defineProperty(that, 'focus', {
+			get: function() {
+				return label.focus;
+			},
+			set: function(value) {
+				label.focus = value;
+			}
+		});
+		
+		Object.defineProperty(that, 'color', {
+			get: function() {
+				return label.color;
+			},
+			set: function(value) {
+				label.color = value;
+				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+				
+		Object.defineProperty(that, 'size', {
+			get: function() {
+				return label.size;
+			},
+			set: function(value) {
+				label.size = value;
+				label.hiddenInput.style.fontSize = value + "px";
+				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+		
+		Object.defineProperty(that, 'align', {
+			get: function() {
+				return label.align;
+			},
+			set: function(value) {		
+				if (value=="center") value = "left";		
+				align = label.align = value;
+				if (align=="right") label.x = width-label.width;
+				else label.x = 0;
+				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+		
+		Object.defineProperty(that, 'font', {
+			get: function() {
+				return label.font;
+			},
+			set: function(value) {
+				label.font = value;
+				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});
+		
+		Object.defineProperty(that, 'selectionAlpha', {
+			get: function() {
+				return label.selectionAlpha;
+			},
+			set: function(value) {
+				label.selectionAlpha = value;
+				if (label.selection.alpha != 0) label.selection.alpha = value;
+				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
+			}
+		});	
+
+		zim.styleTransforms(this, DS);
+		this.clone = function(exact) {	
+			return that.cloneProps(exact||!zim.isPick(oa[0])?width:oa[0], exact||!zim.isPick(oa[1])?height:oa[1], exact||!zim.isPick(oa[2])?placeholder:oa[2], exact||!zim.isPick(oa[3])?text:oa[3], size, font, exact||!zim.isPick(oa[4])?color:oa[4], exact||!zim.isPick(oa[5])?backgroundColor:oa[5], exact||!zim.isPick(oa[6])?borderColor:oa[6], borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, this.group, inherit);
+		};
+	};
+	zim.extend(zim.TextInput, zim.Window, "clone", "zimWindow", false);
+	
+	// by Cajoek, 2021 - with thanks!
+	zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionColor, selectionAlpha, blinkerColor, blinkerSpeed, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxLength, splitWords, style, group, inherit) {
+		this.zimLabel_constructor(text, size, font, color, null, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, null, labelWidth, labelHeight, null, splitWords, style, group, inherit);
+		this.type = "LabelInput";
+				
+		if (zot(color)) color = zim.dark;
+		if (zot(selectionColor)) selectionColor = color;
+		if (zot(selectionAlpha)) selectionAlpha = .2;
+		this.selectionAlpha = selectionAlpha;
+		if (zot(blinkerColor)) blinkerColor = color;
+		if (zot(blinkerSpeed)) blinkerSpeed = .5;
+				
+		this.hiddenInput = document.createElement("INPUT");
+		this.hiddenInput.value = text;
+		this.hiddenInput.type = password?"password":"text";
+		if (maxLength > 0) this.hiddenInput.maxLength = maxLength;
+		this.hiddenInput.autocapitalize = "off";
+		this.hiddenInput.autocorrect = "off";
+		this.hiddenInput.autocomplete = "off";
+		this.hiddenInput.spellcheck = false;
+		this.hiddenInput.style.position = "absolute";
+		this.hiddenInput.style.overflow = "hidden";
+		
+		// this.hiddenInput.style.left = "100px";
+		// this.hiddenInput.style.top = "100px";
+		// this.hiddenInput.style.zIndex = 2;
+		// this.hiddenInput.style.opacity = 1;
+		// this.hiddenInput.style.width = "300px";
+		// this.hiddenInput.style.height = "60px";
+		// this.hiddenInput.style.fontSize = "20px";
+		
+		this.hiddenInput.style.left = "-99999px";
+		this.hiddenInput.style.top = "-99999px";
+		this.hiddenInput.style.zIndex = -999;
+		this.hiddenInput.style.opacity = 0;
+		this.hiddenInput.style.width = "1px";
+		this.hiddenInput.style.height = "1px";
+		this.hiddenInput.style.fontSize = "1px";		
+				
+		this.onFocus = function() {
+			if (frame.zil) window.removeEventListener("keydown", frame.zil[0]);
+			this.blinker.alp(1.0).replayTween();
+			this.selection.alp(0.2);
+			this.positionBlinkerAndSelection();
+			this.dispatchEvent("focus");
+		}
+		this.onBlur = function() {
+			if (frame.zil) window.addEventListener("keydown", frame.zil[0]);
+			this.positionBlinkerAndSelection();
+			this.blinker.pauseAnimate(true).alp(0.0);
+			this.selection.alp(0.0);
+			this.dispatchEvent("blur");
+		}
+		this.onInput = function() {
+			this.text = this.hiddenInput.type == "text"?this.hiddenInput.value:this.hiddenInput.value.replace(/./g, '*')
+			this.measureText();
+			this.positionBlinkerAndSelection();
+			this.dispatchEvent("input");
+		}
+		this.onSelect = function() {
+			this.positionBlinkerAndSelection();
+			if (this.focus) {
+				this.blinker.replayTween();
+			}
+		}
+		var that = this;
+		this.onKeydown = function() {
+			this.blinker.replayTween();
+			setTimeout(function() {
+				that.positionBlinkerAndSelection.call(that);
+				that.dispatchEvent("keydown");
+			}, 10);
+		}
+		this.onMousedown = function(e) {
+			if (!this.focus) this.hiddenInput.focus();
+			var point = this.eventPositionGlobalToLocal(e);
+			var selectionIdx = this.mapPointToIndex(point);
+			this.hiddenInput.setSelectionRange(selectionIdx, selectionIdx);
+			this.positionBlinkerAndSelection();
+		}
+		this.onPressmove = function(e) {
+			if (!this.focus) this.hiddenInput.focus();
+			var point = this.eventPositionGlobalToLocal(e);
+			var selectionIdx = this.mapPointToIndex(point);
+			if (this.hiddenInput.selectionStart === this.hiddenInput.selectionEnd) {
+				if (this.hiddenInput.selectionStart <= selectionIdx) {
+					this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, "forward");
+				} else {
+					this.hiddenInput.setSelectionRange(selectionIdx, this.hiddenInput.selectionEnd, "backward");
+				}
+			} else {
+				if (this.hiddenInput.selectionDirection === "forward") {
+					this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, "forward");
+				} else {
+					this.hiddenInput.setSelectionRange(selectionIdx, this.hiddenInput.selectionEnd, "backward");
+				}
+			}
+			this.positionBlinkerAndSelection();
+		}
+		this.onDblclick = function() {
+			this.hiddenInput.select();
+			this.positionBlinkerAndSelection();
+		}
+		this.positionBlinkerAndSelection = function() {
+			if (this.focus) {
+				var paddingHorizontal = this.backing || this.background ? this.paddingHorizontal : 0;
+				var paddingVertical = this.backing || this.background ? this.paddingVertical : 0;
+	
+				if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd) {
+					var startX = this.textWidthArray[this.hiddenInput.selectionStart]
+					var endX = this.textWidthArray[this.hiddenInput.selectionEnd]
+					this.selection.widthOnly = endX - startX;
+					this.selection.heightOnly = this.textHeight;
+					this.selection.pos(startX + paddingHorizontal - 1, paddingVertical);
+					this.selection.alp(this.selectionAlpha);
+				} else {
+					this.selection.alp(0.0);
+				}
+				this.blinker.heightOnly = this.textHeight;
+				var xIdx = this.hiddenInput.selectionDirection === "backward" ? this.hiddenInput.selectionStart : this.hiddenInput.selectionEnd;
+				this.blinker.pos(this.textWidthArray[xIdx] + paddingHorizontal - 1 + ((align=="right" && this.text == "")?this.width:0), paddingVertical);
+				this.dispatchEvent("blinker");
+			}
+			if (this.stage) this.stage.update();
+		}
+		this.eventPositionGlobalToLocal = function(e) {
+			
+			var point = this.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
+			if (align=="right") {
+				point.x -= this.label.x - this.width;
+			} else {
+				point.x -= this.label.x; 
+			}
+			point.y -= this.label.y;
+			return point;
+		}
+		this.mapPointToIndex = function(point) {
+			var index = this.textWidthArray.length - 1;
+			for (var i = 0; i < this.textWidthArray.length - 1; i++) {
+				var charMidpoint = (this.textWidthArray[i] + this.textWidthArray[i + 1]) / 2;
+				if (point.x <= charMidpoint) {
+					index = i;
+					break;
+				}
+			}
+			return index;
+		}
+		this.measureText = function() {
+			var dummyLabel = this.label.clone();
+			var i = 0;
+			while (i < this.text.length && i < this.previousMeasuredText.length) {
+				if (this.text[i] !== this.previousMeasuredText[i]) break;
+				i++;
+			}
+			this.textWidthArray = this.textWidthArray.slice(0, i + 1);
+			for (i++; i <= this.text.length; i++) {
+				dummyLabel.text = this.text.slice(0, i);
+				this.textWidthArray.push(dummyLabel.getMeasuredWidth())
+			}
+			this.previousMeasuredText = this.text;
+			this.textHeight = dummyLabel.getMeasuredLineHeight();
+		}
+		this.setText = function(text) {
+			this.hiddenInput.value = text;
+			this.onInput();
+		}
+		Object.defineProperty(this, 'focus', {
+			get: function() {
+				return document.activeElement === that.hiddenInput
+			},
+			set: function(value) {
+				if (value === true) that.hiddenInput.focus()
+				else that.hiddenInput.blur()
+			}
+		});
+		
+		var frame;
+		this.added(function(stage) {
+			frame = stage.frame;
+			that.hiddenInput.addEventListener("focus", that.onFocus.bind(that));
+			that.hiddenInput.addEventListener("blur", that.onBlur.bind(that));
+		});		
+		this.hiddenInput.addEventListener("input", this.onInput.bind(this));
+		this.hiddenInput.addEventListener("select", this.onSelect.bind(this));
+		this.hiddenInput.addEventListener("keydown", this.onKeydown.bind(this));
+		document.body.appendChild(this.hiddenInput);
+	
+		this.on("mousedown", this.onMousedown.bind(this));
+		this.on("pressmove", this.onPressmove.bind(this));
+		this.on("dblclick", this.onDblclick.bind(this));
+	
+		this.cursor = "text";
+		this.blinker = new zim.Rectangle(2, 1, blinkerColor).animate({
+			obj: { alpha: 0.0 },
+			wait: blinkerSpeed,
+			time: 0.1,
+			rewind: true,
+			rewindWait: blinkerSpeed,
+			loop: true,
+			loopWait: blinkerSpeed
+		}).pauseAnimate(true).alp(0.0).addTo(this);
+	
+		this.selection = new zim.Rectangle(1, 1, selectionColor).alp(0.0).addTo(this);
+		this.textWidthArray = [0];
+		this.previousMeasuredText = "";
+		this.textHeight = null;
+		this.measureText();	
+
+	}
+	zim.extend(zim.TextInput.LabelInput, zim.Label, null, "zimLabel", false);
+	//-54.2
+	
 
 /*--
 zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentHorizontal, labelIndentVertical, indent, spacing, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideDamp, slideSnap, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, selectedIndex, noScale, style, group, inherit)
@@ -24857,7 +25957,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (arrows) {
 			prev = this.containerPrev = new zim.Container({style:false});
 			this.addChild(prev);
-			arrowPrev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, backgroundColor, null, null, null, null, null, null, false);
+			arrowPrev = this.arrowPrev = new zim.Triangle(height, height*.8, height*.8, backgroundColor, null, null, null, null, null, null, null, false);
 			if (shadowColor != -1 && shadowBlur > 0) prev.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			prev.addChild(arrowPrev);
 			prev.expand();
@@ -24942,7 +26042,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			next = this.containerNext = new zim.Container({style:false});
 			this.addChild(next);
 
-			arrowNext = this.arrowNext = new zim.Triangle(height, height*.8, height*.8, backgroundColor, null, null, null, null, null, null, false);
+			arrowNext = this.arrowNext = new zim.Triangle(height, height*.8, height*.8, backgroundColor, null, null, null, null, null, null, null, false);
 			if (shadowColor != -1 && shadowBlur > 0) next.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
 			next.addChild(arrowNext);
 			next.expand();
@@ -25039,7 +26139,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (arrows2) { // step2 arrows
 
 			prev2 = this.prev2 = new zim.Container({style:false});
-			arrowPrev2 = this.arrowPrev2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", backgroundColor, 2, null, null, null, null, false);
+			arrowPrev2 = this.arrowPrev2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", backgroundColor, 2, null, null, null, null, null, false);
 			prev2.addChild(arrowPrev2);
 			prev2.expand();
 			prev2.cursor = "pointer";
@@ -25055,7 +26155,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (hold) prev2.on("pressup", goEnd);
 
 			next2 = this.next2 = new zim.Container({style:false});
-			arrowNext2 = this.arrowNext2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", backgroundColor, 2, null, null, null, null, false);
+			arrowNext2 = this.arrowNext2 = new zim.Triangle(height, height*.8, height*.8, "rgba(0,0,0,.2)", backgroundColor, 2, null, null, null, null, null, false);
 			next2.addChild(arrowNext2);
 			next2.expand();
 			next2.cursor = "pointer";
@@ -25684,6 +26784,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		min = zim.Pick.choose(min);
 		max = zim.Pick.choose(max);
 		step = zim.Pick.choose(step);
+		var step0 = step;
 		currentValue = zim.Pick.choose(currentValue);
 		
 		if (accentSize) {
@@ -25833,6 +26934,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (tickStep) {
 				if (newStep != tickStep) {if (zon) zogy("Slider() - non-divisible step ("+tickStep+") adjusted to " + newStep);}
 				tickStep = newStep;
+				step = newStep;
 			} else {
 				if (newStep != step) {if (zon) zogy("Slider() - non-divisible step ("+step+") adjusted to " + newStep);}
 				step = newStep;
@@ -25841,7 +26943,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				var spacing = (barLength - ((vertical) ? button.height : button.width)) / Math.abs(stepsTotal);
 			} else {
 				var spacing = barLength / Math.abs(stepsTotal);
-			}
+			}			
 		}
 
 		if (vertical) {
@@ -25862,9 +26964,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					var x = (tickLarge?25*tickScale:15*semiTickScale);
 					var y = start+spacing*i;
 					g.mt(0, y).lt(x, y);
-					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {						
+					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {
+						var dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));					
 						new Label({
-							text:max-(max-min)/Math.abs(stepsTotal)*i,
+							text:zim.decimals(max-(max-min)/Math.abs(stepsTotal)*i,dd+1),
 							size:DS.size?DS.size:10,
 							align:"left",
 							valign:"center"
@@ -25895,8 +26998,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					var y = -(tickLarge?25*tickScale:15*semiTickScale);
 					g.mt(x,0).lt(x,y);
 					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {						
+						var dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));
 						new Label({
-							text:min+(max-min)/Math.abs(stepsTotal)*i,
+							text:zim.decimals(min+(max-min)/Math.abs(stepsTotal)*i,dd+1),
 							size:DS.size?DS.size:10,
 							align:"center",
 							valign:"center"
@@ -26808,6 +27912,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		min = zim.Pick.choose(min);
 		max = zim.Pick.choose(max);
 		step = zim.Pick.choose(step);
+		var step0 = step;
 		currentValue = zim.Pick.choose(currentValue);
 		
 		var r = width / 2;
@@ -26867,11 +27972,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				tick.regY = r + (innerTicks ? innerScale-.05 : tick.height + r*.1);
 				tick.regX = .5;
 				tick.rotation = (360-360*gap)/(ticksTotal-(gap?1:0)) * i + 360*gap/2;
-				ticks.addChild(tick);
-			
+				ticks.addChild(tick);			
 				if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {	
+					var dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));
 					new Label({
-						text:min+(max-min)/Math.abs(stepsTotal)*i,
+						text:zim.decimals(min+(max-min)/Math.abs(stepsTotal)*i,dd+1),
 						size:DS.size?DS.size:10,
 						align:"center",
 						valign:"center"
@@ -26879,8 +27984,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						.centerReg({add:false})
 						.loc(0,-labelMargin-1,tick)
 						.addTo(labels)
-				}
-			
+				}			
 			}
 			that.expand(tick.height);
 		}
@@ -26913,7 +28017,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			// indicator.regX = r * .05;
 		} else { // arrow
 			var indicator = this.indicator = new zim.Container({style:false});
-			var indicatorShape = this.indicatorShape = new zim.Triangle(r*.4, r*.4, r*.4, indicatorColor, null, null, null, null, null, null, false);
+			var indicatorShape = this.indicatorShape = new zim.Triangle(r*.4, r*.4, r*.4, indicatorColor, null, null, null, null, null, null, null, false);
 			indicator.addChild(indicatorShape);
 			zim.sca(indicator, indicatorScale);
 			indicator.regY = r - indicator.getBounds().height*indicatorScale*((innerTicks)?.85:.75);
@@ -34097,7 +35201,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var startCheck = false;
 		this.add = function(obj, url, target, skip, center) {
 			if (zot(center)) center = true;
-			obj.scaleTo(content);
+			obj.scaleTo(content,100,100);
 			if (url) obj.cur().on("click", function() {
 				zgo(url, target);
 			});
@@ -34479,8 +35583,10 @@ save(content, filename, x, y, width, height, cached, cachedBounds, type, data) -
 	cachedBounds - if you are saving a different bounds than was previously cached
 		setting the bounds here (createjs.Rectangle) will restore the cache to the previous bounds
 	type - (default "png") set to "jpeg" for jpeg
-	data - (default false) set to true to save as base64 data - thanks Andi Ermi for the request
+	data - (default false) set to true to save as base64 data
 		otherwise save returns the object for chaining
+	quality - (default .92) a number between 0 an 1 representing the quality of the saved image (jpeg)
+		note, this parameter may be moved to before data in the next version of ZIM 
 
 Button methods:
 setBacking(type, newBacking) - dynamically set any type of backing for button (if null removes backing for that type)
@@ -34767,9 +35873,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			uploadTag.addEventListener("drop", uploadEvent);
 		}
 
-		this.save = function(content, filename, x, y, width, height, cached, cachedBounds, type, data) {
+		this.save = function(content, filename, x, y, width, height, cached, cachedBounds, type, data, quality) {
 
-			var sig = "content, filename, x, y, width, height, cached, cachedBounds, type, data";
+			var sig = "content, filename, x, y, width, height, cached, cachedBounds, type, data, quality";
 			var duo; if (duo = zob(that.save, arguments, sig)) return duo;
 			if (zot(content)) content = frame.stage;
 
@@ -34798,7 +35904,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			content.cache(x, y, width, height);
 
 			if (data) {
-				var image = content.cacheCanvas.toDataURL('image/' + type);
+				var image = content.cacheCanvas.toDataURL('image/' + type, quality);
 				if (cached) {
 					if (cachedBounds) content.cache(cachedBounds.x, cachedBounds.y, cachedBounds.width, cachedBounds.height);
 				} else {
@@ -34841,7 +35947,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (type == "jpg") type = "jpeg";
 					var a = document.createElement("a");
 					a.setAttribute("download", filename);
-					a.setAttribute("href", content.cacheCanvas.toDataURL('image/'+type));
+					a.setAttribute("href", content.cacheCanvas.toDataURL('image/'+type, quality));
 					document.body.appendChild(a);
 					a.click();
 					document.body.removeChild(a);
@@ -43039,6 +44145,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		target.resetTween = function(paused) {
 			if (zot(paused)) paused = true;
 			target.pauseAnimate();
+			target.percent = null; // added ZIM Cat 04 patch
+			target.startPercent = null;
 			var origins = target.zimSeriesOriginals?target.zimSeriesOriginals:target.zimTweenOriginals;
 			zim.loop(origins, function (o) {
 				// actually needing to set real property on target
@@ -43093,6 +44201,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (zot(startPercentComplete)) startPercentComplete = 0;
 			target.pathRatio = 0; // could be wrong setting this to 0
 			target.zimStartRotation = target.rotation;
+			target.percent = null; // added ZIM Cat 04 patch
+			target.startPercent = null;
 		}
 	
 		if (css) ticker = false;
@@ -45175,6 +46285,10 @@ Scales object to a percentage of another object's bounds and scale
 Percentage is from 0 - 100 (not 0-1).
 Also see sca(), fit() and Layout().
 
+NOTE: currently supports rotated objects only for FIT mode and not for FILL or FULL. 
+For rotated objects in FILL or FULL, put the rotated object in a Container
+and then scaleTo() the container
+
 EXAMPLE
 circle.scaleTo(stage, 50); // scale to half the stageW
 circle.scaleTo(stage, 10, 20); // fit within these scalings of the stage
@@ -45185,8 +46299,10 @@ boundObj - the object that we are scaling to with percents below
 percentX - (default no scaling) the scale in the x
 percentY - (default no scaling) the scale in the y
 	if both percentX and percentY are missing then assumes 100, 100 for each
-type - (default FIT) the scaling to match bounds
+	and type defaults to FILL rather than FIT
+type - (default FIT or FILL if no percent is provided) the scaling to match bounds
 	Note: as of ZIM Cat 04 the constant FIT or the string "fit", etc. can be used
+	Note: as of ZIM NFT the default is FILL if no percent and FIT if a percent is provided
 	FIT: to keep proportion (aspect ratio) and fit within bounds (formerly "smallest")
 	FILL: to keep proportion (aspect ratio) and fill the bounds (formerly "biggest")
 	FULL: match bounds dimensions - may stretch object (formerly "both" or "stretch")
@@ -45204,34 +46320,49 @@ RETURNS obj for chaining
 		if (zot(boundObj) || !boundObj.getBounds || !boundObj.getBounds()) {zog ("zim methods - scaleTo(): please provide a boundObject (with setBounds) to scale to"); return obj;}
 		if (zot(percentX)) percentX = -1;
 		if (zot(percentY)) percentY = -1;
-		if (percentX == -1 && percentY == -1) percentX = percentY = 100;
+		if (percentX == -1 && percentY == -1) {
+			percentX = percentY = 100;
+			if (zot(type)) type = "fill"; // added ZIM NFT
+		}
 		if (zot(type)) type = "fit";
 		if (type=="smallest") type = "fit";
 		else if (type=="biggest" || type=="outside" || type=="largest") type = "fill";
 		else if (type=="both" || type=="stretch") type = "full";
 		if (zot(boundsOnly)) boundsOnly = false;
+				
 		var w = boundObj.getBounds().width * percentX / 100 * (boundsOnly?1:boundObj.scaleX);
 		var h = boundObj.getBounds().height * percentY / 100 * (boundsOnly?1:boundObj.scaleY);
+		
 		if (boundObj.type=="Stage" || boundObj.type=="StageGL") {
 			w = boundObj.width * percentX / 100;
 			h = boundObj.height * percentY / 100;
 		}
+				
+		// project bounds as rectangle into boundObj 
+		var bou = zim.boundsToGlobal(obj);
+		var hh = bou.height/obj.scaleX;
+		var ww = bou.width/obj.scaleY;
+		if (isNaN(hh) || isNaN(ww)) {
+			hh = obj.getBounds().height;
+			ww = obj.getBounds().width;
+		}		
+				
 		if ((percentX == -1 || percentY == -1) && type != "full") {
 			if (percentX == -1) {
-				zim.sca(obj, h/obj.getBounds().height);
+				zim.sca(obj, h/hh);
 			} else {
-				zim.sca(obj, w/obj.getBounds().width);
+				zim.sca(obj, w/ww);
 			}
 			return obj;
 		}
 		if (type == "full") {
-			obj.scaleX = (percentX != -1) ? w/obj.getBounds().width : obj.scaleX;
-			obj.scaleY = (percentY != -1) ? h/obj.getBounds().height : obj.scaleY;
+			obj.scaleX = (percentX != -1) ? w/ww : obj.scaleX;
+			obj.scaleY = (percentY != -1) ? h/hh : obj.scaleY;
 			return obj;
 		} else if (type == "fill") {
-			var scale = Math.max(w/obj.getBounds().width, h/obj.getBounds().height);
+			var scale = Math.max(w/ww, h/hh);
 		} else { // fit 
-			var scale = Math.min(w/obj.getBounds().width, h/obj.getBounds().height);
+			var scale = Math.min(w/ww, h/hh);
 		}
 		zim.sca(obj, scale);
 		return obj;
@@ -45340,7 +46471,7 @@ RETURNS an Object literal with the new and old details (bX is rectangle x, etc.)
 	};//-46
 
 /*--
-obj.boundsToGlobal = function(rect, flip)
+obj.boundsToGlobal = function(rect, flip, inside, globalObj)
 
 boundsToGlobal
 zim DisplayObject method
@@ -45360,14 +46491,17 @@ END EXAMPLE
 PARAMETERS
 rect - (default null) a rect inside an object which you would like mapped to global
 flip - (default false) make a global rect ported to local values
+inside - (default false) [NOT WORKING YET] make a rectangle from smallest projection rather than largest
+globalObj - (default stage) project rectangle into a Container other than the stage 
 
 RETURNS a createjs Rectangle of the bounds of object projected onto the stage
 --*///+40
 	zim.boundsCheck = false;
-	zim.boundsToGlobal = function(obj, rect, flip) {
+	zim.boundsToGlobal = function(obj, rect, flip, inside, globalObj) {
 		if (!zim.boundsCheck) {z_d("40"); zim.boundsCheck = true;}
 		if (zot(obj) || !obj.getBounds) return;
 		if (zot(flip)) flip = false;
+		if (globalObj && !obj.getBounds && !obj.getBounds()) return obj;
 		var oB = obj.getBounds();
 		if (!oB && zot(rect)) {
 			zog("zim methods - boundsToGlobal():\n please setBounds() on object (or a rectangle)");
@@ -45375,23 +46509,37 @@ RETURNS a createjs Rectangle of the bounds of object projected onto the stage
 		}
 		if (rect) oB = rect;
 
-		if (flip) {
-			var pTL = obj.globalToLocal(oB.x, oB.y);
-			var pTR = obj.globalToLocal(oB.x+oB.width, oB.y);
-			var pBR = obj.globalToLocal(oB.x+oB.width, oB.y+oB.height);
-			var pBL = obj.globalToLocal(oB.x, oB.y+oB.height);
+		if (globalObj && globalObj.type && (globalObj.type=="Stage" ||  globalObj.type=="StageGL")) {
+			var pTL = obj.localToLocal(oB.x, oB.y, globalObj);
+			var pTR = obj.localToLocal(oB.x+oB.width, oB.y, globalObj);
+			var pBR = obj.localToLocal(oB.x+oB.width, oB.y+oB.height, globalObj);
+			var pBL = obj.localToLocal(oB.x, oB.y+oB.height, globalObj);			
 		} else {
-			var pTL = obj.localToGlobal(oB.x, oB.y);
-			var pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
-			var pBR = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height);
-			var pBL = obj.localToGlobal(oB.x, oB.y+oB.height);
+			if (flip) {
+				var pTL = obj.globalToLocal(oB.x, oB.y);
+				var pTR = obj.globalToLocal(oB.x+oB.width, oB.y);
+				var pBR = obj.globalToLocal(oB.x+oB.width, oB.y+oB.height);
+				var pBL = obj.globalToLocal(oB.x, oB.y+oB.height);
+			} else {
+				var pTL = obj.localToGlobal(oB.x, oB.y);
+				var pTR = obj.localToGlobal(oB.x+oB.width, oB.y);
+				var pBR = obj.localToGlobal(oB.x+oB.width, oB.y+oB.height);
+				var pBL = obj.localToGlobal(oB.x, oB.y+oB.height);
+			}
 		}
 
 		// handle rotation
-		var newTLX = Math.min(pTL.x,pTR.x,pBR.x,pBL.x);
-		var newTLY = Math.min(pTL.y,pTR.y,pBR.y,pBL.y);
-		var newBRX = Math.max(pTL.x,pTR.x,pBR.x,pBL.x);
-		var newBRY = Math.max(pTL.y,pTR.y,pBR.y,pBL.y);
+		// if (inside) { // NOT WORKING 
+		// 	var newTLX = Math.max(pTL.x,pTR.x,pBR.x,pBL.x);
+		// 	var newTLY = Math.max(pTL.y,pTR.y,pBR.y,pBL.y);
+		// 	var newBRX = Math.min(pTL.x,pTR.x,pBR.x,pBL.x);
+		// 	var newBRY = Math.min(pTL.y,pTR.y,pBR.y,pBL.y);
+		// } else {
+			var newTLX = Math.min(pTL.x,pTR.x,pBR.x,pBL.x);
+			var newTLY = Math.min(pTL.y,pTR.y,pBR.y,pBL.y);
+			var newBRX = Math.max(pTL.x,pTR.x,pBR.x,pBL.x);
+			var newBRY = Math.max(pTL.y,pTR.y,pBR.y,pBL.y);
+		// }			
 
 		return new createjs.Rectangle(
 			newTLX,
@@ -45533,6 +46681,7 @@ RETURNS cloned object with cloned custom properties
 		for (var prop in obj) {
 			if (obj.hasOwnProperty(prop) && d[prop]==null) {
 				if (prop == "parent") continue;
+				if (prop == "zimTouch") continue;
 				d[prop] = obj[prop];
 			}
 		}
@@ -46080,6 +47229,12 @@ corner:{noPick:[0,40,0,40]}; will set corners - note we have to noPick this othe
 See Docs on ZIM Pick() and ZIM series() for more information
 Use the delayPick:true style to pass a PICK object to a control
 See: https://zimjs.com/explore/circleArcs.html
+WARNING - if applying a ZIM VEE value for a property in the general style scope 
+it will be activated for every object made even if that object does not have that property.
+This will affect a series for instance. If three Sliders with useLabels turned on are made 
+and the STYLE = {max:series(8,9,10)} this will not work as expected 
+as the labels trigger the series steps as well.
+So use STYLE = {Slider:{max:series(8,9,10)}} instead so the series triggers only for Slider objects.
 
 FUNCTION STYLES
 The following functions have been added:
@@ -46094,6 +47249,8 @@ CONVENIENCE STYLES
 add:true - has been provided to add to the stage (use addTo for other containers)
 move:{x:value, y:value} or move:x - mirrors the mov Function style (just adding the e)
 pos: has corner convenience values: "left", "right", "top", "bottom", "rightbottom" or "bottomright", "center" and "centerReg"
+blendMode:"difference", etc. see ble()
+visible:false - visible false
 style:false - will turn off all styles for the selector
 
 EXCLUSION
@@ -46253,7 +47410,7 @@ zim.getStyle = function(type, group, inherit) {
 // also sets addTo, center, centerReg, transform, drag, gesture, animate, wiggle, expand, cache, and outline (used internally)
 zim.styleTransforms = function(obj, styles) {
 
-	var zimTransformList = ["visible","x","y","scale","scaleX","scaleY","rotation","alpha","skewX","skewY","regX","regY"];
+	var zimTransformList = ["visible","x","y","scale","scaleX","scaleY","rotation","alpha","skewX","skewY","regX","regY","blendMode"];
 		
 	if (styles) {		
 		if (styles.add) {
@@ -47222,7 +48379,7 @@ back.center(find); // add triangle to find page
 // so we have to set the mouseChildren of find to true
 find.mouseChildren = true;
 back.cur();
-back.on("click", function() {pages.go(home, "up")});
+back.on("click", function() {pages.go(home, UP)});
 stage.update();
 END EXAMPLE
 
@@ -47231,7 +48388,7 @@ PARAMETERS
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 pages - (default null) an array of pages or page objects - for example:
 	[home, hide] assuming home and hide Page or Container objects are made
-	an optional swipe array holds mappings to swipe events ["right", "left", "down", "up"]
+	an optional swipe array holds mappings to swipe events [RIGHT, LEFT, DOWN, UP] or ["right", "left", "down", "up"]
 	these could be pages to the left, right, top and bottom of the current page
 	or they can be call commands as strings that will dispatch events with that name
 	if no page has swipe data, then pages will swipe horizontally to each other by default with no wrap
@@ -47263,7 +48420,7 @@ removePage(page) - lets you remove a page (if on this page, call a go() first an
 setSwipeArray(page, swipeArray) - lets you set the swipe array for a page
 go(newPage, direction, trans, speed) - lets you go to a page for events other than swipe events
 	newPage can be a reference to the page or an index matching the pages array order
-	direction is which way the pages is relative to the current page
+	direction is which way the newPage is relative to the current page
 	trans and speed are optional and will override any previously set transitions (speed in s)
 resize() - call to resize transitions - not the pages themselves (use layouts)
 pause() - pauses a transition before it starts (call from swipe event)
@@ -48010,8 +49167,8 @@ Additional "mousedown", "click" or other button events can be added if desired
 		var rollIcon;
 		var iconColor;
 		if (type=="triangle") {
-			icon = new zim.Triangle(45,45,45,backgroundColor,null,null,null,-7).rot(90);
-			rollIcon = new zim.Triangle(45,45,45,rollBackgroundColor,null,null,null,-7).rot(90);
+			icon = new zim.Triangle(45,45,45,backgroundColor,null,null,null, null,-7).rot(90);
+			rollIcon = new zim.Triangle(45,45,45,rollBackgroundColor,null,null,null, null,-7).rot(90);
 		} else if (type=="thick") {
 			icon = new zim.Shape();
 			iconColor = icon.graphics.f(backgroundColor).command; // need to be able to change this color
@@ -56205,10 +57362,10 @@ frame.loadAssets(["researchbuilding.jpg", "jungle.jpg"]);
 frame.on("complete", function() {
 	var lands = new Container(stageW, stageH).addTo(stage);
 	var jungle = frame.asset("jungle.jpg")
-		.scaleTo({boundObj:lands, type:"biggest"})
+		.scaleTo(lands)
 		.center(lands);
 	var researchBuilding = frame.asset("researchbuilding.jpg")
-		.scaleTo({boundObj:lands, type:"biggest"})
+		.scaleTo(lands)
 		.center(lands);
 	var portalObject = new Circle(118, faint, pink, 16, true)
 		.addTo(stage)
@@ -56488,7 +57645,7 @@ scale (read only) scale used in world (constant 30)
 step (read only) step used in world (constant 20)
 timeStep - 1/step - set to 0 to pause physics but also see paused() method
 	could animate this property to slow down or speed up physics
-gravity (read only) gravity used in world (whatever parameter was passed)
+gravity - get or set gravity used in world 
 paused (read only) whether physics has been paused with pause() method
 scroll - get or set the scroll of the physics world
 	see the Physics scroll parameter and the follow() method of objects
@@ -56797,7 +57954,7 @@ b2ContactListener = Box2D.Dynamics.b2ContactListener;
 			set: function(val) {
 				obj.body.SetType(val==true?2:0);
 			}
-		});
+		});	
 	}
 	//-69.97
 
@@ -61697,6 +62854,7 @@ pen.write = true;
 
 // position the pen at the start of the path
 // and set its damping to start there too...
+var path = new Squiggle().loc(100,100);
 pen.loc(path.pointControls[0]);
 pen.immediate(pen.x, pen.y);
 
@@ -64751,7 +65909,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster panel
 			dotLeft.x = leftP.convert(slider.currentValue);
 			dotRight.x = rightP.convert(slider.currentValue);
 			lastEyeAdjust = slider.currentValue - (slider.max - slider.min) / 2;
-			adjuster.scaleTo(holder).center(this);
+			adjuster.scaleTo(holder,100,100).center(this);
 			holder.stage.update();
 		};
 
@@ -64792,11 +65950,11 @@ closed - dispatches when X and OK button is pressed to close the adjuster panel
         if (angle != 0 && distance != 0 && boundaryMarkers) {
             that.boundaryRight = new zim.Container({style:false});
             new zim.Circle(24, zim.light, null, null, null, null, null, null, false).addTo(that.boundaryRight).dep(-2);
-            new zim.Triangle(16,16,16,zim.yellow, zim.grey,null,null,-3,null,null,false).rot(-90).center(that.boundaryRight).dep(-6);
+            new zim.Triangle(16,16,16,zim.yellow, zim.grey,null,null, null,-3,null,null,false).rot(-90).center(that.boundaryRight).dep(-6);
             that.boundaryRight.center(content).mov(distance/2+24);
             that.boundaryLeft = new zim.Container({style:false});
             new zim.Circle(24, zim.light, null, null, null, null, null, null, false).addTo(that.boundaryLeft).dep(-2);
-            new zim.Triangle(16,16,16,zim.yellow, zim.grey,null,null,-3,null,null,false).rot(90).center(that.boundaryLeft).dep(-6);
+            new zim.Triangle(16,16,16,zim.yellow, zim.grey,null,null, null,-3,null,null,false).rot(90).center(that.boundaryLeft).dep(-6);
             that.boundaryLeft.center(content).mov(-distance/2-24);
             that.register(that.boundaryRight);
             that.register(that.boundaryLeft);
@@ -64838,7 +65996,7 @@ closed - dispatches when X and OK button is pressed to close the adjuster panel
                 startAngleTimeout = setTimeout(addContent, 100);
             }
             else addContent();
-			adjuster.scaleTo(holder).center(this, null, false);
+			adjuster.scaleTo(holder,100,100).center(this, null, false);
         };
     };
     zim.extend(zim.VR, zim.Container, "clone", "zimContainer", false);
@@ -65683,10 +66841,17 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 		// but now resize checks twice so needed to adjust
 		function checkDispatch() {
 			if (resizeReady && assetsReady && !appReady) {
-				if (!zot(progress) && progress.show) progress.hide();
-				that.dispatchEvent("ready");
-				appReady = true;
-				dispatchResize();
+				if (stage.width >= 1 && stage.height >= 1) {
+					if (!zot(progress) && progress.show) progress.hide();
+					that.dispatchEvent("ready");
+					appReady = true;
+					dispatchResize();
+				} else {					
+					setTimeout(function() {
+						sizeCanvas();
+						checkDispatch();
+					}, 50);
+				}				
 			}
 		}
 
@@ -68009,8 +69174,8 @@ function zimify(obj, list) {
 		hitTestBounds:function(b, margin, boundsShape) {
 			return zim.hitTestBounds(this, b, margin, boundsShape);
 		},
-		boundsToGlobal:function(rect, flip, inside) {
-			return zim.boundsToGlobal(this, rect, flip, inside);
+		boundsToGlobal:function(rect, flip, inside, globalObj) {
+			return zim.boundsToGlobal(this, rect, flip, inside, globalObj);
 		},
 		resetBounds:function(a, b, c, d) {
 			return zim.resetBounds(this, a, b, c, d);
@@ -68828,7 +69993,7 @@ DESCRIPTION
 Wonder sends counts, times, and orders to a server for user testing or statistical purposes.
 Go to http://zimjs.com/wonder/ to get a Wonder ID (wid) and set up Wonder stats with ZIM
 or make up your own wid and use your own server script to collect data.
-See the zim Wonder site for a sample script to collect data.
+See the zim Wonder site for the data fields that are sent.
 NOTE: all records at ZIM are archived NEW YEARS DAY and kept for a year after that.
 Service is provided as is and ZIM and Dan Zen are not responsible for lost data.
 
@@ -68915,8 +70080,8 @@ notes - (default null) any extra notes like any user data (limit 256 characters 
 server - a server with zim Wonder running
 	Note: the default value for the server parameter has been removed as it risks being out-of-date
 	If you have signed up for ZIM Wonder at https://zimjs.com/wonder/ then
-	import http://d309knd7es5f10.cloudfront.net/zimserver_url.js in your code (script tag up top)
-	this gives a global zimWonderURL variable to pass into the server parameter
+	import https://zimjs.org/cdn/zimserver_urls.js in your code (script tag up top)
+	this gives a global zimWonderURL variable for you to pass into the server parameter
 	the zimserver_url.js script will always hold the latest domain:port for the zim server
 
 METHODS
