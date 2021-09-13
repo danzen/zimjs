@@ -906,6 +906,7 @@ bounce(boolean) - boolean defaults to true - back and forth between 0 and length
 constrain(boolean) - boolean defaults to true - keeps index between 0 and length-1 - or pass in false to cancel constrain
 
 PROPERTIES
+type - a string of the type of object in this case, "series"
 array - an array of items passed in to the function
 length - the length of the series
 index - get or set the current index of the series - what will run next
@@ -941,7 +942,7 @@ RETURNS a function that can be called many times - each time returning the next 
 		var constrain = false;
 		var lastVal;
 
-        var f = function() {
+        var f = function(target, fromPick) {
 			if (every && everyCount%(every) != 0) {
 				everyCount++;
 				return lastVal;
@@ -969,6 +970,12 @@ RETURNS a function that can be called many times - each time returning the next 
 				count += dir*step;
 			}
 			lastVal = val;
+			if (zim.isPick(val)) {	
+				// adjusted in ZIM NFT to make literal version of series recursive
+				// tricky - literal versus Pick.choose() was reporting wrong noPick results from series
+				if (val.noPick && fromPick) return val;			
+				return zim.Pick.choose(val);
+			}
 			return val;
         };
         f.array = array;
@@ -3427,6 +3434,43 @@ RETURNS a Boolean
 		}
 		return true;
 	};//-11
+	
+/*--
+zim.arrayMinMax = function(arr)
+
+arrayMinMax
+zim function
+
+DESCRIPTION
+Returns an object with {min, max} for min and max values of an array.
+Or null for value if not a number.
+(Thanks Lior Elrom from StackOverflow)
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+zog(arrayMinMax([1,22,2,10]).max); // 22
+END EXAMPLE
+
+PARAMETERS
+arr - a linear array with numbers
+
+RETURNS an object with min and max properties
+--*///+11.2
+	zim.arrayMinMax = function(arr) {
+		z_d("11.2");
+		if (!Array.isArray(arr)) return {min:null, max:null};
+		var min = arr[0];
+		var max = arr[0];
+		var i = arr.length;
+		while (i--) {
+			min = arr[i] < min ? arr[i] : min;
+			max = arr[i] > max ? arr[i] : max;
+		}
+		min = isNaN(min)?null:min;
+		max = isNaN(max)?null:max;
+		return {min:min, max:max};
+	};//-11.2	
 
 /*--
 zim.isEmpty = function(obj)
@@ -3506,7 +3550,7 @@ zim function
 
 DESCRIPTION
 Returns whether an object is a SPECIAL Pick literal
-of type [], {min:val, max:val}, or function that returns a value
+of type [], {min:val, max:val}, {noPick:val} or function that returns a value
 If any other object is passed to Pick, it just gets passed through
 So in theory, all objects are in Pick literal format
 but isPick() returns true if object operated on, not just passed through
@@ -3518,6 +3562,7 @@ zog(isPick(1)); // false
 zog(isPick([1,2,3])); // true
 zog(isPick({age:10})); // false
 zog(isPick({min:10,max:20})); // true
+zog(isPick({noPick:[1,2,3]})); // strange but true
 zog(isPick(function(){})); // false
 zog(isPick(function(){return 20;})); // true
 var s = series(1,2,3);
@@ -3535,7 +3580,7 @@ RETURNS a Boolean as to whether obj is SPECIAL ZIM Pick literal
 	zim.isPick = function(obj) {
 		if (!zim.zimPickCheck) {z_d("11.7"); zim.zimPickCheck = true;}
 		if(zot(obj)) return;
-		return (Array.isArray(obj)||(obj.constructor=={}.constructor && obj.min!=null && obj.max!=null)||(obj.constructor === Function && (obj.array!=null || obj()!=null))); // obj.array is a series
+		return (Array.isArray(obj)||(obj.constructor=={}.constructor && ((obj.min!=null && obj.max!=null) || obj.noPick))||(obj.constructor === Function && (obj.array!=null || obj()!=null))); // obj.array is a series
 	};//-11.7
 
 
@@ -3597,7 +3642,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 			var secs = answer - Math.floor(answer);
 			answer = zim.decimals(Math.floor(answer) + secs*60/100, 2);
 		}
-
+	
 		// if (addZeros && places > 0 && answer != 0) {
 		// 	var place = String(answer).indexOf(".");
 		// 	var length = String(answer).length;
@@ -3623,6 +3668,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 		if (addZerosBefore == 0) answer = answer.toString().replace(/^0\./,".");
 		if ((addZeros + addZerosBefore > 0) && !includeZero && Number(answer) == 0) answer = 0;
 		if (time) answer = String(answer).replace(".", ":");
+		
 		return zim.zut(evt) ? answer : null;
 	};//-13
 
@@ -6000,6 +6046,10 @@ Pick.series(array|item1, item2, item3, etc.) - same as zim.series()
 	array|item1 - the first item - or an array of results that will be called in order as the resulting function is called
 	item2 - the second item if the first is not an array
 	item3 - the third item, etc. to as many items as needed
+Pick.getMinMax(ZIM VEE value) - returns a {min:val, max:val} object 
+ 	with the min and max values the ZIM VEE value can return 
+	or null, null if not numbers or the ZIM VEE is a function 
+	This will work for a range object {min, max}, an array of number [] or a series() of numbers
 
 PROPERTIES
 type - the type of object as a String
@@ -6038,6 +6088,7 @@ choices - a reference to the choices object provided as the Pick(choices) parame
 		if (!zim.pickCheck) {z_d("17.6"); zim.pickCheck=true;}
         if (literal == null) literal = true;
 		if (obj==null) return obj;
+		var rem = obj;
         if (obj.type=="Pick" || literal) {
             var c = obj.choices || obj;
             if (Array.isArray(c)) {
@@ -6052,12 +6103,22 @@ choices - a reference to the choices object provided as the Pick(choices) parame
             } else if (c instanceof Function) {
 				if (c.count==null) c.count=0;
 				else c.count++;
-                return zim.Pick.choose((c)(target)); // recursive
-            }
+                return zim.Pick.choose((c)(target, true)); // recursive
+            }	
             return obj;
-        } else {
+        } else {	
             return obj;
-        }
+        }		
+	};
+	zim.Pick.getMinMax = function(vee) {
+		if (!zot(vee.min) && !zot(vee.max)) return vee;				
+		if (Array.isArray(vee)) {
+			return zim.arrayMinMax(vee);
+		}
+		if (vee.type == "series") {
+			return zim.arrayMinMax(vee.array);
+		}
+		else return {min:null, max:null}
 	};//-17.6
 
 	// DOM CODE
@@ -19000,6 +19061,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(label)) {if (zot(icon)) {label = DS.label!=null?DS.label:"PRESS";} else {label = "";}}
 		var toggleOkay = (!zot(toggle) || !zot(toggleBacking) || !zot(rollToggleBacking) || !zot(toggleIcon) || !zot(rollToggleIcon)) && zot(wait) && zot(waitBacking) && zot(rollWaitBacking);
 		if (toggleOkay && zot(toggleEvent)) toggleEvent = zim.mobile()?"mousedown":"click";
+	
 		// text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign
 		if (typeof label === "string" || typeof label === "number") label = new zim.Label({
 			text:label, size:DS.size!=null?DS.size:36, font:DS.font!=null?DS.font:"arial", color:DS.color!=null&&oColor==null?DS.color:color, rollColor:DS.rollColor&&oRollColor==null!=null?DS.rollColor:rollColor, align:align, valign:valign, rollPersist:DS.rollPersist!=null?DS.rollPersist:false,
@@ -21138,7 +21200,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					}
 				});
 			} else {
-				if (that.container.stage) that.container.stage.update();
+				setTimeout(function () {
+					if (that.container.stage) that.container.stage.update();
+				}, 10);
 			}
 			if (that.zimAccessibility) {
 				var a = that.zimAccessibility;
@@ -24259,8 +24323,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.placeholderLabel.removeFrom();
 				if (that.stage) that.stage.update();
 			}
-			if (label.text == "" && !that.placeholderLabel.parent) {
-				that.placeholderLabel.addTo(that);
+			if (label.text == "" && !that.placeholderLabel.parent) {				
+				that.add(that.placeholderLabel);
 				if (that.stage) that.stage.update();
 			}
 			that.dispatchEvent("input");
@@ -25923,7 +25987,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (decimals) {decimals = decimals.length;} else {decimals = 0;}
 			return decimals;
 		}
-
+				
 		var rawEvent;
 		var rawX = 0;
 		var rawY = 0;
@@ -26194,7 +26258,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (stepperType == "number") {
 					list = [];
 					for (var i=that.min; i<=that.max; i+=Math.min(step, step2)) {
-						list.push(zim.decimals(i, decimals, null, false));
+						list.push(Number(zim.decimals(i, decimals, null, false)));
 					}
 				}
 				return list;
@@ -26241,8 +26305,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var text;
 			var nextIndex;
 			if (stepperType == "number") {
+				numVal = Number(numVal);
 				var lastNumVal = numVal;
-				numVal += actualStep * n * numDir;
+				numVal += Number(actualStep * n * numDir);
 				numVal = zim.decimals(numVal, decimals);
 				if (!continuous) {
 					if (numVal > that.max) {
@@ -26308,7 +26373,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		Object.defineProperty(this, 'currentValue', {
 			get: function() {
 				if (stepperType=="number") {
-					return numVal;
+					return Number(numVal);
 				} else {
 					return list[index];
 				}
@@ -26329,7 +26394,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					var newIndex = that.stepperArray.indexOf(value);					
 					if (newIndex < 0) return;
 					index = newIndex;
-					numVal = that.stepperArray[index];
+					numVal = Number(that.stepperArray[index]);
 					setLabel(numVal, numVal);
 				} else {
 					if (list.indexOf(value) > -1) {
@@ -27246,6 +27311,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		});
 
 		if (!zot(currentValue)) that.currentValue = currentValue;
+		
+		zim.setSwipe(this, false);
 
 		if (style!==false) zim.styleTransforms(this, DS);
 
@@ -33864,6 +33931,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var startOrder = that.order.slice();
 
 		tile.loop(function (t) {
+			t.mouseChildren = false; // added ZIM NFT 00 patch
 			that.starts.push({x:t.x, y:t.y});
 		});
 
@@ -38198,6 +38266,7 @@ RETURNS obj for chaining
 		if (zot(obj)) return;
 		if (zot(blendMode)) blendMode = "difference";
 		obj.compositeOperation = blendMode;
+		if (obj.type == "Blob" || obj.type == "Squiggle") obj.update();
 		return obj;
 	};//-41.72
 
@@ -43226,11 +43295,11 @@ props - the object literal holding properties and values to animate
 		scale - for scaleX and scaleY
 		color - on ZIM shapes for setColorRange() and animate colorRange from 0-1
 	 		** this property cannot be run in a series - rather animate in a call function to accomplish a series of color changes
+		note - animate from one note to another when animating a ZIM Synth tone()
+			note ("A", "C2", "C#" or "Bf", etc.) is coverted to frequency
 		shape - animate from one ZIM Squiggle to another or one ZIM Blob to another
 			for now, the matching Sqiggle or Blob must have the same number of points
 			to pause or stop a shape tween use the animate id parameter
-		note - animate from one note to another when animating a ZIM Synth tone()
-			note ("A", "C2", "C#" or "Bf", etc.) is coverted to frequency
 		blobShift - a number of points to shift the points of a Blob in clockwise direction
 			this is when using a shape tween that is a Blob - can be negative
 		path - pass in a Blob or Squiggle to animate along path
@@ -44905,6 +44974,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			"slowmoIn", "slowmoOut", "slowmoInOut", 
 		];
 		if (customEases.indexOf(ease) != -1) {
+			ease = assignEase(ease);
+		}
+		function assignEase(ease) {
 			var ba = [0.4,0.75,0.9,.95];
 			var sn = [0.99,-0.69,0.53,0.014];	
 			var sm = [1.18,0.69,1,0.96];		
@@ -44918,12 +44990,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			else if (ease == "slowmoIn") ease = zik(zim.zimEase(sm));
 			else if (ease == "slowmoOut") ease = zik(zim.zimEase(sm).reverse());
 			else if (ease == "slowmoInOut") ease = zik(zim.zimEase(sm, null, true)); // mirror
+			return ease;
 		}
 		
 		if (cjsProps.rewind) {
 			// flip second ease			
 			if (ease) {
 				if (ease instanceof Function) { // zimEase
+					zogr(ease)
 					var ease2 = zik(ease.reverse());
 				} else {
 					// backIn backOut backInOut
@@ -44939,6 +45013,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 			if (rewindEase) {
 				var ease2 = rewindEase;
+				if (customEases.indexOf(ease2) != -1) {
+					ease2 = assignEase(ease2);
+				}
 			}
 		}
 
@@ -44960,6 +45037,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (ease2) {
 			if (ease2 instanceof Function) {
 				var finalEase2 = ease2;
+				zog(ease2)
 			} else {
 				equation = "get" + ease2.charAt(0).toUpperCase()+ease2.slice(1);
 				ea = zik(easeAmount);
@@ -54179,9 +54257,10 @@ Dispatches a "persistcomplete" event when all persist data has been set + 100ms 
 			if (localStorage && localStorage[persistID]) {
 
 				// TODO need to show current object controls here
-
+								
 				var data = that.persistData = JSON.parse(localStorage[persistID]);
 				if (data.length == that.items.length) {
+					
 					for (var i=0; i<that.items.length; i++) {
 						if (data[i].controls) { // check transform rather than blob or squiggle - anything else have controls?
 							that.currentObject = that.items[i];
@@ -54192,6 +54271,12 @@ Dispatches a "persistcomplete" event when all persist data has been set + 100ms 
 							}
 							that.items[i].setData(data[i]);
 							if (that.items[i] == that.currentObject) that.currentObject.toggle(true);
+							dispatchNum++; // ZIM NFT added here... not sure if right but seems so
+							if (dispatchNum == data.length) {
+								setTimeout(function(){
+									that.dispatchEvent("persistcomplete");
+								}, 100);
+							}
 						} else if (data[i]) {
 							if (zot(that.items[i].transformControls)) {
 								-function(){
@@ -55831,7 +55916,7 @@ isometric - (default false) set to true to rotate swiping test by 30 degrees
 	left-right is from top left to bottom right (cols)
 	top-bottom is from top right to bottom left (rows)
 overrideNoSwipe - (default false) set to true to override any ZIM noSwipe settings
-	for example, a List has zimNoSwipe set on its elements so swiping the list does not swipe a page in Pages
+	for example, a Slider has zimNoSwipe set on its elements so swiping the list does not swipe a page in Pages
 
 METHODS
 enable() - set swipe to active (by default it is)
@@ -60127,7 +60212,7 @@ horizontal - (default true) set to false to animate vertically
 	disposing just removes the ticker - you have to remove the backings
 	NOTE: the gapFix and ticker parameters have been removed - see zim.Ticker
 gapFix - (default 0) if a thin line appears when changing speed - try setting to 1 or 2
-stage - (default background.stage) if the backround is not on the stage then need to pass the stage it will be on
+stage - (default background.stage) if the background is not on the stage then need to pass the stage it will be on
 container - (default stage) what bounds are used for wrapping the background
 
 METHODS
@@ -60892,7 +60977,7 @@ height - (default 300) the height of the Emitter container - used as cache bound
 	also see the traceShiftX and traceShiftY to specify the caching rectangle position
 interval - |ZIM VEE| (default 300) the time in ms between imitting particles
 num - |ZIM VEE| (default 1) the number of particles emitted each interval
-life - (default 1) the time in seconds the particle will exist (also see ZIM TIME constant - same for all times)
+life - |ZIM VEE| - (default 1) the time in seconds the particle will exist (also see ZIM TIME constant - same for all times)
 fade - (default true) Boolean to fade the particle (alpha 0) - set to false to not fade out the particle over the decayTime
 shrink - (default true unless trace is true) Boolean to shrink the particle (scale 0) - set to false to not shrink the particle over the decayTime
 decayTime - (default 1) time in seconds to fade and / or shrink the particle - ends animation at the life time unless decayStart is set
@@ -61031,7 +61116,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(traceFadeTime)) traceFadeTime = DS.traceFadeTime!=null?DS.traceFadeTime:decayTime;
 		if (zot(traceShiftX)) traceShiftX = DS.traceShiftX!=null?DS.traceShiftX:0;
 		if (zot(traceShiftY)) traceShiftY = DS.traceShiftY!=null?DS.traceShiftY:0;
-		checkTIME(life, timeType);
+		checkTIME(life, timeType);		
 		if (zot(life)) life = DS.life!=null?DS.life:timeType=="s"?1:1000;
 		if (zot(fade)) fade = DS.fade!=null?DS.fade:true;
 		if (zot(shrink)) shrink = DS.shrink!=null?DS.shrink:trace?false:true;
@@ -61113,14 +61198,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				//-------------   INTERVAL
 				// var counter = 0;
 				// var time = Date.now();
-				// that.interval = 1000 / 60;
+				// that.interval = 1000 / 60;				
 
 				that.zimInterval = zim.interval(that.interval, function() {
 	            // that.zimInterval = setInterval(function() {
 
 					// counter++;
 				    // zog(decimals(counter/(Date.now() - time)*1000,5));
-
+					
+					var maxLifeNum = zim.isPick(that.life)?zim.Pick.getMinMax(that.life).max:that.life;
+					if (zot(maxLifeNum)) maxLifeNum = timeType=="s"?1:1000;
+		
 					if (that.startEmitterPaused) {that.pauseEmitter(); return;}
 					// want to leave that.obj as it was provided
 					// but for creation we will normalize it as an Array
@@ -61145,7 +61233,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						maxNum = that.num.max;
 					} else {
 						maxNum = that.num;
-					}
+					}					
 
 					zim.loop(zim.Pick.choose(that.num), function() {
 		                if (that.decayTime > 0) {
@@ -61153,7 +61241,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		                    if (that.shrink) decay.scale=0;
 		                    if (that.fade) decay.alpha=0;
 		                }
-						if (that.pool && poolList.length > 0 && poolCount >= Math.max(that.poolMin, (that.life/minInterval+5)*maxNum)) { // USE POOL... throw in an extra 5 for good measure
+						if (that.pool && poolList.length > 0 && poolCount >= Math.max(that.poolMin, (maxLifeNum/minInterval+5)*maxNum)) { // USE POOL... throw in an extra 5 for good measure
 							var container = poolList[(poolIndex++)%poolList.length];
 							container.visible = true;
 							var particle = container.trace?container.getChildAt(0):container;
@@ -61175,6 +61263,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							particle.alpha = particle.originalAlpha;
 							particle.scaleX = particle.originalScaleX;
 							particle.scaleY = particle.originalScaleY;
+							particle.rotation = particle.originalRotation;
+							particle.color = particle.originalColor;
 							particle.endSpurt = false;
 
 						} else { // END POOL, START NOT POOL
@@ -61231,6 +61321,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							particle.originalAlpha = particle.alpha;
 							particle.originalScaleX = particle.scaleX;
 							particle.originalScaleY = particle.scaleY;
+							particle.originalRotation = particle.rotation;
+							particle.originalColor = particle.color;
 
 						} // END NOT POOL
 
@@ -61289,12 +61381,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		                if (that.decayTime > 0 && (that.fade || shrinkMe || (that.trace && that.traceFadeTime > 0))) {
 
+							var myLife = zik(that.life);
 
 							if (that.trace && that.traceFadeTime > 0) {
 								container.animate({
 									obj:{alpha:0},
 									time:that.traceFadeTime,
-									wait:that.life-that.traceFadeTime,
+									wait:myLife-that.traceFadeTime,
 									waitedCall:function(t) {
 										t.particleNormal = false;
 										t.particleFizzing = true;
@@ -61316,7 +61409,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			                    particle.animate({
 									obj:o,
 									time:that.decayTime,
-									wait:zot(that.decayStart)?that.life-that.decayTime:that.decayStart,
+									wait:zot(that.decayStart)?myLife-that.decayTime:that.decayStart,
 									waitedCall:function(t) {
 										if (t.parent != that) t = t.parent; // access container if there is one
 										t.particleNormal = false;
@@ -61331,7 +61424,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 											} else {
 												-function() {
 						                            var c = container;
-						                            zim.timeout(that.life-(that.decayStart+that.decayTime), function(){fizz(c);});
+						                            zim.timeout(myLife-(that.decayStart+that.decayTime), function(){fizz(c);});
 						                        }();
 											}
 										}
@@ -61352,7 +61445,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						spurtCheck(particle);
 		                if (that.animation) {
 							var a = zim.Pick.choose(that.animation);
-		                    if (zot(a.override)) a.override = false;
+		                    if (zot(a.override)) a.override = false;							
 		                    particle.animate(zim.copy(a));
 		                }
 					});
@@ -61502,7 +61595,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		};
 
 		this.clearPool = function() {
-			zim.loop(that, function(p) {
+			zim.loop(that.particles, function(p) {
 				p.pooled="end";
 				if (!p.visible) that.removeChild(p);
 			},true);
@@ -61521,7 +61614,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (that.emitterPaused) return that;
 				if (freeze) {
 					if (emitterTicker) zim.Ticker.remove(emitterTicker);
-			        zim.loop(that, function(particle) {
+			        zim.loop(that.particles, function(particle) {
 			            particle.pauseAnimate();
 						if (particle.trace) particle.getChildAt(0).pauseAnimate();
 						if (particle.timeOut) {
@@ -61534,7 +61627,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			} else { // unpausing
 				if (!that.emitterPaused) return that;
 				if (restart) {
-					zim.loop(that, function(particle) {
+					zim.loop(that.particles, function(particle) {
 			            particle.stopAnimate();
 						if (particle.timeOut) particle.timeOut.clear();
 						if (particle.trace) particle.getChildAt(0).pauseAnimate();
@@ -61543,7 +61636,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				if (stage && emitterTicker && !zim.Ticker.has(stage, emitterTicker)) {
 					zim.Ticker.add(emitterTicker, stage);
-			        zim.loop(that, function(particle) {
+			        zim.loop(that.particles, function(particle) {
 			            particle.pauseAnimate(false);
 						if (particle.timeOut) particle.timeOut.pause(false);
 						if (particle.trace) particle.getChildAt(0).pauseAnimate(false);
@@ -61603,7 +61696,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-69.9
 
 /*--
-zim.Generator = function(color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, style, group, inherit)
+zim.Generator = function(color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, output, outputType, style, group, inherit)
 
 Generator
 zim class - extends a ZIM Container which extends a CreateJS Container
@@ -61681,6 +61774,44 @@ The clear() method will clear the image but keep the transforms
 The reset() method will reset the transforms, set to startX and startY and reset color, strokeColor and strokeWidth
 These can also be called through resetup(), redraw() and restamp()
 
+EXPORT 
+Generator() can export frames as images that can then be compiled into a video.
+Set the output parameter to true or a file prefix string (otherwise the prefix will be gen).
+This will make Generator() use draw (even if stamp is set) 
+at 6 frames per second so the Browser can handle file saves. 
+The files will be saved with 6 numbers: gen_000000.png, gen_000001.png, etc.
+They will be saved in your Browser's default downloads so MOVE them into a folder of their own.
+See the note at bottom about enabling Browser Automatic Downloads.
+NOTE: the canvas background color does not show up 
+	if desired, add a new Rectangle(stageW, stageH, frame.color).addTo().bot();
+NOTE: Generator() will output the first image before it starts drawing. 
+	You can delete the first image if you want the video to start at the first drawn frame.
+NOTE: FFmpeg is suggested but there are other options such as https://github.com/spite/ccapture.js
+	Or screen capture software such as OBS - if just posting to Twitter and quality does not matter.
+Instructions to make a video from saved image series:
+	Download FFmpeg: https://zimjs.org/cdn/ffmpeg.zip, UNZIP it and put it INTO the image folder. 
+	Open a command line.  On PC, type "command" into the Windows search box then on the command line type:
+	cd \path\to\images or to change drive use /d like cd /d E:\path\to\images
+	Once in the directory with your images type (or paste) something like:
+	ffmpeg -r 60 -f image2 -s 1024x768 -i gen_%06d.png -vcodec libx264 -crf 25 -pix_fmt yuv420p final.mp4
+	You can read about these at https://www.ffmpeg.org/ffmpeg.html (but would not bother)
+		-r framerate (fps)
+		-f canonical form (image2 to work with image sequences)
+		-s resolution
+		-i file name to find with %06 representing 6 decimal placeholder
+		-vcodec codec
+		-crf quality - the lower the better... 10-30 is fine
+		-pix_fmt pixel format
+		final.mp4 the output video
+NOTE: to enable Multiple File Downloads in Chrome "simply" go to 
+menu > Settings > Privacy & Security > Site Setting > 
+Permissions > Addtional Permissions > Automatic Downloads > turn Ask ON 
+We found that ADD site: file:///path/ to local file did not seem to prevent Chrome from asking. 
+And part way through Chrome asked again for permission to download but the process still worked.
+Alternatively, we could look at saving Blobs (data) of the images but the download process works.
+	
+
+GENERAL EXAMPLES
 SEE: https://zimjs.com/cat/generator.html
 SEE: https://zimjs.com/codepen/bloob.html // for animating stamps with noise
 
@@ -61929,6 +62060,13 @@ recordLinePoints - (default false) set to true to record the end points of line(
 	see the linePoints property to retrieve the array as [[x,y], [x,y], [x,y], etc.]
 frame - (default zimDefaultFrame) change to another frame if not drawing in the zimDefaultFrame
 seed - (default null) a specific seed for the Generator Noise - otherwise random
+output - (default null) set to true to export frames as images
+	set to a string to change the prefix of the file names to something other than "gen" 
+	output will export a series of images with six digits.  
+	The images can be compiled into a video 
+	SEE the EXPORT section at the bottom of the Generator() docs description.
+	Also see outputType 
+outputType - (default "png") or set to "jpeg" - the file type used if the output parameter is set to true 
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -62066,8 +62204,8 @@ dispatches "paused" and "unpaused" events when pause() is used (and time of time
 dispatches "generatorpaused" and "generatorunpaused" events when stage mousedown or space key is pressed
 and drawpause or drawSpacebarPause parameters are true
 --*///+69.92
-	zim.Generator = function(color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, style, group, inherit) {
-	    var sig = "color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, style, group, inherit";
+	zim.Generator = function(color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, output, outputType, style, group, inherit) {
+	    var sig = "color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, output, outputType, style, group, inherit";
 	    var duo; if (duo = zob(zim.Generator, arguments, sig, this)) return duo;
 	    z_d("69.92");
 	    this.group = group;
@@ -62102,7 +62240,16 @@ and drawpause or drawSpacebarPause parameters are true
 
 	    var that = this;
 	    that.draw = null;
-
+		
+		if (output) {
+			that.drawCount = 10;
+			if (!zot(stamp) && zot(draw)) draw = stamp;	
+			stamp = null;
+			var loader = new zim.Loader();
+			that.outputNum = 0;
+			that.outputName = output===true?"gen_":output.match(/_$/)?output:output+"_";
+		}
+		
 		// that.resetColor = false; // used to determine reseting colors and stroke each iteration based on VEE
 		// that.resetStroke = false; // used to determine reseting colors and stroke each iteration based on VEE
 	    this.color = color;
@@ -62587,11 +62734,25 @@ and drawpause or drawSpacebarPause parameters are true
 			this.shape.c();	
 			return this;		
 		}
- 
+		
+		
+		function saveOutput() {
+			loader.save({
+				content:stage, 
+				filename:that.outputName + decimals(that.outputNum, null, null, 6),
+				type:outputType
+			});
+			that.outputNum++;
+		} 		
+		if (output) { // save a pic before drawing
+			stage.update();
+			saveOutput();
+		}
+		
 		// for stamp function
 		
 	    function setLoop(start) {
-			this.stampNum++;
+			that.stampNum++;
 	        var result = zim.loop(that.maxCount, function (i, t) {
 	            if (that.paused) {
 	                that.pausedCount = i;
@@ -62613,13 +62774,17 @@ and drawpause or drawSpacebarPause parameters are true
 				that.currentStrokeColor = zik(that.strokeColor);
 				shape.s(that.currentStrokeColor);
 				that.currentStrokeWidth = zik(that.strokeWidth);
-				shape.ss(that.currentStrokeWidth);
+				shape.ss(that.currentStrokeWidth);				
+				if (output) {
+					stage.update();
+					saveOutput();
+				} 	
 	            if (s) return s;
 	        }, null, null, start);
 
 	        if (cache) shape.updateCache();
 			if (result) that.dispatchEvent("complete");
-	        stage.update();
+	        stage.update();			
 	    }
 
 		//~~~~~~~~~~~~~~ DRAW
@@ -62687,6 +62852,7 @@ and drawpause or drawSpacebarPause parameters are true
 				shape.ss(that.currentStrokeWidth);
 				that.dispatchEvent("drawing");
 	            stage.update();
+				if (output) saveOutput();							
 	        }
 	        if (that.maxCount && that.count >= that.maxCount) {
 				that.dispatchEvent("complete");
@@ -64753,13 +64919,20 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 
 			this.stop = function(releaseTime) {
 				if (zot(releaseTime)) releaseTime = that.release;
-				if (gain) {
-					if (audioContext.currentTime < 200) {
-						timeout(.2-audioContext.currentTime/1000, function () {
-							ramp(gain.gain, 0, true, releaseTime);
-						});
-					} else ramp(gain.gain, 0, true, releaseTime);
-				}
+				if (gain) ramp(gain.gain, 0, true, releaseTime);
+				
+				// // this was put in place in Cat 4 to try and set a volume if the sound was stopped right away 
+				// // it is causing issues so backed out of it in ZIM NFT - see headroid examples
+				// // if you want to stop a tone right away, do not make the tone until you want to play it
+				
+				// if (gain) {
+				// 	if (audioContext.currentTime < 200) {
+				// 		zog("here")
+				// 		timeout(.2-audioContext.currentTime/1000, function () {
+				// 			ramp(gain.gain, 0, true, releaseTime);
+				// 		});
+				// 	} else ramp(gain.gain, 0, true, releaseTime);
+				// }
 				if (tremeloGain) ramp(tremeloGain.gain, 0, true, releaseTime);
 				if (vibratoGain) ramp(vibratoGain.gain, 0, true, releaseTime);
 
@@ -64776,9 +64949,10 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 					if (wah) that2.removeWah();
 				}, (releaseTime+1)*1000);
 			};
-			if (duration) timeout(duration, function () {
-				that2.stop();
-			});
+			if (duration) this.stop(startTime+duration-.1);
+			// if (duration) timeout(duration-.1, function () {
+			// 	that2.stop();
+			// });
 
 			var notes = this.notes = [oscillator];
 
@@ -69363,7 +69537,10 @@ function zimify(obj, list) {
 			if (!this.type || this.type=="Shape") zim.copyMatrix(clone, this);
 			clone.compositeOperation = this.compositeOperation;
 			clone.snapToPixel = this.snapToPixel;
-			clone.filters = this.filters==null?null:this.filters.slice(0);
+			if (this.filters && this.filters.length > 0) {
+				clone.filters = this.filters.slice(0);
+				clone.cache();
+			}			
 			clone.mask = this.mask;
 			clone.hitArea = this.hitArea;
 			// clone.cursor = this.cursor;
@@ -71085,7 +71262,7 @@ A score label with backing set and isometric settings
 See: https://zimjs.com/iso/ for a full example
 
 EXAMPLE
-var scorer = new Scorer({backroundColor:yellow, color:black, isometric:"right"}).loc(stageW-100,100);
+var scorer = new Scorer({backgroundColor:yellow, color:black, isometric:"right"}).loc(stageW-100,100);
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
