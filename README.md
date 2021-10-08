@@ -35,6 +35,12 @@ new Button(200, 70, "TRY ME")
 Copy the template on the Code page into an editor like Atom and view results in any Browser.<br>
 https://zimjs.com/code.html
 
+ZIM INTRO - sample code with comments<br>
+https://zimjs.com/intro.html
+
+ZIM BASICS - video series on YouTube<br>
+https://www.youtube.com/watch?v=G4K0PwtwXRQ&list=PLCIzupgRt1pYPy1ufRjssbGuPKMviuFvB
+
 ZIM CODEPEN TOPIC<br>
 https://codepen.io/topic/zim/
 
