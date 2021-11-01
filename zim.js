@@ -5943,7 +5943,7 @@ Pick() provides a way to pass in all three shapes and have the emitter choose ea
 FORMATS
 The Pick() formats handle:
 	1. a random selection: ["blue", "green", "yellow"] - array format
-	2. a random range: {min:10, max:30} - range object format
+	2. a random range: {min:10, max:30} - range object format (plus integer and negative) 
 	3. a series: series(10,20,30) - series format also Pick.series()
 	4. a function result: function(){return new Date().minutes} - function format
 	5. a normal value: 7 or "hello" - single-value format
@@ -11806,7 +11806,8 @@ It can be set to copy with a shift click
 SEE:https://www.youtube.com/watch?v=P2hDe5JCINY for Blob and Squiggle Basics
 
 MULTIPLE SELECT
-Multiple points can be selected and dragged or moved with the keyboard arrows (moves 10 pixels with shift key down)
+Multiple points can be selected with the CTRL key held and then dragged
+or moved with the keyboard arrows (moves 10 pixels with shift key down)
 
 NOTE: mouseChildren is turned to false for all zim Shape containers.
 
@@ -13815,7 +13816,8 @@ The Blob is set by default to show and hide controls when clicked
 It is also draggable by default when the controls are showing
 
 MULTIPLE SELECT
-Multiple points can be selected and dragged or moved with the keyboard arrows (moves 10 pixels with shift key down)
+Multiple points can be selected with the CTRL key held and then dragged
+or moved with the keyboard arrows (moves 10 pixels with shift key down)
 
 NOTE: mouseChildren is turned to false for all zim Shape containers.
 NOTE: with the ZIM namespace zns = false, this overwrites a JS Blob - so the JS Blob is stored as document.Blob
@@ -17358,8 +17360,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			zim.pos(obj, (align=="left"||align=="right")?(backing||that.background?paddingHorizontal:0):null, (valign=="top"||valign=="baseline"||valign=="bottom")?(backing||that.background?paddingVertical:0):null, align=="right", valign=="bottom");
 			// zim.pos(obj, (align=="left"||align=="right")?0:null, (valign=="top"||valign=="baseline"||valign=="bottom")?0:null, align=="right", valign=="bottom");
 			obj.x += shiftHorizontal;
-			obj.y += shiftVertical;
+			obj.y += shiftVertical;			
 		}
+		// remove this in ZIM NFT 01
 		finalShift();
 
 		function setOutline() {
@@ -17644,6 +17647,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (!zot(lineWidth) && !zot(labelHeight)) {
 			fitText();
 		}
+		
 		function fitText() {
 			that.size = 200;
 			var count = 0;
@@ -17668,17 +17672,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var bh = b.height;			
 			if (lH) {
 				if (valign=="bottom") {
-					by = b.y-lH+b.height;
+					by = by-lH+bh;
 				} else if (valign=="center") {
-					by = -lH/2;
+					by = (by+by-lH+bh)/2; // ?
 				}	
-				bh = lH;
+				bh = lH;				
 			}
-			obj.setBounds(b.x, by, b.width, bh);	
+			obj.setBounds(b.x, by, b.width, bh);
 			
 			that.setBounds(null);
-			if (that.getBounds().width > lW) zog("oops")
+			b = that.getBounds();
+			that.setBounds(b.x, b.y, b.width, b.height);
 			
+			obj.x += shiftHorizontal;
+			obj.y += shiftVertical;
+						
 			if (backing) {
 				if (backingPlaced) setBackBounds();
 			} else if (!zot(backgroundColor)) {
@@ -23267,8 +23275,8 @@ PARAMETERS
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 container - (default first frame's stage) the container that holds the waiter
 speed - (default .6) cycle time in seconds (also see ZIM TIME constant)
-backgroundColor - (default "orange") the background color
 foregroundColor - (default "white") the dot color
+backgroundColor - (default "orange") the background color
 corner - (default 14) the corner radius of the waiter box
 	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
 shadowColor - (defaults rgba(0,0,0,.3)) set to -1 for no shadow
@@ -24046,7 +24054,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	
 
 /*--
-zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxSize, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, group, inherit)
+zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxSize, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, style, group, inherit)
 
 TextInput
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -24098,7 +24106,10 @@ cursorColor - (default color) the blinking cursor in the text
 cursorSpeed - (default .5) seconds for which the cursor blinks
 shadowColor - (default -1) for no shadow - set to any css color to see
 shadowBlur - (default 14) if shadow is present
-align - ((default LEFT) text registration point alignment also RIGHT
+align - ((default LEFT) text registration point alignment 
+	also RIGHT for right aligned
+	also CENTER - (experimental) this adds a maxWidth to keep text centered
+	the maxWidth that is added can be overwritten 
 corner - (default 0) the round of corner of the background if there is one
 	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
 padding - (default 5 if backgroundColor set) places the border this amount from text (see paddingHorizontal and paddingVertical)
@@ -24117,6 +24128,7 @@ scrollBarAlpha - (default .3) the transparency of the scrollBar
 scrollBarFade - (default true) fades scrollBar unless being used
 scrollBarH - (default true) if scrolling in horizontal is needed then show scrollBar
 scrollBarV - (default true) if scrolling in vertical is needed then show scrollBar
+number - (default false) force a number input
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -24149,6 +24161,7 @@ label - references the ZIM Label object of the TextInput
 	see the STATIC PROPERTY LabelInput entry below 
 placeholderLabel - refrerence to the placeholder label
 htmlTag - access to the hidden HTML input tag
+focus - get or set the focus of the TextInput
 selection - access to selection ZIM Rectangle 
 	use this to set color or blendMode of selection
 selectionAlpha - get or set the alpha of the selection 
@@ -24157,7 +24170,7 @@ blinker - access to the blinking cursor ZIM Rectangle
 size - the font size of the Label (without px)
 font - get or set the font of the text
 align - get or set the horizontal alignment of the text
-	values are LEFT and RIGHT
+	values are LEFT and RIGHT and CENTER (experimental)
 color - gets or sets the label text color
 backgroundColor - gets or sets the background color
 enabled - default is true - set to false to disable
@@ -24184,6 +24197,7 @@ LabelInput() - a static class so use new TextInput.LabelInput() to create.
 		blinkerColor - (default - the text color) the color of the blinker cursor
 		blinkerSpeed - (default .5) the speed of the blinker cursor
 	Some parameters of LabelInput such as rollColor and rollPersist are ignored - but kept in the signature to match Label for ease
+	a number parameter is available just before the style parameter to force a number field
 
 OPTIMIZED
 This component is affected by the general OPTIMIZE setting (default is false)
@@ -24198,8 +24212,8 @@ See the events for ZIM Window()
 See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.2
-	zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, group, inherit) {
-		var sig = "width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, group, inherit";
+	zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, style, group, inherit) {
+		var sig = "width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, style, group, inherit";
 		var duo; if (duo = zob(zim.TextInput, arguments, sig, this)) return duo;
 		z_d("54.2");
 		
@@ -24242,7 +24256,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(shiftHorizontal)) shiftHorizontal = DS.shiftHorizontal!=null?DS.shiftHorizontal:0;
 		if (zot(password)) password=DS.password!=null?DS.password:false;
 		if (zot(shiftVertical)) shiftVertical = DS.shiftVertical!=null?DS.shiftVertical:password?size*.25:0;
-		if (zot(maxLength)) maxLength=DS.maxLength!=null?DS.maxLength:null;
+		if (zot(maxLength)) maxLength=DS.maxLength!=null?DS.maxLength:align=="center"?Math.floor(width/size)*1.8:null;
 		if (zot(multiline)) multiline=DS.multiline!=null?DS.multiline:false;
 		if (zot(wrap)) wrap=DS.wrap!=null?DS.wrap:false;
 		if (zot(scrollBarActive)) scrollBarActive=DS.scrollBarActive!=null?DS.scrollBarActive:false;
@@ -24252,6 +24266,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(scrollBarFade)) scrollBarFade=DS.scrollBarFade!=null?DS.scrollBarFade:true;
 		if (zot(scrollBarH)) scrollBarH = DS.scrollBarH!=null?DS.scrollBarH:true;
 		if (zot(scrollBarV)) scrollBarV = DS.scrollBarV!=null?DS.scrollBarV:true;		
+		if (zot(number)) number = DS.number!=null?DS.number:false;		
 		if (scrollBarDrag) scrollBarFade = DS.scrollBarFade!=null?DS.scrollBarFade:false;
 				
 		this.zimWindow_constructor(width, height, backgroundColor, borderColor, borderWidth, padding, corner, false, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, false, null, false, true, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, true, null, null, null, null, null, false, null, null, null, null, null, false, null, false, style, group, zim.copy(DS));
@@ -24266,7 +24281,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var mask = new Rectangle(width-padding*2, height-padding*2, zim.clear).center(this);
 		this.cursor = "text";
 				
-		var label = this.label = new zim.TextInput.LabelInput(text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftHorizontal, shiftVertical, null, null, null, maxLength, null, style, group, inherit);
+		var label = this.label = new zim.TextInput.LabelInput(text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftHorizontal, shiftVertical, null, null, null, maxLength, null, number, style, group, inherit);
 		this.add(label); // this is a Window - which has an add() method for adding content
 		label.setMask(mask);
 		this.htmlTag = this.label.hiddenInput
@@ -24276,6 +24291,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (align=="right") {
 			label.x = width-label.width;
 			this.placeholderLabel.x = width-this.placeholderLabel.width-paddingHorizontal;
+		} else if (align=="center") {
+			label.x = (width-label.width)/2;
+			this.placeholderLabel.x = (width-this.placeholderLabel.width)/2;
 		}
 		
 		// the LabelInput was receiving a mousedown on its edges which is not desired 
@@ -24346,6 +24364,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.add(that.placeholderLabel);
 				if (that.stage) that.stage.update();
 			}
+			// if (align=="center" && label.width < width) {
+			// 	label.x = (width-label.width)/2;
+			// } 
 			that.dispatchEvent("input");
 		});	
 		this.label.on("keydown", function () {
@@ -24409,9 +24430,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				return label.align;
 			},
 			set: function(value) {		
-				if (value=="center") value = "left";		
+				// if (value=="center") value = "left";		
 				align = label.align = value;
 				if (align=="right") label.x = width-label.width;
+				else if (align=="center") label.x = (width-label.width)/2;
 				else label.x = 0;
 				if ((!zim.OPTIMIZE&&(zns||!OPTIMIZE)) && that.stage) that.stage.update();
 			}
@@ -24440,14 +24462,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		zim.styleTransforms(this, DS);
 		this.clone = function(exact) {	
-			return that.cloneProps(exact||!zim.isPick(oa[0])?width:oa[0], exact||!zim.isPick(oa[1])?height:oa[1], exact||!zim.isPick(oa[2])?placeholder:oa[2], exact||!zim.isPick(oa[3])?text:oa[3], size, font, exact||!zim.isPick(oa[4])?color:oa[4], exact||!zim.isPick(oa[5])?backgroundColor:oa[5], exact||!zim.isPick(oa[6])?borderColor:oa[6], borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, style, this.group, inherit);
+			return that.cloneProps(exact||!zim.isPick(oa[0])?width:oa[0], exact||!zim.isPick(oa[1])?height:oa[1], exact||!zim.isPick(oa[2])?placeholder:oa[2], exact||!zim.isPick(oa[3])?text:oa[3], size, font, exact||!zim.isPick(oa[4])?color:oa[4], exact||!zim.isPick(oa[5])?backgroundColor:oa[5], exact||!zim.isPick(oa[6])?borderColor:oa[6], borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, style, this.group, inherit);
 		};
 	};
 	zim.extend(zim.TextInput, zim.Window, "clone", "zimWindow", false);
 	
 	// by Cajoek, 2021 - with thanks!
-	zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionColor, selectionAlpha, blinkerColor, blinkerSpeed, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxLength, splitWords, style, group, inherit) {
-		this.zimLabel_constructor(text, size, font, color, null, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, null, labelWidth, labelHeight, null, splitWords, style, group, inherit);
+	zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionColor, selectionAlpha, blinkerColor, blinkerSpeed, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, maxLength, splitWords, number, style, group, inherit) {
+		this.zimLabel_constructor(text, size, font, color, null, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, null, labelWidth, labelHeight, null, splitWords, number, style, group, inherit);
 		this.type = "LabelInput";
 				
 		if (zot(color)) color = zim.dark;
@@ -24464,17 +24486,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.hiddenInput.autocapitalize = "off";
 		this.hiddenInput.autocorrect = "off";
 		this.hiddenInput.autocomplete = "off";
+		// this should pull up numeric keyboard - works on Apple but not on Android
+		// even though a hard coded text input with this pattern 
+		// does bring up numeric keyboard on Android 
+		// oh well - at least Android users have the numbers showing by default
+		if (number) this.hiddenInput.pattern = "[0-9]*";
 		this.hiddenInput.spellcheck = false;
 		this.hiddenInput.style.position = "absolute";
 		this.hiddenInput.style.overflow = "hidden";
 		
-		// this.hiddenInput.style.left = "100px";
-		// this.hiddenInput.style.top = "100px";
-		// this.hiddenInput.style.zIndex = 2;
-		// this.hiddenInput.style.opacity = 1;
-		// this.hiddenInput.style.width = "300px";
-		// this.hiddenInput.style.height = "60px";
-		// this.hiddenInput.style.fontSize = "20px";
+		this.hiddenInput.style.left = "100px";
+		this.hiddenInput.style.top = "100px";
+		this.hiddenInput.style.zIndex = 2;
+		this.hiddenInput.style.opacity = 1;
+		this.hiddenInput.style.width = "300px";
+		this.hiddenInput.style.height = "60px";
+		this.hiddenInput.style.fontSize = "20px";
 		
 		this.hiddenInput.style.left = "-99999px";
 		this.hiddenInput.style.top = "-99999px";
@@ -24499,7 +24526,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			this.dispatchEvent("blur");
 		}
 		this.onInput = function() {
-			this.text = this.hiddenInput.type == "text"?this.hiddenInput.value:this.hiddenInput.value.replace(/./g, '*')
+			var newText = this.hiddenInput.value;
+			if (number) {				
+				newText = newText.replace(/[^0-9]/g,"");
+				this.hiddenInput.value = newText;
+			}		
+			this.text = this.hiddenInput.type=="text"?newText:newText.replace(/./g, '*');;			
 			this.measureText();
 			this.positionBlinkerAndSelection();
 			this.dispatchEvent("input");
@@ -24565,7 +24597,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				this.blinker.heightOnly = this.textHeight;
 				var xIdx = this.hiddenInput.selectionDirection === "backward" ? this.hiddenInput.selectionStart : this.hiddenInput.selectionEnd;
-				this.blinker.pos(this.textWidthArray[xIdx] + paddingHorizontal - 1 + ((align=="right" && this.text == "")?this.width:0), paddingVertical);
+				this.blinker.pos(this.textWidthArray[xIdx] + paddingHorizontal - 1 + ((align=="right" && this.text == "")?this.width:(align=="center" && this.text == "")?this.width/2:0), paddingVertical);
 				this.dispatchEvent("blinker");
 			}
 			if (this.stage) this.stage.update();
@@ -24575,6 +24607,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var point = this.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
 			if (align=="right") {
 				point.x -= this.label.x - this.width;
+			} else if (align=="center") {
+				point.x -= (this.label.x - this.width)/2;
 			} else {
 				point.x -= this.label.x; 
 			}
@@ -33865,6 +33899,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		getTIME(wait);
 		var tileWidth = (tile.width+tile.spacingH)/tile.cols;
 		var tileHeight = (tile.height+tile.spacingV)/tile.rows;
+		
+		var scramblerID = zim.makeID(null,10);
 
 		var startX, startY;
 		tile.on("mousedown", function (e) {
@@ -33902,7 +33938,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				e.target.animate({
 					props:{x:startX, y:startY},
 					time:.1,
-					id:"zimScrambler",
+					id:scramblerID,
 					timeUnit:"seconds",
 					call:function () {
 						if (!that.complete && that.test()) {
@@ -33953,7 +33989,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					t.animate({
 						props:{x:startX},
 						time:.2,
-						id:"zimScrambler",
+						id:scramblerID,
 						timeUnit:"seconds",
 						call:function () {
 							t.mouseEnabled = true;
@@ -33974,7 +34010,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						props:{y:startY},
 						time:.201,
 						override:false,
-						id:"zimScrambler",
+						id:scramblerID,
 						timeUnit:"seconds",
 						call:function () {
 							t.mouseEnabled = true;
@@ -34085,7 +34121,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		function moveTiles(order, time, wait, disable) {
 
-			zim.stopAnimate("zimScrambler");
+			zim.stopAnimate(scramblerID);
 
 			// not children but items - which never change from start
 			zim.loop(tile.items, function (item, i, t) {
@@ -34097,7 +34133,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						ease:wait?"quadInOut":"quadOut",
 						wait:wait,
 						timeUnit:"seconds",
-						id:"zimScrambler"
+						id:scramblerID
 					});
 				} else {
 					item.loc(start);
@@ -35729,7 +35765,7 @@ resize() - call the resize event if the scale or position of the Loader is chang
 	Note: if the Frame itself changes location in the HTML document, call a frame.update()
 	this will then dispatch an update event to the Loader and it will resize()
 	this is not needed if resizing the window or scrolling - see Frame update() method docs
-save(content, filename, x, y, width, height, cached, cachedBounds, type, data) - save a picture (supports ZIM DUO)
+save(content, filename, x, y, width, height, cached, cachedBounds, type, data, quality) - save a picture (supports ZIM DUO)
 	content - the Display object to be saved such as a Container, Bitmap, etc.
 	filename - (default random) - the text name of the file (with or without extension - also see type)
 	x, y, width, height - the cropping bounds on that object otherwise defaults to 0,0,stageW,stageH
@@ -38332,7 +38368,12 @@ Also see:
 https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/globalCompositeOperation
 
 EXAMPLE
-circle.ble("difference");
+new Circle(100, red).center().ble("difference");
+
+// note: a blendMode will not work against the background color of the canvas  
+// if this is desired, add a rectangle onto the stage to start
+new Rectangle(stageW, stageH, frame.color).addTo();
+new Circle(100, red).center().ble("difference");
 END EXAMPLE
 
 PARAMETERS
@@ -43988,7 +44029,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					};
 					if (i == obj.length-1) {
 						endSeries(currentObj);
-					}
+					}					
 					zim.animate(currentObj);
 					lastEnd += w + duration;
 					w = 0;
@@ -43999,6 +44040,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var savedParams = currentObj.params;
 				if (cjsProps.loop && (!cjsProps.count || currentCount < cjsProps.count)) {
 					currentObj.call = function() {
+						if (savedCall && typeof savedCall == 'function') {(savedCall)(savedParams);}
 						if (cjsProps.loopCall && typeof cjsProps.loopCall == 'function') {(cjsProps.loopCall)(cjsProps.loopParams);}
 						if (cjsProps.loopWait) {
 							if (zot(target.zimTweens)) target.zimTweens = {};
@@ -44015,7 +44057,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							runMaster();
 						}
 					};
-				} else {
+				} else {			
 					currentObj.call = function() {
 						if (savedCall && typeof savedCall == 'function') {(savedCall)(savedParams);}
 						if (zot(params)) params = lastParamTarget;
@@ -44358,7 +44400,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.pathRatio = 0; // could be wrong setting this to 0
 			target.zimStartRotation = target.rotation;
 			target.percent = null; // added ZIM Cat 04 patch
-			target.startPercent = null;
+			if (!(target.parent && target.parent.type=="BeadsContainer")) target.startPercent = null; // NFT patch of Cat 04 patch
 		}
 	
 		if (css) ticker = false;
@@ -66743,6 +66785,10 @@ EVENTS
 	note: this is for when the frame is moved within an html page
 	for instance, when a div to the left has its display set to none - then call frame.update();
 "orientation" - fired on orientation change
+"contextmenu" - fired on right click
+	to prevent the default right click then use 
+	e.preventDefault() in your event function.
+	see https://zimjs.com/explore/contextmenu.html
 "keydown" - fired on keydown - just like the window keydown event with eventObject.keyCode, etc.
 	also stores frame.altKey, frame.ctrlKey, frame.metaKey, frame.shiftKey
 "keyup" - fired on keyup - just like the window keyup event with eventObject.keyCode, etc.
@@ -67793,7 +67839,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					queue.loadAssetsCount--;
 					if (queue.loadAssetsCount == 0) endAssetLoad();
 				});
-
+				
 				try {preload.loadManifest(manifest);}catch(err){}
 				// // strange - the try just stops an error but still loads
 				// catch {
@@ -68058,6 +68104,12 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 				if (stage.__touch) stage.__touch.preventDefault = !allowDefault;
 			}
 		});
+		
+		var eContext = new createjs.Event("contextmenu");
+		function contextEvent(e) {
+			that.dispatchEvent(e);
+		}
+		window.addEventListener("contextmenu", contextEvent, false);
 
 		var eDown = new createjs.Event("keydown");
 		this.eventRemove = eDown.remove;
@@ -68243,6 +68295,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			// var realWindow = window.parent || window;
 			if (shimResizeEvent) window.removeEventListener('resize', shimResizeEvent);
 			window.removeEventListener('resize', windowResizeEvent);
+			window.removeEventListener("contextmenu", contextEvent); 
 			window.removeEventListener("keydown", keydownEvent); // thanks Reinout Mechant for the fix!
 			window.removeEventListener("keyup", keyupEvent);
 			window.removeEventListener("wheel", wheelEvent);
