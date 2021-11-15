@@ -1,4 +1,4 @@
-# Windows image file caches
+# Windows image file caches 
 Thumbs.db
 ehthumbs.db
 
@@ -26,7 +26,8 @@ $RECYCLE.BIN/
 .LSOverride
 
 # Icon must ends with two \r.
-Icon
+Icon
+
 
 # Thumbnails
 ._*
