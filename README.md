@@ -10,7 +10,7 @@ Please see the About section for why we use ZIM to make Interactive Media.<br>
 https://zimjs.com/about.html
 
 ## Examples
-There are many examples of things to be made with ZIM in the banner sections on the ZIM site<br>
+There are many examples of things to be made with ZIM in the banner sections on the ZIM site.<br>
 Here is the main example section including CodePen examples - we hope you like them!<br>
 https://zimjs.com/examples.html 
 
