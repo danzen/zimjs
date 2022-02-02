@@ -33,7 +33,7 @@ new Button(200, 70, "TRY ME")
 ## Getting Started
 
 Copy the template on the Code page into an editor like Atom and view results in any Browser.<br>
-https://zimjs.com/code.html
+https://zimjs.com/code.html<br>
 https://zimjs.com/es6.html for ES6 Modules
 
 ZIM INTRO - sample code with comments<br>
