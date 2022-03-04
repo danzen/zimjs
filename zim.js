@@ -249,7 +249,7 @@ RETURNS a Number
 function zum(s) {
 	z_d("4");
 	if (zot(s)) return;
-	return Number(String(s).replace(/[^\d\.\-]/g, ''));
+	return Number(String(s).replace(/[^\d.-]/g, ''));
 } //-4
 
 /*--
@@ -535,7 +535,7 @@ function zob(func, args, sig, scope) {
 		var zv = []; var zi; var zt;
 		for (zi=0; zi<za.length; zi++) {zt=za[zi].split("=")[0]; za[zi]=zt; zv.push(zp[zt]);}
 		for (zi in zp) {if (za.indexOf(zi)<0) {if (zon) zogy(func,"bad argument "+zi);}}
-		var zr; if (zr=(func.prototype.isPrototypeOf(scope))?new (func.bind.apply(func,[null].concat(zv)))():func.apply(null,zv)) {if (zimon && !zr.arguments) {zr.arguments = [zp];} return zr;} else {return true;}
+		var zr; if (zr=(Object.prototype.isPrototypeOf.call(func.prototype,scope))?new (func.bind.apply(func,[null].concat(zv)))():func.apply(null,zv)) {if (zimon && !zr.arguments) {zr.arguments = [zp];} return zr;} else {return true;}
 	} else {
 		if (zimon && scope && args && zot(scope.arguments)) {
 			scope.arguments = Array.prototype.slice.call(args);
@@ -1075,37 +1075,37 @@ these properties may have a payload property if payloads are used
         if (zot(dynamicPayload)) dynamicPayload = false;
         var all = [];
         zim.loop(weights, function (key,val) {
-            var i = zim.colors.indexOf(key);
-            if (i != -1) key = zim.colorsHex[i];
-			let num;
+			var i = zim.colors.indexOf(key);
+			if (i != -1) key = zim.colorsHex[i];
+			var num;
 			if (Array.isArray(val)) {
 				if (+key === +key) key = new Number(key);
 				else key = new String(key);
 				key._payload = val[1];
 				key.dynamicPayload = dynamicPayload;			
 				Object.defineProperty(key, "payload", {
-				    get:function() {
-				        if (!this.dynamicPayload && this._lastPayload!=null) return this._lastPayload;
+					get:function() {
+						if (!this.dynamicPayload && this._lastPayload!=null) return this._lastPayload;
 						this._lastPayload = zim.Pick.choose(this._payload);
-				        return this._lastPayload;
-				    },
-				    set:function(v) {
+						return this._lastPayload;
+					},
+						set:function(v) {
 						this._lastPayload = null;
-				        this._payload = v;
-				    }
+						this._payload = v;
+					}
 				});
 				num = val[0];
 				zim.loop(num, function() {					
-	                all.push(key);
-	            });
+					all.push(key);
+				});
 			} else {
 				num = val;
 				zim.loop(num, function() {
 					if (+key === +key) key = +key; // if number use number
-	                all.push(key);
-	            });
+					all.push(key);
+				});
 			}            
-        });
+		});
         if (shuffle) zim.shuffle(all);
         return all;
 	};//-9.2
@@ -1345,7 +1345,7 @@ RETURNS a function that can be called many times - each time returning the next 
 			get: function() {
 				return array.length
 			},
-			set: function(value) {				
+			set: function() {				
 			}
 		});
 		f.jump = function(value) {
@@ -1534,13 +1534,16 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 		if (type == "invalid") {
 			return undefined;
 		}
+		var length;
+		var total;
+		var i;
+		var r;
 		if (type == "number" || type == "string" || type == "array" || type == "nodelist" || type == "htmlcollection") {
-			var length = type=="number"?obj:obj.length;
-			var total = getTotal(length-1);
+			length = type=="number"?obj:obj.length;
+			total = getTotal(length-1);
 			if (total == 0) return true;
 			if (reverse) {
-				for(var i=start; i>=end; i-=step) {
-					var r;
+				for(i=start; i>=end; i-=step) {
 					if (type=="number") {
 						r = call(i, total, start, end, obj);
 					} else if (type=="array" || type=="string") {
@@ -1551,8 +1554,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				for(var i=start; i<=end; i+=step) {
-					var r;
+				for(i=start; i<=end; i+=step) {
 					if (type=="number") {
 						r = call(i, total, start, end, obj);
 					} else if (type=="array" || type=="string") {
@@ -1565,22 +1567,22 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 			}
 			return true;
 		} else if (type == "object") {
-			var length = 0;
+			length = 0;
 			var props = [];
-			for (var i in obj) {
+			for (i in obj) {
 				length++;
 				props.push(i);
 			}
-			var total = getTotal(length-1);
+			total = getTotal(length-1);
 			if (total == 0) return;
 			if (reverse) {
-				for(var i=start; i>=end; i-=step) {
-					var r = call(props[i], obj[props[i]], i, total, start, end, obj);
+				for(i=start; i>=end; i-=step) {
+					r = call(props[i], obj[props[i]], i, total, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			} else {
-				for(var i=start; i<=end; i+=step) {
-					var r = call(props[i], obj[props[i]], i, total, start, end, obj);
+				for(i=start; i<=end; i+=step) {
+					r = call(props[i], obj[props[i]], i, total, start, end, obj);
 					if (typeof r != 'undefined') return r;
 				}
 			}
@@ -2050,10 +2052,11 @@ RETURNS undefined
 		var timeType = getTIME(maxTime);
 		if (zot(maxTime)) maxTime = timeType=="s"?2:2000;
 
+		var n;
 		if (callback) {
 
-			if (callbackString) var n = callbackString;
-			else var n = callback.toString().split(/\n/,1)[0].match(/^function\s?([^\s(]*)/)[1];
+			if (callbackString) n = callbackString;
+			else n = callback.toString().split(/\n/,1)[0].match(/^function\s?([^\s(]*)/)[1];
 
 			// create a queue if more than one async() to same callback function name
 			// if data is not returned in same order made, the wrong callbacks may be called
@@ -2252,7 +2255,7 @@ RETURNS a String with the converted color
 			var a = c.pop(); // take off alpha
 			if (zot(alpha)) alpha = a; // use alpha otherwise parameter overrides				
 			color = "rgb("+c.join(",")+")";			
-			if (toColor=="rgb") return color;		
+			if (toColorType=="rgb") return color;		
 		}
 			
 		function rgbToHex(rgb) {
@@ -2273,67 +2276,71 @@ RETURNS a String with the converted color
 		}	
 
 		if (zot(alpha)) alpha = 1;
-
+		var added;
+		var co;
+		var index;
 		if (answer = color.match(/rgb\((.*)\)/)) {
 			if (toColorType == "rgba") {
 				return "rgba("+answer[1]+","+alpha+")";
 			} else if (toColorType == "hex") {						
-				var added = alpha != 1?","+alpha:0;
-				var colors = getRGB(answer[1]+added);
-				return "#" + colors[0] + colors[1] + colors[2] + colors[3];
+				added = alpha != 1?","+alpha:0;
+				co = getRGB(answer[1]+added);
+				return "#" + co[0] + co[1] + co[2] + co[3];
 			} else if (toColorType == "hexnumber") {
-				var added = alpha != 1?","+alpha:0;
-				var colors = getRGB(answer[1]+added);
-				return parseInt(colors[0]+""+colors[1]+""+colors[2], 16);
+				added = alpha != 1?","+alpha:0;
+				co = getRGB(answer[1]+added);
+				return parseInt(co[0]+""+co[1]+""+co[2], 16);
 			} else if (toColorType == "string") {
-				var color = getRGB(answer[1]).join("").toLowerCase();
-				var index = hex.indexOf(color);
+				color = getRGB(answer[1]).join("").toLowerCase();
+				index = hex.indexOf(color);
 				if (index == -1) return "#" + color;
 				else return colors[index];
 			} else return color;
 		}
 
-		if (toColorType == "rgb" || toColorType == "rgba") {
-			function hexToRgbA(hex){ // kennebec on StackOverflow
-				var c;
-				if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
-					c= hex.substring(1).split('');
-					if(c.length== 3){
-						c= [c[0], c[0], c[1], c[1], c[2], c[2]];
-					}
-					c= '0x'+c.join('');
-					if (toColorType == "rgb") {
-						return 'rgb('+[(c>>16)&255, (c>>8)&255, c&255]+')';
-					} else {
-						return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
-					}
-					
-				} else if(/^#([A-Fa-f0-9]{4}){1,2}$/.test(hex)){ // 8 or 4 digit hex color
-					c= hex.substring(1).split('');
-					if (c.length==8) {
-						alpha = c.slice(-2).join("");					
-						c = c.slice(0,6);
-					}
-					if(c.length== 4){
-						alpha = c[3]+""+c[3];
-						c= [c[0], c[0], c[1], c[1], c[2], c[2]];
-					}
-					alpha = parseInt(alpha,16)/255;	
-					
-					c= '0x'+c.join('');
-					if (toColorType == "rgb") {
-						return 'rgb('+[(c>>16)&255, (c>>8)&255, c&255]+')';
-					} else {
-						return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
-					}
+		function hexToRgbA(hex){ // kennebec on StackOverflow
+			var c;
+			if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
+				c= hex.substring(1).split('');
+				if(c.length== 3){
+					c= [c[0], c[0], c[1], c[1], c[2], c[2]];
+				}
+				c= '0x'+c.join('');
+				if (toColorType == "rgb") {
+					return 'rgb('+[(c>>16)&255, (c>>8)&255, c&255]+')';
 				} else {
-					if (toColorType == "rgb") {
-						return "rgb(0,0,0)";
-					} else {
-						return "rgba(0,0,0,1)";
-					}
+					return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
+				}
+				
+			} else if(/^#([A-Fa-f0-9]{4}){1,2}$/.test(hex)){ // 8 or 4 digit hex color
+				c= hex.substring(1).split('');
+				if (c.length==8) {
+					alpha = c.slice(-2).join("");					
+					c = c.slice(0,6);
+				}
+				if(c.length== 4){
+					alpha = c[3]+""+c[3];
+					c= [c[0], c[0], c[1], c[1], c[2], c[2]];
+				}
+				alpha = parseInt(alpha,16)/255;	
+				
+				c= '0x'+c.join('');
+				if (toColorType == "rgb") {
+					return 'rgb('+[(c>>16)&255, (c>>8)&255, c&255]+')';
+				} else {
+					return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+alpha+')';
+				}
+			} else {
+				if (toColorType == "rgb") {
+					return "rgb(0,0,0)";
+				} else {
+					return "rgba(0,0,0,1)";
 				}
 			}
+		}
+		
+		if (toColorType == "rgb" || toColorType == "rgba") {
+			
 			if (color.charAt(0)=="#") {
 				return hexToRgbA(color);
 			} else {
@@ -2342,7 +2349,7 @@ RETURNS a String with the converted color
 		} else if (toColorType == "hex") {
 			if (color.charAt(0)=="#") {					
 				if (alpha!=1) {
-					var added = rgbToHex(Math.round(alpha*255));
+					added = rgbToHex(Math.round(alpha*255));
 					if (color.length==4 || color.length==5) {
 						var vals = color.split("");
 						vals[1]=vals[1]+""+vals[1];
@@ -2370,13 +2377,13 @@ RETURNS a String with the converted color
 			}
 		}
 		if (toColorType == "string") {
-			var index = hex.indexOf(color);
-			if (index == -1) return "#" + color;
+			index = hex.indexOf(color);
+		if (index == -1) return "#" + color;
 			else return colors[index];
 		} else if (toColorType == "hexnumber") {
 			return parseInt(hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0], 16);
-	    } else {	
-			var added = (alpha!=1)?rgbToHex(Math.round(alpha*255)):"";
+		} else {	
+			added = (alpha!=1)?rgbToHex(Math.round(alpha*255)):"";
 			return "#"+hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0]+added;
 		}
 	};//-27.5
@@ -2420,8 +2427,8 @@ RETURNS a hex color string
 		if (zot(color2)) color2 = "black";
 		var c1 = zim.convertColor(color1, "rgb");
 		var c2 = zim.convertColor(color2, "rgb");
-		var color1 = c1.substring(4, c1.length - 1).split(',');
-		var color2 = c2.substring(4, c2.length - 1).split(',');
+		color1 = c1.substring(4, c1.length - 1).split(',');
+		color2 = c2.substring(4, c2.length - 1).split(',');
 		var difference;
 		var newColor = "#";
 		var c;
@@ -2665,7 +2672,11 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 		// http://www.timotheegroleau.com/Flash/experiments/easing_function_generator.htm
 		var two = false;
 		if (zot(lockEnds)) lockEnds=true;
-			
+		
+		var c0,c1,c2,c3,c4,c5,e,d,c,b,a;
+		var t,di,ts,tc,rF,obj;  
+		
+		var points2;
 		if (points) {
 			if (Array.isArray(points[1])) {
 				two = true;
@@ -2683,34 +2694,34 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 				var bz = 5*(c4z + c0z) - 20*(c3z + c1z) + 30*c2z;
 				var az = c5z - c0z - bz - cz - dz - ez; 
 			}
-			var c0 = 0;
-			var c1 = points[0];
-			var c2 = points[1];
-			var c3 = points[2];
-			var c4 = points[3]; 
-			var c5 = 1;	
-			var e = 5*(c1 - c0);
-			var d = 10*(c2 - c0) - 4*e;
-			var c = 10*(c3 - c0) + 30*(c1 - c2);
-			var b = 5*(c4 + c0) - 20*(c3 + c1) + 30*c2;
-			var a = c5 - c0 - b - c - d - e;  
+			c0 = 0;
+			c1 = points[0];
+			c2 = points[1];
+			c3 = points[2];
+			c4 = points[3]; 
+			c5 = 1;	
+			e = 5*(c1 - c0);
+			d = 10*(c2 - c0) - 4*e;
+			c = 10*(c3 - c0) + 30*(c1 - c2);
+			b = 5*(c4 + c0) - 20*(c3 + c1) + 30*c2;
+			a = c5 - c0 - b - c - d - e;  
 		} else if (polynomials) {
-			var a = polynomials[0];
-			var b = polynomials[1];
-			var c = polynomials[2];
-			var d = polynomials[3];
-			var e = polynomials[4];            
+			a = polynomials[0];
+			b = polynomials[1];
+			c = polynomials[2];
+			d = polynomials[3];
+			e = polynomials[4];            
 			// calculate points - for consistent points property
-			var c1 = e / 5;
-			var c2 = (d+4*e)/10;
-			var c3 = (c + 6*e + 3*d)/10;
-			var c4 = (b + 4*e + 3*d + 2*c)/5;			
+			c1 = e / 5;
+			c2 = (d+4*e)/10;
+			c3 = (c + 6*e + 3*d)/10;
+			c4 = (b + 4*e + 3*d + 2*c)/5;			
 		} else {
-			var a = 0;
-			var b = 0;
-			var c = 0;
-			var d = 0;
-			var e = 1;
+			a = 0;
+			b = 0;
+			c = 0;
+			d = 0;
+			e = 1;
 		}     
 		// return CreateJS ratio format with variables in enclosure
 		// looks like a lot of code but the tween code is just the function in noPick 
@@ -2718,10 +2729,10 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 		// this keeps the tween function fast as that runs at the framerate
 		
 		if (mirror) {
-			var rF = function(){
+			rF = function(){
 				return zim.zimEase(null,[a,b,c,d,e],true) // mirror would be the same
 			};
-			var obj = {
+			obj = {
 				reverse:rF,
 				points:[c1,c2,c3,c4], 
 				polynomials:[a,b,c,d,e]
@@ -2733,28 +2744,28 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 				}			
 				if (k<.5) {	
 					k*=2; // k needs to be 0-1 to get full tween			
-					var t = k*100;
-					var di = 100;
-					var ts=(t/=di)*t;
-					var tc=ts*t;        
+					t = k*100;
+					di = 100;
+					ts=(t/=di)*t;
+					tc=ts*t;        
 					// the completeness is divided by 2 	
 					return (a*tc*ts + b*ts*ts + c*tc + d*ts + e*t)/2;
 				} else {
 					k=1-(k-.5)*2; // we use the second half of k but spread it out from 0 to 1 for complete formula (reversed for mirror)
-					var t = k*100;
-					var di = 100;
-					var ts=(t/=di)*t;
-					var tc=ts*t;   
+					t = k*100;
+					di = 100;
+					ts=(t/=di)*t;
+					tc=ts*t;   
 					// the completeness is added to the second half and still divided by 2 (1 - for mirror)     
 					return 1-(a*tc*ts + b*ts*ts + c*tc + d*ts + e*t)/2;
 				}			
 			}					
 		} else if (two) { 
-			var rF = function(){
+			rF = function(){
 				if (zon) zogy("zimEase - multi array points cannot be reversed");
 				return zim.zimEase(null,[a,b,c,d,e]) 
 			};
-			var obj = {
+			obj = {
 				reverse:rF,
 				points:[[c1,c2,c3,c4],[c1z,c2z,c3z,c4z]], 
 				polynomials:[[a,b,c,d,e],[az,bz,cz,dz,ez]]
@@ -2766,27 +2777,27 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 				}				
 				if (k<.5) {	
 					k*=2; // k needs to be 0-1 to get full tween			
-					var t = k*100;
-					var di = 100;
-					var ts=(t/=di)*t;
-					var tc=ts*t;        
+					t = k*100;
+					di = 100;
+					ts=(t/=di)*t;
+					tc=ts*t;        
 					// the completeness is divided by 2      
 					return (a*tc*ts + b*ts*ts + c*tc + d*ts + e*t)/2;
 				} else {
 					k=(k-.5)*2; // we use the second half of k but spread it out from 0 to 1 for complete formula
-					var t = k*100;
-					var di = 100;
-					var ts=(t/=di)*t;
-					var tc=ts*t;        
+					t = k*100;
+					di = 100;
+					ts=(t/=di)*t;
+					tc=ts*t;        
 					// the completeness is added to the second half and still divided by 2      
 					return .5+(az*tc*ts + bz*ts*ts + cz*tc + dz*ts + ez*t)/2;
 				}
 			}				 				
 		} else {
-			var rF = function(){
+			rF = function(){
 				return zim.zimEase(null,[a,b,c,d,e],null,true)
 			};			
-			var obj = {
+			obj = {
 				reverse:rF,
 				points:[c1,c2,c3,c4], 
 				polynomials:[a,b,c,d,e]
@@ -2797,10 +2808,10 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 						if (k<.025) return 0;
 						if (k>.975) return 1;		
 					}				
-					var t = 100-k*100; // reverse the time
-					var di = 100;
-					var ts=(t/=di)*t;
-					var tc=ts*t;					   
+					t = 100-k*100; // reverse the time
+					di = 100;
+					ts=(t/=di)*t;
+					tc=ts*t;					   
 					return 1-(a*tc*ts + b*ts*ts + c*tc + d*ts + e*t); // reverse the percent done			    
 				} 	
 			} else {
@@ -2809,10 +2820,10 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 						if (k<.025) return 0;
 						if (k>.975) return 1;		
 					}	
-					var t = k*100;
-					var di = 100;
-					var ts=(t/=di)*t;
-					var tc=ts*t;					   
+					t = k*100;
+					di = 100;
+					ts=(t/=di)*t;
+					tc=ts*t;					   
 					return (a*tc*ts + b*ts*ts + c*tc + d*ts + e*t);				    
 				} 	
 			}
@@ -2872,10 +2883,11 @@ zim.spline = function(points, tension, close, shape, removeLast) {
 	if (zot(close)) close = false;
 	if (zot(removeLast)) removeLast = close;
 	
+	var i; 
 	// Thanks https://github.com/georgedoescode
-	function formatPoints(points, close) {    
+	function formatPoints(points, close) {		
 		if (!Array.isArray(points[0])) {
-			for (var i=0; i<points.length; i++) {
+			for (i=0; i<points.length; i++) {
 				points[i] = [points[i].x, points[i].y];
 			} 
 		}    
@@ -2890,7 +2902,7 @@ zim.spline = function(points, tension, close, shape, removeLast) {
 			points.push(secondPoint);
 		}    
 		var p = [];
-		for (var i=0; i<points.length; i++) {
+		for (i=0; i<points.length; i++) {
 			p.push(points[i][0], points[i][1]);
 		}       
 		return p;
@@ -2908,7 +2920,7 @@ zim.spline = function(points, tension, close, shape, removeLast) {
 	var maxIteration = close ? size - 4 : size - 2;
 	var inc = 2;
 	
-	for (var i = startIteration; i < maxIteration; i += inc) {
+	for (i = startIteration; i < maxIteration; i += inc) {
 		var x0 = i ? points[i - 2] : points[0];
 		var y0 = i ? points[i - 1] : points[1];
 		var x1 = points[i + 0];
@@ -2975,12 +2987,13 @@ zim.pointAlongCurve = function(points, ratio, getAngle, even) {
 
 	if (zot(even)) even = false;
 	var cubic = new zim.Bezier(points[0],points[1],points[2],points[3]);
+	var x,y,x0,y0,x2,y2;
 	if (even) {
-		var x=cubic.mx(ratio);
-		var y=cubic.my(ratio);
+		x=cubic.mx(ratio);
+		y=cubic.my(ratio);
 	} else {
-		var x=cubic.x(ratio);
-		var y=cubic.y(ratio);
+		x=cubic.x(ratio);
+		y=cubic.y(ratio);
 	}
 	if (getAngle) {
 		var lastRatio = ratio-.05;
@@ -2988,15 +3001,15 @@ zim.pointAlongCurve = function(points, ratio, getAngle, even) {
 		if (lastRatio < 0) lastRatio = 0;
 		if (nextRatio > 1) nextRatio = 1;
 		if (even) {
-			var x0=cubic.mx(lastRatio);
-			var y0=cubic.my(lastRatio);
-			var x2=cubic.mx(nextRatio);
-			var y2=cubic.my(nextRatio);
+			x0=cubic.mx(lastRatio);
+			y0=cubic.my(lastRatio);
+			x2=cubic.mx(nextRatio);
+			y2=cubic.my(nextRatio);
 		} else {
-			var x0=cubic.x(lastRatio);
-			var y0=cubic.y(lastRatio);
-			var x2=cubic.x(nextRatio);
-			var y2=cubic.y(nextRatio);
+			x0=cubic.x(lastRatio);
+			y0=cubic.y(lastRatio);
+			x2=cubic.x(nextRatio);
+			y2=cubic.y(nextRatio);
 		}
 		var angle = zim.angle(x0, y0, x2, y2);
 		return({x:x,y:y,angle:angle});
@@ -3090,7 +3103,7 @@ RETURNS the index of the closest point in segmentPoints before the given point
 		var index = 0;
 		var secondaryIndex = 0;
 		if (zot(num)) num = 10;
-		zim.loop(segmentPoints, function(points, i, t) {
+		zim.loop(segmentPoints, function(points, i) {
 			// add num more points to estimate closest
 			var cubic = new zim.Bezier(points[0],points[1],points[2],points[3]);
 			zim.loop(num, function (j, total) {
@@ -3156,7 +3169,7 @@ RETURNS an array of points with numbers transformed
 		if (zot(points) || !Array.isArray(points)) return;
 		if (zot(x)) x = 0;
 		if (zot(y)) y = 0;
-		var points = zim.copy(points);
+		points = zim.copy(points);
 		var xStart = x;
 		var yStart = y;
 		if (transformType == "rotation") {
@@ -3516,7 +3529,6 @@ RETURNS a String syllable of the length
 		z_d("13.55");
         var consonants = "bcdfghjklmnprstvwxz";
         var vowels = "aeiouaeiouaeiouy";
-        var all = consonants+vowels;
         if (zot(length)) length = 3;
         if (zot(firstVowel)) firstVowel = zim.rand()<.3;
         function getLetter(type) {
@@ -3526,7 +3538,7 @@ RETURNS a String syllable of the length
         }
         var syllable = "";
         var currentType = firstVowel?vowels:consonants;
-        zim.loop(length, function(i) {
+        zim.loop(length, function() {
             syllable += getLetter(currentType);
             currentType = currentType==vowels?consonants:vowels;
         });
@@ -3850,7 +3862,7 @@ RETURNS the subclass
 			}
 			if (prototype) {
 				for (n in supP) {
-					if (subP.hasOwnProperty(n) && (typeof supP[n] == "function")) {subP[prefix + n] = supP[n];}
+					if (Object.prototype.hasOwnProperty.call(subP, n) && (typeof supP[n] == "function")) {subP[prefix + n] = supP[n];}
 				}
 			}
 		}
@@ -3922,7 +3934,7 @@ RETURNS a new Object
 			var copy = {};
 			for (var attr in obj) {
 				var answer = zim.copy(obj[attr], clone, cloneContainer);
-				if (obj.hasOwnProperty(attr)) copy[attr] = answer;
+				if (Object.prototype.hasOwnProperty(obj, attr)) copy[attr] = answer;
 			}
 			return copy;
 		}
@@ -3958,7 +3970,7 @@ RETURNS a new Object
 		var obj = {}; var i; var j;
 		for (i=0; i<arguments.length; i++) {
 			for (j in arguments[i]) {
-				if (arguments[i].hasOwnProperty(j)) {
+				if (Object.prototype.hasOwnProperty(arguments[i], j)) {
 					obj[j] = arguments[i][j];
 				}
 			}
@@ -4228,19 +4240,20 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 		// 	for (var i=0; i<places-(length-place-1); i++) {answer += "0";}
 		// }
 		var sign = zim.sign(answer);
+		var place,length,i;
 		if (addZeros > 0) {
-			var place = String(answer).indexOf(".");
-			var length = String(answer).length;
+			place = String(answer).indexOf(".");
+			length = String(answer).length;
 			if (place < 0) {place = length++; answer+=".";}
-			for (var i=0; i<addZeros-(length-place-1); i++) {answer += "0";}
+			for (i=0; i<addZeros-(length-place-1); i++) {answer += "0";}
 		}
 		if (addZerosBefore > 1) {
 			// fix this - Dan Zen - negative decimal number problem
 			if (sign == -1) answer = answer.substr(1,answer.length-1);
-			var place = String(answer).indexOf(".");
-			var length = String(answer).length;
+			place = String(answer).indexOf(".");
+			length = String(answer).length;
 			var left = (place < 0) ? length : place;
-			for (var i=0; i<addZerosBefore-left; i++) {answer = "0" + answer;}
+			for (i=0; i<addZerosBefore-left; i++) {answer = "0" + answer;}
 			if (sign == -1) answer = "-" + answer;
 		}
 		if (addZerosBefore == 0) answer = answer.toString().replace(/^0\./,".");
@@ -4647,16 +4660,16 @@ RETURNS a UTF string matching the unicode
 	zim.unicodeToUTF = function(val) {
 		z_d("13.75");
 		if (!val) return;
-    	if (val != " ") val = val.replace(/^\s+/g, "");    	
-    	var s, m = "", n = "";
-    	s = val.charCodeAt(0);   
-  		m = s;
-  		n = val.charCodeAt(1);      		
+		if (val != " ") val = val.replace(/^\s+/g, "");    	
+		var s, m = "", n = "";
+		s = val.charCodeAt(0);   
+		m = s;
+		n = val.charCodeAt(1);      		
 		if ((n >= 0xDC00) && (n <= 0xDFFF)) s = ((m - 0xD800) * 0x400) + (n - 0xDC00) + 0x10000;
-  		m = m.toString(16);
-  		n = n.toString(16);    
-    	s = s.toString(16); 
-    	return "\\u" + m + "\\u" + n;
+		m = m.toString(16);
+		n = n.toString(16);    
+		s = s.toString(16); 
+		return "\\u" + m + "\\u" + n;
 	};//-13.75
 
 /*--
@@ -5211,11 +5224,12 @@ seed - read only - the seed that was used for the Noise object
 		// initialize
 
 		var contributions2D = [];
-		for (var i = 0; i < con.p2D.length; i += 4) {
-			var baseSet = con.base2D[con.p2D[i]];
-			var previous = null;
-			var current = null;
-			for (var k = 0; k < baseSet.length; k += 3) {
+		var i,k,r,baseSet,previous,current;
+		for (i = 0; i < con.p2D.length; i += 4) {
+			baseSet = con.base2D[con.p2D[i]];
+			previous = null;
+			current = null;
+			for (k = 0; k < baseSet.length; k += 3) {
 				current = new Contribution2(baseSet[k], baseSet[k + 1], baseSet[k + 2]);
 				if (previous === null)
 					contributions2D[i / 4] = current;
@@ -5226,15 +5240,15 @@ seed - read only - the seed that was used for the Noise object
 			current.next = new Contribution2(con.p2D[i + 1], con.p2D[i + 2], con.p2D[i + 3]);
 		}
 		this.lookup2D = [];
-		for (var i = 0; i < con.lookupPairs2D.length; i += 2) {
+		for (i = 0; i < con.lookupPairs2D.length; i += 2) {
 			this.lookup2D[con.lookupPairs2D[i]] = contributions2D[con.lookupPairs2D[i + 1]];
 		}
 		var contributions3D = [];
-		for (var i = 0; i < con.p3D.length; i += 9) {
-			var baseSet = con.base3D[con.p3D[i]];
-			var previous = null;
-			var current = null;
-			for (var k = 0; k < baseSet.length; k += 4) {
+		for (i = 0; i < con.p3D.length; i += 9) {
+			baseSet = con.base3D[con.p3D[i]];
+			previous = null;
+			current = null;
+			for (k = 0; k < baseSet.length; k += 4) {
 				current = new Contribution3(baseSet[k], baseSet[k + 1], baseSet[k + 2], baseSet[k + 3]);
 				if (previous === null)
 					contributions3D[i / 9] = current;
@@ -5246,15 +5260,15 @@ seed - read only - the seed that was used for the Noise object
 			current.next.next = new Contribution3(con.p3D[i + 5], con.p3D[i + 6], con.p3D[i + 7], con.p3D[i + 8]);
 		}
 		this.lookup3D = [];
-		for (var i = 0; i < con.lookupPairs3D.length; i += 2) {
+		for (i = 0; i < con.lookupPairs3D.length; i += 2) {
 			this.lookup3D[con.lookupPairs3D[i]] = contributions3D[con.lookupPairs3D[i + 1]];
 		}
 		var contributions4D = [];
-		for (var i = 0; i < con.p4D.length; i += 16) {
-			var baseSet = con.base4D[con.p4D[i]];
-			var previous = null;
-			var current = null;
-			for (var k = 0; k < baseSet.length; k += 5) {
+		for (i = 0; i < con.p4D.length; i += 16) {
+			baseSet = con.base4D[con.p4D[i]];
+			previous = null;
+			current = null;
+			for (k = 0; k < baseSet.length; k += 5) {
 				current = new Contribution4(baseSet[k], baseSet[k + 1], baseSet[k + 2], baseSet[k + 3], baseSet[k + 4]);
 				if (previous === null)
 					contributions4D[i / 16] = current;
@@ -5267,7 +5281,7 @@ seed - read only - the seed that was used for the Noise object
 			current.next.next.next = new Contribution4(con.p4D[i + 11], con.p4D[i + 12], con.p4D[i + 13], con.p4D[i + 14], con.p4D[i + 15]);
 		}
 		this.lookup4D = [];
-		for (var i = 0; i < con.lookupPairs4D.length; i += 2) {
+		for (i = 0; i < con.lookupPairs4D.length; i += 2) {
 			this.lookup4D[con.lookupPairs4D[i]] = contributions4D[con.lookupPairs4D[i + 1]];
 		}
 
@@ -5278,14 +5292,15 @@ seed - read only - the seed that was used for the Noise object
 		this.perm3D = new Uint8Array(256);
 		this.perm4D = new Uint8Array(256);
 		var source = new Uint8Array(256);
-		for (var i = 0; i < 256; i++)
+		for (i = 0; i < 256; i++) {
 			source[i] = i;
-		var seed = new Uint32Array(1);
+		}
+		seed = new Uint32Array(1);
 		seed[0] = clientSeed;
 		seed = shuffleSeed(shuffleSeed(shuffleSeed(seed)));
-		for (var i = 255; i >= 0; i--) {
+		for (i = 255; i >= 0; i--) {
 			seed = shuffleSeed(seed);
-			var r = new Uint32Array(1);
+			r = new Uint32Array(1);
 			r[0] = (seed[0] + 31) % (i + 1);
 			if (r[0] < 0)
 				r[0] += (i + 1);
@@ -5970,13 +5985,11 @@ make the object and call p.convert(300); on the next line
 		if (zot(clamp)) clamp = true;
 
 		// proportion
-		var baseAmount;
 		var proportion;
 		var targetAmount;
 
-		baseAmount = baseMin; // just start at the min otherwise call immediate(baseValue);
-
 		this.convert = function(baseAmount) {
+			if (zot(baseAmount)) baseAmount = baseMin; // just start at the min otherwise call immediate(baseValue);
 			if (isNaN(baseAmount) || (baseMax-baseMin==0)) {return;}
 			if (clamp) {
 				baseAmount = Math.max(baseAmount, baseMin);
@@ -6110,7 +6123,7 @@ call the pd.immediate(baseValue) method with your desired baseValue (not targetV
 			}
 		};
 
-		this.dispose = function(a,b,disposing) {
+		this.dispose = function() {
 			clearInterval(interval);
 			return true;
 		};
@@ -6227,7 +6240,7 @@ values - array of values synched to keys
 			return this;
 		};
 
-		this.dispose = function(a,b,disposing) {
+		this.dispose = function() {
 			objects = null;
 			values = null;
 			this.length = null;
@@ -6426,7 +6439,8 @@ length - read only total length of all nodes
         that.processSimple = function(list) {
             var count = 0;
             var m = {};
-            function makeLevel(list, obj, level, last) {
+            function makeLevel(list2, obj, level, last) {
+				if (!zot(list2)) list = list2;
                 if (list.constructor == {}.constructor) {
 					var originalList;
 					if (list.list) { // in extra format
@@ -6447,7 +6461,6 @@ length - read only total length of all nodes
 					});
                 } else if (Array.isArray(list)) {
                     zim.loop(list, function (val) {
-                        var newList = {};
                         obj["id"+count] = {obj:val};
                         count++;
                     });
@@ -6559,7 +6572,7 @@ length - read only total length of all nodes
 			get: function() {
 				return _length;
 			},
-			set: function(value) {
+			set: function() {
 				if (zon) zogy("Hierarchy() - length is read only");
 			}
 		});
@@ -6736,17 +6749,17 @@ choices - a reference to the choices object provided as the Pick(choices) parame
 		if (!zim.pickCheck) {z_d("17.6"); zim.pickCheck=true;}
         if (literal == null) literal = true;
 		if (obj==null) return obj;
-		var rem = obj;
         if (obj.type=="Pick" || literal) {
             var c = obj.choices || obj;
+			var val;
             if (Array.isArray(c)) {
-                var val = c[Math.floor(Math.random()*(c.length))];
+                val = c[Math.floor(Math.random()*(c.length))];
                 return zim.Pick.choose(val); // recursive
             } else if (c.constructor === {}.constructor) {
                 if (!zot(c.noPick)) return c.noPick; // a passthrough for arrays and functions
                 if (zot(c.max)) return c;
                 if (zot(c.integer)) c.integer = false;
-                var val = zim.Pick.rand(c.min, c.max, c.integer, c.negative);
+                val = zim.Pick.rand(c.min, c.max, c.integer, c.negative);
                 return val; // this is just a number in a range - no need for recursive
             } else if (c instanceof Function) {
 				if (c.count==null) c.count=0;
@@ -6838,12 +6851,12 @@ RETURNS a Number
 		var timeType = getTIME(time);
 		var perpend = (dir == "X") ? "Y" : "X"; // perpendicular direction
 		if (zot(num)) {
-			var safari = 0;
-			var browser=navigator.applicationName;
-			var navindex=navigator.userAgent.indexOf('Safari');
-			if (navindex != -1 || browser=='Safari') {
-				var safari = 1;
-			}
+			// var safari = 0;
+			// var browser=navigator.applicationName;
+			// var navindex=navigator.userAgent.indexOf('Safari');
+			// if (navindex != -1 || browser=='Safari') {
+			// 	safari = 1;
+			// }
 			return (document.documentElement && document.documentElement["scroll"+side]) || document.body["scroll"+side];
 		} else if (zot(time)) {
 			W.scrollTo(zim["scroll"+perpend](), num);
@@ -7046,7 +7059,7 @@ RETURNS a String
 --*///+23
 	zim.urlEncode = function(s) {
 		z_d("23");
-		var s = (s + '').toString();
+		s = (s + '').toString();
 		return encodeURIComponent(s).replace(/!/g, '%21').replace(/'/g, '%27').replace(/\(/g, '%28').
 		replace(/\)/g, '%29').replace(/\*/g, '%2A').replace(/%20/g, '+');
 	};//-23
@@ -7111,12 +7124,13 @@ RETURNS a Boolean indicating success
 	zim.setCookie = function(name, value, days) {
 		z_d("25");
 		if (zot(name) || zot(value)) return;
+		var expires;
 		if (days) {
 			var date = new Date();
 			date.setTime(date.getTime()+(days*24*60*60*1000));
-			var expires = "; expires="+date.toGMTString();
+			expires = "; expires="+date.toGMTString();
 		} else {
-			var expires = "";
+			expires = "";
 		}
 		document.cookie = name+"="+escape(value)+expires+"; path=/";
 		return true;
@@ -7401,7 +7415,7 @@ Might have set these on CreateJS DisplayObject
 				}
 			}
 		});
-		that.on("pressup", function (e) {
+		that.on("pressup", function () {
 			if (frame && adCheck) frame.allowDefault = true;
 		});
 		
@@ -7422,7 +7436,7 @@ Might have set these on CreateJS DisplayObject
 								else return 0;		
 							},
 							set: function(value) {
-								if (!that.effects || !that.effects.multi) that.effect(new MultiEffect(eff=="hue"?value:0,eff=="saturation"?value:0,eff=="brightness"?value:0,eff=="contrast"?value:0));
+								if (!that.effects || !that.effects.multi) that.effect(new zim.MultiEffect(eff=="hue"?value:0,eff=="saturation"?value:0,eff=="brightness"?value:0,eff=="contrast"?value:0));
 								else that.effects.multi[eff] = value;
 								if (add=="") that.updateEffects(); 
 							}
@@ -7564,7 +7578,7 @@ zim.Stage = function(canvasID) {
 		return this;
 	};
 
-	var frame = W.zdf || 1;
+	this.frame = W.zdf;
 	if (createjs && !createjs.stageTransformable && (W.zdf.retina || typeof exportRoot != "undefined")) {
 		Object.defineProperty(this, 'scale', {
 			get: function () {
@@ -7720,7 +7734,7 @@ zim.StageGL = function(canvasID, options) {
 			return this;
 		};
 		
-		var frame = W.zdf || 1;
+		this.frame = W.zdf;
 		if (createjs && !createjs.stageTransformable && (W.zdf.retina || typeof exportRoot != "undefined")) {
 			Object.defineProperty(this, 'scale', {
 				get: function() {
@@ -8031,7 +8045,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function(exact) {
 			if (this.type=="AC"&&W.zdf) {
-				if (zon) {zogy("ZIM asset() - cannot clone lazy loaded asset - use Frame() assets parameter or loadAssets() method")};
+				if (zon) {zogy("ZIM asset() - cannot clone lazy loaded asset - use Frame() assets parameter or loadAssets() method")}
 				W.zdf.ac("clone", arguments, this); 
 				return this;
 			}
@@ -8040,7 +8054,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return this.cloneChildren(this.cloneProps(new zim.Container(currentBounds.x,currentBounds.y,currentBounds.width,currentBounds.height, style, this.group, inherit)), exact);
 		};
 		this.hasProp = function(prop) {
-			return (!zot(this[prop]) || this.hasOwnProperty(prop));
+			return (!zot(this[prop]) || Object.prototype.hasOwnProperty(this,prop));
 		};
 	};
 	zim.Container.prototype.dispose = function(disposing) {			
@@ -8318,7 +8332,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			get: function() {
 				return that.graphics.command;
 			},
-			set: function(value) {
+			set: function() {
 			}
 		});
 
@@ -8374,7 +8388,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			};
 		}
 		this.hasProp = function(prop) {
-			return (!zot(this[prop]) || this.hasOwnProperty(prop));
+			return (!zot(this[prop]) || Object.prototype.hasOwnProperty(this,prop));
 		};
 		// this.pg = function(points, close) {
 		// 	if (!Array.isArray(points)) points = Array.from(arguments);
@@ -8399,7 +8413,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		zim.displayBase(that);	
 		
-		this.dispose = function(a,b,disposing) {
+		this.dispose = function() {
 			zim.gD(this); // globalDispose function for common elements
 			this.graphics.c();
 			this.dispatchEvent("removed");
@@ -8683,9 +8697,10 @@ zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit
 	if (image && image.nodeName && image.nodeName.toLowerCase() != "video") that.sourceRect = {x:left, y:top, width:width, height:height};
 
 	this.cache = function(a,b,c,d,scale,options,rtl) {
+		var bounds;
 		if (zot(c)) {
 			if (zot(a)) {
-				var bounds = this.getBounds();
+				bounds = this.getBounds();
 				if (!zot(bounds)) {
 					var added = this.borderWidth > 0 ? this.borderWidth/2 : 0;
 					a = bounds.x-added;
@@ -8700,7 +8715,7 @@ zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit
 				b = 0;
 			}
 		}
-		var bounds = this.getBounds();
+		bounds = this.getBounds();
 		this.cjsBitmap_cache(a,b,c,d,scale,options,rtl);
 		this.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
 		return this;
@@ -8724,7 +8739,7 @@ zim.Bitmap = function(image, width, height, left, top, id, style, group, inherit
 		};
 	}
 	this.hasProp = function(prop) {
-		return (!zot(this[prop]) || this.hasOwnProperty(prop));
+		return (!zot(this[prop]) || Object.prototype.hasOwnProperty(this,prop));
 	};
 	var myContext;
 	this.getColorAt = function(x,y) {
@@ -9416,7 +9431,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		}
 		
 		this.hasProp = function(prop) {
-			return (!zot(this[prop]) || this.hasOwnProperty(prop));
+			return (!zot(this[prop]) || Object.prototype.hasOwnProperty(this,prop));
 		};
 		
 		zim.displayBase(that);
@@ -9546,7 +9561,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return this.cloneProps(new zim.MovieClip(mode, startPosition, loop, labels, style, this.group, inherit));
 		};
 		this.hasProp = function(prop) {
-			return (!zot(this[prop]) || this.hasOwnProperty(prop));
+			return (!zot(this[prop]) || Object.prototype.hasOwnProperty(this,prop));
 		};
 		var frame = W.zdf || 1;
 		if (createjs && !createjs.stageTransformable && frame.retina) {
@@ -15414,7 +15429,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				points = zim.copy(that.points);				
 				points.reverse();
 				if (sameStart) points.unshift(points.pop()); // keep the start point the same
-				loop(points, p=>{
+				loop(points, function(p) {
 					var p6 = p[6];					
 					p[6] = p[4];
 					p[4] = p6;
@@ -17844,7 +17859,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.paddingHorizontal = paddingHorizontal;
 		
 		// handle DIR effect 
-		if ((DIR && DIR=="rtl") || (!DIR && zim.DIR=="rtl")) {
+		if ((W.DIR && W.DIR=="rtl") || (!W.DIR && zim.DIR=="rtl")) {
 			if (align=="start") align="right";
 			else if (align=="end") align="left";
 		} else {
@@ -19054,7 +19069,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		that._color = label.color;
 		
 		// handle DIR effect 
-		if ((DIR && DIR=="rtl") || (!DIR && zim.DIR=="rtl")) {
+		if ((W.DIR && W.DIR=="rtl") || (!W.DIR && zim.DIR=="rtl")) {
 			if (lineAlign=="start") lineAlign="right";
 			else if (lineAlign=="end") lineAlign="left";
 		} else {
@@ -25254,6 +25269,7 @@ number - (default false) - set to true for number
 inputType - (default "text") set to "text", "number", "password", "email" 
 	number has 0-9 . + - / * % $ available
 	this will replace the password parameter in upcoming versions of ZIM
+rtl - (default ZIM DIR) the direction of the text.  Also set "rtl" in the HTML tag dir parameter for RTL
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -25337,8 +25353,8 @@ See the events for ZIM Window()
 See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.2
-zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, inputType, style, group, inherit) {
-	var sig = "width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, inputType, style, group, inherit";
+zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, inputType, rtl, style, group, inherit) {
+	var sig = "width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, multiline, wrap, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, number, inputType, rtl, style, group, inherit";
 	var duo; if (duo = zob(zim.TextInput, arguments, sig, this)) return duo;
 	z_d("54.2");
 	
@@ -25395,6 +25411,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 	if (zot(inputType)) inputType = DS.inputType!=null?DS.inputType:"text";	
 	if (inputType===true) inputType="number"; // backwards compatible - remove in next ZIM NFT version	
 	if (scrollBarDrag) scrollBarFade = DS.scrollBarFade!=null?DS.scrollBarFade:false;
+	if (zot(rtl)) rtl = DS.rtl!=null?DS.rtl:(W.DIR=="rtl"||zim.DIR=="rtl")?"rtl":null;
 			
 	this.zimWindow_constructor(width, height, backgroundColor, borderColor, borderWidth, padding, corner, false, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, false, null, false, true, shadowColor, shadowBlur, paddingHorizontal, paddingVertical, true, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, style, group, zim.copy(DS));
 	this.type = "TextInput";
@@ -25408,7 +25425,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 	var mask = new Rectangle(width-padding*2, height-padding*2, zim.clear).center(this);
 	this.cursor = "text";
 			
-	var label = this.label = new zim.TextInput.LabelInput(text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, "top", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftHorizontal, shiftVertical, null, null, null, null, inputType, style, group, inherit);
+	var label = this.label = new zim.TextInput.LabelInput(text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, "top", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftHorizontal, shiftVertical, null, null, null, null, inputType, rtl, style, group, inherit);
 	this.add(label); // this is a Window - which has an add() method for adding content
 	label.setMask(mask);
 	this.htmlTag = this.label.hiddenInput
@@ -25594,233 +25611,254 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 zim.extend(zim.TextInput, zim.Window, "clone", "zimWindow", false);
 	
 	// by Cajoek, 2021 - with thanks!
-zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionColor, selectionAlpha, blinkerColor, blinkerSpeed, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, splitWords, inputType, style, group, inherit) {
-		this.zimLabel_constructor(text, size, font, color, null, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, null, labelWidth, labelHeight, null, splitWords, style, group, inherit);
-		this.type = "LabelInput";
-				
-		if (zot(color)) color = zim.dark;
-		if (zot(selectionColor)) selectionColor = color;
-		if (zot(selectionAlpha)) selectionAlpha = .2;
-		this.selectionAlpha = selectionAlpha;
-		if (zot(blinkerColor)) blinkerColor = color;
-		if (zot(blinkerSpeed)) blinkerSpeed = .5;
-				
-		this.hiddenInput = document.createElement("INPUT");
-		this.hiddenInput.value = text;
-		if (inputType == "text" && password) inputType = "password";		
-		this.hiddenInput.type = inputType;
-		if (inputType == "number") {
-			this.hiddenInput.pattern = "[^(0-9)\.\-\+\*\/\%\$]*";
-			this.hiddenInput.inputmode = "numeric";
-		}		
-		if (maxLength > 0) this.hiddenInput.maxLength = maxLength;
-		this.hiddenInput.autocapitalize = "off";
-		this.hiddenInput.autocorrect = "off";
-		this.hiddenInput.autocomplete = "off";		
-		this.hiddenInput.spellcheck = false;
-		this.hiddenInput.style.position = "absolute";
-		this.hiddenInput.style.overflow = "hidden";
-		
-		// this.hiddenInput.style.left = "100px";
-		// this.hiddenInput.style.top = "100px";
-		// this.hiddenInput.style.zIndex = 2;
-		// this.hiddenInput.style.opacity = 1;
-		// this.hiddenInput.style.width = "300px";
-		// this.hiddenInput.style.height = "60px";
-		// this.hiddenInput.style.fontSize = "20px";
-		
-		this.hiddenInput.style.left = "-99999px";
-		this.hiddenInput.style.top = "-99999px";
-		this.hiddenInput.style.zIndex = -999;
-		this.hiddenInput.style.opacity = 0;
-		this.hiddenInput.style.width = "1px";
-		this.hiddenInput.style.height = "1px";
-		this.hiddenInput.style.fontSize = "1px";	
-				
-		this.onFocus = function() {
-			if (frame.zil) W.removeEventListener("keydown", frame.zil[0]);
-			this.blinker.alp(1.0).replayTween();
-			this.selection.alp(0.2);
-			this.positionBlinkerAndSelection();
-			this.dispatchEvent("focus");
-		}
-		this.onBlur = function() {
-			if (frame.zil) W.addEventListener("keydown", frame.zil[0]);
-			this.positionBlinkerAndSelection();
-			this.blinker.pauseAnimate(true).alp(0.0);
-			this.selection.alp(0.0);
-			this.hiddenInput.type = inputType; // ZIM NFT 00 patch
-			this.dispatchEvent("blur");
-		}
-		this.onInput = function() {
-			var newText = this.hiddenInput.value;
-			if (inputType=="number") {				
-				newText = newText.replace(/[^(0-9)\.\-\+\*\/\%\$]*/g,"");
-				this.hiddenInput.value = newText;
-			}	
-			this.text = this.hiddenInput.type=="password"?newText.replace(/./g, '*'):newText;
-			this.measureText();
-			this.positionBlinkerAndSelection();
-			this.dispatchEvent("input");
-		}
-		this.onSelect = function() {
-			this.positionBlinkerAndSelection();
-			if (this.focus) {
-				this.blinker.replayTween();
-			}
-		}
-		var that = this;
-		this.onKeydown = function() {
-			this.blinker.replayTween();
-			setTimeout(function() {
-				that.positionBlinkerAndSelection.call(that);
-				that.dispatchEvent("keydown");
-			}, 10);
-		}	
-		this.onMousedown = function(e) {
-			var point = this.eventPositionGlobalToLocal(e);
-			if (!this.focus) {
-				this.hiddenInput.focus();
-				// ZIM NFT 00 patch
-				if (inputType == "number" || inputType == "email") this.hiddenInput.type = "text";
-			}					
-			var selectionIdx = this.mapPointToIndex(point);
-			this.hiddenInput.setSelectionRange(selectionIdx, selectionIdx);				
-			this.positionBlinkerAndSelection();		
-		}
-		this.onPressmove = function(e) {
-			if (!this.focus) this.hiddenInput.focus();			
-			var point = this.eventPositionGlobalToLocal(e);
-			var selectionIdx = this.mapPointToIndex(point);
-			if (this.hiddenInput.selectionStart === this.hiddenInput.selectionEnd) {
-				if (this.hiddenInput.selectionStart <= selectionIdx) {
-					this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, "forward");
-				} else {
-					this.hiddenInput.setSelectionRange(selectionIdx, this.hiddenInput.selectionEnd, "backward");
-				}
-			} else {
-				if (this.hiddenInput.selectionDirection === "forward") {
-					this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, "forward");
-				} else {
-					this.hiddenInput.setSelectionRange(selectionIdx, this.hiddenInput.selectionEnd, "backward");
-				}
-			}
-			this.positionBlinkerAndSelection();
-		}
-		this.onDblclick = function() {
-			this.hiddenInput.select();
-			this.positionBlinkerAndSelection();
-		}		
-		this.positionBlinkerAndSelection = function() {
-			if (this.focus) {
-				var paddingHorizontal = this.backing || this.background ? this.paddingHorizontal : 0;
-				var paddingVertical = this.backing || this.background ? this.paddingVertical : 0;
+zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionColor, selectionAlpha, blinkerColor, blinkerSpeed, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, rollPersist, labelWidth, labelHeight, splitWords, inputType, rtl, style, group, inherit) {
+	this.zimLabel_constructor(text, size, font, color, null, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingHorizontal, paddingVertical, shiftHorizontal, shiftVertical, null, labelWidth, labelHeight, null, splitWords, style, group, inherit);
+	this.type = "LabelInput";
 			
-				if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd) {
+	if (zot(color)) color = zim.dark;
+	if (zot(selectionColor)) selectionColor = color;
+	if (zot(selectionAlpha)) selectionAlpha = .2;
+	this.selectionAlpha = selectionAlpha;
+	if (zot(blinkerColor)) blinkerColor = color;
+	if (zot(blinkerSpeed)) blinkerSpeed = .5;
+			
+	this.hiddenInput = document.createElement("INPUT");
+	this.hiddenInput.value = text;
+	if (inputType == "text" && password) inputType = "password";		
+	this.hiddenInput.type = inputType;
+	if (inputType == "number") {
+		this.hiddenInput.pattern = "[^(0-9)\.\-\+\*\/\%\$]*";
+		this.hiddenInput.inputmode = "numeric";
+	}		
+	if (maxLength > 0) this.hiddenInput.maxLength = maxLength;
+	this.hiddenInput.autocapitalize = "off";
+	this.hiddenInput.autocorrect = "off";
+	this.hiddenInput.autocomplete = "off";		
+	this.hiddenInput.spellcheck = false;
+	this.hiddenInput.style.position = "absolute";
+	this.hiddenInput.style.overflow = "hidden";
+	
+	// this.hiddenInput.style.left = "100px";
+	// this.hiddenInput.style.top = "100px";
+	// this.hiddenInput.style.zIndex = 2;
+	// this.hiddenInput.style.opacity = 1;
+	// this.hiddenInput.style.width = "300px";
+	// this.hiddenInput.style.height = "60px";
+	// this.hiddenInput.style.fontSize = "20px";
+	
+	this.hiddenInput.style.left = "-99999px";
+	this.hiddenInput.style.top = "-99999px";
+	this.hiddenInput.style.zIndex = -999;
+	this.hiddenInput.style.opacity = 0;
+	this.hiddenInput.style.width = "1px";
+	this.hiddenInput.style.height = "1px";
+	this.hiddenInput.style.fontSize = "1px";	
+			
+	this.onFocus = function() {
+		if (frame.zil) W.removeEventListener("keydown", frame.zil[0]);
+		this.blinker.alp(1.0).replayTween();
+		this.selection.alp(0.2);
+		this.positionBlinkerAndSelection();
+		this.dispatchEvent("focus");
+	}
+	this.onBlur = function() {
+		if (frame.zil) W.addEventListener("keydown", frame.zil[0]);
+		this.positionBlinkerAndSelection();
+		this.blinker.pauseAnimate(true).alp(0.0);
+		this.selection.alp(0.0);
+		this.hiddenInput.type = inputType; // ZIM NFT 00 patch
+		this.dispatchEvent("blur");
+	}
+	this.onInput = function() {
+		var newText = this.hiddenInput.value;
+		if (inputType=="number") {				
+			newText = newText.replace(/[^(0-9)\.\-\+\*\/\%\$]*/g,"");
+			this.hiddenInput.value = newText;
+		}	
+		this.text = this.hiddenInput.type=="password"?newText.replace(/./g, '*'):newText;
+		this.measureText();
+		this.positionBlinkerAndSelection();
+		this.dispatchEvent("input");
+	}
+	this.onSelect = function() {
+		this.positionBlinkerAndSelection();
+		if (this.focus) {
+			this.blinker.replayTween();
+		}
+	}
+	var that = this;
+	this.onKeydown = function() {
+		this.blinker.replayTween();
+		setTimeout(function() {
+			that.positionBlinkerAndSelection.call(that);
+			that.dispatchEvent("keydown");
+		}, 10);
+	}	
+	this.onMousedown = function(e) {
+		// ZIM NFT 01 Patch any le or rtl
+		var le = this.text.length;
+		var point = this.eventPositionGlobalToLocal(e);
+		if (!this.focus) {
+			this.hiddenInput.focus();
+			// ZIM NFT 00 patch
+			if (inputType == "number" || inputType == "email") this.hiddenInput.type = "text";
+		}					
+		var selectionIdx = this.mapPointToIndex(point);
+		if (rtl) this.hiddenInput.setSelectionRange(le-selectionIdx, le-selectionIdx);				
+		else this.hiddenInput.setSelectionRange(selectionIdx, selectionIdx);				
+		this.positionBlinkerAndSelection();		
+	}
+	this.onPressmove = function(e) {
+		// ZIM NFT 01 Patch any le or rtl
+		var le = this.text.length;
+		if (!this.focus) this.hiddenInput.focus();			
+		var point = this.eventPositionGlobalToLocal(e);
+		var selectionIdx;
+		if (rtl) selectionIdx = le-this.mapPointToIndex(point); 
+		else selectionIdx = this.mapPointToIndex(point);
+		
+		if (this.hiddenInput.selectionStart === this.hiddenInput.selectionEnd) {
+			if (this.hiddenInput.selectionStart <= selectionIdx) {
+				this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, rtl?"backward":"forward");
+			} else {
+				this.hiddenInput.setSelectionRange(selectionIdx, this.hiddenInput.selectionEnd, rtl?"forward":"backward");
+			}
+		} else {
+			if (this.hiddenInput.selectionDirection === (rtl?"backward":"forward")) {
+				this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, rtl?"backward":"forward");
+			} else {
+				this.hiddenInput.setSelectionRange(selectionIdx, this.hiddenInput.selectionEnd, rtl?"forward":"backward");
+			}
+		}
+		
+		this.positionBlinkerAndSelection();
+	}
+	this.onDblclick = function() {
+		this.hiddenInput.select();
+		this.positionBlinkerAndSelection();
+	}		
+	this.positionBlinkerAndSelection = function() {
+		// ZIM NFT 01 Patch any le or rtl
+		var le = this.text.length;
+		if (this.focus) {
+			var paddingHorizontal = this.backing || this.background ? this.paddingHorizontal : 0;
+			var paddingVertical = this.backing || this.background ? this.paddingVertical : 0;
+		
+			if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd) {
+				if (rtl) {
+					var startX = this.textWidthArray[le-this.hiddenInput.selectionStart]
+					var endX = this.textWidthArray[le-this.hiddenInput.selectionEnd]
+					this.selection.widthOnly = endX - startX;
+					this.selection.pos(endX + paddingHorizontal - 1 + shiftHorizontal, paddingVertical + shiftVertical);
+				} else {
 					var startX = this.textWidthArray[this.hiddenInput.selectionStart]
 					var endX = this.textWidthArray[this.hiddenInput.selectionEnd]
 					this.selection.widthOnly = endX - startX;
-					this.selection.heightOnly = this.textHeight;
 					this.selection.pos(startX + paddingHorizontal - 1 + shiftHorizontal, paddingVertical + shiftVertical);
-					this.selection.alp(this.selectionAlpha);
-				} else {
-					this.selection.alp(0.0);
 				}
-				this.blinker.heightOnly = this.textHeight;
-				var xIdx = this.hiddenInput.selectionDirection === "backward" ? this.hiddenInput.selectionStart : this.hiddenInput.selectionEnd;
-				if (!xIdx) xIdx = 0; // ZIM NFT 00 Patch
-				this.blinker.pos(this.textWidthArray[xIdx] + paddingHorizontal - 1 + ((align=="right" && this.text == "")?this.width:(align=="center" && this.text == "")?this.width/2:0) + shiftHorizontal, paddingVertical+shiftVertical);
-				this.dispatchEvent("blinker");
-			}
-			if (this.stage) this.stage.update();
-		}
-		this.eventPositionGlobalToLocal = function(e) {
-			var point = this.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);		
-			if (align=="right") {
-				point.x -= this.label.x - this.width;
-			} else if (align=="center") {
-				point.x -= (this.label.x - this.width)/2;
+				this.selection.heightOnly = this.textHeight;
+				this.selection.alp(this.selectionAlpha);
 			} else {
-				point.x -= this.label.x; 
+				this.selection.alp(0.0);
 			}
-			point.y -= this.label.y;
-			return point;
+			this.blinker.heightOnly = this.textHeight;
+			var xIdx = this.hiddenInput.selectionDirection === "backward" ? this.hiddenInput.selectionStart : this.hiddenInput.selectionEnd;
+			if (!xIdx) xIdx = 0; // ZIM NFT 00 Patch                
+			if (rtl) xIdx = le-xIdx; 
+			this.blinker.pos(this.textWidthArray[xIdx] + paddingHorizontal - 1 + ((align=="right" && this.text == "")?this.width:(align=="center" && this.text == "")?this.width/2:0) + shiftHorizontal, paddingVertical+shiftVertical);
+			this.dispatchEvent("blinker");
 		}
-		this.mapPointToIndex = function(point) {
-			var index = this.textWidthArray.length - 1;
-			for (var i = 0; i < this.textWidthArray.length - 1; i++) {
-				var charMidpoint = (this.textWidthArray[i] + this.textWidthArray[i + 1]) / 2;
-				if (point.x <= charMidpoint) {
-					index = i;
-					break;
-				}
-			}
-			return index;
-		}
-		this.measureText = function() {
-			var dummyLabel = this.label.clone();
-			var i = 0;
-			while (i < this.text.length && i < this.previousMeasuredText.length) {
-				if (this.text[i] !== this.previousMeasuredText[i]) break;
-				i++;
-			}
-			this.textWidthArray = this.textWidthArray.slice(0, i + 1);
-			for (i++; i <= this.text.length; i++) {
-				dummyLabel.text = this.text.slice(0, i);
-				this.textWidthArray.push(dummyLabel.getMeasuredWidth())
-			}
-			this.previousMeasuredText = this.text;
-			this.textHeight = dummyLabel.getMeasuredLineHeight();
-		}
-		this.setText = function(text) {
-			this.hiddenInput.value = text;
-			this.onInput();
-		}
-		Object.defineProperty(this, 'focus', {
-			get: function() {
-				return document.activeElement === that.hiddenInput
-			},
-			set: function(value) {
-				if (value === true) that.hiddenInput.focus()
-				else that.hiddenInput.blur()
-			}
-		});
-		
-		var frame;
-		this.added(function(stage) {
-			frame = stage.frame;
-			that.hiddenInput.addEventListener("focus", that.onFocus.bind(that));
-			that.hiddenInput.addEventListener("blur", that.onBlur.bind(that));
-		});		
-		this.hiddenInput.addEventListener("input", this.onInput.bind(this));
-		this.hiddenInput.addEventListener("select", this.onSelect.bind(this));
-		this.hiddenInput.addEventListener("keydown", this.onKeydown.bind(this));
-		document.body.appendChild(this.hiddenInput);
-	
-		this.on("mousedown", this.onMousedown.bind(this));
-		this.on("pressmove", this.onPressmove.bind(this));
-		this.on("dblclick", this.onDblclick.bind(this));
-	
-		this.cursor = "text";
-		this.blinker = new zim.Rectangle(2, 1, blinkerColor).animate({
-			obj: { alpha: 0.0 },
-			wait: blinkerSpeed,
-			time: 0.1,
-			rewind: true,
-			rewindWait: blinkerSpeed,
-			loop: true,
-			loopWait: blinkerSpeed
-		}).pauseAnimate(true).alp(0.0).addTo(this);
-	
-		this.selection = new zim.Rectangle(1, 1, selectionColor).alp(0.0).addTo(this);
-		this.textWidthArray = [0];
-		this.previousMeasuredText = "";
-		this.textHeight = null;
-		this.measureText();	
-
+		if (this.stage) this.stage.update();
 	}
-	zim.extend(zim.TextInput.LabelInput, zim.Label, null, "zimLabel", false);
-	//-54.2
+	this.eventPositionGlobalToLocal = function(e) {
+		var point = this.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);		
+		if (align=="right") {
+			point.x -= this.label.x - this.width;
+		} else if (align=="center") {
+			point.x -= (this.label.x - this.width)/2;
+		} else {
+			point.x -= this.label.x; 
+		}
+		point.y -= this.label.y;
+		return point;
+	}
+	this.mapPointToIndex = function(point) {
+		var index = this.textWidthArray.length - 1;
+		for (var i = 0; i < this.textWidthArray.length - 1; i++) {
+			var charMidpoint = (this.textWidthArray[i] + this.textWidthArray[i + 1]) / 2;
+			if (point.x <= charMidpoint) {
+				index = i;
+				break;
+			}
+		}
+		return index;
+	}
+	this.measureText = function() {
+		var dummyLabel = this.label.clone();
+		var tt = this.text;
+		if (rtl) tt = tt.split("").reverse().join("");
+		var i = 0;
+		while (i < tt.length && i < this.previousMeasuredText.length) {
+			if (tt[i] !== this.previousMeasuredText[i]) break;
+			i++;
+		}
+		this.textWidthArray = this.textWidthArray.slice(0, i + 1);
+		for (i++; i <= tt.length; i++) {
+			dummyLabel.text = tt.slice(0, i);
+			this.textWidthArray.push(dummyLabel.getMeasuredWidth())
+		}
+		this.previousMeasuredText = tt;
+		this.textHeight = dummyLabel.getMeasuredLineHeight();
+	}
+	this.setText = function(text) {
+		this.hiddenInput.value = text;
+		this.onInput();
+	}
+	Object.defineProperty(this, 'focus', {
+		get: function() {
+			return document.activeElement === that.hiddenInput
+		},
+		set: function(value) {
+			if (value === true) that.hiddenInput.focus()
+			else that.hiddenInput.blur()
+		}
+	});
+	
+	var frame;
+	this.added(function(stage) {
+		frame = stage.frame;
+		that.hiddenInput.addEventListener("focus", that.onFocus.bind(that));
+		that.hiddenInput.addEventListener("blur", that.onBlur.bind(that));
+	});		
+	this.hiddenInput.addEventListener("input", this.onInput.bind(this));
+	this.hiddenInput.addEventListener("select", this.onSelect.bind(this));
+	this.hiddenInput.addEventListener("keydown", this.onKeydown.bind(this));
+	document.body.appendChild(this.hiddenInput);
+
+	this.on("mousedown", this.onMousedown.bind(this));
+	this.on("pressmove", this.onPressmove.bind(this));
+	this.on("dblclick", this.onDblclick.bind(this));
+
+	this.cursor = "text";
+	this.blinker = new zim.Rectangle(2, 1, blinkerColor).animate({
+		obj: { alpha: 0.0 },
+		wait: blinkerSpeed,
+		time: 0.1,
+		rewind: true,
+		rewindWait: blinkerSpeed,
+		loop: true,
+		loopWait: blinkerSpeed
+	}).pauseAnimate(true).alp(0.0).addTo(this);
+
+	this.selection = new zim.Rectangle(1, 1, selectionColor).alp(0.0).addTo(this);
+	this.textWidthArray = [0];
+	this.previousMeasuredText = "";
+	this.textHeight = null;
+	this.measureText();	
+
+}
+zim.extend(zim.TextInput.LabelInput, zim.Label, null, "zimLabel", false);
+//-54.2   
 	
 
 /*--
@@ -26212,7 +26250,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var originalHeight = height;
 		
 		// handle DIR effect 
-		if ((DIR && DIR=="rtl") || (!DIR && zim.DIR=="rtl")) {
+		if ((W.DIR && W.DIR=="rtl") || (!W.DIR && zim.DIR=="rtl")) {
 			if (align=="start") align="right";
 			else if (align=="end") align="left";
 		} else {
@@ -32770,7 +32808,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				
 		var icons = [];
 	    zim.loop(this.emojiData, function(key) {        
-	        let icon = new zim.Emoji(key, size, monochrome);
+	        var icon = new zim.Emoji(key, size, monochrome);
 	        icons.push(icon);
 	    });
 		
@@ -35215,6 +35253,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (that.testItem(e.target, current.indexOf(e.target))) {
 					e.target.noMouse();
 					e.target.noDrag();
+					that.myDownCheck = false;
 					return;
 				}
 			}
@@ -39317,7 +39356,7 @@ RETURNS obj for chaining
 		z_d("41.5");
 		
 		// handle DIR effect 
-		if ((DIR && DIR=="rtl") || (!DIR && zim.DIR=="rtl")) {
+		if ((W.DIR && W.DIR=="rtl") || (!W.DIR && zim.DIR=="rtl")) {
 			if (horizontal=="start") horizontal="right";
 			else if (horizontal=="end") horizontal="left";
 		} else {
@@ -43698,9 +43737,9 @@ Convenience effects can also be accessed through the multi id:
 Any of the four properties can be removed by setting them to 0 
 	obj.hue = 0;  
 Convenience effects can also ALL be removed together with:
-	obj.effects.noEffect("multi");
+	obj.noEffect("multi");
 The following will NOT remove the convenience effects:
-	obj.effects.noEffect(); // will not remove hue, saturation, brightness and contrast
+	obj.noEffect(); // will not remove hue, saturation, brightness and contrast
 	
 NOTE: Effects are quite processor intensive so use sparingly.
 Each effect processes every pixel - when animating this results in hundreds of thousands of loops.
@@ -48456,8 +48495,8 @@ drag(), animate(), gesture(), transform() and using the Bezier curves, etc. with
 NOTE: to skew and rotate a mask, put the mask in a Container - then skew the mask and rotate the container.
 That works better with skew anyway as rotation of a skewed object changes the skew.
 
-NOTE: a Bitmap can be used for masking using the CreateJS AlphaMaskFilter
-See https://zimjs.com/explore/alphaMask.html and https://zimjs.com/explore/mask.html
+NOTE: a Bitmap can be used for masking using the ZIM AlphaEffect
+See https://zimjs.com/docs.html?item=AlphaEffect
 
 NOTE: the mask you pass in can still be seen but you can set its alpha to 0
 just watch, if you want to interact with the mask it cannot have 0 alpha
@@ -54097,7 +54136,7 @@ lastMarginMin - (default 0) the minimum margin at the bottom (vertical) or at th
 backgroundColor - (default null) background color for the whole holder
 vertical - (default true) set to false for horizontal layout
 showRegions - (default null) show boundaries of regions (formerly regionShape)
-	can toggle on and off with B key - but must pass in the Shape to use the B key
+	can toggle on and off with B key if this is set to true
 scalingObject - (default holder) an object used as the bounds of the region scaling
 	setting a scalingObject will also set the bounds of the holder to the scalingObject bounds
 	it does not scale the holder - only scales the region objects inside
@@ -59452,7 +59491,8 @@ Contact can be tested for with contact() and contactEnd()
 each which receive a callback function that is provided with the other contacting body
 
 BOX2D
-https://box2d.org/documentation
+https://box2d.org/documentation or
+https://www.box2dflash.org/docs/2.0.2/manual
 Box2D has many other features that can be accessed as well.
 Note that the ZIM Physics makes much of this easier
 so start with ZIM and use the Box2D docs and manuals for custom requirements.
@@ -59905,9 +59945,9 @@ var rect = new Rectangle()
 	.center()
 	.effect(new BlurEffect(20, 20));
 timeout(2, function () {
-	rect.effects.noEffect(); 
+	rect.noEffect(); 
 	// // or if other effects to keep use: 
-	// rect.effects.noEffect("blur"); 
+	// rect.noEffect("blur"); 
 	// // or to update effect use:
 	// rect.effects.blur.blurY = 200;
 	// rect.updateEffects();
@@ -60025,9 +60065,9 @@ var rect = new Rectangle()
 	.center()
 	.effect(new GlowEffect({color:pink, blurX:50, blurY:50, knockout:true}));
 timeout(2, function () {
-	rect.effects.noEffect(); 
+	rect.noEffect(); 
 	// // or if other effects to keep use: 
-	// rect.effects.noEffect("glow"); 
+	// rect.noEffect("glow"); 
 	// // or to update effect use:
 	// rect.effects.glow.blurY = 200;
 	// rect.updateEffects();
@@ -60246,7 +60286,7 @@ Makes a drop shadow on a DisplayObject - more customizable than ZIM sha()
 Can be passed in to effect() method to apply effect.
 Properties can be changed and updated and then updateEffects() called.
 Properties can be animated and wiggled.
-Use noEffect("shadow") to remove blur effect.
+Use noEffect("shadow") to remove shadow effect.
 
 SEE: https://zimjs.com/cat/effects.html
 
@@ -60272,7 +60312,7 @@ rect.on("mousedown", function () {
 	stage.update();
 });
 rect.on("pressup", function () {
-	rect.effects.noEffect("shadow"); 
+	rect.noEffect("shadow"); 
 	stage.update();
 });
 END EXAMPLE
@@ -60567,7 +60607,7 @@ to change colors directly including animating color from one color to another wi
 Can be passed in to effect() method to apply effect.
 Properties can be changed and updated and then updateEffects() called.
 Properties can be animated and wiggled.
-Use noEffect("color") to remove blur effect.
+Use noEffect("color") to remove color effect.
 
 SEE: https://zimjs.com/cat/effects.html
 
@@ -60715,9 +60755,9 @@ asset("image.png") // preloaded asset
 	.center()
 	.effect(new MultiEffect(20, -50, -20, 10));
 timeout(2, function () {
-	rect.effects.noEffect(); 
+	rect.noEffect(); 
 	// // or if other effects to keep use: 
-	// rect.effects.noEffect("multi"); 
+	// rect.noEffect("multi"); 
 	// // or to update effect use:
 	// rect.effects.multi.amount = 200;
 	// rect.updateEffects();
@@ -60866,9 +60906,13 @@ This means we can fade the edges of the image!
 Can be passed in to effect() method to apply effect.
 Properties can be changed and updated and then updateEffects() called.
 Properties can be animated and wiggled.
-Use noEffect("blur") to remove blur effect.
+Use noEffect("alpha") to remove alpha effect.
 
-SEE: https://zimjs.com/cat/effects.html
+SEE: 
+https://zimjs.com/explore/alphaeffect.html
+https://zimjs.com/explore/alphaMask.html
+https://zimjs.com/explore/mask.html
+https://zimjs.com/cat/effects.html
 
 NOTE: Effects are quite processor intensive so use sparingly.
 Each effect processes every pixel - when animating this results in hundreds of thousands of loops.
@@ -66017,7 +66061,7 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 			that.calculate = function(normalize) {
 				analyser.getByteFrequencyData(dataArray);
 				var adjustedArray = dataArray.map(operation);
-				if (steps == 1) return adjustedArray;
+				if (steps == 1 && !normalize) return adjustedArray;
 				var array = [];				
 				var tot = 0;
 				for (var i=0; i<=include*zim.SoundWave.bufferLength; i++) {
@@ -66040,8 +66084,7 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 				array[le-1] *= 1.3;
 				array[le-2] *= 1.2;
 				array[le-3] *= 1.1;
-				
-				if (normalize) {
+				if (normalize) {					
 					var normalized = [];
 					count++;
 					if (count>=60*that.adjust) { // assuming 60 fps
