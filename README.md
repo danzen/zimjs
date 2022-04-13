@@ -19,7 +19,7 @@ Coding in ZIM looks like this:
 ```
 new Rectangle(50, 50, green).center().drag(); // for a centered draggable rectangle!
 
-new MotionController(new Emitter(), "mousemove"); // for a particle emitter following the mouse
+new MotionController(new Emitter().center(), "mousemove"); // for a particle emitter following the mouse
 
 const squiggle = new Squiggle().loc(100, 100); // wavy line with Bezier handles
 new Circle(20, pink).addTo().animate({path:squiggle}, 1000); // animate along a squiggle
