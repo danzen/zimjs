@@ -1,0 +1,187 @@
+@font-face {
+  font-family: OpenSans;
+  src: url(assets/OpenSansRegular.ttf);
+}
+@font-face {
+  font-family: Reuben;
+  src: url(assets/Reuben.otf);
+}
+
+html {
+    width:100%;
+}
+body {
+    width:100%;
+    margin:0px;
+    padding:0px;
+    margin-bottom: 0px;
+}
+
+/* ZIM HEADER */
+
+header {
+    margin-top:0px;
+    padding:2vmin -300px 1.5vmin 0px;
+    margin-bottom:0px;
+    position:relative;
+    width:100%;
+    display:inline-block;
+    text-align:center;
+    vertical-align: bottom;
+    background-color:#111;
+    box-shadow:0px 10px 20px rgba(0,0,0,.2)
+}
+header h1 {display:none;}
+
+#zim {
+    width:100%;
+    text-align:center;  
+    margin-bottom:1.5vmin;              
+}
+#zimCanvas {
+    width:100% !important;
+    height:20vmin !important; 
+    max-height:175px;               
+}
+#zimnav {
+    margin-top:0vh;
+    margin-bottom:0vh;
+    text-align:center;
+    color:#ccc;
+    font-size:2.5vmin;
+}
+#zimnav h2 {display:none;}
+#zimnav a {
+    color:#bbb;
+    background-color:#333;
+    font-family: OpenSans;
+    margin:0vw .35vw;
+    /* font-size:20px; */
+    border-radius:0px 1.5vw;
+    font-size:2vmin;
+    padding:.2vw 1.5vw;
+    display:inline-block;
+    text-transform: uppercase;
+    text-decoration:none;
+}
+#zimnav a:hover {
+    background-color:white;
+    color:#333;
+}
+#code2 {
+    color:#50c4b7 !important;
+}
+#docs2 {
+    color:#e472c4 !important;
+}
+.selected {
+    background-color:#ddd;
+    color:#111;
+}
+.selected:hover {
+    background-color:#ddd;
+    color:#111;
+}
+
+#titlebar {
+    display:block;
+    max-width:80%;
+    background-color:#666;
+    background-image: url("../devs/stripes_dark.jpg");
+    padding:.8vmin;
+    margin:4vmin auto 3vmin auto;
+    font-size:36px;
+    border-top:thin solid #2c2c2c;
+    border-bottom:thin solid #2c2c2c;
+    color:#ddd;
+    font-family:Reuben;
+}
+
+
+
+/* ZIM FOOTER */
+
+footer {
+    background-color:#111;
+    position:relative;
+    text-align: center;
+    margin:0px;
+    margin-top:2em;
+    padding-top:2.5em;
+    padding-bottom:0em;
+}
+footer a {
+    background-color:transparent
+}
+footer a:hover {
+    background-color:transparent
+}
+footer #socialmedia {
+    width:100%;
+    text-align:center;
+    margin-bottom:2em;
+}
+footer #socialmedia img {
+    width:8%;
+    max-width:3.5em;
+    margin-bottom:.5em;
+    opacity: .7;
+    filter: alpha(opacity=70);
+}
+footer #socialmedia img:hover {
+    opacity: 1;
+    filter: alpha(opacity=100);
+}
+footer h2 {
+    display:none;
+}
+footer h3 {
+    font-family: OpenSans;
+    font-size:20px;
+    color:#aaa;
+    font-weight:normal;
+    margin-bottom:4vh;
+}
+#zimfooternav {
+    margin-top:0px;
+    margin-bottom:4vh;
+}
+#zimfooternav a {
+    background-color: #ebcb35;
+    border:none;
+    font-family:OpenSans;
+    font-size:2.2vmin;
+    margin:.2vw;
+    padding:.18vw 1.5vw;
+    color:#444;
+    margin-right:.7vw;
+    border-radius:3px;
+    text-transform:uppercase;
+}
+#zimfooternav a:hover {
+    background-color:#acd241;
+    color:#333;
+}
+#footerlogo {
+    margin-top:-1.8em;
+    margin-bottom:.8em;
+    width:14vmin;
+    max-width:125px;
+}
+
+#copy {
+    text-align:center;
+    color:#50c4b7;
+    font-family:OpenSans;
+    background-color:#222;
+    padding:10px;
+    margin:0px -50px;
+    
+}
+#copyyear:before {content:"2022"}
+#copy a {
+    color:#acd241
+}
+#copy a:hover {
+    color:#e472c4
+}

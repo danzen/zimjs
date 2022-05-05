@@ -1,0 +1,217 @@
+body {
+	background-color:#ddd;
+}
+pre {
+	color:#444;
+}
+
+.sub {color:#333}
+.frameSubtitle {background-color:#f9f9f9}
+.displaySubtitle {background-color:#f9f9f9}
+.methodsSubtitle {background-color:#f9f9f9}
+.controlsSubtitle {background-color:#f9f9f9}
+.codeSubtitle {background-color:#f9f9f9}
+.wrapSubtitle {background-color:#f9f9f9}
+.metaSubtitle {background-color:#f9f9f9}
+.gameSubtitle {background-color:#f9f9f9}
+.threeSubtitle {background-color:#f9f9f9}
+.socketSubtitle {background-color:#f9f9f9}
+.pizzazzSubtitle {background-color:#f9f9f9}
+
+.plain {color:#222;}
+
+.info {color:#333; background-color:#eee}
+.heading {color:purple}
+.functionTitle {color:purple}	
+.subheading {color:red}				
+#note {background-color:#ebcb35; color:#333}
+header {background-color:#333}
+#list {
+	background-color:#eee;
+}
+
+.sectionlink {
+	padding:5px;
+	width:200px;
+	font:white;
+	font-size:16px;
+	border:#ddd thin solid;
+	opacity:.8;
+}
+.sectionlink:hover {
+	color:white;
+	border:#555 thin solid;
+	opacity:1;
+}
+#slfram {background-color:#b862a0;}
+#slfram:hover {background-color:#e472c4;}
+
+#sldisp {background-color:#49a096;}
+#sldisp:hover {background-color:#50c4b7;}
+
+#slmeth {background-color:#8eaa3e;}
+#slmeth:hover {background-color:#acd241;}
+
+#slcont {background-color:#b69f32;}
+#slcont:hover {background-color:#e2c332;}
+
+#slcode {background-color:#c57729;}
+#slcode:hover {background-color:#f58e25;}
+
+#slwrap {background-color:#aa8661;}
+#slwrap:hover {background-color:#d1a170;}
+
+#slmeta {background-color:#666666;}
+#slmeta:hover {background-color:#777777;}
+
+#slexte {background-color:#8e3c8e;}
+#slexte:hover {background-color:#993399;}
+
+a.links {
+	font-size:18px !important;
+	color:#666 !important;
+	text-decoration:none !important;
+	background-color:white !important;
+	padding:3px 5px !important;
+	margin:3px 0px !important;
+	display:inline-block;
+}
+a.links:hover {
+	background-color:#555 !important;
+	padding:3px 5px !important;
+	margin:3px 0px !important;
+	font-size:18px !important;
+	color:white !important;
+	text-decoration:none !important;
+	display:inline-block;
+}
+
+/*! Color themes for Google Code Prettify | MIT License | github.com/jmblog/color-themes-for-google-code-prettify */
+pre.prettyprint {	
+	background-color:white;	
+	padding:20px;
+	padding-top:30px;
+	margin-top:10px;
+	margin-left:0px;
+	margin-bottom:0px;
+	display: block;
+	-moz-border-radius: 10px;
+	border-radius: 10px;
+	border:thin dashed #aaa !important;
+	-moz-tab-size: 4;
+		-o-tab-size: 4;
+	tab-size: 4;	
+}
+
+.pln {
+  color: #1b181b;
+}
+
+/* Specify class=linenums on a pre to get line numbering */
+ol.linenums {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: #5a7b8c;
+}
+
+li.L0,
+li.L1,
+li.L2,
+li.L3,
+li.L4,
+li.L5,
+li.L6,
+li.L7,
+li.L8,
+li.L9 {
+  padding-left: 1em;
+  background-color: #f7f3f7;
+  list-style-type: decimal;
+}
+
+@media screen {
+
+  /* string content */
+
+  .str {
+    color: #918b3b;
+  }
+
+  /* keyword */
+
+  .kwd {
+    color: #7b59c0;
+  }
+
+  /* comment */
+
+  .com {
+    color: #5a7b8c;
+  }
+
+  /* type name */
+
+  .typ {
+    color: #516aec;
+  }
+
+  /* literal value */
+
+  .lit {
+    color: #a65926;
+  }
+
+  /* punctuation */
+
+  .pun {
+    color: #1b181b;
+  }
+
+  /* lisp open bracket */
+
+  .opn {
+    color: #1b181b;
+  }
+
+  /* lisp close bracket */
+
+  .clo {
+    color: #1b181b;
+  }
+
+  /* markup tag name */
+
+  .tag {
+    color: #ca402b;
+  }
+
+  /* markup attribute name */
+
+  .atn {
+    color: #a65926;
+  }
+
+  /* markup attribute value */
+
+  .atv {
+    color: #159393;
+  }
+
+  /* declaration */
+
+  .dec {
+    color: #a65926;
+  }
+
+  /* variable name */
+
+  .var {
+    color: #ca402b;
+  }
+
+  /* function name */
+
+  .fun {
+    color: #516aec;
+  }
+}
