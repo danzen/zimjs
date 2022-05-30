@@ -4596,9 +4596,9 @@ RETURNS a positive Number that is the angle between first and second point relat
 
 
 /*--
-TAU, DEG, RAD
+TAU, DEG, RAD, PHI
 
-TAU, DEG, RAD
+TAU, DEG, RAD, PHI
 zim constants
 
 DESCRIPTION
@@ -4607,7 +4607,7 @@ If working in radians, TAU is equal to 2 radians (360).
 This allows easy visualization of angles - TAU/2 is 180, TAU/4 is 90, etc.
 DEG is 180/Math.PI so you multiply a radian value by DEG to get degrees.
 RAD is Math.PI/180 so you multiply a degree value by RAD to get radians.
-
+PHI is the golden ratio or Math.pow(5,.5)*.5+.5 or 1.6180339887…
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -4623,6 +4623,7 @@ END EXAMPLE
 	zim.TAU = Math.PI * 2;
 	zim.DEG = 180/Math.PI;
 	zim.RAD = Math.PI/180;
+	zim.PHI = Math.pow(5,.5)*.5+.5;
 	//-83.6
 
 /*--
@@ -7021,6 +7022,55 @@ RETURNS a Number
 		// pay attention to swapRotation from Frame
 		return (W.zdf && W.zdf.swapRotation)?w:h;
 	};//-22
+	
+/*--
+zim.browserZoom = function()
+
+browserZoom
+zim function
+
+DESCRIPTION
+Returns the browser zoom relative to starting zoom.
+For example, will return 2 if zoomed twice as big as starting zoom
+and will return .5 is zoomed half as big as starting zoom.
+Note: this always returns 1 at the start regardless of the starting browser zoom.
+
+This is changed by CTRL+, CTRL-, CTRL scroll wheel or the zoom menu, etc.
+It is really just comparing the difference of the devicePixelRatio.
+The function is used internally by ZIM Tag(), TextArea() and Loader().
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+Ticker.add(()=>{
+	zog(browserZoom()); // 1 at start then changes depending on browser zoom
+});
+END EXAMPLE
+
+RETURNS a Number
+--*///+22.2
+	zim.browserZoom = function() {			
+		if (!zim.zimBZ) {
+			z_d("22.2"); 
+			zim.zimBZ=true;
+			if (typeof frame == "undefined") {
+				if (W.zdf) {
+					var frame = W.zdf;
+				} else {
+					zim.zimBZA = 1;
+					return 1;
+				}
+			}
+			if (frame.retina) zim.zimBZ1 = W.devicePixelRatio || 1;
+			else {
+				zim.zimBZA = 1;
+				return 1;
+			}
+		} else {
+			if (!zot(zim.zimBZA)) return zim.zimBZA;
+			return zim.decimals((W.devicePixelRatio||1)/zim.zimBZ1,2);
+		}
+	};//-22.2
 
 /*--
 zim.getQueryString = function(string)
@@ -8735,8 +8785,9 @@ zim.Bitmap = function(image, width, height, left, top, scale, id, style, group, 
 	if (zot(height)) height = DS.height!=null?DS.height:image?image.height:100;
 	if (zot(left)) left = DS.left!=null?DS.left:0;
 	if (zot(top)) top = DS.top!=null?DS.top:0;
-	
+		
 	var displayCheck = false;
+	var imageOriginal = image;
 	if (!zot(image)) {
 		if (image.uncache) { // testing if it has a CreateJS uncache method
 			displayCheck = true;
@@ -8764,7 +8815,7 @@ zim.Bitmap = function(image, width, height, left, top, scale, id, style, group, 
 			c.setAttribute("width", width);
 			c.setAttribute("height", height);
 			that.proxyContext = c.getContext('2d');
-			image = that.image = c;
+			image = imageOriginal = that.image = c;
 		}
 		if (that.proxyContext) {
 			that.proxyContext.putImageData(that.imageData, x, y, sourceX, sourceY, sourceWidth, sourceHeight);
@@ -8782,7 +8833,7 @@ zim.Bitmap = function(image, width, height, left, top, scale, id, style, group, 
 		if (zot(image)) that.drawImageData();
 
 		// handle delay when creating Bitmap from data
-		if (image.match && image.match(/data:image/i)) setTimeout(function() {
+		if (image && image.match && image.match(/data:image/i)) setTimeout(function() {
 			if (that.stage) that.stage.update();
 			setTimeout(function() {
 				if (that.stage) that.stage.update();
@@ -8820,8 +8871,8 @@ zim.Bitmap = function(image, width, height, left, top, scale, id, style, group, 
 		return this;
 	};
 		
-	this.clone = function() {
-		var c = this.cloneProps(new zim.Bitmap(image, width, height, left, top, scale, that.fileID, style, this.group, inherit));
+	this.clone = function() {		
+		var c = this.cloneProps(new zim.Bitmap(imageOriginal, width, height, left, top, scale, that.fileID, style, this.group, inherit));
 		c.cloned = true;
 		return c;
 	};
@@ -9250,7 +9301,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			// or that the images in the JSON are available in frame.assets
 			frames = json.frames;
 			animations = json.animations;
-			if (!zot(image)) {
+			if (!zot(image)) {				
 				makeSheet(image, frames, animations);
 			} else {
 				var im = json.images?json.images[0]:null;
@@ -9260,10 +9311,10 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					var assets = [];
 					zim.loop(json.images, function(im) {
 						var imEnd = im.split("/").pop();
-						if (frame.asset(im) && frame.asset(im).type != "EmptyAsset") {
-							assets.push(frame.asset(im));
-						} else if (frame.asset(imEnd) && frame.asset(imEnd).type != "EmptyAsset") {
+						if (frame.asset(imEnd) && frame.asset(imEnd).type != "EmptyAsset") {
 							assets.push(frame.asset(imEnd));
+						} else if (frame.asset(im) && frame.asset(im).type != "EmptyAsset") {
+							assets.push(frame.asset(im));
 						} else if (frame.asset(im).type != "EmptyAsset") {
 							assets.push(frame.asset(im));
 						} else {
@@ -11631,7 +11682,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
     var order = [lines.indexOf(a), lines.indexOf(b), lines.indexOf(c)];
 
     if (aa > bb+cc) {
-        zog("zim display - Triangle(): invalid triangle lengths");
+        zogy("zim display - Triangle(): invalid triangle lengths");
         return;
     }
 
@@ -12761,11 +12812,11 @@ changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, upd
 	passing in null as the index will change all points to the specified properties
 	the update parameter defaults to false so set to true to show update or call update() below
 	this is so multiple changes can be batched before calling update - for instance when animating blobs.
-transformPoints(transformType, amount, x, y) - scale, rotate, move points without affecting controls or borderWidth - returns object for chaining
-	Note - does not adjust original Bounds
+transformPoints(transformType, amount, x, y, approximateBounds) - scale, rotate, move points without affecting controls or borderWidth - returns object for chaining	
 	transformType - String any of: "scale", "scaleX", "scaleY", "rotation", "x", "y"
 	amount - the amount to transform
 	x, y - (default 0, 0) the x and y position to transform about
+	approximateBounds defaults to true - set to false to not call approximateBounds after transforming points
 reversePoints() - reverse the order of the points
 	this also swaps each rectangle in the Bezier controls 
 	also see the Code module for reversePoint(points) function to operate on data points in Squiggle format 	
@@ -13470,8 +13521,10 @@ Note the points property has been split into points and pointObjects (and there 
 				}
 			};
 
-			that.transformPoints = function(transformType, amount, x, y) {
+			that.transformPoints = function(transformType, amount, x, y, approximateBounds) {
+				if (zot(approximateBounds)) approximateBounds = true;
 				that.points = zim.transformPoints(that.points, transformType, amount, x, y);
+				if (approximateBounds) that.approximateBounds();
 				return that;
 			};
 
@@ -14776,11 +14829,11 @@ changeControl(index, type, rect1X, rect1Y, rect2X, rect2Y, circleX, circleY, upd
 	passing in null as the index will change all points to the specified properties
 	the update parameter defaults to false so set to true to show update or call update() below
 	this is so multiple changes can be batched before calling update - for instance when animating blobs.
-transformPoints(transformType, amount, x, y) - scale, rotate, move points without affecting controls or borderWidth - returns object for chaining
-	Note - does not adjust original Bounds
+transformPoints(transformType, amount, x, y, approximateBounds) - scale, rotate, move points without affecting controls or borderWidth - returns object for chaining
 	transformType - String any of: "scale", "scaleX", "scaleY", "rotation", "x", "y"
 	amount - the amount to transform
 	x, y - (default 0, 0) the x and y position to transform about
+	approximateBounds defaults to true - set to false to not call approximateBounds after transforming points
 reversePoints(sameStart) - reverse the order of the points
 	sameStart defaults to true and will keep the start point the same 
 	set to false to make the last point before the start point, the start point
@@ -15493,9 +15546,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				return that;
 			};
-
-			that.transformPoints = function(transformType, amount, x, y) {
+			
+			that.transformPoints = function(transformType, amount, x, y, approximateBounds) {
+				if (zot(approximateBounds)) approximateBounds = true;
 				that.points = zim.transformPoints(that.points, transformType, amount, x, y);
+				if (approximateBounds) that.approximateBounds();
 				return that;
 			};
 
@@ -25783,7 +25838,8 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	if (inputType == "number") {
 		this.hiddenInput.pattern = "[^(0-9).\-+*/%$]*";
 		this.hiddenInput.inputmode = "numeric";
-	}		
+	}	
+	
 	if (maxLength > 0) this.hiddenInput.maxLength = maxLength;
 	this.hiddenInput.autocapitalize = "off";
 	this.hiddenInput.autocorrect = "off";
@@ -25791,6 +25847,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	this.hiddenInput.spellcheck = false;
 	this.hiddenInput.style.position = "absolute";
 	this.hiddenInput.style.overflow = "hidden";
+	this.hiddenInput.style.touchAction = "none";
 	
 	// this.hiddenInput.style.left = "100px";
 	// this.hiddenInput.style.top = "100px";
@@ -33567,9 +33624,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(fontListHeight)) fontListHeight = DS.fontListHeight!=null?DS.fontListHeight:100;
 		if (zot(fontListViewNum)) fontListViewNum = DS.fontListViewNum!=null?DS.fontListViewNum:3;
 		
-		if (zot(frame)) {
+		if (typeof frame == "undefined") {
 			if (W.zdf) {
-				frame = W.zdf;
+				var frame = W.zdf;
 			} else {
 				if (zon) {zogy("zim.TextEditor - please provide a reference to zim Frame");} return;
 			}
@@ -37828,9 +37885,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			backing:"ignore", shadowColor:"ignore", shadowBlur:"ignore", backgroundColor:"ignore",
 			group:this.group
 		});
-		if (zot(frame)) {
+		if (typeof frame == "undefined") {
 			if (W.zdf) {
-				frame = W.zdf;
+				var frame = W.zdf;
 			} else {
 				if (zon) {zogy("zim.Loader - please provide a reference to zim Frame");} return;
 			}
@@ -37844,7 +37901,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		label = that.label;
 
 		var uploadTag = that.tag = document.createElement("input");
-		document.body.appendChild(uploadTag);
+		if (frame.tag) {
+			frame.tag.appendChild(uploadTag);
+		} else {
+			document.body.appendChild(uploadTag);
+		}
 		uploadTag.setAttribute("type", "file");
 		uploadTag.setAttribute("aria-hidden", true);
 		if (multiple) uploadTag.setAttribute("multiple", "multiple");
@@ -37884,10 +37945,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				var displayProps = that.getConcatenatedMatrix().decompose();
 				var point = that.localToGlobal(0, 0);
 				if (frame.retina) {
-					upload.x = frame.x/stage.scaleX + point.x/pRatio;
-					upload.y = frame.y/stage.scaleY + point.y/pRatio;
+					var sc = zim.browserZoom();					
+					if (frame.tag) {
+						upload.x = point.x/pRatio/sc;
+						upload.y = point.y/pRatio/sc;
+					} else {
+						upload.x = frame.x/stage.scaleX + point.x/pRatio/sc;
+						upload.y = frame.y/stage.scaleY + point.y/pRatio/sc;
+					}					
 					// CreateJS DOMElement is scaling tag as stage scales
-					zim.sca(upload, displayProps.scaleX/pRatio/stage.scaleX, displayProps.scaleY/pRatio/stage.scaleY);
+					zim.sca(upload, displayProps.scaleX/pRatio/stage.scaleX/sc, displayProps.scaleY/pRatio/stage.scaleY/sc);
 				} else {
 					upload.x = frame.x + point.x * frame.scale;
 					upload.y = frame.y + point.y * frame.scale;
@@ -38332,9 +38399,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.maxLength = maxLength;
 		if (zot(expand)) expand = DS.expand!=null?DS.expand:20;
 		if (expand === true) expand = 20;
-		if (zot(frame)) {
+		if (typeof frame == "undefined") {
 			if (W.zdf) {
-				frame = W.zdf;
+				var frame = W.zdf;
 			} else {
 				if (zon) {zogy("zim.TextArea - please provide a reference to zim Frame");} return;
 			}
@@ -38413,15 +38480,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				var displayProps = that.getConcatenatedMatrix().decompose();
 				var point = that.localToGlobal(padding, padding);
 				if (frame.retina) {
+					var sc = zim.browserZoom();					
 					if (frame.tag) {
-						textarea.x = point.x/pRatio;
-						textarea.y = point.y/pRatio;
+						textarea.x = point.x/pRatio/sc;
+						textarea.y = point.y/pRatio/sc;
 					} else {
-						textarea.x = frame.x/stage.scaleX + point.x/pRatio;
-						textarea.y = frame.y/stage.scaleY + point.y/pRatio;
+						textarea.x = frame.x/stage.scaleX + point.x/pRatio/sc;
+						textarea.y = frame.y/stage.scaleY + point.y/pRatio/sc;
 					}					
 					// CreateJS DOMElement is scaling tag as stage scales
-					zim.sca(textarea, displayProps.scaleX/pRatio/stage.scaleX, displayProps.scaleY/pRatio/stage.scaleY);
+					zim.sca(textarea, displayProps.scaleX/pRatio/stage.scaleX/sc, displayProps.scaleY/pRatio/stage.scaleY/sc);
 				} else {
 					if (frame.tag) {
 						textarea.x = point.x * frame.scale;
@@ -38558,7 +38626,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	zim.extend(zim.TextArea, zim.Container, ["clone", "dispose"], "zimContainer", false);
 	//-67.6
 
-//
 /*--
 zim.Tag = function(width, height, id, frame, backgroundColor, padding, paddingHorizontal, paddingVertical, expand, style, group, inherit)
 
@@ -38658,11 +38725,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(width)) width = DS.width!=null?DS.width:250;
 		if (zot(height)) height = DS.height!=null?DS.height:70;
 		if (zot(id)) id = DS.id!=null?DS.id:"zimTag_" + zim.rand(10000);
-		if (zot(frame)) {
+		if (typeof frame == "undefined") {
 			if (W.zdf) {
-				frame = W.zdf;
+				var frame = W.zdf;
 			} else {
-				if (zon) {zogy("zim.TextArea - please provide a reference to zim Frame");} return;
+				if (zon) {zogy("zim.Tag - please provide a reference to zim Frame");} return;
 			}
 		}
 		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:"rgba(0,0,0,0)";
@@ -38671,7 +38738,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(paddingVertical)) paddingVertical = DS.paddingVertical!=null?DS.paddingVertical:padding;
 		if (zot(expand)) expand = DS.expand!=null?DS.expand:20;
 		if (expand === true) expand = 20;
-
+		
 		this.zimContainer_constructor(width, height, null, null, false);
 		this.type = "Tag";
 		this.tagID = id;
@@ -38681,29 +38748,42 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		that.background = new zim.Rectangle(width+paddingHorizontal, height+paddingVertical, backgroundColor).center(this).expand(expand?expand:0);
 
-		var tag = that.tag = document.createElement("div");
-		document.body.appendChild(tag);
+		var tag = that.tag = document.createElement("div");		
+		if (frame.tag) {
+			frame.tag.appendChild(tag);
+		} else {
+			document.body.appendChild(tag);
+		}	
+			
 		tag.setAttribute("id", id);
 		tag.setAttribute("name", id);
 
-		tag.zimDisplay = tag.style.display || "inline-block";
+		tag.zimDisplay = tag.style.display || "inline-block";		
 		tag.style.cssText = "resize:none; z-index:3; width:" + width + "px; height:" + height + "px; overflow:hidden; outline:none;"
 			+ "position:absolute; left:0px; top:0px; display:none;";
+		
 		var cjsTag = new createjs.DOMElement(tag);
 		cjsTag.alpha = 0;
-
+		
 		var pRatio = frame.retina?(W.devicePixelRatio || 1):1;
 		var time1;
 		var time2;
+			
 		this.resize = function() {
 			time1 = setTimeout(function() {
 				var displayProps = that.getConcatenatedMatrix().decompose();
 				var point = that.localToGlobal(0, 0);
-				if (frame.retina) {
-					cjsTag.x = frame.x/stage.scaleX + point.x/pRatio;
-					cjsTag.y = frame.y/stage.scaleY + point.y/pRatio;
+				if (frame.retina) {					
+					var sc = zim.browserZoom();					
+					if (frame.tag) {
+						cjsTag.x = point.x/pRatio/sc;
+						cjsTag.y = point.y/pRatio/sc;
+					} else {
+						cjsTag.x = frame.x/stage.scaleX + point.x/pRatio/sc;
+						cjsTag.y = frame.y/stage.scaleY + point.y/pRatio/sc;
+					}															
 					// CreateJS DOMElement is scaling tag as stage scales
-					zim.sca(cjsTag, displayProps.scaleX/pRatio/stage.scaleX, displayProps.scaleY/pRatio/stage.scaleY);
+					zim.sca(cjsTag, displayProps.scaleX/pRatio/stage.scaleX/sc, displayProps.scaleY/pRatio/stage.scaleY/sc);
 				} else {
 					cjsTag.x = frame.x + point.x * frame.scale;
 					cjsTag.y = frame.y + point.y * frame.scale;
@@ -38718,7 +38798,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		that.added(addedCallback);		
 		function addedCallback() {
 			stage.addChild(cjsTag);
-			time2 = setTimeout(function() {tag.style.display = tag.zimDisplay;}, 50);
+			time2 = setTimeout(function() {
+				tag.style.display = tag.zimDisplay;
+			}, 50);
 			that.resize();
 			that.on("added", addedCallback, null, true); // once
 		}
@@ -38782,7 +38864,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (tag && tag.parentNode) {
 				tag.parentNode.removeChild(tag);
 			}
-			tag = null;
+			tag = null;			
 			// if we are not coming from a container
 			// then call container's dispose
 			// let the container's dispose know
@@ -55487,7 +55569,7 @@ Dispatches a "change" event when the screen reader is about to talk
 			if (AHObject.mouseEnabled) AHObject.mouseEnabled = false;
 		}
 
-		if (zot(frame)) frame = W.zdf;
+		if (typeof frame == "undefined") var frame = W.zdf;
 		if (zot(frame)) {
 			if (zon) zogy("Accessibility - needs a Frame");
 			return;
@@ -60383,7 +60465,7 @@ PROPERTIES - FOR OBJECTS - see also BODY PROPERTIES below
 dynamic - set to true for dynamic and false for static
 	there is also kinematic that can be set using the obj.body.SetType(1)
 speed - get or set the speed of an object that is controlled by control()
-speed - get or set the speedY of an object that is controlled by control()
+speedY - get or set the speedY of an object that is controlled by control()
 ** normal x, y, rotation or pos(), loc(), rot() will not work with physics!
 ** see the BODY PROPERTIES below for x, y and rotation
 ** these should really not be set at all in the physics world
@@ -63151,6 +63233,8 @@ baseSpeed - the scroller speed when it was first made (or can override)
 percentSpeed - get or set the percentage of the baseSpeed - eg. 100 is at the baseSpeed
 	this allows you to animate multiple scrollers relative to one another
 	See ScrollerManager class
+percentComplete - get or set the percentage the scroller has moved 
+	the percentage is the distance/width*100 for horizontal or distance/height*100 for vertical
 direction - 0 for no direction, either left (-1) or right (1) if horizontal or up (-1) or down (1) if not horizontal
 paused - read only - true if paused and false if not - must be set with pause() method
 
@@ -63172,7 +63256,7 @@ Dispatches a "pause" event when paused is complete (sometimes a delay to slow to
 
 		var b1 = this.backing1 = backing;
 		if (zot(b1) || !b1.getBounds) return;
-		var b2 = this.backing2 = backing.clone();
+		var b2 = this.backing2 = backing.clone(true);
 		if (zot(horizontal)) horizontal = DS.horizontal!=null?DS.horizontal:true;
 		if (zot(gapFix)) gapFix = DS.gapFix!=null?DS.gapFix:0;
 		if (zot(container)) container = DS.container!=null?DS.container:null;
@@ -63187,7 +63271,6 @@ Dispatches a "pause" event when paused is complete (sometimes a delay to slow to
 		if (zot(direction)) direction = DS.direction!=null?DS.direction:1;
 		this.direction = direction;
 		var scale = horizontal ? b1.scaleX : b1.scaleY;
-
 
 		if (b1.type == "AC") {
 			zogy("ZIM Scroller(): please provide Pic() with dimensions for backing objects");
@@ -63330,6 +63413,28 @@ Dispatches a "pause" event when paused is complete (sometimes a delay to slow to
 			},
 			set: function(percent) {
 				that.speed = that.baseSpeed * percent / 100;
+			}
+		});
+		
+		Object.defineProperty(that, 'percentComplete', {
+			get: function() {		
+				if (horizontal) {
+					if (b1.x < 0 && b1.x > b2.x) return -b1.x/b1.width*100;							
+					else return (-b2.x/b2.width*100+1000000000)%100;	
+				} else {
+					if (b1.y < 0 && b1.y > b2.y) return -b1.y/b1.height*100;		
+					else return (-b2.y/b2.height*100+1000000000)%100;	
+				}
+			},
+			set: function(percent) {			
+				percent = (percent+1000000000)%100;
+				if (horizontal) {
+					b1.x = -percent*b1.width/100;
+					b2.x = b1.x+w;
+				} else {
+					b1.y = -percent*b1.height/100;
+					b2.y = b1.y+h;
+				}
 			}
 		});
 
@@ -63531,7 +63636,7 @@ dispatches a "pause" event when the Dynamo is paused - could be delayed
 			if (zot(time)) time = 0;
 			if (state) {
 				lastSpeed = that.speed;
-				if (zot(frame)) {					
+				if (typeof frame == "undefined") {					
 					if (time > 0) {
 						pausing = true;
 						zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, time:time, call:function() {
@@ -66018,7 +66123,7 @@ undo - (default 0) number of undo levels for example 30
 	undo will be automatically recorded when each drawing stops
 	undo will also be recorded if dragging a segment(s) with SHIFT or CTRL SHIFT or deleting a segment with delete()
 undoKeys - (default true - if undo is > 0) use CTRL Z for undo and CTRL Y or CTRL SHIFT Z for redo - set to false to handle manually
-draggable - (default true) set to false to not be able to drag segments or SHIFT drag all
+move - (default true) set to false to not be able to drag segments or SHIFT drag all
 onTop - (default true) - when dragging, does the selected line come to the top in the current paper
 deleteable - (default true) - set to false to not be able to delete segments with CTRL click or all segments with CTRL SHIFT click
 doubleClickDelete - (default true) - set to false to not use dblclick to delete segment
@@ -69373,7 +69478,7 @@ outerColor - (default null) the body color of the HTML page - null will not adju
 assets - (default null) - 1. a string asset or 2. an array of assets, 3. ZIM asset object, 4. ZIM multi-asset object
 	1. "logo.png"
 	2. ["logo.png", "bounce.mp3"]
-	3. {id:"string", src:"logo.png", path:"assets/", loadTimeout:2000, noCORSonImage:true}
+	3. {id:"string", src:"logo.png", path:"assets/", loadTimeout:2, noCORSonImage:true}
 	4. [{assets:["one.png", "two.png"], path:"images/"}, {assets:["big.mp3", "oof.mp3"], path:"sounds/"}]
 	** see the loadAssets() method for details - including more file types, etc.
 	NOTE: "complete", "progress" and "fileLoaded" events are not dispatched
@@ -70481,7 +70586,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			
 			for (i=0; i<assets.length; i++) {
 				a = assets[i];
-											
+															
 				// split multi into individual ZIM asset objects and make a the first of these
 				if (a.assets) {
 					var assetMulti = [];
@@ -70610,7 +70715,6 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			queue.isLoading = true;
 			queue.loadAssetsCount = 0;
 
-
             if (!zot(progress) && progress.show) {
 				progress.zimActiveLoader = queue;
                 progress.show();
@@ -70697,7 +70801,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					// so check for rawResult - should really fix this in CreateJS
 					if (!e.result || ((e.result.nodeName=="IMG" || e.result.nodeName=="SVG") && !e.rawResult)) {						var ev = new createjs.Event("error");
 						ev = new createjs.Event("error");
-						ev.item = e.item; // createjs preload item
+						ev.item = e.item; // createjs preload item						
 						ev.id = e.item.id;
 						queue.dispatchEvent(ev);	
 						// seem to have to make the event twice
@@ -70705,7 +70809,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 						ev.item = e.item; 
 						ev.id = e.item.id;				
 						that.dispatchEvent(ev);	
-					} else {			
+					} else {		
 						var item = e.item;
 						var type = e.item.type;
 						var ext = item.id.match(re);
@@ -70719,7 +70823,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 							} else {
 								soundIDs.push(item.id);
 							}
-							for (i=0; i<soundIDs.length; i++) {
+							for (i=0; i<soundIDs.length; i++) {								
 								~function() { // wrap soundID in a closure
 									var soundID = soundIDs[i];
 									asset = zim.assets[soundID] = {
@@ -70834,7 +70938,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			n = zik(n);			
 			var fromID = zim.assetIDs[n];
 			if (fromID) n = fromID;
-
+			
 			// getting {type:"sound", path:"assets/", id:732}
 			// want    {type:"sound", path:"assets/", id:"bird.mp3"}
 			
@@ -70844,7 +70948,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 			// now check auto load assets or broken if second
 			
 			if (W.PATH!=null) zim.PATH = W.PATH;
-
+						
 			if (second) {
 				var empty;
 				if (that.loadFailObj == "circles") empty = that.makeCircles(14);
@@ -70905,7 +71009,7 @@ NOTE: if loadAssets() queueOnly parameter is true, then only the queue receives 
 					var parts = n.split(".");
 					var i;
 					if (createjs.Sound.SUPPORTED_EXTENSIONS.indexOf(parts[parts.length-1]) >= 0) {	
-					// if (loaded.play) {
+					// if (loaded.play) {				
 						assetHolder.play = loaded.play;
 						assetHolder.type = "Sound";						
 						if (assetHolder.playParams) {							
@@ -71467,7 +71571,7 @@ zim class - extends a zim.Container which extends a createjs.Container
 DESCRIPTION
 Use Pic() to show an image. 
 There may be a security error when loading images locally for any Canvas app.
-Please read https://zimjs.com/tips.html?IMAGES for easy solutions.
+Please read https://zimjs.com/tips.html#IMAGES for easy solutions.
 
 Before ZIM version ZIM 00, asset() or frame.asset() was used to show images.
 These can still be used if desired. The Pic() class just wraps the asset() call.
@@ -71726,7 +71830,7 @@ DESCRIPTION
 Use Aud() to play a sound with its play() method. 
 The app must be interacted with before a sound can be played. 
 There may be a security error when loading sounds locally for any Canvas app.
-Please read https://zimjs.com/tips.html?SOUNDS for easy solutions.
+Please read https://zimjs.com/tips.html#SOUND for easy solutions.
 
 Multiple instances of a sound can be played from the same Aud() object.
 When a sound is played it returns an object that can be used to change that specific instance.
@@ -71758,6 +71862,9 @@ that the user clicks or taps before a background sound can be played.
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE 
+// There may be a security error when loading sounds locally for any Canvas app.
+// Please read https://zimjs.com/tips.html#SOUND for easy solutions.
+
 const click = new Aud("click.mp3");  // lazy-load a click sound
 stage.on("stagemousedown", ()=>{
 	click.play(); // plays everytime the stage is clicked (sigh)
@@ -72019,7 +72126,7 @@ DESCRIPTION
 Use Vid() to show a video. Use the play() method to start the video when loaded.
 The user must interact with the app before play() will work.
 There may be a security error when loading video locally for any Canvas app.
-Please read https://zimjs.com/tips.html?VIDEO for easy solutions.
+Please read https://zimjs.com/tips.html#VIDEO for easy solutions.
 
 Vid will add an HTML 5 video and source tag in behind the scene 
 and pipe the video into a ZIM Bitmap which is shown in the Vid container.
@@ -72057,7 +72164,7 @@ video.on("ready", ()=>{
 	// video.keyOut("#01b03f", .2);  // optional keyOut a green color    
 	// do not play the video until we interact with the app    
 	const pane = new Pane(600,200,"VIDEO ON CANVAS!").show(()=>{
-		// show(callback) - this (the callback) runs when the pane is closed 
+		// this (the callback) runs when the pane is closed 
 		video.play();
 	});
 });    
@@ -72085,7 +72192,7 @@ width - (default null) optionally predict the width of the video for placement b
 	or width, widthOnly, height, heightOnly, scale, scaleX and scaleY properties.
 height - (default null) optionally predict the height of the Vid (see width for similar details)
 volume - (default 1) the volume of the video - also see the volume property
-loop - (default false) set to true to loop the video
+loop - (default true - although intended this to be false so will be false in next version) set to true to loop the video
 type - (default "video/mp4") the mime type or codec of the video
 	see https://developer.mozilla.org/en-US/docs/Web/Media/Formats/codecs_parameter
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
@@ -72171,11 +72278,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		source.style.display = "none";
 		source.setAttribute("autoplay", "autoplay");
 		source.setAttribute("playsinline", "playsinline");
+		source.setAttribute("crossorigin", "anonymous");
 		if (loop) source.setAttribute("loop", "loop");
 		var innerSource = that.innerSource = document.createElement("source");
 		if (file.split("?").length==1) file += "?playsinline=1";
 		innerSource.setAttribute("src", added + file);
-		innerSource.setAttribute("type", type);
+		innerSource.setAttribute("type", type);		
 		source.appendChild(innerSource);
 
 		getVideo();
@@ -72341,7 +72449,7 @@ new SVG("file.svg").center().drag();
 END EXAMPLE 
 
 EXAMPLE 
-// assuming there is an SVG tag on the page - could be display:hidden
+// assuming there is an SVG tag on the page - could be display:none
 new SVG(zid("svgTagID")).center().drag();
 END EXAMPLE
 
@@ -73238,9 +73346,9 @@ RETURNS - a ZIM Tab which is automatically added to the frame's stage
 
 		if (zot(audioSpriteData)) return;
 		if (zot(numLetters)) numLetters = 3;
-		if (zot(frame)) {
+		if (typeof frame == "undefined") {
 			if (zot(W.zdf)) return;
-			frame = W.zdf;
+			var frame = W.zdf;
 		}
 		var stageW = frame.width;
 
@@ -76345,31 +76453,32 @@ END EXAMPLE
 
 EXAMPLE 
 // keyOut a web cam - see https://zimjs.com/zim/camkey.html
+// for two colors keyed out - see https://zimjs.com/zim/camkey2.html
 // Apple still makes us interact with the canvas before showing video (sigh)
 // so use CamAsk widget that has a callback on show() which is true for yes and false for no    
 const ask = new CamAsk().show(yes => {
-            
-    // if the user answers yes to the CamAsk
-    if (yes) {   
-        const cam = new Cam().scaleTo().center();
-        cam.on("ready", ()=>{   
-            const picker = new ColorPicker({
-                tolerancePicker:true,              
-                spectrumOk:false,
-                spectrumClose:false,
-                dropperTarget:cam,
-                collapsed:true
-            }).show().pos(100,100,RIGHT).change(() => {
-                cam.keyOut(picker.selectedColor, picker.selectedTolerance);
-            });   
+
+	// if the user answers yes to the CamAsk
+	if (yes) {   
+		const cam = new Cam().scaleTo().center();
+		cam.on("ready", ()=>{   
+			const picker = new ColorPicker({
+				tolerancePicker:true,              
+				spectrumOk:false,
+				spectrumClose:false,
+				dropperTarget:cam,
+				collapsed:true
+			}).show().pos(100,100,RIGHT).change(() => {
+				cam.keyOut(picker.selectedColor, picker.selectedTolerance);
+			});   
 			// keying will pause the cam so start with picker collapsed             
-            const label = new Label("Expand to pick color to keyout",20,null,light).pos(20,0,LEFT,CENTER,picker.bar);
-            picker.on("expanded", ()=>{
-                label.removeFrom();
-                stage.update();
-            });
-        });      
-    }        
+			const label = new Label("Expand to pick color to keyout",20,null,light).pos(20,0,LEFT,CENTER,picker.bar);
+			picker.on("expanded", ()=>{
+				label.removeFrom();
+				stage.update();
+			});
+		});      
+	}        
 });
 END EXAMPLE
 
