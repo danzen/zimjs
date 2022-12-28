@@ -1,5 +1,6 @@
 # ZIM 
 ![npm](https://img.shields.io/npm/v/zimjs.svg) ![GitHub](https://img.shields.io/badge/license-MIT-green.svg)
+[![Discord](https://img.shields.io/discord/782972112646307881)](https://discord.com/invite/KczUuFkZdk)
 
 JavaScript Canvas Framework - Code Creativity!<br>
 https://zimjs.com
