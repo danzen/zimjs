@@ -23,7 +23,7 @@ new Rectangle(50, 50, green).center().drag(); // for a centered draggable rectan
 new MotionController(new Emitter().center(), "mousemove"); // for a particle emitter following the mouse
 
 const squiggle = new Squiggle().loc(100, 100); // wavy line with Bezier handles
-new Circle(20, pink).addTo().animate({path:squiggle}, 1000); // animate along a squiggle
+new Circle(20, pink).addTo().animate({path:squiggle}, 1); // animate along a squiggle
 
 new Button(200, 70, "TRY ME")
   .pos(30,30,RIGHT,BOTTOM) 
