@@ -37,7 +37,7 @@ Copy the template on the Code page into an editor like Atom and view results in 
 https://zimjs.com/code.html<br>
 https://zimjs.com/es6.html for ES6 Modules
 
-ZIM EDITOR - an online editor with lots of examples, file saving and sharing
+ZIM EDITOR - an online editor with lots of examples, file saving and sharing<br>
 https://zimjs.com/editor
 
 ZIM INTRO - sample code with comments<br>
