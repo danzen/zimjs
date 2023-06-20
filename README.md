@@ -80,8 +80,11 @@ https://zimjs.com/typescript.html
 ## Issues & Community
 You are welcome to add issues here but we tend to use Slack at for issues and support<br>
 We would love to see you there!<br>
-https://zimjs.com/slack 
-
+https://zimjs.com/slack<br> 
+<br>
+You are welcome to join us on Discord as well<br>
+https://zimjs.com/discord<br>
+<br>
 An easy view of updates can be found here:<br>
 https://zimjs.com/updates.html
 
