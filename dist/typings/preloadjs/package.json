@@ -1,0 +1,48 @@
+{
+  "_from": "@types/preloadjs",
+  "_id": "@types/preloadjs@0.6.32",
+  "_inBundle": false,
+  "_integrity": "sha1-Es/3x/kuODingNQ4zknIzsmBgw0=",
+  "_location": "/@types/preloadjs",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "@types/preloadjs",
+    "name": "@types/preloadjs",
+    "escapedName": "@types%2fpreloadjs",
+    "scope": "@types",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/@types/preloadjs/-/preloadjs-0.6.32.tgz",
+  "_shasum": "12cff7c7f92e3838a780d438ce49c8cec981830d",
+  "_spec": "@types/preloadjs",
+  "_where": "C:\\Users\\danzen",
+  "author": {
+    "name": "Pedro Ferreira",
+    "email": "https://bitbucket.org/drk4"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "@types/createjs-lib": "*"
+  },
+  "deprecated": false,
+  "description": "TypeScript definitions for PreloadJS",
+  "license": "MIT",
+  "main": "",
+  "name": "@types/preloadjs",
+  "peerDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://www.github.com/DefinitelyTyped/DefinitelyTyped.git"
+  },
+  "scripts": {},
+  "typesPublisherContentHash": "936c6692245c8c8e26d696da9f983c1fcf8b6399a79a50aa34c4a8fd0851412f",
+  "version": "0.6.32"
+}

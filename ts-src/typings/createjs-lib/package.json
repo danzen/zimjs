@@ -1,0 +1,46 @@
+{
+  "_from": "@types/createjs-lib@*",
+  "_id": "@types/createjs-lib@0.0.29",
+  "_inBundle": false,
+  "_integrity": "sha1-+uguO6hgZmOxkOeJzsfZxyj8Qdc=",
+  "_location": "/@types/createjs-lib",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "range",
+    "registry": true,
+    "raw": "@types/createjs-lib@*",
+    "name": "@types/createjs-lib",
+    "escapedName": "@types%2fcreatejs-lib",
+    "scope": "@types",
+    "rawSpec": "*",
+    "saveSpec": null,
+    "fetchSpec": "*"
+  },
+  "_requiredBy": [
+    "/@types/easeljs",
+    "/@types/tweenjs"
+  ],
+  "_resolved": "https://registry.npmjs.org/@types/createjs-lib/-/createjs-lib-0.0.29.tgz",
+  "_shasum": "fae82e3ba8606663b190e789cec7d9c728fc41d7",
+  "_spec": "@types/createjs-lib@*",
+  "_where": "C:\\Users\\danzen\\node_modules\\@types\\easeljs",
+  "author": {
+    "name": "Pedro Ferreira",
+    "email": "https://bitbucket.org/drk4"
+  },
+  "bundleDependencies": false,
+  "dependencies": {},
+  "deprecated": false,
+  "description": "TypeScript definitions for CreateJS",
+  "license": "MIT",
+  "main": "",
+  "name": "@types/createjs-lib",
+  "repository": {
+    "type": "git",
+    "url": "https://www.github.com/DefinitelyTyped/DefinitelyTyped.git"
+  },
+  "scripts": {},
+  "typesPublisherContentHash": "06f421b93c07f8d853d93b761c07be49dcb518fcd9f144e7a157932cc01feda2",
+  "typings": "index.d.ts",
+  "version": "0.0.29"
+}

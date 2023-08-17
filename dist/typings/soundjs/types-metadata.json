@@ -1,0 +1,26 @@
+{
+    "authors": "Pedro Ferreira <https://bitbucket.org/drk4>",
+    "definitionFilename": "index.d.ts",
+    "libraryDependencies": [
+        "createjs-lib",
+        "preloadjs"
+    ],
+    "moduleDependencies": [],
+    "libraryMajorVersion": "0",
+    "libraryMinorVersion": "6",
+    "libraryName": "SoundJS 0.6.0",
+    "typingsPackageName": "soundjs",
+    "projectName": "http://www.createjs.com/#!/SoundJS",
+    "sourceRepoURL": "https://www.github.com/DefinitelyTyped/DefinitelyTyped",
+    "sourceBranch": "types-2.0",
+    "kind": "Global",
+    "globals": [
+        "createjs"
+    ],
+    "declaredModules": [],
+    "files": [
+        "index.d.ts"
+    ],
+    "hasPackageJson": false,
+    "contentHash": "8be78c3b122e81c24a86c856c4caf601094a7884af122ee81e7cadccf3d2d661"
+}

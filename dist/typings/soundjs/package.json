@@ -1,0 +1,49 @@
+{
+  "_from": "@types/soundjs",
+  "_id": "@types/soundjs@0.6.27",
+  "_inBundle": false,
+  "_integrity": "sha1-3SNwNQ6vcnfeXtVZQOPn0qAWsSQ=",
+  "_location": "/@types/soundjs",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "@types/soundjs",
+    "name": "@types/soundjs",
+    "escapedName": "@types%2fsoundjs",
+    "scope": "@types",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/@types/soundjs/-/soundjs-0.6.27.tgz",
+  "_shasum": "dd2370350eaf7277de5ed55940e3e7d2a016b124",
+  "_spec": "@types/soundjs",
+  "_where": "C:\\Users\\danzen",
+  "author": {
+    "name": "Pedro Ferreira",
+    "email": "https://bitbucket.org/drk4"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "@types/createjs-lib": "*",
+    "@types/preloadjs": "*"
+  },
+  "deprecated": false,
+  "description": "TypeScript definitions for SoundJS 0.6.0",
+  "license": "MIT",
+  "main": "",
+  "name": "@types/soundjs",
+  "repository": {
+    "type": "git",
+    "url": "https://www.github.com/DefinitelyTyped/DefinitelyTyped.git"
+  },
+  "scripts": {},
+  "typesPublisherContentHash": "8be78c3b122e81c24a86c856c4caf601094a7884af122ee81e7cadccf3d2d661",
+  "typings": "index.d.ts",
+  "version": "0.6.27"
+}

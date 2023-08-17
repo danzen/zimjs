@@ -1,0 +1,49 @@
+{
+  "_from": "@types/tweenjs",
+  "_id": "@types/tweenjs@0.6.27",
+  "_inBundle": false,
+  "_integrity": "sha1-jdisx/Sr7o+St2krrnbZzo8d1gc=",
+  "_location": "/@types/tweenjs",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "@types/tweenjs",
+    "name": "@types/tweenjs",
+    "escapedName": "@types%2ftweenjs",
+    "scope": "@types",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/",
+    "/@types/easeljs"
+  ],
+  "_resolved": "https://registry.npmjs.org/@types/tweenjs/-/tweenjs-0.6.27.tgz",
+  "_shasum": "8dd8acc7f4abee8f92b7692bae76d9ce8f1dd607",
+  "_spec": "@types/tweenjs",
+  "_where": "C:\\Users\\danzen",
+  "author": {
+    "name": "Pedro Ferreira",
+    "email": "https://bitbucket.org/drk4"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "@types/createjs-lib": "*"
+  },
+  "deprecated": false,
+  "description": "TypeScript definitions for TweenJS 0.6.0",
+  "license": "MIT",
+  "main": "",
+  "name": "@types/tweenjs",
+  "repository": {
+    "type": "git",
+    "url": "https://www.github.com/DefinitelyTyped/DefinitelyTyped.git"
+  },
+  "scripts": {},
+  "typesPublisherContentHash": "0f7dbf818be9f9a06e8e7304b512b40a72c74ea244be8636ae7212ca6251c3a3",
+  "typings": "index.d.ts",
+  "version": "0.6.27"
+}

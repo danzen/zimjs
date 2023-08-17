@@ -1,0 +1,49 @@
+{
+  "name": "zimjs",
+  "version": "1.5.1",
+  "type": "module",
+  "main": "./dist/zim.js",
+  "types": "./dist/typings/zim",
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "web": "esbuild src/zim.js  --minify --bundle  --target=chrome58,firefox57,safari11,edge16 --outfile=combined/zim.js"
+  },
+  "devDependencies": {
+    "tsup": "^7.2.0",
+    "typescript": "^4.5.2",
+    "esbuild": "0.19.2"
+  },
+  "dependencies": {
+    "@danzen/createjs": "^1.4.0"    
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/danzen/zimjs.git"
+  },
+  "keywords": [
+    "ZIM",
+    "ZIMjs",
+    "Canvas",
+    "Components",
+    "Controls",
+    "Conveniences",
+    "CreateJS",
+    "EaselJS",
+    "Generative Art",
+    "Data Visualization",
+    "Games",
+    "Puzzles",
+    "InfoActives",
+    "Interactive Logos",
+    "Interactive Infographics",
+    "Apps",
+    "Mobile Apps",
+    "Interactive Ads",
+    "UI UX",
+    "Learn Coding",
+    "Teach Coding"
+  ],
+  "author": "Dr Abstract - Dan Zen",
+  "license": "ISC"
+}

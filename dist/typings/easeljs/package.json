@@ -1,0 +1,55 @@
+{
+  "_from": "@types/easeljs",
+  "_id": "@types/easeljs@1.0.0",
+  "_inBundle": false,
+  "_integrity": "sha512-DkhxqkgylaZGeuod35MCiv1Rix8GnBGv+URRBZt4rsMvhyi7Iap6SZbeEN5bD3b8BXHozHEKB/to9ohUDr3GIA==",
+  "_location": "/@types/easeljs",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "@types/easeljs",
+    "name": "@types/easeljs",
+    "escapedName": "@types%2feaseljs",
+    "scope": "@types",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/@types/easeljs/-/easeljs-1.0.0.tgz",
+  "_shasum": "b339ca0a8d0148819831b0140254d697fd46d974",
+  "_spec": "@types/easeljs",
+  "_where": "C:\\Users\\danzen",
+  "bundleDependencies": false,
+  "contributors": [
+    {
+      "name": "Pedro Ferreira",
+      "url": "https://bitbucket.org/drk4"
+    },
+    {
+      "name": "Chris Smith",
+      "url": "https://github.com/evilangelist"
+    }
+  ],
+  "dependencies": {
+    "@types/createjs-lib": "*",
+    "@types/tweenjs": "*"
+  },
+  "deprecated": false,
+  "description": "TypeScript definitions for EaselJS",
+  "license": "MIT",
+  "main": "",
+  "name": "@types/easeljs",
+  "repository": {
+    "type": "git",
+    "url": "https://www.github.com/DefinitelyTyped/DefinitelyTyped.git"
+  },
+  "scripts": {},
+  "typeScriptVersion": "2.0",
+  "typesPublisherContentHash": "e73cb0309fff1664e561e8368d49b48083b567dba1b1536f94aecc59d9e2f592",
+  "version": "1.0.0"
+}

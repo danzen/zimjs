@@ -1,0 +1,25 @@
+{
+    "authors": "Pedro Ferreira <https://bitbucket.org/drk4>, Chris Smith <https://github.com/evilangelist>",
+    "definitionFilename": "index.d.ts",
+    "libraryDependencies": [
+        "createjs-lib"
+    ],
+    "moduleDependencies": [],
+    "libraryMajorVersion": "0",
+    "libraryMinorVersion": "6",
+    "libraryName": "TweenJS 0.6.0",
+    "typingsPackageName": "tweenjs",
+    "projectName": "http://www.createjs.com/#!/TweenJS",
+    "sourceRepoURL": "https://www.github.com/DefinitelyTyped/DefinitelyTyped",
+    "sourceBranch": "types-2.0",
+    "kind": "Global",
+    "globals": [
+        "createjs"
+    ],
+    "declaredModules": [],
+    "files": [
+        "index.d.ts"
+    ],
+    "hasPackageJson": false,
+    "contentHash": "0f7dbf818be9f9a06e8e7304b512b40a72c74ea244be8636ae7212ca6251c3a3"
+}
