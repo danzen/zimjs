@@ -83,8 +83,9 @@ zim.zimplify();
 zim.zimplify([Blob, Window]);
 ```
 
-## VUE, SVELTE, REACT, etc.
+## VUE, SVELTE, REACT, ANGULAR
 ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
+See https://github.com/yoanhg421/zimjs-templates for full files.<br>
 ### VUE - with zim namespace
 ```javascript
 <script setup>  
@@ -223,99 +224,125 @@ ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg
 ```
 ### REACT - with zim namespace
 ```javascript
-<script>
-    import { Component, ReactNode, StrictMode } from "react";
-    import "./App.css";
-    import zim from "zimjs";
+import { Component, ReactNode, StrictMode } from "react";
+import "./App.css";
+import zim from "zimjs";
 
-    class ZimFrame extends Component {
-      frame: zim.Frame | undefined;
-  
-      componentDidMount(): void {
-          this.frame = new zim.Frame({
-            scaling: "zim",
-            width: 500,
-            height: 400,
-            color:light,
-            ready: () => {
-                // put code here
-                new zim.Circle(50, red).center().drag();
-            }
-          });
-      }
-      componentWillUnmount(): void {
-          this.frame?.dispose();
-      }
-      render(): ReactNode {
-          return null;
-      }
-    }
+class ZimFrame extends Component {
+  frame: zim.Frame | undefined;
 
-    function App() {
-      return (
-          <>
-          <div>
-              {/* Move StrictMove from the root to here */}
-              <StrictMode>
-              <div id='zim'></div>
-              </StrictMode>
-              {/* Include ZIM code outside StrictMode */}
-              <ZimFrame />
-          </div>
-          </>
-      )
-    }
-    export default App;
-</script>
+  componentDidMount(): void {
+      this.frame = new zim.Frame({
+        scaling: "zim",
+        width: 500,
+        height: 400,
+        color:light,
+        ready: () => {
+            // put code here
+            new zim.Circle(50, red).center().drag();
+        }
+      });
+  }
+  componentWillUnmount(): void {
+      this.frame?.dispose();
+  }
+  render(): ReactNode {
+      return null;
+  }
+}
+
+function App() {
+  return (
+      <>
+      <div>
+          {/* Move StrictMove from the root to here */}
+          <StrictMode>
+          <div id='zim'></div>
+          </StrictMode>
+          {/* Include ZIM code outside StrictMode */}
+          <ZimFrame />
+      </div>
+      </>
+  )
+}
+export default App;
 ```
 ### REACT - without zim namespace
 ```javascript
-<script>
-    import { Component, ReactNode, StrictMode } from "react";
-    import "./App.css";
-    import zim from "zimjs";
+import { Component, ReactNode, StrictMode } from "react";
+import "./App.css";
+import zim from "zimjs";
 
-    zim.zimplify(); // make zim commands global
+zim.zimplify(); // make zim commands global
 
-    class ZimFrame extends Component {
-      frame: Frame | undefined;
-  
-      componentDidMount(): void {
-          this.frame = new Frame({
-            scaling: "zim",
-            width: 500,
-            height: 400,
-            color:light,
-            ready: () => {
-                // put code here
-                new Circle(50, red).center().drag();
-            }
-          });
-      }
-      componentWillUnmount(): void {
-          this.frame?.dispose();
-      }
-      render(): ReactNode {
-          return null;
-      }
-    }
+class ZimFrame extends Component {
+  frame: Frame | undefined;
 
-    function App() {
-      return (
-          <>
-          <div>
-              {/* Move StrictMove from the root to here */}
-              <StrictMode>
-              <div id='zim'></div>
-              </StrictMode>
-              {/* Include ZIM code outside StrictMode */}
-              <ZimFrame />
-          </div>
-          </>
-      )
-    }
-    export default App;
-</script>
+  componentDidMount(): void {
+      this.frame = new Frame({
+        scaling: "zim",
+        width: 500,
+        height: 400,
+        color:light,
+        ready: () => {
+            // put code here
+            new Circle(50, red).center().drag();
+        }
+      });
+  }
+  componentWillUnmount(): void {
+      this.frame?.dispose();
+  }
+  render(): ReactNode {
+      return null;
+  }
+}
+
+function App() {
+  return (
+      <>
+      <div>
+          {/* Move StrictMove from the root to here */}
+          <StrictMode>
+          <div id='zim'></div>
+          </StrictMode>
+          {/* Include ZIM code outside StrictMode */}
+          <ZimFrame />
+      </div>
+      </>
+  )
+}
+export default App;
+```
+### ANGULAR - with zim namespace and TypeScript (always)
+```javascript
+import { AfterContentInit, Component, OnDestroy } from '@angular/core';
+import { Frame, Circle } from 'zimjs';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent implements OnDestroy, AfterContentInit {
+  frame: Frame | undefined;
+  ngOnDestroy(): void {
+    this.frame?.dispose();
+  }
+
+  ngAfterContentInit(): void {
+    this.frame = new Frame({
+      scaling: FIT,
+      width: 600,
+      height: 300,
+      ready: () => {
+        new Circle(50, red).center().drag();
+      },
+    });
+  }
+
+  title = 'ZIM in Angular';
+}
 ```
 
 ## Issues & Community
