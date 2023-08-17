@@ -11,13 +11,12 @@ Please see the About section for why we use ZIM to make Interactive Media.<br>
 https://zimjs.com/about.html
 
 ## Examples
-There are many examples of things to be made with ZIM in the banner sections on the ZIM site.<br>
-Here is the main example section including CodePen examples - we hope you like them!<br>
-https://zimjs.com/examples.html 
+ZIM is great for games, puzzles, art, visualizations, interfaces and more!  See:<br>
+https://zimjs.com/examples.html<br>
 
 Coding in ZIM looks like this:
 
-```
+```javascript
 new Rectangle(50, 50, green).center().drag(); // for a centered draggable rectangle!
 
 new MotionController(new Emitter().center(), "mousemove"); // for a particle emitter following the mouse
@@ -33,9 +32,11 @@ new Button(200, 70, "TRY ME")
 
 ## Getting Started
 
-Copy the template on the Code page into an editor like Atom and view results in any Browser.<br>
+Copy the template on the Code page into an editor like VS Code and view results in any Browser.<br>
 https://zimjs.com/code.html<br>
-https://zimjs.com/es6.html for ES6 Modules
+
+<i>This uses ES6 Modules or Script tags from our CDN at https://zimjs.org/cdn<br>
+Alternatively, see the NPM instructions in the section down below.</i><br>
 
 ZIM EDITOR - an online editor with lots of examples, file saving and sharing<br>
 https://zimjs.com/editor
@@ -48,9 +49,6 @@ https://www.youtube.com/watch?v=G4K0PwtwXRQ&list=PLCIzupgRt1pYPy1ufRjssbGuPKMviu
 
 ZIM CODEPEN TOPIC<br>
 https://codepen.io/topic/zim/
-
-ZIM LAB - lets you code in the browser and has a few examples to add and view<br> 
-https://zimjs.com/lab.html
 
 ZIM LEARN has many code and video tutorials including:<br>
 
@@ -70,12 +68,255 @@ ZIM DOCS has all the Classes and Functions broken down by module - expand the to
 to see descriptions, examples, methods, properties, events, source, bits, vids, demos and more!<br>
 https://zimjs.com/docs.html
 
-ZIM NPM - here is some information on optionally using ZIM with Node Package Manager:<br>
-https://zimjs.com/npm.html 
+## NPM
+Here is ZIM on NPM: https://www.npmjs.com/package/zimjs
+Use: 
+```javascript
+import zim from "zimjs";
+// or 
+import {Frame, Circle} from "zimjs";
 
-ZIM TYPESCRIPT - here is some information on optionally using ZIM with TypeScript:<br>
-https://zimjs.com/typescript.html
+// to remove the zim namespace requirement on all use:
+zim.zimplify();
 
+// or make all globals but use zim.Blob and zim.Window (two potential culprits)
+zim.zimplify([Blob, Window]);
+```
+
+## VUE, SVELTE, REACT, etc.
+ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
+### VUE - with zim namespace
+```javascript
+<script setup>  
+  import { onMounted, onBeforeUnmount } from "vue";
+  import zim from "zimjs";
+
+  let frame;
+  onMounted(() => {
+    frame = new zim.Frame({
+      scaling: "zim",
+      width: 500,
+      height: 400,
+      color:light,
+      ready: () => {
+          // put code here
+          new zim.Circle(50, red).center().drag();
+      }
+    });
+  });
+
+  onBeforeUnmount(() => {
+    frame.dispose();
+  });  
+</script>
+
+<template>
+  <div id="zim"></div>
+</template>
+
+<style>
+</style>
+```
+### VUE - without zim namespace 
+```javascript
+<script setup>  
+  import { onMounted, onBeforeUnmount } from "vue";
+  import zim from "zimjs";
+
+  zim.zimplify(); // make zim commands global
+
+  let frame;
+  onMounted(() => {
+    frame = new Frame({
+      scaling: "zim",
+      width: 500,
+      height: 400,
+      color:light,
+      ready: () => {
+          // put code here
+          new zim.Circle(50, red).center().drag();
+      }
+    });
+  });
+
+  onBeforeUnmount(() => {
+    frame.dispose();
+  });  
+</script>
+
+<template>
+  <div id="zim"></div>
+</template>
+
+<style>
+</style>
+```
+### SVELTE - with zim namespace and Typescript
+```javascript
+<script lang="ts">  
+  import { onMount, onDestroy } from "svelte";
+  import zim from "zimjs";
+
+  let frame: Frame;
+  onMount(() => {
+    frame = new zim.Frame({
+      scaling: "zim",
+      width: 500,
+      height: 400,
+      color:light,
+      ready: () => {
+          // put code here
+          new zim.Circle(50, red).center().drag();
+      }
+    });
+    function ready() {
+      // put code here
+      new zim.Circle(50, red).center().drag();
+    }
+  });
+
+  onDestroy(() => {
+    frame.dispose();
+  });
+</script>
+
+<main>
+  <div id="zim">
+</main>
+
+<style>
+</style>
+```
+### SVELTE - without zim namespace and no Typescript
+```javascript
+<script>  
+  import { onMount, onDestroy } from "svelte";
+  import zim from "zimjs";
+
+  zim.zimplify(); // make zim commands global
+  
+  let frame;
+  onMount(() => {
+    frame = new Frame({
+      scaling: "zim",
+      width: 500,
+      height: 400,
+      color:light,
+      ready: () => {
+          // put code here
+          new zim.Circle(50, red).center().drag();
+      }
+    });
+  });
+
+  onDestroy(() => {
+    frame.dispose();
+  });
+</script>
+
+<main>
+  <div id="zim">
+</main>
+
+<style>
+</style>
+```
+### REACT - with zim namespace
+```javascript
+<script>
+    import { Component, ReactNode, StrictMode } from "react";
+    import "./App.css";
+    import zim from "zimjs";
+
+    class ZimFrame extends Component {
+      frame: zim.Frame | undefined;
+  
+      componentDidMount(): void {
+          this.frame = new zim.Frame({
+            scaling: "zim",
+            width: 500,
+            height: 400,
+            color:light,
+            ready: () => {
+                // put code here
+                new zim.Circle(50, red).center().drag();
+            }
+          });
+      }
+      componentWillUnmount(): void {
+          this.frame?.dispose();
+      }
+      render(): ReactNode {
+          return null;
+      }
+    }
+
+    function App() {
+      return (
+          <>
+          <div>
+              {/* Move StrictMove from the root to here */}
+              <StrictMode>
+              <div id='zim'></div>
+              </StrictMode>
+              {/* Include ZIM code outside StrictMode */}
+              <ZimFrame />
+          </div>
+          </>
+      )
+    }
+    export default App;
+</script>
+```
+### REACT - without zim namespace
+```javascript
+<script>
+    import { Component, ReactNode, StrictMode } from "react";
+    import "./App.css";
+    import zim from "zimjs";
+
+    zim.zimplify(); // make zim commands global
+
+    class ZimFrame extends Component {
+      frame: Frame | undefined;
+  
+      componentDidMount(): void {
+          this.frame = new Frame({
+            scaling: "zim",
+            width: 500,
+            height: 400,
+            color:light,
+            ready: () => {
+                // put code here
+                new Circle(50, red).center().drag();
+            }
+          });
+      }
+      componentWillUnmount(): void {
+          this.frame?.dispose();
+      }
+      render(): ReactNode {
+          return null;
+      }
+    }
+
+    function App() {
+      return (
+          <>
+          <div>
+              {/* Move StrictMove from the root to here */}
+              <StrictMode>
+              <div id='zim'></div>
+              </StrictMode>
+              {/* Include ZIM code outside StrictMode */}
+              <ZimFrame />
+          </div>
+          </>
+      )
+    }
+    export default App;
+</script>
+```
 
 ## Issues & Community
 You are welcome to add issues here but we tend to use Slack at for issues and support<br>
@@ -95,8 +336,10 @@ https://createjs.com
  
 ## Authors
 * **Dr Abstract (Inventor Dan Zen)**<br>
-Canadian New Media Awards Programmer of the Year 2008<br>
-Hamilton Arts Awards for Media Arts 2017<br>
+Canadian New Media Awards Programmer of the Year<br>
+Canadian New Media Awards Educator of the Year<br>
+https://zimjs.com/interactivemedia
+Hamilton Arts Awards for Media Arts<br>
 http://danzen.com - Museum of Interactive Works
 
 ## License
