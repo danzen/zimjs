@@ -53,8 +53,10 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+.lock
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+additions.txt

@@ -1,7 +1,8 @@
-// ZIM - JavaScript Canvas Framework at https://zimjs.com - code creativity!
-// See https://zimjs.com/distill to minify only the functions in your app
-// See https://zimjs.com/code for CDN, ES6 and NPM modules and TypeScript 
-// (c) 2023 ZIM - free to use - donations welcome! https://zimjs.com/donate
+/*! ZIM - JavaScript Canvas Framework - Code Creativity
+https://zimjs.com (c) 2023 modified MIT License
+Donations welcome https://zimjs.com/donate
+Node module - also see ES6 modules at https://zimjs.com/cdn
+*/
 
 // A zim namespace can be turned on with zns=true in a script before calling ZIM
 // There is an ES6 module version available at https://zimjs.com/es6
@@ -19,6 +20,7 @@
 // Dr Abstract, Pragma and ZIM Team
 
 // With thanks...
+// Thanks to Yoan Herrera for the NPM / Vue, Svelte, React set up - https://github.com/yoanhg421
 // Thanks to ZzFX - Zuper Zmall Zound Zynth - Micro Edition for play() method of Synth
 // MIT License - Copyright 2019 Frank Force - https://github.com/KilledByAPixel/ZzFX
 // MIT License - Copyright 2021 George Francis - spline - https://github.com/georgedoescode
@@ -68,6 +70,7 @@ var z_i; // iterator i in global namespace
 
 ////////////////  ZIM WRAP  //////////////
 // Zim Wrap creates global wrapper functions for less typing
+
 
 /*--
 zog(item1, item2, etc.)         ~ log
@@ -62389,21 +62392,16 @@ rayout - dispatched when mouse is moves out from a ZIM TextureActive material
         }	
 
         that.dispose = function() {
-            that.hide();
-            if (that.keyEvent) frame.off("keydown", that.keyEvent);
             that.raycast = false;
             if (controls) {
                 controls.enableRotate = true;
                 controls.enabled = true;
             }
             that.remove(that.actives);
-            that.nav.dispose();
-            that.nav = that.slider = that.pointerData = null; // inside controls no need for dispose
-            that.registerInterval.clear();
-			that.TAM.remove(that);
-			if (that.TAM.count < 1) {
-				that.TAM.dispose();
-				that.TAM = null;
+			zim.TAM.remove(that);
+			if (zim.TAM.count < 1) {
+				zim.TAM.dispose();
+				zim.TAM = null;
 			}
             that.material = that.mesh = that.content = that.intersect = null;
         }
@@ -62607,10 +62605,12 @@ swiper - access to the ZIM Swiper for swiping the panel - note, only works outsi
 		} 
 
 		that.dispose = function() {
-			frame.off("keydown", that.keyEvent);
-			that.tile.dispose();
 			that.hide();
 			nav.dispose();
+			frame.off("keydown", that.keyEvent);
+			that.objects.dispose();
+			that.tile.dispose();
+			that.objects = that.tile = nav = null;
 		}
 		
 	}
