@@ -365,7 +365,7 @@ https://createjs.com
 * **Dr Abstract (Inventor Dan Zen)**<br>
 Canadian New Media Awards Programmer of the Year<br>
 Canadian New Media Awards Educator of the Year<br>
-https://zimjs.com/interactivemedia
+https://zimjs.com/interactivemedia<br>
 Hamilton Arts Awards for Media Arts<br>
 http://danzen.com - Museum of Interactive Works
 
