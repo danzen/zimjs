@@ -20,7 +20,8 @@ Node module - also see ES6 modules at https://zimjs.com/cdn
 // Dr Abstract, Pragma and ZIM Team
 
 // With thanks...
-// Thanks to Yoan Herrera for the NPM / Vue, Svelte, React set up - https://github.com/yoanhg421
+// Thanks to Yoan Herrera for the NPM / Vue, Svelte, React and Angular 
+// templates at https://github.com/yoanhg421/zimjs-templates
 // Thanks to ZzFX - Zuper Zmall Zound Zynth - Micro Edition for play() method of Synth
 // MIT License - Copyright 2019 Frank Force - https://github.com/KilledByAPixel/ZzFX
 // MIT License - Copyright 2021 George Francis - spline - https://github.com/georgedoescode
@@ -86363,9 +86364,9 @@ for (z_i = 0; z_i < zim.colors.length; z_i++) {
   WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 }
 
-export default zim
-
-WW.zim = zim
+WW.zim = zim;
+export default zim;
+export {zimplify,zimify};
 export let chop = zim.chop
 export let shuffle = zim.shuffle
 export let pluck = zim.pluck
@@ -86469,8 +86470,8 @@ export let Triangle = zim.Triangle
 export let Poly = zim.Poly
 export let Line = zim.Line
 export let Squiggle = zim.Squiggle
-export let Blob = zim.Blob
-export let Window = zim.Window
+export var Blob = zim.Blob
+export var Window = zim.Window
 export let Flare = zim.Flare
 export let MultiFlare = zim.MultiFlare
 export let FlareBox = zim.FlareBox
