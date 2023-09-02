@@ -3870,7 +3870,7 @@ export function distill():void;
 export function parseAudioSprite(audioSpriteData:{resources:string[], spritemap:{}}, outputAudioSprite?:boolean):{src:string, data:{}}
 export function previewAudioSprite(audioSpriteData:{}, numLetters?:number, frame?:Frame):Tabs;
 export function svgToBitmap(svg:string|SVGElement, callBack:Function):void;
-export function fastFrame(cjs:any, stage:Stage|StageGL):Function;
+export function fastFrame(cjs:any, stage:createjs.Stage|createjs.StageGL):Function;
 export function addWires({}):{}
 export function setBlurDetect():void;
 export var ZIMONON:boolean;

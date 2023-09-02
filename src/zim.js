@@ -86906,7 +86906,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-if (zns) {
+// if (zns) {
 	// these are global regardless
 	var globalsConstants = [
 		["FIT", zim.FIT],
@@ -86961,7 +86961,7 @@ if (zns) {
 	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 	  }
-} else zimplify();
+// } else zimplify();
 
 WW.zim = zim;
 export default zim;
