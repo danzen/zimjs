@@ -424,7 +424,6 @@ interface zimComponent {
 
 
 
-
 declare namespace zim {
 
   // UNIQUE - namespace only exports - not added by parser
@@ -620,11 +619,11 @@ export function seedRandom(seed?:number|string):number|string;
 export function odds(percent?:number):boolean;
 export function rarity(weights:{}, shuffle?:boolean, zimColors?:boolean, dynamicPayload?:boolean):[any];
 export function repeats(array:[any], total?:boolean):number;
-export function loop(obj:number|{}|[any]|Dictionary, call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number):any;
+export function loop(obj:number|{}|[any]|Dictionary, call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any):any;
 export function getTIME(time?:number, timeType?:string, minWarning?:number, maxWarning?:number, noWarning?:boolean):string
 export function checkTIME(time?:number, timeChar?:string, minWarning?:number, maxWarning?:number):void
 export function timeout(time:number|zimVee, call:Function):{pause:Function, clear:Function, time:number, paused:boolean, done:boolean}
-export function interval(time:number|zimVee, call:Function, total?:number, immediate?:boolean):{pause:Function, clear:Function, time:number, count:number, total:number, paused:boolean, pauseTimeLeft:number}
+export function interval(time:number|zimVee, call:Function, total?:number, immediate?:boolean, pauseOnBlur?:boolean, timeUnit?:string, complete?:Function, completeParams?:any):{pause:Function, clear:Function, time:number, count:number, total:number, paused:boolean, pauseTimeLeft:number}
 export function copy<T>(obj:T, clone?:boolean):T;
 export function arraysEqual(a:[any], b:[any], strict?:boolean):boolean;
 export function arrayMinMax(arr:[any]):{}
@@ -799,9 +798,9 @@ export function extend(subclass:Function, superclass:Function, override?:string|
 // ZIM DISPLAY
 export class Stage extends createjs.Stage {
   constructor(canvasID:string|HTMLCanvasElement)
-  loop(config_or_call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number):any
-  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number}):any
-  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number}):any
+  loop(config_or_call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any):any
+  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any}):any
+  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any}):any
   hitTestGrid(width?:number, height?:number, cols?:number, rows?:number, x?:number, y?:number, offsetX?:number, offsetY?:number, spacingX?:number, spacingY?:number, local?:boolean, type?:string):any
   type:string
   readonly width:number
@@ -811,9 +810,9 @@ export class Stage extends createjs.Stage {
 
 export class StageGL extends Stage {
   constructor(canvasID:string|HTMLCanvasElement, options:{preserveBuffer:boolean, antialias:boolean, transparent:boolean, premultiply:false, autoPurge:number})
-  loop(config_or_call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number):any
-  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number}):any
-  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number}):any
+  loop(config_or_call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any):any
+  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any}):any
+  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any}):any
   hitTestGrid(width?:number, height?:number, cols?:number, rows?:number, x?:number, y?:number, offsetX?:number, offsetY?:number, spacingX?:number, spacingY?:number, local?:boolean, type?:string):any
   type:string
   readonly width:number
@@ -976,8 +975,8 @@ export class Container extends createjs.Container implements zimDisplay {
   percentComplete:number    
   zimLastMouseEnabled:boolean
   // END ZIM Display Interface
-  loop(config_or_call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number):any
-  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number}):any
+  loop(config_or_call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any):any
+  loop(config:{call:Function, reverse?:boolean, interval?:number, step?:number, start?:number, end?:number, immediate?:boolean, complete?:Function, completeParams?:any}):any
   cache(width_or_boundsX?:number, height_or_boundsY?:number, width?:number, height?:number, scale?:number, options?:{}, margin?:number):this
   setBounds(width_or_boundsX?:number, height_or_boundsY?:number, width?:number, height?:number):this
   hasProp(prop:string):boolean
@@ -3923,8 +3922,8 @@ export class Theme {
 // ++++++++++++++++++++++++++++++++++++++
 // ZIM THREE
 export class Three {
-  constructor (config_or_width?:number, height?:number, color?:color, cameraPosition?:any, cameraLook?:any, interactive?:boolean, resize?:boolean, frame?:Frame, ortho?:boolean, textureActive?:boolean, colorSpace?:string, colorManagement?:boolean, legacyLights?:boolean, throttle?:boolean, lay?:string, full?:boolean)
-  constructor (config:{width?:number, height?:number, color?:color, cameraPosition?:any, cameraLook?:any, interactive?:boolean, resize?:boolean, frame?:Frame, ortho?:boolean, textureActive?:boolean, colorSpace?:string, colorManagement?:boolean, legacyLights?:boolean, throttle?:boolean, lay?:string, full?:boolean})
+  constructor (config_or_width?:number, height?:number, color?:color, cameraPosition?:any, cameraLook?:any, interactive?:boolean, resize?:boolean, frame?:Frame, ortho?:boolean, textureActive?:boolean, colorSpace?:string, colorManagement?:boolean, legacyLights?:boolean, throttle?:boolean, lay?:string, full?:boolean, xr?:boolean, VRButton?:any, xrBufferScale?:number)
+  constructor (config:{width?:number, height?:number, color?:color, cameraPosition?:any, cameraLook?:any, interactive?:boolean, resize?:boolean, frame?:Frame, ortho?:boolean, textureActive?:boolean, colorSpace?:string, colorManagement?:boolean, legacyLights?:boolean, throttle?:boolean, lay?:string, full?:boolean, xr?:boolean, VRButton?:any, xrBufferScale?:number})
   position(x?:number, y?:number):void
   scale(scale?:number):void
   rotateAroundAxis(obj:any, axis?:string, radians?:number):void
@@ -3941,6 +3940,48 @@ export class Three {
   readonly sceneOrtho:any
   readonly cameraOrtho:any
   readonly resizeEvent:any
+  preRender:Function
+  postRender:Function
+  readonly vrButton:any
+}
+
+export class XRControllers {
+  constructor (config_or_three:Three, type?:any, color?:color|[color], highlightColor?:color|[color], lineColor?:color|[color], lineLength?:number|[number], threshhold?:number)
+  constructor (config:{three:Three, type?:any, color?:color|[color], highlightColor?:color|[color], lineColor?:color|[color], lineLength?:number|[number], threshhold?:number})
+  dispose():void
+  readonly type:string
+  readonly XR:boolean
+  readonly controller1:any
+  readonly controller2:any
+  threshhold:number
+}
+
+export class XRMovement {
+  constructor (config_or_three:Three, XRControllers:XRControllers, speed?:number, acceleration?:number, rotationSpeed?:number, rotationAcceleration?:number, hapticMax?:number, verticalStrafe?:boolean, radiusMax?:number, threshhold?:number, directionFix?:boolean)
+  constructor (config:{three:Three, XRControllers:XRControllers, speed?:number, acceleration?:number, rotationSpeed?:number, rotationAcceleration?:number, hapticMax?:number, verticalStrafe?:boolean, radiusMax?:number, threshhold?:number, directionFix?:boolean})
+  doHaptic(amount?:number, hand?:string, max?:number):void     
+  dispose():void
+  readonly type:string
+  readonly dolly:any
+  speed:number
+  acceleration:number
+  rotationSpeed:number
+  rotationAcceleration:number
+  hapticMax:number
+  verticalStrafe:boolean
+  radiusMax:number
+  threshhold:number
+}
+
+export class XRTeleport {
+  constructor (config_or_three:Three, XRControllers:XRControllers, XRMovement?:XRMovement, floor?:[any], offsetHeight?:number, button?:number|[number], hand?:string, markerColor?:color, markerBlend?:any)
+  constructor (config:{three:Three, XRControllers:XRControllers, XRMovement?:XRMovement, floor?:[any], offsetHeight?:number, button?:number|[number], hand?:string, markerColor?:color, markerBlend?:any})
+  dispose():void
+  readonly type:string
+  floor:any
+  button:number|[number]
+  hand:string
+  readonly marker:any
 }
 
 // ++++++++++++++++++++++++++++++++++++++
@@ -4201,7 +4242,7 @@ export class CamAsk extends Pane {
   readonly no:Button
 }
 
-  // END PARSER - end of exports added by parser from globals
+
 }
 
 export = zim

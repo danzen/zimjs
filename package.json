@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "15.0.4",
+  "version": "15.0.5",
   "type": "module",
   "main": "./dist/zim.js",
   "types": "./dist/typings/zim",
@@ -42,7 +42,10 @@
     "Interactive Ads",
     "UI UX",
     "Learn Coding",
-    "Teach Coding"
+    "Teach Coding",
+    "VR",
+    "XR",
+    "AR"
   ],
   "author": "Dr Abstract - Dan Zen",
   "license": "ISC"

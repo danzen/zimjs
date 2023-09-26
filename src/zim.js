@@ -1324,6 +1324,8 @@ RETURNS a function that can be called many times - each time returning the next 
 		z_d("13.61");
 		var array;
 		var range;
+
+		if (arguments[0] == null) return null;
 		if (arguments.length == 0) return function(){};
 		if (arguments.length == 1 && Array.isArray(arguments[0])) {
 			array = arguments[0];
@@ -1506,7 +1508,7 @@ zim.makeSeries = function(array)
 	};//-13.6
 
 /*--
-zim.loop = function(obj, call, reverse, interval, step, start, end, immediate)
+zim.loop = function(obj, call, reverse, interval, step, start, end, immediate, complete, completeParams)
 
 loop
 zim function
@@ -1660,11 +1662,13 @@ step - (default 1) each step will increase by this amount (positive whole number
 start - (default 0 or length-1 for reverse) index to start
 end - (default length-1 or 0 for reverse) index to end
 immediate - (default true) set to false to not start the loop right away, but rather wait for a first interval
+complete (default null) - a callback function to call when complete
+completeParams (default null) - paramater to pass complete callback
 
 RETURNS any value returned from the loop - or true if no value is returned from a loop
 --*///+9.5
-	zim.loop = function(obj, call, reverse, interval, step, start, end, immediate) {		
-		var sig = "obj, call, reverse, interval, step, start, end, immediate";
+	zim.loop = function(obj, call, reverse, interval, step, start, end, immediate, complete, completeParams) {		
+		var sig = "obj, call, reverse, interval, step, start, end, immediate, complete, completeParams";
 		var duo; if (duo = zob(zim.loop, arguments, sig)) return duo;
 		z_d("9.5");
 		if (zot(obj) || zot(call)) return undefined;
@@ -1674,6 +1678,8 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 		if (zot(immediate)) immediate = true;
 		if (obj.constructor === Number) obj = Number(obj);
 		if (obj.constructor === String) obj = String(obj);
+
+		var comp = interval==0 && complete && typeof complete=="function";
 				
 		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":(typeof obj == "string"?"string":(obj instanceof NodeList?"nodelist":(obj instanceof HTMLCollection?"htmlcollection":(obj.type&&obj.type=="Dictionary"?"Dictionary":"invalid"))))));
 
@@ -1728,7 +1734,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			} else {
 				if (interval === 0) {
@@ -1765,9 +1771,10 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			}
+			if (comp) complete(completeParams);
 			return true;
 		} else if (type == "object") {
 			length = 0;
@@ -1798,7 +1805,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			} else {
 				if (interval === 0) {
@@ -1819,9 +1826,10 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			}
+			if (comp) complete(completeParams);
 			return true;
 		}
 		function getTotal(max) {
@@ -1832,7 +1840,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 			start = Math.max(0, Math.min(start, max));
 			end = Math.max(0, Math.min(end, max));
 			return Math.floor((reverse?(start-end):(end-start)) / step) + 1;
-		}
+		}		
 	};//-9.5
 
 /*--
@@ -1957,7 +1965,7 @@ timeUnit - get the timeUnit used at start
 	};//-9.7
 
 /*--
-zim.interval = function(time, call, total, immediate, pauseOnBlur, timeUnit)
+zim.interval = function(time, call, total, immediate, pauseOnBlur, timeUnit, complete, completeParams)
 
 interval
 zim function
@@ -2040,6 +2048,8 @@ pauseOnBlur - (default false) set to true to pause interval when window is reduc
 timeUnit - (default seconds) set to "milliseconds" for traditional JavaScript milliseconds
 	also see TIME constant which defaults to "seconds"
 	timeUnit will override the TIME constant
+complete (default null) - a callback function to call when complete if total is set
+completeParams (default null) - paramater to pass complete callback
 
 RETURNS a ZIM intervalObject to pause and clear the interval with the following methods and properties:
 
@@ -2057,8 +2067,8 @@ total - get or set the number of times the interval will run if the total parame
 paused - get the paused state of the interval (see pause() method)
 pauseTimeLeft - if paused, get how much time is left once unpaused
 --*///+9.8
-	zim.interval = function(time, call, total, immediate, pauseOnBlur, timeUnit) {
-		var sig = "time, call, total, immediate, pauseOnBlur, timeUnit";
+	zim.interval = function(time, call, total, immediate, pauseOnBlur, timeUnit, complete, completeParams) {
+		var sig = "time, call, total, immediate, pauseOnBlur, timeUnit, complete, completeParams";
 		var duo; if (duo = zob(zim.interval, arguments, sig, this)) return duo;
 		z_d("9.8");
 		if (zot(call)) return;
@@ -2098,7 +2108,10 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 		}
 		function checkTotal() {
 			if (total == -1) return;
-			if (obj.count >= (immediate?obj.total-1:obj.total)) obj.clear();
+			if (obj.count >= (immediate?obj.total-1:obj.total)) {
+				if (complete && typeof complete=="function") complete(completeParams);
+				obj.clear();
+			}
 		}
 		var pausedTimeout;
 		obj.type = "intervalOjbect";
@@ -27486,7 +27499,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-60
 	
 /*--
-zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingH, paddingV, shiftH, shiftV, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, readOnly, inputType, uppercase, placeholderInstant, keyboardShift, style, group, inherit)
+zim.TextInput = function(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingH, paddingV, shiftH, shiftV, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, readOnly, inputType, rtl, uppercase, placeholderInstant, keyboardShift, style, group, inherit)
 
 TextInput
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -40480,7 +40493,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			that.continuous = true;
 			workingItems = zim.copy(items);
 			zim.loop(items.length, function(i) {
-				workingItems.push(items[i].clone());
+				workingItems.push(items[i].duplicate());
 			});
 		} else {
 			workingItems = items;
@@ -40755,7 +40768,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.Carousel(zim.copy(items), viewNum, time, spacing, backgroundColor, backing, padding, paddingH, paddingV, arrowLeft, arrowRight, arrowGap, valign, ease, swipe, remember, selectedIndex, continuous, style, this.group));
+			var newItems = [];
+			for (var i=0; i<items.length; i++) {
+				var newItem = items[i];
+				if (newItem.duplicate) newItems.push(newItem.duplicate());
+				else if (newItem.clone) newItems.push(newItem.clone());
+				else newItems.push(zim.copy(items[i]));
+			}
+			return that.cloneProps(new zim.Carousel(newItems, viewNum, time, spacing, backgroundColor, backing, padding, paddingH, paddingV, arrowLeft.duplicate(), arrowRight.duplicate(), arrowGap, valign, ease, swipe, remember, selectedIndex, continuous, style, this.group));
 		};	
 	}
 	zim.extend(zim.Carousel, zim.Container, ["clone", "dispose"], "zimContainer", false);	
@@ -45230,7 +45250,9 @@ RETURNS obj for chaining
 
 		function positionObject(o, x, y) {
 
-			if (zot(o)) o = (dragObject) ? dragObject : obj; // so zim.dragBoundary can use this
+			var diffX_o = diffX;
+			var diffY_o = diffY;
+			if (zot(o)) o = (dragObject) ? dragObject : obj; // so zim.dragBoundary can use this	
 
 			// x and y are the desired global positions for the object o
 			// checkBounds returns the same values if there are no bounds
@@ -45296,6 +45318,10 @@ RETURNS obj for chaining
 				if (mY) o.y = checkedPoint.y;
 			}
 			if (slide && !hasMoved && (o.slideStartX != o.x || o.slideStartY != o.y)) hasMoved = true;
+			if (o.downCheck) {
+				diffX = diffX_o;
+				diffY = diffY_o;
+			}
 		}
 
 		obj.zimPosition = positionObject;
@@ -48956,7 +48982,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 // SUBSECTION ANIMATE, WIGGLE, LOOP
 
 /*--
-obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall)
+obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp)
 
 animate
 zim DisplayObject method
@@ -49438,6 +49464,7 @@ easeFrequency - |ZIM VEE| - (default .3 elasticIn and elasticOut or .3*1.5 elast
 timeUnit - (default TIME) override the TIME setting to "seconds" / "s" or "milliseconds" / "ms"
 timeCheck - (default true) set to false to not have animate() warn of potentially wrong time units - see also TIMECHECK
 noAnimateCall - (default true) set to false to not call the callback function if ANIMATE is set to false
+pathDamp - (default .15) damping for drag along path
 
 PROPERTIES - zim.animate() adds the following properties to any object it animates:
 	animating - read-only - true when animating (including when waiting) 
@@ -49474,7 +49501,7 @@ PROPERTIES - zim.animate() adds the following properties to any object it animat
 		and spans across all animations on the object including animation series.
 		A percentComplete has also been added to the CreateJS tweens for individual control.
 		The individual tweens can be found in the zimTweens object 
-		or the latestTween will give access to the latest tween runing.
+		or the latestTween will give access to the latest tween running.
 		So for setting percentComplete on an animation with a wait you can access the latestTween 
 		in the waited call back function. 
 
@@ -49506,8 +49533,8 @@ EVENTS - zim animate() will add an "animation" event to the target IF the events
 
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall) {
-		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall";
+	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp) {
+		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp";
 
 		if (target && (target.props || target.obj)) {
 			var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
@@ -49708,7 +49735,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var seqTime = i*sequence;
 				if (i==0 && sequence!=0) seqTime = timeType=="s"?.02:20; // patched in 10.7.0 and 10.7.1
 
-				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall); // do not send from!
+				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp); // do not send from!
+			
 
 			}
 			return sequenceTarget;
@@ -49737,6 +49765,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(dynamic)) dynamic = false;
 		if (zot(clamp)) clamp = true;
 		if (zot(clean)) clean = true;
+		if (zot(pathDamp)) pathDamp = .15;
 		
 		if (zot(rate)) rate = 1;	
 		// tweens are separated - this is used to set the CreateJS timeScale	
@@ -50040,11 +50069,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				
 		if (zot(target)) return;		
 		if (!target.tweenStates) target.tweenStates = {all:true};	
-		
+	
 		var fromCheck = false;
 
-			
-								
+							
 		// Handle notes
 		if (obj.note) {
 			if (Array.isArray(obj.note)) { // random
@@ -50292,6 +50320,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (target.type != "Sprite") {
 			if (target.type != undefined) target.paused = false;
 			target.animating = true;
+		} else { // sprite - adjusted in ZIM 015 patch... do not animate sprite if told to go to a specific frame... but not sure...
+			for (var pro in obj) {
+				if (pro != "normalizedFrame") {
+					target.animating = true;
+					break;
+				}
+			}
 		}
 		function addZimBusy() {
 			if (!target.zimMouseEnabledCheck) {
@@ -50408,7 +50443,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// PERCENT COMPLETE SETUP
 		if (target.getBounds && zot(target.percentCompleteCheck)) {
 			target.percentCompleteCheck = true;		
-			target._percentComplete = 0;	
+			target._percentComplete = 0;
 			Object.defineProperty(target, 'percentComplete', {
 				get: function() { 
 					if (target.paused) return target._percentComplete;
@@ -50425,8 +50460,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							nt = (dn - target.tweenStartTime) % (target.tweenEndTime - target.tweenStartTime);
 						} else {
 							nt = dn - target.tweenStartTime;
-						}						
-						return  Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
+						}		
+						var v = Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
+						target._percentComplete	= v;						
+						return  v;
 					} else {
 						return 0;
 					}
@@ -50443,8 +50480,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					target._percentComplete = value;
 				}
 			});
+
 			Object.defineProperty(target, 'percentCompleteNoAngle', {
-				get: function() {
+				get: function() {					
+					if (target.paused) return target._percentComplete; // needed to match percentComplete?  015
 					if (target.tweenStartTime && target.tweenEndTime) {	
 						var dn = Date.now();	
 						var nt;
@@ -50453,8 +50492,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							nt = (dn - target.tweenStartTime) % (target.tweenEndTime - target.tweenStartTime);
 						} else {
 							nt = dn - target.tweenStartTime;
-						}						
-						return  Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
+						}	
+						var v = Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
+						target._percentComplete	= v;						
+						return  v;	
 					} else {
 						return 0;
 					}
@@ -50466,7 +50507,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						// to handle being set prior to a subsequent animation
 						this.requestedPercentComplete = value;
 					}
-					target._percentComplete = value;
+					target._percentComplete = value;					
 				}
 			});
 		}
@@ -50484,6 +50525,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			configurable: true // not sure why we need to?
 		});
 
+		// something in here is stopping drag once an animation finishes.
+		// does not do that in 014
 		function setPercent(value, setAngle) {
 			target.zimTween.startPaused = false;
 			// if (!this.paused) this.pauseAnimate(true, id);
@@ -50493,15 +50536,15 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						var tim = target.tweenStartTime + (target.tweenEndTime - target.tweenStartTime) * value / 100;	
 						var nt;
 						if (tw.zimLoop && tim <= tw.startTime) {
-							nt = 0			
+							nt = 0	
 						} else if (tw.zimLoop && tim > tw.startTime + tw.duration) { // && !target.waiting) {
 							nt = (tim - tw.startTime) % tw.duration;
 						} else {
 							nt = tim - tw.startTime; 
 						}				
-						tw.percentComplete = Math.max(0, Math.min(100, nt/tw.duration * 100));						
+						tw.percentComplete = Math.max(0, Math.min(100, nt/tw.duration * 100));							
 					});
-				} else {					
+				} else {				
 					target.zimTween.setPosition(Math.round(value*target.zimTween.duration/100));
 				}
 			} else {
@@ -50656,11 +50699,28 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			// dragging can be done when animation is on or off
 			// dragging with rewind turned on lets you drag and release to redirect animation
 			// dragging with animation off lets you throw the animation
+
+			function getP(target) {
+				if (target.latestTween) return target.latestTween.percentComplete;
+				return target.percentComplete;
+			}
+			function setP(target, percent) {
+				target.zimTween.startPaused = false;	
+				target.latestTween.percentComplete = percent;
+				if (immediateCheck && typeof pathPercent != "undefined") pathPercent = value;
+				if (target.handlePath) target.handlePath();
+			}
 						
 			if (drag) {
 				ease = "linear";
 				target.cur("pointer");
-				var pathPercent = target.percentComplete;
+				var pathPercent;
+				if (obj.startPercent != null) {
+					pathPercent = obj.startPercent;
+				} else {
+					pathPercent = 0;
+				}
+				// var pathPercent = getP(target); // taken out in 015
 				var pathDownCheck = false;
 				// var lastPause = startPaused?startPaused:target.paused;
 				var lastForward = true;
@@ -50685,6 +50745,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				// 10.6.0 patch to turn move target along path if not animating
 				target.zimAnimatePathDown = pathObject.on("mousedown", function() {pathDownCheck=true; if (target.paused==true) mouseCheck = true;});
 				target.zimAnimatePathUp = pathObject.on("pressup", function() {mouseCheck = false;});
+	
 				
 				target.zimAnimateDragDown = target.on("mousedown", function (e) {					
 					stage = e.target.stage;
@@ -50711,7 +50772,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 
 					pathObject.zimAnimateChanged = false;
-					pathPercent = target.percentComplete;
+					pathPercent = getP(target);
 					dampPercent.immediate(pathPercent);
 					// var calcPercent = dirTest = pathPercent;
 					var calcPercent = pathPercent;
@@ -50733,7 +50794,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 					lastForward = false;
 					currentForward = false;
-					if (target.percentComplete < 50) target.percentComplete = 100-target.percentComplete;
+					if (getP(target) < 50) setP(target, 100-getP(target));
 					target.pauseAnimate(false);
 				};
 
@@ -50746,15 +50807,15 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					// do not change currentForward if no change in dirSamples
 					if (dirSamples[0] < dirSamples[4]) currentForward = true;
 					else if (dirSamples[0] > dirSamples[4]) currentForward = false;
-					if (!target.paused && rewind && redirect && currentForward != lastForward) {
-						target.percentComplete = 100-target.percentComplete;
+					if (!target.paused && rewind && redirect && currentForward != lastForward) {						
+						setP(target, 100-getP(target));
 						lastForward = currentForward;
 						// can't seem to get this to change direction when
 						// dragging when paused and then unpausing direction
 					}
 				});
 
-				var dampPercent = new zim.Damp(pathPercent, .15);
+				var dampPercent = new zim.Damp(pathPercent, pathDamp);
 				var lastPercent = 0;
 				var dirCount = 0;
 				var dirSamples = [0,0,0,0,0];
@@ -50775,7 +50836,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					// 10.6.0 patch to make pauseAnimate work again after breaking in 10.4.0 (there is another part to this patch too)
 					// mouseCheck = true;
 
-					if (pathDownCheck) pathPercent = target.percentComplete; // ZIM Cat fix
+					if (pathDownCheck) pathPercent = getP(target); // ZIM Cat fix
 
 					if (mouseCheck || (activeCheck && target.paused==true)) {
 						// STICK ON PATH BEFORE DRAG FIX (immediateCheck added)
@@ -50789,10 +50850,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						}
 						// target.percentComplete = newPercent;
 						if (Math.abs(lastPercent-newPercent)>.1) {
-							target.percentCompleteNoAngle = newPercent;
+							setP(target, newPercent);
 							lastPercent = newPercent;
 						} else {
-							target.percentCompleteNoAngle = newPercent; // changed lastPercent to newPercent
+							setP(target, newPercent);
 							//if (!mouseCheck) {
 								activeCheck = false;
 							//}
@@ -51049,16 +51110,16 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (!target.animating) {
 				target.pauseAnimate(true);
 			}
-			if (zot(tween.percentComplete)) {
+			// if (zot(tween.percentComplete)) {
 				Object.defineProperty(tween, 'percentComplete', {
 					get: function() {
-						return this.position / this.duration * 100;
+						return this.position / this.duration*100;
 					},
 					set: function(value) {
 						this.setPosition(value*this.duration/100);
 					}
 				});
-			}
+			// }
 		}		
 
 		// set the startTime of the actual tween based on a potential wait and series wait
@@ -51071,7 +51132,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (newEnd > target.tweenEndTime) target.tweenEndTime = newEnd;
 		
 		
-
 		// ADJUST EASE
 		
 		var customEases = [
@@ -52502,7 +52562,7 @@ RETURNS target for chaining
 	};//-45.25
 
 /*--
-obj.loop = function(call, reverse, interval, step, start, end, immediate)
+obj.loop = function(call, reverse, interval, step, start, end, immediate, complete, completeParams)
 
 loop
 zim DisplayObject method
@@ -52584,11 +52644,13 @@ step - (default 1) each step will increase by this amount (positive whole number
 start - (default 0 or length-1 for reverse) index to start
 end - (default length-1 or 0 for reverse) index to end
 immediate - (default true) set to false to not start the loop right away, but rather wait for a first interval
+complete (default null) - a callback function to call when complete
+completeParams (default null) - paramater to pass complete callback
 
 RETURNS any value returned from the loop - or true if no value is returned from a loop
 --*///+45.3
-	zim.loop = function(obj, call, reverse, interval, step, start, end, immediate) {
-		var sig = "obj, call, reverse, interval, step, start, end, immediate";
+	zim.loop = function(obj, call, reverse, interval, step, start, end, immediate, complete, completeParams) {
+		var sig = "obj, call, reverse, interval, step, start, end, immediate, complete, completeParams";
 		var duo; if (duo = zob(zim.loop, arguments, sig)) return duo;
 		
 		if (!zim.zimLoopCheck) z_d("45.3");
@@ -52601,6 +52663,8 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 
 		if (obj.constructor === Number) obj = Number(obj);
 		if (obj.constructor === String) obj = String(obj);
+
+		var comp = interval===0 && complete && typeof complete=="function";	
 
 		var type = typeof obj=="number"?"number":(obj.constructor === Array?"array":(obj.constructor === {}.constructor?"object":(obj instanceof NodeList?"nodelist":(typeof obj == "string"?"string":(obj instanceof HTMLCollection?"htmlcollection":(obj.type&&obj.type=="Dictionary"?"Dictionary":"invalid"))))));
 
@@ -52652,7 +52716,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			} else {
 				if (interval === 0) {
@@ -52689,9 +52753,10 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			}
+			if (comp) complete(completeParams);
 			return true;
 		} else if (type == "object") {
 			length = 0;
@@ -52722,7 +52787,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			} else {
 				if (interval === 0) {
@@ -52743,9 +52808,10 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			}
+			if (comp) complete(completeParams);
 			return true;
 		} else {
 			total = getTotal(obj.numChildren-1);
@@ -52770,7 +52836,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			} else {
 				if (interval === 0) {
@@ -52791,9 +52857,10 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							io.clear();
 							return r;
 						}
-					}, total, immediate);					
+					}, total, immediate, null, null, complete, completeParams);					
 				}
 			}
+			if (comp) complete(completeParams);
 			return true;
 		}
 		function getTotal(max) {
@@ -52805,6 +52872,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 			end = Math.max(0, Math.min(end, max));
 			return Math.floor((reverse?(start-end):(end-start)) / step) + 1;
 		}
+		
 	};//-45.3
 
 
@@ -58337,7 +58405,7 @@ backdropColor - (default null) will add a backdrop colored backdropColor underne
 backdropPadding - (default spacingH) set the padding of the backdropColorRect - this will adjust the bounds of the Tile accordingly
 backdropPaddingH - (default backdropPadding) set the horizontal padding of the backdropColorRect
 backdropPaddingV - (default backdropPadding) set the vertical padding of the backdropColorRect
-mat - (default null) will add the mat above a backdrop and below any backgrounds, backings and items
+mat - (default null) a ZIM DisplayObject to be added above a backdrop and below any backgrounds, backings and items
 	the alignment of this will always be centered - it can have scaleTo() applied and be moved afterwards
 	the mat will not affect the bounds of the tile even if it is bigger than the tile
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
@@ -59143,7 +59211,7 @@ note: the item is not the event object target - as that is the tile
 					if (backing) exactBackings.push(backings[i].clone(true));
 				}
 			}
-			return that.cloneProps(new zim.Tile(exact?zim.series(exactItems):(obj.clone?obj.clone():obj), that.cols, that.rows, that.spacingH, that.spacingV, exact?false:unique, width, height, that.squeezeH, that.squeezeV, colSize, rowSize, align, valign, that.items.length, that.mirrorH, that.mirrorV, snapToPixel, exact?false:clone, events, exact, scaleToH, scaleToV, scaleToType, exact?zim.series(exactBackgroundColors):backgroundColor, exact?zim.series(exactBackings):(backing&&backing.clone)?backing.clone():backing, backdropColor, backdropPadding, backdropPaddingH, backdropPaddingV, (mat&&mat.clone)?mat.clone():mat, this.style, this.group));
+			return that.cloneProps(new zim.Tile(exact&&exactItems?zim.series(exactItems):(obj.clone?obj.clone():obj), that.cols, that.rows, that.spacingH, that.spacingV, exact?false:unique, width, height, that.squeezeH, that.squeezeV, colSize, rowSize, align, valign, that.items.length, that.mirrorH, that.mirrorV, snapToPixel, exact?false:clone, events, exact, scaleToH, scaleToV, scaleToType, exact&&exactBackgroundColors?zim.series(exactBackgroundColors):backgroundColor, exact&&exactBackings?zim.series(exactBackings):(backing&&backing.clone)?backing.clone():backing, backdropColor, backdropPadding, backdropPaddingH, backdropPaddingV, (mat&&mat.clone)?mat.clone():mat, this.style, this.group));
 		};
 	};
 	zim.extend(zim.Tile, zim.Container, "clone", "zimContainer", false);
@@ -61982,6 +62050,14 @@ https://zimjs.com/015/textureactive5.html - Physics
 https://zimjs.com/015/textureactive_hud.html - HUD affecting three object
 https://zimjs.com/015/textureactive_hud_raw.html - same but without ZIM Three 
 
+XR
+TextureActive will detect if XR (AR/VR) is being used and will use the suitable Raycaster
+Additional classes are provided with the ZIM Three helper library for controllers, movement and teleport 
+
+SEE: 
+https://zimjs.com/015/vr.html - for example with Three and controllers (trigger), movement (sticks and squeeze) and teleport (B and Y buttons)
+
+
 EXAMPLE 
 import zim from "https://zimjs.org/cdn/015/zim_three";
 
@@ -62138,88 +62214,88 @@ See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+35.2
 
-	zim.TextureActive = function(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, group, inherit) {
-		var sig = "width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, group, inherit";
-		var duo; if (duo = zob(zim.TextureActive, arguments, sig, this)) return duo;   
-		z_d("35.2");
+zim.TextureActive = function(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, group, inherit) {
+	var sig = "width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, group, inherit";
+	var duo; if (duo = zob(zim.TextureActive, arguments, sig, this)) return duo;   
+	z_d("35.2");
 
-		this.group = group;
-		var DS = style===false?{}:zim.getStyle("TextureActive", this.group, inherit);
+	this.group = group;
+	var DS = style===false?{}:zim.getStyle("TextureActive", this.group, inherit);
 
-		if (zot(width)) width=DS.width!=null?DS.width:WW.zdf.width;
-		if (zot(height)) height=DS.height!=null?DS.height:WW.zdf.height;
-		if (zot(interactive)) interactive=DS.interactive!=null?DS.interactive:true;
-		if (zot(animated)) animated=DS.animated!=null?DS.animated:true;
-		if (zot(color)) color=DS.color!=null?DS.color:null;
-		if (zot(color2)) color2=DS.color2!=null?DS.color2:null;
-		if (zot(angle)) angle=DS.angle!=null?DS.angle:null;
-		if (zot(borderColor)) borderColor=DS.borderColor!=null?DS.borderColor:null;
-		if (zot(borderWidth)) borderWidth=DS.borderWidth!=null?DS.borderWidth:null;
-		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
-		else if (borderColor!=null && borderWidth==null) borderWidth = 1;
-		if (zot(corner)) corner=DS.corner!=null?DS.corner:10;
-		if (zot(backingOrbit)) backingOrbit=DS.backingOrbit!=null?DS.backingOrbit:true;
-		if (zot(pattern)) pattern=DS.pattern!=null?DS.pattern:null;
-		if (zot(scalePattern)) scalePattern=DS.scalePattern!=null?DS.scalePattern:null;
+	if (zot(width)) width=DS.width!=null?DS.width:WW.zdf.width;
+	if (zot(height)) height=DS.height!=null?DS.height:WW.zdf.height;
+	if (zot(interactive)) interactive=DS.interactive!=null?DS.interactive:true;
+	if (zot(animated)) animated=DS.animated!=null?DS.animated:true;
+	if (zot(color)) color=DS.color!=null?DS.color:null;
+	if (zot(color2)) color2=DS.color2!=null?DS.color2:null;
+	if (zot(angle)) angle=DS.angle!=null?DS.angle:null;
+	if (zot(borderColor)) borderColor=DS.borderColor!=null?DS.borderColor:null;
+	if (zot(borderWidth)) borderWidth=DS.borderWidth!=null?DS.borderWidth:null;
+	if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
+	else if (borderColor!=null && borderWidth==null) borderWidth = 1;
+	if (zot(corner)) corner=DS.corner!=null?DS.corner:10;
+	if (zot(backingOrbit)) backingOrbit=DS.backingOrbit!=null?DS.backingOrbit:true;
+	if (zot(pattern)) pattern=DS.pattern!=null?DS.pattern:null;
+	if (zot(scalePattern)) scalePattern=DS.scalePattern!=null?DS.scalePattern:null;
 
-		this.zimPage_constructor(width, height, color, color2, angle, pattern, scalePattern, null, style, group, inherit);
-		this.type = "TextureActive";
+	this.zimPage_constructor(width, height, color, color2, angle, pattern, scalePattern, null, style, group, inherit);
+	this.type = "TextureActive";
 
-		if (corner) this.backing.corner = corner;
-		if (!zot(borderWidth)) this.backing.borderWidth = borderWidth;
-		if (!zot(borderColor)) this.backing.borderColor = borderColor;   
-        if (borderWidth || !zot(borderColor)) {
-            this.backing.siz(this.width-borderWidth, this.height-borderWidth);
-            this.backing.center();
-        }        
+	if (corner) this.backing.corner = corner;
+	if (!zot(borderWidth)) this.backing.borderWidth = borderWidth;
+	if (!zot(borderColor)) this.backing.borderColor = borderColor;   
+	if (borderWidth || !zot(borderColor)) {
+		this.backing.siz(this.width-borderWidth, this.height-borderWidth);
+		this.backing.center();
+	}        
 
-		this.backing.mouseChildren = false;
-		this.interactive = interactive;
-		this.animated = animated;
-		this.backingOrbit = backingOrbit;
+	this.backing.mouseChildren = false;
+	this.interactive = interactive;
+	this.animated = animated;
+	this.backingOrbit = backingOrbit;
 
-		if (style!==false) zim.styleTransforms(this, DS);
+	if (style!==false) zim.styleTransforms(this, DS);
 
-		this.clone = function() {
-			return this.cloneProps(new zim.TextureActive(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, this.group, inherit));
-		};
-	}
-	zim.extend(zim.TextureActive, zim.Page, ["clone"], "zimPage", false);
-	zim.TextureActive.makeLogo = function(shade, mouse) {
-		if (zot(shade)) shade = "light";
-		var onLight = shade != "dark";
-		var c1 = onLight?zim.light:zim.dark;
-		var c2 = onLight?zim.dark:zim.light;
-		var c3 = onLight?zim.white:zim.black;
-		var c4 = onLight?zim.black:zim.white;
-		var logo = new zim.Container(400,100);   
-		var icon = WW.zdf.makeIcon(c1,c2,[c1,c1,c1,c1,c1]).ske(0,30).scaleTo(logo,100,100).center(logo);
-		var b1 = new zim.Rectangle((400-icon.width)/2+4, 80-10, new zim.GradientColor([onLight?c1:c3,onLight?c3:c1,onLight?c1:c3],-70), c4, .5).addTo(logo);
-		var b2 = b1.clone().pos(0,0,"right","bottom",logo);
-		new zim.Label({text:"Texture", size:50, color:c2, variant:true}).scaleTo(b1,75,75).center(b1);
-		new zim.Label({text:"Active", size:50, color:c2, variant:true}).scaleTo(b1,72,72).center(b2);
-		if (!mouse) return logo.noMouse();
-		return logo;
-	}
-	zim.TextureActive.makeBacking = function(width, height, text, color) {
-		if (zot(width)) width = 800;
-		if (zot(height)) height = 600;
-		if (zot(text)) text = "CANVAS WINDOW";
-		if (zot(color)) color = zim.light;
-		var backing = new zim.Container(width, height);
-		backing.icon = WW.zdf.makeIcon({box:black}).sca(2);
-		backing.label = new zim.Label({text:text, size:25, color:color, align:"center"}).reg("center");
-		backing.tile = new zim.Tile({
-			obj:[backing.icon, backing.label], 
-			rows:2, 
-			spacingV:24, 
-			unique:true,
-			align:CENTER
-		}).scaleTo(backing, 50, 70).center(backing);
-		backing.tile.items[1].mov(0,10);
-		return backing;
-	}
-	//-35.2
+	this.clone = function() {
+		return this.cloneProps(new zim.TextureActive(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, this.group, inherit));
+	};
+}
+zim.extend(zim.TextureActive, zim.Page, ["clone"], "zimPage", false);
+zim.TextureActive.makeLogo = function(shade, mouse) {
+	if (zot(shade)) shade = "light";
+	var onLight = shade != "dark";
+	var c1 = onLight?zim.light:zim.dark;
+	var c2 = onLight?zim.dark:zim.light;
+	var c3 = onLight?zim.white:zim.black;
+	var c4 = onLight?zim.black:zim.white;
+	var logo = new zim.Container(400,100);   
+	var icon = WW.zdf.makeIcon(c1,c2,[c1,c1,c1,c1,c1]).ske(0,30).scaleTo(logo,100,100).center(logo);
+	var b1 = new zim.Rectangle((400-icon.width)/2+4, 80-10, new zim.GradientColor([onLight?c1:c3,onLight?c3:c1,onLight?c1:c3],-70), c4, .5).addTo(logo);
+	var b2 = b1.clone().pos(0,0,"right","bottom",logo);
+	new zim.Label({text:"Texture", size:50, color:c2, variant:true}).scaleTo(b1,75,75).center(b1);
+	new zim.Label({text:"Active", size:50, color:c2, variant:true}).scaleTo(b1,72,72).center(b2);
+	if (!mouse) return logo.noMouse();
+	return logo;
+}
+zim.TextureActive.makeBacking = function(width, height, text, color) {
+	if (zot(width)) width = 800;
+	if (zot(height)) height = 600;
+	if (zot(text)) text = "CANVAS WINDOW";
+	if (zot(color)) color = zim.light;
+	var backing = new zim.Container(width, height);
+	backing.icon = WW.zdf.makeIcon({box:black}).sca(2);
+	backing.label = new zim.Label({text:text, size:25, color:color, align:"center"}).reg("center");
+	backing.tile = new zim.Tile({
+		obj:[backing.icon, backing.label], 
+		rows:2, 
+		spacingV:24, 
+		unique:true,
+		align:CENTER
+	}).scaleTo(backing, 50, 70).center(backing);
+	backing.tile.items[1].mov(0,10);
+	return backing;
+}
+//-35.2
 
 /*--
 zim.TextureActives = function(actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit)
@@ -62262,78 +62338,86 @@ https://zimjs.com/015/textureactive5.html - Physics
 https://zimjs.com/015/textureactive_hud.html - HUD affecting three object
 https://zimjs.com/015/textureactive_hud_raw.html - same but without ZIM Three 
 
-EXAMPLE 
+XR
+TextureActive will detect if XR (AR/VR) is being used and will use the suitable Raycaster
+Additional classes are provided with the ZIM Three helper library for controllers, movement and teleport 
+
+SEE: 
+https://zimjs.com/015/vr.html - for example with Three and controllers (trigger), movement (sticks and squeeze) and teleport (B and Y buttons)
+
+
+EXAMPLE (not XR)
 import zim from "https://zimjs.org/cdn/015/zim_three";
 
 new Frame(FIT, 1024, 768, darker, purple, ready);
 function ready() {
 
-	// PANEL
-	const panel = new TextureActive({
-		width:W,
-		height:H,
-		color:white.toAlpha(.8),
-		corner:20
-	});
-	const circle = new Circle(100,red).center(panel).drag(); 
+// PANEL
+const panel = new TextureActive({
+	width:W,
+	height:H,
+	color:white.toAlpha(.8),
+	corner:20
+});
+const circle = new Circle(100,red).center(panel).drag(); 
 
-	// BACK OF PANEL
-    const backing = new TextureActive({
-        width:panel.width,
-        height:panel.height,
-        color:black,
-        corner:20,
-        animated:false,
-        interactive:false
-    });
-    TextureActive.makeBacking(backing.width, backing.height).addTo(backing); // CANVAS WINDOW
+// BACK OF PANEL
+const backing = new TextureActive({
+	width:panel.width,
+	height:panel.height,
+	color:black,
+	corner:20,
+	animated:false,
+	interactive:false
+});
+TextureActive.makeBacking(backing.width, backing.height).addTo(backing); // CANVAS WINDOW
 
-	const three = new Three({
-        width:window.innerWidth, 
-        height:window.innerHeight, 
-        cameraPosition:new THREE.Vector3(0,0,500),
-        textureActive:true
-    });
+const three = new Three({
+	width:window.innerWidth, 
+	height:window.innerHeight, 
+	cameraPosition:new THREE.Vector3(0,0,500),
+	textureActive:true
+});
 
-    const renderer = three.renderer;
-    const scene = three.scene;
-    const camera = three.camera;
+const renderer = three.renderer;
+const scene = three.scene;
+const camera = three.camera;
 
-    const controls = new OrbitControls(camera, three.canvas);
+const controls = new OrbitControls(camera, three.canvas);
 
-    const textureActives = new TextureActives([panel, backing], THREE, three, renderer, scene, camera, controls, 1, 0, 1500);
+const textureActives = new TextureActives([panel, backing], THREE, three, renderer, scene, camera, controls, 1, 0, 1500);
 
-    // can capture raydown, raymove, rayup, rayover and rayout
-    textureActives.on("raymove", e=>{
-        // zog(e.intersect.distance);
-    });
+// can capture raydown, raymove, rayup, rayover and rayout
+textureActives.on("raymove", e=>{
+	// zog(e.intersect.distance);
+});
 
-    const canvasWindow = three.makePanel(panel, textureActives);
-    scene.add(canvasWindow);
+const canvasWindow = three.makePanel(panel, textureActives);
+scene.add(canvasWindow);
 
-    // BACK OF PANEL
-    const canvasWindowBacking = three.makePanel(backing, textureActives, true, .5) // transparent and alpha  
-    scene.add(canvasWindowBacking);
-    canvasWindowBacking.rotation.y = 180*RAD; // flip it around the other way
-    
-    // // IGNORE LIST
-    // // The ignoreList is handy if you want to interact with TextureActives through objects on the same layer
-    // // uncomment below to see an example of ignoring the red plane mesh so raycast will go right through to menu 
-    // // note, this would be simpler to test if we did not apply the layer of 1 to the TextureActives
-    // // because if we did not set the mesh on layer 1 then it would already be ignored ;-) 
-    // // keep the ignoreList commented to see that the red plane does not let the raycast past 
-    // // and therefore activates the orbit controls.
-   
-    // const geometry = new THREE.PlaneGeometry(100, 100, 1, 1); 
-    // const material = new THREE.MeshBasicMaterial({
-    //     color:0xcc0000
-    // });
-    // const way = new THREE.Mesh(geometry, material);           
-    // scene.add(way);  
-    // camera.layers.enable(1);
-    // way.layers.set(1);
-    // way.position.z = 50;
-    // textureActives.ignoreList = [way];
+// BACK OF PANEL
+const canvasWindowBacking = three.makePanel(backing, textureActives, true, .5) // transparent and alpha  
+scene.add(canvasWindowBacking);
+canvasWindowBacking.rotation.y = 180*RAD; // flip it around the other way
+
+// // IGNORE LIST
+// // The ignoreList is handy if you want to interact with TextureActives through objects on the same layer
+// // uncomment below to see an example of ignoring the red plane mesh so raycast will go right through to menu 
+// // note, this would be simpler to test if we did not apply the layer of 1 to the TextureActives
+// // because if we did not set the mesh on layer 1 then it would already be ignored ;-) 
+// // keep the ignoreList commented to see that the red plane does not let the raycast past 
+// // and therefore activates the orbit controls.
+
+// const geometry = new THREE.PlaneGeometry(100, 100, 1, 1); 
+// const material = new THREE.MeshBasicMaterial({
+//     color:0xcc0000
+// });
+// const way = new THREE.Mesh(geometry, material);           
+// scene.add(way);  
+// camera.layers.enable(1);
+// way.layers.set(1);
+// way.position.z = 50;
+// textureActives.ignoreList = [way];
 
 } // end ready
 END EXAMPLE
@@ -62342,35 +62426,35 @@ PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 actives - a ZIM TextureActive object or an array of ZIM TextureActive objects
-	also see the add() method 
-	these will be tiled in ZIM and used to be mapped as a CanvasTexture onto three.js materials for meshes
-	see https://zimjs.com/docs.html?item=TextureActive
+also see the add() method 
+these will be tiled in ZIM and used to be mapped as a CanvasTexture onto three.js materials for meshes
+see https://zimjs.com/docs.html?item=TextureActive
 threejs - reference to the three.js namespace
 zimThree - (default null) reference to the ZIM Three object if the Three helper module is used (saves lots of lines!)
 renderer - reference to the three.js renderer (if using Three, then three.renderer)
 scene - reference to the three.js scene (if using Three, then three.scene)
-	if using more than one scene then make more than one TexureActives object
+if using more than one scene then make more than one TexureActives object
 camera - reference to the three.js camera (if using Three, then three.camera)
-	if using more than one camera then make more than one TexureActives object
+if using more than one camera then make more than one TexureActives object
 controls - (default null) a three.js OrbitControls or FirstPersonControls 
-	other controls may work but are not directly accomodated
+other controls may work but are not directly accomodated
 layers - (default 0) a layer number from 0 to 31 or an array of layers 
-	this will instruct the raycaster to look at only the provided layers
-	it is a good idea to specify 1 for instance and add TexureActive meshes to layer 1 
-	the addMesh() method has a layer parameter that should match the layer number used here 
-	the Three makePanel() method will automatically add the panel mesh to the layer specified for the TextureActives object
+this will instruct the raycaster to look at only the provided layers
+it is a good idea to specify 1 for instance and add TexureActive meshes to layer 1 
+the addMesh() method has a layer parameter that should match the layer number used here 
+the Three makePanel() method will automatically add the panel mesh to the layer specified for the TextureActives object
 near - (default undefined) - the start of the distance-from-camera range for the object to be interactive
 far - (default undefined) - the end of the distance-from-camera range for the object to be interactive
 ignoreList - (default null) - a mesh or array of meshes to ignore if between the camera and the TextureActive mesh 
-	by default, meshes on the same layer will prevent interactivity if between the camera and the TextureActive mesh
-	if the mesh is not on the same layer then it will be ignored by default
+by default, meshes on the same layer will prevent interactivity if between the camera and the TextureActive mesh
+if the mesh is not on the same layer then it will be ignored by default
 toggleKey - (default t) the key to toggle to or from the ZIM canvas and the three.js canvas
-	this can be used to directly interact with the ZIM objects - good for testing 
-	the ZIM objects are tiled horizontally with a slider or swiping to pan across them 
-	the toggle can be deactivated by setting it to -1 
-	or any time by setting the textureActives.manager.toggleKey to -1
-	the ZIM canvas and toggling is handled by the ZIM TextureActivesManager
-	which is automatically made as soon as one TextureActives object is made
+this can be used to directly interact with the ZIM objects - good for testing 
+the ZIM objects are tiled horizontally with a slider or swiping to pan across them 
+the toggle can be deactivated by setting it to -1 
+or any time by setting the textureActives.manager.toggleKey to -1
+the ZIM canvas and toggling is handled by the ZIM TextureActivesManager
+which is automatically made as soon as one TextureActives object is made
 color - (default darker) the color for the ZIM stage (when the toggle key is pressed)
 outerColor - (default black) the color of off the ZIM stage (when the toggle key is pressed)
 damp - (default .2) the damping of the TextureActivesManager - set to false for no damping
@@ -62380,10 +62464,10 @@ inherit - (default null) used internally but can receive an {} of styles directl
 
 METHODS
 add(actives) - add a ZIM TextureActive object or an array of ZIM TextureActive objects
-	or see the actives parameter of TextureActives
+or see the actives parameter of TextureActives
 remove(actives) - remove a ZIM TextureActive object or an array of ZIM TextureActive objects
 addMesh(mesh, layer) - add a three.js mesh to TextureActives at the option layer - see the layer parameter of TextureActives 
-	also see the ZIM Three helper module makePanel() method to easily make a three.js Plane mesh with a TextureActive
+also see the ZIM Three helper module makePanel() method to easily make a three.js Plane mesh with a TextureActive
 dispose() - removes event listeners - must still set outside references to null for garbage collection
 
 PROPERTIES
@@ -62391,12 +62475,12 @@ type - holds the class name as a String
 interactive - get whether there are interactive TextureActive objects
 animated - get whether there are animated TextureActive objects
 manager - the ZIM TexureActivesManager object that handles toggling between the three.js canvas and the ZIM canvas 
-	this is used to interact directly with ZIM for testing, etc.
-	and can be used to toggle between states and change or remove the key for toggling 
+this is used to interact directly with ZIM for testing, etc.
+and can be used to toggle between states and change or remove the key for toggling 
 ignoreList - get or set the array of three.js meshes to ignore - see the ignoreList parameter of TextureActives
 raycaster - a reference to the three.Raycaster object if the TextureActives is interactive
-	this is responsible for geting x and y coordinates on TextureActive materials and sending them to CreateJS
-	where they replace the regular DOM mouse or pointer events
+this is responsible for geting x and y coordinates on TextureActive materials and sending them to CreateJS
+where they replace the regular DOM mouse or pointer events
 raycast - get or set whether the raycaster is operational
 renderer - the three.js renderer
 layers - get an array of layers used by the raycaster
@@ -62411,460 +62495,535 @@ rayover - dispatched when mouse is moves over a ZIM TextureActive material
 rayout - dispatched when mouse is moves out from a ZIM TextureActive material
 --*///+35.4
 
-	zim.TextureActives = function(actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit) {
-		var sig = "actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit";
-		var duo; if (duo = zob(zim.TextureActives, arguments, sig, this)) return duo;   
-		z_d("35.4");
-	
-		this.group = group;
-		var DS = style===false?{}:zim.getStyle("TextureActives", this.group, inherit);
-	
-		var stage, frame;
-		var message = "ZIM TextureActives - need a ZIM Frame";
-		if (zot(actives) && zot(actives[0])) {
-			if (WW.zdf) {
-				frame = WW.zdf;
-				stage = WW.zdf.stage;
-			} else {
-				zogy(message);
-				return;
-			}
-		} else if (zot(actives) || zot(actives[0]) || zot(actives[0].stage)) {
-			if (WW.zdf) {
-				frame = WW.zdf;
-				stage = WW.zdf.stage;
-			} else {
-				zogy(message);
-				return;
-			}
-		} else {
-			stage = actives[0].stage;
-			frame = stage.frame;
-		}	
-	
-		if (zot(actives)) actives=DS.actives!=null?DS.actives:null;   
-		if (zot(threejs)) threejs=DS.threejs!=null?DS.threejs:null;   
-		if (zot(zimThree)) zimThree=DS.zimThree!=null?DS.zimThree:null;   
-		if (zot(renderer)) renderer=DS.renderer!=null?DS.renderer:null;   
-		if (zot(scene)) scene=DS.scene!=null?DS.scene:null;   
-		if (zot(camera)) camera=DS.camera!=null?DS.camera:null;   
-		if (zot(controls)) controls=DS.controls!=null?DS.controls:null;   
-		if (zot(layers)) layers=DS.layers!=null?DS.layers:[];  
-		if (!Array.isArray(layers)) layers = [layers]; 
-		if (zot(near)) near=DS.near!=null?DS.near:undefined;   
-		if (zot(far)) far=DS.far!=null?DS.far:undefined;   
-		if (zot(ignoreList)) ignoreList=DS.ignoreList!=null?DS.ignoreList:[];  
-		if (!Array.isArray(ignoreList)) ignoreList = [ignoreList];
-		if (zot(toggleKey)) toggleKey=DS.toggleKey!=null?DS.toggleKey:"t";  
-		if (zot(color)) color=DS.color!=null?DS.color:zim.darker;  
-		if (zot(outerColor)) outerColor=DS.outerColor!=null?DS.outerColor:"black";  
-		if (zot(damp)) damp=DS.damp!=null?DS.damp:null; 
+zim.TextureActives = function(actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit) {
+var sig = "actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit";
+var duo; if (duo = zob(zim.TextureActives, arguments, sig, this)) return duo;   
+z_d("35.4");
 
-        var that = this;
+this.group = group;
+var DS = style===false?{}:zim.getStyle("TextureActives", this.group, inherit);
 
-		if (!zim.TAM) {
-			zim.TAM = new zim.TextureActivesManager(stage, toggleKey, damp);
-			// seems to be needed to let certain interactions happen like ZIM TextInput
-			if (renderer && renderer.domElement) renderer.domElement.addEventListener("mousedown", (e)=>{
-				e.preventDefault();
-			});
+var stage, frame;
+var message = "ZIM TextureActives - need a ZIM Frame";
+if (zot(actives) && zot(actives[0])) {
+	if (WW.zdf) {
+		frame = WW.zdf;
+		stage = WW.zdf.stage;
+	} else {
+		zogy(message);
+		return;
+	}
+} else if (zot(actives) || zot(actives[0]) || zot(actives[0].stage)) {
+	if (WW.zdf) {
+		frame = WW.zdf;
+		stage = WW.zdf.stage;
+	} else {
+		zogy(message);
+		return;
+	}
+} else {
+	stage = actives[0].stage;
+	frame = stage.frame;
+}	
+
+if (zot(actives)) actives=DS.actives!=null?DS.actives:null;   
+if (zot(threejs)) threejs=DS.threejs!=null?DS.threejs:null;   
+if (zot(zimThree)) zimThree=DS.zimThree!=null?DS.zimThree:null;   
+if (zot(renderer)) renderer=DS.renderer!=null?DS.renderer:null;   
+if (zot(scene)) scene=DS.scene!=null?DS.scene:null;   
+if (zot(camera)) camera=DS.camera!=null?DS.camera:null;   
+if (zot(controls)) controls=DS.controls!=null?DS.controls:null;   
+if (zot(layers)) layers=DS.layers!=null?DS.layers:[];  
+if (!Array.isArray(layers)) layers = [layers]; 
+if (zot(near)) near=DS.near!=null?DS.near:undefined;   
+if (zot(far)) far=DS.far!=null?DS.far:undefined;   
+if (zot(ignoreList)) ignoreList=DS.ignoreList!=null?DS.ignoreList:[];  
+if (!Array.isArray(ignoreList)) ignoreList = [ignoreList];
+if (zot(toggleKey)) toggleKey=DS.toggleKey!=null?DS.toggleKey:"t";  
+if (zot(color)) color=DS.color!=null?DS.color:zim.darker;  
+if (zot(outerColor)) outerColor=DS.outerColor!=null?DS.outerColor:"black";  
+if (zot(damp)) damp=DS.damp!=null?DS.damp:null; 
+
+var that = this;
+
+if (!zim.TAM) {
+	zim.TAM = new zim.TextureActivesManager(stage, toggleKey, damp);
+	// seems to be needed to let certain interactions happen like ZIM TextInput
+	if (renderer && renderer.domElement) renderer.domElement.addEventListener("mousedown", (e)=>{
+		e.preventDefault();
+	});
+}
+that.manager = zim.TAM; 
+
+this.ignoreList = ignoreList;
+this.raycast = true;
+this.renderer = renderer;
+this.layers = layers;
+
+this.animated = false;
+this.interactive = false;
+this.actives = [];
+this.threeMeshes = []; 
+var applied = false;
+
+// also used by add() method
+function addActives(actives) {
+	if (zot(actives)) actives = [];
+	if (!Array.isArray(actives)) actives = [actives];
+	var count = 0;
+	var interactive;
+	var animated;
+	zim.loop(actives, function(active) {
+		if (that.actives.indexOf(active) < 0) {
+			that.actives.push(active);                    
+			active.cache();            
+			active.canvas.content = active;    
+			if (active.interactive) {
+				interactive = true;
+				active.canvas.isTextureActive = true;
+			}
+			if (active.animated) animated = true;                        
+			count++;
 		}
-		that.manager = zim.TAM; 
+	});
+	if (interactive && !that.interactive) {
+		that.interactive = true;
+		if (count > 0) apply();
+	}
+	if (animated && !that.animated) that.animated = true;
+	return count;
+} 
+addActives(actives);
 
-        this.ignoreList = ignoreList;
-        this.raycast = true;
-		this.renderer = renderer;
-		this.layers = layers;
+zim.TAM.updateTile(that, that.actives);
+zim.TAM.color = color;
+zim.TAM.outerColor = outerColor;
 
-        this.animated = false;
-        this.interactive = false;
-        this.actives = [];
-        this.threeMeshes = []; 
-        var applied = false;
-
-        // also used by add() method
-        function addActives(actives) {
-            if (zot(actives)) actives = [];
-            if (!Array.isArray(actives)) actives = [actives];
-            var count = 0;
-            var interactive;
-            var animated;
-            zim.loop(actives, function(active) {
-                if (that.actives.indexOf(active) < 0) {
-                    that.actives.push(active);                    
-                    active.cache();            
-                    active.canvas.content = active;    
-                    if (active.interactive) {
-                        interactive = true;
-                        active.canvas.isTextureActive = true;
-                    }
-                    if (active.animated) animated = true;                        
-                    count++;
-                }
-            });
-            if (interactive && !that.interactive) {
-                that.interactive = true;
-                if (count > 0) apply();
-            }
-            if (animated && !that.animated) that.animated = true;
-            return count;
-        } 
-        addActives(actives);
-       
-		zim.TAM.updateTile(that, that.actives);
-		zim.TAM.color = color;
-		zim.TAM.outerColor = outerColor;
-        
-        frame.canvas.style.display = "none";		
-	 
-        
-        function apply () {
-
-            if (applied) return; // apply only once
-            applied = true;
-            
-            // activate raycasts mapping to createjs pointers
-            // renderer.domElement is needed to add css cursors 
-            // stage is needed to disable dom events on stage
-			if (!that.pointerCheck) that.pointerCheck = zim.TAM.addPointer(that);            
-
-            that.pointerData = {x:frame.mouseX, y:frame.mouseY, mousedown:false};
-
-            var startW = window.innerWidth;
-            var startH = window.innerHeight;
-            var lastMesh=-1;
-            var overMesh=-2;
-            var lastMaterial=-1;
-            var overMaterial=-2;
-            that.overInterval = zim.interval(.05, function() {
-                if ((overMesh && overMesh != lastMesh) || (overMaterial && overMaterial != lastMaterial)) {
-                    var e = new createjs.Event("rayover");
-                    e.mesh = that.mesh = overMesh;
-                    e.material = that.material = overMaterial;
-					if (overMaterial.userData) e.textureActive = that.textureActive = overMaterial.userData.ta_content;
-                    e.intersect = that.intersect;
-                    that.dispatchEvent(e);
-                    if (controls && !controls.screenSpacePanning) controls.activeLook = false;  // firstPersonControls only  
-                } else if ((!overMesh && lastMesh) || (!overMaterial && lastMaterial)) {
-                    var e = new createjs.Event("rayout");
-                    e.mesh = lastMesh;
-                    e.material = lastMaterial;
-                    if (lastMaterial.userData) e.textureActive = lastMaterial.userData.ta_content;
-                    e.intersect = that.intersect;
-                    that.dispatchEvent(e);
-                    if (controls && !controls.screenSpacePanning) controls.activeLook = true;  // firstPersonControls only  
-                }
-                lastMesh = overMesh;
-                lastMaterial = overMaterial;
-            });
-
-            var raycaster = that.raycaster = new threejs.Raycaster(undefined, undefined, near, far);   
-            if (layers.length > 0) {
-                zim.loop(layers, function(layer) {
-                    raycaster.layers.set(layer);  
-                });
-            }			
-            
-            var currentDown;
-            
-            window.addEventListener("pointerdown", doPointerDown);
-            function doPointerDown(e) {
-
-                if (!that.raycast) return;
-
-                var point;
-                if (!zimThree || zimThree.resizeEvent) {
-                    point = {
-                        x: (e.clientX/window.innerWidth*2-1),
-                        y: (1-e.clientY/window.innerHeight*2)
-                    }
-                } else {
-                    point = {
-                        x: (e.clientX/startW*2-1),
-                        y: (1-e.clientY/startH*2)
-                    }
-                }
-                raycaster.setFromCamera(point, camera);
-                var intersects = raycaster.intersectObjects(scene.children);    
-                currentDown = null;  
-                var obj, i, material;
-                for (i=0; i<intersects.length; i++) {					
-                    obj = intersects[i].object;
-                    if (that.ignoreList.indexOf(obj) > -1) continue;
-                    if (that.threeMeshes.indexOf(obj) > -1) {
-                        if (obj.material && Array.isArray(obj.material)) {
-                            material = obj.material[intersects[i].face.materialIndex];
-                        } else if (obj.material) {
-                            material = obj.material;
-                        } else {
-                            break;
-                        }
-                    }
-                    if (material 
-						&& material.map 
-                        && material.map.source 
-                        && material.map.source.data
-                        && material.map.source.data.isTextureActive     
-						&& material.userData.ta_content                       
-                    ) {        
-                        currentDown = obj; 
-                        var content = material.userData.ta_content;
-                        that.pointerData.mousedown = true; 
-                        doRaycast(content, intersects[i], material.userData.ta_flipped); 
-                        createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "down", e, stage, e.pointerID);
-						
-						if (controls && controls.maxAzimuthAngle && content) {
-							if (content.backingOrbit) {
-								var p = content.globalToLocal(frame.mouseX, frame.mouseY);
-							    var b = content.backing;
-							    if (b && content.getObjectUnderPoint(p.x, p.y, 1) != b) {
-							        controls.enableRotate = false; 
-							    } else controls.enableRotate = true;
-							} else {
-								controls.enableRotate = false; 
-							}
-						}
-                        var e = new createjs.Event("raydown");  
-                        e.mesh = that.mesh = obj;
-                        e.material = that.material = material;
-                        e.textureActive = that.textureActive = content;
-                        e.intersect = that.intersect = intersects[i];
-                        that.dispatchEvent(e);
-                        break;
-                    } else {
-                        break;
-                    }      
-                }
-            }
-
-            window.addEventListener("pointerup", doPointerUp);
-            function doPointerUp(e) {
-
-                if (!that.raycast) return;
-
-                that.pointerData.mousedown = false;
-                if (controls && controls.maxAzimuthAngle) controls.enableRotate = true;  // orbitControls only  
-                if (currentDown) {
-                    var e = new createjs.Event("rayup");
-                    e.mesh = that.mesh;
-                    e.material = that.material;
-                    e.textureActive = that.textureActive;                    
-                    e.intersect = that.intersect;
-                    that.dispatchEvent(e);
-                }
-                currentDown = null;
-                createjs.handleRemotePointer(null, null, "up", e, stage, -1);                
-            }            
-
-            window.addEventListener("pointermove", doPointerMove);
-            function doPointerMove(e) {
-
-                if (!that.raycast) return;
-
-                var point;
-                if (!zimThree || zimThree.resizeEvent) {
-                    point = {
-                        x: (e.clientX/window.innerWidth*2-1),
-                        y: (1-e.clientY/window.innerHeight*2)
-                    }
-                } else {
-                    point = {
-                        x: (e.clientX/startW*2-1),
-                        y: (1-e.clientY/startH*2)
-                    }
-                }
-                raycaster.setFromCamera(point, camera);
-                var active = false;
-                var obj, i, material;
-                if (currentDown) {
-                    const intersects = raycaster.intersectObject(currentDown);
-                    if (intersects.length > 0) {
-                        obj = currentDown;
-                        if (obj.material && Array.isArray(obj.material)) {
-                            material = obj.material[intersects[0].face.materialIndex];
-                        } else if (obj.material) {
-                            material = obj.material;
-                        }
-                        if (material) {							
-                            var content = material.userData.ta_content;
-                            doRaycast(content, intersects[0], material.userData.ta_flipped);
-                            createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "move", e, stage, e.pointerID);
-                            active = true;
-                            var e = new createjs.Event("raymove");
-                            e.mesh = overMesh = that.mesh = obj;
-                            e.material = overMaterial = that.material = material;
-                            e.textureActive = that.textureActive = content;
-                            e.intersect = that.intersect = intersects[0];
-                            that.dispatchEvent(e);
-                        }                       
-                    }
-                } else {
-                    var intersects = raycaster.intersectObjects(scene.children);
-                    for (i=0; i<intersects.length; i++) {
-                        obj = intersects[i].object;
-                        if (that.ignoreList.indexOf(obj) > -1) continue;
-
-                        if (that.threeMeshes.indexOf(obj) > -1) {
-                            if (obj.material && Array.isArray(obj.material)) {
-                                material = obj.material[intersects[i].face.materialIndex];
-                            } else if (obj.material) {
-                                material = obj.material;
-                            } else {
-                                break;
-                            }
-                        }
-                        if (material
-							&& material.map 
-                            && material.map.source 
-                            && material.map.source.data
-                            && material.map.source.data.isTextureActive
-							&& material.userData.ta_content                   
-                        ) { 
-                            var content = material.userData.ta_content;
-                            doRaycast(content, intersects[i], material.userData.ta_flipped);
-                            createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "move", e, stage, e.pointerID);
-                            active = true;
-                            var e = new createjs.Event("raymove");
-                            e.material = overMaterial = that.material = material;
-                            e.mesh = overMesh = that.mesh = obj;
-                            e.textureActive = that.textureActive = content;
-                            e.intersect = that.intersect = intersects[i];
-                            that.dispatchEvent(e);
-                            break;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-
-                if (!active) {                    
-                    overMesh = null;
-                    overMaterial = null;
-                }
-				zim.TAM.setActive(that,active);
-
-            }
-
-            function doRaycast(content, intersects, flipped) {  
-				if (!content || !content.getBounds) return;
-                var b = content.getBounds();
-                var x = flipped?(b.width-intersects.uv.x*b.width):intersects.uv.x*b.width;
-                var y = (1-intersects.uv.y)*b.height;
-                var uvp = content.localToGlobal(x,y);
-                that.pointerData.x = uvp.x;
-                that.pointerData.y = uvp.y;        
-            }
-        }
-
-        this.add = function(actives) {
-            var count = addActives(actives);            
-            if (count > 0) {
-				zim.TAM.updateTile(that, that.actives);                
-            }
-			return that;
-        }
-
-        this.remove = function(actives) {
-            if (zot(actives)) actives = [];
-            if (!Array.isArray(actives)) actives = [actives];
-            var count = 0;
-            zim.loop(actives, function(active) {
-                if (createjs.remoteQueue) {
-                    var index = createjs.remoteQueue.indexOf(active);
-                    if (index >= 0) createjs.remoteQueue.splice(index, 1);
-                }
-                index = that.actives.indexOf(active);
-                if (index >= 0) {
-                    that.actives.splice(index, 1);
-                    count++;
-                }
-                if (active.textureMap) delete active.textureMap.userData.ta_content;
-                index = that.threeMeshes.indexOf(active);
-                if (index >= 0) that.threeMeshes.splice(index, 1);
-                active.dispose();
-            }, true);
-            if (count > 0) {
-                zim.TAM.updateTile(that, that.actives);
-            }  
-			return that;          
-        }
-       
-        that.addMesh = function(mesh, layer) {
-            if (!zot(layer)) mesh.layers.enable(layer);
-            if (mesh.material) {
-                var index = that.threeMeshes.indexOf(mesh);
-                if (index < 0) that.threeMeshes.push(mesh);
-                else return that;
-
-                var materials;
-                if (Array.isArray(mesh.material)) materials = mesh.material;
-                else materials = [mesh.material];
+frame.canvas.style.display = "none";		
 
 
-				mesh.onBeforeRender = function() {
-					if (mesh.userData.ta_viewID) clearTimeout(mesh.userData.ta_viewID);
-					mesh.userData.ta_viewID = setTimeout(function(){
-						mesh.userData.ta_view = false;
-						if (createjs.remoteQueue) {
-							// not in view
-							zim.loop(mesh.userData.ta_content, function(c) {
-								var ind = createjs.remoteQueue.indexOf(c);
-								if (ind >= 0) createjs.remoteQueue.splice(ind, 1);
-							},true);
-						}
-					}, 100);
-					if (!mesh.userData.ta_view) {
-						mesh.userData.ta_view = true;
-						// in view
-						zim.loop(mesh.userData.ta_content, function(c) {
-							if (createjs.remoteQueue.indexOf(c) < 0) createjs.remoteQueue.push(c);
-						});
+function apply () {
+
+	if (applied) return; // apply only once
+	applied = true;
+	
+	// activate raycasts mapping to createjs pointers
+	// renderer.domElement is needed to add css cursors 
+	// stage is needed to disable dom events on stage
+	if (!that.pointerCheck) that.pointerCheck = zim.TAM.addPointer(that);            
+
+	that.pointerData = {x:frame.mouseX, y:frame.mouseY, mousedown:false};
+
+	var startW = window.innerWidth;
+	var startH = window.innerHeight;
+	var lastMesh=-1;
+	var overMesh=-2;
+	var lastMaterial=-1;
+	var overMaterial=-2;
+	that.overInterval = zim.interval(.05, function() {
+		if ((overMesh && overMesh != lastMesh) || (overMaterial && overMaterial != lastMaterial)) {
+			var e = new createjs.Event("rayover");
+			e.mesh = that.mesh = overMesh;
+			e.material = that.material = overMaterial;
+			if (overMaterial.userData) e.textureActive = that.textureActive = overMaterial.userData.ta_content;
+			e.intersect = that.intersect;
+			that.dispatchEvent(e);
+			if (controls && !controls.screenSpacePanning) controls.activeLook = false;  // firstPersonControls only  
+		} else if ((!overMesh && lastMesh) || (!overMaterial && lastMaterial)) {
+			var e = new createjs.Event("rayout");
+			e.mesh = lastMesh;
+			e.material = lastMaterial;
+			if (lastMaterial.userData) e.textureActive = lastMaterial.userData.ta_content;
+			e.intersect = that.intersect;
+			that.dispatchEvent(e);
+			if (controls && !controls.screenSpacePanning) controls.activeLook = true;  // firstPersonControls only  
+		}
+		lastMesh = overMesh;
+		lastMaterial = overMaterial;
+	});
+
+	var raycaster = that.raycaster = new threejs.Raycaster(undefined, undefined, near, far);   
+	if (layers.length > 0) {
+		zim.loop(layers, function(layer) {
+			raycaster.layers.set(layer);  
+		});
+	}			
+	
+	var currentDown;
+	var XR;
+	that.XR = WW.XR = false;
+	var tempMatrix = new threejs.Matrix4();
+
+	const controller1 = that.controllerLeft = renderer.xr.getController(0);
+	controller1.addEventListener('selectstart', doLcDown); // ignoring select
+	controller1.addEventListener('selectend', doLcUp);
+	controller1.addEventListener('move', doLcMove);
+
+	const controller2 = that.controllerRight = renderer.xr.getController(1);
+	controller2.addEventListener('selectstart', doRcDown); // ignoring select
+	controller2.addEventListener('selectend', doRcUp);
+	controller2.addEventListener('move', doRcMove);
+
+	function doLcDown(e) {
+		// possibly need to set pointerID
+		XR = true;
+		doDown(e);
+	}
+	function doLcUp(e) {
+		XR = true;
+		doUp(e);
+	}
+	function doLcMove(e) {
+		XR = true;
+		doMove(e, "left"); // move does not come with data
+	}
+
+	function doRcDown(e) {
+		XR = true;
+		doDown(e);
+	}
+	function doRcUp(e) {
+		XR = true;
+		doUp(e);
+	}
+	function doRcMove(e) {
+		XR = true;
+		doMove(e, "right");
+	}
+	
+	window.addEventListener("pointerdown", doPointerDown);			
+	function doPointerDown(e) {
+		XR = false;
+		doDown(e);
+	}
+	function doDown(e) {
+
+		if (!that.raycast) return;
+
+		if (XR) {
+			var controller = e.target;
+			tempMatrix.identity().extractRotation(controller.matrixWorld);
+			raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+			raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+			if (e.data && e.data.handedness == "left") e.pointerId = 2;
+			else e.pointerId = 1;
+		} else {
+			var point;
+			if (!zimThree || zimThree.resizeEvent) {
+				point = {
+					x: (e.clientX/window.innerWidth*2-1),
+					y: (1-e.clientY/window.innerHeight*2)
+				}
+			} else {
+				point = {
+					x: (e.clientX/startW*2-1),
+					y: (1-e.clientY/startH*2)
+				}
+			}
+			raycaster.setFromCamera(point, camera);					
+		}
+		var intersects = raycaster.intersectObjects(scene.children);
+		
+		currentDown = null;  
+		var obj, i, material;
+		for (i=0; i<intersects.length; i++) {					
+			obj = intersects[i].object;
+			if (that.ignoreList.indexOf(obj) > -1) continue;
+			if (that.threeMeshes.indexOf(obj) > -1) {
+				if (obj.material && Array.isArray(obj.material)) {
+					material = obj.material[intersects[i].face.materialIndex];
+				} else if (obj.material) {
+					material = obj.material;
+				} else {
+					break;
+				}
+			}
+			if (material 
+				&& material.map 
+				&& material.map.source 
+				&& material.map.source.data
+				&& material.map.source.data.isTextureActive     
+				&& material.userData.ta_content                       
+			) {        
+				currentDown = obj; 
+				var content = material.userData.ta_content;
+				that.pointerData.mousedown = true; 
+				doRaycast(content, intersects[i], material.userData.ta_flipped); 
+				createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "down", e, stage, e.pointerId);
+
+				if (controls && controls.maxAzimuthAngle && content) {
+					if (content.backingOrbit) {
+						var p = content.globalToLocal(frame.mouseX, frame.mouseY);
+						var b = content.backing;
+						if (b && content.getObjectUnderPoint(p.x, p.y, 1) != b) {
+							controls.enableRotate = false; 
+						} else controls.enableRotate = true;
+					} else {
+						controls.enableRotate = false; 
 					}
 				}
-				mesh.userData.ta_content = [];
-                zim.loop(materials, function(material) {
-                    if (material
-						&& material.map
-                        && material.map.source 
-                        && material.map.source.data
-                        && material.map.source.data.content
-                    ) {           
-                        var content = material.map.source.data.content;  
-						mesh.userData.ta_content.push(content);
-						content.mesh = mesh;
-                        mesh.textureActive = true; // flag that one of its materials has textureActive content
-                        material.userData.ta_content = content; // move it up so easier to access                            
-                        if (!content.textureMaps) content.textureMaps = [];
-                        var index = content.textureMaps.indexOf(material.map);
-                        if (index < 0) content.textureMaps.push(material.map);
-                        if (content.animated || content.interactive) if (!createjs.remoteQueue) createjs.remoteQueue = [];  
-                    }
-                });                        
-            }
-            return that;
-        }	
+				var e2 = new createjs.Event("raydown");  
+				e2.mesh = that.mesh = obj;
+				e2.material = that.material = material;
+				e2.textureActive = that.textureActive = content;
+				e2.intersect = that.intersect = intersects[i];
+				that.dispatchEvent(e2);
+				break;
+			} else {
+				break;
+			}      
+		}
+	}
 
-        that.dispose = function() {
-            that.raycast = false;
-            if (controls) {
-                controls.enableRotate = true;
-                controls.enabled = true;
-            }
-            that.remove(that.actives);
-			zim.TAM.remove(that);
-			if (zim.TAM.count < 1) {
-				zim.TAM.dispose();
-				zim.TAM = null;
+	window.addEventListener("pointerup", doPointerUp);
+	function doPointerUp(e) {
+		XR = false;
+		doUp(e);
+	}
+	function doUp(e) {
+
+		if (!that.raycast) return;
+
+		that.pointerData.mousedown = false;
+		if (controls && controls.maxAzimuthAngle) controls.enableRotate = true;  // orbitControls only  
+		if (currentDown) {
+			var e2 = new createjs.Event("rayup");
+			e2.mesh = that.mesh;
+			e2.material = that.material;
+			e2.textureActive = that.textureActive;                    
+			e2.intersect = that.intersect;
+			that.dispatchEvent(e2);
+		}
+		currentDown = null;
+		if (XR) {
+			if (e.data && e.data.handedness == "left") e.pointerId = 2;
+			else e.pointerId = 1;
+		}
+		createjs.handleRemotePointer(null, null, "up", e, stage, e.pointerId);    
+	}            
+
+	window.addEventListener("pointermove", doPointerMove);
+	function doPointerMove(e) {
+		XR = false;
+		doMove(e);
+	}
+	function doMove(e, handed) {
+
+		if (!that.raycast) return;
+
+		if (XR) {
+			var controller = e.target;
+			tempMatrix.identity().extractRotation(controller.matrixWorld);
+			raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+			raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
+			if (handed == "left") e.pointerId = 2;
+			else e.pointerId = 1;
+		} else {
+			var point;
+			if (!zimThree || zimThree.resizeEvent) {
+				point = {
+					x: (e.clientX/window.innerWidth*2-1),
+					y: (1-e.clientY/window.innerHeight*2)
+				}
+			} else {
+				point = {
+					x: (e.clientX/startW*2-1),
+					y: (1-e.clientY/startH*2)
+				}
 			}
-            that.material = that.mesh = that.content = that.intersect = null;
-        }
+			raycaster.setFromCamera(point, camera);
+		}
+		var active = false;
+		var obj, i, material;
+		if (currentDown) {
+			const intersects = raycaster.intersectObject(currentDown);
+			if (intersects.length > 0) {
+				obj = currentDown;
+				if (obj.material && Array.isArray(obj.material)) {
+					material = obj.material[intersects[0].face.materialIndex];
+				} else if (obj.material) {
+					material = obj.material;
+				}
+				if (material) {							
+					var content = material.userData.ta_content;
+					doRaycast(content, intersects[0], material.userData.ta_flipped);
+					createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "move", e, stage, e.pointerId);
+					active = true;
+					var e2 = new createjs.Event("raymove");
+					e2.mesh = overMesh = that.mesh = obj;
+					e2.material = overMaterial = that.material = material;
+					e2.textureActive = that.textureActive = content;
+					e2.intersect = that.intersect = intersects[0];
+					that.dispatchEvent(e2);
+				}                       
+			}
+		} else {
+			var intersects = raycaster.intersectObjects(scene.children);
+			for (i=0; i<intersects.length; i++) {
+				obj = intersects[i].object;
+				if (that.ignoreList.indexOf(obj) > -1) continue;
 
-    }
-    zim.extend(zim.TextureActives, createjs.EventDispatcher, "dispose");
-	//-35.4
+				if (that.threeMeshes.indexOf(obj) > -1) {
+					if (obj.material && Array.isArray(obj.material)) {
+						material = obj.material[intersects[i].face.materialIndex];
+					} else if (obj.material) {
+						material = obj.material;
+					} else {
+						break;
+					}
+				}
+				if (material
+					&& material.map 
+					&& material.map.source 
+					&& material.map.source.data
+					&& material.map.source.data.isTextureActive
+					&& material.userData.ta_content                   
+				) { 
+					var content = material.userData.ta_content;
+					doRaycast(content, intersects[i], material.userData.ta_flipped);
+					createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "move", e, stage, e.pointerId);
+					active = true;
+					var e2 = new createjs.Event("raymove");
+					e2.material = overMaterial = that.material = material;
+					e2.mesh = overMesh = that.mesh = obj;
+					e2.textureActive = that.textureActive = content;
+					e2.intersect = that.intersect = intersects[i];
+					that.dispatchEvent(e2);
+					break;
+				} else {
+					break;
+				}
+			}
+		}
+
+		if (!active) {                    
+			overMesh = null;
+			overMaterial = null;
+		}
+		zim.TAM.setActive(that,active);
+
+	}
+
+	function doRaycast(content, intersects, flipped) {  
+		if (!content || !content.getBounds) return;
+		var b = content.getBounds();
+		var x = flipped?(b.width-intersects.uv.x*b.width):intersects.uv.x*b.width;
+		var y = (1-intersects.uv.y)*b.height;
+		var uvp = content.localToGlobal(x,y);
+		that.pointerData.x = uvp.x;
+		that.pointerData.y = uvp.y;        
+	}
+}
+
+this.add = function(actives) {
+	var count = addActives(actives);            
+	if (count > 0) {
+		zim.TAM.updateTile(that, that.actives);                
+	}
+	return that;
+}
+
+this.remove = function(actives) {
+	if (zot(actives)) actives = [];
+	if (!Array.isArray(actives)) actives = [actives];
+	var count = 0;
+	zim.loop(actives, function(active) {
+		if (createjs.remoteQueue) {
+			var index = createjs.remoteQueue.indexOf(active);
+			if (index >= 0) createjs.remoteQueue.splice(index, 1);
+		}
+		index = that.actives.indexOf(active);
+		if (index >= 0) {
+			that.actives.splice(index, 1);
+			count++;
+		}
+		if (active.textureMap) delete active.textureMap.userData.ta_content;
+		index = that.threeMeshes.indexOf(active);
+		if (index >= 0) that.threeMeshes.splice(index, 1);
+		active.dispose();
+	}, true);
+	if (count > 0) {
+		zim.TAM.updateTile(that, that.actives);
+	}  
+	return that;          
+}
+
+that.addMesh = function(mesh, layer) {
+	if (!zot(layer)) mesh.layers.enable(layer);
+	if (mesh.material) {
+		var index = that.threeMeshes.indexOf(mesh);
+		if (index < 0) that.threeMeshes.push(mesh);
+		else return that;
+
+		var materials;
+		if (Array.isArray(mesh.material)) materials = mesh.material;
+		else materials = [mesh.material];
+
+
+		mesh.onBeforeRender = function() {
+			if (mesh.userData.ta_viewID) clearTimeout(mesh.userData.ta_viewID);
+			mesh.userData.ta_viewID = setTimeout(function(){
+				mesh.userData.ta_view = false;
+				if (createjs.remoteQueue) {
+					// not in view
+					zim.loop(mesh.userData.ta_content, function(c) {
+						var ind = createjs.remoteQueue.indexOf(c);
+						if (ind >= 0) createjs.remoteQueue.splice(ind, 1);
+					},true);
+				}
+			}, 100);
+			if (!mesh.userData.ta_view) {
+				mesh.userData.ta_view = true;
+				// in view
+				zim.loop(mesh.userData.ta_content, function(c) {
+					if (createjs.remoteQueue.indexOf(c) < 0) createjs.remoteQueue.push(c);
+				});
+			}
+		}
+		mesh.userData.ta_content = [];
+		zim.loop(materials, function(material) {
+			if (material
+				&& material.map
+				&& material.map.source 
+				&& material.map.source.data
+				&& material.map.source.data.content
+			) {           
+				var content = material.map.source.data.content;  
+				mesh.userData.ta_content.push(content);
+				content.mesh = mesh;
+				mesh.textureActive = true; // flag that one of its materials has textureActive content
+				material.userData.ta_content = content; // move it up so easier to access                            
+				if (!content.textureMaps) content.textureMaps = [];
+				var index = content.textureMaps.indexOf(material.map);
+				if (index < 0) content.textureMaps.push(material.map);
+				if (content.animated || content.interactive) if (!createjs.remoteQueue) createjs.remoteQueue = [];  
+			}
+		});                        
+	}
+	return that;
+}	
+
+that.dispose = function() {
+	that.raycast = false;
+	if (controls) {
+		controls.enableRotate = true;
+		controls.enabled = true;
+	}
+	that.remove(that.actives);
+	zim.TAM.remove(that);
+	if (zim.TAM.count < 1) {
+		zim.TAM.dispose();
+		zim.TAM = null;
+	}
+	that.material = that.mesh = that.content = that.intersect = null;
+}
+
+}
+zim.extend(zim.TextureActives, createjs.EventDispatcher, "dispose");
+//-35.4
 
 /*--
-zim.TextureActivesManager = function(stage, toggleKey)
+zim.TextureActivesManager = function(stage, toggleKey, damp)
 
 TextureActivesManager
 zim class extends a createjs EventDispatcher
@@ -62881,13 +63040,14 @@ SEE the TextureActive and TextureActives examples
 PARAMETERS 
 stage (default the ZIMDefaultFrame's stage) the stage to operate on - provided internally
 toggleKey (default "t") the key to toggle the viewer - will be the key set by the FIRST TextureActives object made 
-	can be set with the toggleKey property to a different key or -1 to disable
-	textureActives.manager.toggleKey = -1; // where textureActives is any TextureActives object
+can be set with the toggleKey property to a different key or -1 to disable
+textureActives.manager.toggleKey = -1; // where textureActives is any TextureActives object
+damp (default .2) the damping of the Swiper (1 being no damping)
 
 METHODS
 toggle(state) - toggles objects - leave state off for toggle or pass in true to see or false to hide
-	also see the toggle property
-	and show() and hide()
+also see the toggle property
+and show() and hide()
 show() - show the ZIM canvas and hide the three.js canvas - also see toggle()
 hide() - hide the ZIM canvas and show the three.js canvas - also see toggle()
 dispose(obj) - disposes objects in the manager 
@@ -62895,11 +63055,11 @@ dispose(obj) - disposes objects in the manager
 PROPERTIES 
 type - holds the class name as a String
 toggled - whether the ZIM canvas is showing (true) or the three.js canvas is showing (false)
-	also see the toggle() method
+also see the toggle() method
 toggleKey - get or set the key to toggle the TextureActives - default is "t" 
-	set to -1 to remove toggling with the key
-	this would be expected for final versions
-	also see toggleKey parameter of TextureActives
+set to -1 to remove toggling with the key
+this would be expected for final versions
+also see toggleKey parameter of TextureActives
 tile - the tile containing the ZIM TextureActive objects
 objects - a ZIM Dictionary of the TextureActives objects provided that holds their textureActive objects 
 color - get or set the color of the stage for the ZIM Canvas 
@@ -62910,231 +63070,231 @@ slider - access to the ZIM Slider for the nav
 swiper - access to the ZIM Swiper for swiping the panel - note, only works outside the TextureActive
 --*///+35.6
 
-	zim.TextureActivesManager = function(stage, toggleKey, damp) {
-		z_d("35.6");
-		var that = this;
-		this.type = "TextureActivesManager";
+zim.TextureActivesManager = function(stage, toggleKey, damp) {
+	z_d("35.6");
+	var that = this;
+	this.type = "TextureActivesManager";
 
-		that.color = zim.darker;
-		that.outerColor = "black";
+	that.color = zim.darker;
+	that.outerColor = "black";
 
-		var moveCheck = false;
+	var moveCheck = false;
 
-		that.toggleKey = toggleKey || "t";
+	that.toggleKey = toggleKey || "t";
 
-		if (zot(damp) || damp===true) damp = .2;
+	if (zot(damp) || damp===true) damp = .2;
 
-		var objs = that.objects = new zim.Dictionary(true); // unique
-		var frame = stage.frame;
+	var objs = that.objects = new zim.Dictionary(true); // unique
+	var frame = stage.frame;
 
-		var sP = new zim.Proportion({baseMin:1000, baseMax:9000, targetMin:-.1, targetMax:-.05, clamp:false});
+	var sP = new zim.Proportion({baseMin:1000, baseMax:9000, targetMin:-.1, targetMax:-.05, clamp:false});
 
-		that.backing = new zim.Rectangle(100,100,zim.faint).addTo(stage,0);
-		var updateList = [];
-		that.updateTile = function(obj, textureActives, remove) {
-			if (!remove) objs.add(obj, textureActives);
-			var items = [];
-			updateList = [];
-			zim.loop(objs, function(obj, value) {
-				zim.loop(value, function(item) {
-					items.push(item);		
-					item.loop(function(child) {
-						if (child.type == "Scrambler") updateList.push(child);
-						else if (child.type == "List") updateList.push(child);
-						else if (child.type == "Window") updateList.push(child);
-					});					
-				});
+	that.backing = new zim.Rectangle(100,100,zim.faint).addTo(stage,0);
+	var updateList = [];
+	that.updateTile = function(obj, textureActives, remove) {
+		if (!remove) objs.add(obj, textureActives);
+		var items = [];
+		updateList = [];
+		zim.loop(objs, function(obj, value) {
+			zim.loop(value, function(item) {
+				items.push(item);		
+				item.loop(function(child) {
+					if (child.type == "Scrambler") updateList.push(child);
+					else if (child.type == "List") updateList.push(child);
+					else if (child.type == "Window") updateList.push(child);
+				});					
 			});
-			if (items.length < 0) {
-				var message = that.message = new zim.Rectangle(W,H,zim.yellow);
-				new zim.Label("No TextureActives Added").center(message);
-				items.push(message);
-			}
-			if (!that.tile) that.tile = new zim.Tile(items, items.length, 1, 20, 0, true).addTo(stage);
-			else {
-				that.tile.cols = items.length;
-				that.tile.remake(items);
-			}
-			that.backing.scaleTo(that.tile,100,100,"full").siz(null,stage.height,true);
-
-			if (that.swiper) that.swiper.sensitivity = zim.constrain(sP.convert(that.tile.width), -.1, -.01);
-
-		}		
-
-		this.addPointer = function(obj) {
-			var doms = [];
-			zim.loop(objs, function(o) {
-				if (doms.indexOf(o.renderer.domElement) < 0) doms.push(o.renderer.domElement);
-			});
-			if (doms.indexOf(obj) < 0) doms.push(obj.renderer.domElement);
-			if (!createjs.remotePointers) createjs.addRemotePointers(stage, doms);
-			else createjs.remotePointers = doms;
-			return true;
-		}	
-		
-		this.setActive = function(obj, active) {
-			obj.active = active;
-			if (active) return;
-			var result = zim.loop(objs, function(o) {
-				if (o.active) return false;
-			})
-			if (!result) return;
-			stage.mouseInBounds = false;
-		}
-		
-		var downCheck = false;
-		var nav = this.nav = new zim.Panel({
-			width:200,
-			height:80, 
-			titleBar:"TextureActives",
-			draggable:true,
-			close:true
-		}).pos(50,50,RIGHT,BOTTOM);
-		var slider = this.slider = new zim.Slider({min:0, max:100, damp:true})
-			.scaleTo(nav,80);
-		slider.on("mousedown", function() {
-			downCheck = true;
-			that.swiper.enabled = false;
-			protectOn();
 		});
-		slider.on("pressup", function() {			
-			that.swiper.immediate(slider.currentValue);
-			that.swiper.enabled = true;
-			protectOff();					
-			downCheck = false;
-		});		
+		if (items.length < 0) {
+			var message = that.message = new zim.Rectangle(W,H,zim.yellow);
+			new zim.Label("No TextureActives Added").center(message);
+			items.push(message);
+		}
+		if (!that.tile) that.tile = new zim.Tile(items, items.length, 1, 20, 0, true).addTo(stage);
+		else {
+			that.tile.cols = items.length;
+			that.tile.remake(items);
+		}
+		that.backing.scaleTo(that.tile,100,100,"full").siz(null,stage.height,true);
 
-		nav.on("close", function() {
-			that.hide();
-			nav.addTo();
+		if (that.swiper) that.swiper.sensitivity = zim.constrain(sP.convert(that.tile.width), -.1, -.01);
+
+	}		
+
+	this.addPointer = function(obj) {
+		var doms = [];
+		zim.loop(objs, function(o) {
+			if (doms.indexOf(o.renderer.domElement) < 0) doms.push(o.renderer.domElement);
 		});
-		var lastVal = 0;
-		this.ticker = zim.Ticker.add(function(){
-			that.tile.x = -slider.currentValue*(that.tile.width-W)/100;
-			if (moveCheck && !downCheck && lastVal != 0 && lastVal !=100 && 
-				(slider.currentValue == 0 || slider.currentValue == 100)) protectOff();
-			lastVal = slider.currentValue;			
-		});
-		nav.add(slider,0,true);
-		nav.removeFrom();
-		zim.Ticker.remove(that.ticker);
-
-		function protectOn() {			
-			if (moveCheck) return;
-			moveCheck = true;
-			zim.loop(updateList, function(child) {
-				child.enabled = false;
-			});
-		}
-
-		function protectOff() {
-			if (!moveCheck) return;
-			moveCheck = false;			
-			zim.loop(updateList, function(child) {
-				child.enabled = true;
-				child.update();
-			});
-		}
- 
-		that.swiper = new zim.Swiper({
-			swipeOn:that.backing, 
-			target:slider, 
-			property:"currentValue", 
-			sensitivity:(that.tile?zim.constrain(sP.convert(tile.width), -.1, -.01):-.1),
-			damp:damp
-		});
-		that.backing.on("mousedown", function() {
-			lastVal = -100;
-			protectOn();
-		});
-		that.swiper.on("swipestop", protectOff);
-
-
-		that.toggled = false;
-		var lastColor = frame.color;
-		var lastOuter = frame.outerColor;
-		this.show = function() {
-			if (that.toggled) return; 
-			frame.color = that.color;
-			frame.outerColor = that.outerColor;
-			// frame.color = darker;
-			that.toggled = true;
-			zim.Ticker.add(that.ticker);
-			nav.addTo();
-			zim.loop(objs, function(obj) {
-				obj.lastRaycast = obj.raycast;
-				obj.raycast = false;
-				obj.renderer.domElement.style.display = "none";
-			});
-
-			if (createjs.remoteQueue) {				
-				zim.loop(that.tile.items, function(item) {
-					if (createjs.remoteQueue.indexOf(item) < 0) createjs.remoteQueue.push(item);
-				});
-			}
-			frame.canvas.style.display = "block";  
-			createjs.removeRemotePointers(stage);
-			return this;
-		}
-		this.hide = function() {
-			if (!that.toggled) return;
-			frame.color = lastColor; 
-			frame.outerColor = lastOuter; 
-			that.toggled = false;
-			zim.Ticker.remove(that.ticker);
-			nav.removeFrom();
-			var doms = [];
-			zim.loop(objs, function(obj) {
-				obj.raycast = obj.lastRaycast;
-				obj.renderer.domElement.style.display = "block";
-				doms.push(obj.renderer.domElement);
-			});
-
-			// loop through all meshes and then all content
-			if (createjs.remoteQueue) {
-				createjs.remoteQueue = []; // let it build again?
-				zim.loop(that.tile.items, function(item) {
-					if (item.mesh) item.mesh.userData.ta_view = false;
-				});				
-			}
-
-			frame.canvas.style.display = "none";		
-			createjs.addRemotePointers(stage, doms);
-			return this;	
-		}
-		that.toggle = function(state) {
-			if (zot(state)) state = !that.toggled;
-			if (state && !that.toggled) that.show();
-			else if (!state && that.toggled) that.hide();
-			return this;
-		}
-
-		that.keyEvent = frame.on("keydown", function(e) {
-			if (e.key==that.toggleKey) {
-				if (that.toggled) that.hide();
-				else that.show();
-			}
-		});
-
-		that.remove = function(obj) {
-			objs.remove(obj);
-			that.updateTile(null, null, true);
-		} 
-
-		that.dispose = function() {
-			that.hide();
-			nav.dispose();
-			frame.off("keydown", that.keyEvent);
-			that.backing.removeAllEventListeners();
-			that.backing.dispose();
-			that.objects.dispose();
-			that.tile.dispose();
-			that.objects = that.tile = nav = null;
-		}
-		
+		if (doms.indexOf(obj) < 0) doms.push(obj.renderer.domElement);
+		if (!createjs.remotePointers) createjs.addRemotePointers(stage, doms);
+		else createjs.remotePointers = doms;
+		return true;
+	}	
+	
+	this.setActive = function(obj, active) {
+		obj.active = active;
+		if (active) return;
+		var result = zim.loop(objs, function(o) {
+			if (o.active) return false;
+		})
+		if (!result) return;
+		stage.mouseInBounds = false;
 	}
-	zim.extend(zim.TextureActivesManager, createjs.EventDispatcher);
-	//-35.6
+	
+	var downCheck = false;
+	var nav = this.nav = new zim.Panel({
+		width:200,
+		height:80, 
+		titleBar:"TextureActives",
+		draggable:true,
+		close:true
+	}).pos(50,50,RIGHT,BOTTOM);
+	var slider = this.slider = new zim.Slider({min:0, max:100, damp:true})
+		.scaleTo(nav,80);
+	slider.on("mousedown", function() {
+		downCheck = true;
+		that.swiper.enabled = false;
+		protectOn();
+	});
+	slider.on("pressup", function() {			
+		that.swiper.immediate(slider.currentValue);
+		that.swiper.enabled = true;
+		protectOff();					
+		downCheck = false;
+	});		
+
+	nav.on("close", function() {
+		that.hide();
+		nav.addTo();
+	});
+	var lastVal = 0;
+	this.ticker = zim.Ticker.add(function(){
+		that.tile.x = -slider.currentValue*(that.tile.width-W)/100;
+		if (moveCheck && !downCheck && lastVal != 0 && lastVal !=100 && 
+			(slider.currentValue == 0 || slider.currentValue == 100)) protectOff();
+		lastVal = slider.currentValue;			
+	});
+	nav.add(slider,0,true);
+	nav.removeFrom();
+	zim.Ticker.remove(that.ticker);
+
+	function protectOn() {			
+		if (moveCheck) return;
+		moveCheck = true;
+		zim.loop(updateList, function(child) {
+			child.enabled = false;
+		});
+	}
+
+	function protectOff() {
+		if (!moveCheck) return;
+		moveCheck = false;			
+		zim.loop(updateList, function(child) {
+			child.enabled = true;
+			child.update();
+		});
+	}
+
+	that.swiper = new zim.Swiper({
+		swipeOn:that.backing, 
+		target:slider, 
+		property:"currentValue", 
+		sensitivity:(that.tile?zim.constrain(sP.convert(tile.width), -.1, -.01):-.1),
+		damp:damp
+	});
+	that.backing.on("mousedown", function() {
+		lastVal = -100;
+		protectOn();
+	});
+	that.swiper.on("swipestop", protectOff);
+
+
+	that.toggled = false;
+	var lastColor = frame.color;
+	var lastOuter = frame.outerColor;
+	this.show = function() {
+		if (that.toggled) return; 
+		frame.color = that.color;
+		frame.outerColor = that.outerColor;
+		// frame.color = darker;
+		that.toggled = true;
+		zim.Ticker.add(that.ticker);
+		nav.addTo();
+		zim.loop(objs, function(obj) {
+			obj.lastRaycast = obj.raycast;
+			obj.raycast = false;
+			obj.renderer.domElement.style.display = "none";
+		});
+
+		if (createjs.remoteQueue) {				
+			zim.loop(that.tile.items, function(item) {
+				if (createjs.remoteQueue.indexOf(item) < 0) createjs.remoteQueue.push(item);
+			});
+		}
+		frame.canvas.style.display = "block";  
+		createjs.removeRemotePointers(stage);
+		return this;
+	}
+	this.hide = function() {
+		if (!that.toggled) return;
+		frame.color = lastColor; 
+		frame.outerColor = lastOuter; 
+		that.toggled = false;
+		zim.Ticker.remove(that.ticker);
+		nav.removeFrom();
+		var doms = [];
+		zim.loop(objs, function(obj) {
+			obj.raycast = obj.lastRaycast;
+			obj.renderer.domElement.style.display = "block";
+			doms.push(obj.renderer.domElement);
+		});
+
+		// loop through all meshes and then all content
+		if (createjs.remoteQueue) {
+			createjs.remoteQueue = []; // let it build again?
+			zim.loop(that.tile.items, function(item) {
+				if (item.mesh) item.mesh.userData.ta_view = false;
+			});				
+		}
+
+		frame.canvas.style.display = "none";		
+		createjs.addRemotePointers(stage, doms);
+		return this;	
+	}
+	that.toggle = function(state) {
+		if (zot(state)) state = !that.toggled;
+		if (state && !that.toggled) that.show();
+		else if (!state && that.toggled) that.hide();
+		return this;
+	}
+
+	that.keyEvent = frame.on("keydown", function(e) {
+		if (e.key==that.toggleKey) {
+			if (that.toggled) that.hide();
+			else that.show();
+		}
+	});
+
+	that.remove = function(obj) {
+		objs.remove(obj);
+		that.updateTile(null, null, true);
+	} 
+
+	that.dispose = function() {
+		that.hide();
+		nav.dispose();
+		frame.off("keydown", that.keyEvent);
+		that.backing.removeAllEventListeners();
+		that.backing.dispose();
+		that.objects.dispose();
+		that.tile.dispose();
+		that.objects = that.tile = nav = null;
+	}
+	
+}
+zim.extend(zim.TextureActivesManager, createjs.EventDispatcher);
+//-35.6
 
 
 // SUBSECTION MANAGERS
@@ -66122,7 +66282,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				var pp;
 				var con;
 				if (!mouseOutside && that.boundary && !that.boundary.type=="Blob") con = that.boundary;
-				else if (!mouseOutside && container) con = container.boundsToGlobal();
+				else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
 				if (con) {
 					pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};					
 					if (
@@ -66151,7 +66311,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				// if (target.type == "Pen" || type == "pressmove") {
 				var con;
 				if (!mouseOutside && that.boundary && !that.boundary.type=="Blob") con = that.boundary;
-				else if (!mouseOutside && container) con = container.boundsToGlobal();
+				else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
 				if (con) {
 					pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};					
 					if (
@@ -76849,6 +77009,7 @@ zim.VR = function(content, angle, distance, parallax, parallaxAngle, damp, paral
 
 VR
 zim class - extends a ZIM Container which extends a CreateJS Container
+NOTE: Also see the ZIM Three Helper Module for XR controllers, movement and teleport in three.js with ZIM TextureActive (this VR() class is not related)
 
 DESCRIPTION
 Copies the content and displays a left and right channel (side-by-side) to be viewed with a VR helmet.
@@ -82615,7 +82776,7 @@ function zimify(obj, a, b, c, d, list) {
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall) {
+		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp) {
 			if (props && (props.props || props.obj) && isDUO(arguments)) {
 				// run this if duo but only if props object has a props or obj object
 				// can you believe that sentence makes sense
@@ -82624,7 +82785,7 @@ function zimify(obj, a, b, c, d, list) {
 				// it can only be a configuration object if there is a props or obj property
 				arguments[0].target = this; return zim.animate(arguments[0]);
 			}
-			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall);}
+			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp);}
 		},
 		pauseAnimate:function(){return this;},
 		stopAnimate:function(){return this;},
@@ -82632,8 +82793,9 @@ function zimify(obj, a, b, c, d, list) {
 			if (isDUO(arguments)) {arguments[0].target = this; return zim.wiggle(arguments[0]);}
 			else {return zim.wiggle(this, property, baseAmount, minAmount, maxAmount, minTime, maxTime, totalTime, type, ease, integer, id, startType, ticker, wait, pauseOnBlur);}
 		},
-		loop:function(call, reverse, interval, step, start, end, immediate, collapse) {
-			return zim.loop(this, call, reverse, interval, step, start, end, immediate, collapse);
+		loop:function(call, reverse, interval, step, start, end, immediate, complete, completeParams, collapse) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.loop(arguments[0]);}
+			return zim.loop(this, call, reverse, interval, step, start, end, immediate, complete, completeParams, collapse);
 		},
 		copyMatrix:function(source) {
 			return zim.copyMatrix(this, source);
@@ -85312,12 +85474,11 @@ click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pre
 // the Three section is for the ZIM Three helper library
 
 /*--
-zim.Three = function(width, height, color, cameraPosition, cameraLook, interactive, resize, frame, ortho, textureActive, colorSpace, colorManagement, legacyLights, throttle, lay, full)
+zim.Three = function(width, height, color, cameraPosition, cameraLook, interactive, resize, frame, ortho, textureActive, colorSpace, colorManagement, legacyLights, throttle, lay, full, xr, VRButton, xrBufferScale)
 
 Three
 zim class
 ** MUST import zim_three - see https://zimjs.com/es6.html#MODULES
-
 
 DESCRIPTION
 three.js is a 3D JavaScript Library at https://threejs.org.
@@ -85344,6 +85505,9 @@ https://zimjs.com/015/textureactive5.html
 https://zimjs.com/015/textureactive_hud.html 
 https://zimjs.com/015/textureactive_hud_raw.html 
 https://zimjs.com/015/textureactive_raw.html 
+
+ZIM in VR
+https://zimjs.com/015/vr.html - use triggers (drag), sticks (motion) and b and y buttons (teleport)  
 
 Z-Dog is a quick alternative for three.js - here are a couple examples
 https://codepen.io/zimjs/pen/joXxGJ
@@ -85421,6 +85585,12 @@ lay - (default null) set to OVER or UNDER to overlay or underlay full window thr
 full - (default false) set to true to force three.js to full window
 	Use ZIM in Frame scaling:FULL and ZIM Central() to match ZIM scaling with three.js fullscreen scaling
 	See: https://zimjs.com/three/central.html
+xr - (default false) set to true to make the renderer prepared for XR (AR/VR)
+	this works with TextureActive as well
+	also see XRControllers(), XRMovement() and XRTeleport() classes
+VRButton - (default true if xr is true and will add a VRButton if using zim_three import) adds an ENTER VR button 
+	or pass in the VRButton class from three.js if not using the zim_three import
+xrBufferScale - (default 2) magnification of scene - 2 makes for better quality in VR
 
 METHODS
 position(x, y) - position the three.js canvas (registration point in center) to the stage coordinates
@@ -85482,6 +85652,7 @@ resizeEvent - a handle to the resize event so it can be cleared:
 	F.off("resize", threeObj.resizeEvent);
 	then make your own resize event to custom position and scale your three object
 	use threeObj.position() and threeObj.scale() see ZIM Bits example
+vrButton - reference to the VRButton if xr and VRButton is true
 
 --*///+140
 
@@ -85489,6 +85660,314 @@ resizeEvent - a handle to the resize event so it can be cleared:
 
 	//-140
 
+/*--
+zim.XRControllers = function(three, type, color, highlightColor, lineColor, lineLength, threshhold)
+
+XRControllers
+zim class - extends a createjs.EventDispatcher
+** MUST import zim_three - see https://zimjs.com/es6.html#MODULES
+
+DESCRIPTION
+Adds XR (AR/VR) controllers to three.js.
+This comes with built in ZIM controllers or can pass in three.js controllers.
+ZIM Controllers are laser, pen, gun, raygun and sword or line.
+They will highlight when trigger is pressed.
+They provide events for all the buttons and axes.
+See https://zimjs.com/015/vr/controllers.jpg for details.
+The XRControllers object holds controller1 and controller2.
+Both are not required, an array of two items can be used as type input.
+Passing in -1 will not make a controller.
+The XRControllers object can be passed to XRMovement() and XRTeleport() to handle motion.
+
+There is a three.js class that will mimic the best model for the actual controllers.
+import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js';
+and then you have to use the whole GitHub structure of three.js to get them to work.
+See: https://github.com/mrdoob/three.js/blob/dev/examples/webxr_vr_teleport.html
+The three.js controller objects you can then pass in to type:[obj, obj]
+
+SEE: https://zimjs.com/015/vr.html and use triggers (drag), sticks (motion) and b and y buttons (teleport)  
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// import zim_three
+const three = new Three({
+	width:window.innerWidth, 
+	height:window.innerHeight, 
+	cameraPosition:new THREE.Vector3(0,3,6),
+	textureActive:true, // if wanting TextureActives
+	xr:true 
+});
+
+// make skybox, add meshes to scene, etc.
+// might add a floor mesh 
+
+// xrControllers parameters: 
+// three, type, color, highlightColor, lineColor, lineLength, threshhold
+
+const xrControllers = new XRControllers(three, "laser"); // "laser" is default
+
+xrControllers.on("xrconnected", () => {
+
+	// wait for controllers to connect before adding movement and teleport
+	
+	// XRMovement parameters: 
+	// three, XRControllers, speed, acceleration, rotationSpeed, rotationAcceleration, hapticMax, verticalStrafe, radiusMax
+	var xrMovement = new XRMovement(three, xrControllers);
+
+	// XRTeleport parameters: 
+	// three, XRControllers, XRMovement, floor, offsetHeight, button, hand, markerColor, markerBlend
+	new XRTeleport(three, xrControllers, xrMovement, floor, 4); // top front round buttons (B and Y)
+
+	// note: to teleport through a mesh, set the mesh.userData.xrteleportignore = true;
+
+});   
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+three - the ZIM Three object
+type - (default "laser") type of controllers or an array of [type, type]
+	can be: laser, pen, gun, raygun, sword, line or -1 in the array. 
+	or can be a three.js model from XRControllerModelFactory
+	if using a three.js model, must use the array with the desired model objects
+	any of these can be a mix or just one (set the other to -1)
+color - (default light) set the color of the material (can also be an array for left and right)
+highlightColor - (default ["violet", blue]) an array for the highlight colors
+lineColor - (default light) set the color of the line or use an array for left and right
+lineLength - (default 5) the line length or pass in an array for left right 
+	one day, this may adjust to whatever it is hitting
+threshhold - (default .2) a sensitivity filter - use a higher number to avoid drift
+
+METHODS
+dispose() - remove controllers
+
+PROPERTIES
+type - name of class as a string
+XR - read only - will be true when XR is active (see xrconnected event)
+controller1 - a reference to the renderer.xr.getController(0)
+controller2 - a reference to the renderer.xr.getController(1)
+threshhold - get or set the controller threshhold
+
+Controller properties:
+grip - if a three.js model is provided, it is stored in a grip three.js Group 
+holder - if a ZIM controller are used it is stored in a holder three.js Group 
+gamepad - lots of data once the xrconnected event is triggered
+userData.highlights - an array of materials to change to the highlight color
+	this already will have materials so perhaps use push()
+
+EVENTS (also see GENERAL EVENTS)
+xrconnected - dispatched when XR controllers connect - has an event object with data property
+xrdisconnected - dispatched when XR controllers disconnect
+** below events have the following event object (eg. e) properties:
+	e.controller - the controller
+	e.num - the number of the button - see https://zimjs.com/015/vr/controllers.jpg
+		0 - trigger 
+		1 - squeeze 
+		2 - touchpad (basic only - not complex controllers)
+		3 - top of stick 
+		4 - A or X raised button on top 
+		5 - B or Y raised button on top 		
+	e.hand - "left" (controller1) or "right" (controller2)
+	e.value - normalized number from 0-1 of touch pressure
+pressdown - dispatched when any XR controller button is down
+pressup - dispatched when any XR controller button is up
+touchstart - dispatched when XR controller touch starts
+touchend - dispatched when XR controller touch ends
+** the axes event object (eg. e) has an additional property to the above
+** to tell if the value is horizontal or vertical
+	e.dir - "horizontal" or "vertical"
+axes - dispatched when XR controller stick pushed 
+
+GENERAL EVENTS 
+selectstart - dispatched when either controller trigger is pressed down
+selectend - dispatched when either controller trigger is pressed up
+move - dispatched when either controller is moved
+controllerleftdown - dispatched when left XR controller trigger is pressed down
+controllerrightdown - dispatched when right XR controller trigger is pressed down
+controllerleftup - dispatched when left XR controller trigger is pressed up
+controllerrightup - dispatched when right XR controller trigger is pressed up
+controllerleftmove - dispatched when left XR controller is moving
+controllerrightmove - dispatched when right XR controller is moving
+--*///+140.22
+
+	// THE CODE FOR THE THREE MODULE IS LINKED TO AT THE TOP OF THE DOCS
+
+	//-140.22
+
+/*--
+zim.XRMovement = function(three, XRControllers, speed, acceleration, rotationSpeed, rotationAcceleration, hapticMax, verticalStrafe, radiusMax, threshhold, directionFix)
+
+XRMovement
+zim class
+** MUST import zim_three - see https://zimjs.com/es6.html#MODULES
+
+DESCRIPTION
+Adds XR (AR/VR) movement to three.js.
+Pass in ZIM XRControllers and use thumbsticks to move.
+By default both hands move forward and backwards with vertical stick motion.
+The left hand strafes left and right with horizontal stick motion.
+The right hand rotates left and right with horizontal stick motion.
+The squeeze (handle grips) will increase the speed.
+Pressing the left thumbstick top will reset the position.
+
+SEE: https://zimjs.com/015/vr.html and use triggers (drag), sticks (motion) and b and y buttons (teleport)  
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// import zim_three
+const three = new Three({
+	width:window.innerWidth, 
+	height:window.innerHeight, 
+	cameraPosition:new THREE.Vector3(0,3,6),
+	textureActive:true, // if wanting TextureActives
+	xr:true 
+});
+
+// make skybox, add meshes to scene, etc.
+// might add a floor mesh 
+
+// xrControllers parameters: 
+// three, type, color, highlightColor, lineColor, lineLength, threshhold
+
+const xrControllers = new XRControllers(three, "laser"); // "laser" is default
+
+xrControllers.on("xrconnected", () => {
+
+	// wait for controllers to connect before adding movement and teleport
+	
+	// XRMovement parameters: 
+	// three, XRControllers, speed, acceleration, rotationSpeed, rotationAcceleration, hapticMax, verticalStrafe, radiusMax
+	var xrMovement = new XRMovement(three, xrControllers);
+
+	// XRTeleport parameters: 
+	// three, XRControllers, XRMovement, floor, offsetHeight, button, hand, markerColor, markerBlend
+	new XRTeleport(three, xrControllers, xrMovement, floor, 4); // top front round buttons (B and Y)
+
+	// note: to teleport through a mesh, set the mesh.userData.xrteleportignore = true;
+
+});   
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+three - the ZIM Three object
+XRControllers - the ZIM XRControllers object
+speed - (default 1) the speed of motion
+acceleration - (default .3) the acceleration of motion
+rotationSpeed - (default 1) the turning speed
+rotationAcceleration - (default .2) the turning acceleration
+hapticMax - (default 0) motion will trigger this much haptic response if available (handle vibration)
+verticalStrafe - (default false) make left controller change up and down (elevation) rather than forward backwards motion
+radiusMax - (default -1) set to a number to prevent movement beyond this radius
+threshhold - (default .2) a sensitivity filter - use a higher number to avoid drift
+directionFix - (default true) adjust direction from absolute to relative - needed in R155
+	set to false for R149 - or if three.js version seems to have direction wrong when using controllers
+
+METHODS
+doHaptic() - trigger haptic response if available (amount, hand, max)
+dispose() - remove movement
+
+PROPERTIES
+type - name of class as a string
+dolly - the three.js Group that holds the controllers and the camera
+speed - get or set the speed of motion
+acceleration - get or set the acceleration of motion
+rotationSpeed - get or set the turning speed
+rotationAcceleration - get or set the turning acceleration
+hapticMax - get or set the maximum haptic response if available on motion (handle vibration)
+verticalStrafe - get or set whether the left controller will change up and down (elevation) instead of forward backwards motion
+radiusMax - get or set set the number to prevent movement beyond this radius
+threshhold - get or set the sensitivity filter - use a higher number to avoid drift
+--*///+140.24
+
+	// THE CODE FOR THE THREE MODULE IS LINKED TO AT THE TOP OF THE DOCS
+
+	//-140.24
+
+/*--
+zim.XRTeleport = function(three, XRControllers, XRMovement, floor, offsetHeight, button, hand, markerColor, markerBlend)
+
+XRTeleport
+zim class
+** MUST import zim_three - see https://zimjs.com/es6.html#MODULES
+
+DESCRIPTION
+Adds XR (AR/VR) teleport to three.js.
+Pass in ZIM XRControllers and XRMovement and use buttons to teleport - requires some sort of floor.
+By default the B and Y top front buttons will teleport.
+This could be changed to the triggers or all could do a teleport.
+There can be multiple floors.
+Meshes can be teleported through by setting the mesh.userData.xrteleportignore = true;
+Teleport will leave a circle on the floor on press down and then activate on press up.
+
+SEE: https://zimjs.com/015/vr.html and use triggers (drag), sticks (motion) and b and y buttons (teleport)  
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// import zim_three
+const three = new Three({
+	width:window.innerWidth, 
+	height:window.innerHeight, 
+	cameraPosition:new THREE.Vector3(0,3,6),
+	textureActive:true, // if wanting TextureActives
+	xr:true 
+});
+
+// make skybox, add meshes to scene, etc.
+// might add a floor mesh 
+
+// xrControllers parameters: 
+// three, type, color, highlightColor, lineColor, lineLength, threshhold
+
+const xrControllers = new XRControllers(three, "laser"); // "laser" is default
+
+xrControllers.on("xrconnected", () => {
+
+	// wait for controllers to connect before adding movement and teleport
+	
+	// XRMovement parameters: 
+	// three, XRControllers, speed, acceleration, rotationSpeed, rotationAcceleration, hapticMax, verticalStrafe, radiusMax
+	var xrMovement = new XRMovement(three, xrControllers);
+
+	// XRTeleport parameters: 
+	// three, XRControllers, XRMovement, floor, offsetHeight, button, hand, markerColor, markerBlend
+	new XRTeleport(three, xrControllers, xrMovement, floor, 4); // top front round buttons (B and Y)
+
+	// note: to teleport through a mesh, set the mesh.userData.xrteleportignore = true;
+
+});   
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+three - the ZIM Three object
+XRControllers - the ZIM XRControllers object
+XRMovement - (default null) if an XRMovement object is being used then pass it in here
+	if provided then teleport moves the XRMovement dolly
+floor - (default null) provide a three.js mesh or an array of three.js meshes
+offsetHeight - (default 0) keep the dolly or camera this high above the floor
+button - (default 4) the B and Y buttons but can be an array of numbers - see https://zimjs.com/015/vr/controllers.jpg
+hand - (default "both") set to "left" or "right" (or "both") to set the controllers for teleporting
+markerColor - (default silver) the color of the circular marker
+markerBlend - (default THREE.AdditiveBlending) the blend of the circular marker
+
+METHODS
+dispose() - remove teleport
+
+PROPERTIES
+type - name of class as a string
+floor - get or set the array of floor meshes 
+button - get or set the array of buttons to activate the teleport
+hand - get or set the hand(s) to use for the teleport ("left", "right", "both")
+marker - get the marker mesh
+--*///+140.26
+
+	// THE CODE FOR THE THREE MODULE IS LINKED TO AT THE TOP OF THE DOCS
+
+	//-140.26
 
 ////////////////  ZIM SOCKET  //////////////
 
@@ -86906,7 +87385,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-// if (zns) {
+if (zns) {
 	// these are global regardless
 	var globalsConstants = [
 		["FIT", zim.FIT],
@@ -86961,7 +87440,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 	  }
-// } else zimplify();
+} else zimplify();
 
 WW.zim = zim;
 export default zim;
