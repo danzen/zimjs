@@ -87385,62 +87385,62 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-if (zns) {
-	// these are global regardless
-	var globalsConstants = [
-		["FIT", zim.FIT],
-		["FILL", zim.FILL],
-		["FULL", zim.FULL],
-		["LEFT", zim.LEFT],
-		["RIGHT", zim.RIGHT],
-		["CENTER", zim.CENTER],
-		["MIDDLE", zim.MIDDLE],
-		["START", zim.START],
-		["END", zim.END],
-		["TOP", zim.TOP],
-		["BOTTOM", zim.BOTTOM],
-		["OVER", zim.OVER],
-		["UNDER", zim.UNDER],
-		["HORIZONTAL", zim.HORIZONTAL],
-		["VERTICAL", zim.VERTICAL],
-		["BOTH", zim.BOTH],
-		["RADIAL", zim.RADIAL],
-		["UP", zim.UP],
-		["DOWN", zim.DOWN],
-		["NEXT", zim.NEXT],
-		["PREV", zim.PREV],
-		["AUTO", zim.AUTO],
-		["AVE", zim.AVE],
-		["DEFAULT", zim.DEFAULT],
-		["ALL", zim.ALL],
-		["NONE", zim.NONE],
-		["GET", zim.GET],
-		["POST", zim.POST],
-		["LOCALSTORAGE", zim.LOCALSTORAGE],
-		["SOCKET", zim.SOCKET],
-		["TO", zim.TO],
-		["FROM", zim.FROM],		
-		["SINE", zim.SINE],
-		["SQUARE", zim.SQUARE],
-		["TRIANGLE", zim.TRIANGLE],
-		["SAW", zim.SAW],
-		["SAWTOOTH", zim.SAWTOOTH],
-		["ZAP", zim.ZAP],
-		["TAU", zim.TAU],
-		["DEG", zim.DEG],
-		["RAD", zim.RAD],
-		["PHI", zim.PHI],
-	  ];
-	  
-	  for (z_i = 0; z_i < globalsConstants.length; z_i++) {
-		var pair = globalsConstants[z_i];  
-		WW[pair[0]] = pair[1];
-	  }
-	  
-	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
-		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	  }
-} else zimplify();
+
+// these are global regardless
+var globalsConstants = [
+	["FIT", zim.FIT],
+	["FILL", zim.FILL],
+	["FULL", zim.FULL],
+	["LEFT", zim.LEFT],
+	["RIGHT", zim.RIGHT],
+	["CENTER", zim.CENTER],
+	["MIDDLE", zim.MIDDLE],
+	["START", zim.START],
+	["END", zim.END],
+	["TOP", zim.TOP],
+	["BOTTOM", zim.BOTTOM],
+	["OVER", zim.OVER],
+	["UNDER", zim.UNDER],
+	["HORIZONTAL", zim.HORIZONTAL],
+	["VERTICAL", zim.VERTICAL],
+	["BOTH", zim.BOTH],
+	["RADIAL", zim.RADIAL],
+	["UP", zim.UP],
+	["DOWN", zim.DOWN],
+	["NEXT", zim.NEXT],
+	["PREV", zim.PREV],
+	["AUTO", zim.AUTO],
+	["AVE", zim.AVE],
+	["DEFAULT", zim.DEFAULT],
+	["ALL", zim.ALL],
+	["NONE", zim.NONE],
+	["GET", zim.GET],
+	["POST", zim.POST],
+	["LOCALSTORAGE", zim.LOCALSTORAGE],
+	["SOCKET", zim.SOCKET],
+	["TO", zim.TO],
+	["FROM", zim.FROM],		
+	["SINE", zim.SINE],
+	["SQUARE", zim.SQUARE],
+	["TRIANGLE", zim.TRIANGLE],
+	["SAW", zim.SAW],
+	["SAWTOOTH", zim.SAWTOOTH],
+	["ZAP", zim.ZAP],
+	["TAU", zim.TAU],
+	["DEG", zim.DEG],
+	["RAD", zim.RAD],
+	["PHI", zim.PHI],
+	];
+	
+	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+	var pair = globalsConstants[z_i];  
+	WW[pair[0]] = pair[1];
+	}
+	
+	for (z_i = 0; z_i < zim.colors.length; z_i++) {
+	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+	}
+
 
 WW.zim = zim;
 export default zim;
