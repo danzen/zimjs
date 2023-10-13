@@ -79,7 +79,7 @@ A. SETUP<br>
 - Run Vite - type: <pre>npm create vite</pre> 
 - If this needs to install, press y for yes
 - Give the project a name - it will make a directory
-- Select a framework - use arrow to see allcd
+- Select a framework - use arrow to see all options
 - Eg. choose Vanilla 
 - Select a variant
 - Eg. choose JavaScript 
@@ -176,7 +176,7 @@ E. NOTICE
 
 F. OTHER FRAMEWORKS 
 - See the sections below for using ZIM with other frameworks
-- The setup is the same as above but the code in the main is as follows
+- The setup is the same as above but the app code is as follows
 
 ## VUE, SVELTE, REACT, ANGULAR
 ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
