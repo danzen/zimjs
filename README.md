@@ -51,7 +51,6 @@ ZIM CODEPEN TOPIC<br>
 https://codepen.io/topic/zim/
 
 ZIM LEARN has many code and video tutorials including:<br>
-
 ZIM Bits - 64 common techniques, ZIM Capture, What IZ tutorials, ZIM Badges, Code Zero and more!<br>
 https://zimjs.com/learn.html 
 
@@ -69,19 +68,115 @@ to see descriptions, examples, methods, properties, events, source, bits, vids, 
 https://zimjs.com/docs.html
 
 ## NPM
-Here is ZIM on NPM: https://www.npmjs.com/package/zimjs
-Use: 
+Here is ZIM on NPM: https://www.npmjs.com/package/zimjs<br>
+These steps describe setting up ZIM with Vite and NPM.
+
+A. SETUP<br>
+- Open a folder in an IDE such as VS Code (The project folder will be made inside this folder)
+- Open a terminal - see Terminal in the menu - or CTRL SHIFT `
+- Check to see if you have node - type: <pre>node - v
+- If not then install from https://nodejs.org
+- Run Vite - type: <pre>npm create vite</pre> 
+- If this needs to install, press y for yes
+- Give the project a name - it will make a directory
+- Select a framework - use arrow to see allcd
+- Eg. choose Vanilla 
+- Select a variant
+- Eg. choose JavaScript 
+- Change to your project folder - type: <pre>cd yourProject</pre>
+- Get the ZIM package and dependencies - type: <pre>npm i zimjs</pre>
+
+B. TEMPLATE<br>
+- replace the code in main.js with the template:
 ```javascript
+// ZIM - JavaScript Canvas Framework - https://zimjs.com - code creativity
 import zim from "zimjs";
-// or 
+
+// make ZIM global - if this is not used then would use zim.Frame() and zim.Circle()
+zimplify();
+
+// or make all globals except need to use zim.Blob and zim.Window
+// these are two classes that have occassionally conflicted with other libraries
+// zimplify(["Blob", "Window"]);
+
+// See Docs under Frame for FIT, FILL, FULL, and TAG
+new Frame(FIT, 1024, 768, light, dark, ready);
+function ready() {
+    
+    // given F (Frame), S (Stage), W (width), H (height)
+    // put code here
+    
+    new Circle(100, purple)
+        .center()
+        .drag();
+        
+} // end ready
+```
+- or with TypeScript - replace the src/main.ts code with:
+```javascript
+// ZIM - JavaScript Canvas Framework - https://zimjs.com - code creativity
 import {Frame, Circle} from "zimjs";
 
-// to remove the zim namespace requirement on all use:
-zim.zimplify();
-
-// or make all globals but use zim.Blob and zim.Window (two potential culprits)
-zim.zimplify([Blob, Window]);
+// See Docs under Frame for FIT, FILL, FULL, and TAG
+new Frame(FIT, 1024, 768, light, dark, ready);
+function ready() {
+    
+    // given F (Frame), S (Stage), W (width), H (height)
+    // put code here
+    
+    new Circle(100, purple)
+        .center()
+        .drag();
+        
+} // end ready
 ```
+- In the index.html file, replace the Vite icon with:
+```html
+<link rel="apple-touch-icon-precomposed" sizes="57x57" href="https://zimjs.com/icons/apple-touch-icon-57x57.png" />
+<link rel="apple-touch-icon-precomposed" sizes="114x114" href="https://zimjs.com/icons/apple-touch-icon-114x114.png" />
+<link rel="apple-touch-icon-precomposed" sizes="72x72" href="https://zimjs.com/icons/apple-touch-icon-72x72.png" />
+<link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zimjs.com/icons/apple-touch-icon-144x144.png" />
+<link rel="apple-touch-icon-precomposed" sizes="60x60" href="https://zimjs.com/icons/apple-touch-icon-60x60.png" />
+<link rel="apple-touch-icon-precomposed" sizes="120x120" href="https://zimjs.com/icons/apple-touch-icon-120x120.png" />
+<link rel="apple-touch-icon-precomposed" sizes="76x76" href="https://zimjs.com/icons/apple-touch-icon-76x76.png" />
+<link rel="apple-touch-icon-precomposed" sizes="152x152" href="https://zimjs.com/icons/apple-touch-icon-152x152.png" />
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="https://zimjs.com/icons/apple-touch-icon.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="https://zimjs.com/icons/favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="https://zimjs.com/icons/android-chrome-192x192.png" />
+<link rel="icon" type="image/png" sizes="512x512" href="https://zimjs.com/icons/android-chrome-512x512.png" />
+```
+- Replace the title with your app title
+
+C. DEVELOPMENT 
+- Start a Dev server - type: <pre>npm run dev</pre>
+- Alt-click the Local link in the terminal 
+- This opens up a browser to see the file with the purple circle
+- Make edits to your ZIM app
+  - See https://zimjs.com/learn for how to use ZIM 
+  - See https://zimjs.co/docs for reference to commands
+- When done developing use CTRL C to exit the dev terminal
+
+D. DEPLOYMENT
+- Bundle the files for distribution - type:<pre>npm run build</pre> 
+- This makes a dist/ folder with the minified code 
+- Currently, Vite puts the js code in /assets/ 
+- Which means to run it in a browser, it needs to be in the root 
+- Or you can remove the / and use assets/ to run relatively
+- like with "open in default browser" extension locally
+- For local images and sounds see https://zimjs.com/tips.html#IMAGES 
+
+E. NOTICE 
+- ZIM is a front-end framework at https://zimjs.com
+- We make so much without npm at all... 
+- You can avoid all of the above by going to https://zimjs.com/code 
+- pressing the copy button and pasting into an empty html file
+- Then view the html file in a browser
+- This takes 1 minute and kids can do it
+- You can also use ZIM online at https://zimjs.com/editor
+
+F. OTHER FRAMEWORKS 
+- See the sections below for using ZIM with other frameworks
+- The setup is the same as above but the code in the main is as follows
 
 ## VUE, SVELTE, REACT, ANGULAR
 ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
