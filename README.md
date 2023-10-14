@@ -69,7 +69,8 @@ https://zimjs.com/docs.html
 
 ## NPM
 Here is ZIM on NPM: https://www.npmjs.com/package/zimjs<br>
-These steps describe setting up ZIM with Vite and NPM.
+These steps describe setting up ZIM with Vite and NPM for vanilla JavaScript or TypeScript.<br>
+There are also templates for VUE, Svelte, React and Angular further down.
 
 A. SETUP<br>
 - Open a folder in an IDE such as VS Code (The project folder will be made inside this folder)
@@ -181,6 +182,7 @@ F. OTHER FRAMEWORKS
 ## VUE, SVELTE, REACT, ANGULAR
 ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
 See https://github.com/yoanhg421/zimjs-templates for full files.<br>
+Follow the SETUP instructions above and then adjust the code as follows:<br>
 ### VUE - with zim namespace
 ```javascript
 <script setup>  
