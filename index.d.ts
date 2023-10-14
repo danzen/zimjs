@@ -422,8 +422,6 @@ interface zimComponent {
     // END ZIM Component Interface
 }
 
-
-
 declare namespace zim {
 
   // UNIQUE - namespace only exports - not added by parser
@@ -628,8 +626,9 @@ export function copy<T>(obj:T, clone?:boolean):T;
 export function arraysEqual(a:[any], b:[any], strict?:boolean):boolean;
 export function arrayMinMax(arr:[any]):{}
 export function isEmpty(obj:{}):boolean;
-export function isJSON(str:string):boolean;
 export function isPick(obj:any):boolean;
+export function isJSON(str:string):boolean;
+export function parseJSON(str:string):any;
 export function merge(object1:{}, object2:{}, ...objects:{}[]):{}
 export function sortObject(obj:{}, property:string, reverse?:boolean):{}
 export function decimals(num:number, places?:number, addZeros?:number, addZerosBefore?:number, includeZero?:boolean, time?:boolean):number|string;
@@ -2600,8 +2599,8 @@ export class Pad extends Container implements zimComponent {
   keyEnabled:boolean
 }
 export class NumPad extends Container implements zimComponent {
-  constructor(config_or_advanced?:boolean, titleBar?:string|Label, titleBarColor?:color, titleBarBackroundColor?:color, titleBarHeight?:number, backgroundColor?:color, borderColor?:color, borderWidth?:number, corner?:number|any[], numberCorner?:number|any[], close?:boolean, closeColor?:color, collapse?:boolean, collapseColor?:color, collapsed?:boolean, align?:string, shadowColor?:color, shadowBlur?:number, draggable?:boolean, boundary?:Boundary|{}, style?:boolean, group?:string, inherit?:{})
-  constructor(config:{advanced?:boolean, titleBar?:string|Label, titleBarColor?:color, titleBarBackroundColor?:color, titleBarHeight?:number, backgroundColor?:color, borderColor?:color, borderWidth?:number, corner?:number|any[], numberCorner?:number|any[], close?:boolean, closeColor?:color, collapse?:boolean, collapseColor?:color, collapsed?:boolean, align?:string, shadowColor?:color, shadowBlur?:number, draggable?:boolean, boundary?:Boundary|{}, style?:boolean, group?:string, inherit?:{}})
+  constructor(config_or_advanced?:boolean|string, titleBar?:string|Label, titleBarColor?:color, titleBarBackroundColor?:color, titleBarHeight?:number, backgroundColor?:color, borderColor?:color, borderWidth?:number, corner?:number|any[], numberCorner?:number|any[], close?:boolean, closeColor?:color, collapse?:boolean, collapseColor?:color, collapsed?:boolean, align?:string, shadowColor?:color, shadowBlur?:number, draggable?:boolean, boundary?:Boundary|{}, style?:boolean, group?:string, inherit?:{})
+  constructor(config:{advanced?:boolean|string, titleBar?:string|Label, titleBarColor?:color, titleBarBackroundColor?:color, titleBarHeight?:number, backgroundColor?:color, borderColor?:color, borderWidth?:number, corner?:number|any[], numberCorner?:number|any[], close?:boolean, closeColor?:color, collapse?:boolean, collapseColor?:color, collapsed?:boolean, align?:string, shadowColor?:color, shadowBlur?:number, draggable?:boolean, boundary?:Boundary|{}, style?:boolean, group?:string, inherit?:{}})
   // ZIM Component Interface
   // dispose():boolean // now added to Container, etc.
   enabled:boolean
@@ -2714,8 +2713,8 @@ export class TextEditor extends Container implements zimComponent {
   readonly font:List
 }
 export class Keyboard extends Container implements zimComponent {
-  constructor(config_or_labels?:Label[]|Label, backgroundColor?:color, color?:color, shiftBackgroundColor?:color, shiftHoldBackgroundColor?:color, placeBackgroundColor?:color, placeColor?:color, cursorColor?:color, shadeAlpha?:number, borderColor?:color, borderWidth?:number, margin?:number, corner?:number|any[], draggable?:boolean, placeClose?:boolean, shadowColor?:color, shadowBlur?:number, container?:Container, data?:[any], place?:boolean, special?:string, rtl?:boolean, hardKeyboard?:boolean, layout?:string, style?:boolean, group?:string, inherit?:{})
-  constructor(config:{labels?:Label[]|Label, backgroundColor?:color, color?:color, shiftBackgroundColor?:color, shiftHoldBackgroundColor?:color, placeBackgroundColor?:color, placeColor?:color, cursorColor?:color, shadeAlpha?:number, borderColor?:color, borderWidth?:number, margin?:number, corner?:number|any[], draggable?:boolean, placeClose?:boolean, shadowColor?:color, shadowBlur?:number, container?:Container, data?:[any], place?:boolean, special?:string, rtl?:boolean, hardKeyboard?:boolean, layout?:string, style?:boolean, group?:string, inherit?:{}})
+  constructor(config_or_labels?:Label[]|Label, backgroundColor?:color, color?:color, shiftBackgroundColor?:color, shiftHoldBackgroundColor?:color, placeBackgroundColor?:color, placeColor?:color, cursorColor?:color, shadeAlpha?:number, borderColor?:color, borderWidth?:number, margin?:number, corner?:number|any[], draggable?:boolean, placeClose?:boolean, shadowColor?:color, shadowBlur?:number, container?:Container, data?:[any], place?:boolean, special?:string, rtl?:boolean, hardKeyboard?:boolean, layout?:string, numPadScale?:number, numPadDraggable?:boolean, numPadOnly?:boolean, numPadAdvanced?:boolean, maxLength?:number, numbersOnly?:boolean, style?:boolean, group?:string, inherit?:{})
+  constructor(config:{labels?:Label[]|Label, backgroundColor?:color, color?:color, shiftBackgroundColor?:color, shiftHoldBackgroundColor?:color, placeBackgroundColor?:color, placeColor?:color, cursorColor?:color, shadeAlpha?:number, borderColor?:color, borderWidth?:number, margin?:number, corner?:number|any[], draggable?:boolean, placeClose?:boolean, shadowColor?:color, shadowBlur?:number, container?:Container, data?:[any], place?:boolean, special?:string, rtl?:boolean, hardKeyboard?:boolean, layout?:string, numPadScale?:number, numPadDraggable?:boolean, numPadOnly?:boolean, numPadAdvanced?:boolean, maxLength?:number, numbersOnly?:boolean, style?:boolean, group?:string, inherit?:{}})
   // ZIM Component Interface
   // dispose():boolean // now added to Container, etc.
   enabled:boolean
@@ -2731,6 +2730,10 @@ export class Keyboard extends Container implements zimComponent {
   readonly labels:Label[]
   selectedLabel:Label
   selectedIndex:number
+  keys:Container
+  numPad:NumPad
+  maxLength:number
+  numbersOnly:boolean
 }
 export class Organizer extends Tabs implements zimComponent {
   constructor(config_or_width?:number, list?:List, useAdd?:boolean, useRemove?:boolean, usePosition?:boolean, autoAdd?:boolean, autoRemove?:boolean, autoPosition?:boolean, addForward?:boolean, removeForward?:boolean, backgroundColor?:color, rollBackgroundColor?:color, selectedBackgroundColor?:color, color?:color,  rollColor?:color, selectedColor?:color, selectedRollColor?:color, spacing?:number, corner?:number|any[], keyEnabled?:boolean, gradient?:number, gloss?:number, backdropColor?:color, style?:boolean, group?:string, inherit?:{})
@@ -3203,8 +3206,8 @@ export class Bind {
 }
 
 export class Wrapper extends Container {
-  constructor(config_or_width?:number, spacingH?:number, spacingV?:number, wrapperType?:string, align?:string, valign?:string, alignInner?:string, valignInner?:string, flip?:boolean, reverse?:boolean, bottomFull?:boolean, colSize?:number, rowSize?:number, height?:number, minSpreadNum?:number, minStretchNum?:number, percentVoidH?:number, offsetVoidH?:number, percentVoidV?:number, offsetVoidV?:number, style?:boolean, group?:string, inherit?:{})
-  constructor(config:{width?:number, spacingH?:number, spacingV?:number, wrapperType?:string, align?:string, valign?:string, alignInner?:string, valignInner?:string, flip?:boolean, reverse?:boolean, bottomFull?:boolean, colSize?:number, rowSize?:number, height?:number, minSpreadNum?:number, minStretchNum?:number, percentVoidH?:number, offsetVoidH?:number, percentVoidV?:number, offsetVoidV?:number, style?:boolean, group?:string, inherit?:{}})
+  constructor(config_or_width?:number, spacingH?:number, spacingV?:number, wrapperType?:string, align?:string, valign?:string, alignInner?:string, valignInner?:string, flip?:boolean, reverse?:boolean, bottomFull?:boolean, colSize?:number, rowSize?:number, height?:number, minSpreadNum?:number, minStretchNum?:number, percentVoidH?:number, offsetVoidH?:number, percentVoidV?:number, offsetVoidV?:number, minStretchFirst?:boolean, style?:boolean, group?:string, inherit?:{})
+  constructor(config:{width?:number, spacingH?:number, spacingV?:number, wrapperType?:string, align?:string, valign?:string, alignInner?:string, valignInner?:string, flip?:boolean, reverse?:boolean, bottomFull?:boolean, colSize?:number, rowSize?:number, height?:number, minSpreadNum?:number, minStretchNum?:number, percentVoidH?:number, offsetVoidH?:number, percentVoidV?:number, offsetVoidV?:number, minStretchFirst?:boolean, style?:boolean, group?:string, inherit?:{}})
   add(items?:any[]):this
   addAt(items?:any[], index?:number):this
   remove(items?:any[]):this
@@ -4243,6 +4246,10 @@ export class CamAsk extends Pane {
 }
 
 
+
+
+
+  // END PARSER - end of exports added by parser from globals
 }
 
 export = zim

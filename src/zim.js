@@ -4623,43 +4623,6 @@ RETURNS a Boolean
 	};//-11.5
 
 /*--
-zim.isJSON = function(str)
-
-isJSON
-zim function
-
-DESCRIPTION
-returns whether a string is a JSON string
-
-NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
-
-EXAMPLE
-const s = '{"age":7,"name":"Dan Zen"}';
-zog( isJSON(s) ); // true
-const b = "hello";
-zog( isJSON(b) ); // false
-END EXAMPLE
-
-PARAMETERS
-str - the string to test
-
-RETURNS a Boolean
---*///+11.6
-	zim.isJSON = function(str) {
-		z_d("11.6");
-		if (typeof str != "string") {
-			return false;
-		}
-		try {
-			JSON.parse(str);
-			return true;
-		}
-		catch (error) {
-			return false;
-		}
-	};//-11.6
-
-/*--
 zim.isPick = function(obj)
 
 isPick
@@ -4700,6 +4663,94 @@ RETURNS a Boolean as to whether obj is SPECIAL ZIM Pick literal
 		return (Array.isArray(obj)||(obj.constructor=={}.constructor && ((obj.min!=null && obj.max!=null) || obj.noPick))||(obj.constructor === Function && (obj.array!=null || obj()!=null))); // obj.array is a series
 	};//-11.7
 
+/*--
+zim.isJSON = function(str)
+
+isJSON
+zim function
+
+DESCRIPTION
+returns whether a string is a JSON string
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+const s = '{"age":7,"name":"Dan Zen"}';
+zog( isJSON(s) ); // true
+const b = "hello";
+zog( isJSON(b) ); // false
+END EXAMPLE
+
+PARAMETERS
+str - the string to test
+
+RETURNS a Boolean
+--*///+11.6
+	zim.isJSON = function(str) {
+		z_d("11.6");
+		if (typeof str != "string") {
+			return false;
+		}
+		try {
+			JSON.parse(str);
+			return true;
+		}
+		catch (error) {
+			return false;
+		}
+	};//-11.6
+
+/*--
+zim.parseJSON = function(str)
+
+parseJSON
+zim function
+
+DESCRIPTION
+receives a JSON string or a "close-to" JSON string and returns the parsed object
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+const badJSON = `{
+	"inner":{
+		// comments can be added
+		prop:"note prop and prop2 are missing quotes",
+		// another comment
+		prop2:"note the comma on the end will be ok",
+	}
+}`;
+// zog(JSON.parse(badJSON)); // would cause error
+zog(parseJSON(badJSON)); // will log a valid object
+END EXAMPLE
+
+PARAMETERS
+str - the JSON or "close-to" JSON string
+	this can be missing the "" around the property names 
+	and can have comments between lines 
+	and trailing commas will not cause a problem
+
+RETURNS an object
+--*///+11.65
+	zim.parseJSON = function(str) {
+		z_d("11.65");
+		function jst(str) {
+            str = str.trim();
+            try {
+                return (new Function("return " + str))();
+            } catch {
+                zogy("JSON did not parse");
+                return null;
+            }
+        }        
+        var jobj;
+        try {
+            jobj = JSON.parse(str);
+        } catch {            
+            jobj = jst(str);
+        }
+        return jobj;
+	};//-11.65
 
 /*--
 zim.decimals = function(num, places, addZeros, addZerosBefore, includeZero, time)
@@ -33725,6 +33776,7 @@ PARAMETERS
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 advanced - (default false) set to true to add one more row of round brackets, exponential and percent or modulus
+	or set to "simple" to show only numbers, backspace and return
 titleBar - |ZIM VEE| (default "PANEL") a String or ZIM Label title for the panel that will be presented on a titleBar across the top
 titleBarColor - |ZIM VEE| (default black) the text color of the titleBar if a titleBar is requested
 titleBarBackgroundColor - |ZIM VEE| (default "rgba(0,0,0,.2)") the background color of the titleBar if a titleBar is requested
@@ -33794,8 +33846,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("NumPad", this.group, inherit);
 		if (zot(advanced)) advanced = DS.advanced!=null?DS.advanced:false;		
-		var width = 400;
-		var height = advanced?620:530;        	
+		var width = advanced=="simple"?310:400;
+		var height = advanced=="simple"?440:advanced?620:530;        	
 		if (zot(titleBar)) titleBar = DS.titleBar!=null?DS.titleBar:"NUMPAD";
 		if (zot(titleBarColor)) titleBarColor = DS.titleBarColor!=null?DS.titleBarColor:zim.white;
 		if (zot(titleBarBackgroundColor)) titleBarBackgroundColor = DS.titleBarBackgroundColor!=null?DS.titleBarBackgroundColor:zim.grey;
@@ -33833,16 +33885,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			1,2,3,ms(new zim.Label({text:"-",size:60,shiftV:-3})),4,5,6,ms(new zim.Label({text:"+",size:55,shiftV:3})),
 			7,8,9,ms(new zim.Label({text:"⌫",size:M=="ios"?60:35}), zim.red.darken(.1)),
 			ms(new zim.Label({text:",",size:70,shiftV:-3})),ms(new Label({text:".",size:70,shiftV:-3})),0,ms(new zim.Label({text:"⏎", size:M=="ios"?40:50, shiftV:5}), zim.green.darken(.1))]
-		if (advanced) {
+		if (advanced=="simple") {
+			padArray.splice(0,4);
+			padArray.splice(3,1);
+			padArray.splice(6,1);
+			padArray.splice(10,2);
+			padArray[12] = padArray[9];
+			padArray[9] = padArray[10];
+			padArray[10] = padArray[12];
+		} else if (advanced) {
 			padArray.splice(2,0,ms("%", yellow.darken(.1)));
 			padArray.splice(4,0,ms(new zim.Label({text:"^",size:47,shiftV:10}), yellow.darken(.1)));
 			padArray.splice(4,0,ms(")", yellow.darken(.1)));
 			padArray.splice(4,0,ms("(", yellow.darken(.1)));
 		}
 		that.pad = new zim.Pad({
-            width:380,
-            cols:4,
-            rows:advanced?6:5,
+            width:advanced=="simple"?290:380,
+            cols:advanced=="simple"?3:4,
+            rows:advanced=="simple"?4:advanced?6:5,
             keys:padArray,
             spacing:6,
 			currentSelected:false,
@@ -36748,7 +36808,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-67.1
 	
 /*--
-zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, style, group, inherit)
+zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit)
 
 Keyboard
 zim class - extends a zim.Container which extends a createjs.Container
@@ -36884,6 +36944,8 @@ numPadScale - (default .8) the scale of the NumPad when pressed from the numPad 
 numPadDraggable - (default true) set to false to not be able to drag the NumPad
 numPadOnly - (default false) set to true to open the NumPad only but can then use with labels
 numPadAdvanced - (default false) set to true to add an extra row to the NumPad with round brackets, exponential and percent or modulus keys
+maxLength - (default null) set to a number for the maximum characters - also see maxLength property
+numbersOnly - (default false) set to force numbers only - also see numbersOnly property
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -36928,6 +36990,8 @@ toggled - read-only Boolean that is true if keyboard is visible and false if not
 keys - reference to the keyboard itself 
 numPad - reference to the NumPad once it has been shown once
 place - reference to the place menu
+maxLength - get or set the maximum characters - will not change existing label 
+numbersOnly - get or set to force numbers only - will not change existing label
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -36946,8 +37010,8 @@ Dispatches a "close" event when close keyboard icon at bottom right is pressed
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.2
-	zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, style, group, inherit) {
-		var sig = "labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, style, group, inherit";
+	zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit) {
+		var sig = "labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit";
 		var duo; if (duo = zob(zim.Keyboard, arguments, sig, this)) return duo;
 		z_d("67.2");
 		this.zimContainer_constructor(1000,400,null,null,false);
@@ -37011,6 +37075,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(numPadOnly)) numPadOnly = DS.numPadOnly!=null?DS.numPadOnly:false;
 		if (zot(numPadDraggable)) numPadDraggable = DS.numPadDraggable!=null?DS.numPadDraggable:true;
 		if (zot(numPadAdvanced)) numPadAdvanced = DS.numPadAdvanced!=null?DS.numPadAdvanced:false;
+		if (zot(maxLength)) maxLength = DS.maxLength!=null?DS.maxLength:null;
+		if (zot(numbersOnly)) numbersOnly = DS.numbersOnly!=null?DS.numbersOnly:false;
+		this.maxLength = maxLength;
+		this.numbersOnly = numbersOnly;
+
 		if (zot(layout)) layout = DS.layout!=null?DS.layout:"qwerty";
 		layout = layout.toLowerCase();
 		if (layout != "qwerty") {
@@ -37817,6 +37886,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (currentStatus === statuses.shift) {
 					letter = letter.toUpperCase();
 				}
+				if (currentLabel && that.maxLength && currentLabel.text.length >= that.maxLength) return;
+				if (that.numbersOnly && !isFinite(Number(letter))) return;
 				var textBeforeCheck = currentLabel.text;
 				measureField = currentLabel.clone().removeFrom();
 				measureField.text = letter;
@@ -38187,7 +38258,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, style, this.group, inherit);
+			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, this.group, inherit);
 			return that.cloneProps(kb);
 		};
 		this.dispose = function(a,b,disposing) {
@@ -41166,7 +41237,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							var text = event.target.result;
 							texts.push(text);
 							if (type=="json") {
-								var json = JSON.parse(text);
+								var json = zim.parseJSON(text);
 								jsons.push(json);
 							}
 							if (texts.length == 1) {
@@ -49877,8 +49948,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			var savedParams = currentObj.params;
 			if (cjsProps.loop && (!cjsProps.count || currentCount < cjsProps.count)) {
 				currentObj.call = function() {
-					if (savedCall && typeof savedCall == 'function') {(savedCall)(savedParams);}
-					if (cjsProps.loopCall && typeof cjsProps.loopCall == 'function') {(cjsProps.loopCall)(cjsProps.loopParams);}
+					if (savedCall && typeof savedCall == 'function') {(savedCall)(savedParams||target);}
+					if (cjsProps.loopCall && typeof cjsProps.loopCall == 'function') {(cjsProps.loopCall)(cjsProps.loopParams||target);}
 					if (cjsProps.loopWait) {
 						if (zot(target.zimTweens)) target.zimTweens = {};
 						tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(cjsProps.loopWait, true).call(goNext);
@@ -49890,7 +49961,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						for (var k=0; k<starts.objects.length; k++) {
 							if (starts.objects[k].set) starts.objects[k].set(starts.values[k]);
 						}
-						if (cjsProps.loopWaitCall && typeof cjsProps.loopWaitCall == 'function') {(cjsProps.loopWaitCall)(cjsProps.loopWaitParams);}
+						if (cjsProps.loopWaitCall && typeof cjsProps.loopWaitCall == 'function') {(cjsProps.loopWaitCall)(cjsProps.loopWaitParams||target);}
 						runMaster();
 					}
 				};
@@ -50705,8 +50776,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				return target.percentComplete;
 			}
 			function setP(target, percent) {
-				target.zimTween.startPaused = false;	
-				target.latestTween.percentComplete = percent;
+				if (!target) return;
+				if (target.zimTween) target.zimTween.startPaused = false;	
+				if (target.latestTween) target.latestTween.percentComplete = percent;
 				if (immediateCheck && typeof pathPercent != "undefined") pathPercent = value;
 				if (target.handlePath) target.handlePath();
 			}
@@ -57339,7 +57411,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 	//-78
 
 /*--
-zim.Wrapper = function(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, style, group, inherit)
+zim.Wrapper = function(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV,  minStretchFirst, style, group, inherit)
 
 Wrapper
 zim class - extends a zim.Container which extends a createjs.Container
@@ -57480,10 +57552,12 @@ minStretchNum - (default 3) stretch would always center a single item on a row
 	and can look weird stretching two or even three final items
 	a wrapper with wrapperType:"stretch" will stretch items if there are at least minStretchNum items
 	if there is less than minStretchItems then it will align the items according to align
+	this will not stop the first line from stretching unless minStretchFirst parameter is set to false
 percentVoidH - |ZIM VEE| - (default 0) set a percent horizontal space between items default in center
 offsetVoidH - |ZIM VEE| - (default 0) set a percent (or negative percent) to offset the void from the center horizontally
 percentVoidV - |ZIM VEE| - (default 0) set a percent vertical space between rows default in center
 offsetVoidV - |ZIM VEE| - (default 0) set a percent (or negative percent) to offset the void from the center vertically
+minStretchFirst - (default true) set to false to avoid stretching the first line if less than minStretchNum is set and met
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -57539,8 +57613,8 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 --*///+78.5
 
-	zim.Wrapper = function(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, style, group, inherit) {
-		var sig = "items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, style, group, inherit";
+	zim.Wrapper = function(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV,  minStretchFirst, style, group, inherit) {
+		var sig = "items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV,  minStretchFirst, style, group, inherit";
 		var duo=null; if (duo = zob(zim.Wrapper, arguments, sig, this)) return duo;
 
 		z_d("78.5");
@@ -57570,6 +57644,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		if (zot(offsetVoidH)) offsetVoidH = DS.offsetVoidH!=null?DS.offsetVoidH:0;
 		if (zot(percentVoidV)) percentVoidV = DS.percentVoidV!=null?DS.percentVoidV:0;
 		if (zot(offsetVoidV)) offsetVoidV = DS.offsetVoidV!=null?DS.offsetVoidV:0;
+		if (zot(minStretchFirst)) minStretchFirst = DS.minStretchFirst!=null?DS.minStretchFirst:true;		
 
 		var buildHeight = 200;
 		var totalSpacing = 0;
@@ -57898,13 +57973,16 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 			} else if (sp || st) { // spread or stretch
 				// equal space between
-				var spacing,extra;
+				var spacing, extra;
 				if (sp) spacing = objects.length?((widthVoid-lineObjectWidths)/(objects.length+1)):0;
 				else if (st) spacing = objects.length-1>0?((widthVoid-lineObjectWidths)/(objects.length-1)):0;
 
-				if (objects.length<minStretchNum && that.rows != 0 && dataEnd) {
-					spacing = lastSpacing;
-					alignCheck = true;
+				// if (objects.length<minStretchNum && that.rows != 0 && dataEnd) {
+				if (objects.length<minStretchNum && dataEnd) {
+					if (minStretchFirst || that.rows > 0) {
+						spacing = that.rows==0?spacingH:lastSpacing;
+						alignCheck = true;
+					}					
 				}
 				lastSpacing = spacing;
 
@@ -58203,7 +58281,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 
 		this.clone = function() {
-			var r = that.cloneProps(new zim.Wrapper(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, this.style, this.group));
+			var r = that.cloneProps(new zim.Wrapper(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV,  minStretchFirst, this.style, this.group));
 			return r;
 		};
 	};
@@ -62426,35 +62504,35 @@ PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 actives - a ZIM TextureActive object or an array of ZIM TextureActive objects
-also see the add() method 
-these will be tiled in ZIM and used to be mapped as a CanvasTexture onto three.js materials for meshes
-see https://zimjs.com/docs.html?item=TextureActive
+	also see the add() method 
+	these will be tiled in ZIM and used to be mapped as a CanvasTexture onto three.js materials for meshes
+	see https://zimjs.com/docs.html?item=TextureActive
 threejs - reference to the three.js namespace
 zimThree - (default null) reference to the ZIM Three object if the Three helper module is used (saves lots of lines!)
 renderer - reference to the three.js renderer (if using Three, then three.renderer)
 scene - reference to the three.js scene (if using Three, then three.scene)
-if using more than one scene then make more than one TexureActives object
+	if using more than one scene then make more than one TexureActives object
 camera - reference to the three.js camera (if using Three, then three.camera)
-if using more than one camera then make more than one TexureActives object
+	if using more than one camera then make more than one TexureActives object
 controls - (default null) a three.js OrbitControls or FirstPersonControls 
-other controls may work but are not directly accomodated
+	other controls may work but are not directly accomodated
 layers - (default 0) a layer number from 0 to 31 or an array of layers 
-this will instruct the raycaster to look at only the provided layers
-it is a good idea to specify 1 for instance and add TexureActive meshes to layer 1 
-the addMesh() method has a layer parameter that should match the layer number used here 
-the Three makePanel() method will automatically add the panel mesh to the layer specified for the TextureActives object
+	this will instruct the raycaster to look at only the provided layers
+	it is a good idea to specify 1 for instance and add TexureActive meshes to layer 1 
+	the addMesh() method has a layer parameter that should match the layer number used here 
+	the Three makePanel() method will automatically add the panel mesh to the layer specified for the TextureActives object
 near - (default undefined) - the start of the distance-from-camera range for the object to be interactive
 far - (default undefined) - the end of the distance-from-camera range for the object to be interactive
 ignoreList - (default null) - a mesh or array of meshes to ignore if between the camera and the TextureActive mesh 
-by default, meshes on the same layer will prevent interactivity if between the camera and the TextureActive mesh
-if the mesh is not on the same layer then it will be ignored by default
+	by default, meshes on the same layer will prevent interactivity if between the camera and the TextureActive mesh
+	if the mesh is not on the same layer then it will be ignored by default
 toggleKey - (default t) the key to toggle to or from the ZIM canvas and the three.js canvas
-this can be used to directly interact with the ZIM objects - good for testing 
-the ZIM objects are tiled horizontally with a slider or swiping to pan across them 
-the toggle can be deactivated by setting it to -1 
-or any time by setting the textureActives.manager.toggleKey to -1
-the ZIM canvas and toggling is handled by the ZIM TextureActivesManager
-which is automatically made as soon as one TextureActives object is made
+	this can be used to directly interact with the ZIM objects - good for testing 
+	the ZIM objects are tiled horizontally with a slider or swiping to pan across them 
+	the toggle can be deactivated by setting it to -1 
+	or any time by setting the textureActives.manager.toggleKey to -1
+	the ZIM canvas and toggling is handled by the ZIM TextureActivesManager
+	which is automatically made as soon as one TextureActives object is made
 color - (default darker) the color for the ZIM stage (when the toggle key is pressed)
 outerColor - (default black) the color of off the ZIM stage (when the toggle key is pressed)
 damp - (default .2) the damping of the TextureActivesManager - set to false for no damping
@@ -62464,10 +62542,10 @@ inherit - (default null) used internally but can receive an {} of styles directl
 
 METHODS
 add(actives) - add a ZIM TextureActive object or an array of ZIM TextureActive objects
-or see the actives parameter of TextureActives
+	or see the actives parameter of TextureActives
 remove(actives) - remove a ZIM TextureActive object or an array of ZIM TextureActive objects
-addMesh(mesh, layer) - add a three.js mesh to TextureActives at the option layer - see the layer parameter of TextureActives 
-also see the ZIM Three helper module makePanel() method to easily make a three.js Plane mesh with a TextureActive
+addMesh(mesh, layer) - add a three.js mesh to TextureActives at the optional layer - see the layer parameter of TextureActives 
+	also see the ZIM Three helper module makePanel() method to easily make a three.js Plane mesh with a TextureActive
 dispose() - removes event listeners - must still set outside references to null for garbage collection
 
 PROPERTIES
@@ -62475,12 +62553,12 @@ type - holds the class name as a String
 interactive - get whether there are interactive TextureActive objects
 animated - get whether there are animated TextureActive objects
 manager - the ZIM TexureActivesManager object that handles toggling between the three.js canvas and the ZIM canvas 
-this is used to interact directly with ZIM for testing, etc.
-and can be used to toggle between states and change or remove the key for toggling 
+	this is used to interact directly with ZIM for testing, etc.
+	and can be used to toggle between states and change or remove the key for toggling 
 ignoreList - get or set the array of three.js meshes to ignore - see the ignoreList parameter of TextureActives
 raycaster - a reference to the three.Raycaster object if the TextureActives is interactive
-this is responsible for geting x and y coordinates on TextureActive materials and sending them to CreateJS
-where they replace the regular DOM mouse or pointer events
+	this is responsible for geting x and y coordinates on TextureActive materials and sending them to CreateJS
+	where they replace the regular DOM mouse or pointer events
 raycast - get or set whether the raycaster is operational
 renderer - the three.js renderer
 layers - get an array of layers used by the raycaster
@@ -63055,11 +63133,11 @@ dispose(obj) - disposes objects in the manager
 PROPERTIES 
 type - holds the class name as a String
 toggled - whether the ZIM canvas is showing (true) or the three.js canvas is showing (false)
-also see the toggle() method
+	also see the toggle() method
 toggleKey - get or set the key to toggle the TextureActives - default is "t" 
-set to -1 to remove toggling with the key
-this would be expected for final versions
-also see toggleKey parameter of TextureActives
+	set to -1 to remove toggling with the key
+	this would be expected for final versions
+	also see toggleKey parameter of TextureActives
 tile - the tile containing the ZIM TextureActive objects
 objects - a ZIM Dictionary of the TextureActives objects provided that holds their textureActive objects 
 color - get or set the color of the stage for the ZIM Canvas 
@@ -85796,7 +85874,7 @@ controllerrightmove - dispatched when right XR controller is moving
 	//-140.22
 
 /*--
-zim.XRMovement = function(three, XRControllers, speed, acceleration, rotationSpeed, rotationAcceleration, hapticMax, verticalStrafe, radiusMax, threshhold, directionFix)
+zim.XRMovement = function(three, XRControllers, speed, acceleration, rotationSpeed, rotationAcceleration, hapticMax, verticalStrafe, radiusMax, threshhold, directionFix, boxMax, rotationAngle, rotationInterval)
 
 XRMovement
 zim class
@@ -85864,7 +85942,14 @@ radiusMax - (default -1) set to a number to prevent movement beyond this radius
 threshhold - (default .2) a sensitivity filter - use a higher number to avoid drift
 directionFix - (default true) adjust direction from absolute to relative - needed in R155
 	set to false for R149 - or if three.js version seems to have direction wrong when using controllers
-
+boxMax - (default null) set to an array with 6 numbers for min/max in x, y, z [xMin, xMax, yMin, yMax, zMin, zMax]
+	this prevents the dolly from going past these values 
+	can still use radiusMax but will probably use one or the other
+rotationAngle - (default null) set to an angle in degrees to override rotationSpeed and rotate specific angles 
+	also see rotationInterval which sets how long to wait if rotation is held active 
+	set rotationAngle to 0 to not rotate
+rotationInterval - (default .5 seconds) time in seconds to rotate again if rotationAngle is set and control rotation held down 
+	
 METHODS
 doHaptic() - trigger haptic response if available (amount, hand, max)
 dispose() - remove movement
@@ -85872,6 +85957,9 @@ dispose() - remove movement
 PROPERTIES
 type - name of class as a string
 dolly - the three.js Group that holds the controllers and the camera
+	dolly has a userData.rotationY property for radians of rotation about y 
+	it seems to have some sort of Euler rotations which just go from -90 to 90 annoying
+	so this is a record of rotation applied - use with multi-user for instance to send data
 speed - get or set the speed of motion
 acceleration - get or set the acceleration of motion
 rotationSpeed - get or set the turning speed
@@ -85887,7 +85975,7 @@ threshhold - get or set the sensitivity filter - use a higher number to avoid dr
 	//-140.24
 
 /*--
-zim.XRTeleport = function(three, XRControllers, XRMovement, floor, offsetHeight, button, hand, markerColor, markerBlend)
+zim.XRTeleport = function(three, XRControllers, XRMovement, floor, offsetHeight, button, hand, markerColor, markerBlend, markerRadius)
 
 XRTeleport
 zim class
@@ -85953,6 +86041,7 @@ button - (default 4) the B and Y buttons but can be an array of numbers - see ht
 hand - (default "both") set to "left" or "right" (or "both") to set the controllers for teleporting
 markerColor - (default silver) the color of the circular marker
 markerBlend - (default THREE.AdditiveBlending) the blend of the circular marker
+markerRadius - (default) set the marker radius
 
 METHODS
 dispose() - remove teleport
@@ -86131,6 +86220,38 @@ loop(order, data=>{
 });
 END EXAMPLE
 
+EXAMPLE 
+// Imagine that we have a Tile with thousands of colored pixels. 
+// we do not want to send the full data for every change. 
+// so we send each person's individual change to be collected and adjusted live (not shown below).
+// But, when a new person arrives we want the full data. 
+// The trick is to use the master socket to send the data to new person as follows:
+
+const c = [black, dark, grey, light, white, purple, pink, red, orange, yellow, green, blue];
+
+socket.on("otherjoin", d => {        
+	if (socket.master) { // this socket is the current master so send data
+		const colors = [];
+		loop(tile.items, item=>{
+			colors.push(c.indexOf(item.color));
+		});
+		// d.id is the id of who just joined   
+		socket.setProperty("colors", {id:d.id, array:colors});   
+	}  
+}); 
+
+socket.on("data", d => {
+	// if we are the person that just joined
+	if (d.colors && d.colors.id==socket.id) { 
+		loop(d.colors.array, (item,i)=>{
+			tile.items[i].color = c[item];
+		});
+		S.update();
+	}
+	// also there would be code to update everyone's individual changes
+});
+END EXAMPLE
+
 PARAMETERS
 server - (default http://localhost:3000) the server that is running node and the zimsocket.js : portNumber
 appName - (required) a string id (one word or joined words) and unique for your app
@@ -86188,6 +86309,10 @@ ready - a ready event has been dispatched
 masterTime - when the server started
 joinTime - when socket joined the current room
 id - the id of the client socket
+master - true if the socket is the current master
+	this can be used to run functions only once for everyone in the room
+	see the example above.
+	The master may change as people leave the room
 senderID - the id of the last person to send out data
 lastJoinID - the id of the last person to join (not you)
 lastLeaveID - the id of the last person to leave (not you)
@@ -87385,8 +87510,6 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-
-// these are global regardless
 var globalsConstants = [
 	["FIT", zim.FIT],
 	["FILL", zim.FILL],
@@ -87430,17 +87553,16 @@ var globalsConstants = [
 	["DEG", zim.DEG],
 	["RAD", zim.RAD],
 	["PHI", zim.PHI],
-	];
+];
 	
-	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 	var pair = globalsConstants[z_i];  
 	WW[pair[0]] = pair[1];
-	}
-	
-	for (z_i = 0; z_i < zim.colors.length; z_i++) {
-	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	}
+}
 
+for (z_i = 0; z_i < zim.colors.length; z_i++) {
+	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+}
 
 WW.zim = zim;
 export default zim;
@@ -87494,8 +87616,9 @@ export let sortObject = zim.sortObject;
 export let arraysEqual = zim.arraysEqual;
 export let arrayMinMax = zim.arrayMinMax;
 export let isEmpty = zim.isEmpty;
-export let isJSON = zim.isJSON;
 export let isPick = zim.isPick;
+export let isJSON = zim.isJSON;
+export let parseJSON = zim.parseJSON;
 export let decimals = zim.decimals;
 export let countDecimals = zim.countDecimals;
 export let sign = zim.sign;
