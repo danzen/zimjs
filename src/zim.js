@@ -5459,10 +5459,10 @@ lock - get or set the lock data being sent with each get() or post() (not put())
 			if (that.couple) data = zim.couple(data);
 			var addMaster = !zot(that.master)?"&master="+encodeURIComponent(that.master):"";
 			var addLock = !zot(that.lock)?"&lock="+encodeURIComponent(that.lock):"";
-//			var addUnique = that.unique?"&unique=true":"";
+			var addUnique = that.unique?"&unique=true":"";
 			var addCommand = !zot(command)?"&command="+encodeURIComponent(command):"";
 			var addExtra = !zot(extra)?"&extra="+encodeURIComponent(extra):"";
-			http.send("data="+encodeURIComponent(data)+addMaster+addLock+addCommand+addExtra);
+			http.send("data="+encodeURIComponent(data)+addMaster+addLock+addCommand+addExtra+addUnique);
 		};
 
 		this.put = function(url, data, callback) {
@@ -10555,6 +10555,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				loop:loop,
 				loopCount:loopCount,
 				loopWait:loopWait,
+				loopPick:loopPick,
+				// animateCall:function() {zog(that.latestTween.percentComplete);},
 				loopCall:loopCall, loopParams:loopParams,
 				loopWaitCall:loopWaitCall, loopWaitParams:loopWaitParams,
 				rewind:rewind, rewindWait:rewindWait, // rewind is ignored by animation series
@@ -10566,6 +10568,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				id:that.id
 			});
 			that.runPaused = false;
+			that.pauseAnimate(false); // needed after 015 latestTween adjustments because Sprite starts with animating=false
 			return that;
 		};
 
@@ -50539,7 +50542,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						return 0;
 					}
 				},
-				set: function(value) {
+				set: function(value) {					
 					if (this.zimTween) {
 						// STICK ON PATH BEFORE DRAG FIX
 						immediateCheck = true;
@@ -50596,8 +50599,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			configurable: true // not sure why we need to?
 		});
 
-		// something in here is stopping drag once an animation finishes.
-		// does not do that in 014
 		function setPercent(value, setAngle) {
 			target.zimTween.startPaused = false;
 			// if (!this.paused) this.pauseAnimate(true, id);
@@ -51519,7 +51520,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (pathObject || pathOrient || pathFlip || pathFlipVertical) {handlePath();}
 					animateCall(animateParams||target);
 				}, stage);
-			} else {
+			} else {				
 				zimTicker = zim.Ticker.add(function(){
 					if (effectCheck) target.updateEffects();					
 					if (pathObject || pathOrient || pathFlip || pathFlipVertical) {handlePath();}
@@ -64595,51 +64596,51 @@ $extra = isset($_GET["extra"]) ? $_GET["extra"] : "";
 
 if ($command == "to") {
 
-    // ZIM Bind.to() will send a data property in JSON format:
-    // '{"id1":{"prop1":"value", "prop2":"value"}, "id2":{"prop3":"value"}}'
-    // the JSON string can be stored at the id in the database
-    // or separate fields can be stored by parsing the JSON data
+	// ZIM Bind.to() will send a data property in JSON format:
+	// '{"id1":{"prop1":"value", "prop2":"value"}, "id2":{"prop3":"value"}}'
+	// the JSON string can be stored at the id in the database
+	// or separate fields can be stored by parsing the JSON data
 	// looping and filling specific fields
 
-    // check for master id
-    if ($master=="") {echo "async.callbackTo('error: no id')"; exit;}
+	// check for master id
+	if ($master=="") {echo "async.callbackTo('error: no id')"; exit;}
 
-    // put data into database at id using MySQLi or PDO, etc.
-    // then echo success or error in the following async format
-    echo "async.callbackTo('success')";
-    // echo "success"; // FOR POST
+	// put data into database at id using MySQLi or PDO, etc.
+	// then echo success or error in the following async format
+	echo "async.callbackTo('success')";
+	// echo "success"; // FOR POST
 
 } else if ($command == "from") {
 
-    // Bind from() requests the information
-    // If all the data is requested then the data will be the string 'full'
-    // so return the JSON string stored at the id for instance.
-    // requests might also be provided in the following format:
-    // '{"id":["prop1","prop2"], "id2":["prop3"]}'
-    // and then return the data for the fields requested as a JSON string:
-    // '{"id1":{"prop1":"value", "prop2":"value"}, "id2":{"prop3":"value"}}'
+	// Bind from() requests the information
+	// If all the data is requested then the data will be the string 'full'
+	// so return the JSON string stored at the id for instance.
+	// requests might also be provided in the following format:
+	// '{"id":["prop1","prop2"], "id2":["prop3"]}'
+	// and then return the data for the fields requested as a JSON string:
+	// '{"id1":{"prop1":"value", "prop2":"value"}, "id2":{"prop3":"value"}}'
 
-    // check for master id
-    if ($master=="") {echo "async.callbackFrom('error: no id')"; exit;}
+	// check for master id
+	if ($master=="") {echo "async.callbackFrom('error: no id')"; exit;}
 
-    // get data from database using MySQLi or PDO, etc.
-    // return data in the following async format - for example:
+	// get data from database using MySQLi or PDO, etc.
+	// return data in the following async format - for example:
 	$json = '{"circle":{"x":200,"y":200},"rect":{"x":300,"y":300,"alpha":1}}';
-    echo "async.callbackFrom($json)";
-    // echo $json; // FOR POST
+	echo "async.callbackFrom($json)";
+	// echo $json; // FOR POST
 
 } else if ($command == "removeAll") {
 
-    // if we want to reset the data the Bind object's removeAllBindings
-    // can be called - the removeConnectionData defaults to true
-    // and a command of "removeAll" will be called on the server
+	// if we want to reset the data the Bind object's removeAllBindings
+	// can be called - the removeConnectionData defaults to true
+	// and a command of "removeAll" will be called on the server
 
-    // check for id
-    if ($master=="") {echo "async.callbackRemoveAll('error: no id')"; exit;}
+	// check for id
+	if ($master=="") {echo "async.callbackRemoveAll('error: no id')"; exit;}
 
-    // delete data from database using MySQLi or PDO, etc.
-    echo "async.callbackRemoveAll('success')";
-    // echo 'success'; // FOR POST
+	// delete data from database using MySQLi or PDO, etc.
+	echo "async.callbackRemoveAll('success')";
+	// echo 'success'; // FOR POST
 }
 ?>
 END EXAMPLE
@@ -67905,19 +67906,25 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 		slider.rate = s;
 		tl.speed = s;
 		that.trailInterval.time = trailProportion.convert(tl.speed);
-		if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		try {
+			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		} catch {}
 	}
 	function doLabels(checked) {
 		slider.ticks.vis(checked);
 		slider.labels.vis(checked);
 		S.update();
 		tl.labels = checked;
-		if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		try {
+			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		} catch {}
 	}     
 	function doLoop(checked) {
 		loop = checked;  
 		tl.looping = checked;
-		if (localStorage) localStorage.zim_tl = JSON.stringify(tl);              
+		try {
+			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);          
+		} catch {} 
 	}  
 	function doTrails(checked) {	
 		trailsOff();	
@@ -67928,7 +67935,9 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 			}, 50);
 		} 
 		tl.trailing = checked;
-		if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		try {
+			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		} catch {}
 	}    
 	function doColor(color) {
 		zim.loop([control,menu], function(b) {
@@ -67942,7 +67951,9 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 		speed.slider.bar.color = color;
 		S.update();
 		tl.color = color;
-		if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		try {
+			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
+		} catch {}
 		return this;
 	}   
 	this.setThemeColor = doColor;
@@ -68110,27 +68121,29 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 
 	// localStorage.removeItem("zim_tl")
 	var trailProportion = new zim.Proportion(.1,2,.1,.01);
-	if (localStorage) {
-		var tl = localStorage.zim_tl;
-		if (!tl) tl = JSON.stringify({speed:1, labels:false, looping:false, color:purple});
-		tl = JSON.parse(tl);            
-		doSpeed(tl.speed);
-		speed.slider.currentValue = tl.speed;
-		speed.stepper.currentValue = tl.speed;
-		doLabels(tl.labels);
-		labels.checkBox.checked = tl.labels;
-		doLoop(tl.looping);
-		looping.checkBox.checked = tl.looping;
-		doColor(tl.color);
-		color.colorPicker.selectedColor = tl.color; 
-		color.swatch.color = tl.color;
-		color.colorLabel.text = tl.color.toUpperCase();       
-		if (tl.trailing) {
-			trailsOn();
+	try {
+		if (localStorage) {
+			var tl = localStorage.zim_tl;
+			if (!tl) tl = JSON.stringify({speed:1, labels:false, looping:false, color:purple});
+			tl = JSON.parse(tl);            
+			doSpeed(tl.speed);
+			speed.slider.currentValue = tl.speed;
+			speed.stepper.currentValue = tl.speed;
+			doLabels(tl.labels);
+			labels.checkBox.checked = tl.labels;
+			doLoop(tl.looping);
+			looping.checkBox.checked = tl.looping;
+			doColor(tl.color);
+			color.colorPicker.selectedColor = tl.color; 
+			color.swatch.color = tl.color;
+			color.colorLabel.text = tl.color.toUpperCase();       
+			if (tl.trailing) {
+				trailsOn();
+			}
+			trailing.checkBox.checked = tl.trailing;
+			that.trailInterval.time = trailProportion.convert(tl.speed);
 		}
-		trailing.checkBox.checked = tl.trailing;
-		that.trailInterval.time = trailProportion.convert(tl.speed);
-	}
+	} catch {}
 	
 	this.pos(0,20,"center","bottom");
 
@@ -70095,7 +70108,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-68.5
 	
 /*--
-zim.Book = function(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows)
+zim.Book = function(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows, handleHTML)
 
 Book
 zim class - extends a zim.Container which extends a createjs.Container
@@ -70184,6 +70197,7 @@ radius - (default false) pages will use full page to drag unless a radius is set
 	then the drag corner will be available at the radius distance from the bottom corners 
 backgroundColor - (default clear) the backing color of the book (if first or last page is a single page)
 arrows - (default true (.2 seconds)) set to true or the number of seconds for arrows to turn page.  See also ZIM TIME constant
+handleHTML - (default true) set to false to not automatically remove and add the HTML overlays for Loader, TextArea or Tag objects
 
 METHODS
 nextPage(time) - animate the page to the next page at provided time in seconds (default .1).  See also ZIM TIME constant
@@ -70215,6 +70229,7 @@ lastPage - get the index number of the page that was just animated (available in
 pages - read only array of pages - this are the original pages array passed in
 	note: at this time, the Book must be remade to add or remove pages
 moving - get whether the page is being animated 
+handleHTML - get or set whether to automatically handle HTML overlays for Loader, TextArea or Tag objects
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -70236,8 +70251,8 @@ dispatches a "rolldown" event when corner finishes rolling down
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+68.7
-	zim.Book = function(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows) {
-		var sig = "width, height, pages, startPage, rollUp, radius, backgroundColor, arrows";
+	zim.Book = function(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows, handleHTML) {
+		var sig = "width, height, pages, startPage, rollUp, radius, backgroundColor, arrows, handleHTML";
 		var duo; if (duo = zob(zim.Book, arguments, sig, this)) return duo;
 		z_d("68.7");
 				
@@ -70252,6 +70267,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(rollUp)) rollUp = true;
 		if (zot(backgroundColor)) backgroundColor = zim.darker;
 		if (zot(arrows)) arrows = true;
+		if (zot(handleHTML)) handleHTML = true;
+		this.handleHTML = handleHTML;
 		
 		var timeType = getTIME();
 			
@@ -70683,18 +70700,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		function preparePage(p) {
 			if (!p.addChild) return; // might be just a string representing an image
-			// record any TextArea or Loader tags:
+			// record any TextArea, Loader or Tags:
 			p.zimHTMLList = new zim.Dictionary();
-			removeHTML(p);
-			if (p.parent) p.parent.removeChild(data.page);
+			if (that.handleHTML) removeHTML(p);
 		}
-
+		
 		function addHTML(p) {	
 			if (zot(p) || !p.addChild) return;
 			p.removedHTML = false;
 			for (i=0; i<p.zimHTMLList.length; i++) {
-				p.addChildAt(p.zimHTMLList.values[i].obj, p.zimHTMLList.values[i].depth);
-			}
+				p.addChildAt(p.zimHTMLList.values[i].obj, p.zimHTMLList.values[i].depth);				
+			}		
 		}
 
 		function removeHTML(p) {
@@ -70717,11 +70733,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 		}
 		
-		function onHTML() {		
+		function onHTML() {
+			if (!that.handleHTML) return;
 			if (that.pages[that.page]) addHTML(that.pages[that.page]); 
 			if (that.pages[that.page-1]) addHTML(that.pages[that.page-1]);
 		}
 		function offHTML() {
+			if (!that.handleHTML) return;
 			if (that.pages[that.page]) removeHTML(that.pages[that.page]); 
 			if (that.pages[that.page-1]) removeHTML(that.pages[that.page-1]);
 		}		
@@ -84671,33 +84689,44 @@ THEME - a Theme object literal with name, lightnessRatio, tint, tintRatio and ex
 		apply:function(name, lightenRatio, tint, tintRatio, exclude) {
 			var sig = "name, lightenRatio, tint, tintRatio, exclude";
 			var duo; if (duo = zob(zim.Theme.apply, arguments, sig)) return duo;
-		    if (localStorage) {
-		        if (zot(name)) name = "zim";
-		        var theme = name.toLowerCase();  
-		        if (zot(lightenRatio)) lightenRatio = 0;
-		        if (zot(tint)) tint = -1;
-		        if (zot(tintRatio)) tintRatio = 0;
-		        if (zot(exclude)) exclude = -1;
-		        else if (!Array.isArray(exclude)) exclude = [exclude];
-		        localStorage.setItem(themeID, JSON.stringify({name:theme, lightenRatio:lightenRatio, tint:tint, tintRatio:tintRatio, exclude:exclude}));  
-		        window.location.reload();
-		    } else zogy("ZIM applyTheme() - needs localStorage");
+			try {
+				if (localStorage) {
+					if (zot(name)) name = "zim";
+					var theme = name.toLowerCase();  
+					if (zot(lightenRatio)) lightenRatio = 0;
+					if (zot(tint)) tint = -1;
+					if (zot(tintRatio)) tintRatio = 0;
+					if (zot(exclude)) exclude = -1;
+					else if (!Array.isArray(exclude)) exclude = [exclude];
+					localStorage.setItem(themeID, JSON.stringify({name:theme, lightenRatio:lightenRatio, tint:tint, tintRatio:tintRatio, exclude:exclude}));  
+					window.location.reload();
+				} else zogy("ZIM applyTheme() - needs localStorage");
+			} catch(e) {
+				zogy("ZIM applyTheme() - needs localStorage");
+			}
 		},		
 		clear:function() {
-		    if (localStorage && localStorage.getItem(themeID)) {
-		        localStorage.removeItem(themeID);        
-		    }    
-			window.location.reload();
+			try {
+				if (localStorage && localStorage.getItem(themeID)) {
+					localStorage.removeItem(themeID);        
+				}    
+				window.location.reload();
+			} catch(e) {}		
 		}			
 	}
 	
 	var themeID = window.location.href.replace(/[.\/:]/g,"");
-	if (localStorage && localStorage.getItem(themeID)) {
-		zim.THEME = window["THEME"] = JSON.parse(localStorage.getItem(themeID));
-		zim.Theme.set(THEME.name, THEME.lightenRatio, THEME.tint, THEME.tintRatio, THEME.exclude);
-	} else {
+	try {
+		if (localStorage && localStorage.getItem(themeID)) {
+			zim.THEME = window["THEME"] = JSON.parse(localStorage.getItem(themeID));
+			zim.Theme.set(THEME.name, THEME.lightenRatio, THEME.tint, THEME.tintRatio, THEME.exclude);
+		} else {
+			zim.THEME = window["THEME"] = null;
+		}
+	} catch(e) {
 		zim.THEME = window["THEME"] = null;
-	}//-82.8
+	}
+	//-82.8
 
 ////////////////  ZIM GAME  //////////////
 
@@ -87510,6 +87539,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
+// these are global regardless
 var globalsConstants = [
 	["FIT", zim.FIT],
 	["FILL", zim.FILL],
@@ -87553,16 +87583,17 @@ var globalsConstants = [
 	["DEG", zim.DEG],
 	["RAD", zim.RAD],
 	["PHI", zim.PHI],
-];
+	];
 	
-for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 	var pair = globalsConstants[z_i];  
 	WW[pair[0]] = pair[1];
-}
-
-for (z_i = 0; z_i < zim.colors.length; z_i++) {
+	}
+	
+	for (z_i = 0; z_i < zim.colors.length; z_i++) {
 	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-}
+	}
+
 
 WW.zim = zim;
 export default zim;
