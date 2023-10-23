@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "15.0.8",
+  "version": "15.0.9",
   "type": "module",
   "main": "./dist/zim.js",
   "types": "./dist/typings/zim",

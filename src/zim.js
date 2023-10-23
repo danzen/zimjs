@@ -4501,7 +4501,7 @@ zim.sortObject = function(obj,property,reverse) {
 	});
 	var map = new Map(sortedEntries);
 	var sorted = {}; 
-	map.forEach((v,k) => {sorted[k] = v});
+	map.forEach(function(v,k) {sorted[k] = v});
 	return sorted;
 };//-12.1
 
@@ -16420,7 +16420,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					points = [];
 					var fp = zim.copy(shape.points);
 					var lastP = {x:null,y:null};					
-					zim.loop(fp, (p, i)=>{
+					zim.loop(fp, function(p, i) {
 						var px = Math.round(p.x);
 						var py = Math.round(p.y);
 						if (px==lastP.x && py==lastP.y) return;
@@ -25550,7 +25550,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					
 					if (!scrollBarActive && optimize) {
 						if (that.zDE) content.off(that.zDE);
-						that.zDE = content.on("mousedown", ()=>{
+						that.zDE = content.on("mousedown", function() {
 							if (that.zTI) zim.Ticker.remove(testContent);
 						});						
 						if (that.zME) content.off(that.zME);
@@ -40703,7 +40703,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (zot(repeatNum)) repeatNum = 0;
 			if (zot(recycle)) recycle = cycleTime*2;
 			if (zot(rtl)) rtl = ((WW.DIR && WW.DIR=="rtl") || (!WW.DIR && zim.DIR=="rtl"));
-			let dir = rtl?-1:1;
+			var dir = rtl?-1:1;
 			if (that.cycleInterval) that.cycleInterval.clear();
 			if (recycle && recycle != -1) {
 				if (that.recycleEvent) that.off("cyclecleared", that.recycleEvent);
@@ -50542,7 +50542,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						return 0;
 					}
 				},
-				set: function(value) {					
+				set: function(value) {	
 					if (this.zimTween) {
 						// STICK ON PATH BEFORE DRAG FIX
 						immediateCheck = true;
@@ -51941,11 +51941,17 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (paused == tween.zimPaused) return;
 			tween.zimPaused = paused;
 			if (paused) {
+				target.zimPauseTime=Date.now();
 				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 				// if (target.zimZoomTicker) zim.Ticker.remove(target.zimZoomTicker);
 			} else {
 				tween.startPaused = false;
 				clearTimeout(tween.zimAnimateTimeout);
+				if (target.zimPauseTime) {
+					var nt = Date.now();
+					target.tweenStartTime+=(nt-target.zimPauseTime);
+					target.tweenEndTime+=(nt-target.zimPauseTime);
+				}
 				if (tween.zimTicker) tween.zimTicker = zim.Ticker.add(tween.zimTicker, stage);
 				// if (target.zimZoomTicker) target.zimZoomTicker = zim.Ticker.add(target.zimZoomTicker, stage);
 			}
@@ -52043,7 +52049,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				return target;
 			};
 			target.stopAnimate.real = true; // record this as real method instead of empty method
-			target.pauseAnimate = function(paused, ids, include, ignoreDynamic) {	
+			target.pauseAnimate = function(paused, ids, include, ignoreDynamic) {
 				var id;			
 				if (ids=="pauseOnBlur") {	
 					ids = null;
@@ -52062,7 +52068,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (zot(ids)) { // want all ids	
 						// added in ZIM NFT 00 patch - not sure about it...
 						// it matches what we do when not dynamic
-						// works but jumps to new value to quickly in speed? 
+						// works but jumps to new value too quickly in speed? 
 						// due to extra tickers?
 						for (id in target.zimTweens) {pauseTicker(id, paused);}
 					} else {
@@ -62628,7 +62634,7 @@ var that = this;
 if (!zim.TAM) {
 	zim.TAM = new zim.TextureActivesManager(stage, toggleKey, damp);
 	// seems to be needed to let certain interactions happen like ZIM TextInput
-	if (renderer && renderer.domElement) renderer.domElement.addEventListener("mousedown", (e)=>{
+	if (renderer && renderer.domElement) renderer.domElement.addEventListener("mousedown", function(e) {
 		e.preventDefault();
 	});
 }
@@ -62733,12 +62739,12 @@ function apply () {
 	that.XR = WW.XR = false;
 	var tempMatrix = new threejs.Matrix4();
 
-	const controller1 = that.controllerLeft = renderer.xr.getController(0);
+	var controller1 = that.controllerLeft = renderer.xr.getController(0);
 	controller1.addEventListener('selectstart', doLcDown); // ignoring select
 	controller1.addEventListener('selectend', doLcUp);
 	controller1.addEventListener('move', doLcMove);
 
-	const controller2 = that.controllerRight = renderer.xr.getController(1);
+	var controller2 = that.controllerRight = renderer.xr.getController(1);
 	controller2.addEventListener('selectstart', doRcDown); // ignoring select
 	controller2.addEventListener('selectend', doRcUp);
 	controller2.addEventListener('move', doRcMove);
@@ -62915,7 +62921,7 @@ function apply () {
 		var active = false;
 		var obj, i, material;
 		if (currentDown) {
-			const intersects = raycaster.intersectObject(currentDown);
+			var intersects = raycaster.intersectObject(currentDown);
 			if (intersects.length > 0) {
 				obj = currentDown;
 				if (obj.material && Array.isArray(obj.material)) {
@@ -80213,7 +80219,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				message.animate({
 					props:{alpha:0}, 
 					wait:1,
-					call:()=>{message.dispose(); message=null;}
+					call:function() {message.dispose(); message=null;}
 				});
 				that.stage.update();
 			}
@@ -87509,35 +87515,36 @@ https://codepen.io/zimjs/pen/ZqNYxX
 } (zim || {});
 
 var globalFunctions =   [
-  ["zog", zog],
-  ["zid", zid],
-  ["zss", zss],
-  ["zgo", zgo],
-  ["zum", zum],
-  ["zot", zot],
-  ["zop", zop],
-  ["zil", zil],
-  ["zet", zet],
-  ["zob", zob],
-  ["zik", zik],
-  ["zta", zta],
-  ["zor", zor],
-  ["zogg", zogg],
-  ["zogp", zogp],
-  ["zogb", zogb],
-  ["zogr", zogr],
-  ["zogy", zogy],
-  ["zogo", zogo],
-  ["zogl", zogl],
-  ["zogd", zogd],
-  ["zimplify", zimplify],
-  ["zimify", zimify]
+	["zog", zog],
+	["zid", zid],
+	["zss", zss],
+	["zgo", zgo],
+	["zum", zum],
+	["zot", zot],
+	["zop", zop],
+	["zil", zil],
+	["zet", zet],
+	["zob", zob],
+	["zik", zik],
+	["zta", zta],
+	["zor", zor],
+	["zogg", zogg],
+	["zogp", zogp],
+	["zogb", zogb],
+	["zogr", zogr],
+	["zogy", zogy],
+	["zogo", zogo],
+	["zogl", zogl],
+	["zogd", zogd],
+	["zimplify", zimplify],
+	["zimify", zimify]
 ];
 
 for (z_i = 0; z_i < globalFunctions.length; z_i++) {
-  var pair = globalFunctions[z_i];  
-  WW[pair[0]] = zim[pair[0]] = pair[1];
+	var pair = globalFunctions[z_i];  
+	WW[pair[0]] = zim[pair[0]] = pair[1];
 }
+
 
 // these are global regardless
 var globalsConstants = [
@@ -87583,16 +87590,16 @@ var globalsConstants = [
 	["DEG", zim.DEG],
 	["RAD", zim.RAD],
 	["PHI", zim.PHI],
-	];
-	
-	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+];
+
+for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 	var pair = globalsConstants[z_i];  
 	WW[pair[0]] = pair[1];
-	}
-	
-	for (z_i = 0; z_i < zim.colors.length; z_i++) {
+}
+
+for (z_i = 0; z_i < zim.colors.length; z_i++) {
 	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	}
+}
 
 
 WW.zim = zim;
