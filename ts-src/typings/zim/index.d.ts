@@ -139,7 +139,7 @@ declare namespace zim {
   // Below is the full type but it complicates the code tips too much:
   // type zimVee = {min?:number, max?:number, integer?:boolean, negative?:boolean, noZick?:[any]|Function}|Function|[any]
 
-  type color = string | zim.GradientColor | zim.RadialColor | zim.BitmapColor
+  type color = string | GradientColor | RadialColor | BitmapColor
 
   // ZIM DISPLAY OBJECTS
   // All ZIM Display Objects extend from a DisplayObject at some point through inheritance
@@ -186,16 +186,16 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
     noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
     noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
     gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-    addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, restitution?: number, maskBits?: number, categoryBits?: number, physics?: Physics): this
-    addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, restitution?: number, maskBits?: number, categoryBits?: number, physics?: Physics }): this
+    addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
+    addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
     removePhysics(): this
     impulse(x?: number, y?: number, targetX?: number, targetY?: number): this
     force(x?: number, y?: number, targetX?: number, targetY?: number): this
@@ -248,7 +248,7 @@ declare namespace zim {
     rot(rotation: number): this
     siz(width: number, height?: number, only?: boolean): this
     ske(skewx: number, skewY?: number): this
-    reg(regx: number, regY?: number, still?: boolean): this
+    reg(regx: number | string, regY?: number | string, still?: boolean): this
     sca(scale: number, scaleY?: number): this
     scaleTo(boundObj?: DisplayObject, percentX?: number, percentY?: number, type?: string, boundsOnly?: boolean): this
     fit(left?: number, top?: number, width?: number, height?: number, inside?: boolean): {}
@@ -309,6 +309,7 @@ declare namespace zim {
     percentSpeed: number
     rate: number
     percentComplete: number
+    zimLastMouseEnabled: boolean
     // END ZIM Display Interface
   }
 
@@ -321,7 +322,7 @@ declare namespace zim {
     borderColor: color
     readonly borderColorCommand: createjs.Graphics.Stroke
     borderWidth: number
-    readonly borderDashedCommand: createjs.Graphics.StrokeDash
+    readonly borderDashedCommand: any
     setColorRange(color1?: color, color2?: color): this
     cloneAll(exact?: boolean, style?: boolean, group?: string, inherit?: {}): this
     linearGradient(colors: [any], ratios: [any], x0: number, y0: number, x1: number, y1: number): this
@@ -514,7 +515,8 @@ declare namespace zim {
   export var TAU: number
   export var DEG: number
   export var RAD: number
-  export var PHI:number;
+  export var PHI: number
+
 
   // ++++++++++++++++++++++++++++++++++++++
   // ZIM CODE
@@ -526,17 +528,18 @@ declare namespace zim {
   export function odds(percent?: number): boolean
   export function rarity(weights: {}, shuffle?: boolean, zimColors?: boolean, dynamicPayload?: boolean): [any]
   export function repeats(array: [any], total?: boolean): number
-  export function loop(obj: number | {} | [any] | Dictionary, call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number): any
+  export function loop(obj: number | {} | [any] | Dictionary, call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any): any
   export function getTIME(time?: number, timeType?: string, minWarning?: number, maxWarning?: number, noWarning?: boolean): string
   export function checkTIME(time?: number, timeChar?: string, minWarning?: number, maxWarning?: number): void
   export function timeout(time: number | zimVee, call: Function): { pause: Function, clear: Function, time: number, paused: boolean, done: boolean }
-  export function interval(time: number | zimVee, call: Function, total?: number, immediate?: boolean): { pause: Function, clear: Function, time: number, count: number, total: number, paused: boolean, pauseTimeLeft: number }
+  export function interval(time: number | zimVee, call: Function, total?: number, immediate?: boolean, pauseOnBlur?: boolean, timeUnit?: string, complete?: Function, completeParams?: any): { pause: Function, clear: Function, time: number, count: number, total: number, paused: boolean, pauseTimeLeft: number }
   export function copy<T>(obj: T, clone?: boolean): T
   export function arraysEqual(a: [any], b: [any], strict?: boolean): boolean
   export function arrayMinMax(arr: [any]): {}
   export function isEmpty(obj: {}): boolean
-  export function isJSON(str: string): boolean
   export function isPick(obj: any): boolean
+  export function isJSON(str: string): boolean
+  export function parseJSON(str: string): any
   export function merge(object1: {}, object2: {}, ...objects: {}[]): {}
   export function sortObject(obj: {}, property: string, reverse?: boolean): {}
   export function decimals(num: number, places?: number, addZeros?: number, addZerosBefore?: number, includeZero?: boolean, time?: boolean): number | string
@@ -705,9 +708,9 @@ declare namespace zim {
   // ZIM DISPLAY
   export class Stage extends createjs.Stage {
     constructor(canvasID: string | HTMLCanvasElement)
-    loop(config_or_call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number): any
-    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number }): any
-    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number }): any
+    loop(config_or_call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any): any
+    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any }): any
+    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any }): any
     hitTestGrid(width?: number, height?: number, cols?: number, rows?: number, x?: number, y?: number, offsetX?: number, offsetY?: number, spacingX?: number, spacingY?: number, local?: boolean, type?: string): any
     type: string
     readonly width: number
@@ -717,9 +720,9 @@ declare namespace zim {
 
   export class StageGL extends Stage {
     constructor(canvasID: string | HTMLCanvasElement, options: { preserveBuffer: boolean, antialias: boolean, transparent: boolean, premultiply: false, autoPurge: number })
-    loop(config_or_call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number): any
-    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number }): any
-    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number }): any
+    loop(config_or_call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any): any
+    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any }): any
+    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any }): any
     hitTestGrid(width?: number, height?: number, cols?: number, rows?: number, x?: number, y?: number, offsetX?: number, offsetY?: number, spacingX?: number, spacingY?: number, local?: boolean, type?: string): any
     type: string
     readonly width: number
@@ -757,8 +760,8 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
@@ -882,8 +885,8 @@ declare namespace zim {
     percentComplete: number
     zimLastMouseEnabled: boolean
     // END ZIM Display Interface
-    loop(config_or_call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number): any
-    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number }): any
+    loop(config_or_call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any): any
+    loop(config: { call: Function, reverse?: boolean, interval?: number, step?: number, start?: number, end?: number, immediate?: boolean, complete?: Function, completeParams?: any }): any
     cache(width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number, scale?: number, options?: {}, margin?: number): this
     setBounds(width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number): this
     hasProp(prop: string): boolean
@@ -923,8 +926,8 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
@@ -1095,8 +1098,8 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
@@ -1284,8 +1287,8 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
@@ -1452,8 +1455,8 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
@@ -1613,8 +1616,8 @@ declare namespace zim {
     bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
     noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
     noBind(config: { props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind }): this
-    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean): this
-    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean }): this
+    transform(config_or_move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container): this
+    transform(config: { move?: boolean, stretchX?: boolean, stretchY?: boolean, scale?: boolean, rotate?: boolean, allowToggle?: boolean, visible?: boolean, onTop?: boolean, showStretch?: boolean, showRotate?: boolean, showScale?: boolean, showReg?: boolean, showBorder?: boolean, borderColor?: color, borderWidth?: number, dashed?: boolean | [number], customCursors?: boolean, handleSize?: number, regSize?: number, snapDistance?: number, snapRotation?: number, cache?: boolean, events?: boolean, ghostColor?: color, ghostWidth?: number, ghostDashed?: boolean, ghostHidden?: boolean, container?: Container }): this
     setSwipe(swipe?: boolean): this
     gesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
     gesture(config: { move?: boolean, scale?: boolean, rotate?: boolean, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, minScale?: number, maxScale?: number, snapRotate?: number, localBounds?: boolean, slide?: boolean, slideEffect?: number, regControl?: boolean, onTop?: boolean, surround?: boolean, circularBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } }): this
@@ -2245,6 +2248,14 @@ declare namespace zim {
     // END ZIM Component Interface
   }
 
+  export class Central extends Container implements zimComponent {
+    constructor(width?: number, height?: number, style?: boolean, group?: string, inherit?: {})
+    // ZIM Component Interface
+    // dispose():boolean // now added to Container, etc.
+    enabled: boolean
+    // END ZIM Component Interface
+  }
+
   export class Layer extends Container implements zimComponent {
     constructor(config_or_width?: number, height?: number, titleBar?: string | number | Label, titleBarContainer?: Container, backgroundColor?: color, rollBackgroundColor?: color, selectedBackgroundColor?: color, color?: color, rollColor?: color, selectedColor?: color, borderWidth?: number, borderColor?: color, dashed?: boolean | [number], transformObject?: {}, titleBarWidth?: number, titleBarHeight?: number, titleBarDraggable?: string, close?: boolean, closeColor?: color, closeBackgroundColor?: color, closeIndicatorColor?: color, anchor?: boolean, style?: boolean, group?: string, inherit?: {})
     constructor(config: { width?: number, height?: number, titleBar?: string | number | Label, titleBarContainer?: Container, backgroundColor?: color, rollBackgroundColor?: color, selectedBackgroundColor?: color, color?: color, rollColor?: color, selectedColor?: color, borderWidth?: number, borderColor?: color, dashed?: boolean | [number], transformObject?: {}, titleBarWidth?: number, titleBarHeight?: number, titleBarDraggable?: string, close?: boolean, closeColor?: color, closeBackgroundColor?: color, closeIndicatorColor?: color, anchor?: boolean, style?: boolean, group?: string, inherit?: {} })
@@ -2499,8 +2510,8 @@ declare namespace zim {
     keyEnabled: boolean
   }
   export class NumPad extends Container implements zimComponent {
-    constructor(config_or_advanced?: boolean, titleBar?: string | Label, titleBarColor?: color, titleBarBackroundColor?: color, titleBarHeight?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, corner?: number | any[], numberCorner?: number | any[], close?: boolean, closeColor?: color, collapse?: boolean, collapseColor?: color, collapsed?: boolean, align?: string, shadowColor?: color, shadowBlur?: number, draggable?: boolean, boundary?: Boundary | {}, style?: boolean, group?: string, inherit?: {})
-    constructor(config: { advanced?: boolean, titleBar?: string | Label, titleBarColor?: color, titleBarBackroundColor?: color, titleBarHeight?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, corner?: number | any[], numberCorner?: number | any[], close?: boolean, closeColor?: color, collapse?: boolean, collapseColor?: color, collapsed?: boolean, align?: string, shadowColor?: color, shadowBlur?: number, draggable?: boolean, boundary?: Boundary | {}, style?: boolean, group?: string, inherit?: {} })
+    constructor(config_or_advanced?: boolean | string, titleBar?: string | Label, titleBarColor?: color, titleBarBackroundColor?: color, titleBarHeight?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, corner?: number | any[], numberCorner?: number | any[], close?: boolean, closeColor?: color, collapse?: boolean, collapseColor?: color, collapsed?: boolean, align?: string, shadowColor?: color, shadowBlur?: number, draggable?: boolean, boundary?: Boundary | {}, style?: boolean, group?: string, inherit?: {})
+    constructor(config: { advanced?: boolean | string, titleBar?: string | Label, titleBarColor?: color, titleBarBackroundColor?: color, titleBarHeight?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, corner?: number | any[], numberCorner?: number | any[], close?: boolean, closeColor?: color, collapse?: boolean, collapseColor?: color, collapsed?: boolean, align?: string, shadowColor?: color, shadowBlur?: number, draggable?: boolean, boundary?: Boundary | {}, style?: boolean, group?: string, inherit?: {} })
     // ZIM Component Interface
     // dispose():boolean // now added to Container, etc.
     enabled: boolean
@@ -2613,8 +2624,8 @@ declare namespace zim {
     readonly font: List
   }
   export class Keyboard extends Container implements zimComponent {
-    constructor(config_or_labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, style?: boolean, group?: string, inherit?: {})
-    constructor(config: { labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, style?: boolean, group?: string, inherit?: {} })
+    constructor(config_or_labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, numPadScale?: number, numPadDraggable?: boolean, numPadOnly?: boolean, numPadAdvanced?: boolean, maxLength?: number, numbersOnly?: boolean, style?: boolean, group?: string, inherit?: {})
+    constructor(config: { labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, numPadScale?: number, numPadDraggable?: boolean, numPadOnly?: boolean, numPadAdvanced?: boolean, maxLength?: number, numbersOnly?: boolean, style?: boolean, group?: string, inherit?: {} })
     // ZIM Component Interface
     // dispose():boolean // now added to Container, etc.
     enabled: boolean
@@ -2630,6 +2641,10 @@ declare namespace zim {
     readonly labels: Label[]
     selectedLabel: Label
     selectedIndex: number
+    keys: Container
+    numPad: NumPad
+    maxLength: number
+    numbersOnly: boolean
   }
   export class Organizer extends Tabs implements zimComponent {
     constructor(config_or_width?: number, list?: List, useAdd?: boolean, useRemove?: boolean, usePosition?: boolean, autoAdd?: boolean, autoRemove?: boolean, autoPosition?: boolean, addForward?: boolean, removeForward?: boolean, backgroundColor?: color, rollBackgroundColor?: color, selectedBackgroundColor?: color, color?: color, rollColor?: color, selectedColor?: color, selectedRollColor?: color, spacing?: number, corner?: number | any[], keyEnabled?: boolean, gradient?: number, gloss?: number, backdropColor?: color, style?: boolean, group?: string, inherit?: {})
@@ -2662,7 +2677,9 @@ declare namespace zim {
     scramble(time?: number, wait?: number, num?: number): this
     solve(time?: number, wait?: number, disable?: boolean): this
     test(): this
+    update(): this
     testItem(item: DisplayObject, index?: number): this
+    readonly tile: Tile
     readonly complete: boolean
     readonly starts: [number]
     readonly order: [number]
@@ -3100,8 +3117,8 @@ declare namespace zim {
   }
 
   export class Wrapper extends Container {
-    constructor(config_or_width?: number, spacingH?: number, spacingV?: number, wrapperType?: string, align?: string, valign?: string, alignInner?: string, valignInner?: string, flip?: boolean, reverse?: boolean, bottomFull?: boolean, colSize?: number, rowSize?: number, height?: number, minSpreadNum?: number, minStretchNum?: number, percentVoidH?: number, offsetVoidH?: number, percentVoidV?: number, offsetVoidV?: number, style?: boolean, group?: string, inherit?: {})
-    constructor(config: { width?: number, spacingH?: number, spacingV?: number, wrapperType?: string, align?: string, valign?: string, alignInner?: string, valignInner?: string, flip?: boolean, reverse?: boolean, bottomFull?: boolean, colSize?: number, rowSize?: number, height?: number, minSpreadNum?: number, minStretchNum?: number, percentVoidH?: number, offsetVoidH?: number, percentVoidV?: number, offsetVoidV?: number, style?: boolean, group?: string, inherit?: {} })
+    constructor(config_or_width?: number, spacingH?: number, spacingV?: number, wrapperType?: string, align?: string, valign?: string, alignInner?: string, valignInner?: string, flip?: boolean, reverse?: boolean, bottomFull?: boolean, colSize?: number, rowSize?: number, height?: number, minSpreadNum?: number, minStretchNum?: number, percentVoidH?: number, offsetVoidH?: number, percentVoidV?: number, offsetVoidV?: number, minStretchFirst?: boolean, style?: boolean, group?: string, inherit?: {})
+    constructor(config: { width?: number, spacingH?: number, spacingV?: number, wrapperType?: string, align?: string, valign?: string, alignInner?: string, valignInner?: string, flip?: boolean, reverse?: boolean, bottomFull?: boolean, colSize?: number, rowSize?: number, height?: number, minSpreadNum?: number, minStretchNum?: number, percentVoidH?: number, offsetVoidH?: number, percentVoidV?: number, offsetVoidV?: number, minStretchFirst?: boolean, style?: boolean, group?: string, inherit?: {} })
     add(items?: any[]): this
     addAt(items?: any[], index?: number): this
     remove(items?: any[]): this
@@ -3128,8 +3145,8 @@ declare namespace zim {
     readonly group: string
   }
   export class Tile extends Container {
-    constructor(config_or_obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, style?: boolean, group?: string, inherit?: {})
-    constructor(config: { obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, style?: boolean, group?: string, inherit?: {} })
+    constructor(config_or_obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, exact?: boolean, scaleToH?: number | zimVee, scaleToV?: number | zimVee, scaleToType?: string | zimVee, backgroundColor?: color | zimVee, backing?: DisplayObject | zimVee, backdropColor?: color | zimVee, backdropPadding?: number, backdropPaddingH?: number, backdropPaddingV?: number, mat?: DisplayObject, style?: boolean, group?: string, inherit?: {})
+    constructor(config: { obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, exact?: boolean, scaleToH?: number | zimVee, scaleToV?: number | zimVee, scaleToType?: string | zimVee, backgroundColor?: color | zimVee, backing?: DisplayObject | zimVee, backdropColor?: color | zimVee, backdropPadding?: number, backdropPaddingH?: number, backdropPaddingV?: number, mat?: DisplayObject, style?: boolean, group?: string, inherit?: {} })
     remake(items?: any[]): this
     resize(width?: number, height?: number): this
     itemUnderPoint(x: number, y: number, ignoreSpacing?: boolean): DisplayObject
@@ -3341,8 +3358,8 @@ declare namespace zim {
     enabled: boolean
   }
   export class MotionController extends createjs.EventDispatcher {
-    constructor(config_or_target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean)
-    constructor(config: { target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean })
+    constructor(config_or_target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean, mouseOutside?: boolean)
+    constructor(config: { target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean, mouseOutside?: boolean })
     immediate(x: number, y: number): void
     convert(x: number, y: number): void
     pause(state?: boolean, time?: number): this
@@ -3819,14 +3836,15 @@ declare namespace zim {
   // ++++++++++++++++++++++++++++++++++++++
   // ZIM THREE
   export class Three {
-    constructor(config_or_width?: number, height?: number, color?: color, cameraPosition?: any, cameraLook?: any, interactive?: boolean, resize?: boolean, frame?: Frame, ortho?: boolean, textureActive?: boolean, colorSpace?: string)
-    constructor(config: { width?: number, height?: number, color?: color, cameraPosition?: any, cameraLook?: any, interactive?: boolean, resize?: boolean, frame?: Frame, ortho?: boolean, textureActive?: boolean, colorSpace?: string })
+    constructor(config_or_width?: number, height?: number, color?: color, cameraPosition?: any, cameraLook?: any, interactive?: boolean, resize?: boolean, frame?: Frame, ortho?: boolean, textureActive?: boolean, colorSpace?: string, colorManagement?: boolean, legacyLights?: boolean, throttle?: boolean, lay?: string, full?: boolean, xr?: boolean, VRButton?: any, xrBufferScale?: number)
+    constructor(config: { width?: number, height?: number, color?: color, cameraPosition?: any, cameraLook?: any, interactive?: boolean, resize?: boolean, frame?: Frame, ortho?: boolean, textureActive?: boolean, colorSpace?: string, colorManagement?: boolean, legacyLights?: boolean, throttle?: boolean, lay?: string, full?: boolean, xr?: boolean, VRButton?: any, xrBufferScale?: number })
     position(x?: number, y?: number): void
     scale(scale?: number): void
     rotateAroundAxis(obj: any, axis?: string, radians?: number): void
     rotateAroundObjectAxis(obj: any, axis?: string, radians?: number): void
-    makePanel(textureActive: TextureActive, textureActives: TextureActives, transparent?: boolean, opacity?: number, scale?: number, colorSpace?: string): any
-    flipMaterial(materialType?: any, params?: {}): void
+    makePanel(textureActive: TextureActive, textureActives: TextureActives, scale?: number, curve?: number, opacity?: number, material?: string, doubleSide?: boolean, colorSpace?: string): any
+    flipMaterial(materialType?: any, params?: {}): any
+    curvePlane(geometry?: any, z?: number): void
     dispose(): void
     readonly renderer: any
     readonly canvas: HTMLCanvasElement
@@ -3836,6 +3854,48 @@ declare namespace zim {
     readonly sceneOrtho: any
     readonly cameraOrtho: any
     readonly resizeEvent: any
+    preRender: Function
+    postRender: Function
+    readonly vrButton: any
+  }
+
+  export class XRControllers {
+    constructor(config_or_three: Three, type?: any, color?: color | [color], highlightColor?: color | [color], lineColor?: color | [color], lineLength?: number | [number], threshhold?: number)
+    constructor(config: { three: Three, type?: any, color?: color | [color], highlightColor?: color | [color], lineColor?: color | [color], lineLength?: number | [number], threshhold?: number })
+    dispose(): void
+    readonly type: string
+    readonly XR: boolean
+    readonly controller1: any
+    readonly controller2: any
+    threshhold: number
+  }
+
+  export class XRMovement {
+    constructor(config_or_three: Three, XRControllers: XRControllers, speed?: number, acceleration?: number, rotationSpeed?: number, rotationAcceleration?: number, hapticMax?: number, verticalStrafe?: boolean, radiusMax?: number, threshhold?: number, directionFix?: boolean)
+    constructor(config: { three: Three, XRControllers: XRControllers, speed?: number, acceleration?: number, rotationSpeed?: number, rotationAcceleration?: number, hapticMax?: number, verticalStrafe?: boolean, radiusMax?: number, threshhold?: number, directionFix?: boolean })
+    doHaptic(amount?: number, hand?: string, max?: number): void
+    dispose(): void
+    readonly type: string
+    readonly dolly: any
+    speed: number
+    acceleration: number
+    rotationSpeed: number
+    rotationAcceleration: number
+    hapticMax: number
+    verticalStrafe: boolean
+    radiusMax: number
+    threshhold: number
+  }
+
+  export class XRTeleport {
+    constructor(config_or_three: Three, XRControllers: XRControllers, XRMovement?: XRMovement, floor?: [any], offsetHeight?: number, button?: number | [number], hand?: string, markerColor?: color, markerBlend?: any)
+    constructor(config: { three: Three, XRControllers: XRControllers, XRMovement?: XRMovement, floor?: [any], offsetHeight?: number, button?: number | [number], hand?: string, markerColor?: color, markerBlend?: any })
+    dispose(): void
+    readonly type: string
+    floor: any
+    button: number | [number]
+    hand: string
+    readonly marker: any
   }
 
   // ++++++++++++++++++++++++++++++++++++++

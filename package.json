@@ -2,8 +2,8 @@
   "name": "zimjs",
   "version": "15.0.9",
   "type": "module",
-  "main": "./dist/zim.js",
-  "types": "./dist/typings/zim",
+  "main": "./src/zim.js",
+  "types": "./ts-src/typings/zim",
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",

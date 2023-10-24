@@ -6,6 +6,6 @@ export default defineConfig({
   sourcemap: false,
   clean: true,
   format: ["cjs", "esm"],
-  minify: true,
+  minify: false,
   publicDir: "ts-src",
 })
