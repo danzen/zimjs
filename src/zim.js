@@ -5432,9 +5432,9 @@ lock - get or set the lock data being sent with each get() or post() (not put())
 			http.open('GET', url+addMaster+addLock+addUnique, true);
 			http.onload = function() {
 				if (http.status==200) {
-					callback(zim.isJSON(http.responseText)?JSON.parse(http.responseText):http.responseText);
+					if (callback) callback(zim.isJSON(http.responseText)?JSON.parse(http.responseText):http.responseText);
 				} else {
-					callback(null, 'Error: '+http.status);
+					if (callback) callback(null, 'Error: '+http.status);
 				}
 			};
 			http.send();
@@ -5452,7 +5452,7 @@ lock - get or set the lock data being sent with each get() or post() (not put())
 					if (that.couple) r = zim.decouple(r);
 					r = JSON.parse(r);
 				}
-				callback(r);
+				if (callback) callback(r);
 				// callback(isJSON(http.responseText)?JSON.parse(http.responseText):http.responseText);
 			};
 			if (!zim.isJSON(data)) data = JSON.stringify(data);
@@ -5469,7 +5469,7 @@ lock - get or set the lock data being sent with each get() or post() (not put())
 			http.open('PUT', url, true);
 			http.setRequestHeader('Content-type', 'application/json');
 			http.onload = function() {
-				callback(zim.isJSON(http.responseText)?JSON.parse(http.responseText):that.http.responseText);
+				if (callback) callback(zim.isJSON(http.responseText)?JSON.parse(http.responseText):that.http.responseText);
 			};
 			http.send(JSON.stringify(data));
 		};
