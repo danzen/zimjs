@@ -4738,7 +4738,7 @@ RETURNS an object
             str = str.trim();
             try {
                 return (new Function("return " + str))();
-            } catch {
+            } catch (err) {
                 zogy("JSON did not parse");
                 return null;
             }
@@ -4746,7 +4746,7 @@ RETURNS an object
         var jobj;
         try {
             jobj = JSON.parse(str);
-        } catch {            
+        } catch (err) {            
             jobj = jst(str);
         }
         return jobj;
@@ -67914,7 +67914,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 		that.trailInterval.time = trailProportion.convert(tl.speed);
 		try {
 			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
-		} catch {}
+		} catch (err) {}
 	}
 	function doLabels(checked) {
 		slider.ticks.vis(checked);
@@ -67923,14 +67923,14 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 		tl.labels = checked;
 		try {
 			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
-		} catch {}
+		} catch (err) {}
 	}     
 	function doLoop(checked) {
 		loop = checked;  
 		tl.looping = checked;
 		try {
 			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);          
-		} catch {} 
+		} catch (err) {} 
 	}  
 	function doTrails(checked) {	
 		trailsOff();	
@@ -67943,7 +67943,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 		tl.trailing = checked;
 		try {
 			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
-		} catch {}
+		} catch (err) {}
 	}    
 	function doColor(color) {
 		zim.loop([control,menu], function(b) {
@@ -67959,7 +67959,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 		tl.color = color;
 		try {
 			if (localStorage) localStorage.zim_tl = JSON.stringify(tl);
-		} catch {}
+		} catch (err) {}
 		return this;
 	}   
 	this.setThemeColor = doColor;
@@ -68149,7 +68149,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 			trailing.checkBox.checked = tl.trailing;
 			that.trailInterval.time = trailProportion.convert(tl.speed);
 		}
-	} catch {}
+	} catch (err) {}
 	
 	this.pos(0,20,"center","bottom");
 
@@ -72580,6 +72580,8 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 							var val = zim.Pick.choose(options);
 							if (property == "scale") {
 								particle.sca(val);
+							} else if (property == "frame" && particle.run) {
+								particle.run({startFrame:val, endFrame:val});
 							} else {
 								if (property == "x") {
 									particle.info.position.x = (that.horizontal || that.vertical)?val:val+width/2;
@@ -87515,34 +87517,34 @@ https://codepen.io/zimjs/pen/ZqNYxX
 } (zim || {});
 
 var globalFunctions =   [
-	["zog", zog],
-	["zid", zid],
-	["zss", zss],
-	["zgo", zgo],
-	["zum", zum],
-	["zot", zot],
-	["zop", zop],
-	["zil", zil],
-	["zet", zet],
-	["zob", zob],
-	["zik", zik],
-	["zta", zta],
-	["zor", zor],
-	["zogg", zogg],
-	["zogp", zogp],
-	["zogb", zogb],
-	["zogr", zogr],
-	["zogy", zogy],
-	["zogo", zogo],
-	["zogl", zogl],
-	["zogd", zogd],
-	["zimplify", zimplify],
-	["zimify", zimify]
+  ["zog", zog],
+  ["zid", zid],
+  ["zss", zss],
+  ["zgo", zgo],
+  ["zum", zum],
+  ["zot", zot],
+  ["zop", zop],
+  ["zil", zil],
+  ["zet", zet],
+  ["zob", zob],
+  ["zik", zik],
+  ["zta", zta],
+  ["zor", zor],
+  ["zogg", zogg],
+  ["zogp", zogp],
+  ["zogb", zogb],
+  ["zogr", zogr],
+  ["zogy", zogy],
+  ["zogo", zogo],
+  ["zogl", zogl],
+  ["zogd", zogd],
+  ["zimplify", zimplify],
+  ["zimify", zimify]
 ];
 
 for (z_i = 0; z_i < globalFunctions.length; z_i++) {
-	var pair = globalFunctions[z_i];  
-	WW[pair[0]] = zim[pair[0]] = pair[1];
+  var pair = globalFunctions[z_i];  
+  WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
 
@@ -87589,9 +87591,9 @@ var globalsConstants = [
 	["TAU", zim.TAU],
 	["DEG", zim.DEG],
 	["RAD", zim.RAD],
-	["PHI", zim.PHI],
+	["PHI", zim.PHI]
 ];
-
+	
 for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 	var pair = globalsConstants[z_i];  
 	WW[pair[0]] = pair[1];
