@@ -9481,11 +9481,11 @@ END EXAMPLE
 EXAMPLE
 // turn a container of circles into a Bitmap
 const circles = new Container(W, H).addTo();
-loop(400, ()=>{
-	new Circle(rand(200), [pink,green,blue,yellow,purple], dark).center(circles);
+loop(10, ()=>{
+	new Circle(rand(200), [pink,green,blue,yellow,purple], dark).center(circles).ble();
 });
 const pic = new Bitmap(circles).center().drag();
-circles.dispose();
+circles.removeFrom();
 
 // previous to ZIM 10.8.0 we needed to use the cacheCanvas:
 var pic = new Bitmap(circles.cache().cacheCanvas).center().drag();
@@ -19239,8 +19239,8 @@ padding - (default 10 if backgroundColor set) places the border this amount from
 	padding parameters are ignored if there is no backgroundColor set (also ignored if a backing parameter is set)
 paddingH - (default padding) places border out at top bottom
 paddingV - (default padding) places border out at left and right
-shiftH - (default 0) move the label (CreateJS Text) inside the Label container horizontally
-shiftV - (default 0) move the label (CreateJS Text) inside the Label container vertically
+shiftH |ZIM VEE| - (default 0) move the label (CreateJS Text) inside the Label container horizontally
+shiftV |ZIM VEE| - (default 0) move the label (CreateJS Text) inside the Label container vertically
 rollPersist - (default false) set to true to maintain rollover stage as long as mousedown or press is activated (used by Buttons)
 labelWidth - (default null) the same as the lineWidth - the text will wrap at the labelWidth (added to match labelHeight)
 labelHeight - (default null) the height of the text - setting this will probably alter the font size - so the size parameter is overwritten
@@ -19344,7 +19344,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.veeObj = {text:oa[0], size:oa[1], font:oa[2], color:oa[3], bold:oa[4], italic:oa[5]};
 		function remember() {return arguments;}
 
-		text = zim.Pick.choose(text);
+		text = zik(text);
+		shiftH = zik(shiftH);
+		shiftV = zik(shiftV);
+
 		var emptyText = false;
 		if (text === "") {
 			text = " ";
@@ -19394,7 +19397,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var that = this;
 		this.mouseChildren = false;
 		this.paddingV = paddingV;
-		this.paddingH = paddingH;
+		this.paddingH = paddingH;		
 		
 		// handle DIR effect 
 		if ((WW.DIR && WW.DIR=="rtl") || (!WW.DIR && zim.DIR=="rtl")) {
@@ -21574,7 +21577,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.type = "Button";
 
 		if (zot(backgroundColor)) backgroundColor=DS.backgroundColor!=null?DS.backgroundColor:zim.purple;
-		if (zot(rollBackgroundColor)) rollBackgroundColor=DS.rollBackgroundColor!=null?DS.rollBackgroundColor:backgroundColor.lighten(.2);
+		if (zot(rollBackgroundColor)) rollBackgroundColor=DS.rollBackgroundColor!=null?DS.rollBackgroundColor:backgroundColor.lighten?backgroundColor.lighten(.2):backgroundColor;
 		if (zot(downBackgroundColor)) downBackgroundColor=DS.downBackgroundColor!=null?DS.downBackgroundColor:rollBackgroundColor;
 		
 		var oa = remember(backgroundColor, rollBackgroundColor, downBackgroundColor, color, rollColor, downColor);
@@ -23100,7 +23103,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         if (zot(margin)) margin = DS.margin!=null?DS.margin:10; //20;
         if (zot(indicatorType)) indicatorType=DS.indicatorType!=null?DS.indicatorType:"circle";
         if (zot(indicatorColor)) indicatorColor=DS.indicatorColor!=null?DS.indicatorColor:zim.white;
-        if (zot(toggleBackgroundColor)) toggleBackgroundColor=DS.toggleBackgroundColor!=null?DS.toggleBackgroundColor:backgroundColor.lighten(.3);
+        if (zot(toggleBackgroundColor)) toggleBackgroundColor=DS.toggleBackgroundColor!=null?DS.toggleBackgroundColor:backgroundColor.lighten?backgroundColor.lighten(.3):backgroundColor;
         if (zot(color)) color=DS.color!=null?DS.color:zim.darker;
         if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
         if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:null;
@@ -24125,7 +24128,7 @@ const panel = new Panel({titleBar:series("TODAY", "TOMORROW")})
    
 // content for panel 1
 const today = new Circle(30, yellow);
-panel.add(today,true); // center on content
+panel.add(today, 0, true); // content, level, center on content
 
 // content for panel 2
 const tomorrow = new Label("-30");
@@ -24133,9 +24136,9 @@ const tomorrow = new Label("-30");
 // event to change content as panels change
 panel.on("change", ()=>{
 	if (today.parent) {
-		panel.add(tomorrow, true, true); // center and replace
+		panel.add(tomorrow, 0, true, true); // content, level, center and replace
 	} else {
-		panel.add(today, true, true); // center and replace		
+		panel.add(today, 0, true, true); // content, level, center and replace		
 	}
 	S.update();
 });
@@ -30886,7 +30889,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(keyArrowsV)) keyArrowsV = DS.keyArrowsV!=null?DS.keyArrowsV:true;
 		if (zot(keyArrowsStep)) keyArrowsStep = DS.keyArrowsStep!=null?DS.keyArrowsStep:(max-min)/100;
 		if (zot(damp)) damp = DS.damp!=null?DS.damp:false;
-		if (zot(currentValue)) currentValue = DS.currentValue!=null?DS.currentValue:false;
+		if (zot(currentValue)) currentValue = DS.currentValue!=null?DS.currentValue:null;
 		if (zot(expand)) expand = DS.expand!=null?DS.expand:zim.mobile()?10:null;
 		if (zot(expandVertical)) expandVertical = DS.expandVertical!=null?DS.expandVertical:expand;
 		if (zot(expandBar)) expandBar = DS.expandBar!=null?DS.expandBar:null;
@@ -31874,7 +31877,7 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 EXAMPLE
 var dial = new Dial({step:1, backgroundColor:"violet"})
 	.center()
-	.change() {
+	.change(()=>{
 		zog(dial.currentValue); // 1-10 in steps of 1
 	});
 S.update();
@@ -32043,7 +32046,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(continuous)) continuous = DS.continuous!=null?DS.continuous:false;
 		if (continuous) limit = DS.limit!=null?DS.limit:false; // continuous sets the limit to false
 		if (zot(damp)) damp = DS.damp!=null?DS.damp:false;
-		if (zot(currentValue)) currentValue = DS.currentValue!=null?DS.currentValue:false;		
+		if (zot(currentValue)) currentValue = DS.currentValue!=null?DS.currentValue:null;		
 		if (zot(useLabels)) useLabels = DS.useLabels!=null?DS.useLabels:false;
 		if (zot(labelMargin)) labelMargin = DS.labelMargin!=null?DS.labelMargin:10;
 		if (limit == false) damp = null;
@@ -44667,10 +44670,15 @@ RETURNS obj for chaining
 						if (obj.excludeTap) return;
 						clearTimeout(obj.zimDoubleTimeout);
 						call(e);
+						if (once) {
+							obj.off("mousedown", obj.zimDblClickDownEvent);
+							obj.zimDblClickDownEvent = null;
+							if (obj.cursor) obj.cur("default");
+						}
 					} else if (call2) call2(e);
 					e.remove();
 				});
-			}, null, once);
+			});
 		} else {
 			obj.zimClickDownEvent = obj.on("mousedown", function (e) {		
 				if (e.currentTarget.type == "List") {
@@ -44685,10 +44693,15 @@ RETURNS obj for chaining
 					if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
 						if (obj.excludeTap) return;
 						call(e);
+						if (once) {
+							obj.off("mousedown", obj.zimClickDownEvent);
+							obj.zimClickDownEvent = null;
+							if (obj.cursor) obj.cur("default");
+						}
 					} else if (call2) call2(e);
-					e.remove();
-				}); 
-			}, null, once);
+					e.remove();					
+				});
+			});
 		}
 		
 		return obj;
@@ -48105,6 +48118,8 @@ ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate s
 to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
+
+NOTE: when applying effects to rtl fonts make sure the DIR = "rtl" is set.
 	
 EXAMPLE
 // create a Label with a GlowEffect that shows through to the image below
@@ -48115,7 +48130,7 @@ new Label("WOW", 200, "impact")
 		color:red,
 		blurX:50,
 		blurY:50,
-		strenght:2,
+		strength:2,
 		quality:2,
 		knockout:true
 	}));
@@ -48201,7 +48216,7 @@ RETURNS obj for chaining
         for (var i in obj.effects) {
             obj.filters.push(obj.effects[i]);
         } 
-        obj.cache(x,y,width,height); 
+        obj.cache(x,y,width,height,null,null,null,(WW.DIR && WW.DIR=="rtl")); 
 		return obj;
 	};//-33.16
 	
@@ -49397,7 +49412,7 @@ props - the object literal holding properties and values to animate
 time - |ZIM VEE| (default 1) the time for the tween in seconds (also see ZIM TIME constant)
 	see also the rate parameter and property to dynamically change the time the animation takes (its speed)
 ease - |ZIM VEE| (default "quadInOut") the equation type for easing ("bounceOut", "elasticIn", "backInOut", "linear", etc)
-	also ZIM preset eases: "snapIn", "snapOut", "snapInOut", "balisticIn", "balisticOut", "balisticInOut", "slowmoIn", "slowmoOut", "slowmoInOut"
+	also ZIM preset eases: "snapIn", "snapOut", "snapInOut", "ballisticIn", "ballisticOut", "ballisticInOut", "slowmoIn", "slowmoOut", "slowmoInOut"
 	** CUSTOM EASE: see https://zimjs.com/ease for custom ease which can be passed in here as a value like so:
 		ease:zimEase([.2,.4,.6,.8]) // would be linear  
 		ease:zimEase([[1.45,-0.57,0.67,0.55], [0.34,0.44,1.43,-0.31]]) // is the same as "snapInOut"
@@ -49703,6 +49718,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (!zot(props)) newProps = zim.merge(newProps, cjsProps); // cjsProps to overwrite
 		cjsProps = newProps;
 
+		
 		// convert dot property format
 		zim.loop(obj, function (o, v) {
 			if (typeof o == "string") {
@@ -50146,7 +50162,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 	
 		var fromCheck = false;
 
-							
+									
 		// Handle notes
 		if (obj.note) {
 			if (Array.isArray(obj.note)) { // random
@@ -50599,12 +50615,33 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			configurable: true // not sure why we need to?
 		});
 
+
+		// if (target.paused) return target._percentComplete;
+		// if (target.tweenStartTime && target.tweenEndTime) {	
+		// 	// return if paused and however long is paused gets added to target.tweenStartTime and target.tweenEndTime
+		// 	// but then how does this affect the timeline?
+		// 	// maybe target.percentComplete is always based on time and it ignores pause 
+		// 	// whereas tween.percentComplete is based on the animation
+		// 	// maybe target.percentComplete should be percentTime 
+		// 	var dn = Date.now();	
+		// 	var nt;
+		// 	// loop is based on latest tween set
+		// 	if (cjsProps.loop && dn > target.tweenEndTime) {
+		// 		nt = (dn - target.tweenStartTime) % (target.tweenEndTime - target.tweenStartTime);
+		// 	} else {
+		// 		nt = dn - target.tweenStartTime;
+		// 	}		
+		// 	var v = Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
+		// 	target._percentComplete	= v;						
+		// 	return  v;
+
+
 		function setPercent(value, setAngle) {
 			target.zimTween.startPaused = false;
 			// if (!this.paused) this.pauseAnimate(true, id);
 			if (!dynamic) {
-				if (target.zimTweens) {
-					zim.loop(target.zimTweens, function(id,tw,i) {						
+				if (target.zimTweens) {							
+					zim.loop(target.zimTweens, function(id,tw,i) {		
 						var tim = target.tweenStartTime + (target.tweenEndTime - target.tweenStartTime) * value / 100;	
 						var nt;
 						if (tw.zimLoop && tim <= tw.startTime) {
@@ -50616,7 +50653,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						}				
 						tw.percentComplete = Math.max(0, Math.min(100, nt/tw.duration * 100));							
 					});
-				} else {				
+				} else {						
 					target.zimTween.setPosition(Math.round(value*target.zimTween.duration/100));
 				}
 			} else {
@@ -51302,7 +51339,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (call5 && typeof call5 == 'function') {(call5)(params5);}
 		}
 
-		function preTween1(lastTween) {
+		function preTween1(lastTween) {			
 			prepareRelative2();		
 			if (wait>0) {
 				target.waiting = true;
@@ -51319,8 +51356,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				tween1(lastTween);	
 			}
 		}
+		
 		function tween1(lastTween) {			
-			var obj2 = getStart();
+			var obj2 = getStart();			
 			if (target.set && !from) target.set(set);				
 			tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
 				.call(doStartCall)	
@@ -51441,7 +51479,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 
 		} else {  // NOT REWIND TWEENS
-	
+
+				
 			if (seriesWait > 0 || sequenceWait > 0 || wait > 0) { // do not want wait as part of future loops (use loopWait)
 				
 				if (seriesWait > 0 || sequenceWait > 0) {
@@ -51944,16 +51983,21 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				target.zimPauseTime=Date.now();
 				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 				// if (target.zimZoomTicker) zim.Ticker.remove(target.zimZoomTicker);
-			} else {
+			} else {				
 				tween.startPaused = false;
 				clearTimeout(tween.zimAnimateTimeout);
 				if (target.zimPauseTime) {
 					var nt = Date.now();
 					target.tweenStartTime+=(nt-target.zimPauseTime);
 					target.tweenEndTime+=(nt-target.zimPauseTime);
+					if (target.zimTweens) {			
+						zim.loop(target.zimTweens, function(id,tw,i) {		
+							tw.startTime+=(nt-target.zimPauseTime);				
+						});
+					} 
 				}
 				if (tween.zimTicker) tween.zimTicker = zim.Ticker.add(tween.zimTicker, stage);
-				// if (target.zimZoomTicker) target.zimZoomTicker = zim.Ticker.add(target.zimZoomTicker, stage);
+				if (target.zimZoomTicker) target.zimZoomTicker = zim.Ticker.add(target.zimZoomTicker, stage);
 			}
 		}
 		function expandIds(ids) {
@@ -54052,6 +54096,9 @@ add:true - has been provided to add to the stage (use addTo for other containers
 move:{x:value, y:value} or move:x - mirrors the mov Function style (just adding the e)
 pos: has corner convenience values: "left", "right", "top", "bottom", "rightbottom" or "bottomright", "center" and "centerReg"
 blendMode:"difference", etc. see ble()
+cursor:true for pointer or use any CSS cursor type.  Gets passed into cur() for the object
+shadow:{color:value, offsetX:value, offsetY:value, blur:value} to apply a shadow
+uppercase:true - to set text to uppercase if object has a label or a text property
 mouse:false - set the object to noMouse() - no point in ever setting this to true as true is the default
 visible:false - visible false
 style:false - will turn off all styles for the selector
@@ -54136,7 +54183,7 @@ Style.removeGroup(groupName) - removes a group as a string
 	zim.getStyle = function(type, group, inherit, groupOnly) {
 		if (!zim.STYLECHECK) {z_d("50.34"); zim.STYLECHECK=true;}
 
-		var functionList = ["tap", "change", "hold", "noTap", "noChange", "noHold", "pos","addTo","center","centerReg","reg","mov","move","drag","transform","gesture","mouse","expand","outline","bounds","animate","wiggle","cache"];
+		var functionList = ["tap", "change", "hold", "noTap", "noChange", "noHold", "pos", "addTo", "center", "centerReg", "reg", "mov", "move", "drag", "transform", "gesture", "mouse", "expand", "outline", "bounds", "animate", "wiggle", "cache", "cursor","uppercase", "shadow"];
 
 		// called by DisplayObjects
 		// ZIM NFT MODULE ADJUST
@@ -54249,6 +54296,12 @@ zim.styleTransforms = function(obj, styles) {
 		if (styles.add) {
 			obj.addTo();
 		}		
+		if (styles.cursor) {
+			if (obj.cur) obj.cur(styles.cursor===true?"pointer":styles.cursor);
+		}
+		if (styles.shadow) {
+			if (obj.sha) obj.sha(styles.shadow.color, styles.shadow.offsetX, styles.shadow.offsetY, styles.shadow.blur);
+		}
 		if (styles.addTo) {
 			obj.addTo(styles.addTo===true?null:styles.addTo);
 			// not sure what these were doing below but replaced them with above... ZIM 9.5.0
@@ -54368,6 +54421,10 @@ zim.styleTransforms = function(obj, styles) {
 				obj.cache();
 			}
 		}	
+		if (styles.uppercase && (obj.text || obj.label)) {
+			if (obj.text) obj.text = obj.text.toUpperCase();
+			else obj.label.text = obj.label.text.toUpperCase();
+		}
 
 		if (styles.tap && obj.tap) obj.tap(styles.tap);
 		if (styles.change && obj.change) obj.change(styles.change);
@@ -56284,7 +56341,7 @@ Additional "mousedown", "click" or other button events can be added if desired
 		
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("Arrow", this.group, inherit);
-					
+							
 		if (zot(direction)) direction = DS.direction!=null?DS.direction:"right";
 		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:zim.blue;
 		this.arrowBackgroundColor = backgroundColor;
@@ -56359,40 +56416,41 @@ Additional "mousedown", "click" or other button events can be added if desired
 			return that;			
 		}	
 
-		if (zot(pages) || pages.type!="Pages") return; // just a button with arrow
+		if (!zot(pages) && pages.type=="Pages") {
 		
-		var eventType = (!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
-		
-		// register button with Pages
-		// could be multiple buttons in same direction (if buttons on multiple pages)
-		if (zot(pages.arrows)) pages.arrows = {};
-		if (zot(pages.arrows[direction])) pages.arrows[direction] = [];
-		pages.arrows[direction].push(this);
+			var eventType = (!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
+			
+			// register button with Pages
+			// could be multiple buttons in same direction (if buttons on multiple pages)
+			if (zot(pages.arrows)) pages.arrows = {};
+			if (zot(pages.arrows[direction])) pages.arrows[direction] = [];
+			pages.arrows[direction].push(this);
 
-		
-		var next = getNext();
-		if (!next) {
-			this.activate(false, pages.arrowDisableColor);
-		}
-		
-
-		function getNext() {
-			var current = pages.pages[pages.index];			
-			if (!current || !current.page || !current.page.zimSwipeArray) return;
-			var swipe = current.page.zimSwipeArray;
-			if (direction == "left") return swipe[0];
-			else if (direction == "right") return swipe[1];
-			else if (direction == "up") return swipe[2];
-			else if (direction == "down") return swipe[3];
-		}
-
-		this.expand();
-		this.on(eventType, function () {
-			if (pages.transitioning) return;
+			
 			var next = getNext();
-			if (!next) return;
-			pages.go(next, direction, trans, speed);			
-		});
+			if (!next) {
+				this.activate(false, pages.arrowDisableColor);
+			}			
+
+			function getNext() {
+				var current = pages.pages[pages.index];			
+				if (!current || !current.page || !current.page.zimSwipeArray) return;
+				var swipe = current.page.zimSwipeArray;
+				if (direction == "left") return swipe[0];
+				else if (direction == "right") return swipe[1];
+				else if (direction == "up") return swipe[2];
+				else if (direction == "down") return swipe[3];
+			}
+
+			this.expand();
+			this.on(eventType, function () {
+				if (pages.transitioning) return;
+				var next = getNext();
+				if (!next) return;
+				pages.go(next, direction, trans, speed);			
+			});
+
+		}
 		
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
@@ -65724,6 +65782,8 @@ target - get or set the target for the property that you are changing
 property - get or set the String property name that is being damped
 desiredValue - the current value that the swiper is damping towards
 sensitivity - get or set the sensitivity - see sensitivity parameter
+min - read only get the min 
+max - read only get the max 
 damp - get or set the damp of the Swiper
 enabled (default true) - set to false to disable the Swiper and visa versa
 
@@ -65764,6 +65824,9 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 		this.property = property;
 		this.sensitivity = sensitivity;		
 		var downCheck = false;
+
+		that.min = min;
+		that.max = max;
 		
 		var frame = WW.zdf || swipeOn.stage?swipeOn.stage.frame:{};
 		
@@ -67844,7 +67907,6 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 	if (zot(width)) width=DS.width!=null?DS.width:W*.5;        
 	if (zot(ticks)) ticks=DS.ticks!=null?DS.ticks:true;	
 	if (zot(damp)) damp=DS.damp!=null?DS.damp:false;	
-	if (zot(labels)) labels=DS.labels!=null?DS.labels:true;
 	if (zot(corner)) corner=DS.corner!=null?DS.corner:5;
 	var height = 50;
 
@@ -68033,6 +68095,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 	slider.currentValue = 0;
 	slider.ticks.mov(0,-20);
 	slider.bar.widthOnly = slider.bar.width+14 
+
 	new zim.Triangle({color:zim.dark}).alp(.3).scaleTo(slider.button, 70, 90, "full").center(slider.button);
 						
 	slider.animate({
@@ -68059,7 +68122,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 	});
 	
 	slider.bar.on("mousedown", function() {
-		slider.percentComplete = slider.currentValue/slider.max*100;
+		slider.latestTween.percentComplete = slider.currentValue/slider.max*100;
 	});
 	var lastPlay = true;
 	slider.button.on("mousedown", function(){
@@ -68068,7 +68131,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 	});
 	slider.button.on("pressup", function() {
 		if (lastPlay) slider.pauseAnimate(false);
-		slider.percentComplete = slider.currentValue/slider.max*100;
+		slider.latestTween.percentComplete = slider.currentValue/slider.max*100;
 	});
 
 	that.keyEvent = F.on("keydown", function(e) {
@@ -68130,7 +68193,7 @@ zim.Timeline = function(objects, width, startPaused, barColor, buttonColor, them
 	try {
 		if (localStorage) {
 			var tl = localStorage.zim_tl;
-			if (!tl) tl = JSON.stringify({speed:1, labels:false, looping:false, color:purple});
+			if (!tl) tl = JSON.stringify({speed:1, labels:ticks, looping:false, trailing:false, color:purple});
 			tl = JSON.parse(tl);            
 			doSpeed(tl.speed);
 			speed.slider.currentValue = tl.speed;
@@ -70234,6 +70297,9 @@ lastPage - get the index number of the page that was just animated (available in
 	note: pages may skip by 2
 pages - read only array of pages - this are the original pages array passed in
 	note: at this time, the Book must be remade to add or remove pages
+peel - the peel ZIM Shape
+backPrev - read only page behind the right side peel roll corner 
+backNext - read only page behind the left side peel roll corner
 moving - get whether the page is being animated 
 handleHTML - get or set whether to automatically handle HTML overlays for Loader, TextArea or Tag objects
 
@@ -70296,7 +70362,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		function init(s) {		
 			stage = s;	
 			frame = stage.frame;							
-			var peel = new zim.Shape();
+			var peel = that.peel = new zim.Shape();
 						
 			var leftPage;
 			var pageFore;                
@@ -70344,16 +70410,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					return;
 				}                                     
 				if (pages[num+1]) {
-					pageBack = pages[num+1].reg(0,height).loc(width,height,that).rot(90);
+					pageBack = that.backNext = pages[num+1].reg(0,height).loc(width,height,that).rot(90);
 				} else {
-					pageBack = new zim.Rectangle(width/2,height,backgroundColor).reg(0,height).loc(width,height,that).rot(90);
+					pageBack = that.backNext = new zim.Rectangle(width/2,height,backgroundColor).reg(0,height).loc(width,height,that).rot(90);
 					lastPage = pageBack;
 				}
 				if (pages[num+2]) {
-					pageNext = pages[num+2].rot(0).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
+					pageNext = that.backPrev = pages[num+2].rot(0).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
 				} else {
-					pageNext = new zim.Rectangle(width/2,height,backgroundColor).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
-				}                                            
+					pageNext = that.backPrev = new zim.Rectangle(width/2,height,backgroundColor).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
+				}                
 				stage.update();                                                       
 			} 
 			toPage(startPage); 
@@ -72943,7 +73009,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 			objClone = that.obj;
 		}
 		// note that all will clone the current property except for startEmitterPaused which clones the initial parameter value
-		return that.cloneProps(new zim.Emitter(objClone, width, height, that.interval, that.num, that.life, that.fade, that.shrink, that.decayTime, that.decayStart, that.trace, that.traceFadeTime, that.traceShiftX, that.traceShiftY, that.angle, that.emitterForce, that.gravity, that.wind, that.layers, that.animation, zim.copy(that.random), that.horizontal, that.vertical, that.sink, that.sinkForce, cache, that.events, startPaused, that.pool, that.poolMin, style, that.group, inherit));
+		return that.cloneProps(new zim.Emitter(objClone, width, height, that.interval, that.num, that.life, that.fade, that.shrink, warm, that.decayTime, that.decayStart, that.trace, that.traceFadeTime, that.traceShiftX, that.traceShiftY, that.angle, that.emitterForce, that.gravity, that.wind, that.layers, that.animation, zim.copy(that.random), that.horizontal, that.vertical, that.sink, that.sinkForce, cache, that.events, startPaused, that.pool, that.poolMin, particles, focusWarm, style, that.group, inherit));
 	};
 
 	this.dispose = function() {
@@ -75423,11 +75489,11 @@ operation - (default function below) a function that is applied to each result i
 	the function receives the original amplitude and index as parameters
 	you can use SoundWave.bufferLength to get the total number of values in the original data (1024)
 	Note: the data returned by the calculate() method will be only the included range - eg. .117 of the total original values (starting at low frequency)
-baseline - (default 0 for mic and 30 for sound) removes this amount of amplitude from each data point (after operation is applied)
-magnify - (default 1 for mic and 10 for sound) multiplies the data point by this much (after the baseline is removed)
+baseline - (default 30) removes this amount of amplitude from each data point (after operation is applied)
+magnify - (default 5) multiplies the data point by this much (after the baseline is removed)
 	by removing the baseline amount and multiplying what's left the difference in wave data is increased
 reduce - (default 0) subtracts this amount from each data point (after magnified)
-adjust - (default 10) seconds to adjusts the max value used for calculate(normalized)
+adjust - (default 5) seconds to adjusts the max value used for calculate(normalized)
 	a maximum is found over this amount of time and used to normalize the rest of the frequencies 
 	setting this to 1 second would basically keep maximum output - but loses drop offs in sound 
 channel - (default null) null will be both channels - set to 0 for left or 1 for right
@@ -75478,9 +75544,17 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 			return amplitude * (.5+i*1/Math.pow(zim.SoundWave.bufferLength, .95));
 		};
 		if (zot(baseline)) baseline = (input=="mic"?0:input.oscillator?30:30); // subtracts this much from value
-		if (zot(magnify)) magnify = (input=="mic"?1:input.oscillator?5:10); // multiplies amount by this much
+		if (zot(magnify)) magnify = (input=="mic"?1:input.oscillator?5:5); // multiplies amount by this much
 		if (zot(reduce)) reduce = 0; // after calculating, subtract this much
-		if (zot(adjust)) adjust = 5; 
+		if (zot(adjust)) adjust = 5;
+		
+		var desiredAdjust = adjust;
+		adjust = .5;
+		var diff = (desiredAdjust - adjust) / 10
+		zim.interval(.2, function(){
+			adjust += diff; 
+		}, 10);
+	
 
 		zim.SoundWave.bufferLength = 1024;
 		var _num = num;
@@ -75657,6 +75731,7 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 			setTimeout(function(){that.dispatchEvent("ready");}, 50);
 		}
 		this.dispose = function(context) {
+			if (lastSource && analyser) lastSource.disconnect(analyser);
 			if (context && audioContext) audioContext.close();
 			if (analyser) analyser.disconnect();
 			return true;
@@ -78156,9 +78231,11 @@ keyboardMessage(color, backgroundColor, message, response, percent) |ZIM DUO| - 
 	works with iFrames as well to avoid having to press outside the canvas on the iframe 
 	it does this by turning off the canvas pointer events until the iframe is pressed
 	color defaults to yellow, backgroundColor to black
-	update the message and the response once pressed
+	response is the message given when the stage or iframe has been pressed to activate the keyboard
+	pass in "" for no message and response - to use a custom Pane() for example.
 	percent defaults to 80% the stage width
 	returns the label if repositioning is desired
+	Dispatches a "keyboardactive" event when pressed to activate keyboard 
 fullscreen(mode) - set Frame to HTML fullscreen - mode defaults to true - set to false to come out of fullscreen 
 	also see isFullscreen property and two fullscreen events 
 	note: this is nothing to do with "full" scaling mode but rather the Browser window F11 fullscreen 
@@ -78314,6 +78391,7 @@ EVENTS
 "tabfocus" - dispatched when tab gains focus - only dispatched by the zdf (ZIM Default Frame)
 	ZIM setBlurDetect() is now activated by Frame and used by ZIM in animate(), timeout(), interval(), wiggle()
 "tabblur" - dispatched when tab loses focus - only dispatched by the zdf (ZIM Default Frame)
+"keyboardactive" - dispatched if keyboardMessage() is called and keyboard is active
 
 ASSET EVENTS
 loadAssets() will trigger these events on the Frame object and on the specific queue (eg. var queue = F.loadAssets();)
@@ -79845,6 +79923,9 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			// handle touchscreen not getting mouseover - sigh
 			var oldCursor = that.cursorObj;
 			var co = that.stage.getObjectUnderPoint(that.mouseX, that.mouseY, 1);
+			while (co && !(co._cursor || co.cursor)) {
+				co = co.parent;
+			}
 			if (co && (co._cursor || co.cursor)) {
 				setCustom(co);
 			} else if (obj.default) {
@@ -79901,6 +79982,9 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			setTimeout(function() {
 				// may be starting on an object with a cursor
 				var co = that.stage.getObjectUnderPoint(that.mouseX, that.mouseY, 1);
+				while (co && !(co._cursor || co.cursor)) {
+					co = co.parent;
+				}
 				if (co && (co._cursor || co.cursor)) return;
 				if (obj.default) {
 					doCursor(obj.default);
@@ -80196,27 +80280,30 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		}
 		var inFrame = inIframe();
 		if (inFrame) that.canvas.style.pointerEvents = "none";
-		var message = new zim.Label({
-			text:message, 
-			size:40, 
-			color:color, 
-			backgroundColor:backgroundColor,
-			paddingV:15,
-			paddingH:30,
-			shiftV:1,
-			align:CENTER
-		})
-			.scaleTo(that.stage,percent)
-			.ske(10)
-			.reg(CENTER)
-			.pos(0,50,CENTER,BOTTOM)
+
+		if (message != "") {
+			var message = new zim.Label({
+				text:message, 
+				size:40, 
+				color:color, 
+				backgroundColor:backgroundColor,
+				paddingV:15,
+				paddingH:30,
+				shiftV:1,
+				align:CENTER
+			})
+				.scaleTo(that.stage,percent)
+				.ske(10)
+				.reg(CENTER)
+				.pos(0,50,CENTER,BOTTOM)
+		}
 		document.addEventListener("mousedown", kmd);
 		document.addEventListener("pointerdown", kmd);
 		function kmd () {
 			if (inFrame) that.canvas.style.pointerEvents = "auto"; 
 			document.removeEventListener("mousedown", kmd);
-			document.removeEventListener("pointerdown", kmd);
-			if (message) {
+			document.removeEventListener("pointerdown", kmd);			
+			if (message != "") {
 				message.text = response;
 				message.animate({
 					props:{alpha:0}, 
@@ -80225,12 +80312,13 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				});
 				that.stage.update();
 			}
+			that.dispatchEvent("keyboardactive");
 		}
-		return message;
+		return message==""?null:message;
 	}	
 
 	this.dispose = function() {
-
+		
 		// remove zil events
 		if (that.zil && that.zil.length) {
 			WW.removeEventListener("keydown", that.zil[0]);
@@ -80238,6 +80326,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			WW.removeEventListener("DOMMouseScroll", that.zil[2]);
 		}
 		if (canvas) canvas.removeAllEventListeners();
+		if (that.frameTime) clearInterval(that.frameTime);
 		
 		// remove frame events
 		// var realWindow = window.parent || window;
@@ -80270,6 +80359,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			obj = null;
 		}
 		if (zid(canvasID)) zid(canvasID).parentNode.removeChild(zid(canvasID));
+		zim.Ticker.dispose(stage);
 		if (that == zim.tickerFrame) zim.tickerFrame = null;
 		if (that === WW.zdf) WW.zdf = WW.S = WW.W = WW.H = null;
 
@@ -80831,7 +80921,8 @@ interrupt (default "none") - how to interrupt a sound if a sound with the same s
 	"early" - interrupt only the previously playing sound that has progressed the least
 	"late" - interrupt only the previously playing sound that has progressed the most
 	** thank you CreateJS and SoundJS for providing these options
-maxNum (default null) set to a number of instances that a sound can play.
+maxNum (default null) ONLY FOR LAZY LOAD - otherwise use maxNum in Frame() or F.loadAssets()
+	set to a number of instances that a sound can play.
 	The default is as many as the browser can handle (hundreds).
 	maxNum can also be set as Frame(), loadAssets() and asset() parameters.
 	Setting this to 1 will only play one instance of the sound at a time.
@@ -87311,7 +87402,7 @@ https://zimjs.com/bits/view/icons.html
 EXAMPLE
 // import zim_pizzazz up top rather than just zim
 
-const icon = makeIcon("home", white, 250).pos(40,40,RIGHT);
+const icon = makeIcon("home", white, 2).pos(40,40,RIGHT);
 
 // Or pass the icon into the Button class as the icon parameter
 // Optionally provide a second shape for the rollIcon, etc. of the Button
@@ -87591,17 +87682,17 @@ var globalsConstants = [
 	["TAU", zim.TAU],
 	["DEG", zim.DEG],
 	["RAD", zim.RAD],
-	["PHI", zim.PHI]
-];
+	["PHI", zim.PHI],
+	];
 	
-for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 	var pair = globalsConstants[z_i];  
 	WW[pair[0]] = pair[1];
-}
-
-for (z_i = 0; z_i < zim.colors.length; z_i++) {
+	}
+	
+	for (z_i = 0; z_i < zim.colors.length; z_i++) {
 	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-}
+	}
 
 
 WW.zim = zim;
