@@ -2086,7 +2086,6 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 			if (zot(zim.blurCheck)) zim.setBlurDetect();
 			zim.pauseOnBlur.push(obj);
 		}
-
 		function interval() {
 			obj.startTime = Date.now();
 			obj.interval = zim.Pick.choose(obj.time);
@@ -25163,7 +25162,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			testContent();
 		};
 
-		this.resize = function(w, h) {
+		this.doResize = function(w, h) {
 			if (zot(w)) w = width;
 			if (zot(h)) h = height;
 			var min = Math.max(20, corner*2);
@@ -25911,6 +25910,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	};
 	zim.extend(zim.Window, zim.Container, ["clone", "dispose"], "zimContainer", false);
 	zim.Window.prototype.dispose = function(disposing) {return this.doDispose(null,null,disposing);};
+	zim.Window.prototype.resize = function(width, height) {return this.doResize(width, height);};
 	zimWindow = zim.Window; // used in export so we do not obscure the JS Window
 	//-58.1
 
@@ -26607,10 +26607,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					that.loop(function (obj) {
 						if (obj.transformControls) {
 							if (obj.transformControls.visible) obj.transformControls.hide();
-							if (obj.type == "Layer") {
+							if (obj.type == "Layer" && obj.resizeChildren) {
 								obj.resizeChildren();
 							} else {
-								obj.transformControls.resize();
+								if (obj.transformControls) obj.transformControls.resize();
 							}
 						}
 					});
@@ -26686,11 +26686,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					bar.layer = null;
 				});
 			}			
-			that.transformControls.dispose();
+			if (that.transformControls) that.transformControls.dispose();
 			that.transformControls = null;
 			if (!disposing) this.zimContainer_dispose(true);
-			that.titleBar.layer = null;
-			that.titleBar.dispose();
+			if (that.titleBar) {
+				that.titleBar.layer = null;
+				that.titleBar.dispose();
+			}			
 			that.checkBox = that.button = null;
 			titleBar = that.titleBar = transformObject = null;
 			return true;
@@ -27677,6 +27679,8 @@ selectionAlpha - get or set the alpha of the selection
 blinker - access to the blinking cursor ZIM Rectangle
 	use this to set color or blendMode of blinker
 size - the font size of the Label (without px)
+	use textInput.resize() if there are selection problems after setting size 
+	often a resize() is desired anyway so manually calling avoids double resizing	
 font - get or set the font of the text
 align - get or set the horizontal alignment of the text
 	values are LEFT and RIGHT and CENTER (experimental)
@@ -27806,80 +27810,226 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 	this.zimWindow_constructor(width, height, null, backgroundColor, borderColor, borderWidth, padding, corner, false, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, false, null, null, false, true, shadowColor, shadowBlur, paddingH, paddingV, true, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, style, group, zim.copy(DS));
 	this.type = "TextInput";
 	var that = this;
+
+	var label;
+	var pastText;
+	var pastStart;
+	var pastEnd;
+	var pastFocus;
+	var mask;
+	var edgeLeft;
+	var edgeRight;
 	
-	this.placeholderLabel = new zim.Label({text:placeholder||"", size:size, color:color, font:font, shiftH:shiftH, shiftV:shiftV, valign:"top"}).alp(.5);
-	if (text=="") this.add(this.placeholderLabel);
+	function makeText() {
+
+		if (label) removeText();
+
+		that.placeholderLabel = new zim.Label({text:placeholder||"", size:size, color:color, font:font, shiftH:shiftH, shiftV:shiftV, valign:"top"}).alp(.5);
+		if ((pastText == null && text=="") || pastText === "") that.add(that.placeholderLabel);
+		
+		// the Window usually masks but masks to the edge and not to inside the padding
+		// so add a custom mask
+		mask = new zim.Rectangle({width:width-padding*2, height:height-padding*2, color:zim.clear, style:false}).center(that);
+		that.cur("text");
+				
+		label = that.label = new zim.TextInput.LabelInput(pastText!=null?pastText:text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, "top", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftH, shiftV, null, null, null, null, inputType, rtl, uppercase, placeholderInstant, style, group, inherit);
+		that.add(label); // that is a Window - which has an add() method for adding content
+		label.setMask(mask);
+		that.htmlTag = that.label.hiddenInput
+		that.selection = that.label.selection
+		that.blinker = that.label.blinker
 	
-	// the Window usually masks but masks to the edge and not to inside the padding
-	// so add a custom mask
-	var mask = new zim.Rectangle({width:width-padding*2, height:height-padding*2, color:zim.clear, style:false}).center(this);
-	this.cur("text");
+		
+		if (align=="right") {
+			label.x = width-paddingH;
+			that.placeholderLabel.x = width-that.placeholderLabel.width-paddingH;
+		} else if (align=="center") {
+			label.x = width/2;
+			that.placeholderLabel.x = (width-that.placeholderLabel.width)/2;
+		}
+
+		label.ogx = label.x;
+
+		that.placeholderLabel.x = label.x;
+		that.placeholderLabel.align = align;
+		
+		// the LabelInput was receiving a mousedown on its edges which is not desired 
+		// so capture those with rectangle padding shields 
+		// these can be used to capture a mousedown for selection swipe though
+		// but just start the selection at the visible letter on that side
+		edgeLeft = new zim.Rectangle({width:padding, height:height, color:zim.clear, style:false}).addTo(that).expand(0);
+		edgeLeft.on("mousedown", function(e){
+			label.onMousedown(e);
+			e.stopImmediatePropagation();
+		});
+		edgeLeft.on("pressmove", function(e){
+			label.onPressmove(e);
+			e.stopImmediatePropagation();
+		});
+		edgeLeft.on("dblclick", function(e){
+			label.onDblclick(e);
+			e.stopImmediatePropagation();
+		});
+		edgeRight = new zim.Rectangle({width:padding, height:height, color:zim.clear, style:false}).pos(0,0,zim.RIGHT,zim.TOP,that).expand(0)
+		edgeRight.on("mousedown", function(e){
+			label.onMousedown(e);
+			e.stopImmediatePropagation();
+		});
+		edgeRight.on("pressmove", function(e){
+			label.onPressmove(e);
+			e.stopImmediatePropagation();
+		});
+		edgeRight.on("dblclick", function(e){
+			label.onDblclick(e);
+			e.stopImmediatePropagation();
+		});			
+		
+		that.label.on("focus", function () {
+			if (WW.M && keyboardShift) {
+				if (that.re) that.stage.frame.off("resize", that.re);
+				that.re = that.stage.frame.on("resize", function(){
+					if (that.stage && h>that.stage.height/4) {
+						that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
+						that.stage.update();
+					}
+				});
+				var h = that.label.localToGlobal(0,0).y;
+				if (that.stage && h>that.stage.height/4) {
+					that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
+					that.stage.update();
+				}
+			}
+			if (placeholderInstant &&  that.placeholderLabel.parent) {
+				that.placeholderLabel.removeFrom();			
+				if (that.stage) that.stage.update();
+			}
+			that.dispatchEvent("focus");
+		});
+
+		that.label.on("blur", function () {
+			if (WW.M && keyboardShift) {			
+				if (that.stage) {
+					if (that.re) that.stage.frame.off("resize", that.re);
+					that.stage.y = sYO;
+					that.stage.update();
+				}
+			}
+			if (placeholderInstant && label.text == "" && !that.placeholderLabel.parent) {				
+				that.add(that.placeholderLabel);
+				if (that.stage) that.stage.update();
+			}		
+			that.dispatchEvent("blur");
+		});
+
+		that.label.on("input", function () {		
+			doPlaceholder();
+			// if (align=="center" && label.width < width) {
+			// 	label.x = (width-label.width)/2;
+			// } 
+			that.dispatchEvent("input");
+		});	
+		that.label.on("keydown", function (e) {
+			that.label.deleteKey = (e.detail == 46);
+			that.dispatchEvent("keydown");
+		});	
+		that.label.on("blinker", function () {
+	
+			// Pettis Brandon code '23
+			var thatX = that.localToGlobal(0,0).x; // Get the global X of that.
+			var thatFull = thatX + width-paddingH-label.blinker.width; // Get the global coordinates of the far right corner.
+			var blinker = label.blinker; // Get the blinker shorthand
+			var blinkerX = blinker.localToGlobal(0,0).x; // Get the global X of the blinker.
+			var labelX = label.localToGlobal(0,0).x - 1; // Get the gloabal X of the label.
+			// end Pettis Brandon code '23
+	
+			// A simple system where the cursor is kept within the box 
+			var x = label.x + label.blinker.x;
+			var newX = zim.constrain(x, paddingH, width-paddingH-label.blinker.width);
 			
-	var label = this.label = new zim.TextInput.LabelInput(text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, "top", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftH, shiftV, null, null, null, null, inputType, rtl, uppercase, placeholderInstant, style, group, inherit);
-	this.add(label); // this is a Window - which has an add() method for adding content
-	label.setMask(mask);
-	this.htmlTag = this.label.hiddenInput
-	this.selection = this.label.selection
-	this.blinker = this.label.blinker
-	
-	if (align=="right") {
-		label.x = width-paddingH;
-		this.placeholderLabel.x = width-this.placeholderLabel.width-paddingH;
-	} else if (align=="center") {
-		label.x = width/2;
-		this.placeholderLabel.x = (width-this.placeholderLabel.width)/2;
+			if (x != newX) label.x -= x-newX;		
+			
+			// Pettis Brandon code '23
+			if (align == 'left') {
+				if (label.width < that.width) label.x = label.ogx; // Restore starting X to the label when width is less than container width.
+				else if (thatFull < blinkerX)label.x -= x-newX; // Move label while typing.
+				else if (label.oldWidth == label.width){
+					label.x -= x-newX; // If label is the same width move label where the cursor position is.
+				} else if (label.oldWidth > label.width){
+					if (that.label.deleteKey != true) label.x += Math.abs(blinker.oldX - blinkerX) + label.blinker.width + paddingH; // If we are removing characters try to keep curor in the same spot.
+				}
+			} else if (align == 'right') {
+				if (label.width < that.width) label.x = label.ogx; // Restore starting X to the label when width is less than container width.
+				else if (thatFull < blinkerX)label.x -= x-newX; // Move label while typing.
+				else if (label.oldWidth == label.width){
+					label.x -= x-newX; // If label is the same width move label where the cursor position is.
+				} else if (label.oldWidth > label.width){  // If we are removing characters try to keep curor in the same spot.
+					if (that.label.deleteKey == true) {
+						if (blinkerX < (labelX - that.width)) label.x -= Math.abs(blinker.oldX - blinkerX) + label.blinker.width + paddingH;
+					}
+				}
+			} else if (align == 'center') {
+				if (label.width < that.width) label.x = label.ogx; // Restore starting X to the label when width is less than container width
+				else if (thatFull < blinkerX) label.x -= x-newX; // Move label while typing.
+				else if (label.oldWidth == label.width){
+					label.x -= x-newX; // If label is the same width move label where the cursor position is.
+				} else if (label.oldWidth > label.width){
+					if (thatFull > blinkerX) {
+						var centerX = thatX + (that.width*.5);
+						if (that.label.deleteKey != true) label.x += label.blinker.width + paddingH; // Test if using the backspace key
+						else label.x -= label.blinker.width + paddingH; // Test if using the delete key
+					}
+				}
+			}
+			label.oldWidth = label.width; // Get previous label width.
+			blinker.oldX = blinkerX; // get previous blinker global x.
+			// end Pettis Brandon code '23
+					
+			if (that.stage) that.stage.update();
+		});
+
+		if (pastText != null) {
+			label.focus = that.keyFocus = pastFocus;
+			var f = zdf;
+			if (that.stage) f = that.stage.frame;
+			if (f.zil && label.focus) WW.removeEventListener("keydown", f.zil[0]);
+			if (f.zil && !label.focus) WW.addEventListener("keydown", f.zil[0]);
+			that.label.hiddenInput.selectionStart = pastStart;
+			that.label.hiddenInput.selectionEnd = pastEnd;
+			that.label.positionBlinkerAndSelection();
+			if (that.label.focus) that.label.blinker.replayTween();
+		}
+
+	}
+	makeText();	
+
+	function removeText() {
+		if (that.re) that.stage.frame.off("resize", that.re);
+		that.remove(label);
+		pastText = label.text;
+		pastFocus = label.focus;
+		pastStart = that.label.hiddenInput.selectionStart;
+		pastEnd = that.label.hiddenInput.selectionEnd;
+		that.placeholderLabel.dispose();
+		that.label.dispose();
+		edgeLeft.dispose();
+		edgeRight.dispose();
 	}
 
-	label.ogx = label.x;
-
-	that.placeholderLabel.x = label.x;
-	that.placeholderLabel.align = align;
-	
-	// the LabelInput was receiving a mousedown on its edges which is not desired 
-	// so capture those with rectangle padding shields 
-	// these can be used to capture a mousedown for selection swipe though
-	// but just start the selection at the visible letter on that side
-	var edgeLeft = new zim.Rectangle({width:padding, height:height, color:zim.clear, style:false}).addTo(this).expand(0);
-	edgeLeft.on("mousedown", function(e){
-		label.onMousedown(e);
-		e.stopImmediatePropagation();
-	});
-	edgeLeft.on("pressmove", function(e){
-		label.onPressmove(e);
-		e.stopImmediatePropagation();
-	});
-	edgeLeft.on("dblclick", function(e){
-		label.onDblclick(e);
-		e.stopImmediatePropagation();
-	});
-	var edgeRight = new zim.Rectangle({width:padding, height:height, color:zim.clear, style:false}).pos(0,0,zim.RIGHT,zim.TOP,this).expand(0)
-	edgeRight.on("mousedown", function(e){
-		label.onMousedown(e);
-		e.stopImmediatePropagation();
-	});
-	edgeRight.on("pressmove", function(e){
-		label.onPressmove(e);
-		e.stopImmediatePropagation();
-	});
-	edgeRight.on("dblclick", function(e){
-		label.onDblclick(e);
-		e.stopImmediatePropagation();
-	});
-		
 	var lastText = label.text;
-	this.on("mousedown", function (e) {
+	that.on("mousedown", function (e) {
 		label.onMousedown(e);
 		lastText = label.text;
 	});
-	this.on("pressmove", function(e){
+	that.on("pressmove", function(e){
 		label.onPressmove(e);
 		e.stopImmediatePropagation();
 	});
-	this.on("dblclick", function(e){
+	that.on("dblclick", function(e){
 		label.onDblclick(e);
 		e.stopImmediatePropagation();
-	});
-	this.added(function (stage) {
+	});	
+
+	that.added(function (stage) {
 		stage.on("stagemousedown", function (e) {				
 			if (!that.hitTestPoint(e.stageX, e.stageY)) {
 				label.focus = false;
@@ -27889,43 +28039,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 		});
 	});
 	var sYO = that.stage?stage.y:0;
-	
-	this.label.on("focus", function () {
-		if (WW.M && keyboardShift) {
-			if (that.re) that.stage.frame.off("resize", that.re);
-			that.re = that.stage.frame.on("resize", function(){
-				if (that.stage && h>that.stage.height/4) {
-					that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
-					that.stage.update();
-				}
-			});
-			var h = that.label.localToGlobal(0,0).y;
-			if (that.stage && h>that.stage.height/4) {
-				that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
-				that.stage.update();
-			}
-		}
-		if (placeholderInstant &&  that.placeholderLabel.parent) {
-			that.placeholderLabel.removeFrom();			
-			if (that.stage) that.stage.update();
-		}
-		that.dispatchEvent("focus");
-	});
 
-	this.label.on("blur", function () {
-		if (WW.M && keyboardShift) {			
-			if (that.stage) {
-				if (that.re) that.stage.frame.off("resize", that.re);
-				that.stage.y = sYO;
-				that.stage.update();
-			}
-		}
-		if (placeholderInstant && label.text == "" && !that.placeholderLabel.parent) {				
-			that.add(that.placeholderLabel);
-			if (that.stage) that.stage.update();
-		}		
-		that.dispatchEvent("blur");
-	});
 	function doPlaceholder() {
 		if (label.text != "" && that.placeholderLabel.parent) {
 			that.placeholderLabel.removeFrom();
@@ -27936,72 +28050,6 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 			if (that.stage) that.stage.update();
 		}
 	}
-	this.label.on("input", function () {		
-		doPlaceholder();
-		// if (align=="center" && label.width < width) {
-		// 	label.x = (width-label.width)/2;
-		// } 
-		that.dispatchEvent("input");
-	});	
-	this.label.on("keydown", function (e) {
-		this.label.deleteKey = (e.detail == 46);
-		that.dispatchEvent("keydown");
-	});	
-	this.label.on("blinker", function () {
-
-		// Pettis Brandon code '23
-		var thatX = that.localToGlobal(0,0).x; // Get the global X of that.
-		var thatFull = thatX + width-paddingH-label.blinker.width; // Get the global coordinates of the far right corner.
-		var blinker = label.blinker; // Get the blinker shorthand
-		var blinkerX = blinker.localToGlobal(0,0).x; // Get the global X of the blinker.
-		var labelX = label.localToGlobal(0,0).x - 1; // Get the gloabal X of the label.
-		// end Pettis Brandon code '23
-
-		// A simple system where the cursor is kept within the box 
-		var x = label.x + label.blinker.x;
-		var newX = zim.constrain(x, paddingH, width-paddingH-label.blinker.width);
-		
-		if (x != newX) label.x -= x-newX;		
-		
-		// Pettis Brandon code '23
-		if (align == 'left') {
-		    if (label.width < that.width) label.x = label.ogx; // Restore starting X to the label when width is less than container width.
-		    else if (thatFull < blinkerX)label.x -= x-newX; // Move label while typing.
-		    else if (label.oldWidth == label.width){
-		        label.x -= x-newX; // If label is the same width move label where the cursor position is.
-		    } else if (label.oldWidth > label.width){
-		        if (this.label.deleteKey != true) label.x += Math.abs(blinker.oldX - blinkerX) + label.blinker.width + paddingH; // If we are removing characters try to keep curor in the same spot.
-		    }
-		} else if (align == 'right') {
-		    if (label.width < that.width) label.x = label.ogx; // Restore starting X to the label when width is less than container width.
-		    else if (thatFull < blinkerX)label.x -= x-newX; // Move label while typing.
-		    else if (label.oldWidth == label.width){
-		        label.x -= x-newX; // If label is the same width move label where the cursor position is.
-		    } else if (label.oldWidth > label.width){  // If we are removing characters try to keep curor in the same spot.
-		        if (this.label.deleteKey == true) {
-		            if (blinkerX < (labelX - that.width)) label.x -= Math.abs(blinker.oldX - blinkerX) + label.blinker.width + paddingH;
-		        }
-		    }
-		} else if (align == 'center') {
-		    if (label.width < that.width) label.x = label.ogx; // Restore starting X to the label when width is less than container width
-		    else if (thatFull < blinkerX) label.x -= x-newX; // Move label while typing.
-		    else if (label.oldWidth == label.width){
-		        label.x -= x-newX; // If label is the same width move label where the cursor position is.
-		    } else if (label.oldWidth > label.width){
-		        if (thatFull > blinkerX) {
-		            var centerX = thatX + (that.width*.5);
-		            if (this.label.deleteKey != true) label.x += label.blinker.width + paddingH; // Test if using the backspace key
-		            else label.x -= label.blinker.width + paddingH; // Test if using the delete key
-		        }
-		    }
-		}
-	    label.oldWidth = label.width; // Get previous label width.
-	    blinker.oldX = blinkerX; // get previous blinker global x.
-		// end Pettis Brandon code '23
-		
-		
-		if (that.stage) that.stage.update();
-	});
 				
 	Object.defineProperty(that, 'text', {
 		get: function() {
@@ -28039,8 +28087,6 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 	});
 	if (readOnly) that.readOnly = true;
 
-	
-	
 	Object.defineProperty(that, 'focus', {
 		get: function() {
 			return label.focus;
@@ -28065,7 +28111,10 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 			return label.size;
 		},
 		set: function(value) {
+			size = value;
+			// makeText();
 			label.size = value;
+			if (this.placeholderLabel) this.placeholderLabel.size = value;
 			label.hiddenInput.style.fontSize = value + "px";
 			if ((!zim.OPTIMIZE&&(zns||!WW.OPTIMIZE)) && that.stage) that.stage.update();
 		}
@@ -28108,12 +28157,22 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 		}
 	});	
 
+	this.resize = function(w, h) {
+		width = w||width;
+		height = h||height;
+		that.zimWindow_resize(width, height);
+		// mask.siz(width-padding*2, height-padding*2).center(this);
+		// label.setMask(mask);
+		makeText();
+		return that;
+	}
+
 	if (style!==false) zim.styleTransforms(this, DS);
 	this.clone = function(exact) {	
 		return that.cloneProps(new zim.TextInput(exact||!zim.isPick(oa[0])?width:oa[0], exact||!zim.isPick(oa[1])?height:oa[1], exact||!zim.isPick(oa[2])?placeholder:oa[2], exact||!zim.isPick(oa[3])?text:oa[3], size, font, exact||!zim.isPick(oa[4])?color:oa[4], exact||!zim.isPick(oa[5])?backgroundColor:oa[5], exact||!zim.isPick(oa[6])?borderColor:oa[6], borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingH, paddingV, shiftH, shiftV, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, readOnly, inputType, rtl, uppercase, placeholderInstant, keyboardShift, style, this.group, inherit));
 	};
 };
-zim.extend(zim.TextInput, zim.Window, "clone", "zimWindow", false);
+zim.extend(zim.TextInput, zim.Window, ["clone","resize"], "zimWindow", false);
 	
 	// by Cajoek, 2021 - with thanks!
 zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionColor, selectionAlpha, blinkerColor, blinkerSpeed, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingH, paddingV, shiftH, shiftV, rollPersist, labelWidth, labelHeight, splitWords, inputType, rtl, uppercase, style, group, inherit) {
@@ -28133,7 +28192,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	if (inputType == "text" && password) inputType = "password";		
 	this.hiddenInput.type = inputType;
 	if (inputType == "number") {
-		this.hiddenInput.pattern = "[^(0-9).\-+*/%$]*";
+		this.hiddenInput.pattern = "[^(0-9).\-+*\/%$]*";
 		this.hiddenInput.inputmode = "numeric";
 	}	
 	
@@ -28183,7 +28242,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 		if (uppercase) this.hiddenInput.value = this.hiddenInput.value.toUpperCase();
 		var newText = this.hiddenInput.value;
 		if (inputType=="number") {				
-			newText = newText.replace(/[^(0-9).\-+*/%$]*/g,"");
+			newText = newText.replace(/[^(0-9).\-+*\/%$]*/g,"");
 			this.hiddenInput.value = newText;
 		}	
 		this.text = this.hiddenInput.type=="password"?newText.replace(/./g, '*'):newText;
@@ -28200,9 +28259,9 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	var that = this;
 	this.onKeydown = function(e) {
 		this.deleteKey = (e.code=="Backspace"||e.code=="Delete");
-		this.blinker.replayTween();		
+		this.blinker.replayTween();	
 		setTimeout(function() {
-			let keyevt = new CustomEvent("keydown", {detail: e.keyCode}); // need to capture keycode on dispatch
+			var keyevt = new CustomEvent("keydown", {detail: e.keyCode}); // need to capture keycode on dispatch
 			that.positionBlinkerAndSelection.call(that);
 			that.dispatchEvent(keyevt);
 		}, 10);
@@ -28343,17 +28402,17 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	var frame;
 	this.added(function(stage) {
 		frame = stage.frame;
-		that.hiddenInput.addEventListener("focus", that.onFocus.bind(that));
-		that.hiddenInput.addEventListener("blur", that.onBlur.bind(that));
+		that.zfe = that.hiddenInput.addEventListener("focus", that.onFocus.bind(that));
+		that.zbe = that.hiddenInput.addEventListener("blur", that.onBlur.bind(that));
 	});		
-	this.hiddenInput.addEventListener("input", this.onInput.bind(this));
-	this.hiddenInput.addEventListener("select", this.onSelect.bind(this));
-	this.hiddenInput.addEventListener("keydown", this.onKeydown.bind(this));
+	that.zie = this.hiddenInput.addEventListener("input", this.onInput.bind(this));
+	that.zse = this.hiddenInput.addEventListener("select", this.onSelect.bind(this));
+	that.zke = this.hiddenInput.addEventListener("keydown", this.onKeydown.bind(this));
 	document.body.appendChild(this.hiddenInput);
 
-	this.on("mousedown", this.onMousedown.bind(this));
-	this.on("pressmove", this.onPressmove.bind(this));
-	this.on("dblclick", this.onDblclick.bind(this));
+	that.zme = this.on("mousedown", this.onMousedown.bind(this));
+	that.zpe = this.on("pressmove", this.onPressmove.bind(this));
+	that.zde = this.on("dblclick", this.onDblclick.bind(this));
 
 	this.cur("text");
 	this.blinker = new zim.Rectangle({width:2, height:1, color:blinkerColor, style:false}).animate({
@@ -28372,13 +28431,27 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	this.textHeight = null;
 	this.measureText();	
 
+	// added ZIM 015
+	this.dispose = function() {
+		if (this.hiddenInput) return;
+		this.hiddenInput.removeEventListener("focus", that.zfe);
+		this.hiddenInput.removeEventListener("blur", that.zbe);			
+		this.hiddenInput.removeEventListener("input", that.zie);
+		this.hiddenInput.removeEventListener("select", that.zse);
+		this.hiddenInput.removeEventListener("keydown", that.zke);
+		this.hiddenInput.remove();
+		this.hiddenInput = null;
+		// all events directly on this will be removed in the label dispose with removeAllEventListeners()
+		this.zimLabel_dispose(true);
+	}
+
 }
-zim.extend(zim.TextInput.LabelInput, zim.Label, null, "zimLabel", false);
+zim.extend(zim.TextInput.LabelInput, zim.Label, "dispose", "zimLabel", false);
 //-54.2   
 	
 
 /*--
-zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, selectedIndex, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, style, group, inherit)
+zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, selectedIndex, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, style, group, inherit)
 
 List
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -28636,6 +28709,8 @@ Each may have a label, min, max, starting val, steps, etc.
 Each has a call parameter for the function to call when the component changes
 There are alternatively obj and property parameters
 Setting these will change the property of the obj to the value of the component
+Each will be given a call property of the call function
+This can be changed dynamically if desired.
 
 List.slider(label, min, max, val, call, step, obj, property, paddingLeft, paddingRight, factor, offset, backgroundColor)
 	A static method (use it like List.slider("fps", 0, 60, 20, doFps)) to make a slider List item
@@ -29661,6 +29736,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         var c = new zim.Container(620, 100);
         c.type = "ListItem";
         c.listItem = "Slider";
+		c.call = call;
         if (zot(paddingLeft)) paddingLeft = 20;
 		if (zot(paddingRight)) paddingRight = 30;
 		if (zot(factor)) factor = 1;
@@ -29678,7 +29754,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         }).sca(1.5).center(c).mov(20).change(function () {
             c.stepper.currentValue = offset + Math.round(c.slider.currentValue*factor*1000)/1000;
             if (obj && property) obj[property] = c.slider.currentValue;
-            if (call && typeof call == 'function') {(call)(c.slider.currentValue, c.parent);}
+            if (c.call && typeof c.call == 'function') {(c.call)(c.slider.currentValue, c.parent);}
             if (c.slider.stage) c.slider.stage.update();			
         });
         if (!zot(val)) c.slider.currentValue = val;
@@ -29691,10 +29767,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			max:offset+max*factor,
 			step:step
         }).center(c).pos(paddingRight,null,true).change(function () {			
-            // c.slider.currentValue = c.stepper.currentValue/(factor?factor:1)-offset;
-            // if (obj && property) obj[property] = c.slider.currentValue;
-            // if (call && typeof call == 'function') {(call)(c.slider.currentValue, c.parent);}
-            // if (c.stepper.stage) c.stepper.stage.update();
+            c.slider.currentValue = c.stepper.currentValue/(factor?factor:1)-offset;
+            if (obj && property) obj[property] = c.slider.currentValue;
+            if (c.call && typeof c.call == 'function') {(c.call)(c.slider.currentValue, c.parent);}
+            if (c.stepper.stage) c.stepper.stage.update();
         });
         if (!zot(val)) c.stepper.currentValue = offset+val*factor;
 		
@@ -29707,6 +29783,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         var c = new zim.Container(620, 100);
         c.type = "ListItem";
         c.listItem = "CheckBox";
+		c.call = call;
         if (zot(paddingLeft)) paddingLeft = 20;
         if (zot(paddingRight)) paddingRight = 30;
         zim.List.makeBase(c, label, paddingLeft, backgroundColor);
@@ -29715,7 +29792,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
             label:""
         }).sca(1.2).center(c).pos(256+paddingRight,null,true).change(function () {
             if (obj && property) obj[property] = c.checkBox.checked;
-            if (call && typeof call == 'function') {(call)(c.checkBox.checked, c.parent);}
+            if (c.call && typeof c.call == 'function') {(c.call)(c.checkBox.checked, c.parent);}
             if (c.checkBox.stage) c.checkBox.stage.update();
         });
         return c;
@@ -29727,6 +29804,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var c = new zim.Container(620, 100);
 		c.type = "ListItem";
 		c.listItem = "ColorPicker";
+		c.call = call;
 		if (zot(paddingLeft)) paddingLeft = 20;
 		if (zot(paddingRight)) paddingRight = 30;
 		zim.List.makeBase(c, label, paddingLeft, backgroundColor);
@@ -29749,7 +29827,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			c.colorLabel.text = c.swatch.color.toUpperCase();
 			c.colorPicker.hide();
 			if (obj && property) obj[property] = c.colorPicker.selectedColor;
-			if (call && typeof call == 'function') {(call)(c.colorPicker.selectedColor, c.parent);}
+			if (c.call && typeof c.call == 'function') {(c.call)(c.colorPicker.selectedColor, c.parent);}
 			if (stage) stage.update();
 		});
 		return c;
@@ -44959,7 +45037,7 @@ const boundary = new Boundary(0,0,W,H).contract(radius);
 circle.drag(boundary); // drag within stage
 
 // or by passing the stage (or a Container as a boundary)
-circle.drag(stage); // drag within stage
+circle.drag(S); // drag within stage
 END EXAMPLE
 
 EXAMPLE
@@ -45922,7 +46000,7 @@ END EXAMPLE
 EXAMPLE
 const rect = new Rectangle(100, 100, blue, dark)
 	.pos(0,70,CENTER)
-	.drag(stage);
+	.drag(S);
 
 new Slider({min:0, max:W-100, currentValue:rect.x})
 	.pos(0,100,CENTER,BOTTOM)
@@ -46469,6 +46547,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 	if (zot(events)) events = false;	
 	if (obj.type == "Tag" || obj.type == "TextArea" || obj.type == "Loader") events = true;
 
+	obj.zimMCO = obj.mouseChildren;
 	obj.mouseChildren = false;
 	var con = obj.getConcatenatedMatrix().decompose();
 
@@ -47333,6 +47412,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		disable:function() {
 			controls.mouseChildren = false;
 			controls.mouseEnabled = false;
+			obj.mouseChildren = obj.zimMCO;
 			if (move) {
 				obj.noDrag();
 				obj.off("pressmove", pressmoveEvent);
@@ -47341,6 +47421,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		enable:function() {
 			controls.mouseChildren = true;
 			controls.mouseEnabled = true;
+			obj.mouseChildren = false;
 			if (move) {
 				obj.drag({overCursor:"pointer", dragCursor:"pointer", onTop:false, removeTweens:false});
 				pressmoveEvent = obj.on("pressmove", pressmoveEvent);
@@ -47428,6 +47509,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		dispose:function() {
 			obj.transformControls.hide();
 			allowToggle = false;
+			obj.mouseChildren = obj.zimMCO;
 			if (move) {
 				obj.noDrag();
 				obj.off("pressmove", pressmoveEvent);
@@ -49521,6 +49603,8 @@ clean - (default true) set to false to not delete animation ids etc. at end of a
 	Note... once tween has waited, percentComplete does not include wait period
 	So clean cannot be used to restart an animation with a wait after the animation has waited
 	Use the replayTween() method of the target to restart the latest animation on a target
+	NOTE: clean will be set to true if loop is true (even if loopCount is set)
+	So to scrub after a loopCount of 2 then remake the animate() in the call callback with a pauseAnimate()
 obj - (depreciated) the old version of props - kept for backwards compatibility
 seriesWait - (internal) used internally to hold setting relative values in correct series order
 sequenceWait - (internal) used internally to tie sequence in to the animation chain for pauseAnimate and stopAnimate
@@ -49868,7 +49952,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		
 		var tween;
 		var idSet;
-		var providedID;
+		var providedID;		
 
 		// ANIMATION SERIES HANDLING
 		// if an array is passed in to animate() as the obj
@@ -49907,6 +49991,24 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (zot(o.time)) o.time = t;
 				w += (o.wait?o.wait:0);
 				duration = o.time;
+
+				if (animateCall) {
+					if (o.animateCall) {
+						-function() {
+							var originalCall = o.animateCall;
+							var originalParams = o.animateParams;
+							var generalCall = animateCall;
+							var generalParams = animateParams;
+							o.animateCall = function(target) {
+								originalCall(originalParams||target);
+								generalCall(generalParams||target);
+							}
+						}();						
+					} else {
+						o.animateCall = animateCall;
+						o.animateParams = animateParams;
+					}
+				}
 				
 				durationRewind = (zot(o.rewindTime)?duration:o.rewindTime);
 				if (o.rewind) duration = duration + durationRewind + (o.rewindWait?o.rewindWait:0);
@@ -49952,7 +50054,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					pauseOnBlur:o.pauseOnBlur,
 					easeAmount:o.easeAmount, easeFrequency:o.easeFrequency,
 					override:false,
-					id:id
+					id:id,
+					clean:(loop||o.loop)?true:clean // need to clean if looping
 				};
 				if (i == obj.length-1) {
 					endSeries(currentObj);
@@ -49966,14 +50069,14 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			var savedCall = currentObj.call;
 			var savedParams = currentObj.params;
 			if (cjsProps.loop && (!cjsProps.count || currentCount < cjsProps.count)) {
-				currentObj.call = function() {
+				currentObj.call = function() {					
 					if (savedCall && typeof savedCall == 'function') {(savedCall)(savedParams||target);}
 					if (cjsProps.loopCall && typeof cjsProps.loopCall == 'function') {(cjsProps.loopCall)(cjsProps.loopParams||target);}
 					if (cjsProps.loopWait) {
 						if (zot(target.zimTweens)) target.zimTweens = {};
 						tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(cjsProps.loopWait, true).call(goNext);
 						tween.timeScale = target.futureRate;	
-					} else {
+					} else {						
 						goNext();
 					}
 					function goNext() {
@@ -50159,7 +50262,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				
 		if (zot(target)) return;		
 		if (!target.tweenStates) target.tweenStates = {all:true};	
-	
+
 		var fromCheck = false;
 
 									
@@ -50307,7 +50410,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.resetTween(false);
 			return target;
 		};
-
 		if (obj.path || dynamic) {
 			// can't risk turning percentComplete off when animation ends as only one per all animations
 			// instead, evaluate how percentComplete is set when starting an animation
@@ -50487,7 +50589,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			relativeAdjust();			
 			if (from && !fromCheck) obj = getFroms(target, obj, set, true);
 		}
-	
+
 		function relativeAdjust() {
 			var newStart;
 			if (!target.zimLastObj) target.zimLastObj = {};
@@ -50531,11 +50633,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 		// PERCENT COMPLETE SETUP
-		if (target.getBounds && zot(target.percentCompleteCheck)) {
+		// if (target.getBounds && zot(target.percentCompleteCheck)) {
+		if (zot(target.percentCompleteCheck)) {
 			target.percentCompleteCheck = true;		
 			target._percentComplete = 0;
 			Object.defineProperty(target, 'percentComplete', {
-				get: function() { 
+				get: function() { 			
 					if (target.paused) return target._percentComplete;
 					if (target.tweenStartTime && target.tweenEndTime) {	
 						// return if paused and however long is paused gets added to target.tweenStartTime and target.tweenEndTime
@@ -50552,7 +50655,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							nt = dn - target.tweenStartTime;
 						}		
 						var v = Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
-						target._percentComplete	= v;						
+						target._percentComplete	= v;										
 						return  v;
 					} else {
 						return 0;
@@ -50566,10 +50669,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					} else {
 						// to handle being set prior to a subsequent animation
 						this.requestedPercentComplete = value;
-					}
+					}					
 					target._percentComplete = value;
+					if (animateCall && typeof animateCall == "function") animateCall(animateParams||target);
 				}
 			});
+	
 
 			Object.defineProperty(target, 'percentCompleteNoAngle', {
 				get: function() {					
@@ -50615,32 +50720,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			configurable: true // not sure why we need to?
 		});
 
-
-		// if (target.paused) return target._percentComplete;
-		// if (target.tweenStartTime && target.tweenEndTime) {	
-		// 	// return if paused and however long is paused gets added to target.tweenStartTime and target.tweenEndTime
-		// 	// but then how does this affect the timeline?
-		// 	// maybe target.percentComplete is always based on time and it ignores pause 
-		// 	// whereas tween.percentComplete is based on the animation
-		// 	// maybe target.percentComplete should be percentTime 
-		// 	var dn = Date.now();	
-		// 	var nt;
-		// 	// loop is based on latest tween set
-		// 	if (cjsProps.loop && dn > target.tweenEndTime) {
-		// 		nt = (dn - target.tweenStartTime) % (target.tweenEndTime - target.tweenStartTime);
-		// 	} else {
-		// 		nt = dn - target.tweenStartTime;
-		// 	}		
-		// 	var v = Math.max(0, Math.min(100, nt / (target.tweenEndTime - target.tweenStartTime) * 100));
-		// 	target._percentComplete	= v;						
-		// 	return  v;
-
-
 		function setPercent(value, setAngle) {
-			target.zimTween.startPaused = false;
+			target.zimTween.startPaused = false;			
 			// if (!this.paused) this.pauseAnimate(true, id);
 			if (!dynamic) {
-				if (target.zimTweens) {							
+			
+				if (target.zimTweens) {										
 					zim.loop(target.zimTweens, function(id,tw,i) {		
 						var tim = target.tweenStartTime + (target.tweenEndTime - target.tweenStartTime) * value / 100;	
 						var nt;
@@ -50650,9 +50735,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 							nt = (tim - tw.startTime) % tw.duration;
 						} else {
 							nt = tim - tw.startTime; 
-						}				
+						}	
 						tw.percentComplete = Math.max(0, Math.min(100, nt/tw.duration * 100));							
-					});
+					});					
+
 				} else {						
 					target.zimTween.setPosition(Math.round(value*target.zimTween.duration/100));
 				}
@@ -50855,7 +50941,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				// 10.6.0 patch to turn move target along path if not animating
 				target.zimAnimatePathDown = pathObject.on("mousedown", function() {pathDownCheck=true; if (target.paused==true) mouseCheck = true;});
 				target.zimAnimatePathUp = pathObject.on("pressup", function() {mouseCheck = false;});
-	
+
 				
 				target.zimAnimateDragDown = target.on("mousedown", function (e) {					
 					stage = e.target.stage;
@@ -51024,9 +51110,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		
 		// FLIP SETUP
 		var startFlip = target.scaleX,
-		    startFlipVertical = target.scaleY,
-		    pathFlip = obj.flip != undefined ? obj.flip : false,
-		    pathFlipVertical = obj.flipVertical != undefined ? obj.flipVertical : false;
+			startFlipVertical = target.scaleY,
+			pathFlip = obj.flip != undefined ? obj.flip : false,
+			pathFlipVertical = obj.flipVertical != undefined ? obj.flipVertical : false;
 
 		var lastX=target.x;
 		var lastY=target.y;
@@ -51340,7 +51426,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 		function preTween1(lastTween) {			
-			prepareRelative2();		
+			prepareRelative2();					
 			if (wait>0) {
 				target.waiting = true;
 				tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override}).wait(wait, true).call(function(){
@@ -51480,10 +51566,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		} else {  // NOT REWIND TWEENS
 
-				
 			if (seriesWait > 0 || sequenceWait > 0 || wait > 0) { // do not want wait as part of future loops (use loopWait)
 				
-				if (seriesWait > 0 || sequenceWait > 0) {
+				if (seriesWait > 0 || sequenceWait > 0) {		
 					target.waiting = true;					
 					tween = target.zimTweens[id] = target.zimTween = createjs.Tween.get(target, {override:cjsProps.override})
 						.wait(seriesWait>0?seriesWait:0, true)
@@ -51801,7 +51886,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (target.seriesCalls) target.seriesCalls.shift();
 			if (target.seriesParams) target.seriesParams.shift();
 			if (target.paused && target.type != "Sprite") {
-				if (call && typeof call == 'function') {(call)(params);}
+				// ZIM 015 - not sure why we want to call this when paused 
+				// as it activates the animation if in series
+				// if (call && typeof call == 'function') {(call)(params);}
 				return;
 			}
 			if (cjsProps.loop) {
@@ -51824,8 +51911,18 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					return;
 				}
 			}
+
+			// ZIM 015 - this was the first thing we tried to scrub a series with percentComplete 
+			// there were lots of other things too to make it work.
+			// Leaving the seriesTween test in here... but probably not doing much			
 			if (clean) endTween(id);
-			else target.pauseAnimate(true, id);
+			else {
+				if (target.seriesTweens) {
+					if (target.seriesTweens.length == 0) target.pauseAnimate(true, id);
+				} else {
+					target.pauseAnimate(true, id);
+				}
+			}
 
 			// calling sequenceCall in loop as well so don't call here if looping - ZIM Cat 03
 			if (!cjsProps.loop && sequenceCall && typeof sequenceCall == 'function') {
@@ -51975,29 +52072,20 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}();
 		}
 		function pauseTicker(id, paused) {
+			
 			var tween = target.zimTweens[id];
 			tween.paused = paused;
-			if (paused == tween.zimPaused) return;
+			if (paused == tween.zimPaused) return;			
 			tween.zimPaused = paused;
-			if (paused) {
-				target.zimPauseTime=Date.now();
+
+			if (paused) {					
 				if (tween.zimTicker) tween.zimAnimateTimeout = setTimeout(function(){zim.Ticker.remove(tween.zimTicker);},200);
 				// if (target.zimZoomTicker) zim.Ticker.remove(target.zimZoomTicker);
-			} else {				
+			} else {		
 				tween.startPaused = false;
-				clearTimeout(tween.zimAnimateTimeout);
-				if (target.zimPauseTime) {
-					var nt = Date.now();
-					target.tweenStartTime+=(nt-target.zimPauseTime);
-					target.tweenEndTime+=(nt-target.zimPauseTime);
-					if (target.zimTweens) {			
-						zim.loop(target.zimTweens, function(id,tw,i) {		
-							tw.startTime+=(nt-target.zimPauseTime);				
-						});
-					} 
-				}
+				clearTimeout(tween.zimAnimateTimeout);				
 				if (tween.zimTicker) tween.zimTicker = zim.Ticker.add(tween.zimTicker, stage);
-				if (target.zimZoomTicker) target.zimZoomTicker = zim.Ticker.add(target.zimZoomTicker, stage);
+				// if (target.zimZoomTicker) target.zimZoomTicker = zim.Ticker.add(target.zimZoomTicker, stage);
 			}
 		}
 		function expandIds(ids) {
@@ -52093,7 +52181,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				return target;
 			};
 			target.stopAnimate.real = true; // record this as real method instead of empty method
-			target.pauseAnimate = function(paused, ids, include, ignoreDynamic) {
+			target.pauseAnimate = function(paused, ids, include, ignoreDynamic) {				
+				if (paused!==false) target.percentComplete; // run the percentComplete before setting pause
 				var id;			
 				if (ids=="pauseOnBlur") {	
 					ids = null;
@@ -72245,7 +72334,7 @@ warm - (default null) set true to make particles ahead of time to look like the 
 decayTime - (default 1) time in seconds to fade and / or shrink the particle - ends animation at the life time unless decayStart is set
 decayStart - (default null) time in seconds to start the decayTime otherwise decay (fade and shrink) ends at the end of life time
 trace - (default false) Boolean set to true to leave trails by caching each particle with source-over composite operation
-traceFadeTime - (default decayTime) time in ms to fade out traced particle to 0 alpha at the end of the particle life time
+traceFadeTime - (default decayTime) time in s to fade out traced particle to 0 alpha at the end of the particle life time
 traceShiftX - (default 0) x amount to shift the cache rectangle for the traced particle
 traceShiftY - (default 0) y amount to shift the cache rectangle for the traced particle
 	the particle starts centered in the width and height of the Emitter container
@@ -75634,7 +75723,11 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 				var audio,source;
 				if (input.playbackResource) {
 					audio = input.playbackResource; // a playing zim.asset("somesound").play()
-					source = audioContext.createMediaElementSource(audio);
+					if (audio.mediaSourceNode) {
+						source = audio.mediaSourceNode;
+					} else {					
+						source = audioContext.createMediaElementSource(audio);
+					}
 				} else {
 					audio = input; // a playing <audio> tag zid("soundTagID").play()
 					source = audioContext.createMediaElementSource(audio);
@@ -78325,6 +78418,7 @@ shiftKey - true if the shift key is being pressed otherwise false
 loadFailObj - the object that shows if images are broken - will be given a type property of "EmptyAsset"
 startTime - datestamp of when frame was made - used internally
 retina - read-only Boolean as to whether stage (as opposed to the canvas) was scaled for pixelDensity during Frame creation
+reloaded - read-only Boolean as to whether page has been reloaded - uses window.performance.getEntriesByType
 
 ALSO see F, S, W, H, M global variables which reference the default frame, its stage and width and height, and if on mobile
 
@@ -78428,6 +78522,8 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	var D=Date;
 	this.startTime = new D().getTime();
 
+    F.reloaded = (WW.performance && WW.performance.getEntriesByType && WW.performance.getEntriesByType("navigation")[0].type === "reload") 
+	
 	if (zot(canvasCheck)) canvasCheck = true;
 	var canvasSupported = !!WW.HTMLCanvasElement;
 	if (!canvasSupported && canvasCheck) { // no canvas support
@@ -85147,6 +85243,7 @@ setColor(tile, color) - set the color of a tile
 	for setting items on the board use add() method
 	for setting items off the board or for setting the info
 	use board.info[j][j] = {data:data, color:color, items:[item, item, etc.]}
+setIcon(tile, icon) - set the icon for the tile - also see icons parameter
 clearInfo(filter**) - clear all the info or a filtered set - see **FILTER at top of METHODS
 clearData(filter**) - clear all the info data or a filtered set - see **FILTER at top of METHODS
 clearColors(filter**) - clear all the colors (to default color) or a filtered set - see **FILTER at top of METHODS
@@ -86197,7 +86294,8 @@ Socket
 zim class extends a zim EventDispatcher (with the normal event object replaced by a data param)
 ** MUST import socket.io.js with a script tag - SEE link at top of Docs for socket.io.js under ZIM works with...
 ** MUST import zim_socket - see https://zimjs.com/es6.html#MODULES
-** MUST have a NodeJS server running zimserver.js with SocketIO on server (and client as mentioned)
+** MUST request a ZIM Socket Server ID or have a NodeJS server running zimserver.js with SocketIO on server (and client as mentioned)
+** MUST test on a server to avoid CORS errors
 See: https://zimjs.com/es6.html#MODULES
 
 OVERVIEW
@@ -86250,7 +86348,7 @@ const socket = new Socket(zimSocketURL, "sharedball");
 // There is also a history of any data stored in history - like for a chat.
 
 socket.on("ready", ()=>{
-	const ball = new Circle(100, red).drag(stage);
+	const ball = new Circle(100, red).drag(S);
 
 	// We will get the lastest x and y of the ball
 	// all latest values are automatically loaded by Socket to start
