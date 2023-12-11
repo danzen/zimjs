@@ -37490,7 +37490,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (tkb.label.text.length > 0) {
 						if (tkb.na.length === 1) {
 							if (data[4] && data[4][tkb.label.text]) tkb.label.text = data[4][tkb.label.text];									
-							else tkb.label.text = tkb.label.text.toUpperCase();
+							else tkb.label.text = layout=="turkish"?tkb.label.text.toLocaleUpperCase("tr-TR"):tkb.label.text.toUpperCase();
 							tkb.label.centerReg(tkb).mov(0, 6);							
 						} else {
 							tkb.label.centerReg(tkb);
@@ -37720,7 +37720,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					alternativeMenu.y = - size - 5;
 					for (var i = 0; i < thisArray.length; i++) {
 						if (currentStatus === statuses.shift) {
-							thisLetter = thisArray[i].toUpperCase();
+							thisLetter = layout=="turkish"?thisArray[i].toLocaleUpperCase("tr-TR"):thisArray[i].toUpperCase();
 						} else {
 							thisLetter = thisArray[i];
 						}
@@ -37968,7 +37968,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				makeWidthsArray();
 			} else {
 				if (currentStatus === statuses.shift) {
-					letter = letter.toUpperCase();
+					letter = layout=="turkish"?letter.toLocaleUpperCase("tr-TR"):letter.toUpperCase();
 				}
 				if (currentLabel && that.maxLength && currentLabel.text.length >= that.maxLength) return;
 				if (that.numbersOnly && !isFinite(Number(letter))) return;
@@ -82724,7 +82724,9 @@ RETURNS - null
             callback(bitmap, params);
 			DOMURL.revokeObjectURL(obu);
         };
-		var obu = DOMURL.createObjectURL(new document.Blob([svgString], {type: "image/svg+xml"}));
+		var obu;
+		if (document && document.Blob) obu = DOMURL.createObjectURL(new document.Blob([svgString], {type: "image/svg+xml"}));
+		else obu = DOMURL.createObjectURL(new Blob([svgString], {type: "image/svg+xml"}));
         img.src = obu;
     };//-83.27
 
@@ -85496,7 +85498,7 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 time - (default 60) time in seconds to start the timer
-step - (default 1000) step in ms to show a change in timer
+step - (default 1) step in s to show a change in timer
 colon - (default false) add colon and seconds eg. 1:30 instead of 90 seconds
 down - (default true) set to false to count up
 isometric - (default null) set to LEFT or RIGHT to position an isometric timer
@@ -87735,7 +87737,6 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   var pair = globalFunctions[z_i];  
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
-
 
 // these are global regardless
 var globalsConstants = [
