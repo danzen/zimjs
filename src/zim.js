@@ -7478,8 +7478,8 @@ const show = Pick.choose(age);
 
 // below we randomize the tile colors in the first example
 // and make them in color order for the second example
-new Tile(new Rectangle(10,10,[blue, red]), 10, 10).center(); would randomize colors
-new Tile(new Rectangle(10,10,series(blue, red)), 10, 10).center(); would alternate colors
+new Tile(new Rectangle(10,10,[blue, red]), 10, 10).center(); // would randomize colors
+new Tile(new Rectangle(10,10,series(blue, red)), 10, 10).center(); // would alternate colors
 
 // here we pass an array through without processing the array:
 Pick.choose({noPick:[1,2,3,4,5]}); // result is [1,2,3,4,5]
@@ -27988,13 +27988,15 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 		});
 
 		if (pastText != null) {
+			var hi = that.label.hiddenInput;
+			if (hi.type=="number") hi.type = "text"; // number does not get selection
 			label.focus = that.keyFocus = pastFocus;
 			var f = zdf;
 			if (that.stage) f = that.stage.frame;
 			if (f.zil && label.focus) WW.removeEventListener("keydown", f.zil[0]);
-			if (f.zil && !label.focus) WW.addEventListener("keydown", f.zil[0]);
-			that.label.hiddenInput.selectionStart = pastStart;
-			that.label.hiddenInput.selectionEnd = pastEnd;
+			if (f.zil && !label.focus) WW.addEventListener("keydown", f.zil[0]);			
+			hi.selectionStart = pastStart;
+			hi.selectionEnd = pastEnd;			
 			that.label.positionBlinkerAndSelection();
 			if (that.label.focus) that.label.blinker.replayTween();
 		}
@@ -28273,12 +28275,13 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 		if (!this.focus) {
 			this.hiddenInput.focus();
 			// ZIM NFT 00 patch
-			if (inputType == "number" || inputType == "email") this.hiddenInput.type = "text";
-		}					
+			if (inputType == "email") this.hiddenInput.type = "text";
+		}		
+		if (inputType == "number") this.hiddenInput.type = "text";			
 		var selectionIdx = this.mapPointToIndex(point);
 		if (rtl) this.hiddenInput.setSelectionRange(le-selectionIdx, le-selectionIdx);				
 		else this.hiddenInput.setSelectionRange(selectionIdx, selectionIdx);				
-		this.positionBlinkerAndSelection();		
+		this.positionBlinkerAndSelection();	
 	}
 	this.onPressmove = function(e) {
 		// ZIM NFT 01 Patch any le or rtl
@@ -28288,7 +28291,6 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 		var selectionIdx;
 		if (rtl) selectionIdx = le-this.mapPointToIndex(point); 
 		else selectionIdx = this.mapPointToIndex(point);
-		
 		if (this.hiddenInput.selectionStart === this.hiddenInput.selectionEnd) {
 			if (this.hiddenInput.selectionStart <= selectionIdx) {
 				this.hiddenInput.setSelectionRange(this.hiddenInput.selectionStart, selectionIdx, rtl?"backward":"forward");
@@ -28447,7 +28449,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 
 }
 zim.extend(zim.TextInput.LabelInput, zim.Label, "dispose", "zimLabel", false);
-//-54.2   
+//-54.2  
 	
 
 /*--
@@ -50724,7 +50726,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.zimTween.startPaused = false;			
 			// if (!this.paused) this.pauseAnimate(true, id);
 			if (!dynamic) {
-			
+							
 				if (target.zimTweens) {										
 					zim.loop(target.zimTweens, function(id,tw,i) {		
 						var tim = target.tweenStartTime + (target.tweenEndTime - target.tweenStartTime) * value / 100;	
@@ -50736,8 +50738,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						} else {
 							nt = tim - tw.startTime; 
 						}	
-						tw.percentComplete = Math.max(0, Math.min(100, nt/tw.duration * 100));							
-					});					
+						tw.percentComplete = Math.max(0, Math.min(100, nt/tw.duration * 100));		
+					}, true);					
 
 				} else {						
 					target.zimTween.setPosition(Math.round(value*target.zimTween.duration/100));
@@ -71094,6 +71096,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		tile.pointers = {};
 		tile.on("mousedown", function (e) {		
 			if (dCheck) return;			
+			zog("here")
 			dCheck = true;	
 			offOthers(e.target);
 			that.myDownCheck = true;
@@ -71138,7 +71141,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			that.upEvent = tile.on("pressup", function(e) {
 				var id = "id"+Math.abs(e.pointerID+1);
 				if (!tile.pointers[id]) return;
-				that.myDownCheck = dCheck = false;				
+				// that.myDownCheck = dCheck = false;				
 				doUp(e);
 			});
 			
@@ -71148,8 +71151,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (!tile.pointers[id]) return;
 				delete tile.pointers[id];
 				var good = true;				
-				onOthers();
-				dCheck = false;
+				// dCheck = false;
+				// onOthers();
 				if (that.moveEvent) tile.off("pressmove", that.moveEvent);
 				if (swapLock) {
 					var cbg = e.target.boundsToGlobal();
@@ -71163,7 +71166,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				if (swap && good) doMove(e);   
 											
-				e.target.mouseEnabled = false;
+				// e.target.mouseEnabled = false;
+				e.target.dragPaused = true;
 				e.target.animate({
 					props:{x:startX, y:startY},
 					time:.1,
@@ -71184,7 +71188,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (e.target.backing) e.target.backing.shadow = null;
 					else e.target.shadow = null;
 				}
-				e.target.mouseEnabled = true;
+
+				that.mySownCheck = dCheck = false;
+				onOthers();
+				// e.target.mouseEnabled = true;
+				e.target.dragPaused = false;
 			}    
 			if (!swap) {
 				if (that.moveEvent) tile.off("pressmove", that.moveEvent);
@@ -71226,6 +71234,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						timeUnit:"seconds",
 						call:function () {
 							// t.mouseEnabled = true;
+							if (!dCheck) t.dragPaused = false;
 							if (swap && !that.complete && that.test()) {
 								that.complete = true;
 								that.dispatchEvent("complete");
@@ -71247,6 +71256,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						timeUnit:"seconds",
 						call:function () {
 							// t.mouseEnabled = true;
+							if (!dCheck) t.dragPaused = false;
 							if (swap && !that.complete && that.test()) {
 								that.complete = true;
 								that.dispatchEvent("complete");
@@ -71260,12 +71270,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		function offOthers(target) {
 			tile.loop(function (t) {
-				if (t!=target) t.noMouse();
+				// if (t!=target) t.noMouse();
+				if (t!=target) t.dragPaused = true;
 			});
 		}
 		function onOthers() {
 			tile.loop(function (t) {
-				if (!t.locked) t.mouse();
+				if (!t.locked && !t.animating) t.dragPaused = false;
+				// if (!t.locked) t.mouse();
 			});
 		}
 
@@ -86612,9 +86624,7 @@ const ask = new CamAsk().show(yes=>{
 			new Pane("CAM not accepted",yellow).show();
 		});		
 	} else { // answered no to CamAsk dialog
-		cam.on("error", ()=>{
-			new Pane("CAM not accepted",yellow).show();
-		});	
+		new Pane("CAM not accepted",yellow).show();
 	}	
 }); 
 END EXAMPLE
@@ -87157,10 +87167,12 @@ zim class - extends a zim.Container which extends a createjs.Container
 
 DESCRIPTION
 A widget with a slider that sets the alpha of the ZIM Cam or CamMotion provided. 
+The initial alpha is set by setting the alpha of the Cam()
+or by using the preview parameter of CamMotion() or CamCursor().
 
 SEE: https://zimjs.com/nft/bubbling/cam.html and use right arrow to see all four examples
 
-NOTE: make the CamAlpha in the ready event of the Cam or CamMotion
+NOTE: make the CamAlpha in the ready event of the Cam() or CamMotion()
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -87329,11 +87341,9 @@ const ask = new CamAsk().show(yes=>{
 			new Pane("CAM not accepted",yellow).show();
 		});		
 	} else { // answered no to CamAsk dialog
-		cam.on("error", ()=>{
-			new Pane("CAM not accepted",yellow).show();
-		});	
+		new Pane("CAM not accepted",yellow).show();
 	}	
-}
+});
 END EXAMPLE
 
 PARAMETERS
@@ -87708,35 +87718,36 @@ https://codepen.io/zimjs/pen/ZqNYxX
 } (zim || {});
 
 var globalFunctions =   [
-  ["zog", zog],
-  ["zid", zid],
-  ["zss", zss],
-  ["zgo", zgo],
-  ["zum", zum],
-  ["zot", zot],
-  ["zop", zop],
-  ["zil", zil],
-  ["zet", zet],
-  ["zob", zob],
-  ["zik", zik],
-  ["zta", zta],
-  ["zor", zor],
-  ["zogg", zogg],
-  ["zogp", zogp],
-  ["zogb", zogb],
-  ["zogr", zogr],
-  ["zogy", zogy],
-  ["zogo", zogo],
-  ["zogl", zogl],
-  ["zogd", zogd],
-  ["zimplify", zimplify],
-  ["zimify", zimify]
+	["zog", zog],
+	["zid", zid],
+	["zss", zss],
+	["zgo", zgo],
+	["zum", zum],
+	["zot", zot],
+	["zop", zop],
+	["zil", zil],
+	["zet", zet],
+	["zob", zob],
+	["zik", zik],
+	["zta", zta],
+	["zor", zor],
+	["zogg", zogg],
+	["zogp", zogp],
+	["zogb", zogb],
+	["zogr", zogr],
+	["zogy", zogy],
+	["zogo", zogo],
+	["zogl", zogl],
+	["zogd", zogd],
+	["zimplify", zimplify],
+	["zimify", zimify]
 ];
 
 for (z_i = 0; z_i < globalFunctions.length; z_i++) {
-  var pair = globalFunctions[z_i];  
-  WW[pair[0]] = zim[pair[0]] = pair[1];
+	var pair = globalFunctions[z_i];  
+	WW[pair[0]] = zim[pair[0]] = pair[1];
 }
+
 
 // these are global regardless
 var globalsConstants = [
@@ -87782,16 +87793,16 @@ var globalsConstants = [
 	["DEG", zim.DEG],
 	["RAD", zim.RAD],
 	["PHI", zim.PHI],
-	];
-	
-	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+];
+
+for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 	var pair = globalsConstants[z_i];  
 	WW[pair[0]] = pair[1];
-	}
-	
-	for (z_i = 0; z_i < zim.colors.length; z_i++) {
+}
+
+for (z_i = 0; z_i < zim.colors.length; z_i++) {
 	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	}
+}
 
 
 WW.zim = zim;
