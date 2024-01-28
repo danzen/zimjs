@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "15.0.16",
+  "version": "16.0.0",
   "type": "module",
   "main": "./src/zim.js",
   "types": "./ts-src/typings/zim",
@@ -26,6 +26,7 @@
     "EaselJS",
     "Generative Art",
     "Data Visualization",
+	"Shaders",
     "Games",
     "Puzzles",
     "InfoActives",
