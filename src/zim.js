@@ -2113,7 +2113,7 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 			}
 		}
 		var pausedTimeout;
-		obj.type = "intervalOjbect";
+		obj.type = "intervalObject";
 		obj.pause = function(state, immediate, reset) {
 			if (zot(state)) state = true;
 			if (state) { // pausing
@@ -13354,7 +13354,7 @@ PROPERTIES
 type - holds the class name as a String
 obj - the original object literal - its properties get updated as the uniforms properties are updated 
 ***
-Each property in the ojbect literal 
+Each property in the object literal 
 with arrays being split into a property for each element in the format 
 name_A, name_B, name_C, name_D as dicted by the number of elements in the value for the property
 {year:2024, dimensions:[200,500]}
@@ -43011,6 +43011,20 @@ loader.on("loaded", e=>{
 });
 END EXAMPLE
 
+EXAMPLE
+// save a json file
+const obj = {a:[1,2,3], b:"hello"};
+new Loader().save({content:obj, type:"json"}); // save a json file with obj
+END EXAMPLE
+
+EXAMPLE
+// save a text file
+const textInput = new TextInput().center();
+new Button({label:"SUBMIT", wait:"SAVED"}).center().mov(0,100).tap(()=>{
+	new Loader().save({content:textInput.text, filename:"answer.txt", type:"text"});
+});
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
@@ -43066,14 +43080,17 @@ resize() - call the resize event if the scale or position of the Loader is chang
 	Note: if the Frame itself changes location in the HTML document, call a F.update()
 	this will then dispatch an update event to the Loader and it will resize()
 	this is not needed if resizing the window or scrolling - see Frame update() method docs
-save(content, filename, x, y, width, height, cached, cachedBounds, type, data, quality) - save a picture (supports ZIM DUO)
-	content - the Display object to be saved such as a Container, Bitmap, etc.
+save(content, filename, x, y, width, height, cached, cachedBounds, type, data, quality) - save a picture or text (supports ZIM DUO)
+	content - the Display object to be saved such as a Container, Bitmap, etc. 
+		or text (or Label, TextInput, TextArea) or JSON or object for JSON
+		if text or json, then x, y, width, height, cached, cachedBounds, data, and quality are ignored
 	filename - (default random) - the text name of the file (with or without extension - also see type)
 	x, y, width, height - the cropping bounds on that object otherwise defaults to 0,0,W,H
 	cached - (default false) set to true if the object is currently already cached
 	cachedBounds - if you are saving a different bounds than was previously cached
 		setting the bounds here (createjs.Rectangle) will restore the cache to the previous bounds
-	type - (default "png") set to "jpeg" for jpeg
+	type - (default "png") set to "jpeg" for jpeg or "txt", "text" or "json"
+		json will convert the content to JSON if it is not already in JSON format
 	data - (default false) set to true to save as base64 data
 		otherwise save returns the object for chaining
 	quality - (default .92) a number between 0 an 1 representing the quality of the saved image (jpeg)
@@ -43405,11 +43422,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}
 
 		this.save = function(content, filename, x, y, width, height, cached, cachedBounds, type, data, quality) {
-
+		
 			var sig = "content, filename, x, y, width, height, cached, cachedBounds, type, data, quality";
 			var duo; if (duo = zob(that.save, arguments, sig)) return duo;
-			if (zot(content)) content = frame.stage;
+			if (zot(content)) content = frame.stage;			
 
+			if (type=="text") type = "txt";
 			if (zot(type)) type = "png";
 			if (zot(filename)) {
 				filename = "saved_" + String(zim.makeID("numbers", 5)) + "." + type;
@@ -43418,7 +43436,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (parts.length == 1) {
 					filename += "." + type;
 				} else {
-					var types = ["png","jpg","jpeg"];
+					var types = ["png","jpg","jpeg","txt","json"];
 					var ind = types.indexOf(parts[parts.length-1].toLowerCase());
 					if (ind == -1) {
 						filename += "." + type;
@@ -43427,6 +43445,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					}
 				}
 			}
+
+			if (type=="txt" || type=="json") {
+				// thanks https://www.tutorialspoint.com/how-to-create-and-save-text-file-in-javascript
+				var link = document.createElement("a");
+				var ff;
+				if (typeof content != "string" && content.text) content = content.text; 
+				if (type=="json" && !isJSON(content)) content = JSON.stringify(content);
+				if (document && document.Blob) ff = new document.Blob([content], {type:'text/plain'});
+				else ff = new Blob([content], {type:'text/plain'});
+				link.href = URL.createObjectURL(ff);
+				link.download = filename;
+				link.click();
+				URL.revokeObjectURL(link.href);
+				return that;				
+			}
+
 			if (zot(x)) x = 0;
 			if (zot(y)) y = 0;
 			if (zot(width)) width = (content.getBounds && content.getBounds()) ? content.getBounds().width : frame.width;
@@ -47072,7 +47106,11 @@ RETURNS obj for chaining
 		var stCheck = false;
 		obj.zimDown = obj.on("mousedown", function(e) {			
 			if (!obj.stage || obj.dragPaused) return;
-			if (singleTouch && stCheck) return;	 // breaking if coming back from iframe until next mousedown	
+			if (singleTouch && stCheck) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				return;
+			};	 // breaking if coming back from iframe until next mousedown	
 
 			// obj.zimMove = obj.on("pressmove", obj.zimMove);	// for some reason causing squiggle drag problems
 			
@@ -47163,8 +47201,16 @@ RETURNS obj for chaining
 		}, true);
 
 		obj.zimMove = obj.on("pressmove", function(e) {
-			if (singleTouch && !obj.pointers["id"+Math.abs(e.pointerID+1)]) return;			
-			if (!obj.downCheck || obj.dragPaused) return;			
+			if (singleTouch && !obj.pointers["id"+Math.abs(e.pointerID+1)]) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				return;
+			};	
+			if (!obj.downCheck || obj.dragPaused) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				return;
+			};			
 			var x = (offStage?e.rawX:e.stageX)/zim.scaX+stage.x;
 			var y = (offStage?e.rawY:e.stageY)/zim.scaY+stage.y;
 			obj.dragMouseX = Math.round(x);
@@ -47257,16 +47303,24 @@ RETURNS obj for chaining
 
 		obj.zimUp = obj.on("pressup", function(e){doUp(e);}, true);
 				
-		function doUp(e, outsideUp) {		
+		function doUp(e, outsideUp) {	
 
-			// if (obj.zimMove) obj.off("pressmove", obj.zimMove);	 // for some reason causing squiggle drag problems
-			if (singleTouch && !outsideUp && !obj.pointers["id"+Math.abs(e.pointerID+1)]) return;
+			if (singleTouch && !outsideUp && !obj.pointers["id"+Math.abs(e.pointerID+1)]) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				return;
+			};
 			
 			stCheck = false;		
 
 			var id = "id"+Math.abs((!zot(e.pointerID)?e.pointerID:0)+1); // avoiding NaN but not sure if correct ZIM 015
 			delete obj.pointers[id];
-			if (!obj.downCheck || obj.dragPaused) return;
+
+			if (!obj.downCheck || obj.dragPaused) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				return;
+			};
 
 			if (obj.cur) obj.cur(zot(overCursor)?"pointer":overCursor);
 			else obj.cursor = zot(overCursor)?"pointer":overCursor;
@@ -60771,7 +60825,7 @@ note: the item is not the event object target - as that is the tile
 					if (!rowSize||!zot(height)) h = Math.abs(tB.height);
 					// if (!colSize||!zot(width)) w = Math.abs(tile.width);
 					// if (!rowSize||!zot(height)) h = Math.abs(tile.height);
-					
+
 					widthHeights[j][i] = [w,h];
 					if (zot(widthMax[i])) widthMax[i] = 0;
 					if (zot(heightMax[j])) heightMax[j] = 0;
@@ -82147,8 +82201,8 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			} else {
 				setCursor();
 			}
-			if (that.cursorObj != oldCursor && oldCursor.removeFrom) oldCursor.removeFrom();
-
+			if (that.cursorObj != oldCursor && oldCursor.removeFrom) oldCursor.removeFrom();			
+			if (!that.cursorObj) return;
 			that.cursorObj.x = that.mouseX;
 			that.cursorObj.y = that.mouseY;
 			that.cursorObj.top();
@@ -82160,7 +82214,6 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			firstSet = true;
 			var co = that.stage.getObjectUnderPoint(that.mouseX, that.mouseY, 1);
 			if (co && (co._cursor || co.cursor)) {
-				zog("setting")
 				setCustom(co);
 			} else if (obj.default) {
 				setCursor("none");
