@@ -3793,6 +3793,7 @@ declare namespace zim {
 		resumeTalking(): this
 		getVoices(): this
 		listen(): this
+		stopListening(): this
 		readonly voices: [string]
 		readonly voiceObjects: [any]
 		readonly voiceLanguages: [string]
