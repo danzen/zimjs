@@ -7470,10 +7470,10 @@ const rotation = {min:10, max:20, integer:false, negative:true};
 // or this can be passed into an animation object
 // and then into zim.Emitter() for the animate parameter
 
-const emitter = new zim.Emitter({
+const emitter = new Emitter({
 	obj:new Rectangle(),
 	random:{rotation:rotation} // the emitter will use Pick.choose() to pick a rotation for each particle
-});
+}).center();
 
 function age() {
 	// assuming user.age is some input value that exists
@@ -8725,7 +8725,27 @@ See the CreateJS documentation for x, y, alpha, rotation, on(), addChild(), etc.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
+EXAMPLE 
+const container = new Container().loc(100,100);
+
+// demonstration of adding drag() to a Container
+const rect = new Rectangle(100, 100, blue)
+   .addTo(container); // add rectangle to container
+const circle = new Circle(40, red)
+   .center(container) // add the circle to the container and center
+container.drag(); // will drag either the rectangle or the circle
+container.drag({all:true}); // will drag both the rectangle and the circle
+
+// below will reduce the alpha of the object in the container that was clicked (target)
+container.on("click", e => {e.target.alpha = .5; S.update();});
+
+// below will reduce the alpha of all the objects in the container (currentTarget)
+container.on("click", e => {e.currentTarget.alpha = .5; S.update();});
+END EXAMPLE
+
 EXAMPLE
+// Here we apply the normalize() method of the Container to a Tile (which is a Container)
+// and scale the children based on the resulting ratio
 const tile = new Tile(new Rectangle(70,70,white,black).reg(CENTER), 9, 1, 20)
 	.normalize("x", CENTER)
 	.center();
@@ -8753,6 +8773,7 @@ final.sortBy("ratio"); // make more central objects come to front
 END EXAMPLE
 
 EXAMPLE 
+// In this case we animate the children based on the rate
 // animate() the rate and use sequence:0 to apply different speed to each item
 const tile = new Tile(new Rectangle(10, 10, series(green,blue,yellow)), 20, 20, 5, 5)
 	.normalize("reg", CENTER)
@@ -23359,6 +23380,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		color = zik(color);
 		rollColor = zik(rollColor);
 		downColor = zik(downColor);
+        
+        var timeType = zot(WW.TIME) ? zot(zim.TIME) ? "seconds" : zim.TIME : WW.TIME;
 		
 		var originalBorderColor = borderColor;
 		var originalBorderWidth = borderWidth;
@@ -23395,7 +23418,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(downToggleColor)) downToggleColor=DS.downToggleColor!=null?DS.downToggleColor:label.rollToggleColor;
 
 		if (zot(wait)) wait=DS.wait!=null?DS.wait:null;
-		if (zot(waitTime)) waitTime=DS.waitTime!=null?DS.waitTime:TIME=="seconds"||TIME=="s"?5:5000;
+		if (zot(waitTime)) waitTime=DS.waitTime!=null?DS.waitTime:timeType=="seconds"||timeType=="s"?5:5000;
 		if (zot(waitBackgroundColor)) waitBackgroundColor=DS.waitBackgroundColor!=null?DS.waitBackgroundColor:backgroundColor;
 		if (zot(rollWaitBackgroundColor)) rollWaitBackgroundColor=DS.rollWaitBackgroundColor!=null?DS.rollWaitBackgroundColor:rollBackgroundColor;
 		if (zot(downWaitBackgroundColor)) downWaitBackgroundColor=DS.downWaitBackgroundColor!=null?DS.downWaitBackgroundColor:rollBackgroundColor;
@@ -23409,7 +23432,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		that.focus = false;
 		that.rolled = false;
 
-		var timeType = getTIME(waitTime);
+		timeType = getTIME(waitTime);
 
 		//~~~~~~~~~~~~~  BACKINGS
 		// also see manual setting of backings beneath getter setter methods
@@ -26665,6 +26688,7 @@ scrollBar - data object that holds the following properties (with defaults):
 	scrollBar.corner = scrollBar.size / 2;
 	scrollBar.showTime = .5; // s to fade in
 	scrollBar.fadeTime = 3; // s to fade out
+	scrollBar.speed = .5 // scrollwheel speed for x and y scrolling with mouse wheel
 scrollX - gets and sets the content x position in the window (this will be negative)
 scrollY - gets and sets the content y position in the window (this will be negative)
 scrollXMax - gets the max we can scroll in x based on content width - window width (plus padding and margin)
@@ -26865,6 +26889,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		scrollBar.corner = scrollBar.size / 2;
 		scrollBar.showTime = .5;
 		scrollBar.fadeTime = 3;
+		scrollBar.speed = .5;
 
 		if (scrollBarActive) {
 			var hscrollBar = scrollBar.horizontal = new zim.Shape({style:false});
@@ -27011,8 +27036,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 			clearTimeout(that.d2Timeout);
 			that.d2Timeout = setTimeout(function(){
-				if (hscrollBar && hscrollBar.proportion) content.x = hscrollBar.proportion.convert(hscrollBar.x);
-				if (vscrollBar && vscrollBar.proportion) content.y = vscrollBar.proportion.convert(vscrollBar.y);
+				try {
+					if (content && hscrollBar && hscrollBar.proportion) content.x = hscrollBar.proportion.convert(hscrollBar.x);
+					if (content && vscrollBar && vscrollBar.proportion) content.y = vscrollBar.proportion.convert(vscrollBar.y);
+				} catch (err) {
+					clearTimeout(that.d2Timeout);
+					that.d2Timeout = setTimeout(function(){
+						try {
+							if (content && hscrollBar && hscrollBar.proportion) content.x = hscrollBar.proportion.convert(hscrollBar.x);
+							if (content && vscrollBar && vscrollBar.proportion) content.y = vscrollBar.proportion.convert(vscrollBar.y);
+						} catch (err) {}
+					}, 50);
+				}
 			}, 50);
 			clearTimeout(that.dTimeout);
 			that.dTimeout = setTimeout(function(){setdragBoundary();}, 300);
@@ -27555,22 +27590,41 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}
 
 		var desiredY = that.scrollY;
+		var desiredX = that.scrollX;
 		that.scrollWindow = function scrollWindow(e) {
-			if (vCheck && that.stage && that.hitTestPoint(that.windowMouseX, that.windowMouseY) && that.contains(that.stage.getObjectUnderPoint(that.windowMouseX*zim.scaX, that.windowMouseY*zim.scaY))) {
+			if (that.stage && that.hitTestPoint(that.windowMouseX, that.windowMouseY) && that.contains(that.stage.getObjectUnderPoint(that.windowMouseX*zim.scaX, that.windowMouseY*zim.scaY))) {
+				var delta;
+				var deltaY;
+				var deltaX;
 				if (zot(e)) e = event;
-				var delta = e.detail ? e.detail*(-19) : e.wheelDelta;
-				if (zot(delta)) delta = e.deltaY*(-19);
-				desiredY += delta;
-				desiredY = Math.max(-that.scrollYMax, Math.min(0, desiredY));
-				if (!damp) {
-					that.scrollY = desiredY;
-					content.stage.update();
+
+				deltaY = (that.stage && that.stage.frame.shiftKey) ? e.deltaX : e.deltaY;
+				deltaX = (that.stage && that.stage.frame.shiftKey) ? e.deltaY : e.deltaX;
+				
+				if (vCheck && deltaY != null) {
+					// var delta = e.detail ? e.detail*(-19) : e.wheelDelta;
+					delta = deltaY*(-that.scrollBar.speed);
+					desiredY += delta;
+					desiredY = Math.max(-that.scrollYMax, Math.min(0, desiredY));
+					if (!damp) that.scrollY = desiredY;
 				}	
-				scrollBarDown = false;						
-			}
+				if (hCheck && deltaX != null) {					
+					// var delta = e.detail ? e.detail*(-19) : e.wheelDelta;
+					delta = deltaX*(-that.scrollBar.speed);
+					desiredX += delta;
+					desiredX = Math.max(-that.scrollXMax, Math.min(0, desiredX));
+					that.scrollX = desiredX;
+				}		
+				if (hCheck || vCheck) {
+					scrollBarDown = false;
+					if (!damp) {
+						content.stage.update();
+					}		
+				}		
+			}	
 			if (optimize) {
 				testContent();
-			}
+			}		
 		}
 		if (scrollWheel) {		
 			WW.addEventListener("mousewheel", that.scrollWindow);
@@ -30439,8 +30493,9 @@ list - (default Options 1-30) an array of strings, numbers or zim Label objects 
 		See: https://zimjs.com/ten/accordion.html
 	note: the Accordion List is currently incompatible with the Organizer, addTo() and removeFrom()
 viewNum - (default 5) how many items to show in the width and height provided
-	adjusting this number will also change the overall scale of custom items
-	or see the noScale parameter to avoid scaling custom items
+	adjusting this number will also change the overall scale of custom items for horizontal lists 
+    (this does not affect vertical lists due to the way vertical tabs are optimized)
+	or see the noScale parameter to avoid scaling custom items in horizontal lists
 	if no items are provided to start but rather added with addAt() then choose a viewNum that roughly matches how many items will fit in the view
 vertical - (default true) set to false to make a horizontal list
 currentSelected - (default false) set to true to show the current selection as highlighted
@@ -30787,7 +30842,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			listW = list;
 		}
 
-
 		// handle possible checkboxes
 		if (checkBox) {
 			zim.loop(listW, function (item, i) {
@@ -30879,18 +30933,20 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			organizer.addTo(that).loc(0,-organizer.height);
 		}
 
+       
 		if (customWidth && noScale) {
-			// that.itemWidth = vertical?(width-paddingH*2-(scrollBarActive?(scrollBarOverlay?0:6):0)):customWidth/list.length;
-			// that.itemHeight = vertical?customHeight/list.length:(height-paddingV*2-(scrollBarActive?(scrollBarOverlay?0:6):0));		
-			that.itemWidth = vertical?(width-(scrollBarActive?(scrollBarOverlay?0:6):0)):customWidth/listW.length;
-			that.itemHeight = vertical?customHeight/listW.length:(height-(scrollBarActive?(scrollBarOverlay?0:6):0));	
+			that.itemWidth = vertical?(width-paddingH*2-(scrollBarActive?(scrollBarOverlay?0:6):0)):customWidth/listW.length;
+			that.itemHeight = vertical?customHeight/listW.length:(height-paddingV*2-(scrollBarActive?(scrollBarOverlay?0:6):0));		
+			// that.itemWidth = vertical?(width-(scrollBarActive?(scrollBarOverlay?0:6):0)):customWidth/listW.length;
+			// that.itemHeight = vertical?customHeight/listW.length:(height-(scrollBarActive?(scrollBarOverlay?0:6):0));	
 			
 		} else {
-			// that.itemWidth = vertical?(width-paddingH*2-(scrollBarActive?(scrollBarOverlay?0:6):0)):(width-paddingH*2)/viewNum;
-			// that.itemHeight = vertical?(height-paddingV*2)/viewNum:(height-paddingV*2-(scrollBarActive?(scrollBarOverlay?0:6):0));
-			that.itemWidth = vertical?(width-(scrollBarActive?(scrollBarOverlay?0:6):0)):(width)/viewNum;
-			that.itemHeight = vertical?(height)/viewNum:(height-(scrollBarActive?(scrollBarOverlay?0:6):0));				
+			that.itemWidth = vertical?(width-paddingH*2-(scrollBarActive?(scrollBarOverlay?0:6):0)):(width-paddingH*2)/viewNum;
+			that.itemHeight = vertical?(height-paddingV*2)/viewNum:(height-paddingV*2-(scrollBarActive?(scrollBarOverlay?0:6):0));
+			// that.itemWidth = vertical?(width-(scrollBarActive?(scrollBarOverlay?0:6):0)):(width)/viewNum;
+			// that.itemHeight = vertical?(height)/viewNum:(height-(scrollBarActive?(scrollBarOverlay?0:6):0));			
 		}
+    
 		var tabs;
 		var inheritedStyles = zim.copy(DS);
 		delete inheritedStyles.borderWidth;
@@ -30936,11 +30992,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				.mov(vertical?0:paddingH,vertical?paddingV:0);
 				// var b = tabs.getBounds();
 				// tabs.setBounds(0,0,vertical?b.width:(b.width+spacing*2+4),vertical?(b.height+spacing*2+4):b.height);
-			that.add(tabs);
+			that.add(tabs);            
 			// tabs.loc(paddingH, paddingV)
 			zim.loop(tabs.labels, function (label) {				
 				if (label) label.backgroundColor = zim.clear;
-			})
+			});
 		}
 		makeTabs(zim.copy(listW, clone));
 
@@ -30952,7 +31008,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (point.y - that.tabs.buttons[that.tabs.buttons.length-1].height <= height - that.tabs.height) {that.tabs.y += that.tabs.height/2 + spacing/2}
 				
 				} else {
-
+                    if (point.x >= -that.tabs.buttons[0].width) {that.tabs.x -= that.tabs.width/2 + spacing/2}
+					if (point.x - that.tabs.buttons[that.tabs.buttons.length-1].width <= width - that.tabs.width) {that.tabs.x += that.tabs.width/2 + spacing/2}
 				}
 				// zog(point.y)
 				// zogy(that.tabs.buttons[0].height, that.tabs.buttons[that.tabs.buttons.length-1].height)
@@ -34891,7 +34948,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var num = tabs.length;
 		var tabW = (width - spacing*(num-1))/num;
 		var tabH = (height - spacing*(num-1)-2)/num;
-		
+
 		if (!zot(backdropColor)) {
 			// may be resized later
 			var backdrop = this.backdrop = new zim.Rectangle(width,height,backdropColor, null, null, null, null, null, null, false);
@@ -46650,7 +46707,6 @@ RETURNS obj for chaining
 		obj.cur("pointer");
 		var stage;
 		obj.zimClickHoldDownEvent = obj.on("mousedown", function (e) {
-            zog("here")
 			if (!stage) stage = e.target.stage;
 			if (!stage) return;
 			if (zot(stage.frame)) stage.frame = WW.zdf;
@@ -52494,7 +52550,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			target.percentCompleteCheck = true;		
 			target._percentComplete = 0;
 			Object.defineProperty(target, 'percentComplete', {
-				get: function() { 			
+				get: function() { 		
 					if (target.paused) return target._percentComplete;
 					if (target.tweenStartTime && target.tweenEndTime) {	
 						// return if paused and however long is paused gets added to target.tweenStartTime and target.tweenEndTime
@@ -52726,6 +52782,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				pathPercent/=2;
 				if (tween.position > tween.duration/2) pathPercent = 100-pathPercent;
 			}
+            target._percentComplete = pathPercent
 		}	
 		
 		if (pathObject) {
@@ -70663,7 +70720,7 @@ new Pic("image.png") // preloaded asset
 	.center()
 	.effect(new ShadowEffect())
 	.animate({
-		props:{"effects.blur.angle":90},
+		props:{"effects.shadow.angle":90},
 		time:.7,
 		rewind:true,
 		rewindWait:.5,
@@ -88417,8 +88474,10 @@ flipMaterial(materialType, params) - flip about the y access a material
 	Note a second texture must be made and passed to flipMaterial in the params as the map
 curvePlane(geometry, z) - curves a THREE.PlaneGeometry but a z value (positive or negative)
 	adjusts the Geometry in place -	used internally by makePanel
-dispose() - stops the renderer - you need to removeChild(threeObj.DOMElement) and threeObj.canvas.style.display = "none"
-
+dispose() - clears geometries, materials, stops the renderer, removes scene and sets internal variables to null 
+	make sure the three reference is set to null:
+		myThree.dispose();
+		mythree = null; // same for any dispose - ZIM cannot set your variables to null
 METHODS ON MESH 
 ** If makePanel() is used on the ortho scene (ortho parameter true and makeMesh added to three.sceneOrtho)
 ** then the mesh is given a pos() method:
@@ -90229,58 +90288,58 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 
 // these are global regardless
 var globalsConstants = [
-	["FIT", zim.FIT],
-	["FILL", zim.FILL],
-	["FULL", zim.FULL],
-	["LEFT", zim.LEFT],
-	["RIGHT", zim.RIGHT],
-	["CENTER", zim.CENTER],
-	["MIDDLE", zim.MIDDLE],
-	["START", zim.START],
-	["END", zim.END],
-	["TOP", zim.TOP],
-	["BOTTOM", zim.BOTTOM],
-	["OVER", zim.OVER],
-	["UNDER", zim.UNDER],
-	["HORIZONTAL", zim.HORIZONTAL],
-	["VERTICAL", zim.VERTICAL],
-	["BOTH", zim.BOTH],
-	["RADIAL", zim.RADIAL],
-	["UP", zim.UP],
-	["DOWN", zim.DOWN],
-	["NEXT", zim.NEXT],
-	["PREV", zim.PREV],
-	["AUTO", zim.AUTO],
-	["AVE", zim.AVE],
-	["DEFAULT", zim.DEFAULT],
-	["ALL", zim.ALL],
-	["NONE", zim.NONE],
-	["GET", zim.GET],
-	["POST", zim.POST],
-	["LOCALSTORAGE", zim.LOCALSTORAGE],
-	["SOCKET", zim.SOCKET],
-	["TO", zim.TO],
-	["FROM", zim.FROM],		
-	["SINE", zim.SINE],
-	["SQUARE", zim.SQUARE],
-	["TRIANGLE", zim.TRIANGLE],
-	["SAW", zim.SAW],
-	["SAWTOOTH", zim.SAWTOOTH],
-	["ZAP", zim.ZAP],
-	["TAU", zim.TAU],
-	["DEG", zim.DEG],
-	["RAD", zim.RAD],
-	["PHI", zim.PHI],
-	];
-	
-	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
-	var pair = globalsConstants[z_i];  
-	WW[pair[0]] = pair[1];
-	}
-	
-	for (z_i = 0; z_i < zim.colors.length; z_i++) {
-	WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	}
+    ["FIT", zim.FIT],
+    ["FILL", zim.FILL],
+    ["FULL", zim.FULL],
+    ["LEFT", zim.LEFT],
+    ["RIGHT", zim.RIGHT],
+    ["CENTER", zim.CENTER],
+    ["MIDDLE", zim.MIDDLE],
+    ["START", zim.START],
+    ["END", zim.END],
+    ["TOP", zim.TOP],
+    ["BOTTOM", zim.BOTTOM],
+    ["OVER", zim.OVER],
+    ["UNDER", zim.UNDER],
+    ["HORIZONTAL", zim.HORIZONTAL],
+    ["VERTICAL", zim.VERTICAL],
+    ["BOTH", zim.BOTH],
+    ["RADIAL", zim.RADIAL],
+    ["UP", zim.UP],
+    ["DOWN", zim.DOWN],
+    ["NEXT", zim.NEXT],
+    ["PREV", zim.PREV],
+    ["AUTO", zim.AUTO],
+    ["AVE", zim.AVE],
+    ["DEFAULT", zim.DEFAULT],
+    ["ALL", zim.ALL],
+    ["NONE", zim.NONE],
+    ["GET", zim.GET],
+    ["POST", zim.POST],
+    ["LOCALSTORAGE", zim.LOCALSTORAGE],
+    ["SOCKET", zim.SOCKET],
+    ["TO", zim.TO],
+    ["FROM", zim.FROM],		
+    ["SINE", zim.SINE],
+    ["SQUARE", zim.SQUARE],
+    ["TRIANGLE", zim.TRIANGLE],
+    ["SAW", zim.SAW],
+    ["SAWTOOTH", zim.SAWTOOTH],
+    ["ZAP", zim.ZAP],
+    ["TAU", zim.TAU],
+    ["DEG", zim.DEG],
+    ["RAD", zim.RAD],
+    ["PHI", zim.PHI],
+    ];
+    
+    for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+    var pair = globalsConstants[z_i];  
+    WW[pair[0]] = pair[1];
+    }
+    
+    for (z_i = 0; z_i < zim.colors.length; z_i++) {
+    WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+    }
 
 
 WW.zim = zim;
