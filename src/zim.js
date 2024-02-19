@@ -964,8 +964,8 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 EXAMPLE
 if (odds(20)) new Rectangle().center(); // 20% the time there will be a Rectangle 
 
-if (odds()) asset("yay.mp3").play(); // half the time play yay otherwise play boo
-else asset("boo.mp3").play();
+if (odds()) new Aud("yay.mp3").play(); // half the time play yay otherwise play boo
+else new Aud("boo.mp3").play();
 END EXAMPLE
 
 PARAMETERS
@@ -13414,7 +13414,7 @@ zim.Uniforms = function(obj) {
             if (!Array.isArray(val)) val = [val]; 
             zim.loop(val, function(item, i, t) {
                 if (t==1) {
-                    val[0] = that[name];
+                    obj[name] = that[name];
                 } else {
                     val[i] = that[name + "_" + suf[i]];
                 }
@@ -16107,9 +16107,19 @@ Note the points property has been split into points and pointObjects (and there 
 			if (color.type) that.color = color;
 
 			var startPosition;
+			var mDown = false;
 			sets.on("mousedown", function(e) {
 				stage = e.target.stage;
 				if (that.lockControls) return;
+				mDown = true;
+				sets.loop(function(set) {
+					if (set == e.target.parent) return;					
+					if (set.lastChildren==null) set.lastChildren = set.mouseChildren;
+					if (set.lastMouse==null) set.lastMouse = set.mouseEnabled;
+					set.noMouse();
+				});
+				if (shape.lastMouse==null) shape.lastMouse = shape.mouseEnabled;
+				shape.mouseEnabled = false;
 				if (that.selectPoints) that.keyFocus = true;
 				startPosition = {x:e.target.x, y:e.target.y};
 				if (e.target.rect1) { // then mousedown on ball - which has a rect1
@@ -16203,6 +16213,16 @@ Note the points property has been split into points and pointObjects (and there 
 
 			sets.on("pressup", function(e) {
 				if (that.lockControls) return;
+				mDown = false;
+				sets.loop(function(set) {
+					if (set == e.target.parent) return;					
+					if (set.lastChildren!=null) set.mouseChildren = set.lastChildren;
+					if (set.lastMouse!=null) set.mouseEnabled = set.lastMouse;
+					set.lastChildren = null;
+					set.lastMouse = null;
+				});
+				if (shape.lastMouse!=null) shape.mouseEnabled = shape.lastMouse;
+				shape.lastMouse = null;
 				var moveControlCheck = (e.target.x != startPosition.x || e.target.y != startPosition.y);
 				var ev = new createjs.Event("change");
 				if (e.target.rect1) { // pressup on ball
@@ -16473,7 +16493,7 @@ Note the points property has been split into points and pointObjects (and there 
 				stage = that.stage;
 				if (that.toggleStageEvent) stage.off("stagemousedown", that.toggleStageEvent);
 				that.toggleStageEvent = stage.on("stagemousedown", function(e) {
-					if (!that.allowToggle || !that.stage) return;
+					if (mDown || !that.allowToggle || !that.stage) return;
 					if (_controls && !that.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY, false)) {
 						that.hideControls();
 						that.dispatchEvent("controlshide");
@@ -18307,8 +18327,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (color.type) that.color = color;
 
 			var startPosition;
+			var mDown;
 			sets.on("mousedown", function(e) {
 				if (that.lockControls) return;
+				sets.loop(function(set) {
+					if (set == e.target.parent) return;					
+					if (set.lastChildren==null) set.lastChildren = set.mouseChildren;
+					if (set.lastMouse==null) set.lastMouse = set.mouseEnabled;
+					set.noMouse();
+				});
+				if (shape.lastMouse==null) shape.lastMouse = shape.mouseEnabled;
+				shape.mouseEnabled = false;
+				mDown = true;
 				if (that.selectPoints) that.keyFocus = true;
 				startPosition = {x:e.target.x, y:e.target.y};
 				var ball;
@@ -18402,9 +18432,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 			});
 
-
 			sets.on("pressup", function(e) {
 				if (that.lockControls) return;
+				sets.loop(function(set) {
+					if (set == e.target.parent) return;					
+					if (set.lastChildren!=null) set.mouseChildren = set.lastChildren;
+					if (set.lastMouse!=null) set.mouseEnabled = set.lastMouse;
+					set.lastChildren = null;
+					set.lastMouse = null;
+				});
+				if (shape.lastMouse!=null) shape.mouseEnabled = shape.lastMouse;
+				shape.lastMouse = null;
+				mDown = false;
 				var moveControlCheck = (e.target.x != startPosition.x || e.target.y != startPosition.y);
 				var ev = new createjs.Event("change");
 				if (e.target.rect1) { // pressup on ball
@@ -18633,7 +18672,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				stage = that.stage;
 				if (that.toggleStageEvent) that.stage.off("stagemousedown", that.toggleStageEvent);
 				that.toggleStageEvent = that.stage.on("stagemousedown", function(e) {
-					if (!that.allowToggle || !that.stage) return;
+					if (mDown || !that.allowToggle || !that.stage) return;
 					if (_controls && !that.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY, false)) {
 						that.hideControls();
 						that.dispatchEvent("controlshide");
@@ -23380,7 +23419,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		color = zik(color);
 		rollColor = zik(rollColor);
 		downColor = zik(downColor);
-        
+
         var timeType = zot(WW.TIME) ? zot(zim.TIME) ? "seconds" : zim.TIME : WW.TIME;
 		
 		var originalBorderColor = borderColor;
@@ -48746,6 +48785,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		}
 	}
 	var toggleStageEvent = stage.on("stagemousedown", function(e) {
+		if (mCheck) return;
 		var underPoint = stage.getObjectUnderPoint(e.stageX, e.stageY, 1);
 		var layerPress = (underPoint && underPoint.parent && underPoint.parent.layer && underPoint.parent.layer == obj);
 
@@ -48826,14 +48866,63 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// transform functions
 
+	function mOff(current, control) {
+		if (control == current) return;					
+		if (control.lastChildren==null) control.lastChildren = control.mouseChildren;
+		if (control.lastMouse==null) control.lastMouse = control.mouseEnabled;
+		control.mouseChildren = false;
+		control.mouseEnabled = false;		
+	}
+
+	function mOn(current, control) {
+		if (control == current) return;					
+		if (control.lastChildren!=null) control.mouseChildren = control.lastChildren;
+		if (control.lastMouse!=null) control.mouseEnabled = control.lastMouse;
+	}
+
+	function offObjects(target) {
+		mCheck = true; // stagemouse up does not remove so works with multitouch		
+		squares.loop(function(control){mOff(target, control);});
+		sidesH.loop(function(control){mOff(target,control);});
+		sidesV.loop(function(control){mOff(target, control);});
+		rotators.loop(function(control){mOff(target, control);});
+		if (target == dragger) return;
+		if (dragger && dragger.lastMouse==null) {
+			dragger.lastMouse = dragger.mouseEnabled;
+			obj.lastMouse = obj.dragPaused;
+		}
+		dragger.mouseEnabled = false;
+		obj.dragPaused = true;
+	}
+
+	function onObjects(target) {
+		mCheck = false;
+		squares.loop(function(control){mOn(target, control);});
+		sidesH.loop(function(control){mOn(target,control);});
+		sidesV.loop(function(control){mOn(target, control);});
+		rotators.loop(function(control){mOn(target, control);});
+		if (target == dragger) return;
+		if (dragger && dragger.lastMouse!=null) {
+			dragger.mouseEnabled = dragger.lastMouse;
+			obj.dragPaused = obj.lastMouse;
+		}
+		dragger.lastMouse = null;
+	}
+
+	var mCheck = false;
 	function transformMousedown(e) {
-		mousePress = true;
+
+		offObjects(e.target);
+		
+		mousePress = true; // stagemouse up removes... may be broken with multitouch
 		if (onTop) {
 			upTop();
 			// obj.parent.setChildIndex(obj, obj.parent.numChildren-1);
 			// stage.addChild(controls);
 		}
-		if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);
+
+		if (mousemoveEvent) stage.off("stagemousemove", mousemoveEvent);	
+
 		startX = e.target.x;
 		startY = e.target.y;
 		objStartX = obj.x;
@@ -48873,7 +48962,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 			carrier2.addTo(container, 1).pos({x:pp.x, y:pp.y, reg:true});
 		}
 		dragger.visible = false;
-		obj.cursor = "none"; 
+		obj.cursor = "none"; 		
 	}
 
 	function scalePressmove(e) {
@@ -48940,6 +49029,9 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 	}
 
 	function pressUp(e, reset) {
+
+		onObjects(e.target);
+
 		setRotators();
 		var type = e ? e.target.controlType : "move";
 		if (reset) type = "reset";
@@ -49135,7 +49227,10 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 			stage.update();
 		});
 	}
-	dragger.on("mousedown", upTop);
+	dragger.on("mousedown", function(){
+		offObjects(dragger);
+		upTop();
+	});
 	dragger.on("pressmove", function(e) {
 		if (!obj.transformControls.visible) return;
 		var point;
@@ -49150,6 +49245,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		}
 	});
 	dragger.on("pressup", function(e){
+		onObjects(dragger);
 		if (!obj.transformControls.visible) return;
 		pressUp(e);
 	});
@@ -49157,30 +49253,34 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	// Stage Mouse Up
 	var stageUpEvent = stage.on("stagemouseup", function() {
-		mousePress = false;
-		dragger.mouseEnabled = true;
-		if (!dragReady) {
-			transformEvent = new createjs.Event("transformed");
-			if (obj.x != startProperties.x || obj.y != startProperties.y) {
-				transformEvent.transformType = "move";
-			} else {
-				transformEvent.transformType = "select";
+		setTimeout(function() {
+			if (mCheck) return;
+			mousePress = false;
+			dragger.mouseEnabled = true;
+			if (!dragReady) {
+				transformEvent = new createjs.Event("transformed");
+				if (obj.x != startProperties.x || obj.y != startProperties.y) {
+					transformEvent.transformType = "move";
+				} else {
+					transformEvent.transformType = "select";
+				}
+				transformEvent.pressup = true;
+				obj.dispatchEvent(transformEvent);
 			}
-			transformEvent.pressup = true;
-			obj.dispatchEvent(transformEvent);
-		}
-		dragReady = true;
-		dragger.visible = true;
-		if (rotateCheck) {
-			if (!frame.ctrlKey && snapRotation > 1) { // snap if not control
-				obj.rotation = Math.round(obj.rotation/snapRotation)*snapRotation;
-				makeControls();
+			dragReady = true;
+			dragger.visible = true;
+			if (rotateCheck) {
+				if (!frame.ctrlKey && snapRotation > 1) { // snap if not control
+					obj.rotation = Math.round(obj.rotation/snapRotation)*snapRotation;
+					makeControls();
+				}
 			}
-		}
-		drawDragger();
-		dragger.mouseEnabled = true;
-		rotateCheck = false;
-		stage.update();
+			drawDragger();
+			dragger.mouseEnabled = true;
+			rotateCheck = false;
+			stage.update();
+		},50);
+		
 	});
 
 	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -69477,6 +69577,19 @@ const dPad = new DPad().pos(40,40,LEFT,BOTTOM);
 ball.control(dPad, 80);
 END EXAMPLE
 
+EXAMPLE
+// attach a physics object to a ZIM object 
+// this is like a mousejoint similar to drag() but attached to an object rather than the mouse 
+// so a physics object can follow a ZIM drag() or animate() or wiggle(), etc.
+// the original distance between the objects is maintained like a distance joint
+// see https://zimjs.com/valentines/puppet.html
+// see https://zimjs.com/valentines/puppets2.html
+const physics = new Physics(0);
+const control = new Triangle().center().mov(0,-100).drag(); // or animate() or wiggle()
+const ball = new Circle().center().addPhysics();
+physics.attach(control, ball); // physics ball will be moved by triangle
+END EXAMPLE
+
 PARAMETERS - FOR PHYSICS
 ** supports DUO - parameters or single object with properties below
 gravity - (default 10) the gravity force in the downward direction
@@ -69513,6 +69626,12 @@ join(obj1, obj2, point1, point2, minAngle, maxAngle, type) - creates and returns
 		set to "weld" to fix the objects together
 break(joint) - break a joint created with join()
 	to use, store the result of the join() method in a variable and pass that variable in to break()
+attach(control, obj) attach a physics object (obj) to a ZIM object (control) to like a mousejoint to the ZIM object not the mouse 
+    the control can then be animated, wiggled, dragged and the physics object will follow it
+    returns an id to be able to unattach
+        const id = physics.attach(triangle, circle);
+        timeout(2, ()=>{physics.unattach(id)});
+unattach(id) unattach a physics object from the ZIM object based on the stored id from attach();
 debug() - activates the debugging - returns object for chaining
 updateDebug() - updates the debug canvas if the frame has been scaled (put in frame resize event)
 removeDebug() - removes the debug canvas - you can add it again later (or toggle, etc.)
@@ -72362,7 +72481,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.zimContainer_constructor(w,h);
 		this.type = "Flipper"; // need to get styles before constructor but must set type after calling constructor
 
-		if (zot(time)) time = DS.time!=null?DS.time:.2;
+        var timeType = getTIME(time);
+		if (zot(time)) time = DS.time!=null?DS.time:timeType=="s"?.2:200;
 		if (zot(vertical)) vertical = DS.vertical!=null?DS.vertical:false;
 		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:false;
 		if (zot(flipped)) flipped = DS.flipped!=null?DS.flipped:false;
@@ -84377,12 +84497,24 @@ END EXAMPLE
 
 EXAMPLE
 // use a Google font https://fonts.google.com/ and apply it with a STYLE 
-new Frame(FIT, 1024, 768, red, dark, ready, "https://fonts.googleapis.com/css?family=Dancing+Script");
+// previously, the whole URL was needed:
+// new Frame(FIT, 1024, 768, red, dark, ready, "https://fonts.googleapis.com/css?family=Dancing+Script");
+// now, the gf_ shortcut can be used:
+new Frame(FIT, 1024, 768, red, dark, ready, "gf_Dancing+Script");
 function ready() {
 	STYLE = {font:"Dancing Script"}; // or include + but not necessary.
 	new Label("Custom Google Font").center();
 	new Label("Second Custom Google Font").center().mov(0,100);
 }
+END EXAMPLE
+
+EXAMPLE 
+// with loadAssets, the previous example would be:
+loadAssets("gf_Dancing+Script");
+F.complete(()=>{
+	new Label("Custom Google Font", 50, "Dancing Script").center();
+	S.update();
+});
 END EXAMPLE
 --*///+83.85
 // Fonts are used by Label objects and components with label objects and are loaded

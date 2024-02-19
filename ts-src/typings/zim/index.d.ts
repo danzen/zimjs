@@ -20,8 +20,8 @@
 // FIXES
 // If you have any issues using the typing please contact us on GitHub
 // https://github.com/danzen/zimjs/issues/26
-// Or join our Slack team and post in the requests channel:
-// http://zimjs.com/slack/
+// Or join our Forum and post in the requests channel:
+// https://forum.zimjs.com
 
 declare global {
 
