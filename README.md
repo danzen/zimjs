@@ -2,6 +2,9 @@
 ![npm](https://img.shields.io/npm/v/zimjs.svg) ![GitHub](https://img.shields.io/badge/license-MIT-green.svg)
 [![Discord](https://img.shields.io/discord/782972112646307881)](https://discord.com/invite/KczUuFkZdk)
 
+![zim2](https://github.com/danzen/zimjs/assets/380281/f318c755-7dd2-43ed-8bf0-ead77ec40b23)
+
+
 JavaScript Canvas Framework - Code Creativity!<br>
 https://zimjs.com
 
@@ -11,6 +14,9 @@ Please see the About section for why we use ZIM to make Interactive Media.<br>
 https://zimjs.com/about.html
 
 ## Examples
+
+![zim](https://github.com/danzen/zimjs/assets/380281/af5c1e20-9f74-4b60-81f8-4ca1052ef16a)
+
 ZIM is great for games, puzzles, art, visualizations, interfaces and more!  See:<br>
 https://zimjs.com/examples.html<br>
 
@@ -69,6 +75,14 @@ https://zimjs.com/docs.html
 
 ## NPM
 Here is ZIM on NPM: https://www.npmjs.com/package/zimjs<br>
+There are additional helper modules matching the CDN helper modules:<br>
+<a href=https://www.npmjs.com/package/@zimjs/physics>@zimjs/physics</a> | 
+<a href=https://www.npmjs.com/package/@zimjs/game>@zimjs/game</a> | 
+<a href=https://www.npmjs.com/package/@zimjs/three>@zimjs/three</a> | 
+<a href=https://www.npmjs.com/package/@zimjs/socket>@zimjs/socket</a> | 
+<a href=https://www.npmjs.com/package/@zimjs/cam>@zimjs/cam</a> | 
+<a href=https://www.npmjs.com/package/@zimjs/pizzazz>@zimjs/pizzazz</a>
+<br><br>
 These steps describe setting up ZIM with Vite and NPM for vanilla JavaScript or TypeScript.<br>
 There are also templates for VUE, Svelte, React and Angular further down.
 
@@ -443,9 +457,9 @@ export class AppComponent implements OnDestroy, AfterContentInit {
 ```
 
 ## Issues & Community
-You are welcome to add issues here but we tend to use Slack at for issues and support<br>
+You are welcome to add issues here but we tend to use our Forum for issues and support<br>
 We would love to see you there!<br>
-https://zimjs.com/slack<br> 
+https://forum.zimjs.com<br> 
 <br>
 You are welcome to join us on Discord as well<br>
 https://zimjs.com/discord<br>
