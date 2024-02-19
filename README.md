@@ -194,6 +194,9 @@ F. OTHER FRAMEWORKS
 - The setup is the same as above but the app code is as follows
 
 ## VUE, SVELTE, REACT, ANGULAR
+
+![html_JavaScript_Frameworks](https://github.com/danzen/zimjs/assets/380281/318f3b45-8a27-45f4-886c-62706e0f2b93)
+
 ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
 See https://github.com/yoanhg421/zimjs-templates for full files.<br>
 Follow the SETUP instructions above and then adjust the code as follows:<br>
