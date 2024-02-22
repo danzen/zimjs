@@ -1,10 +1,4 @@
 # ZIM 
-![npm](https://img.shields.io/npm/v/zimjs.svg) ![GitHub](https://img.shields.io/badge/license-MIT-green.svg)
-[![Discord](https://img.shields.io/discord/782972112646307881)](https://discord.com/invite/KczUuFkZdk)
-
-![zim2](https://github.com/danzen/zimjs/assets/380281/f318c755-7dd2-43ed-8bf0-ead77ec40b23)
-
-
 JavaScript Canvas Framework - Code Creativity!<br>
 https://zimjs.com
 
@@ -35,6 +29,16 @@ new Button(200, 70, "TRY ME")
   .tap(()=>{zgo("https://zimjs.com");}); // go to URL
   
 ```
+
+<br>
+
+![zim2](https://github.com/danzen/zimjs/assets/380281/f318c755-7dd2-43ed-8bf0-ead77ec40b23)
+
+
+![npm](https://img.shields.io/npm/v/zimjs.svg) 
+![GitHub](https://img.shields.io/badge/license-MIT-green.svg)
+[![Discord](https://img.shields.io/discord/782972112646307881)](https://discord.com/invite/KczUuFkZdk)
+[![Discourse](https://img.shields.io/badge/discourse-forum-brightgreen.svg)](https://forum.zimjs.com)
 
 ## Getting Started
 
