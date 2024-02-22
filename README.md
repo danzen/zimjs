@@ -249,7 +249,7 @@ Follow the SETUP instructions above and then adjust the code as follows:<br>
       color:light,
       ready: () => {
           // put code here
-          new zim.Circle(50, red).center().drag();
+          new Circle(50, red).center().drag();
       }
     });
   });
@@ -319,7 +319,7 @@ Follow the SETUP instructions above and then adjust the code as follows:<br>
       color:light,
       ready: () => {
           // put code here
-          new zim.Circle(50, red).center().drag();
+          new Circle(50, red).center().drag();
       }
     });
   });
