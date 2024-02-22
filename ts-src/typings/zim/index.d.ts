@@ -1804,7 +1804,6 @@ declare namespace zim {
 		radialGradient(colors: [any], ratios: [any], x0: number, y0: number, radius0: number, x1: number, y1: number, radius1: number): this
 		readonly veeObj: zimVee
 		// END ZIM Shape Interface
-		clone(exact?: boolean): this
 		corner: number
 	}
 

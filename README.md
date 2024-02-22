@@ -145,7 +145,7 @@ function ready() {
         
 } // end ready
 ```
-- In the index.html file, replace the Vite icon with:
+- In the index.html file, optionally replace the Vite icon with:
 ```html
 <link rel="apple-touch-icon-precomposed" sizes="57x57" href="https://zimjs.com/icons/apple-touch-icon-57x57.png" />
 <link rel="apple-touch-icon-precomposed" sizes="114x114" href="https://zimjs.com/icons/apple-touch-icon-114x114.png" />
@@ -168,7 +168,7 @@ C. DEVELOPMENT
 - This opens up a browser to see the file with the purple circle
 - Make edits to your ZIM app
   - See https://zimjs.com/learn for how to use ZIM 
-  - See https://zimjs.co/docs for reference to commands
+  - See https://zimjs.com/docs for reference to commands
 - When done developing use CTRL C to exit the dev terminal
 
 D. DEPLOYMENT
@@ -473,7 +473,7 @@ https://zimjs.com/updates.html
 ## Dependencies
 ZIM is powered by the robust CreateJS Library and adds many conveniences, components and controls.<br>
 Cheers to Grant, Lanny and the CreateJS Team!<br>
-https://createjs.com
+https://createjs.com - here is the <a href=https://github.com/danzen/createjs>ZIM version of CreateJS</a> 
  
 ## Authors
 * **Dr Abstract (Inventor Dan Zen)**<br>

@@ -37,7 +37,7 @@ Node module - also see ES6 modules at https://zimjs.com/cdn
 
 // This is used for the build but in a browser would be
 // import createjs from "https://zimjs.org/cdn/1.4.0/createjs";
-import "@danzen/createjs";
+import "@zimjs/createjs";
 
 var WW = window||{}; // minify does not shorten window so this saves 1.5k
 var createjs = WW.createjs; // the expected CreateJS namespace - import CreateJS first
@@ -82771,6 +82771,8 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		}
 		if (canvas) canvas.removeAllEventListeners();
 		if (that.frameTime) clearInterval(that.frameTime);
+
+        if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose) WW.zimDefaultPhysics.dispose(); 
 		
 		// remove frame events
 		// var realWindow = window.parent || window;
@@ -84510,10 +84512,9 @@ END EXAMPLE
 
 EXAMPLE 
 // with loadAssets, the previous example would be:
-loadAssets("gf_Dancing+Script");
-F.complete(()=>{
+F.loadAssets("gf_Dancing+Script");
+F.on("complete", ()=>{
 	new Label("Custom Google Font", 50, "Dancing Script").center();
-	S.update();
 });
 END EXAMPLE
 --*///+83.85
@@ -87717,7 +87718,7 @@ grid - reference to the zim.Container used for the grid
 			var score = row.getChildAt(4);
 		});
 titleText - reference to the zim.Label used for the title if the title parameter is provided
-dataSource - get the of data used as a string: database (using an ID), localStorage or manual (custom)
+dataSource - get the data used as a string: database (using an ID), localStorage or manual (custom)
 	NOTE: if there is a problem with your data ID then this will revert from database to localStorage
 	You can tell when you save a score / name the save button says LOCAL if localStorage and SENT if database or manual
 key - the ID (from https://zimjs.com/leaderboard/) if provided
@@ -87780,7 +87781,7 @@ Plus all the methods and properties of a Label
 	//-105
 
 /*--
-zim.Board = function(size, cols, rows, backgroundColor, rollBackgroundColor, borderColor, borderWidth, isometric, indicatorColor, indicatorBorderColor, indicatorBorderWidth, indicatorSize, indicatorType, arrows, arrowColor, arrowRollColor, info, labels, color, scaleMin, scaleMax, swipe, buffer)
+zim.Board = function(size, cols, rows, backgroundColor, rollBackgroundColor, borderColor, borderWidth, isometric, indicatorColor, indicatorBorderColor, indicatorBorderWidth, indicatorSize, indicatorType, arrows, arrowColor, arrowRollColor, swipe, info, labels, color, scaleMin, scaleMax, buffer)
 
 Board
 zim class - extends a zim.Container which extends a createjs.Container
@@ -87849,6 +87850,7 @@ arrows - (default true) show (auto) arrows if info is larger than board view
 	so pressing right will move the board to the left, etc.
 arrowColor - (default "rgba(0,0,0,.4)") the arrow color
 arrowRollColor - (default white) the arrow roll color
+swipe - (default true) set to false to not swipe on the board to move the board (like arrows)
 info - (default null) set to an array of rows and cols in the following format:
 	Rows are the outer array and cols are the inner arrays with {} being the info
 	[[{data:"x", color:blue, items:[new Person()]},{},{},,,,,], [,,],,,,,,,,,,,,,,,]
@@ -87865,7 +87867,6 @@ labels - (default false) set to true to display the data from info in tiles - fo
 color - (default granite) color of the labels
 scaleMin - (default 1.2) the minimum items will be scaled when farther (top) from user
 scaleMax - (default 1.8) the maximum items will be scaled when closer (bottom) to user
-swipe - (default true) set to false to not swipe on the board to move the board (like arrows)
 buffer - (default 3) nudge camera when moving item is this many tiles from the edge
 	applies when info is larger than board and keys or path is used to move item
 	set to 0 to not nudge camera
@@ -88541,7 +88542,8 @@ const dial = new Dial({min:0, max:360, step:0, continuous:true}).pos(70,0,LEFT,C
 });
 END EXAMPLE
 
-PARAMETERS supports DUO - parameters or single object with properties below
+PARAMETERS
+** supports DUO - parameters or single object with properties below
 width - (default ZIM Frame width) the width to make the three.js canvas
 height - (default ZIM Frame height) the height to make the three.js canvas
 color - (default null - transparent) a CSS color (no transparency on color - just leave off to set transparent)
@@ -89163,6 +89165,7 @@ socket.on("data", d => {
 END EXAMPLE
 
 PARAMETERS
+** supports DUO - parameters or single object with properties below
 server - (default https://localhost:3000) the server that is running node and the zimsocket.js : portNumber
 appName - (required) a string id (one word or joined words) and unique for your app
 roomName - (default "default") optional room name otherwise just uses a default room (can represent many rooms if maxPeople is set)
@@ -90121,8 +90124,11 @@ makeShape("drip", blue, 250).center();
 END EXAMPLE
 
 PARAMETERS
-type (default "cloud") the shape name - see list below
-color (default black) a color for the shape - ZIM color, HTML string or HEX
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+** Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+type - |ZIM VEE| (default "cloud") the shape name - see list below
+color - |ZIM VEE| (default black) a color for the shape - ZIM color, HTML string or HEX
 width (default as drawn) the width of the shape
 height (default as drawn) the height of the shape
 
@@ -90201,9 +90207,12 @@ info.on("click", function(){zgo("https://zimjs.com/bits/view/icons.html")});
 END EXAMPLE
 
 PARAMETERS
-type (default "play") 0 the shape name - see list below
-color (default black) a color for the icon - ZIM color, HTML string or HEX
-scale (default 1) the scale of the icon
+** supports DUO - parameters or single object with properties below
+** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
+** Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+type - |ZIM VEE| (default "play") 0 the shape name - see list below
+color - |ZIM VEE| (default black) a color for the icon - ZIM color, HTML string or HEX
+scale - |ZIM VEE| (default 1) the scale of the icon
 multi (default 1) how many icons to show
 multiAlpha (default .5) alpha for other icons
 multiScale (default .3) scale for each subsequent icons
@@ -90275,11 +90284,11 @@ PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
 ** Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
-type (default "pixels") the pattern name - see list below:
+type - |ZIM VEE| (default "pixels") the pattern name - see list below:
 	// pixels, noise, dots, stripes, slants, hatch, plaid, bling, check
 colors - |ZIM VEE| (default black) CSS colors for the pattern
 	// this uses ZIM VEE to apply multiple, random, or a series of colors, etc.
-size (default 10) the size of the shape used for the pattern
+size - |ZIM VEE| (default 10) the size of the shape used for the pattern
 cols - (default 30) the columns to tile
 rows - (default 10) the rows to tile
 spacingH - (default 0) a spacing between columns
