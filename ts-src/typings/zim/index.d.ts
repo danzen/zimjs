@@ -2234,7 +2234,7 @@ declare namespace zim {
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
 		// END ZIM Component Interface
-		show(): this
+		show(call?:Function): this
 		hide(): this
 		readonly display: Rectangle
 		text: string
