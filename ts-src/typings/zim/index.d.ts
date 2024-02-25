@@ -49,10 +49,11 @@ declare global {
 	var fog: string
 	var mist: string
 	var light: string
+    var moon: string
 	var lighter: string
 	var white: string
-	var clear: string
 	var faint: string
+	var clear: string
 
 	var F: zim.Frame
 	var S: zim.Stage
@@ -168,6 +169,7 @@ declare namespace zim {
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
+        change(call: Function): this
 		dragBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		dragRect(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		mouse(): this
@@ -739,6 +741,7 @@ declare namespace zim {
 		noTap(): this
 		hold(call: Function, distance?: number, time?: number, once?: boolean): this
 		noHold(): this
+        change(call: Function): this
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
@@ -891,7 +894,6 @@ declare namespace zim {
 		setBounds(width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number): this
 		hasProp(prop: string): boolean
 		dispose(): boolean
-		clone(exact?: boolean): this
 	}
 
 	export class Sprite extends createjs.Sprite implements zimDisplay {
@@ -908,6 +910,7 @@ declare namespace zim {
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
+        change(call: Function): this
 		dragBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		dragRect(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		mouse(): this
@@ -1056,7 +1059,6 @@ declare namespace zim {
 		stopRun(): this
 		hasProp(prop: string): boolean
 		dispose(): boolean
-		clone(): this
 		id: any // string for Sprite and number for createjs.Sprite
 		frame: number
 		normalizedFrame: number
@@ -1080,6 +1082,7 @@ declare namespace zim {
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
+        change(call: Function): this
 		dragBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		dragRect(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		mouse(): this
@@ -1225,7 +1228,6 @@ declare namespace zim {
 		// END ZIM Display Interface
 		cache(width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number, scale?: number, options?: {}, margin?: number): this
 		hasProp(prop: string): boolean
-		clone(): this
 		mt(...args: any[]): this
 		lt(...args: any[]): this
 		a(...args: any[]): this
@@ -1269,6 +1271,7 @@ declare namespace zim {
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
+        change(call: Function): this
 		dragBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		dragRect(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		mouse(): this
@@ -1437,6 +1440,7 @@ declare namespace zim {
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
+        change(call: Function): this
 		dragBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		dragRect(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		mouse(): this
@@ -1598,6 +1602,7 @@ declare namespace zim {
 		drag(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean): this
 		drag(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | DisplayObject, axis?: string, overCursor?: string, dragCursor?: string, all?: boolean, swipe?: boolean, localBoundary?: boolean, onTop?: boolean, surround?: boolean, slide?: boolean, slideFactor?: number, slideSnap?: boolean, slideSnapDamp?: number, reg?: boolean, removeTweens?: boolean, startBounds?: boolean, rect?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, currentTarget?: boolean }): this
 		noDrag(): this
+        change(call: Function): this
 		dragBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		dragRect(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }): this
 		mouse(): this
@@ -3300,7 +3305,6 @@ declare namespace zim {
 		constructor(config_or_front?: DisplayObject, back?: DisplayObject, interactive?: boolean, time?: number, vertical?: boolean, flipped?: boolean, ease?: string, frontPress?: boolean, backPress?: boolean, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { front?: DisplayObject, back?: DisplayObject, interactive?: boolean, time?: number, vertical?: boolean, flipped?: boolean, ease?: string, frontPress?: boolean, backPress?: boolean, style?: boolean, group?: string, inherit?: {} })
 		flip(state?: boolean, time?: number): this
-		clone(): Flipper
 		dispose(): boolean
 		readonly type: string
 		readonly flipped: boolean
@@ -3442,7 +3446,7 @@ declare namespace zim {
 		noStroke(): this
 		translate(x?: number | zimVee, y?: number | zimVee): this
 		rotate(degrees: number | zimVee): this
-		scale(x?: number | zimVee, y?: number | zimVee): this
+		// scale(x?: number | zimVee, y?: number | zimVee): this // go ahead and use scale(x, y) but just conflicting with createjs scale property
 		skew(x?: number | zimVee, y?: number | zimVee): this
 		line(x1?: number | zimVee, y1?: number | zimVee, x2?: number | zimVee, y2?: number | zimVee): this
 		arc(x?: number | zimVee, y?: number | zimVee, radius?: number | zimVee, startAngle?: number | zimVee, endAngle?: number | zimVee, anticlockwise?: boolean | zimVee): this

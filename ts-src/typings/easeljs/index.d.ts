@@ -244,6 +244,7 @@ declare namespace createjs {
         rotation: number;
         scaleX: number;
         scaleY: number;
+        scale: number;
         shadow: Shadow;
         skewX: number;
         skewY: number;
