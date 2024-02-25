@@ -8370,6 +8370,7 @@ Used internally by ZIM to globally dispose common connections
 		if (obj.zimWire) obj.noWire();
 		if (obj.zimWired) obj.noWired();
 		if (obj.zimClickHoldDownEvent) obj.noHold();
+		if (obj.motionController) obj.motionController.dispose();
 		if (obj.transformControls) obj.transformControls.dispose();
 		if (obj.zimClickDownEvent) obj.zimClickDownEvent = null;
 		if (obj.zimClickUpEvent) obj.zimClickUpEvent = null;
@@ -82776,6 +82777,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		if (that.frameTime) clearInterval(that.frameTime);
 
         if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose) WW.zimDefaultPhysics.dispose(); 
+        if (WW.zimDefaultThree && WW.zimDefaultThree.dispose) WW.zimDefaultThree.dispose(); 
 		
 		// remove frame events
 		// var realWindow = window.parent || window;
@@ -90400,36 +90402,35 @@ https://codepen.io/zimjs/pen/ZqNYxX
 } (zim || {});
 
 var globalFunctions =   [
-  ["zog", zog],
-  ["zid", zid],
-  ["zss", zss],
-  ["zgo", zgo],
-  ["zum", zum],
-  ["zot", zot],
-  ["zop", zop],
-  ["zil", zil],
-  ["zet", zet],
-  ["zob", zob],
-  ["zik", zik],
-  ["zta", zta],
-  ["zor", zor],
-  ["zogg", zogg],
-  ["zogp", zogp],
-  ["zogb", zogb],
-  ["zogr", zogr],
-  ["zogy", zogy],
-  ["zogo", zogo],
-  ["zogl", zogl],
-  ["zogd", zogd],
-  ["zimplify", zimplify],
-  ["zimify", zimify]
+    ["zog", zog],
+    ["zid", zid],
+    ["zss", zss],
+    ["zgo", zgo],
+    ["zum", zum],
+    ["zot", zot],
+    ["zop", zop],
+    ["zil", zil],
+    ["zet", zet],
+    ["zob", zob],
+    ["zik", zik],
+    ["zta", zta],
+    ["zor", zor],
+    ["zogg", zogg],
+    ["zogp", zogp],
+    ["zogb", zogb],
+    ["zogr", zogr],
+    ["zogy", zogy],
+    ["zogo", zogo],
+    ["zogl", zogl],
+    ["zogd", zogd],
+    ["zimplify", zimplify],
+    ["zimify", zimify]
 ];
 
 for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   var pair = globalFunctions[z_i];  
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
-
 
 // these are global regardless
 var globalsConstants = [
@@ -90478,14 +90479,13 @@ var globalsConstants = [
 ];
 
 for (z_i = 0; z_i < globalsConstants.length; z_i++) {
-    var pair = globalsConstants[z_i];  
-    WW[pair[0]] = pair[1];
-}
-    
-for (z_i = 0; z_i < zim.colors.length; z_i++) {
-    WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+var pair = globalsConstants[z_i];  
+WW[pair[0]] = pair[1];
 }
 
+for (z_i = 0; z_i < zim.colors.length; z_i++) {
+WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+}
 
 WW.zim = zim;
 export default zim;
