@@ -435,7 +435,7 @@ declare namespace zim {
 		loop(number: number, call: Function): any
 		static choose(choice: any): any
 		static rand(a?: number, b?: number, integer?: boolean, negative?: boolean): number
-		static series(array_item: any): Function
+		static series(...array_item: any): Function
 		static getMinMax(vee: zimVee): {}
 		type: string
 		choices: any
@@ -597,8 +597,7 @@ declare namespace zim {
 	export function makeSyllable(length?: number, firstValue?: boolean): string
 	export function makePrimitive(obj: any): string | number | boolean
 	export function makeMath(): void
-	export function series(array_item: any): Function
-	export function makeSeries(array: [any]): Function
+	export function series(...array_item: any): Function
 	export function smoothStep(num: number, min: number, max: number): number
 	export function unicodeToUTF(val: string): string
 	export function capitalizeFirst(string: string): string
@@ -2903,6 +2902,7 @@ declare namespace zim {
 		static makeBacking(width?: number, height?: number, text?: string, color?: color): Container
 		readonly interactive: boolean
 		readonly animated: boolean
+        readonly canvas: HTMLCanvasElement
 		backingOrbit: boolean
 	}
 	export class TextureActives extends createjs.EventDispatcher {

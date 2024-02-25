@@ -15509,7 +15509,7 @@ approximateBounds(num, showPoints, margin) - update the bounds based on a Rectan
 addPoint(percent, controlType) - add a point at a percent (100) of the total curve
 	this is handy to make path have the same number of points for animate() path tweens
 	controlType can be as specified in main points parameter
-	returns object for chaining
+	returns index of new point
 addPoints(num, controlType, startPoint, spread, dataOnly, points, even) - add num points between existing points
 	controlType can be as specified in main points parameter
 	specify a startPoint to add points between the startPoint and the next point (one segment of points)
@@ -17348,6 +17348,7 @@ Note the points property has been split into points and pointObjects (and there 
 			}
 			if (controlType) newPoint[8] = controlType;
 			points.splice(index+1, 0, newPoint);
+			return index+1;
 		}
 
 		this.addPoint = function(percent, controlType) {
@@ -17356,10 +17357,10 @@ Note the points property has been split into points and pointObjects (and there 
 			var ratios = that.segmentRatios;
 			var controls = that.pointControls;
 			controlType = controlType ? controlType : originalControlType;
-			insertPointData(points, controls, ratios, percent, controlType);
+			var index = insertPointData(points, controls, ratios, percent, controlType);
 			that.points = points;
 			that.num = points.length;
-			return that;
+			return index;
 		};
 
 		this.removePoint = function(index) {	
@@ -17637,7 +17638,7 @@ approximateBounds(num, showPoints) - update the bounds based on a Rectangle
 addPoint(percent, controlType) - add a point at a percent (100) of the total curve
 	this is handy to make path have the same number of points for animate() path tweens
 	controlType can be as specified in main points parameter
-	returns object for chaining
+	returns index of new point
 addPoints(num, controlType, startPoint, spread, dataOnly, points, even) - add num points between existing points
 	controlType can be as specified in main points parameter
 	specify a startPoint to add points between the startPoint and the next point (one segment of points)
@@ -19532,6 +19533,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 			if (controlType) newPoint[8] = controlType;
 			points.splice(index+1, 0, newPoint);
+			return index+1;
 		}
 
 		this.addPoint = function(percent, controlType) {
@@ -19540,10 +19542,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var ratios = that.segmentRatios;
 			var controls = that.pointControls;
 			controlType = controlType ? controlType : originalControlType;
-			insertPointData(points, controls, ratios, percent, controlType);
+			var index = insertPointData(points, controls, ratios, percent, controlType);
 			that.points = points;
 			that.num = points.length;
-			return that;
+			return index;
 		};
 
 		this.removePoint = function(index) {	
@@ -44399,10 +44401,11 @@ S.on("stagemousemove", ()=>{
 
 // REMOVE METHOD
 // a remove() method is available on the event object
-const circle = new Circle();
+const circle = new Circle().center();
 circle.on("mouseover", e=>{
 	circle.alpha -= .1;
 	if (circle.alpha <= .5) e.remove();
+	S.update();
 });
 END EXAMPLE
 
@@ -89378,7 +89381,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - name of class as a string
 ready - read only if the ready event has happened
-** these methods are available only once the WebCam "ready" event has happened
+** these properties are available only once the WebCam "ready" event has happened
 tag - reference to the HTML video tag (created by ZIM to hold the cam video)
 display - reference to the ZIM Container that holds the bitmap of the video
 	this is what is cached and has its cacheCanvas analyzed for motion
@@ -89644,7 +89647,7 @@ rawY - get the reported y undamped position of the motion - relative to the guid
 cam - reference to the ZIM WebCam object
 dampX - the horizontal Damp object
 dampY - the vertical Damp object
-** these methods are available only once the WebCam "ready" event has happened
+** these properties are available only once the WebCam "ready" event has happened
 data - an array of motion data for each point with 0 for no motion and 1 for motion 
 points - an array of point objects {x, y} that locate the test points relative to the obj parameter (default stage)
 camPoints - (used internally) an array of point objects {x, y} that locate the test points relative to the cam.bitmap
@@ -90427,62 +90430,62 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-if (zns) {
-	// these are global regardless
-	var globalsConstants = [
-		["FIT", zim.FIT],
-		["FILL", zim.FILL],
-		["FULL", zim.FULL],
-		["LEFT", zim.LEFT],
-		["RIGHT", zim.RIGHT],
-		["CENTER", zim.CENTER],
-		["MIDDLE", zim.MIDDLE],
-		["START", zim.START],
-		["END", zim.END],
-		["TOP", zim.TOP],
-		["BOTTOM", zim.BOTTOM],
-		["OVER", zim.OVER],
-		["UNDER", zim.UNDER],
-		["HORIZONTAL", zim.HORIZONTAL],
-		["VERTICAL", zim.VERTICAL],
-		["BOTH", zim.BOTH],
-		["RADIAL", zim.RADIAL],
-		["UP", zim.UP],
-		["DOWN", zim.DOWN],
-		["NEXT", zim.NEXT],
-		["PREV", zim.PREV],
-		["AUTO", zim.AUTO],
-		["AVE", zim.AVE],
-		["DEFAULT", zim.DEFAULT],
-		["ALL", zim.ALL],
-		["NONE", zim.NONE],
-		["GET", zim.GET],
-		["POST", zim.POST],
-		["LOCALSTORAGE", zim.LOCALSTORAGE],
-		["SOCKET", zim.SOCKET],
-		["TO", zim.TO],
-		["FROM", zim.FROM],		
-		["SINE", zim.SINE],
-		["SQUARE", zim.SQUARE],
-		["TRIANGLE", zim.TRIANGLE],
-		["SAW", zim.SAW],
-		["SAWTOOTH", zim.SAWTOOTH],
-		["ZAP", zim.ZAP],
-		["TAU", zim.TAU],
-		["DEG", zim.DEG],
-		["RAD", zim.RAD],
-		["PHI", zim.PHI],
-	  ];
-	  
-	  for (z_i = 0; z_i < globalsConstants.length; z_i++) {
-		var pair = globalsConstants[z_i];  
-		WW[pair[0]] = pair[1];
-	  }
-	  
-	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
-		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	  }
-} else zimplify();
+
+// these are global regardless
+var globalsConstants = [
+    ["FIT", zim.FIT],
+    ["FILL", zim.FILL],
+    ["FULL", zim.FULL],
+    ["LEFT", zim.LEFT],
+    ["RIGHT", zim.RIGHT],
+    ["CENTER", zim.CENTER],
+    ["MIDDLE", zim.MIDDLE],
+    ["START", zim.START],
+    ["END", zim.END],
+    ["TOP", zim.TOP],
+    ["BOTTOM", zim.BOTTOM],
+    ["OVER", zim.OVER],
+    ["UNDER", zim.UNDER],
+    ["HORIZONTAL", zim.HORIZONTAL],
+    ["VERTICAL", zim.VERTICAL],
+    ["BOTH", zim.BOTH],
+    ["RADIAL", zim.RADIAL],
+    ["UP", zim.UP],
+    ["DOWN", zim.DOWN],
+    ["NEXT", zim.NEXT],
+    ["PREV", zim.PREV],
+    ["AUTO", zim.AUTO],
+    ["AVE", zim.AVE],
+    ["DEFAULT", zim.DEFAULT],
+    ["ALL", zim.ALL],
+    ["NONE", zim.NONE],
+    ["GET", zim.GET],
+    ["POST", zim.POST],
+    ["LOCALSTORAGE", zim.LOCALSTORAGE],
+    ["SOCKET", zim.SOCKET],
+    ["TO", zim.TO],
+    ["FROM", zim.FROM],		
+    ["SINE", zim.SINE],
+    ["SQUARE", zim.SQUARE],
+    ["TRIANGLE", zim.TRIANGLE],
+    ["SAW", zim.SAW],
+    ["SAWTOOTH", zim.SAWTOOTH],
+    ["ZAP", zim.ZAP],
+    ["TAU", zim.TAU],
+    ["DEG", zim.DEG],
+    ["RAD", zim.RAD],
+    ["PHI", zim.PHI],
+];
+
+for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+    var pair = globalsConstants[z_i];  
+    WW[pair[0]] = pair[1];
+}
+    
+for (z_i = 0; z_i < zim.colors.length; z_i++) {
+    WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+}
+
 
 WW.zim = zim;
 export default zim;
