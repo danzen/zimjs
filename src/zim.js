@@ -65369,7 +65369,7 @@ also see the toggle property
 and show() and hide()
 show() - show the ZIM canvas and hide the three.js canvas - also see toggle()
 hide() - hide the ZIM canvas and show the three.js canvas - also see toggle()
-dispose(obj) - disposes objects in the manager 
+dispose() - disposes objects in the manager 
 
 PROPERTIES 
 type - holds the class name as a String

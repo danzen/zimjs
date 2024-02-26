@@ -2916,6 +2916,7 @@ declare namespace zim {
 		add(actives: TextureActive | [TextureActive]): this
 		remove(actives: TextureActive | [TextureActive]): this
 		addMesh(mesh: any, layer?: number): this
+        dispose(): void
 		readonly interactive: boolean
 		readonly animated: boolean
 		readonly manager: TextureActivesManager
@@ -2932,6 +2933,7 @@ declare namespace zim {
 		toggle(state?: boolean): this
 		show(): this
 		hide(): this
+        dispose(): void
 		readonly toggled: boolean
 		readonly tile: Tile
 		readonly objects: Dictionary
