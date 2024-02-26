@@ -8363,7 +8363,7 @@ Used internally by ZIM to globally dispose common connections
 			delete obj.z_bc;
 		}
 		if (zim.KEYFOCUS == obj) zim.KEYFOCUS = null;
-		if (WW.KEYFOCUS == obj) WW.KEYFOCUS = null;
+		if (WW.KEYFOCUS == obj) WW.KEYFOCUS = null;		
 		if (obj.veeObj) obj.veeObj = null;
 		if (obj.draggable) obj.noDrag();
 		if (obj.zimTweens) obj.stopAnimate();
@@ -64575,11 +64575,16 @@ zim.TextureActive = function(width, height, color, color2, angle, borderColor, b
 
 	if (style!==false) zim.styleTransforms(this, DS);
 
+	this.dispose = function(a,b,disposing) {
+		if (this.textureActives) this.textureActives.remove(this);
+		if (!disposing) this.zimPage_dispose(true);
+	}
+
 	this.clone = function() {
 		return this.cloneProps(new zim.TextureActive(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, this.group, inherit));
 	};
 }
-zim.extend(zim.TextureActive, zim.Page, ["clone"], "zimPage", false);
+zim.extend(zim.TextureActive, zim.Page, ["clone","dispose"], "zimPage", false);
 zim.TextureActive.makeLogo = function(shade, mouse) {
 	if (zot(shade)) shade = "light";
 	var onLight = shade != "dark";
@@ -64895,7 +64900,8 @@ function addActives(actives) {
 	zim.loop(actives, function(active) {
 		if (that.actives.indexOf(active) < 0) {
 			that.actives.push(active);                    
-			active.cache();            
+			active.cache();        
+			active.textureActives = that;    
 			active.canvas.content = active;    
 			if (active.interactive) {
 				interactive = true;
@@ -64974,47 +64980,47 @@ function apply () {
 	var tempMatrix = new threejs.Matrix4();
 
 	var controller1 = that.controllerLeft = renderer.xr.getController(0);
-	controller1.addEventListener('selectstart', doLcDown); // ignoring select
-	controller1.addEventListener('selectend', doLcUp);
-	controller1.addEventListener('move', doLcMove);
+	controller1.addEventListener('selectstart', that.doLcDown); // ignoring select
+	controller1.addEventListener('selectend', that.doLcUp);
+	controller1.addEventListener('move', that.doLcMove);
 
 	var controller2 = that.controllerRight = renderer.xr.getController(1);
-	controller2.addEventListener('selectstart', doRcDown); // ignoring select
-	controller2.addEventListener('selectend', doRcUp);
-	controller2.addEventListener('move', doRcMove);
+	controller2.addEventListener('selectstart', that.doRcDown); // ignoring select
+	controller2.addEventListener('selectend', that.doRcUp);
+	controller2.addEventListener('move', that.doRcMove);
 
-	function doLcDown(e) {
+	that.doLcDown = function (e) {
 		// possibly need to set pointerID
 		XR = true;
 		doDown(e);
 	}
-	function doLcUp(e) {
+	that.doLcUp = function (e) {
 		XR = true;
 		doUp(e);
 	}
-	function doLcMove(e) {
+	that.doLcMove = function (e) {
 		XR = true;
 		doMove(e, "left"); // move does not come with data
 	}
-
-	function doRcDown(e) {
+	that.doRcDown = function (e) {
 		XR = true;
 		doDown(e);
 	}
-	function doRcUp(e) {
+	that.doRcUp = function (e) {
 		XR = true;
 		doUp(e);
 	}
-	function doRcMove(e) {
+	that.doRcMove = function (e) {
 		XR = true;
 		doMove(e, "right");
 	}
-	
-	window.addEventListener("pointerdown", doPointerDown);			
-	function doPointerDown(e) {
+
+
+	that.doPointerDown = function(e) {
 		XR = false;
 		doDown(e);
-	}
+	}	
+	window.addEventListener("pointerdown", that.doPointerDown);			
 	function doDown(e) {
 
 		if (!that.raycast) return;
@@ -65094,11 +65100,12 @@ function apply () {
 		}
 	}
 
-	window.addEventListener("pointerup", doPointerUp);
-	function doPointerUp(e) {
+
+	that.doPointerUp = function(e) {
 		XR = false;
 		doUp(e);
 	}
+	window.addEventListener("pointerup", that.doPointerUp);	
 	function doUp(e) {
 
 		if (!that.raycast) return;
@@ -65121,11 +65128,12 @@ function apply () {
 		createjs.handleRemotePointer(null, null, "up", e, stage, e.pointerId);    
 	}            
 
-	window.addEventListener("pointermove", doPointerMove);
-	function doPointerMove(e) {
+
+	that.doPointerMove = function(e) {
 		XR = false;
 		doMove(e);
 	}
+	window.addEventListener("pointermove", that.doPointerMove);	
 	function doMove(e, handed) {
 
 		if (!that.raycast) return;
@@ -65259,7 +65267,7 @@ this.remove = function(actives) {
 		if (active.textureMap) delete active.textureMap.userData.ta_content;
 		index = that.threeMeshes.indexOf(active);
 		if (index >= 0) that.threeMeshes.splice(index, 1);
-		active.dispose();
+		// active.dispose();
 	}, true);
 	if (count > 0) {
 		zim.TAM.updateTile(that, that.actives);
@@ -65323,7 +65331,20 @@ that.addMesh = function(mesh, layer) {
 }	
 
 that.dispose = function() {
+
 	that.raycast = false;
+	window.addEventListener("pointerdown", that.doPointerDown);
+	window.removeEventListener("pointerup", that.doPointerUp);
+	window.removeEventListener("pointermove", that.doPointerMove);
+
+	that.controllerLeft.removeEventListener('selectstart', that.doLcDown); // ignoring select
+	that.controllerLeft.removeEventListener('selectend', that.doLcUp);
+	that.controllerLeft.removeEventListener('move', that.doLcMove);
+
+	that.controllerRight.removeEventListener('selectstart', that.doRcDown); // ignoring select
+	that.controllerRight.removeEventListener('selectend', that.doRcUp);
+	that.controllerRight.removeEventListener('move', that.doRcMove);
+
 	if (controls) {
 		controls.enableRotate = true;
 		controls.enabled = true;
@@ -65369,7 +65390,7 @@ also see the toggle property
 and show() and hide()
 show() - show the ZIM canvas and hide the three.js canvas - also see toggle()
 hide() - hide the ZIM canvas and show the three.js canvas - also see toggle()
-dispose() - disposes objects in the manager 
+dispose(obj) - disposes objects in the manager 
 
 PROPERTIES 
 type - holds the class name as a String
@@ -65600,7 +65621,10 @@ zim.TextureActivesManager = function(stage, toggleKey, damp) {
 		that.updateTile(null, null, true);
 	} 
 
-	that.dispose = function() {
+	that.dispose = function() {		
+		zim.loop(objs, function(obj) {
+			obj.dispose();
+		});
 		that.hide();
 		nav.dispose();
 		frame.off("keydown", that.keyEvent);
@@ -82776,6 +82800,9 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		if (canvas) canvas.removeAllEventListeners();
 		if (that.frameTime) clearInterval(that.frameTime);
 
+		if (zim.TAM) zim.TAM.dispose();
+		zim.TAM = null;
+
         if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose) WW.zimDefaultPhysics.dispose(); 
         if (WW.zimDefaultThree && WW.zimDefaultThree.dispose) WW.zimDefaultThree.dispose(); 
 		
@@ -88596,8 +88623,8 @@ makePanel(textureActive, textureActives, scale, curve, opacity, material, double
 		scale (default .5) change to adjust the width and height of the geometry 
 		curve (default null) change the z amount to curve the geometry - also can use negative amount
 		opacity (default 1) change to set the opacity of the material, can also set opacity on the TextureActve
-		material (default "MeshBasicMaterial") a string version if three.js materials 
-			example "MeshPhongMaterial", "MeshLamberMaterial" - both these need lights
+		material (default THREE.MeshBasicMaterial) a three.js material 
+			example THREE.MeshPhongMaterial, THREE.MeshLamberMaterial - both these need lights
 		doubleSide (default false) set to true to do double sided material
 		colorSpace (default null) see https://threejs.org/docs/#manual/en/introduction/Color-management
 	returns a three.js mesh with the textureActive object set as a CanvasTexture 
@@ -88605,6 +88632,14 @@ makePanel(textureActive, textureActives, scale, curve, opacity, material, double
 	All this can be done manually in three.js - it is just a wrapper function to make panels 
 	See https://zimjs.com/015/textureactive_raw.html for a manual example - scroll down to the THREE section and see MENU
 	** if being used for a HUD in sceneOrtho then see the pos() method below for METHODS ON MESH
+posMesh(mesh, x, y, horizontal, vertical, gutter) - use for sceneOrtho makePanel meshes
+	position a mesh on the sceneOrtho around the edges or middle as follows:
+		x - default 0 - the distance in the x
+		y - default 0 - the distance in the y
+		horizontal - default LEFT - set to LEFT, CENTER, RIGHT to specify where the distance is applied horizontally
+		horizontal - default TOP - set to TOP, CENTER, BOTTOM to specify where the distance is applied vertically 
+		gutter - default 0 - distance in the horizontal middle to keep left and right away from each other 
+			the left and right will stop squeezing and possibly go off the screen when the window is reduced
 flipMaterial(materialType, params) - flip about the y access a material 
 	This will set the userData.ta_flipped to true which guides the TextureActives raycasting on the UV x coordinate
 	The params are the regular parameter object that would be passed to the material such as color, map, transparency, alpha, etc.
@@ -88618,15 +88653,7 @@ dispose() - clears geometries, materials, stops the renderer, removes scene and 
 		myThree.dispose();
 		mythree = null; // same for any dispose - ZIM cannot set your variables to null
 METHODS ON MESH 
-** If makePanel() is used on the ortho scene (ortho parameter true and makeMesh added to three.sceneOrtho)
-** then the mesh is given a pos() method:
-pos(x,y,horizontal,vertical,gutter) - position a mesh on the sceneOrtho around the edges or middle as follows:
-	x - default 0 - the distance in the x
-	y - default 0 - the distance in the y
-	horizontal - default LEFT - set to LEFT, CENTER, RIGHT to specify where the distance is applied horizontally
-	horizontal - default TOP - set to TOP, CENTER, BOTTOM to specify where the distance is applied vertically 
-	gutter - default 0 - distance in the horizontal middle to keep left and right away from each other 
-		the left and right will stop squeezing and possibly go off the screen when the window is reduced
+pos(x,y,horizontal,vertical,gutter) - DEPRECATED - see posMesh() method
 
 PROPERTIES
 renderer - the three.js WebGLRenderer (see three.js Docs)
@@ -90434,48 +90461,48 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 
 // these are global regardless
 var globalsConstants = [
-["FIT", zim.FIT],
-["FILL", zim.FILL],
-["FULL", zim.FULL],
-["LEFT", zim.LEFT],
-["RIGHT", zim.RIGHT],
-["CENTER", zim.CENTER],
-["MIDDLE", zim.MIDDLE],
-["START", zim.START],
-["END", zim.END],
-["TOP", zim.TOP],
-["BOTTOM", zim.BOTTOM],
-["OVER", zim.OVER],
-["UNDER", zim.UNDER],
-["HORIZONTAL", zim.HORIZONTAL],
-["VERTICAL", zim.VERTICAL],
-["BOTH", zim.BOTH],
-["RADIAL", zim.RADIAL],
-["UP", zim.UP],
-["DOWN", zim.DOWN],
-["NEXT", zim.NEXT],
-["PREV", zim.PREV],
-["AUTO", zim.AUTO],
-["AVE", zim.AVE],
-["DEFAULT", zim.DEFAULT],
-["ALL", zim.ALL],
-["NONE", zim.NONE],
-["GET", zim.GET],
-["POST", zim.POST],
-["LOCALSTORAGE", zim.LOCALSTORAGE],
-["SOCKET", zim.SOCKET],
-["TO", zim.TO],
-["FROM", zim.FROM],		
-["SINE", zim.SINE],
-["SQUARE", zim.SQUARE],
-["TRIANGLE", zim.TRIANGLE],
-["SAW", zim.SAW],
-["SAWTOOTH", zim.SAWTOOTH],
-["ZAP", zim.ZAP],
-["TAU", zim.TAU],
-["DEG", zim.DEG],
-["RAD", zim.RAD],
-["PHI", zim.PHI],
+    ["FIT", zim.FIT],
+    ["FILL", zim.FILL],
+    ["FULL", zim.FULL],
+    ["LEFT", zim.LEFT],
+    ["RIGHT", zim.RIGHT],
+    ["CENTER", zim.CENTER],
+    ["MIDDLE", zim.MIDDLE],
+    ["START", zim.START],
+    ["END", zim.END],
+    ["TOP", zim.TOP],
+    ["BOTTOM", zim.BOTTOM],
+    ["OVER", zim.OVER],
+    ["UNDER", zim.UNDER],
+    ["HORIZONTAL", zim.HORIZONTAL],
+    ["VERTICAL", zim.VERTICAL],
+    ["BOTH", zim.BOTH],
+    ["RADIAL", zim.RADIAL],
+    ["UP", zim.UP],
+    ["DOWN", zim.DOWN],
+    ["NEXT", zim.NEXT],
+    ["PREV", zim.PREV],
+    ["AUTO", zim.AUTO],
+    ["AVE", zim.AVE],
+    ["DEFAULT", zim.DEFAULT],
+    ["ALL", zim.ALL],
+    ["NONE", zim.NONE],
+    ["GET", zim.GET],
+    ["POST", zim.POST],
+    ["LOCALSTORAGE", zim.LOCALSTORAGE],
+    ["SOCKET", zim.SOCKET],
+    ["TO", zim.TO],
+    ["FROM", zim.FROM],		
+    ["SINE", zim.SINE],
+    ["SQUARE", zim.SQUARE],
+    ["TRIANGLE", zim.TRIANGLE],
+    ["SAW", zim.SAW],
+    ["SAWTOOTH", zim.SAWTOOTH],
+    ["ZAP", zim.ZAP],
+    ["TAU", zim.TAU],
+    ["DEG", zim.DEG],
+    ["RAD", zim.RAD],
+    ["PHI", zim.PHI],
 ];
 
 for (z_i = 0; z_i < globalsConstants.length; z_i++) {
