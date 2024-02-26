@@ -82798,9 +82798,15 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		// Handle three and physics
 		createjs.removeRemotePointers(that.stage);
 		if (zim.TAM) zim.TAM.dispose();
-		zim.TAM = null;		
-        if (WW.zimDefaultThree && WW.zimDefaultThree.dispose) WW.zimDefaultThree.dispose(); 
-		if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose) WW.zimDefaultPhysics.dispose(); 
+		zim.TAM = null;	
+        if (WW.zimDefaultThree && WW.zimDefaultThree.dispose && WW.zimDefaultThree.frame==that) {
+			WW.zimDefaultThree.dispose(); 		
+			WW.zimDefaultThree = null;
+		}
+		if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose && WW.zimDefaultPhysics.frame==that) {
+			WW.zimDefaultPhysics.dispose(); 
+			WW.zimDefaultPhysics = null;
+		}
 
 		// remove zil events
 		if (that.zil && that.zil.length) {

@@ -202,7 +202,7 @@ F. OTHER FRAMEWORKS
 ![html_JavaScript_Frameworks](https://github.com/danzen/zimjs/assets/380281/318f3b45-8a27-45f4-886c-62706e0f2b93)
 
 ZIM can be used in other frameworks. Thank you <a href=https://github.com/yoanhg421>@yoanhg421</a> for the setup<br>
-See https://github.com/yoanhg421/zimjs-templates for full files.<br>
+See https://github.com/danzen/zimjs-templates for full files.<br>
 Follow the SETUP instructions above and then adjust the code as follows:<br>
 ### VUE - with zim namespace
 ```javascript
