@@ -3448,7 +3448,7 @@ declare namespace zim {
 		noStroke(): this
 		translate(x?: number | zimVee, y?: number | zimVee): this
 		rotate(degrees: number | zimVee): this
-		// scale(x?: number | zimVee, y?: number | zimVee): this // go ahead and use scale(x, y) but just conflicting with createjs scale property
+		setScale(x?: number | zimVee, y?: number | zimVee): this // scale(x, y) is DEPRECATED as conflicting with createjs scale property
 		skew(x?: number | zimVee, y?: number | zimVee): this
 		line(x1?: number | zimVee, y1?: number | zimVee, x2?: number | zimVee, y2?: number | zimVee): this
 		arc(x?: number | zimVee, y?: number | zimVee, radius?: number | zimVee, startAngle?: number | zimVee, endAngle?: number | zimVee, anticlockwise?: boolean | zimVee): this

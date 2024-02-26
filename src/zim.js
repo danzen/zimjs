@@ -65238,7 +65238,7 @@ function apply () {
 		var y = (1-intersects.uv.y)*b.height;
 		var uvp = content.localToGlobal(x,y);
 		that.pointerData.x = uvp.x;
-		that.pointerData.y = uvp.y;        
+		that.pointerData.y = uvp.y;  
 	}
 }
 
@@ -65349,7 +65349,9 @@ that.dispose = function() {
 		controls.enableRotate = true;
 		controls.enabled = true;
 	}
-	that.remove(that.actives);
+	zim.loop(that.actives, function(active) {
+		active.dispose(); // calls textureActices.remove() for each before disposing
+	});
 	zim.TAM.remove(that);
 	if (zim.TAM.count < 1) {
 		zim.TAM.dispose();
@@ -75871,8 +75873,9 @@ noStroke() - turn the stroke off
 translate(x, y) - move the location relatively
 	if the shape is rotated then translate(100) will move along the rotation angle
 rotate(degrees) - relatively rotate future drawing by this angle - does not affect previously drawn shapes
-scale(x, y) - relatively scale future drawing by this amount - does not affect previously drawn shapes
+setScale(x, y) - relatively scale future drawing by this amount - does not affect previously drawn shapes
 	leaving y out will scale both x and y the same
+	** scale(x, y) is DEPRECATED - it works for now, but might be removed as it conflicts with DisplayObject.scale property 
 skew(x, y) - relatively skew future drawing by this angle - does not affect previously drawn shapes
 	leaving y out will NOT skew the y
 line(x1, y1, x2, y2) - draw a line from the start x and y to the end x and y
@@ -76113,6 +76116,7 @@ and drawpause or drawSpacebarPause parameters are true
 			shape.matrix.scale(x, y);
 			return this;
 		};
+		this.setScale = this.scale;
 		this.skew = function(x, y) {
 			if (zot(x)) x = 0;
 			if (zot(y)) y = 0;
@@ -82790,7 +82794,14 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	}	
 
 	this.dispose = function() {
-		
+
+		// Handle three and physics
+		createjs.removeRemotePointers(that.stage);
+		if (zim.TAM) zim.TAM.dispose();
+		zim.TAM = null;		
+        if (WW.zimDefaultThree && WW.zimDefaultThree.dispose) WW.zimDefaultThree.dispose(); 
+		if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose) WW.zimDefaultPhysics.dispose(); 
+
 		// remove zil events
 		if (that.zil && that.zil.length) {
 			WW.removeEventListener("keydown", that.zil[0]);
@@ -82799,12 +82810,6 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		}
 		if (canvas) canvas.removeAllEventListeners();
 		if (that.frameTime) clearInterval(that.frameTime);
-
-		if (zim.TAM) zim.TAM.dispose();
-		zim.TAM = null;
-
-        if (WW.zimDefaultPhysics && WW.zimDefaultPhysics.dispose) WW.zimDefaultPhysics.dispose(); 
-        if (WW.zimDefaultThree && WW.zimDefaultThree.dispose) WW.zimDefaultThree.dispose(); 
 		
 		// remove frame events
 		// var realWindow = window.parent || window;
@@ -90459,60 +90464,61 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-// these are global regardless
-var globalsConstants = [
-    ["FIT", zim.FIT],
-    ["FILL", zim.FILL],
-    ["FULL", zim.FULL],
-    ["LEFT", zim.LEFT],
-    ["RIGHT", zim.RIGHT],
-    ["CENTER", zim.CENTER],
-    ["MIDDLE", zim.MIDDLE],
-    ["START", zim.START],
-    ["END", zim.END],
-    ["TOP", zim.TOP],
-    ["BOTTOM", zim.BOTTOM],
-    ["OVER", zim.OVER],
-    ["UNDER", zim.UNDER],
-    ["HORIZONTAL", zim.HORIZONTAL],
-    ["VERTICAL", zim.VERTICAL],
-    ["BOTH", zim.BOTH],
-    ["RADIAL", zim.RADIAL],
-    ["UP", zim.UP],
-    ["DOWN", zim.DOWN],
-    ["NEXT", zim.NEXT],
-    ["PREV", zim.PREV],
-    ["AUTO", zim.AUTO],
-    ["AVE", zim.AVE],
-    ["DEFAULT", zim.DEFAULT],
-    ["ALL", zim.ALL],
-    ["NONE", zim.NONE],
-    ["GET", zim.GET],
-    ["POST", zim.POST],
-    ["LOCALSTORAGE", zim.LOCALSTORAGE],
-    ["SOCKET", zim.SOCKET],
-    ["TO", zim.TO],
-    ["FROM", zim.FROM],		
-    ["SINE", zim.SINE],
-    ["SQUARE", zim.SQUARE],
-    ["TRIANGLE", zim.TRIANGLE],
-    ["SAW", zim.SAW],
-    ["SAWTOOTH", zim.SAWTOOTH],
-    ["ZAP", zim.ZAP],
-    ["TAU", zim.TAU],
-    ["DEG", zim.DEG],
-    ["RAD", zim.RAD],
-    ["PHI", zim.PHI],
-];
 
-for (z_i = 0; z_i < globalsConstants.length; z_i++) {
-    var pair = globalsConstants[z_i];  
-    WW[pair[0]] = pair[1];
-}
-
-for (z_i = 0; z_i < zim.colors.length; z_i++) {
-    WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-}
+	// these are global regardless
+	var globalsConstants = [
+		["FIT", zim.FIT],
+		["FILL", zim.FILL],
+		["FULL", zim.FULL],
+		["LEFT", zim.LEFT],
+		["RIGHT", zim.RIGHT],
+		["CENTER", zim.CENTER],
+		["MIDDLE", zim.MIDDLE],
+		["START", zim.START],
+		["END", zim.END],
+		["TOP", zim.TOP],
+		["BOTTOM", zim.BOTTOM],
+		["OVER", zim.OVER],
+		["UNDER", zim.UNDER],
+		["HORIZONTAL", zim.HORIZONTAL],
+		["VERTICAL", zim.VERTICAL],
+		["BOTH", zim.BOTH],
+		["RADIAL", zim.RADIAL],
+		["UP", zim.UP],
+		["DOWN", zim.DOWN],
+		["NEXT", zim.NEXT],
+		["PREV", zim.PREV],
+		["AUTO", zim.AUTO],
+		["AVE", zim.AVE],
+		["DEFAULT", zim.DEFAULT],
+		["ALL", zim.ALL],
+		["NONE", zim.NONE],
+		["GET", zim.GET],
+		["POST", zim.POST],
+		["LOCALSTORAGE", zim.LOCALSTORAGE],
+		["SOCKET", zim.SOCKET],
+		["TO", zim.TO],
+		["FROM", zim.FROM],		
+		["SINE", zim.SINE],
+		["SQUARE", zim.SQUARE],
+		["TRIANGLE", zim.TRIANGLE],
+		["SAW", zim.SAW],
+		["SAWTOOTH", zim.SAWTOOTH],
+		["ZAP", zim.ZAP],
+		["TAU", zim.TAU],
+		["DEG", zim.DEG],
+		["RAD", zim.RAD],
+		["PHI", zim.PHI],
+	  ];
+	  
+	  for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+		var pair = globalsConstants[z_i];  
+		WW[pair[0]] = pair[1];
+	  }
+	  
+	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
+		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
+	  }
 
 
 WW.zim = zim;
