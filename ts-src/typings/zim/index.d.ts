@@ -667,6 +667,7 @@ declare namespace zim {
 		removeItem(id: string): void
 	}
 	export function swapProperties(property: string, objA: any, objB: any): boolean
+	export function setProps(obj: any, props: {}): void
 	export function swapHTML(idA: string, idB: string): boolean
 	// scrollX and scrollY are available only in zim namespace due to global conflict
 	export function windowWidth(): number
@@ -2044,6 +2045,7 @@ declare namespace zim {
 		constructor(config: { label?: string | Label, path?: Squiggle | zim.Blob, percentAngle?: number, percents?: number[], showPath?: boolean, allowToggle?: boolean, interactive?: boolean, onTop?: boolean, rtl?: boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
+        setProps(obj: [Label], props: {}): this
 		enabled: boolean
 		// END ZIM Component Interface
 		toggle(state?: boolean): this
@@ -2064,6 +2066,7 @@ declare namespace zim {
 		constructor(config: { label?: string | Label, size?: number, font?: string, color?: color, radius?: number, flip?: boolean, spacing?: number, letterSpacing?: number, angles?: number[], showCircle?: boolean, arcColor?: color, arcBorderColor?: color, arcBorderWidth?: number, radiusSpread?: boolean, rtl?: boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
+        setProps(obj: [Label], props: {}): this
 		enabled: boolean
 		// END ZIM Component Interface
 		readonly text: string
@@ -2084,6 +2087,7 @@ declare namespace zim {
 		constructor(config: { label?: string | Label, align?: string, valign?: string, letterSpacing?: number, letterSpacings?: [number], lineSpacing?: number, lineSpacings?: [number], lineHeight?: number, lineAlign?: string, lineValign?: string, cache?: boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
+        setProps(obj: [Label], props: {}): this
 		enabled: boolean
 		// END ZIM Component Interface
 		toggle(state?: boolean): this
@@ -2096,6 +2100,7 @@ declare namespace zim {
 		constructor(config: { label?: string | Label, width?: number, size?: number, font?: string, color?: color, backgroundColor?: color, itemCache?: boolean, itemRegX?: number, itemRegY?: number, spacingH?: number, spacingV?: number, wrapperType?: string, align?: string, valign?: string, alignInner?: string, valignInner?: string, flip?: boolean, reverse?: boolean, bottomFull?: boolean, colSize?: number, rowSize?: number, height?: number, minSpreadNum?: number, minStretchNum?: number, percentVoidH?: number, offsetVoidH?: number, percentVoidV?: number, offsetVoidV?: number, minStretchFirst?: boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
+        setProps(obj: [Label], props: {}): this
 		enabled: boolean
 		// END ZIM Component Interface
 		toggle(state?: boolean): this
@@ -3169,6 +3174,7 @@ declare namespace zim {
 		constructor(config: { obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, exact?: boolean, scaleToH?: number | zimVee, scaleToV?: number | zimVee, scaleToType?: string | zimVee, backgroundColor?: color | zimVee, backing?: DisplayObject | zimVee, backdropColor?: color | zimVee, backdropPadding?: number, backdropPaddingH?: number, backdropPaddingV?: number, mat?: DisplayObject, style?: boolean, group?: string, inherit?: {} })
 		remake(items?: any[]): this
 		resize(width?: number, height?: number): this
+        setProps(obj: [], props: {}): this
 		itemUnderPoint(x: number, y: number, ignoreSpacing?: boolean): DisplayObject
 		readonly type: string
 		readonly items: any[]
