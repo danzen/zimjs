@@ -82833,23 +82833,23 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		WW.removeEventListener("mouseup", leftEvent);
 					
 		if (!allowDefault) document.body.style.overflow = "auto";
+        zim.Ticker.dispose(stage);
 		recursiveDispose(stage);
+        if (that == zim.tickerFrame) zim.tickerFrame = null;
 		function recursiveDispose(obj) {
-			if (obj.dispose) obj.dispose();
+			if (obj && obj.dispose) obj.dispose();
 			else {
-				obj.removeAllEventListeners();
-				if (obj.numChildren) {
+				if (obj) obj.removeAllEventListeners();
+				if (obj && obj.numChildren) {
 					for (var i=obj.numChildren-1; i>=0; i--) {
 						recursiveDispose(obj.getChildAt(i));
 					}
 				}
-				if (obj.parent) obj.parent.removeChild(obj);
+				if (obj && obj.parent) obj.parent.removeChild(obj);
 			}
 			obj = null;
 		}
-		if (zid(canvasID)) zid(canvasID).parentNode.removeChild(zid(canvasID));
-		zim.Ticker.dispose(stage);
-		if (that == zim.tickerFrame) zim.tickerFrame = null;
+		if (zid(canvasID)) zid(canvasID).parentNode.removeChild(zid(canvasID));		
 		if (that === WW.zdf) WW.zdf = WW.S = WW.W = WW.H = null;
 
 		stage = null;
