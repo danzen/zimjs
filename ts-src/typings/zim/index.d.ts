@@ -2310,8 +2310,8 @@ declare namespace zim {
 		display: Shape
 	}
 	export class ProgressBar extends Container implements zimComponent {
-		constructor(config_or_barType?: string, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, padding?: number, label?: Label, color?: color, labelPosition?: string, percentage?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, backing?: DisplayObject, delay?: number, fastClose?: boolean, container?: Stage | Container, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { barType?: string, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, padding?: number, label?: Label, color?: color, labelPosition?: string, percentage?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, backing?: DisplayObject, delay?: number, fastClose?: boolean, container?: Stage | Container, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_barType?: string, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, padding?: number, label?: Label, color?: color, labelPosition?: string, percentage?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, backing?: DisplayObject, delay?: number, fastClose?: boolean, container?: Stage | Container, autoHide?: boolean, width?: number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { barType?: string, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, padding?: number, label?: Label, color?: color, labelPosition?: string, percentage?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, backing?: DisplayObject, delay?: number, fastClose?: boolean, container?: Stage | Container, autoHide?: boolean, width?: number, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
