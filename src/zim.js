@@ -4047,6 +4047,50 @@ RETURNS Boolean indicating success
 	};//-17.1
 
 /*--
+zim.setProps = function(obj, props)
+
+setProps
+zim function
+
+DESCRIPTION
+Sets the props of an object literal {} on the provided object or array
+Each value can be a ZIM VEE value - see docs for ZIM Pick()
+Thanks Pettis Brandon and Joseph Diefenbach for the thoughts on this
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+const c = new Circle().addTo();
+setProps(c, {x:100, y:200});  // can also use CreateJS set() method for this
+
+// Set props for each object in array
+const a = [new Circle().loc(100,100), new Rectangle().loc(300,100)];
+setProps(a, {color:red, borderColor:blue}); // cannot use CreateJS set() method for this
+
+// Use the setProps() method of a Tile - just calls the setProps() function 
+// The method is available on Tile, Wrapper, LabelLetters, LabelWords, LabelOnPath, LabelOnArc, etc.
+new Tile().center().setProps(color:[red, orange, yellow])
+END EXAMPLE
+
+PARAMETERS
+obj - an object or an array of objects
+props - an object literal {} of properties and values to set on the object or objects in an array 
+	the value can be ZIM VEE values - see docs for ZIM Pick()
+
+--*///+17.15
+zim.setProps = function(obj, props) {
+	z_d("17.15");
+	if (zot(obj)) return;
+	if (!Array.isArray(obj)) obj = [obj];
+	zim.loop(obj, function (item) {
+		zim.loop(props, function(name, val) {
+			item[name] = zik(val);
+		});
+	});
+};//-17.15
+
+
+/*--
 zim.mobile = function(orientation)
 
 mobile
@@ -21641,6 +21685,9 @@ METHODS
 toggle(state) - leave off state to toggle path to opposite state.  Use true to hide and false to show - returns object for chaining
 hidePath() - hides path - returns object for chaining
 showPath() - shows path - returns object for chaining
+setProps(properties) - sets provided properties (as {prop:val, prop:val}) for each letter
+	the values accept ZIM VEE - dynamic parameters - see ZIM Pick()
+	returns object for chaining
 resize() - if not interactive, call this to update the text on the path - returns object for chaining
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 	Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
@@ -21742,6 +21789,11 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 			});
 		}
 		that.resize();
+	}
+
+	this.setProps = function(props) {
+		zim.setProps(this.letters, props);
+		return this;
 	}
 
 	this.resize = function() {
@@ -21920,6 +21972,9 @@ inherit - (default null) used internally but can receive an {} of styles directl
 
 METHODS
 hasProp(property as String) - returns true if property exists on object else returns false
+setProps(properties) - sets provided properties (as {prop:val, prop:val}) for each label
+	the values accept ZIM VEE - dynamic parameters - see ZIM Pick()
+	returns object for chaining
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
@@ -22078,8 +22133,12 @@ zim.LabelOnArc = function(label, size, font, color, radius, flip, spacing, lette
 			lastAngle = letter.rotation = lastAngle + angles[i];
 		}		
 	}
-    
-		
+
+	this.setProps = function(props) {
+		zim.setProps(this.labels, props);
+		return this;
+	}
+    		
 	Object.defineProperty(this, 'radius', {
         get: function() {
             return radius;
@@ -22198,6 +22257,9 @@ inherit - (default null) used internally but can receive an {} of styles directl
 
 METHODS
 hasProp(property as String) - returns true if property exists on object else returns false
+setProps(properties) - sets provided properties (as {prop:val, prop:val}) for each label
+	the values accept ZIM VEE - dynamic parameters - see ZIM Pick()
+	returns object for chaining
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
@@ -22701,6 +22763,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.regX = this.getBounds().x;
 		this.regY = this.getBounds().y;
 
+		this.setProps = function(props) {
+			zim.setProps(this.labels, props);
+			return this;
+		}
 		
 		Object.defineProperty(this, 'color', {
 			get: function () {
@@ -22849,7 +22915,7 @@ hasProp(property as String) - returns true if property exists on object else ret
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
-ALSO: See ZIM Wrapper for methods such as add(), addAt(), remove(), resize(), etc.
+ALSO: See ZIM Wrapper for methods such as setProps(), add(), addAt(), remove(), resize(), etc.
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
 drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
@@ -51582,7 +51648,8 @@ css - (default false) set to true if there is no Frame
 	</script>
 protect - (default false) protects animation from being interrupted before finishing
  	unless manually interrupted with stopAnimate()
-	protect is always true (regardless of parameter setting) if loop or rewind parameters are set
+	protect will default to true if loop or rewind parameters are set
+	but this can be overriden if protect is set to false
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
 from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
@@ -51945,6 +52012,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (zot(params)) params = target;
 		if (zot(ticker)) ticker = true;
 		if (zot(css)) css = false;
+		var originalProtect = protect;
 		if (zot(protect)) protect = false;
 		if (zot(from)) from = false;
 		if (zot(set)) set = {};
@@ -52459,48 +52527,57 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 
-		// convert color tween
-		if (target.setColorRange && !zot(obj.color)) {
-			var color = obj.color;
-			delete obj.color;
-			obj.colorRange = 1;
-			target.setColorRange(target.color, color);
-			target.colorRange = 0;
-		} else if (obj.color && (target.material || target.isMaterial)) {	
-			if (target.isMaterial) {
-				zogy("ZIM animate - please animate the color on the mesh not the material");
-				return target;
+		// convert color tween - added protect for colorRange in ZIM 016
+		var colorBusy = target.zimBusy && target.zimBusy.colorRange; 
+		if (!colorBusy) {
+			if (target.setColorRange && !zot(obj.color)) {
+				var color = obj.color;
+				delete obj.color;
+				obj.colorRange = 1;
+				target.setColorRange(target.color, color);
+				target.colorRange = 0;
+			} else if (obj.color && (target.material || target.isMaterial)) {	
+				if (target.isMaterial) {
+					zogy("ZIM animate - please animate the color on the mesh not the material");
+					return target;
+				}
+				var coTarget = target;
+				if (coTarget.cT) {zim.Ticker.remove(coTarget.cT);}
+				target = {val:0, zimTweens:{}, ticker:coTarget.cT};
+				var startColor = coTarget.material.color.getHexString();
+				var endColor = obj.color;
+				obj = {val:1};			
+				coTarget.cT = zim.Ticker.add(function() {
+					var cc = zim.colorRange("#"+startColor, endColor, target.val);
+					coTarget.material.color.set(cc);
+				});
+				if (call) {
+					var oldCall = call;
+					call = function() {
+						if (coTarget.cT == target.ticker) { 
+							oldCall(callParams||coTarget);
+							zim.Ticker.remove(coTarget.cT);
+							coTarget.cT = null;
+							target = null;
+						}
+					}
+				} else {
+					call = function() {
+						if (coTarget.cT == target.ticker) {
+							zim.Ticker.remove(coTarget.cT);
+							coTarget.cT = null;
+							target = null;
+						}
+					}
+				}
 			}
-			var coTarget = target;
-			if (coTarget.cT) {zim.Ticker.remove(coTarget.cT);}
-			target = {val:0, zimTweens:{}, ticker:coTarget.cT};
-			var startColor = coTarget.material.color.getHexString();
-			var endColor = obj.color;
-			obj = {val:1};			
-			coTarget.cT = zim.Ticker.add(function() {
-				var cc = zim.colorRange("#"+startColor, endColor, target.val);
-				coTarget.material.color.set(cc);
-			});
-			if (call) {
-				var oldCall = call;
-				call = function() {
-					if (coTarget.cT == target.ticker) { 
-						oldCall(callParams||coTarget);
-						zim.Ticker.remove(coTarget.cT);
-						coTarget.cT = null;
-						target = null;
-					}
-				}
-			} else {
-				call = function() {
-					if (coTarget.cT == target.ticker) {
-						zim.Ticker.remove(coTarget.cT);
-						coTarget.cT = null;
-						target = null;
-					}
-				}
+		} else {
+			if (obj.color) { // just to handle protect
+				delete obj.color;
+				obj.colorRange = 1;
 			}
 		}
+
 
 		// moved these to before protect (to catch scale convert) - ZIM Cat
 		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
@@ -52516,6 +52593,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			delete obj.scale;
 		}
 
+
 		// PROTECT LOOPS AND REWINDS WITH BUSY
 		// if protected or a loop or rewind is currently running for any of these properties
 		// then remove the property from obj as it is currently busy
@@ -52523,7 +52601,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (!target.zimBusy) break;
 			if (target.zimBusy[o]) delete obj[o];
 		}
-
 		if (zim.isEmpty(obj)) return; // nothing left to animate
 		if (target.type != "Sprite") {
 			if (target.type != undefined) target.paused = false;
@@ -52537,6 +52614,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 		function addZimBusy() {
+			if (originalProtect === false) return; 
 			if (!target.zimMouseEnabledCheck) {
 				target.zimMouseEnabledCheck = true;
 				target.zimLastMouseEnabled = target.mouseEnabled;
@@ -52552,6 +52630,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}, 70);
 		}
 		if (protect || cjsProps.loop || cjsProps.rewind) addZimBusy();
+
 
 
 		// IDS and IDSETS
@@ -59781,6 +59860,9 @@ METHODS
 add(items) - add an item or an array of items to the wrapper - will call a resize() - returns the wrapper for chaining
 addAt(items, index) - insert an item or an array of items at an index - will call a resize() - returns the wrapper for chaining
 remove(items) - removes an item or items (pass in an array) - will call a resize() - returns the wrapper for chaining
+setProps(properties) - sets provided properties (as {prop:val, prop:val}) for each item
+	the values accept ZIM VEE - dynamic parameters - see ZIM Pick()
+	returns object for chaining
 resize(width, height) - resize the wrapper passing an optional width and height - returns wrapper for chaining
 	most of the properties below resize the wrapper automatically
 hasProp(property as String) - returns true if property exists on object else returns false
@@ -60337,6 +60419,13 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			}
 		} // end alignObjects
 
+		
+		this.setProps = function(props) {
+			zim.setProps(this.items, props);
+			return this;
+		}
+	
+
 		Object.defineProperty(that, 'spacingH', {
 			get: function() {
 				return spacingH;
@@ -60724,6 +60813,9 @@ itemUnderPoint(x, y, ignoreSpacing) - gets the item under a global point - (with
 	** will not work properly with squeeze and gets original items - so not items that are moved
 	x and y are F.mouseX, F.mouseY for example.
 	ignoreSpacing defaults to true and is a bigger selection space if there is spacing (can also be set to HORIZONTAL or VERTICAL to ignore only one direction)
+setProps(properties) - sets provided properties (as {prop:val, prop:val}) for each item
+	the values accept ZIM VEE - dynamic parameters - see ZIM Pick()
+	returns object for chaining
 remake(items) - pass in an array of items to tile - see items property for editing current list - returns tile for chaining
 	can also change rows and cols and remake()
 resize(width, height) - resize the tile with new width and/or height if the width and/or height parameters were set - returns tile for chaining
@@ -61220,6 +61312,11 @@ note: the item is not the event object target - as that is the tile
 		} // end resize
 
 		resize(width, height);	
+
+		this.setProps = function(props) {
+			zim.setProps(this.items, props);
+			return this;
+		}
 		
 		this.itemUnderPoint = function(x, y, ignoreSpacing) {
 			if (zot(ignoreSpacing)) ignoreSpacing = true;
@@ -82833,23 +82930,23 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		WW.removeEventListener("mouseup", leftEvent);
 					
 		if (!allowDefault) document.body.style.overflow = "auto";
-        zim.Ticker.dispose(stage);
 		recursiveDispose(stage);
-        if (that == zim.tickerFrame) zim.tickerFrame = null;
 		function recursiveDispose(obj) {
-			if (obj && obj.dispose) obj.dispose();
+			if (obj.dispose) obj.dispose();
 			else {
-				if (obj) obj.removeAllEventListeners();
-				if (obj && obj.numChildren) {
+				obj.removeAllEventListeners();
+				if (obj.numChildren) {
 					for (var i=obj.numChildren-1; i>=0; i--) {
 						recursiveDispose(obj.getChildAt(i));
 					}
 				}
-				if (obj && obj.parent) obj.parent.removeChild(obj);
+				if (obj.parent) obj.parent.removeChild(obj);
 			}
 			obj = null;
 		}
-		if (zid(canvasID)) zid(canvasID).parentNode.removeChild(zid(canvasID));		
+		if (zid(canvasID)) zid(canvasID).parentNode.removeChild(zid(canvasID));
+		zim.Ticker.dispose(stage);
+		if (that == zim.tickerFrame) zim.tickerFrame = null;
 		if (that === WW.zdf) WW.zdf = WW.S = WW.W = WW.H = null;
 
 		stage = null;
@@ -87672,7 +87769,8 @@ EXAMPLE
 const lb = new LeaderBoard({
 	data:"E-MAILED CODE FROM zimjs.com/leaderboard/",
 	corner:0,
-	backgroundColor:dark
+	backgroundColor:dark,
+	titleColor:light
 }).center();
 
 // then to record a score at some point later:
@@ -90570,6 +90668,7 @@ export let makeSyllable = zim.makeSyllable;
 export let makePrimitive = zim.makePrimitive;
 export let makeMath = zim.makeMath;
 export let swapProperties = zim.swapProperties;
+export let setProps = zim.setProps;
 export let mobile = zim.mobile;
 export let vee = zim.vee;
 export let extend = zim.extend;
