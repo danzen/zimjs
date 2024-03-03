@@ -33840,6 +33840,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			selector = this.selector = new zim.Rectangle(targetW, targetH, zim.faint, zim.faint, borderWidth, corner, dashed, {ignoreScale:!resizeScale})
 				.centerReg(that);
 			selector.loc(tile.width/2, target.y+paddingV, that, behind?0:1);
+			zog(tile.width/2, target.y+paddingV)
 			selector.visible = false;
 		}
 		if (!(selectedIndex < 0 || zot(currentItem))) {
@@ -34094,13 +34095,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 
 		this.clone = function(exact) {
-			if (exact) {
-				var exactItems = [];
-				for (var i=0; i<that.tile.items.length; i++) {
-					exactItems.push(that.tile.items[i].clone(true));
-				}
-			}
-			return that.cloneProps(new zim.Selector(exact?zim.series(exactItems):(tile.clone?tile.clone():tile), borderColor, borderWidth, backgroundColor, corner, dashed, paddingH, paddingV, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, liveIndex, this.style, this.group));
+			var cl = tile.clone?tile.clone(exact):tile;
+			cl.x = cl.y = 0;
+			return that.cloneProps(new zim.Selector(cl, borderColor, borderWidth, backgroundColor, corner, dashed, paddingH, paddingV, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, selectedIndex, liveIndex, this.style, this.group));
 		};
 		this.dispose = function(a,b,disposing) {
 			if (that.keyEvent && that.stage) that.stage.frame.off("keydown", that.keyEvent);
@@ -61617,6 +61614,7 @@ note: the item is not the event object target - as that is the tile
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 
 		this.clone = function(exact) {
+			if (unique) exact = true; // added ZIM 016
 			if (exact) {
 				var exactItems = [];
 				if (backgroundColor) var exactBackgroundColors = [];
@@ -61626,7 +61624,7 @@ note: the item is not the event object target - as that is the tile
 					if (backgroundColor) exactBackgroundColors.push(backgroundColors[i]);
 					if (backing) exactBackings.push(backings[i].clone(true));
 				}
-			}
+			}			
 			return that.cloneProps(new zim.Tile(exact&&exactItems?zim.series(exactItems):(obj.clone?obj.clone():obj), that.cols, that.rows, that.spacingH, that.spacingV, exact?false:unique, width, height, that.squeezeH, that.squeezeV, colSize, rowSize, align, valign, that.items.length, that.mirrorH, that.mirrorV, snapToPixel, exact?false:clone, events, exact, scaleToH, scaleToV, scaleToType, exact&&exactBackgroundColors?zim.series(exactBackgroundColors):backgroundColor, backgroundPadding, backgroundPaddingH, backgroundPaddingV, exact&&exactBackings?zim.series(exactBackings):(backing&&backing.clone)?backing.clone():backing, backdropColor, backdropPadding, backdropPaddingH, backdropPaddingV, (mat&&mat.clone)?mat.clone():mat, this.style, this.group));
 		};
 	};
