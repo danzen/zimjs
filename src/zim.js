@@ -9237,14 +9237,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		recursiveDispose(this, disposing);
 		return true;
 	};
-	zim.Container.prototype.specialColor = function(command, co, obj) {
+	zim.Container.prototype.specialColor = function(command, co, obj, bounds) {
 		if (co.type=="GradientColor") {
 			if (!zot(co.angle)) {
-				if (!obj.width) {
+				if (!obj.width && zot(bounds)) {
 					command.style = co.colors[0]; 
 					return;
 				} else {
-					var b = obj.getBounds();
+					var b = bounds?bounds:obj.getBounds();
 					co.angle += 360*100000;
 					co.angle %= 360;	
 					
@@ -9297,12 +9297,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			
 		} else if (co.type=="RadialColor") {
 			
-			if (zot(co.x0)) {
+			if (zot(co.x0) && zot(bounds)) {
 				if (!obj.width) {
 					command.style = co.colors[0]; 
 					return;
 				} else {
-					var b = obj.getBounds();
+					var b = bounds?bounds:obj.getBounds();
 					co.r0 = 0;				
 					if (obj.type=="Circle") {					
 						co.x0 = 0;
@@ -16655,7 +16655,7 @@ Note the points property has been split into points and pointObjects (and there 
 							draggable:true,
 						});
 						var textArea = that.textArea = new zim.TextArea(Math.min(400, that.stage.width-70), Math.min(400, that.stage.height-70));
-						textArea.centerReg(pane);
+						pane.add(textArea);
 					}
 					that.textArea.text = JSON.stringify(points);					
 					that.pane.show();
@@ -17349,7 +17349,6 @@ Note the points property has been split into points and pointObjects (and there 
 			};
 		}
 		function insertPointData(points, controls, ratios, percent, controlType, skipPoint, dataOnly, even) {
-
 			var index = points.length-1; // adjust for squiggle
 			var lastRatio = 0;
 			var currentRatio = 0;
@@ -17392,6 +17391,9 @@ Note the points property has been split into points and pointObjects (and there 
 				points[(index+1)%points.length][5] = end.y;
 			}
 			if (controlType) newPoint[8] = controlType;
+			// else newPoint[8] = "straight";
+			// points[index][8] = "straight"
+			// points[index+1][8] = "straight"
 			points.splice(index+1, 0, newPoint);
 			return index+1;
 		}
@@ -18836,7 +18838,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							draggable:true,
 						});
 						var textArea = that.textArea = new zim.TextArea(Math.min(400, that.stage.width-70), Math.min(400, that.stage.height-70));
-						textArea.centerReg(pane);
+						pane.add(textArea);
 					} 
 					pane.show();		
 					textArea.text = JSON.stringify(points);
@@ -19577,6 +19579,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				points[(index+1)%points.length][5] = end.y;
 			}
 			if (controlType) newPoint[8] = controlType;
+			
 			points.splice(index+1, 0, newPoint);
 			return index+1;
 		}
@@ -33840,7 +33843,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			selector = this.selector = new zim.Rectangle(targetW, targetH, zim.faint, zim.faint, borderWidth, corner, dashed, {ignoreScale:!resizeScale})
 				.centerReg(that);
 			selector.loc(tile.width/2, target.y+paddingV, that, behind?0:1);
-			zog(tile.width/2, target.y+paddingV)
 			selector.visible = false;
 		}
 		if (!(selectedIndex < 0 || zot(currentItem))) {
@@ -62535,8 +62537,6 @@ sun.beads.animate({
 });
 END EXAMPLE
 
-path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit
-
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
@@ -62793,6 +62793,8 @@ regions - an array of region DisplayObjects with specific properties for each re
 	align defaults to middle for the regions
 	valign defaults to top and bottom for the top and bottom region and middle for the others
 	backgroundColor applies a backing color to the region
+	only vertical GradientColor and centered RadialColor are supported at this time
+	so use new GradientColor([blue,green]) or new GradientColor([orange, yellow])
 	Example HORIZONTAL region objects
 		[{obj:col1, marginLeft:10, maxHeight:80, width:20, valign:"bottom"},
 		{obj:col2, marginLeft:5, maxHeight:90, align:MIDDLE}, // note, middle gets no minWidth
@@ -62803,6 +62805,8 @@ regions - an array of region DisplayObjects with specific properties for each re
 lastMargin - (default 0) the margin at the bottom (vertical) or at the right (horizontal)
 lastMarginMin - (default 0) the minimum margin at the bottom (vertical) or at the right (horizontal)
 backgroundColor - (default null) background color for the whole holder
+	only vertical GradientColor and centered RadialColor are supported at this time
+	so use new GradientColor([blue,green]) or new GradientColor([orange, yellow])
 vertical - (default true) set to false for horizontal layout
 showRegions - (default null) show boundaries of regions (formerly regionShape)
 	can toggle on and off with B key if this is set to true
@@ -63018,7 +63022,7 @@ will fill up the rest of the height until they reach their maximum widths
 			holder.setBounds(0,0,bounds.width,bounds.height);
 			backing.graphics.clear();
 			if (backgroundColor!="") {
-				processColor(backing, backgroundColor);				
+				processColor(backing, backgroundColor, 0, 0, bounds.width, bounds.height);				
 				backing.graphics.r(0,0,bounds.width,bounds.height);
 			}
 			for (i=0; i<regions.length; i++) {
@@ -63234,7 +63238,7 @@ will fill up the rest of the height until they reach their maximum widths
 				if (pPos == 0 || (pPos+p) == bounds[primary]) if (vertical) {addedH=1;} else {addedW=1;}
 				if (s == bounds[secondary]) if (vertical) {addedW=1;} else {addedH=1;}
 				if (r.backgroundColor != "") {
-					processColor(backing, r.backgroundColor);
+					processColor(backing, r.backgroundColor, f.bX, f.bY, f.bWidth+addedW, f.bHeight+addedH);
 					backing.graphics.r(f.bX, f.bY, f.bWidth+addedW, f.bHeight+addedH);
 				}
 				// increase our primary position
@@ -63244,9 +63248,11 @@ will fill up the rest of the height until they reach their maximum widths
 			
 		}; // end resize 
 		
-		function processColor(shape, co) {
-			if (co.type == "GradientColor") shape.graphics.lf(co.colors, co.ratios, co.x0, co.y0, co.x1, co.y1);
-			else if (co.type == "RadialColor") shape.graphics.rf(co.colors, co.ratios, co.x0, co.y0, co.r0, co.x1, co.y1, co.r1);
+		function processColor(shape, co, x, y, w, h) {	
+			// if (co.type == "GradientColor") shape.graphics.lf(co.colors, co.ratios, co.x0, co.y0, co.x1, co.y1);
+			if (co.type == "GradientColor") shape.graphics.lf(co.colors, co.ratios, x, y, x, y+h);
+			// else if (co.type == "RadialColor") shape.graphics.rf(co.colors, co.ratios, co.x0, co.y0, co.r0, co.x1, co.y1, co.r1);
+			else if (co.type == "RadialColor") shape.graphics.rf(co.colors, co.ratios, x+w/2, y+h/2, 0, x+w/2, y+h/2, Math.max(w/2,h/2));
 			else if (co.type == "BitmapColor") shape.graphics.bf(co.image, co.repetition, co.matrix);	
 			else shape.graphics.f(r.backgroundColor);
 		}
@@ -79085,10 +79091,10 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 					if (wah) that2.removeWah();
 				}, (releaseTime+1)*1000);
 			};
-			if (duration) this.stop(startTime+duration-.1);
-			// if (duration) timeout(duration-.1, function () {
-			// 	that2.stop();
-			// });
+			// if (duration) this.stop(startTime+duration-.1);
+			if (duration) setTimeout(function () {
+				that2.stop();
+			}, (duration-.1) * 1000);
 
 			var notes = this.notes = [oscillator];
 
@@ -79157,7 +79163,7 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 				if (zot(val)) val = 0;
 				if (zot(duration)) duration = that.rampDuration;
 
-				if (gain) {
+				if (gain) {					
 					obj.cancelScheduledValues(audioContext.currentTime);
 					obj.linearRampToValueAtTime(
 						obj.value,
@@ -79170,8 +79176,8 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 					// gain.gain.setValueAtTime(gain.gain.value, audioContext.currentTime);
 					// gain.gain.linearRampToValueAtTime(volume*that.hush, audioContext.currentTime+that.rampDuration);
 
-				} else {
-					obj.cancelScheduledValues(audioContext.currentTime);
+				} else {					
+					obj.cancelScheduledValues(audioContext.currentTime); // this is deleting duration setting... so took out in 015
 					obj.setTargetAtTime(val, audioContext.currentTime, duration);
 				}
 
@@ -83552,7 +83558,7 @@ METHODS (of AbstractSoundInstance)
 stop() - stops the sound and sets the time to 0
 play() - plays the sound again - usually, the sound is already playing from the sound.play()
  	but if it is stopped - this will start it again
-fade(volume, time, call) - fade in our out a playing sound in a time and call the call function when done  
+fade(volume, time, call) - fade in or out a playing sound in a time and call the call function when done  
 panSound(pan, time, call) - pan left (-1) or right (1) or in between a playing sound in a time and call the call function when done  
 	
 PROPERTIES 
@@ -83659,7 +83665,7 @@ loop - dispatched when the sound loops (but not at end of last loop - that is co
                     props:{volume:val}, 
                     time:time,
                     override:true,
-                    animateCall:function() {zog("here"); that.soundInstance.volume = ob.volume}, 
+                    animateCall:function() {that.soundInstance.volume = ob.volume}, 
                     call:call
                 });
                 return that.sound;
@@ -83677,7 +83683,7 @@ loop - dispatched when the sound loops (but not at end of last loop - that is co
                     props:{pan:val}, 
                     time:time,
                     override:true,
-                    animateCall:function() {zogb(ob.pan); that.soundInstance.pan = ob.pan}, 
+                    animateCall:function() {that.soundInstance.pan = ob.pan}, 
                     call:call
                 });
                 return that.sound;
@@ -84396,7 +84402,7 @@ Thanks Karel Rosseel for the initial research on Speech.
 SEE: https://zimjs.com/016/speech.html
 
 NOTE: The listen() method is currently not supported by Apple iOS Web - only Native apps (grr)
-But the talk() method works on iOS Web - however, there seems to be one voice.
+But the talk() method works on iOS and Android Web - however, there seems to be one voice.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -84471,7 +84477,6 @@ recognition - the SpeechRecognition() object created (used internally) has JS pr
 
 EVENTS
 dispatches a "voiceschanged" event when voices property will be ready - not needed if just using default voice
-	f preloaded this is dispatched 20 ms after the SVG is made.
 dispatches "result" when either as each word is spoken if listen() is used (interim defaults to true) 
 	or at the end of speaking words if listen(false) is used (interim is set to false)
 	the result event will have an event object (often e is used) that holds a words property with the words spoken 
@@ -87181,14 +87186,15 @@ but usually, just pass the callback as the first parameter
 				backdropColor:backdropColor
 			});			
 			var icon = new zim.Container();
-			new zim.Shape().s(zim.dark).ss(3,1,0,3).p("AAAj0IAAFJAA8hoIBuAAIAAFdIlTAAIAAldIBuAA")
+			new zim.Shape(50,30).s(zim.dark).ss(3,1,0,3).p("AAAj0IAAFJAA8hoIBuAAIAAFdIlTAAIAAldIBuAA")
 				.sca(1.7).addTo(icon);
-			new zim.Shape().s(zim.dark).ss(3,1,0,3).p("AhGAlIBGhGIBHBG")
+			new zim.Shape(50,30).s(zim.dark).ss(3,1,0,3).p("AhGAlIBGhGIBHBG")
 				.sca(1.7).addTo(icon).mov(0,-38);			
-			var tile = new zim.Tile([icon, label], 2, 1, 40, 0, true)	
+			var tile = new zim.Tile([icon, label], 2, 1, 20, 0, true)	
 			if (tile.width > zdf.stage.width*.7) tile.width = zdf.stage.width*.7;
-			tile.setBounds(-70,-10,480,100);
-			icon.mov(-30,35);
+			tile.setBounds(-90,-10,480,100);
+			tile.noMouse();
+			icon.mov(-30,0);
 			tile.center(pane);	
 		}
 					
