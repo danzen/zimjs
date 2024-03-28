@@ -3616,8 +3616,12 @@ declare namespace zim {
 		borders(boundary?: Boundary | {}): void
 		drag(array?: [any]): void
 		noDrag(): void
+        pause(type?:boolean): void;
 		join(obj1: DisplayObject, obj2: DisplayObject, point1?: Point | {}, point2?: Point | {}, minAngle?: number, maxAngle?: number, type?: string): any
 		break(joint: any): void
+        attach(control:DisplayObject, obj:DisplayObject):string
+        unattach(id:string):void
+        buoyancy(height?:number, denisity?:number, linear?:number, angular?:number):any
 		debug(): void
 		updateDebug(): void
 		removeDebug(): void

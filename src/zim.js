@@ -3458,8 +3458,8 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 EXAMPLE
 const blob = new Blob().center();
 const points = blob.segmentPoints;
-S.on("stagemousedown", e=>{
-	const point = blob.globalToLocal(e.stageX, e.stageY)
+S.on("stagemousedown", ()=>{
+	const point = blob.globalToLocal(F.mouseX, F.mouseY)
 	zog(closestPointAlongCurve({x:point.x, y:point.y}, points))
 	// gives index of point on curve before mouse location
 });
@@ -13788,7 +13788,8 @@ clone(exact) - makes a copy of the shape
 	For instance, if the object's color is [blue, green]
 	then its clone might be blue or green - which could be different than the original
 	If exact is set to true then the clone will be the color of the original object
-cloneAll(exact, style, group, inherit) - copies shape and any custom content in shape - experimental - usually shapes do not have content (use a Container)
+	Warning: clone does not clone any content added to a shape - use a Container for that - see cloneAll()
+cloneAll(exact, style, group, inherit) - copies shape and any custom content in shape - experimental
 	exact (default false) in theory will copy ZIM VEE values as they are in the original
 	see main class for style, group, inherit parameters
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -14062,7 +14063,8 @@ clone(exact) - makes a copy of the shape
 	For instance, if the object's color is [blue, green]
 	then its clone might be blue or green - which could be different than the original
 	If exact is set to true then the clone will be the color of the original object
-cloneAll(exact style, group, inherit) - copies shape and any custom content in shape - experimental - usually shapes do not have content (use a Container)
+	Warning: clone does not clone any content added to a shape - use a Container for that - see cloneAll()
+cloneAll(exact style, group, inherit) - copies shape and any custom content in shape - experimental
 	exact (default false) in theory will copy ZIM VEE values as they are in the original
 	see main class for style, group, inherit parameters
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
@@ -14305,12 +14307,13 @@ if one color is used, the current color is used and color1 is the second color i
 cache(see Container docs for parameter description) - overrides CreateJS cache() and returns object for chaining
 Leave parameters blank to cache bounds of shape (plus outer edge of border if borderWidth > 0)
 hasProp(property as String) - returns true if property exists on object else returns false
-clone() - makes a copy of the shape
-exact (default false) ZIM VEE (Pick) values are active in clones unless exact is set to true
+clone(exact) - makes a copy of the shape
+	exact (default false) ZIM VEE (Pick) values are active in clones unless exact is set to true
 	For instance, if the object's color is [blue, green]
 	then its clone might be blue or green - which could be different than the original
 	If exact is set to true then the clone will be the color of the original object
-cloneAll(exact style, group, inherit) - copies shape and any custom content in shape - experimental - usually shapes do not have content (use a Container)
+	Warning: clone does not clone any content added to a shape - use a Container for that - see cloneAll()
+cloneAll(exact style, group, inherit) - copies shape and any custom content in shape - experimental
 	exact (default false) in theory will copy ZIM VEE values as they are in the original
 	see main class for style, group, inherit parameters
 exact (default false) in theory will copy ZIM VEE values as they are in the original
@@ -36134,6 +36137,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         this.type = "NumPad";	
 
 		var that = this;
+
 				
 		function ms(letter, color) {
 			if (zot(color)) color = mist;
@@ -36143,7 +36147,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			ms("C",zim.red.darken(.1)),ms(new zim.Label({text:"␣", size:90, shiftV:-24}),zim.yellow.darken(.1)),ms(new zim.Label({text:"/",size:48,bold:true,shiftV:3})),ms(new zim.Label({text:"*", size:65, shiftV:18})),
 			1,2,3,ms(new zim.Label({text:"-",size:60,shiftV:-3})),4,5,6,ms(new zim.Label({text:"+",size:55,shiftV:3})),
 			7,8,9,ms(new zim.Label({text:"⌫",size:M=="ios"?60:35}), zim.red.darken(.1)),
-			ms(new zim.Label({text:",",size:70,shiftV:-3})),ms(new Label({text:".",size:70,shiftV:-3})),0,ms(new zim.Label({text:"⏎", size:M=="ios"?40:50, shiftV:5}), zim.green.darken(.1))]
+			ms(new zim.Label({text:",",size:70,shiftV:-3})),ms(new Label({text:".",size:70,shiftV:-3})),0,ms(new zim.Label({text:"⏎", size:M=="ios"?40:50, shiftV:5}), zim.green.darken(.1))];
+		
+		
+		function isRTL(){   
+			return getComputedStyle(zdf.canvas).direction == "rtl";						
+		};
 		if (advanced=="simple") {
 			padArray.splice(0,4);
 			padArray.splice(3,1);
@@ -36155,8 +36164,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		} else if (advanced) {
 			padArray.splice(2,0,ms("%", yellow.darken(.1)));
 			padArray.splice(4,0,ms(new zim.Label({text:"^",size:47,shiftV:10}), yellow.darken(.1)));
-			padArray.splice(4,0,ms(")", yellow.darken(.1)));
-			padArray.splice(4,0,ms("(", yellow.darken(.1)));
+			padArray.splice(4,0,ms(isRTL()?"(":")", yellow.darken(.1)));
+			padArray.splice(4,0,ms(isRTL()?")":"(", yellow.darken(.1)));
 		}
 		that.pad = new zim.Pad({
             width:advanced=="simple"?290:380,
@@ -39266,6 +39275,7 @@ Dispatches a "keydown" event with an event object having a letter property
 	keyboard.on("keydown", function(e) {zog(e.letter);}); // logs letter pressed or "del" for delete
 Dispatches a "special" event if the special parameter is used and the special key is pressed
 Dispatches a "close" event when close keyboard icon at bottom right is pressed
+Dispatches "numpadopen" and "numpadclose" events when the NumPad is opened or closed 
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
@@ -40042,15 +40052,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						that.toggled = false;
 						removeCursorShiftMenu();
 					}
+					that.dispatchEvent("numpadclose");
 				});
 			}
 			
 			numPadKey.removeChildAt(2);	
 			if (that.numPad.parent || status === false) {
 				that.numPad.removeFrom();
+				that.dispatchEvent("numpadclose");
 				showNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
 			} else if (!that.numPad.parent || status === true) {
 				that.numPad.addTo();
+				that.dispatchEvent("numpadopen");
 				hideNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
 			}
 			currentKeyboard.updateCache();
@@ -50399,9 +50412,8 @@ RETURNS obj for chaining
 			if (!redoChache) obj.updateCache();
 			else obj.cache();
 		}
-		if (obj.alphaMask) {
-			zog(obj.alphaMask.type)
-			obj.alphaMask.updateCache();
+		if (obj.effects && obj.effects.alpha && obj.effects.alpha.alphaMask.updateCache) {			
+			obj.effects.alpha.alphaMask.updateCache();
 		}
 		return obj;
 	};//-33.163
@@ -57323,19 +57335,18 @@ There are settings that can adjust when the Ticker updates so see Usage notes be
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-const circle = new Circle(50, red);
-circle.center();
+const circle = new Circle(50, red).center();
 Ticker.add(()=>{
 	circle.x++;
-}, stage); // stage is optional - will be the first stage made if left out
+}); // can also pass in a specific stage
 
 // to be able to remove the function:
-Ticker.add(tryMe, stage);
+Ticker.add(tryMe);
 function tryMe() {circle.x++;}
 Ticker.remove(tryMe);
 
 // OR with function literal, use the return value
-var tickerFunction = Ticker.add(()=>{circle.x++;}, stage);
+var tickerFunction = Ticker.add(()=>{circle.x++;});
 Ticker.remove(tickerFunction);
 
 // Check to see if a function is in the Ticker for that stage:
@@ -57349,6 +57360,7 @@ however, OPTIMIZE can be overridden as follows (or with the always() method):
 METHODS (static)
 ** As of ZIM 5.1.0, stage is optional and will default to the stage of first Frame object made
 ** WARNING - if you are in a second Frame you should pass stage as a parameter so it does not point to the first Frame's stage
+** NOTE - if no stage is provided, the Ticker will update the stage of the zdf - ZIM default frame (usually the first Frame made)
 Ticker.always(stage) - overrides OPTIMIZE and always runs an update for the stage even with no function in queue
 Ticker.alwaysOff(stage) - stops an always Ticker for a stage
 Ticker.add(function, stage) - adds the function to the Ticker queue for a given stage and returns the function that was added
@@ -57726,7 +57738,7 @@ const pages = new Pages({
 }).addTo();
 
 // handle any events inserted into the swipe arrays
-pages.on("info", function(){zog("info requested")});
+pages.on("info", ()=>{zog("info requested")});
 
 // handle any custom requirements when arriving at a page
 // the event gives you the page object
@@ -57734,13 +57746,13 @@ pages.on("info", function(){zog("info requested")});
 home.name = "home";
 hide.name = "hide";
 find.name = "find";
-pages.on("page", function() {
+pages.on("page", ()=>{
 	zog(pages.page.name); // now we know which page we are on
 })
 
 // you can manually go to pages as well
 // we will make a little triangle to click:
-var back = new Triangle({color:red});
+const back = new Triangle({color:red});
 back.center(find); // add triangle to find page
 // not really supposed to add things to zim shapes
 // they default to mouseChildren false
@@ -57748,8 +57760,7 @@ back.center(find); // add triangle to find page
 // so we have to set the mouseChildren of find to true
 find.mouseChildren = true;
 back.cur();
-back.on("click", function() {pages.go(home, UP)});
-S.update();
+back.on("click", ()=>{pages.go(home, UP)});
 END EXAMPLE
 
 PARAMETERS
@@ -58689,6 +58700,125 @@ Additional "mousedown", "click" or other button events can be added if desired
 	zim.extend(zim.Arrow, zim.Button, "clone", "zimButton", false);
 	//-71.2
 		
+
+/*--
+zim.HotSpot = function(obj, x, y, width, height, call, callOver, callOut, local, talk)
+
+HotSpot
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+HotSpot adds an invisible button to a container object (often think of this as the page).
+If you want multiple spots it is more efficient to use the HotSpots class above
+which manages multiple HotSpot objects (otherwise you end up with multiple event functions).
+The spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape.
+The spot will get a cursor of "pointer".
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+const hs = new HotSpot(S, 100, 100, 50, 50, myFunction);
+function myFunction() {
+	zog("activation!");
+}
+// hs.show(); // uncomment this to see rectangle hotSpot
+END EXAMPLE
+
+PARAMETERS supports DUO - parameters or single object with properties below
+holder - container object in which to place the hotspot (stage for instance)
+x, y, width and height - of the rectangle for the hotspot
+call - the function to call when the spot is pressed
+local - (default true) hotSpot rect is based on local coordinates of the container
+	use when the element scale independently from the stage
+	if set to false then you pass in global coordinates and hotSpot will convert them
+talk - (default "hotspot") text for ZIM Accessibility screen reader
+
+METHODS
+show() - helps when creating the spot to see where it is
+hide() - hides the hotspot
+dispose() - removes the listener and the spot
+
+PROPERTIES
+type - holds the class name as a String
+spot - the actual hotSpot object that gets added to the container can be accessed with the spot property
+eg. hs.spot
+
+ACTIONEVENT
+This component is affected by the general ACTIONEVENT setting
+The default is "mousedown" - if set to something else the component will act on click (press)
+--*///+73
+zim.HotSpot = function(obj, x, y, width, height, call, callOver, callOut, local, talk) {
+	var sig = "obj, x, y, width, height, call, callOver, callOut, local, talk";
+	var duo; if (duo = zob(zim.HotSpot, arguments, sig, this)) return duo;
+	z_d("73");
+	this.zimContainer_constructor(null,null,null,null,false);
+	this.type = "HotSpot";
+
+	if (zot(obj) || !obj.addChild) {zogy("zim controls - HotSpot():\nPlease pass in container object for obj"); return;}
+	if (obj instanceof createjs.Container == false) {zogy("zim controls - HotSpot():\nObjects passed in should be Containers"); return;}
+	if (zot(x) || zot(y) || zot(width) || zot(height)) {zogy("zim controls - HotSpot():\nPlease pass in x, y, width, height"); return;}
+	if (zot(local)) local = true;
+	var eventType = (!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
+
+	var w = width; var h = height;
+	var point,newW,newH;
+	if (!local) {
+		point = obj.globalToLocal(x,y);
+		var point2 = obj.globalToLocal(x+w,y+h);
+		newW = point2.x-point.x;
+		newH = point2.y-point.y;
+	} else {
+		point = new zim.Point(x,y);
+		newW = width;
+		newH = height;
+	}
+	var but = new zim.Shape(width, height);
+	but.talk = zot(talk)?"HotSpot":talk;
+	but.alpha = 0;
+	but.graphics.f("black").dr(0,0,newW,newH);
+	but.x = point.x;
+	but.y = point.y;
+	but.cur("pointer");
+	but.expand(0);
+	this.spot = but;
+
+	if (typeof(call) == "function") {
+		var butEvent = but.on(eventType,function(e) {
+			call(e);
+		});
+	}
+	if (typeof(callOver) == "function") {
+		var butOverEvent = but.on("mouseover",function(e) {
+			callOver(e);
+		});
+	}
+	if (typeof(callOut) == "function") {
+		var butOutEvent = but.on("mouseout",function(e) {
+			callOut(e);
+		});
+	}
+	obj.addChild(but);
+
+	this.show = function() {
+		but.alpha = .5;
+		if (obj.stage) obj.stage.update();
+	};
+	this.hide = function() {
+		but.alpha = 0;
+		if (obj.stage) obj.stage.update();
+	};
+	this.dispose = function() {
+		if (butEvent) but.off(eventType, butOverEvent);
+		if (butOverEvent) but.off("mouseover", butOverEvent);
+		if (butOutEvent) but.off("mouseout", butOutEvent);
+		obj.removeChild(but);
+		but = null;
+		return true;
+	};
+};
+zim.extend(zim.HotSpot, zim.Container, "dispose", "zimContainer", false);
+//-73
+
 /*--
 zim.HotSpots = function(spots, local, mouseDowns)
 
@@ -58705,25 +58835,20 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 // our first hotSpot will be a 50 pixel square at 100, 100
-// then we will add hotSpots to these items as well
-var circle = new Circle(60, red);
-circle.center();
 
-const button = new Button();
-S.addChild(button);
-button.x = W - button.width - 100;
-button.y = H - button.height - 100;
+// then we will add hotSpots to these items as well
+const circle = new Circle(60, red).center();
+const button = new Button().pos(100,100,RIGHT,BOTTOM);
 
 // make the hotSpots object
 // these are all on the same page
 // gets really handy when you have multiple pages with Pages
 const hs = new HotSpots([
-	{page:stage, rect:[100,100,50,50], call:()=>{zog("hot!");}},
-	{page:stage, rect:circle, call:()=>{zog("circle!");}},
-	{page:stage, rect:button, call:()=>{zog("button!");}},
+	{page:S, rect:[100,100,50,50], call:()=>{zog("hot!");}},
+	{page:S, rect:circle, call:()=>{zog("circle!");}},
+	{page:S, rect:button, call:()=>{zog("button!");}},
 ]);
 // hs.show(); // uncomment this to see rectangle hotSpots
-S.update();
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -58900,125 +59025,6 @@ the class creates HotSpot objects - see the class underneath this one
 	zim.extend(zim.HotSpots, zim.Container, "dispose", "zimContainer", false);
 	//-72
 
-
-/*--
-zim.HotSpot = function(obj, x, y, width, height, call, callOver, callOut, local, talk)
-
-HotSpot
-zim class - extends a zim.Container which extends a createjs.Container
-
-DESCRIPTION
-HotSpot adds an invisible button to a container object (often think of this as the page).
-If you want multiple spots it is more efficient to use the HotSpots class above
-which manages multiple HotSpot objects (otherwise you end up with multiple event functions).
-The spot is a pixel rect with an alpha of .01 and then uses a hitArea of a backing shape.
-The spot will get a cursor of "pointer".
-
-NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
-
-EXAMPLE
-const hs = new HotSpot(stage, 100, 100, 50, 50, myFunction);
-function myFunction() {
-	zog("activation!");
-}
-// hs.show(); // uncomment this to see rectangle hotSpot
-S.update();
-END EXAMPLE
-
-PARAMETERS supports DUO - parameters or single object with properties below
-holder - container object in which to place the hotspot (stage for instance)
-x, y, width and height - of the rectangle for the hotspot
-call - the function to call when the spot is pressed
-local - (default true) hotSpot rect is based on local coordinates of the container
-	use when the element scale independently from the stage
-	if set to false then you pass in global coordinates and hotSpot will convert them
-talk - (default "hotspot") text for ZIM Accessibility screen reader
-
-METHODS
-show() - helps when creating the spot to see where it is
-hide() - hides the hotspot
-dispose() - removes the listener and the spot
-
-PROPERTIES
-type - holds the class name as a String
-spot - the actual hotSpot object that gets added to the container can be accessed with the spot property
-eg. hs.spot
-
-ACTIONEVENT
-This component is affected by the general ACTIONEVENT setting
-The default is "mousedown" - if set to something else the component will act on click (press)
---*///+73
-	zim.HotSpot = function(obj, x, y, width, height, call, callOver, callOut, local, talk) {
-		var sig = "obj, x, y, width, height, call, callOver, callOut, local, talk";
-		var duo; if (duo = zob(zim.HotSpot, arguments, sig, this)) return duo;
-		z_d("73");
-		this.zimContainer_constructor(null,null,null,null,false);
-		this.type = "HotSpot";
-
-		if (zot(obj) || !obj.addChild) {zogy("zim controls - HotSpot():\nPlease pass in container object for obj"); return;}
-		if (obj instanceof createjs.Container == false) {zogy("zim controls - HotSpot():\nObjects passed in should be Containers"); return;}
-		if (zot(x) || zot(y) || zot(width) || zot(height)) {zogy("zim controls - HotSpot():\nPlease pass in x, y, width, height"); return;}
-		if (zot(local)) local = true;
-		var eventType = (!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click";
-
-		var w = width; var h = height;
-		var point,newW,newH;
-		if (!local) {
-			point = obj.globalToLocal(x,y);
-			var point2 = obj.globalToLocal(x+w,y+h);
-			newW = point2.x-point.x;
-			newH = point2.y-point.y;
-		} else {
-			point = new zim.Point(x,y);
-			newW = width;
-			newH = height;
-		}
-		var but = new zim.Shape(width, height);
-		but.talk = zot(talk)?"HotSpot":talk;
-		but.alpha = 0;
-		but.graphics.f("black").dr(0,0,newW,newH);
-		but.x = point.x;
-		but.y = point.y;
-		but.cur("pointer");
-		but.expand(0);
-		this.spot = but;
-
-		if (typeof(call) == "function") {
-			var butEvent = but.on(eventType,function(e) {
-				call(e);
-			});
-		}
-		if (typeof(callOver) == "function") {
-			var butOverEvent = but.on("mouseover",function(e) {
-				callOver(e);
-			});
-		}
-		if (typeof(callOut) == "function") {
-			var butOutEvent = but.on("mouseout",function(e) {
-				callOut(e);
-			});
-		}
-		obj.addChild(but);
-
-		this.show = function() {
-			but.alpha = .5;
-			if (obj.stage) obj.stage.update();
-		};
-		this.hide = function() {
-			but.alpha = 0;
-			if (obj.stage) obj.stage.update();
-		};
-		this.dispose = function() {
-			if (butEvent) but.off(eventType, butOverEvent);
-			if (butOverEvent) but.off("mouseover", butOverEvent);
-			if (butOutEvent) but.off("mouseout", butOutEvent);
-			obj.removeChild(but);
-			but = null;
-			return true;
-		};
-	};
-	zim.extend(zim.HotSpot, zim.Container, "dispose", "zimContainer", false);
-	//-73
 
 /*--
 zim.Guide = function(obj, vertical, pixels, hideKey, pixelKey, style, group, inherit)
@@ -61616,7 +61622,7 @@ note: the item is not the event object target - as that is the tile
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 
 		this.clone = function(exact) {
-			if (unique) exact = true; // added ZIM 016
+			if (zot(exact) && unique) exact = true; // added ZIM 016
 			if (exact) {
 				var exactItems = [];
 				if (backgroundColor) var exactBackgroundColors = [];
@@ -69758,11 +69764,24 @@ join(obj1, obj2, point1, point2, minAngle, maxAngle, type) - creates and returns
 break(joint) - break a joint created with join()
 	to use, store the result of the join() method in a variable and pass that variable in to break()
 attach(control, obj) attach a physics object (obj) to a ZIM object (control) to like a mousejoint to the ZIM object not the mouse 
-    the control can then be animated, wiggled, dragged and the physics object will follow it
-    returns an id to be able to unattach
-        const id = physics.attach(triangle, circle);
-        timeout(2, ()=>{physics.unattach(id)});
+	the control can then be animated, wiggled, dragged and the physics object will follow it
+	returns an id to be able to unattach
+		const id = physics.attach(triangle, circle);
+		timeout(2, ()=>{physics.unattach(id)});
 unattach(id) unattach a physics object from the ZIM object based on the stored id from attach();
+buoyancy(height, denisity, linear, angular) returns a Box2D buoyancy controller.  Then need to add() or remove() objects 
+	height - (default H/2) is pixels from bottom of the stage 
+	density - (default 3) density of fluid - the higher the more an object floats
+	linear - (default 4) linear damping to reduce movement
+	angular - (default 4) angular damping to reduce rotation
+		the buoyancy controller will have the following methods:
+		add(obj) - add object with physics or an array of objects with physics to buoyancy controller
+			returns buoyancy object for chaining
+		remove(obj) - remove object or an array of objects from buoyancy controller
+			returns buoyancy object for chaining
+		clear() - remove all objects from buoyancy controller
+			returns buoyancy object for chaining
+		dispose() - deletes buoyancy controller
 debug() - activates the debugging - returns object for chaining
 updateDebug() - updates the debug canvas if the frame has been scaled (put in frame resize event)
 removeDebug() - removes the debug canvas - you can add it again later (or toggle, etc.)
@@ -79092,7 +79111,7 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 				}, (releaseTime+1)*1000);
 			};
 			// if (duration) this.stop(startTime+duration-.1);
-			if (duration) setTimeout(function () {
+			if (duration) setTimeout(function () { // reverted back to this in ZIM 015
 				that2.stop();
 			}, (duration-.1) * 1000);
 
@@ -90872,8 +90891,8 @@ export let outline = zim.outline;
 export let blendmodes = zim.blendmodes;
 export let Pages = zim.Pages;
 export let Arrow = zim.Arrow;
-export let HotSpots = zim.HotSpots;
 export let HotSpot = zim.HotSpot;
+export let HotSpots = zim.HotSpots;
 export let Guide = zim.Guide;
 export let Grid = zim.Grid;
 export let Wrapper = zim.Wrapper;
