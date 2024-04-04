@@ -3489,14 +3489,21 @@ RETURNS the index of the closest point in segmentPoints before the given point
 		var index = 0;
 		var secondaryIndex = 0;
 		if (zot(num)) num = 10;
+		var totalD = 0;
+		var totals = [];
+		var lastDist=0;
 		zim.loop(segmentPoints, function(points, i) {
 			// add num more points to estimate closest
+			var dist = zim.distanceAlongCurve(points);
+			totalD += dist;	
 			var cubic = new zim.Bezier(points[0],points[1],points[2],points[3]);
 			zim.loop(num, function (j, total) {
 				// var d = zim.dist(point, zim.pointAlongCurve(segmentPoints(that.points[i], that.points[i<t-1?i+1:0]), j/10));
 				// var testPoint = zim.pointAlongCurve(points, j/total);
 				// var d = zim.dist(point, testPoint);
-				var testPoint = {x:cubic.x(j/total), y:cubic.y(j/total)};
+				totals.push(lastDist+dist*j/total);
+				// if (even) var testPoint = {x:cubic.mx(j/total), y:cubic.my(j/total)};
+				var testPoint = {x:cubic.x(j/total), y:cubic.y(j/total)};				
 				var d = zim.dist(point, testPoint);
 				if (d < closest) {
 					closest = d;
@@ -3505,9 +3512,11 @@ RETURNS the index of the closest point in segmentPoints before the given point
 					secondaryIndex = j;
 				}
 			});
+			lastDist = totalD;
 		});
 		if (percentage) {
-			return (index*num+secondaryIndex)/(segmentPoints.length*num)*100;
+			return (totals[index*num+secondaryIndex]||0)/totalD*100;
+			// return (index*num+secondaryIndex)/(segmentPoints.length*num)*100;
 		} else if (interpolate) {
 			return closestTestPoint;
 		}
@@ -6558,11 +6567,11 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 const assets = "flecks.jpg";
-const path = "assets/";
+const path = "https://zimjs.org/assets/";
 new Frame(scaling, width, height, color, outerColor, ready, assets, path);
 function ready() {
 	new Rectangle(W, H, new BitmapColor("flecks.jpg")).addTo();
-	// or use asset("flecks.png") instead of string "flecks.jpg" - but ZIM will figure it out
+	// or use new Pic("flecks.jpg") instead of string "flecks.jpg" - but ZIM will figure it out
 }
 END EXAMPLE
 
@@ -21916,7 +21925,7 @@ zim.LabelOnPath = function(label, path, percentAngle, percents, showPath, allowT
 		return that;
 	};
 
-	that.toggle(true);
+	if (showPath) that.toggle(true);
 
 	if (style!==false) zim.styleTransforms(this, DS);
 	this.clone = function() {
@@ -69937,12 +69946,15 @@ dynamic - set to true for dynamic and false for static
 speed - get or set the speed of an object that is controlled by control()
 speedY - get or set the speedY of an object that is controlled by control()
 ** normal x, y, rotation or pos(), loc(), rot() will not work with physics!
-** see the BODY PROPERTIES below for x, y and rotation
+** see the BODY loc(x,y) METHOD and the rotation PROPERTY below
 ** these should really not be set at all in the physics world
 ** but rather let the forces, etc. work them out
 ** it is best to set traditional properties before calling physics()
 
 METHODS - FOR BODY (a physics engine body)
+loc(x,y) - generally, we should not manually adjust x and y but rather use forces
+	but for resetting things, etc. use zimObj.body.loc(x, y)
+	Do not use zimObj.loc() or zimObj.x or zimObj.y - these will only work BEFORE adding physics.
 ** the ZIM DisplayObject body property provides access to the following Box2D methods (note, all start with uppercase):
 ** commonly used methods are handled through ZIM wrapper methods on the DisplayObject
 ** see https://www.box2dflash.org/docs/2.1a/reference/ for very basic docs
@@ -69961,9 +69973,11 @@ PROPERTIES - FOR BODY (a physics engine body)
 zimObj - the ZIM Object that the body is mapped to
 ** traditional properties should be set before calling phyics()
 ** but the following properties are provided
-x - the x position of the body - setting this will also position of the ZIM DisplayObject
-y - the y position of the body - setting this will also position of the ZIM DisplayObject
+x - deprecated - please use the BODY's loc(x, y) method - note: zimObj.body.loc() is not the same as the zimObj.loc() method
+y - deprecated - please use the BODY's loc(x, y) method - note: zimObj.body.loc() is not the same as the zimObj.loc() method
 rotation - the rotation of the body (degrees) - setting this will also rotate the ZIM DisplayObject
+	Also see obj.body.SetFixedRotation() to stop the physics body from rotating https://zimjs.com/zapp/print/Z_C6SBW
+	And the counter rotation technique here: https://zimjs.com/data/
 
 GLOBAL VARIABLES
 ** Making a new Physics() or using physics() on a ZIM DisplayObject
@@ -84516,7 +84530,9 @@ dispatches "start", "end" and "error" on the utterance object returned by talk()
 			
 			var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
 			var SpeechGrammarList = SpeechGrammarList || window.webkitSpeechGrammarList;
-			var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;    
+			// this is causing an error on firefox even though they use this in their examples 
+			// and we have all the speec about:config setting set to true
+			// var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;    
 			var recognition = this.recognition = new SpeechRecognition();
 			recognition.continuous = false;
 			recognition.lang = this.language = "en-US";
