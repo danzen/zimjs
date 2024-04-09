@@ -3332,6 +3332,47 @@ zim.spline = function(points, tension, close, shape, removeLast) {
 	return path;
 };//-27.695
 
+
+/*--
+zim.getPointAtPercent = function(x1, y1, x2, y2, percent)
+
+getPointAtPercent
+zim function
+
+DESCRIPTION
+Gets a new Point along the straight line from x1,y1 to x2,y2 at a percentage of the length
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// A ZIM line() is not needed but here we place a circle 30% along the length of the line
+const line = new Line(500).rot(45).center();
+new Circle(20,red).loc(getPointAtPercent(line.startX, line.startY, line.endX, line.endY, 30));
+END EXAMPLE
+
+PARAMETERS
+x1 - (default 0) - the start x of the line
+y1 - (default 0) - the start y of the line
+x2 - (default 0) - the end x of the line
+y2 - (default 0) - the end y of the line
+percent - (default 50) - the percentage along the line straight for the return point
+
+RETURNS an ZIM Point() with x an y at the percentage along the straight line
+--*///+27.697
+zim.getPointAtPercent = function(x1, y1, x2, y2, percent) {
+	z_d("27.697");
+	if (zot(x1)) x1 = 0;
+	if (zot(y1)) y1 = 0;
+	if (zot(x2)) x2 = 0;
+	if (zot(y2)) y2 = 0;
+	if (zot(percent)) percent = 50;
+	
+	var d = dist(x1,y1,x2,y2)*percent/100;
+	var a = angle(x1,y1,x2,y2);
+	return new zim.Point(x1+d*Math.cos(a*zim.RAD), y1+d*Math.sin(a*zim.RAD));
+};//-27.697
+
+
 /*--
 zim.pointAlongCurve = function(points, ratio, getAngle)
 
@@ -17626,6 +17667,16 @@ b1.removeFrom();
 // s2.removeFrom();
 END EXAMPLE
 
+EXAMPLE 
+// Split a blob into two blobs
+const blobs = new Blob().center().splitBlob(1,3);
+blobs[0].color = blue;
+
+// or with points - cuts diagonally across blob
+const blobs = new Blob().center().splitBlob(new Point(0,0), new Point(W,H));
+blobs[0].color = blue;
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
@@ -17743,8 +17794,15 @@ reversePoints(sameStart) - reverse the order of the points
 	This also swaps each rectangle in the Bezier controls 
 	also see the Code module for reversePoint(points) function to operate on data points in Squiggle format
 	Note: reversing blob points with the reversePoints function will make the starting point the last point
-makeSquiggle(index) - create a new Squiggle by cutting Blob at index (default 0)
-	returns the new Squiggle - the Blob remains unchanged - so may need to remove it
+makeSquiggle(index) - create a new Squiggle by cutting blob at index (default 0)
+	returns the new Squiggle - the blob remains unchanged - so may need to remove it
+splitBlob(a, b, num, clean) - split a Blob into two blobs - returns an array with each blob 
+	this uses makeSquiggle() then splitPoints() to split squiggle then makeBlob() to make two blobs
+	a - (default 0) an index of the blob - or an object with an x and y property (read globally) 
+		note - if using x, y points, these points do not have to be on the Blob - and they are global
+	b - (default Math.ceil(num points / 2)) an index of the blob - or an object with an x and y property (read globally) 
+	num - (default 50) if points are used, this is how many points to add along the line between points to estimate cut point 
+	clean - (default true) remove original blob - set to false to not remove
 update(normalize) - update the Blob if animating control points, etc. would do this in a Ticker
 	set normalize (default false) to true to use pointsAdjusted for rotated and scaled points
 	use true for manually editing points after setting rotation or scale on point
@@ -18667,6 +18725,93 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				});
 				return s;
 			};
+
+			that.splitBlob = function(a, b, num, clean) {
+				if (zot(a)) a = 0;
+				if (zot(b)) b = Math.ceil(that.points.length/2);				
+				if (zot(num)) num = 50;
+				if (zot(clean)) clean = true;
+				if (typeof a == "number" && typeof b == "number") {
+					var c = a;
+					if (a > b) {
+						a = b;
+						b = c;
+					} 
+				}
+			
+				if (!zot(a.x) || !zot(b.x)) {
+					// this gets array of cubic beziers that closestPointAlongCurve needs
+					var blobSegments = that.segmentPoints;
+				}
+
+				var p1, p2, i1, i2;
+				if (!zot(a.x)) { // a global x,y point provided
+					var bb = b;		
+					if (zot(b.x)) bb = that.pointCircles[b].localToGlobal(0,0);	
+					var point1 = zim.loop(num, function(i,t) {
+						var p = zim.getPointAtPercent(a.x,a.y,bb.x,bb.y,i/t*100);
+						if (that.hitTestPoint(p.x, p.y)) return p;
+					});
+					if (point1 === true) return; // not intersecting
+					p1 = that.globalToLocal(point1.x, point1.y);
+					// point, segmentPoints, num, interpolate, percentage
+					var percent1 = zim.closestPointAlongCurve(p1, blobSegments, 20, false, true);					
+				} else {
+					i1 = a;
+					p1 = that.pointCircles[a];
+				}			
+
+				if (!zot(b.x)) { // a global x,y point provided			
+					var aa = a;		
+					if (zot(a.x)) aa = that.pointCircles[a].localToGlobal(0,0);			
+					var point2 = zim.loop(num, function(i,t) {
+						var p = zim.getPointAtPercent(aa.x,aa.y,b.x,b.y,i/t*100);
+						if (that.hitTestPoint(p.x, p.y)) return p;
+					}, true); // reverse
+					if (point2 === true) return; // not intersecting
+					p2 = that.globalToLocal(point2.x, point2.y);
+					var percent2 = zim.closestPointAlongCurve(p2, blobSegments, 20, false, true);
+				} else {
+					i2 = b;
+					p2 = that.pointCircles[b];
+				}					
+				
+				if (!zot(a.x)) i1 = that.addPoint(percent1); // returns index of point
+				if (!zot(b.x)) i2 = that.addPoint(percent2);
+
+				if (!zot(a.x) && zot(b.x) && i1 <= i2) i2++;
+				if (!zot(b.x) && zot(a.x) && i2 <= i1) i1++;
+				if (!zot(a.x) && !zot(b.x) && i2 <= i1) i1++;
+					
+				// turn the blob into a squiggle at the first point
+				var s1 = that.makeSquiggle(i1).loc(that); // returns Squiggle
+				
+				// once the blob is cut into a squiggle 
+				// we need to find the new index of the second point
+				// we will store this as i3
+				var num = that.points.length;
+				let i3 = (i1 > i2) ? num-i1+i2 : i2-i1;
+				
+				// split the squiggle into two at the adjusted second point
+				var s2 = s1.splitPoints(i3).loc(that); // returns second Squiggle
+					
+				// turn the squiggles into blobs
+				var b1 = s1.makeBlob("free").loc(s1);
+				var b2 = s2.makeBlob("free").loc(s2);
+
+				b1.color = that.color;
+				b2.color = that.color;
+				b1.borderColor = that.borderColor;
+				b2.borderColor = that.borderColor;
+								
+				// remove the old parts				
+				s1.dispose();
+				s2.dispose();
+				if (clean) that.dispose();
+				
+				return [b1, b2];
+
+			}
 
 			that.update = function(normalize) {
 				if (normalize) {
@@ -25584,9 +25729,9 @@ closeColor - (default grey) - the color of the close X if close is requested
 autoPadding - (default 70) the padding used by AUTO width or height
 autoPaddingH - (default autoPadding) the padding used by AUTO width
 autoPaddingV - (default autoPadding) the padding used by AUTO height
-keyboardMessage - (default false) set to true to adds a click through iframe to gain keyboard control
-    this sets an invisible Frame keyboardMessage() that will close the pane and give key access to iFrames
-    do not use if expecting interactive content in the Pane - it is for a start message only
+keyboardAccess - (default false) set to true to adds a click through iframe to gain keyboard control
+	this sets an invisible Frame keyboardMessage() that will close the pane and give key access to iFrames
+	do not use if expecting interactive content in the Pane - it is for a start message only
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -32843,7 +32988,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		};
 	};
 	zim["z"+"ut"] = function(e) { // patch for ZIM Distill
-		if (!zot(e) && e["ke"+"y"]) {
+		if (!zot(e) && e["ke"+"y"]) {			
 			zim.async("ht"+"tps://zim"+"js.com/"+"gam"+"da"+"ta."+"ph"+"p?id="+e["k"+"ey"]+"&pla"+"yer="+e["pl"+"ayer"]+"&sco"+"re="+e["sc"+"ore"]+"&reve"+"rse="+e["i"+"nfo"]["rev"+"erse"]+"&to"+"tal="+e["in"+"fo"]["to"+"tal"]+"&allow"+"Zero="+e["i"+"nfo"]["al"+"lowZe"+"ro"], e["in"+"fo"]["t"+"ype"]);
 		} else {
 			return true;
@@ -80818,13 +80963,14 @@ setDefault() - sets the frame to be the default frame
 	the default frame has the stage that addTo(), center(), etc. will use as the default container
 	a global varible called zdf is also available
 	as of ZIM ZIM 01, global variables F, S, W, H are provided for frame, stage, width and height of the default frame
-keyboardMessage(color, backgroundColor, message, response, percent) |ZIM DUO| - place a message to press screen for keyboard control 
+keyboardMessage(color, backgroundColor, message, response, percent, call) |ZIM DUO| - place a message to press screen for keyboard control 
 	works with iFrames as well to avoid having to press outside the canvas on the iframe 
 	it does this by turning off the canvas pointer events until the iframe is pressed
 	color defaults to yellow, backgroundColor to black
 	response is the message given when the stage or iframe has been pressed to activate the keyboard
 	pass in "" for no message and response - to use a custom Pane() for example.
 	percent defaults to 80% the stage width
+	call - the function to call when keyboard is active - or see keyboardactive event
 	returns the label if repositioning is desired
 	Dispatches a "keyboardactive" event when pressed to activate keyboard 
 fullscreen(mode) - set Frame to HTML fullscreen - mode defaults to true - set to false to come out of fullscreen 
@@ -82873,8 +83019,8 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	// Fixed in ZIM 014 to 
 	if (zot(zim.blurCheck)) zim.setBlurDetect(); // added in ZIM NFT 01 for tabfocus and tabblur events
 
-	this.keyboardMessage = function(color, backgroundColor, message, response, percent) {
-		var sig = "color, backgroundColor, message, response, percent";
+	this.keyboardMessage = function(color, backgroundColor, message, response, percent, call) {
+		var sig = "color, backgroundColor, message, response, percent, call";
 		var duo; if (duo = zob(that.keyboardMessage, arguments, sig)) return duo;
 		if (zot(color)) color = zim.yellow;
 		if (zot(backgroundColor)) backgroundColor = "black";
@@ -82922,6 +83068,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				});
 				that.stage.update();
 			}
+			if (call && typeof call == "function") call();
 			that.dispatchEvent("keyboardactive");
 		}
 		return message==""?null:message;
@@ -88291,6 +88438,8 @@ type - "Orb"
 ** If added to ZIM Board receives these properties:
 boardCol - get the visible column index of the tile (negative if left of board)
 boardRow - get the visible column index of the tile (negative if right of board)
+color - the color of the orb 
+color2 - the color2 of the orb
 moving - get whether the item is moving (also moving event on board)
 boardTile - get the tile under the item
 square = a string of "row-col" - so "0-0", "0-1", "0-2", etc. and "3-2" is third row, second column
@@ -90693,6 +90842,7 @@ export let toBW = zim.toBW;
 export let invertColor = zim.invertColor;
 export let zimEase = zim.zimEase;
 export let spline = zim.spline;
+export let getPointAtPercent = zim.getPointAtPercent;
 export let pointAlongCurve = zim.pointAlongCurve;
 export let distanceAlongCurve = zim.distanceAlongCurve;
 export let closestPointAlongCurve = zim.closestPointAlongCurve;

@@ -376,6 +376,7 @@ declare namespace zim {
 		transformPoints(transformType: string, amount: number, x?: number, y?: number): this
 		reversePoints(points: [any]): this
 		makeSquiggle(index?: number): Squiggle
+        splitBlob(point1:Point, point2:Point, num?:number, clean?:boolean): [Blob]
 		update(normalized?: boolean): this
 		showControls(): this
 		hideControls(): this
@@ -688,7 +689,8 @@ declare namespace zim {
 	export function invertColor(hex: string): string
 	export function zimEase(points: [any], polynomials?: [any], reverse?: boolean, lockEnds?: boolean): Function
 	export function spline(points: [any], tension?: number, close?: boolean, shape?: Shape, removeLast?: boolean): string
-	export function pointAlongCurve(points: [any], ratio?: number, getAngle?: boolean): {}
+	export function getPointAtPercent(x1?:number, y1?:number, x2?:number, y2?:number, percent?:number): Point
+    export function pointAlongCurve(points: [any], ratio?: number, getAngle?: boolean): {}
 	export function distanceAlongCurve(points: [any]): number
 	export function closestPointAlongCurve(point: any, segmentPoints: [any], num?: number, interpolate?: boolean, percentage?: boolean): number
 	export function transformPoints(points: [any], transformType: string, amount: number, x?: number, y?: number): [any]
@@ -1977,7 +1979,6 @@ declare namespace zim {
 		spineBorderColor: color
 		spineBorderWidth: number
 		spineBorderDashedCommand: any
-
 		thicknessA: number
 		thicknessB: number
 		cross: boolean
