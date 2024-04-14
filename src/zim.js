@@ -32,7 +32,7 @@ Node module - also see ES6 modules at https://zimjs.com/cdn
 // Thanks to Karel Rosseel for proof-reading the site
 // Thanks Ami Hanya and team for such prolific work with ZIM and all the suggestions
 // Of course, thanks to all the ZIM users - it is always nice to hear from you 
-// at https://zimjs.com/slack and https://zimjs.com/discord
+// at https://forum.zimjs.com and https://zimjs.com/discord
 // There are several dozen thanks through out the code as well - cheers!
 
 // This is used for the build but in a browser would be
@@ -36177,6 +36177,11 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 const label = new Label("").pos(0,100,CENTER);
+
+// The NumPad is built in to the Keyboard
+// To set the parameters, such as titleBar, use STYLE before making the Keyboard
+STYLE = {titleBar:"CALCULATE", align:CENTER};
+
 const keyboard = new Keyboard({
 	labels:label, 
 	numPadScale:.75,
@@ -36193,7 +36198,7 @@ PARAMETERS
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 advanced - (default false) set to true to add one more row of round brackets, exponential and percent or modulus
 	or set to "simple" to show only numbers, backspace and return
-titleBar - |ZIM VEE| (default "PANEL") a String or ZIM Label title for the panel that will be presented on a titleBar across the top
+titleBar - |ZIM VEE| (default "NUMPAD") a String or ZIM Label title that will be presented on a titleBar across the top
 titleBarColor - |ZIM VEE| (default black) the text color of the titleBar if a titleBar is requested
 titleBarBackgroundColor - |ZIM VEE| (default "rgba(0,0,0,.2)") the background color of the titleBar if a titleBar is requested
 titleBarHeight - (default fit label) the height of the titleBar if a titleBar is requested
@@ -36291,7 +36296,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         this.type = "NumPad";	
 
 		var that = this;
-
 				
 		function ms(letter, color) {
 			if (zot(color)) color = mist;
@@ -68781,7 +68785,11 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		if (container && container.backing) this.mousedownIncludes.push(container.backing);
 		// this.mousedownExcludes = mousedownExcludes;
 		if (zot(dampKeyup)) dampKeyup = .3;
-		
+
+		if (boundary && boundary.type!="Blob") {	
+			target.x = zim.constrain(target.x, boundary.x, boundary.x+boundary.width);
+			target.y = zim.constrain(target.y, boundary.y, boundary.y+boundary.height);				
+		}		
 
 		that.dampKeyup = dampKeyup;
 		this.dirX = 0;
