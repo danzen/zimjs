@@ -25696,6 +25696,7 @@ content - (default " ") optional content to be centered in one of three formats:
 		color - the color of the message
 		spacingH - horizontal space between the buttons 
 		spacingV - vertical space between the content areas		
+		align - default CENTER, or use LEFT or RIGHT
 backgroundColor - (default white) a css color for the background of the Pane
 color - (default black) a css color for the text color of the Pane
 width - (default AUTO) width of pane - AUTO will matches content width - see also autoPadding and autoPaddingH
@@ -26303,8 +26304,9 @@ content - (default null) optional content to be centered in one of three formats
 		color - the color of the message
 		spacingH - (default 20*buttonScale) horizontal space between the buttons 
 		spacingV - (default 20) vertical space between the content areas	
+		align - default CENTER, or use LEFT or RIGHT
 titleBar - |ZIM VEE| (default "PANEL") a String or ZIM Label title for the panel that will be presented on a titleBar across the top
-    Pannel must have a titleBar - use a Pane or a Rectangle if a titleBar is not desired.
+	Panel must have a titleBar - use a Pane or a Rectangle if a titleBar is not desired.
 titleBarColor - |ZIM VEE| (default black) the text color of the titleBar
 titleBarBackgroundColor - |ZIM VEE| (default "rgba(0,0,0,.2)") the background color of the titleBar
 titleBarHeight - (default fit label) the height of the titleBar
@@ -83743,6 +83745,10 @@ var sound = Aud("sound.mp3").play(); // sound is an AbstractSoundInstance
 
 METHODS (of AbstractSoundInstance)
 ** full docs here: https://www.createjs.com/docs/soundjs/classes/AbstractSoundInstance.html
+** these methods are on the results of a new Aud().play() not on the new Aud()
+	const sound = new Aud();
+	const soundInstance = sound.play();
+	timeout(2, ()=>{soundInstance.stop()});
 stop() - stops the sound and sets the time to 0
 play() - plays the sound again - usually, the sound is already playing from the sound.play()
  	but if it is stopped - this will start it again
@@ -83759,6 +83765,10 @@ item - the CreateJS data item used for preload - available on complete event
 
 PROPERTIES (of AbstractSoundInstance)
 ** full docs here: https://www.createjs.com/docs/soundjs/classes/AbstractSoundInstance.html
+** these properties are on the results of a new Aud().play() not on the new Aud()
+	const sound = new Aud();
+	const soundInstance = sound.play();
+	timeout(2, ()=>{soundInstance.volume = .5});
 paused - set to true to pause and false to unpause
 muted - set to true to mute - but sound keeps playing or false to unmute
 volume - the volume with 1 being the default
@@ -85602,6 +85612,7 @@ F.loadAssets(zimAudioSpriteData, "assets/");
 F.on("complete", ()=>{
 	// will show tabs at top of stage - press to play audio
 	previewAudioSprite(zimAudioSpriteData, 2);
+	S.update();
 });
 END EXAMPLE
 
@@ -85789,6 +85800,7 @@ content - the content to make - using one of three formats:
 		spacingH - horizontal space between the buttons (default 20xbuttonScale) 
 		spacingV - vertical space between the content areas	(default 20)
 		scrollBar - set to true if a default scrollBar is present in Window or a number if custom	
+		align - default CENTER, or use LEFT or RIGHT
 maxWidth - (default null) pass in a maximum width to keep scale the content to
 color - message color - also see color as property of content config object {}
 
@@ -85823,7 +85835,7 @@ RETURNS - a Label if a string or number is passed as content, a Container if a c
 			obj = new zim.Container();
 			var spacer = new Container(10,spacingV).addTo(obj);
 			if (data.header) data.header.pos(0,spacingV,"left","top",obj);
-			if (data.message) var label = new zim.Label(data.message, null, null, zot(data.color)?color:data.color).loc(0,obj.height+(data.header?spacingV:0),obj);
+			if (data.message) var label = new zim.Label({text:data.message, color:zot(data.color)?color:data.color, align:data.align}).reg(LEFT,TOP).loc(0,obj.height+(data.header?spacingV:0),obj);
 			if (data.display) data.display.pos(0,-data.display.height-(data.header||data.message?spacingV:0),"left","bottom",obj);
 			if (data.buttons) {
 				if (!Array.isArray(data.buttons)) data.buttons = [data.buttons]; 	
@@ -85844,6 +85856,8 @@ RETURNS - a Label if a string or number is passed as content, a Container if a c
 					bd.button.sca(data.buttonScale).loc((bb==0?0:buts.width+spacingH),0,buts).tap(function(e){e.target.call(e.target)});					
 				}					
 			}
+			var bb = obj.getBounds();
+			obj.setBounds(bb.x, bb.y, bb.width, bb.height);
 			for (i=0; i<obj.numChildren; i++) {
 				var o = obj.getChildAt(i);
 				o.lastY = o.y;
@@ -85855,6 +85869,9 @@ RETURNS - a Label if a string or number is passed as content, a Container if a c
 			}	
 			if (maxWidth && typeof maxWidth == "number") obj.width = Math.min(obj.width, maxWidth-spacingH*2-(data.scrollBar===true?12:data.scrollBar>0?data.scrollBar:0));	
 			new zim.Container(10,spacingV).pos(0,-spacer.height,"center","bottom",obj).bot();
+
+			obj.setBounds(null); // make spacer in bottom adjust bounds
+			
 			spacer.top();
 			obj.config = data;
 			obj.header = data.header;
