@@ -10302,6 +10302,7 @@ playing animation series, wait, loop, rewind and call functions.
 This actually runs a ZIM animation and animates the frames.
 
 SEE: 
+https://zimjs.com/interactiveanimation.html
 https://zimjs.com/interactiveanimation/
 https://zimjs.com/spritesheet/
 https://zimjs.com/spritesheet/skateboard.html
@@ -10330,7 +10331,6 @@ So we recommend using the ZIM Sprite run() method.
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-// inside Frame template
 // boom.png is a sprite sheet found online
 // It has 8 columns and 6 rows that we can visually count
 // We can enter a total parameter if it does not end evenly in the grid
@@ -10338,18 +10338,18 @@ EXAMPLE
 // if there is an offset or spacing, etc. and enter those as parameters
 // In this case, we do not need to do any of this - just enter the cols and rows
 
+new Frame(FIT, 1024, 768, black, darker, "boom.png", "https://zimjs.org/assets/");
 F.on("complete", ()=>{
-	const spriteImage = new Pic("boom.png");
 
 	const animation = new Sprite({
-		image:spriteImage,
+		image:"boom.png",
 		cols:8,
 		rows:6,
 		animations:{mid:[10,20], end:[30,40]} // optional animations with labels
 		// see CreateJS SpriteSheet docs for the various animation format as there are a few different ones!
-	});
-	animation.center();
-	animation.run(2); // plays the frames of the Sprite over 2 seconds (master time)
+	})
+		.center()
+		.run(2); // plays the frames of the Sprite over 2 seconds (master time)
 
 	// OR use the label to play the frames listed in animations parameter
 	animation.run(1, "mid");
@@ -10408,7 +10408,7 @@ F.on("complete", ()=>{
 	animation.run(2); // note, duration alternative to framerate
 });
 
-OR
+// OR
 // load in data from external JSON
 F.loadAssets(["robot.json", "robot.png"]);
 // ... same as before
@@ -10961,7 +10961,10 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
 		this.clone = function() {
 			var s = this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, null, globalControl, spriteSheet, label, frame, style, this.group, inherit));
-			if (that.frame >= 0) s.run({startFrame:that.frame, endFrame:that.frame});
+			
+			// if it is 0 it will be 0 anyway and including 0 seems to make it so a clone can't set a frame
+			if (that.frame > 0) s.run({startFrame:that.frame, endFrame:that.frame});
+			
 			return s;			
 		};
 		if (createjs && !createjs.stageTransformable && frame.retina) {
@@ -26154,7 +26157,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}, 10);
 			}			
 
-            if (keyboardAccess && that.stage && that.stage.frame) {
+            if (keyboardAccess && that.stage && that.stage.frame && WW.parent && WW.location !== WW.parent.location) {
                 that.stage.frame.keyboardMessage(null, null, "");
                 that.stage.frame.on("keyboardactive", function() {
                     that.hide();
@@ -38644,7 +38647,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.type = "EmojiPicker";
 		var that = this;
 		
-		this.emojiData = !zot(emojis)?emojis:["\ud83d\udca5","\ud83c\udf35","\ud83c\udf82","\ud83c\udf70","\ud83d\udc29","\ud83d\udd25","\ud83c\udf2b","\ud83c\udf0a","\ud83c\udf4f","\ud83c\udf4e","\ud83c\udf4b","\ud83c\udf4c","\ud83c\udf47","\ud83c\udf51","\ud83c\udf45","\ud83c\udf46","\ud83e\uddc0","\ud83c\udf55","\ud83c\udf6c","\ud83c\udf6d","\ud83c\udf69","\ud83c\udf7a","\ud83c\udf7b","\ud83c\udf78","\ud83c\udf7e","\u2615\ufe0f","\ud83d\udca9","\ud83d\udc7b","\ud83e\udd16","\ud83d\udca4","\ud83d\udc40","\ud83d\udc83","\ud83d\udc83\ud83c\udffb","\ud83d\udc83\ud83c\udffc","\ud83d\udc83\ud83c\udffd","\ud83d\udc83\ud83c\udffe","\ud83d\udc83\ud83c\udfff","\ud83d\udc54","\ud83d\udc57","\ud83d\udc59","\ud83d\udc58","\ud83d\udc60","\ud83d\udc52","\ud83c\udfa9","\ud83d\udc31","\ud83d\udc3b","\ud83d\udc36","\ud83d\udc3c","\ud83d\udc2f","\ud83e\udd81","\ud83d\udc2e","\ud83d\udc37","\ud83d\udc19","\ud83d\udc35","\ud83d\udc12","\ud83d\udc14","\ud83d\udc26","\ud83d\udc34","\ud83e\udd84","\ud83d\udc1d","\ud83d\udc22","\ud83d\udc20","\ud83d\udc10","\ud83d\udd4a","\ud83d\udc15","\ud83d\udc08","\ud83d\udc09","\ud83d\udc32","\ud83c\udf84","\ud83c\udf40","\ud83c\udf3b","\ud83c\udf39","\ud83d\udc90","\ud83c\udf44","\u2600\ufe0f","\ud83c\udf27","\u26bd\ufe0f","\ud83c\udfc0","\ud83c\udfc8","\u26be\ufe0f","\ud83c\udfbe","\ud83c\udfd2","\u26f7","\ud83c\udfc4","\ud83c\udfca","\ud83d\udeb4","\ud83c\udfad","\ud83c\udfa8","\ud83c\udfb7","\ud83c\udfba","\ud83c\udfb8","\ud83c\udfbb","\ud83c\udfb0","\ud83c\udfb3","\ud83d\ude97","\ud83d\ude95","\ud83d\ude8c","\ud83d\ude8e","\ud83d\ude91","\ud83d\ude92","\ud83d\ude9c","\ud83d\ude82","\u2708\ufe0f","\u26f5\ufe0f","\ud83d\udef0","\ud83c\udf01","\ud83c\udf0b","\ud83c\udfde","\ud83c\udf05","\ud83c\udf86","\ud83c\udf08","\ud83c\udfe0","\ud83c\udfe5","\ud83c\udfeb","\u231a\ufe0f","\ud83d\udcf1","\ud83d\udda5","\ud83d\udcbe","\ud83d\udcfc","\ud83c\udfa5","\u260e\ufe0f","\ud83d\udcfa","\ud83d\udcfb","\ud83d\udce1","\ud83d\udd6f","\ud83d\udcb0","\ud83d\udc8e","\ud83d\udeac","\u26b0","\ud83d\udd2e","\ud83d\udc88","\ud83d\udebd","\ud83d\udd11","\ud83d\udecf","\ud83c\udf89","\ud83c\udf8a","\u2764\ufe0f","\ud83e\udd21","\ud83d\ude00","\ud83d\ude2c","\ud83d\ude01","\ud83d\ude02","\ud83d\ude03","\ud83d\ude04","\ud83d\ude05","\ud83d\ude06","\ud83d\ude07","\ud83d\ude09","\ud83d\ude0a","\ud83d\ude42","\ud83d\ude43","\u263a\ufe0f","\ud83d\ude0b","\ud83d\ude0c","\ud83d\ude0d","\ud83d\ude18","\ud83d\ude17","\ud83d\ude19","\ud83d\ude1a","\ud83d\ude1c","\ud83d\ude1d","\ud83d\ude1b","\ud83e\udd11","\ud83e\udd13","\ud83d\ude0e","\ud83e\udd17","\ud83d\ude0f","\ud83d\ude36","\ud83d\ude10","\ud83d\ude11","\ud83d\ude12","\ud83d\ude44","\ud83e\udd14","\ud83d\ude33","\ud83d\ude1f","\ud83d\ude20","\ud83d\ude14","\ud83d\ude15","\ud83d\ude41","\u2639\ufe0f","\ud83d\ude23","\ud83d\ude2b","\ud83d\ude29","\ud83d\ude31","\ud83d\ude28","\ud83d\ude30","\ud83d\ude2f","\ud83d\ude26","\ud83d\ude22","\ud83d\ude2a","\ud83d\ude13","\ud83d\ude2d","\ud83d\ude35","\ud83d\ude32","\ud83e\udd10","\ud83d\ude37","\ud83e\udd12","\ud83e\udd15","\ud83d\ude34","\ud83d\udc80","\u2620\ufe0f","\ud83d\udc7d","\ud83d\ude3a","\ud83d\ude38","\ud83d\ude39","\ud83d\ude3b","\ud83d\ude3c","\ud83d\ude3d","\ud83d\ude40","\ud83d\ude3f","\ud83d\ude3e","\ud83d\udc44","\ud83d\udc8b","\ud83d\udc45","\ud83d\udde3","\ud83d\udc64","\ud83d\udc65","\ud83d\udc56","\ud83d\udc63","\ud83d\udc61","\ud83d\udc62","\ud83d\udc5e","\ud83d\udc5f","\ud83c\udf93","\ud83d\udc51","\ud83d\udc5c","\ud83d\udc5b","\ud83d\udcbc","\ud83d\udc53","\ud83d\udd76","\ud83d\udc8d","\ud83c\udf02","\u2744\ufe0f","\ud83c\udf2a","\u26a1\ufe0f","\ud83e\udd51","\ud83e\udd8b","\ud83d\ude48","\ud83d\ude49","\ud83d\ude4a","\ud83d\udc27","\ud83d\udd77","\ud83e\udd82","\ud83e\udd80","\ud83d\udc0d","\ud83d\udc1b","\ud83d\udc0c","\ud83d\udc1e","\ud83d\udc1c","\ud83d\udc1f","\ud83d\udc21","\ud83d\udc2c","\ud83d\udc33","\ud83d\udc0b","\ud83d\udc0a","\ud83d\udc06","\ud83c\udf32","\ud83c\udf33","\ud83c\udf34","\ud83c\udf31","\ud83c\udf3f","\ud83c\udf43","\ud83c\udf42","\ud83c\udf41","\ud83c\udf3a","\ud83c\udf3c","\ud83c\udf38","\ud83c\udf30","\ud83c\udf83","\ud83d\udc1a","\ud83d\udd78","\ud83c\udf0e","\ud83c\udf0d","\ud83c\udf0f","\ud83c\udf15","\ud83c\udf16","\ud83c\udf17","\ud83c\udf18","\ud83c\udf11","\ud83c\udf12","\ud83c\udf13","\ud83c\udf14","\ud83c\udf1a","\ud83c\udf1d","\ud83c\udf1b","\ud83c\udf1c","\ud83c\udf1e","\ud83c\udf19","\u2b50\ufe0f","\ud83c\udf1f","\ud83d\udcab","\u2728","\u2604\ufe0f","\ud83c\udf54","\ud83c\udf73","\ud83c\udf5f","\ud83c\udf2d","\ud83c\udf5d","\ud83c\udf2e","\ud83c\udf2f","\ud83c\udf63","\ud83c\udf68","\ud83c\udf66","\ud83c\udf77","\ud83c\udf79","\ud83c\udfc6","\ud83c\udfaa","\ud83c\udfb9","\ud83d\ude80","\u26f2\ufe0f","\ud83c\udfa2","\u26f0","\ud83c\udfd4","\ud83d\uddfb","\ud83d\udcaf","\ud83c\udfb5","\ud83c\udfb6","\ud83d\udcac","\ud83d\udcad","\ud83d\uddef","\ud83c\udccf","\ud83c\udff3\ufe0f\u200d\ud83c\udf08","\ud83e\udd53","\ud83e\udd43","\ud83c\udfa4","\ud83d\udea8","\ud83c\udfcd","\ud83c\udfd5","\u26fa\ufe0f","\ud83c\udfdc","\ud83c\udfd6","\ud83c\udfdd","\ud83c\udf07","\ud83c\udf06","\ud83c\udfd9","\ud83c\udf03","\ud83c\udfd8","\ud83c\udfe1","\ud83c\udfe2","\ud83d\udd28","\u2699","\ud83d\udd2b","\ud83d\udca3","\ud83d\udd2a","\ud83d\udc8a","\ud83d\udd73","\ud83d\udc89","\ud83d\udec1","\u26f1","\ud83c\udf81","\ud83c\udf88","\ud83c\udf80","\ud83d\udcc5","\ud83d\uddf3","\ud83d\udcda","\u270f\ufe0f","\u26aa\ufe0f","\u26ab\ufe0f","\u2b1b\ufe0f","\u2b1c\ufe0f","\ud83d\uddbc","\ud83c\udfda","\ud83c\udfed","\ud83d\udd32","\ud83d\udd33","\ud83c\udfb1","\ud83d\udd3a","\ud83d\udd3b","\ud83d\udca6","\u26f3\ufe0f","\ud83c\udfdf","\ud83d\udca1","\ud83d\udd2d","\ud83d\udd2c","\ud83d\udd70","\ud83d\udc2a","\ud83d\udc2b","\ud83d\udc18","\ud83d\udc38","\ud83d\udc30","\ud83d\udc2d","\ud83d\udeaa","\ud83d\udecd","\ud83d\udc41","\ud83c\udf53","\ud83c\udf52","\ud83c\udf36","\ud83c\udf3d","\ud83c\udf60","\ud83c\udf6f","\ud83c\udf5e","\ud83c\udf6b","\ud83c\udf7f","\ud83c\udf6a","\ud83c\udf4a","\ud83c\udff9","\ud83d\udc6f","\ud83d\udc6f\u200d\u2642\ufe0f","\ud83d\uddd1"];
+		this.emojiData = !zot(emojis)?emojis:["\ud83d\udca5","\ud83c\udf35","\ud83c\udf82","\ud83c\udf70","\ud83d\udc29","\ud83d\udd25","\ud83c\udf2b","\ud83c\udf0a","\ud83c\udf4f","\ud83c\udf4e","\ud83c\udf4b","\ud83c\udf4c","\ud83c\udf47","\ud83c\udf51","\ud83c\udf45","\ud83c\udf46","\ud83e\uddc0","\ud83c\udf55","\ud83c\udf6c","\ud83c\udf6d","\ud83c\udf69","\ud83c\udf7a","\ud83c\udf7b","\ud83c\udf78","\ud83c\udf7e","\u2615\ufe0f","\ud83d\udca9","\ud83d\udc7b","\ud83e\udd16","\ud83d\udca4","\ud83d\udc40","\ud83d\udc83","\ud83d\udc83\ud83c\udffb","\ud83d\udc83\ud83c\udffc","\ud83d\udc83\ud83c\udffd","\ud83d\udc83\ud83c\udffe","\ud83d\udc83\ud83c\udfff","\ud83d\udc54","\ud83d\udc57","\ud83d\udc59","\ud83d\udc58","\ud83d\udc60","\ud83d\udc52","\ud83c\udfa9","\ud83d\udc31","\ud83d\udc3b","\ud83d\udc36","\ud83d\udc3c","\ud83d\udc2f","\ud83e\udd81","\ud83d\udc2e","\ud83d\udc37","\ud83d\udc19","\ud83d\udc35","\ud83d\udc12","\ud83d\udc14","\ud83d\udc26","\ud83d\udc34","\ud83e\udd84","\ud83d\udc1d","\ud83d\udc22","\ud83d\udc20","\ud83d\udc10","\ud83d\udd4a","\ud83d\udc15","\ud83d\udc08","\ud83d\udc09","\ud83d\udc32","\ud83c\udf84","\ud83c\udf40","\ud83c\udf3b","\ud83c\udf39","\ud83d\udc90","\ud83c\udf44","\u2600\ufe0f","\ud83c\udf27","\u26bd\ufe0f","\ud83c\udfc0","\ud83c\udfc8","\u26be\ufe0f","\ud83c\udfbe","\ud83c\udfd2","\u26f7","\ud83c\udfc4","\ud83c\udfca","\ud83d\udeb4","\ud83c\udfad","\ud83c\udfa8","\ud83c\udfb7","\ud83c\udfba","\ud83c\udfb8","\ud83c\udfbb","\ud83c\udfb0","\ud83c\udfb3","\ud83d\ude97","\ud83d\ude95","\ud83d\ude8c","\ud83d\ude8e","\ud83d\ude91","\ud83d\ude92","\ud83d\ude9c","\ud83d\ude82","\u2708\ufe0f","\u26f5\ufe0f","\ud83d\udef0","\ud83c\udf01","\ud83c\udf0b","\ud83c\udfde","\ud83c\udf05","\ud83c\udf86","\ud83c\udf08","\ud83c\udfe0","\ud83c\udfe5","\ud83c\udfeb","\u231a\ufe0f","\ud83d\udcf1","\ud83d\udda5","\ud83d\udcbe","\ud83d\udcfc","\ud83c\udfa5","\u260e\ufe0f","\ud83d\udcfa","\ud83d\udcfb","\ud83d\udce1","\ud83d\udd6f","\ud83d\udcb0","\ud83d\udc8e","\ud83d\udeac","\u26b0","\ud83d\udd2e","\ud83d\udc88","\ud83d\udebd","\ud83d\udd11","\ud83d\udecf","\ud83c\udf89","\ud83c\udf8a","\u2764\ufe0f","\ud83e\udd21","\ud83d\ude00","\ud83d\ude2c","\ud83d\ude01","\ud83d\ude02","\ud83d\ude03","\ud83d\ude04","\ud83d\ude05","\ud83d\ude06","\ud83d\ude07","\ud83d\ude09","\ud83d\ude0a","\ud83d\ude42","\ud83d\ude43","\u263a\ufe0f","\ud83d\ude0b","\ud83d\ude0c","\ud83d\ude0d","\ud83d\ude18","\ud83d\ude17","\ud83d\ude19","\ud83d\ude1a","\ud83d\ude1c","\ud83d\ude1d","\ud83d\ude1b","\ud83e\udd11","\ud83e\udd13","\ud83d\ude0e","\ud83e\udd17","\ud83d\ude0f","\ud83d\ude36","\ud83d\ude10","\ud83d\ude11","\ud83d\ude12","\ud83d\ude44","\ud83e\udd14","\ud83d\ude33","\ud83d\ude1f","\ud83d\ude20","\ud83d\ude14","\ud83d\ude15","\ud83d\ude41","\u2639\ufe0f","\ud83d\ude23","\ud83d\ude2b","\ud83d\ude29","\ud83d\ude31","\ud83d\ude28","\ud83d\ude30","\ud83d\ude2f","\ud83d\ude26","\ud83d\ude22","\ud83d\ude2a","\ud83d\ude13","\ud83d\ude2d","\ud83d\ude35","\ud83d\ude32","\ud83e\udd10","\ud83d\ude37","\ud83e\udd12","\ud83e\udd15","\ud83d\ude34","\ud83d\udc80","\u2620\ufe0f","\ud83d\udc7d","\ud83d\ude3a","\ud83d\ude38","\ud83d\ude39","\ud83d\ude3b","\ud83d\ude3c","\ud83d\ude3d","\ud83d\ude40","\ud83d\ude3f","\ud83d\ude3e","\ud83d\udc44","\ud83d\udc8b","\ud83d\udc45","\ud83d\udde3","\ud83d\udc64","\ud83d\udc65","\ud83d\udc56","\ud83d\udc63","\ud83d\udc61","\ud83d\udc62","\ud83d\udc5e","\ud83d\udc5f","\ud83c\udf93","\ud83d\udc51","\ud83d\udc5c","\ud83d\udc5b","\ud83d\udcbc","\ud83d\udc53","\ud83d\udd76","\ud83d\udc8d","\ud83c\udf02","\u2744\ufe0f","\ud83c\udf2a","\u26a1\ufe0f","\ud83e\udd51","\ud83e\udd8b","\ud83d\ude48","\ud83d\ude49","\ud83d\ude4a","\ud83d\udc27","\ud83d\udd77","\ud83e\udd82","\ud83e\udd80","\ud83d\udc0d","\ud83d\udc1b","\ud83d\udc0c","\ud83d\udc1e","\ud83d\udc1c","\ud83d\udc1f","\ud83d\udc21","\ud83d\udc2c","\ud83d\udc33","\ud83d\udc0b","\ud83d\udc0a","\ud83d\udc06","\ud83c\udf32","\ud83c\udf33","\ud83c\udf34","\ud83c\udf31","\ud83c\udf3f","\ud83c\udf43","\ud83c\udf42","\ud83c\udf41","\ud83c\udf3a","\ud83c\udf3c","\ud83c\udf38","\ud83c\udf30","\ud83c\udf83","\ud83d\udc1a","\ud83d\udd78","\ud83c\udf0e","\ud83c\udf0d","\ud83c\udf0f","\ud83c\udf15","\ud83c\udf16","\ud83c\udf17","\ud83c\udf18","\ud83c\udf11","\ud83c\udf12","\ud83c\udf13","\ud83c\udf14","\ud83c\udf1a","\ud83c\udf1d","\ud83c\udf1b","\ud83c\udf1c","\ud83c\udf1e","\ud83c\udf19","\u2b50\ufe0f","\ud83c\udf1f","\ud83d\udcab","\u2728","\u2604\ufe0f","\ud83c\udf54","\ud83c\udf73","\ud83c\udf5f","\ud83c\udf2d","\ud83c\udf5d","\ud83c\udf2e","\ud83c\udf2f","\ud83c\udf63","\ud83c\udf68","\ud83c\udf66","\ud83c\udf77","\ud83c\udf79","\ud83c\udfc6","\ud83c\udfaa","\ud83c\udfb9","\ud83d\ude80","\u26f2\ufe0f","\ud83c\udfa2","\u26f0","\ud83c\udfd4","\ud83d\uddfb","\ud83d\udcaf","\ud83c\udfb5","\ud83c\udfb6","\ud83d\udcac","\ud83d\udcad","\ud83d\uddef","\ud83c\udccf","\ud83c\udff3\ufe0f\u200d\ud83c\udf08","\ud83e\udd53","\ud83e\udd43","\ud83c\udfa4","\ud83d\udea8","\ud83c\udfcd","\ud83c\udfd5","\u26fa\ufe0f","\ud83c\udfdc","\ud83c\udfd6","\ud83c\udfdd","\ud83c\udf07","\ud83c\udf06","\ud83c\udfd9","\ud83c\udf03","\ud83c\udfd8","\ud83c\udfe1","\ud83c\udfe2","\ud83d\udd28","\u2699","\ud83d\udd2b","\ud83d\udca3","\ud83d\udd2a","\ud83d\udc8a","\ud83d\udd73","\ud83d\udc89","\ud83d\udec1","\u26f1","\ud83c\udf81","\ud83c\udf88","\ud83c\udf80","\ud83d\udcc5","\ud83d\uddf3","\ud83d\udcda","\u270f\ufe0f","\u26aa\ufe0f","\u26ab\ufe0f","\u2b1b\ufe0f","\u2b1c\ufe0f","\ud83d\uddbc","\ud83c\udfda","\ud83c\udfed","\ud83d\udd32","\ud83d\udd33","\ud83c\udfb1","\ud83d\udd3a","\ud83d\udd3b","\ud83d\udca6","\u26f3\ufe0f","\ud83c\udfdf","\ud83d\udca1","\ud83d\udd2d","\ud83d\udd2c","\ud83d\udd70","\ud83d\udc2a","\ud83d\udc2b","\ud83d\udc18","\ud83d\udc38","\ud83d\udc30","\ud83d\udc2d","\ud83d\udeaa","\ud83d\udecd","\ud83d\udc41","\ud83c\udf53","\ud83c\udf52","\ud83c\udf36","\ud83c\udf3d","\ud83c\udf60","\ud83c\udf6f","\ud83c\udf5e","\ud83c\udf6b","\ud83c\udf7f","\ud83c\udf6a","\ud83c\udf4a","\ud83c\udff9","\ud83d\udc6f","\ud83d\udc6f\u200d\u2642\ufe0f","\ud83d\uddd1","\u20ac"];
 				
 		var icons = [];
 		zim.loop(this.emojiData, function(key) {        
@@ -47192,6 +47195,7 @@ boundary - (default null) a ZIM Boundary object for the drag boundary
 		If the boundary is a display object then ZIM will keep the shape of the dragged object inside the bounds.
 		If the boundary object is a Blob then the dragged object will stay within the Blob (experimental).
 		If the boundary object is a Circle then the registration point of the dragged object will stay within the circle
+		If the object being dragged is a Pic() then make sure it is preloaded or has dimensions before adding a drag boundary
 		If the drag is on a container and the "all" parameter is false
 		then ZIM will call drag methods on each child so the bound calculations are easier.
 		The drags will be applied after a .05 second delay allowing items to be added directly after.
@@ -70107,9 +70111,12 @@ speedY - get or set the speedY of an object that is controlled by control()
 ** it is best to set traditional properties before calling physics()
 
 METHODS - FOR BODY (a physics engine body)
-loc(x,y) - generally, we should not manually adjust x and y but rather use forces
+loc(x,y) - generally, we should not manually adjust x and y but rather use forces - returns body for chaining
 	but for resetting things, etc. use zimObj.body.loc(x, y)
-	Do not use zimObj.loc() or zimObj.x or zimObj.y - these will only work BEFORE adding physics.
+	Do not use zimObj.loc() or zimObj.x or zimObj.y - these will only work BEFORE adding physics
+rot(angle) - set the rotation property of the body of the phsyics object - returns body for chaining
+	Do not use zimObj.rot() or zimObj.rotation - these will only work BEFORE adding physics
+** for scale, another object will need to be made
 ** the ZIM DisplayObject body property provides access to the following Box2D methods (note, all start with uppercase):
 ** commonly used methods are handled through ZIM wrapper methods on the DisplayObject
 ** see https://www.box2dflash.org/docs/2.1a/reference/ for very basic docs
@@ -77123,7 +77130,7 @@ pen.write = true;
 
 // position the pen at the start of the path
 // and set its damping to start there too...
-const path = new Squiggle().loc(100,100);
+const path = new Squiggle().loc(100,100).alp(.1);
 pen.loc(path.pointControls[0]);
 pen.immediate(pen.x, pen.y);
 
@@ -77131,8 +77138,8 @@ pen.immediate(pen.x, pen.y);
 // make sure the percentComplete is reset to 0
 // (this is a tricky one!)
 pen.animate({
-	set:{percentComplete:0},
-	props:{path:new Squiggle().center()},
+	// set:{percentComplete:0},
+	props:{path:path},
 	time:1,
 	call:()=>{
 		// to use the motionController again:
@@ -83126,6 +83133,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		if (!allowDefault) document.body.style.overflow = "auto";
 		recursiveDispose(stage);
 		function recursiveDispose(obj) {
+			if (!obj) return;
 			if (obj.dispose) obj.dispose();
 			else {
 				obj.removeAllEventListeners();
@@ -86715,7 +86723,7 @@ function ready() {
 }
 END EXAMPLE
 --*///+83.37
-var ZIMONON = false;
+WW.ZIMONON = false;
 //-83.37
 
 
@@ -90535,6 +90543,13 @@ home
 edit
 magnify
 checkmark
+angle
+garbage
+move
+resize
+rotate2
+save
+mark
 
 Pizzazz Icons example:
 https://zimjs.com/bits/view/icons.html
