@@ -28244,7 +28244,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.clone = function(recursive) {
 			if (zot(recursive)) recursive = false;
 			if (color.type) color2 = null;
-			var w = that.cloneProps(new zim.Page(width, height, color, color2, vertical, pattern, scalePattern, cache, style, group, inherit));
+			var w = that.cloneProps(new zim.Page(width, height, color, color2, angle, pattern, scalePattern, cache, style, group, inherit));
 			if (recursive) {
 				that.cloneChildren(w);
 			}
@@ -30803,7 +30803,7 @@ scrollBarAlpha - (default .3) the transparency of the scrollBar
 scrollBarFade - (default true) fades scrollBar unless being used
 scrollBarH - (default true) if scrolling in horizontal is needed then show scrollBar
 scrollBarV - (default true) if scrolling in vertical is needed then show scrollBar
-scrollBarOverlay - (default true) set to false to not overlay the scrollBar on the cotnent
+scrollBarOverlay - (default true) set to false to not overlay the scrollBar on the content
 	overlaying could hide content - but without overlay, content less than window size will show gap when no scrollBar
 slide - (default true) Boolean to throw the content when drag/swipe released
 slideFactor - (default .95) is the factor multiplied by dragging velocity (1 no slowing, .7 fast slowing)
@@ -31441,6 +31441,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 			}
 		} // end tapList
+
+		that.updateTree = function() {
+			tapList();
+		}
 		
 		that.expandList = function(num) {
 			that.selectedIndex = num;
@@ -34542,7 +34546,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {	
 					var dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));
 					new zim.Label({
-						text:zim.decimals(min+(max-min)/Math.abs(stepsTotal)*i,dd+1),
+						text:zim.decimals(min+(max-min)/Math.abs(stepsTotal||ticksTotal)*i,dd+1,true),
 						size:DS.size?DS.size:10,
 						align:"center",
 						valign:"center"
@@ -47665,6 +47669,8 @@ RETURNS obj for chaining
 
 			if (obj.cur) obj.cur(zot(overCursor)?"pointer":overCursor);
 			else obj.cursor = zot(overCursor)?"pointer":overCursor;
+
+			if (e.stageX == null) return; // added for TextureActive drag in 2D view
 
 			if (slide) {				
 				dragObject.dispatchEvent("slidestart");
@@ -64937,6 +64943,9 @@ XR
 TextureActive will detect if XR (AR/VR) is being used and will use the suitable Raycaster
 Additional classes are provided with the ZIM Three helper library for controllers, movement and teleport 
 
+NOTE: for XR, a layer must be set so the controllers do not get in the way of interactivity
+so in the TextureActives() set layer:1 and when adding meshes use addMesh(mesh, 1)
+
 SEE: 
 https://zimjs.com/015/vr.html - for example with Three and controllers (trigger), movement (sticks and squeeze) and teleport (B and Y buttons)
 
@@ -65038,6 +65047,7 @@ layers - (default 0) a layer number from 0 to 31 or an array of layers
 	it is a good idea to specify 1 for instance and add TexureActive meshes to layer 1 
 	the addMesh() method has a layer parameter that should match the layer number used here 
 	the Three makePanel() method will automatically add the panel mesh to the layer specified for the TextureActives object
+	NOTE: for XR, layers must be set so the controls do not get in the way of interactivity
 near - (default undefined) - the start of the distance-from-camera range for the object to be interactive
 far - (default undefined) - the end of the distance-from-camera range for the object to be interactive
 ignoreList - (default null) - a mesh or array of meshes to ignore if between the camera and the TextureActive mesh 
@@ -65250,16 +65260,6 @@ function apply () {
 	that.XR = WW.XR = false;
 	var tempMatrix = new threejs.Matrix4();
 
-	var controller1 = that.controllerLeft = renderer.xr.getController(0);
-	controller1.addEventListener('selectstart', that.doLcDown); // ignoring select
-	controller1.addEventListener('selectend', that.doLcUp);
-	controller1.addEventListener('move', that.doLcMove);
-
-	var controller2 = that.controllerRight = renderer.xr.getController(1);
-	controller2.addEventListener('selectstart', that.doRcDown); // ignoring select
-	controller2.addEventListener('selectend', that.doRcUp);
-	controller2.addEventListener('move', that.doRcMove);
-
 	that.doLcDown = function (e) {
 		// possibly need to set pointerID
 		XR = true;
@@ -65285,6 +65285,16 @@ function apply () {
 		XR = true;
 		doMove(e, "right");
 	}
+
+	var controller1 = that.controllerLeft = renderer.xr.getController(0);
+	controller1.addEventListener('selectstart', that.doLcDown); // ignoring select
+	controller1.addEventListener('selectend', that.doLcUp);
+	controller1.addEventListener('move', that.doLcMove);
+
+	var controller2 = that.controllerRight = renderer.xr.getController(1);
+	controller2.addEventListener('selectstart', that.doRcDown); // ignoring select
+	controller2.addEventListener('selectend', that.doRcUp);
+	controller2.addEventListener('move', that.doRcMove);
 
 
 	that.doPointerDown = function(e) {
@@ -75001,7 +75011,8 @@ horizontal - (default false) start the particles across the emitter's width at t
 vertical - (default false) start the particles across the emitter's height at the left of the emitter (unless horizontal is set to true)
 sink - (default null) an object with x and y properties (can be a display object) that the particles will be pulled to (or pushed if sinkForce is negative)
 sinkForce - |ZIM VEE| (default 10 if sink) the force particles are moved towards the sink location
-cache - (default mobile() or false if gpu) Boolean to cache each particle - helpful if complex shape or text (do not use for Bitmap or SpriteSheet)
+cache - (default mobile() or false if gpu) Boolean to cache each particle - helpful if complex shape or text 
+	Bitmap, Pic, Sprite will not be cached.
 events - (default false) Boolean - set to true to receive events from Emitter
 startPaused - (default false) Boolean - set to true to start the Emitter in the paused state
 pool - (default true) Boolean if true, makes as many particles as it needs before recycling particles
@@ -75403,7 +75414,13 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 						});
 					}
 
-					if (cache && !particle.emitShape) particle.cache(particle.getBounds().x-10,particle.getBounds().y-10,particle.getBounds().width+20,particle.getBounds().height+20);
+					if (
+						cache && 
+						!particle.emitShape && 
+						particle.type!="Pic" && 
+						particle.type!="Bitmap" && 
+						particle.type!="Sprite"
+					) particle.cache(particle.getBounds().x-10,particle.getBounds().y-10,particle.getBounds().width+20,particle.getBounds().height+20);
 
 					//-------------    DECAY, FADE, SHRINK, FIZZ
 
@@ -90796,7 +90813,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-
+// if (zns) {
 	// these are global regardless
 	var globalsConstants = [
 		["FIT", zim.FIT],
@@ -90851,7 +90868,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 	  }
-
+// } else zimplify();
 
 WW.zim = zim;
 export default zim;
