@@ -14809,7 +14809,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-53.1
 
 /*--
-zim.Line = function(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, style, group, inherit)
+zim.Line = function(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, startLength, endLength, style, group, inherit)
 
 Line
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -14870,6 +14870,16 @@ points - (default null) an Array of points for the line which will ignore length
 	[cpX, cpY, x, y] for quadratic curve to with a single control point followed by the destination point
 	[cp1X, cp1Y, cp2X, cp2Y, x, y] for Bezier curve to with start and end control points followed by the destination point
 	// see the ZIM Shape docs (or https://www.createjs.com/docs/easeljs/classes/Graphics) for details on the curves
+startLength - |VEE| (default null) for lineType corner or curved, the length the line will start.
+	should be less than half the line distance (either vertical or horizontal depending on lineOrientation) otherwise ignored
+	varying this will avoid overlap when used with Connectors - also see endLength
+	for the corner lineType both can be set but usually one would be set
+	for the curved lineType the endLength will be chosen over the startLength
+endLength - |VEE| (default null) for lineType corner or curved, the length the line will end.
+	should be less than half the line distance (either vertical or horizontal depending on lineOrientation) otherwise ignored
+	varying this will avoid overlap when used with Connectors - also see startLength
+	for the corner lineType both can be set but usually one would be set
+	for the curved lineType the endLength will be chosen over the startLength
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -14918,6 +14928,8 @@ endX - get or set the end x point - allows for animation
 endY - get or set the end y point - allows for animation
 startHead - get or set the start head - see startHead parameter
 endHead - get or set the end head - see endHead parameter
+startLength - get or set the start length of the line (see startLength parameter)
+endLength - get or set the end length of the line (see endLength parameter)
 angle - gets (not sets) the current angle relative to the line (does not include line rotation)
 points - get and set the points array (see points parameter) - ignoring all settings above
 ** above will not change the x and y of the shape
@@ -14957,8 +14969,8 @@ EVENTS
 See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+53.15
-	zim.Line = function(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, style, group, inherit) {
-		var sig = "length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, style, group, inherit";
+	zim.Line = function(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, startLength, endLength, style, group, inherit) {
+		var sig = "length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, startLength, endLength, style, group, inherit";
 		var duo; if (duo = zob(zim.Line, arguments, sig, this)) return duo;
 		z_d("53.15");
 		this.zimCustomShape_constructor(null,null,null,null,false);
@@ -14982,9 +14994,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(curveV)) curveV = DS.curveV!=null?DS.curveV:20;
 		if (zot(strokeObj)) strokeObj = DS.strokeObj!=null?DS.strokeObj:{};
 
+		if (zot(startLength)) startLength = DS.startLength!=null?DS.startLength:null;
+		if (zot(endLength)) endLength = DS.endLength!=null?DS.endLength:null;
+	
 		// PICK
-		var oa = remember(length, color, thickness, startHead, endHead);
-		this.veeObj = {length:oa[0], color:oa[1], thickness:oa[2], startHead:oa[3], endHead:oa[4]};
+		var oa = remember(length, color, thickness, startHead, endHead, startLength, endLength);
+		this.veeObj = {length:oa[0], color:oa[1], thickness:oa[2], startHead:oa[3], endHead:oa[4], startHead:oa[5], endHead:oa[6]};
 		function remember() {return arguments;} // for cloning PICK
 		length = zim.Pick.choose(length);
 		color = zim.Pick.choose(color);
@@ -14994,6 +15009,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		// do below otherwise will be the same head and get moved if cloned
 		if (startHead && startHead.clone) startHead = startHead.clone();
 		if (endHead && endHead.clone) endHead = endHead.clone();
+		startLength = zim.Pick.choose(startLength);
+		endLength = zim.Pick.choose(endLength);		
 
 		var that = this;
 		that._length = length;
@@ -15139,6 +15156,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (that.lineType == "straight") {
 					g.mt(sX, sY).lt(eX, eY);
 					startArrowGuide = endArrowGuide = [sX, sY, eX, eY];
+
 				} else if (that.lineType == "corner") {
 					var midX = sX + (eX-sX)*.4;
 					var midY = sY + (eY-sY)*.4;
@@ -15147,18 +15165,62 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					}
 					if (that._lineOrientation == "horizontal" || that.autoOrientation == "horizontal") {
 						startArrowGuide = endArrowGuide = [sX, sY, midX, sY];
-						// startArrowGuide = endArrowGuide = [that._startX, that._startY, midX, that._startY];
-						g.mt(sX, sY).lt(midX, sY).lt(midX, eY).lt(eX, eY);
+						// startArrowGuide = endArrowGuide = [that._startX, that._startY, midX, that._startY];					
+						var mX1 = midX;
+						var mX2;
+						if (startLength!=null) {							
+							if (midX > sX) {
+								if (midX-sX > startLength) mX1 = sX + startLength;
+							} else {
+								if (sX-midX > startLength) mX1 = sX - startLength;
+							}
+						} 
+						if (endLength!=null) {
+							if (eX > midX) {
+								if (eX-midX > endLength) mX2 = eX - endLength;
+								else mX2 = midX;
+							} else {
+								if (midX-eX > endLength) mX2 = eX + endLength;
+								else mX2 = midX;
+							}
+							if (startLength==null) mX1 = mX2;
+						} else {							
+							mX2 = mX1;
+						}
+						g.mt(sX, sY).lt(mX1, sY).lt(mX2, eY).lt(eX, eY);
 					} else {
 						startArrowGuide = endArrowGuide = [sX, sY, sX, midY];
 						// startArrowGuide = endArrowGuide = [that._startX, that._startY, that._startX, midY];
-						g.mt(sX, sY).lt(sX, midY).lt(eX, midY).lt(eX, eY);
+						var mY1 = midY;
+						var mY2;
+						if (startLength!=null) {							
+							if (midY > sY) {
+								if (midY-sY > startLength) mY1 = sY + startLength;
+							} else {
+								if (sY-midY > startLength) mY1 = sY - startLength;
+							}
+						} 
+						if (endLength!=null) {
+							if (eY > midY) {
+								if (eY-midY > endLength) mY2 = eY - endLength;
+								else mY2 = midY;
+							} else {
+								if (midY-eY > endLength) mY2 = eY + endLength;
+								else mY2 = midY;
+							}
+							if (startLength==null) mY1 = mY2;
+						} else {							
+							mY2 = mY1;
+						}
+						g.mt(sX, sY).lt(sX, mY1).lt(eX, mY2).lt(eX, eY);
 					}
 				} else { // "curve"
+
+			
 					var hSign = (sX > eX)?-1:1;
 					var vSign = (sY > eY)?-1:1;
 
-					var nextX = sX; // relative drawing would be handy but not implemente in version yet
+					var nextX = sX; // relative drawing would be handy but not implemented in version yet
 					var nextY = sY;
 					var distX = Math.abs(sX - eX);
 					var distY = Math.abs(sY - eY);
@@ -15169,15 +15231,24 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						that.autoOrientation = (Math.abs(sX-eX) > Math.abs(sY-eY))?"horizontal":"vertical";
 					}
 
+					if (startLength!=null && endLength!=null) {
+						startLength=null;
+						if (zon) zogy("ZIM Line() - startLength ignored");
+					}
+
 					var insideDistance,outsideDistance,lastX,lastY;
 					if (that._lineOrientation == "horizontal" || that.autoOrientation == "horizontal") {
 
 						insideDistance = (distY-curveY*2);
 						outsideDistance = (distX-curveX*2)/2;
 
+						var diff = 0;
+						if (startLength != null) diff = Math.max(0, distX/2-startLength);
+						if (endLength != null) diff = Math.min(0, -(distX/2-endLength));
+						
 						g.mt(nextX, nextY);
 						if (outsideDistance > 0) {
-							nextX = nextX+outsideDistance*hSign;
+							nextX = nextX+(outsideDistance-diff)*hSign;
 							g.lt(nextX, nextY);
 						}
 
@@ -15197,7 +15268,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						nextX = nextX+curveX*hSign;
 						g.qt(lastX, nextY, nextX, nextY);
 						if (outsideDistance > 0) {
-							nextX = nextX+outsideDistance*hSign;
+							nextX = nextX+(outsideDistance+diff)*hSign;
 							g.lt(nextX, nextY);
 						}
 
@@ -15206,9 +15277,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						insideDistance = (distX-curveX*2);
 						outsideDistance = (distY-curveY*2)/2;
 
+						var diff = 0;
+						if (startLength != null) diff = Math.max(0, distY/2-startLength);
+						if (endLength != null) diff = Math.min(0, -(distY/2-endLength));
+
 						g.mt(nextX, nextY);
 						if (outsideDistance > 0) {
-							nextY = nextY+outsideDistance*vSign;
+							nextY = nextY+(outsideDistance-diff)*vSign;
 							g.lt(nextX, nextY);
 						}
 
@@ -15228,7 +15303,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						nextY = nextY+curveY*vSign;
 						g.qt(nextX, lastY, nextX, nextY);
 						if (outsideDistance > 0) {
-							nextY = nextY+outsideDistance*vSign;
+							nextY = nextY+(outsideDistance+diff)*vSign;
 							g.lt(nextX, nextY);
 						}
 					}
@@ -15408,6 +15483,26 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.drawShape();
 			}
 		});
+		Object.defineProperty(that, 'startLength', {
+			get: function() {
+				return startLength;
+			},
+			set: function(value) {
+				oa[5] = value;
+				startLength = zik(value);
+				that.drawShape();
+			}
+		});
+		Object.defineProperty(that, 'endLength', {
+			get: function() {
+				return endLength;
+			},
+			set: function(value) {
+				oa[6] = value;
+				endLength = zik(value);
+				that.drawShape();
+			}
+		});
 		Object.defineProperty(that, 'points', {
 			get: function() {
 				return that._points;
@@ -15452,7 +15547,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					endH.rotation = that._endHead.startAngle;
 				}
 			}
-			var newShape = that.cloneProps(new zim.Line((exact||!zim.isPick(oa[0]))?that.length:oa[0], (exact||!zim.isPick(oa[2]))?that.thickness:oa[2], (exact||!zim.isPick(oa[1]))?that.color:oa[1], startH, endH, that.dashed, strokeObj, lineType, that._lineOrientation, curveH, curveV, zim.copy(points), cloneStyle, this.group, inherit));
+			var newShape = that.cloneProps(new zim.Line((exact||!zim.isPick(oa[0]))?that.length:oa[0], (exact||!zim.isPick(oa[2]))?that.thickness:oa[2], (exact||!zim.isPick(oa[1]))?that.color:oa[1], startH, endH, that.dashed, strokeObj, lineType, that._lineOrientation, curveH, curveV, zim.copy(points), (exact||!zim.isPick(oa[5]))?startLength:oa[5], (exact||!zim.isPick(oa[6]))?endLength:oa[6], cloneStyle, this.group, inherit));
 			if (that.points) newShape.setPoints(that.points);
 			else newShape.setPoints(that._startX, that._startY, that._endX, that._endY);
 
@@ -30020,7 +30115,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 		
 		// the Window usually masks but masks to the edge and not to inside the padding
 		// so add a custom mask
-		mask = new zim.Rectangle({width:width-padding*2, height:height-padding*2, color:zim.clear, style:false}).center(that);
+		mask = new zim.Rectangle({width:width-padding*2, height:height-padding*2+4, color:zim.clear, style:false}).center(that);
 		that.cur("text");
 				
 		label = that.label = new zim.TextInput.LabelInput(pastText!=null?pastText:text, size, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, font, color, null, null, null, align, "top", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, shiftH, shiftV, null, null, null, null, inputType, rtl, uppercase, placeholderInstant, style, group, inherit);
@@ -30440,7 +30535,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 		}	
 		this.text = this.hiddenInput.type=="password"?newText.replace(/./g, '*'):newText;
 		this.measureText();
-		// this.positionBlinkerAndSelection();
+		if (WW.M) this.positionBlinkerAndSelection();
 		if (!noEvent) this.dispatchEvent("input");
 	}
 	this.onSelect = function() {
@@ -39244,7 +39339,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-67.1
 	
 /*--
-zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit)
+zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, placeScale, style, group, inherit)
 
 Keyboard
 zim class - extends a zim.Container which extends a createjs.Container
@@ -39382,6 +39477,7 @@ numPadOnly - (default false) set to true to open the NumPad only but can then us
 numPadAdvanced - (default false) set to true to add an extra row to the NumPad with round brackets, exponential and percent or modulus keys
 maxLength - (default null) set to a number for the maximum characters - also see maxLength property
 numbersOnly - (default false) set to force numbers only - also see numbersOnly property
+placeScale - (default 1) set the place menu scale - will move to by place parameters in ZIM 017
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -39425,7 +39521,7 @@ selectedIndex - the index of the cursor in the selected label or -1 if no cursor
 toggled - read-only Boolean that is true if keyboard is visible and false if not
 keys - reference to the keyboard itself 
 numPad - reference to the NumPad once it has been shown once
-place - reference to the place menu
+placeMenu - reference to the place menu
 maxLength - get or set the maximum characters - will not change existing label 
 numbersOnly - get or set to force numbers only - will not change existing label
 
@@ -39447,40 +39543,139 @@ Dispatches "numpadopen" and "numpadclose" events when the NumPad is opened or cl
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.2
-	zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit) {
-		var sig = "labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit";
-		var duo; if (duo = zob(zim.Keyboard, arguments, sig, this)) return duo;
-		z_d("67.2");
-		this.zimContainer_constructor(1000,400,null,null,false);
-		this.type = "Keyboard";
-		this.group = group;
-		var DS = style===false?{}:zim.getStyle(this.type, this.group, inherit);
+zim.Keyboard = function(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, placeScale, style, group, inherit) {
+	var sig = "labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, placeScale, style, group, inherit";
+	var duo; if (duo = zob(zim.Keyboard, arguments, sig, this)) return duo;
+	z_d("67.2");
+	this.zimContainer_constructor(1000,400,null,null,false);
+	this.type = "Keyboard";
+	this.group = group;
+	var DS = style===false?{}:zim.getStyle(this.type, this.group, inherit);
 
-		if (zot(labels)) labels = DS.labels!=null?DS.labels:[];
-		if (!Array.isArray(labels)) labels = [labels];
-		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:zim.dark;
-		if (zot(color)) color =  DS.color!=null?DS.color:zim.white;
-		if (zot(shiftBackgroundColor)) shiftBackgroundColor = DS.shiftBackgroundColor!=null?DS.shiftBackgroundColor:"orange";
-		if (zot(shiftHoldBackgroundColor)) shiftHoldBackgroundColor = DS.shiftHoldBackgroundColor!=null?DS.shiftHoldBackgroundColor:"red";
-		if (zot(placeBackgroundColor)) placeBackgroundColor = DS.placeBackgroundColor!=null?DS.placeBackgroundColor:zim.blue;
-		if (zot(placeColor)) placeColor = DS.placeColor!=null?DS.placeColor:color;
-		if (zot(cursorColor)) cursorColor = DS.cursorColor!=null?DS.cursorColor:zim.blue;
-		if (zot(shadeAlpha)) shadeAlpha = DS.shadeAlpha!=null?DS.shadeAlpha:.2;
-		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:"rgba(0,0,0,.1)";
-		if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:null;
-		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
-		else if (borderColor!=null && borderWidth==null) borderWidth = 1;
-		if (zot(margin)) margin = DS.margin!=null?DS.margin:5;
-		if (zot(corner)) corner = DS.corner!=null?DS.corner:30;
-		if (zot(draggable)) draggable = DS.draggable!=null?DS.draggable:false;
-		if (zot(placeClose)) placeClose = DS.placeClose!=null?DS.placeClose:true;
-		if (zot(shadowColor)) shadowColor=DS.shadowColor!=null?DS.shadowColor:"rgba(0,0,0,.2)";
-		if (zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:14;
-		if (zot(data)) data = DS.data!=null?DS.data:[
+	if (zot(labels)) labels = DS.labels!=null?DS.labels:[];
+	if (!Array.isArray(labels)) labels = [labels];
+	if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:zim.dark;
+	if (zot(color)) color =  DS.color!=null?DS.color:zim.white;
+	if (zot(shiftBackgroundColor)) shiftBackgroundColor = DS.shiftBackgroundColor!=null?DS.shiftBackgroundColor:"orange";
+	if (zot(shiftHoldBackgroundColor)) shiftHoldBackgroundColor = DS.shiftHoldBackgroundColor!=null?DS.shiftHoldBackgroundColor:"red";
+	if (zot(placeBackgroundColor)) placeBackgroundColor = DS.placeBackgroundColor!=null?DS.placeBackgroundColor:zim.blue;
+	if (zot(placeColor)) placeColor = DS.placeColor!=null?DS.placeColor:color;
+	if (zot(cursorColor)) cursorColor = DS.cursorColor!=null?DS.cursorColor:zim.blue;
+	if (zot(shadeAlpha)) shadeAlpha = DS.shadeAlpha!=null?DS.shadeAlpha:.2;
+	if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:"rgba(0,0,0,.1)";
+	if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:null;
+	if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
+	else if (borderColor!=null && borderWidth==null) borderWidth = 1;
+	if (zot(margin)) margin = DS.margin!=null?DS.margin:5;
+	if (zot(corner)) corner = DS.corner!=null?DS.corner:30;
+	if (zot(draggable)) draggable = DS.draggable!=null?DS.draggable:false;
+	if (zot(placeClose)) placeClose = DS.placeClose!=null?DS.placeClose:true;
+	if (zot(shadowColor)) shadowColor=DS.shadowColor!=null?DS.shadowColor:"rgba(0,0,0,.2)";
+	if (zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:14;
+	if (zot(data)) data = DS.data!=null?DS.data:[
+			[
+				["q","w","e","r","t","y","u","i","o","p"],
+				["a","s","d","f","g","h","j","k","l"],
+				["shift","z","x","c","v","b","n","m","backspace"],
+				["?123","@"] // rest of bottom line automatically added
+			],[
+				["1","2","3","4","5","6","7","8","9","0"],
+				["!","@","#","$","/","^","&","*","(",")"],
+				["1/2","-","'", "\"",":",";",",","?","backspace"],
+				["ABC","@"] // rest of bottom line automatically added
+			],[
+				["+","x","%","=","<",">","{","}","[","]"],
+				["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
+				["2/2","_","\\","|","《","》","¡","¿","backspace"],
+				["ABC","@"] // rest of bottom line automatically added
+			]
+		];
+	if (!data[3]) data[3] = {
+		e:["ė","ē","ę","ê","é","ë","è"],
+		u:["ū","û","ú","ü","ù"],
+		i:["ī","į","ì","í","ï","î"],
+		o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+		a:["ā","ã","å","â","á","ä","à","æ"],
+		n:["ñ","ń"]
+	};
+	var that = this;		
+	if (zot(place)) place = DS.place!=null?DS.place:true;
+	if (zot(placeShiftH)) placeShiftH = DS.placeShiftH!=null?DS.placeShiftH:0;
+	if (zot(placeShiftV)) placeShiftV = DS.placeShiftV!=null?DS.placeShiftV:0;
+	if (zot(placeScale)) placeScale = DS.placeScale!=null?DS.placeScale:1;
+	if (zot(rtl)) rtl = DS.rtl!=null?DS.rtl:false;
+	if (zot(hardKeyboard)) hardKeyboard = DS.hardKeyboard!=null?DS.hardKeyboard:true;
+	if (zot(numPadScale)) numPadScale = DS.numPadScale!=null?DS.numPadScale:.8;
+	if (zot(numPadOnly)) numPadOnly = DS.numPadOnly!=null?DS.numPadOnly:false;
+	if (zot(numPadDraggable)) numPadDraggable = DS.numPadDraggable!=null?DS.numPadDraggable:true;
+	if (zot(numPadAdvanced)) numPadAdvanced = DS.numPadAdvanced!=null?DS.numPadAdvanced:false;
+	if (zot(maxLength)) maxLength = DS.maxLength!=null?DS.maxLength:null;
+	if (zot(numbersOnly)) numbersOnly = DS.numbersOnly!=null?DS.numbersOnly:false;
+	this.maxLength = maxLength;
+	this.numbersOnly = numbersOnly;
+
+	if (zot(layout)) layout = DS.layout!=null?DS.layout:"qwerty";
+	layout = layout.toLowerCase();
+	if (layout != "qwerty") {
+		if (layout == "arabic") {
+			data = [
+		[
+			["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج"],
+			["ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"],
+			["ذ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ", "د","back"],
+			["?123","ـ"] // rest of bottom line automatically added
+		],[
+			["1","2","3","4","5","6","7","8","9","0","*"],
+			["!","@","#","$","/","^","&","*","(",")","*"],
+			["1/2","-","'", "\"",":",";",",","?","*","backspace"],
+			["ABC","*"] // rest of bottom line automatically added
+		],[
+			["+","x","%","=","<",">","{","}","[","]","*"],
+			["€","£","¥", "$", "￦", "~", "`","¤","♡","☆","*"],
+			["2/2","_","\\","|","《","》","¡","¿","*","backspace"],
+			["ABC","*"] // rest of bottom line automatically added
+		],{
+			ا:["أ","إ","آ","ء"],
+			ى:["ئ"],
+			ء:["ئ","ؤ"],
+			و:["ؤ"],
+			ـ:["ٍ", "ً", "ٌ", "ْ", "ُ", "ِ", "َ", "ّ"],
+			"*":["ٍ", "ً", "ٌ", "ْ", "ُ", "ِ", "َ", "ّ"],
+			n:["ñ","ń"]
+		}
+	];
+		} else if (layout == "hebrew") {
+			data = [
+			[
+				["ק", "ר", "א", "ט", "ו", "ן", "ם", "פ", "backspace"],
+				["ש", "ד", "ג", "כ", "ע", "י", "ח", "ל", "ך", "ף"],
+				["ז", "ס", "ב", "נ", "ה", "מ", "צ", "ת", "ץ"],
+				["?123", "@"] // rest of bottom line automatically added
+			], [
+				["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+				["!", "@", "#", "$", "/", "^", "&", "*", "(", ")"],
+				["1/2", "-", "'", "\"", ":", ";", ",", "?", "backspace"],
+				["ABC", "@"] // rest of bottom line automatically added
+			], [
+				["+", "x", "%", "=", "<", ">", "{", "}", "[", "]"],
+				["€", "£", "¥", "$", "￦", "~", "`", "¤", "♡", "☆"],
+				["2/2", "_", "\\", "|", "《", "》", "¡", "¿", "backspace"],
+				["ABC", "@"] // rest of bottom line automatically added
+			], {
+				e: ["ė", "ē", "ę", "ê", "é", "ë", "è"],
+				u: ["ū", "û", "ú", "ü", "ù"],
+				i: ["ī", "į", "ì", "í", "ï", "î"],
+				o: ["ō", "œ", "ø", "õ", "ô", "ó", "ö", "ò"],
+				a: ["ā", "ã", "å", "â", "á", "ä", "à", "æ"],
+				n: ["ñ", "ń"]
+			}
+			];
+		} else if (layout == "azerty") {
+			data = [
 				[
-					["q","w","e","r","t","y","u","i","o","p"],
-					["a","s","d","f","g","h","j","k","l"],
-					["shift","z","x","c","v","b","n","m","backspace"],
+					["a","z","e","r","t","y","u","i","o","p"],
+					["q","s","d","f","g","h","j","k","l","m"],
+					["shift","w","x","c","v","b","n","´","backspace"],
 					["?123","@"] // rest of bottom line automatically added
 				],[
 					["1","2","3","4","5","6","7","8","9","0"],
@@ -39492,1231 +39687,1138 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
 					["2/2","_","\\","|","《","》","¡","¿","backspace"],
 					["ABC","@"] // rest of bottom line automatically added
-				]
-			];
-		if (!data[3]) data[3] = {
-			e:["ė","ē","ę","ê","é","ë","è"],
-			u:["ū","û","ú","ü","ù"],
-			i:["ī","į","ì","í","ï","î"],
-			o:["ō","œ","ø","õ","ô","ó","ö","ò"],
-			a:["ā","ã","å","â","á","ä","à","æ"],
-			n:["ñ","ń"]
-		};
-		var that = this;		
-		if (zot(place)) place = DS.place!=null?DS.place:true;
-		if (zot(placeShiftH)) placeShiftH = DS.placeShiftH!=null?DS.placeShiftH:0;
-		if (zot(placeShiftV)) placeShiftV = DS.placeShiftV!=null?DS.placeShiftV:0;
-		if (zot(rtl)) rtl = DS.rtl!=null?DS.rtl:false;
-		if (zot(hardKeyboard)) hardKeyboard = DS.hardKeyboard!=null?DS.hardKeyboard:true;
-		if (zot(numPadScale)) numPadScale = DS.numPadScale!=null?DS.numPadScale:.8;
-		if (zot(numPadOnly)) numPadOnly = DS.numPadOnly!=null?DS.numPadOnly:false;
-		if (zot(numPadDraggable)) numPadDraggable = DS.numPadDraggable!=null?DS.numPadDraggable:true;
-		if (zot(numPadAdvanced)) numPadAdvanced = DS.numPadAdvanced!=null?DS.numPadAdvanced:false;
-		if (zot(maxLength)) maxLength = DS.maxLength!=null?DS.maxLength:null;
-		if (zot(numbersOnly)) numbersOnly = DS.numbersOnly!=null?DS.numbersOnly:false;
-		this.maxLength = maxLength;
-		this.numbersOnly = numbersOnly;
-
-		if (zot(layout)) layout = DS.layout!=null?DS.layout:"qwerty";
-		layout = layout.toLowerCase();
-		if (layout != "qwerty") {
-			if (layout == "arabic") {
-				data = [
-			[
-				["ض", "ص", "ث", "ق", "ف", "غ", "ع", "ه", "خ", "ح", "ج"],
-				["ش", "س", "ي", "ب", "ل", "ا", "ت", "ن", "م", "ك", "ط"],
-				["ذ", "ء", "ؤ", "ر", "ى", "ة", "و", "ز", "ظ", "د","back"],
-				["?123","ـ"] // rest of bottom line automatically added
-			],[
-				["1","2","3","4","5","6","7","8","9","0","*"],
-				["!","@","#","$","/","^","&","*","(",")","*"],
-				["1/2","-","'", "\"",":",";",",","?","*","backspace"],
-				["ABC","*"] // rest of bottom line automatically added
-			],[
-				["+","x","%","=","<",">","{","}","[","]","*"],
-				["€","£","¥", "$", "￦", "~", "`","¤","♡","☆","*"],
-				["2/2","_","\\","|","《","》","¡","¿","*","backspace"],
-				["ABC","*"] // rest of bottom line automatically added
-			],{
-				ا:["أ","إ","آ","ء"],
-				ى:["ئ"],
-				ء:["ئ","ؤ"],
-				و:["ؤ"],
-				ـ:["ٍ", "ً", "ٌ", "ْ", "ُ", "ِ", "َ", "ّ"],
-				"*":["ٍ", "ً", "ٌ", "ْ", "ُ", "ِ", "َ", "ّ"],
-				n:["ñ","ń"]
-			}
-		];
-			} else if (layout == "hebrew") {
+				],{
+					e:["ė","ē","ę","ê","é","ë","è"],
+					u:["ū","û","ú","ü","ù"],
+					i:["ī","į","ì","í","ï","î"],
+					o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+					a:["ā","ã","å","â","á","ä","à","æ"],
+					n:["ñ","ń"]
+				}
+				];
+			} else if (layout == "turkish") {
 				data = [
 				[
-					["ק", "ר", "א", "ט", "ו", "ן", "ם", "פ", "backspace"],
-					["ש", "ד", "ג", "כ", "ע", "י", "ח", "ל", "ך", "ף"],
-					["ז", "ס", "ב", "נ", "ה", "מ", "צ", "ת", "ץ"],
-					["?123", "@"] // rest of bottom line automatically added
-				], [
-					["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
-					["!", "@", "#", "$", "/", "^", "&", "*", "(", ")"],
-					["1/2", "-", "'", "\"", ":", ";", ",", "?", "backspace"],
-					["ABC", "@"] // rest of bottom line automatically added
-				], [
-					["+", "x", "%", "=", "<", ">", "{", "}", "[", "]"],
-					["€", "£", "¥", "$", "￦", "~", "`", "¤", "♡", "☆"],
-					["2/2", "_", "\\", "|", "《", "》", "¡", "¿", "backspace"],
-					["ABC", "@"] // rest of bottom line automatically added
-				], {
-					e: ["ė", "ē", "ę", "ê", "é", "ë", "è"],
-					u: ["ū", "û", "ú", "ü", "ù"],
-					i: ["ī", "į", "ì", "í", "ï", "î"],
-					o: ["ō", "œ", "ø", "õ", "ô", "ó", "ö", "ò"],
-					a: ["ā", "ã", "å", "â", "á", "ä", "à", "æ"],
-					n: ["ñ", "ń"]
-				}
-				];
-			} else if (layout == "azerty") {
-				data = [
-					[
-						["a","z","e","r","t","y","u","i","o","p"],
-						["q","s","d","f","g","h","j","k","l","m"],
-						["shift","w","x","c","v","b","n","´","backspace"],
-						["?123","@"] // rest of bottom line automatically added
-					],[
-						["1","2","3","4","5","6","7","8","9","0"],
-						["!","@","#","$","/","^","&","*","(",")"],
-						["1/2","-","'", "\"",":",";",",","?","backspace"],
-						["ABC","@"] // rest of bottom line automatically added
-					],[
-						["+","x","%","=","<",">","{","}","[","]"],
-						["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
-						["2/2","_","\\","|","《","》","¡","¿","backspace"],
-						["ABC","@"] // rest of bottom line automatically added
-					],{
-						e:["ė","ē","ę","ê","é","ë","è"],
-						u:["ū","û","ú","ü","ù"],
-						i:["ī","į","ì","í","ï","î"],
-						o:["ō","œ","ø","õ","ô","ó","ö","ò"],
-						a:["ā","ã","å","â","á","ä","à","æ"],
-						n:["ñ","ń"]
-					}
-					];
-				} else if (layout == "turkish") {
-					data = [
-					[
-						["q","w","e","r","t","y","u","ı","o","p","ğ","ü"],
-						["a","s","d","f","g","h","j","k","l","ş","i"],
-						["shift","z","x","c","v","b","n","m","ö","ç","backspace"],
-						["?123","*"] // rest of bottom line automatically added
-					],[
-						["1","2","3","4","5","6","7","8","9","0","*"],
-						["!","@","#","$","/","^","&","*","(",")","*"],
-						["1/2","-","'", "\"",":",";",",","?","*","backspace"],
-						["ABC","*"] // rest of bottom line automatically added
-					],[
-						["+","x","%","=","<",">","{","}","[","]","*"],
-						["€","£","¥", "$", "￦", "~", "`","¤","♡","☆","*"],
-						["2/2","_","\\","|","《","》","¡","¿","*","backspace"],
-						["ABC","*"] // rest of bottom line automatically added
-					],{
-						e:["ė","ē","ę","ê","é","ë","è"],
-						u:["ū","û","ú","ü","ù"],
-						i:["ī","į","ì","í","ï","î"],
-						o:["ō","œ","ø","õ","ô","ó","ö","ò"],
-						a:["ā","ã","å","â","á","ä","à","æ"],
-						n:["ñ","ń"]
+					["q","w","e","r","t","y","u","ı","o","p","ğ","ü"],
+					["a","s","d","f","g","h","j","k","l","ş","i"],
+					["shift","z","x","c","v","b","n","m","ö","ç","backspace"],
+					["?123","*"] // rest of bottom line automatically added
+				],[
+					["1","2","3","4","5","6","7","8","9","0","*"],
+					["!","@","#","$","/","^","&","*","(",")","*"],
+					["1/2","-","'", "\"",":",";",",","?","*","backspace"],
+					["ABC","*"] // rest of bottom line automatically added
+				],[
+					["+","x","%","=","<",">","{","}","[","]","*"],
+					["€","£","¥", "$", "￦", "~", "`","¤","♡","☆","*"],
+					["2/2","_","\\","|","《","》","¡","¿","*","backspace"],
+					["ABC","*"] // rest of bottom line automatically added
+				],{
+					e:["ė","ē","ę","ê","é","ë","è"],
+					u:["ū","û","ú","ü","ù"],
+					i:["ī","į","ì","í","ï","î"],
+					o:["ō","œ","ø","õ","ô","ó","ö","ò"],
+					a:["ā","ã","å","â","á","ä","à","æ"],
+					n:["ñ","ń"]
+				},{
+					ı:"I", // lowercase to uppercase map
+					i:"İ"
 					},{
-						ı:"I", // lowercase to uppercase map
-						i:"İ"
-						},{
-						I:"ı", // uppercase to lowercase map
-						İ:"i"
-					}					
-				];
-			} 
-		}
-		that.data = data;
-		
-		var mess = "zim display - Keyboard(): Please pass in a reference to a container with bounds set";
-		if (zot(container)) {
-			if (WW.zdf) {
-				container = WW.zdf.stage;
-			} else {
-				zogy(mess);
-				return;
-			}
-		} else if (!container.getBounds) {
+					I:"ı", // uppercase to lowercase map
+					İ:"i"
+				}					
+			];
+		} 
+	}
+	that.data = data;
+	
+	var mess = "zim display - Keyboard(): Please pass in a reference to a container with bounds set";
+	if (zot(container)) {
+		if (WW.zdf) {
+			container = WW.zdf.stage;
+		} else {
 			zogy(mess);
 			return;
-		} else if (zot(container.stage)) {
-			zogy("zim display - Keyboard(): The container must have a stage property");
-			return;
 		}
+	} else if (!container.getBounds) {
+		zogy(mess);
+		return;
+	} else if (zot(container.stage)) {
+		zogy("zim display - Keyboard(): The container must have a stage property");
+		return;
+	}
 
-		if (shadowColor != -1 && shadowBlur > 0) that.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
-		var currentStage = WW.zdf?WW.zdf.stage:null;
+	if (shadowColor != -1 && shadowBlur > 0) that.shadow = new createjs.Shadow(shadowColor, 3, 3, shadowBlur);
+	var currentStage = WW.zdf?WW.zdf.stage:null;
 
-		// ~~~~~~~~~~~~~~~~~  SETUP
+	// ~~~~~~~~~~~~~~~~~  SETUP
 
-		that.labels = labels;
-		var maxWidth;
-		
-		// Dan Zen Cat 03 - to handle any number of keys in row (always at least 10)
-		var maxNum = 10;
-		zim.loop(data[0], function (d) {
-			if (d.length> maxNum) maxNum = d.length;
-		});
-		var numH = maxNum;
+	that.labels = labels;
+	var maxWidth;
+	
+	// Dan Zen Cat 03 - to handle any number of keys in row (always at least 10)
+	var maxNum = 10;
+	zim.loop(data[0], function (d) {
+		if (d.length> maxNum) maxNum = d.length;
+	});
+	var numH = maxNum;
 
-		var botArray = ["/","",",",".","numpad","away"];
-		if (!zot(special)) botArray.splice(1,0,special);
+	var botArray = ["/","",",",".","numpad","away"];
+	if (!zot(special)) botArray.splice(1,0,special);
 
-		var textKeys = zim.copy(data[0]);
-		// textKeys[2].unshift("shift");
-		// textKeys[2].push("backspace");
-		textKeys[3] = textKeys[3].concat(botArray);
+	var textKeys = zim.copy(data[0]);
+	// textKeys[2].unshift("shift");
+	// textKeys[2].push("backspace");
+	textKeys[3] = textKeys[3].concat(botArray);
 
-		var numberKeys1 = zim.copy(data[1]);
-		// numberKeys1[2].push("backspace");
-		numberKeys1[3] = numberKeys1[3].concat(botArray);
+	var numberKeys1 = zim.copy(data[1]);
+	// numberKeys1[2].push("backspace");
+	numberKeys1[3] = numberKeys1[3].concat(botArray);
 
-		var numberKeys2 = zim.copy(data[2]);
-		// numberKeys2[2].push("backspace");
-		numberKeys2[3] = numberKeys2[3].concat(botArray);
+	var numberKeys2 = zim.copy(data[2]);
+	// numberKeys2[2].push("backspace");
+	numberKeys2[3] = numberKeys2[3].concat(botArray);
 
-		// var textKeys = [
-		// 	["q","w","e","r","t","y","u","i","o","p"],
-		// 	["a","s","d","f","g","h","j","k","l"],
-		// 	["shift","z","x","c","v","b","n","m","backspace"],
-		// 	["?123","@","",".","/","away"]
-		// ]
-		// var numberKeys1 = [
-		//     ["1","2","3","4","5","6","7","8","9","0"],
-		//     ["!","@","#","$","/","^","&","*","(",")"],
-		//     ["1/2","-","'", "\"",":",";",",","?","backspace"],
-		//     ["ABC","@","",".","/","away"]
-		// ];
-		// var numberKeys2 = [
-		//     ["+","x","%","=","<",">","{","}","[","]"],
-		//     ["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
-		//     ["2/2","_","\\","|","《","》","¡","¿","backspace"],
-		//     ["ABC", "@","",".","/","away"]
-		// ];
-		// var eLetters = data[3][0]; // ["ė","ē","ę","ê","é","ë","è"];//ĒĘÊÉËÈ
-		// var uLetters = data[3][1]; // ["ū","û","ú","ü","ù"];//ŪÛÚÜÙ
-		// var iLetters = data[3][2]; // ["ī","į","ì","í","ï","î"];//ĪĮÌÍÏÎ
-		// var oLetters = data[3][3]; // ["ō","œ","ø","õ","ô","ó","ö","ò"];// ŌŒØÕÔÓÖÒ
-		// var aLetters = data[3][4]; // ["ā","ã","å","â","á","ä","à","æ"];// ĀÃÅÂÁÄÀÆ
-		// var nLetters = data[3][5]; // ["ñ","ń"];
+	// var textKeys = [
+	// 	["q","w","e","r","t","y","u","i","o","p"],
+	// 	["a","s","d","f","g","h","j","k","l"],
+	// 	["shift","z","x","c","v","b","n","m","backspace"],
+	// 	["?123","@","",".","/","away"]
+	// ]
+	// var numberKeys1 = [
+	//     ["1","2","3","4","5","6","7","8","9","0"],
+	//     ["!","@","#","$","/","^","&","*","(",")"],
+	//     ["1/2","-","'", "\"",":",";",",","?","backspace"],
+	//     ["ABC","@","",".","/","away"]
+	// ];
+	// var numberKeys2 = [
+	//     ["+","x","%","=","<",">","{","}","[","]"],
+	//     ["€","£","¥", "$", "￦", "~", "`","¤","♡","☆"],
+	//     ["2/2","_","\\","|","《","》","¡","¿","backspace"],
+	//     ["ABC", "@","",".","/","away"]
+	// ];
+	// var eLetters = data[3][0]; // ["ė","ē","ę","ê","é","ë","è"];//ĒĘÊÉËÈ
+	// var uLetters = data[3][1]; // ["ū","û","ú","ü","ù"];//ŪÛÚÜÙ
+	// var iLetters = data[3][2]; // ["ī","į","ì","í","ï","î"];//ĪĮÌÍÏÎ
+	// var oLetters = data[3][3]; // ["ō","œ","ø","õ","ô","ó","ö","ò"];// ŌŒØÕÔÓÖÒ
+	// var aLetters = data[3][4]; // ["ā","ã","å","â","á","ä","à","æ"];// ĀÃÅÂÁÄÀÆ
+	// var nLetters = data[3][5]; // ["ñ","ń"];
 
-		var textKeyButtons = [];
+	var textKeyButtons = [];
 
-		//maateenheid horizontaal
-		var size = (1000-((numH-1)*5))/numH;
+	//maateenheid horizontaal
+	var size = (1000-((numH-1)*5))/numH;
 
-		//statuses toestenbord
-		var statuses = {
-			def: "default",
-			shift: "shift",
-			number1: "number1",
-			number2: "number2"
-		};
-		var currentStatus = statuses.def;
-		var currentKeyboard;
-		var alternativeMenu;
-		var textBlinker;
-		var bigShiftOn = false;
-		var shiftKey;
-		var currentLabel;
-		var insertPoint = 0;
-		var cursorShiftMenu;
-		var buttonsCursor = [];
-		var shiftKeyIcon;
-		var backspaceIcon;
-		var hideKeyBoardIcon;
-		var showNumPadIcon;
-		var hideNumPadIcon;
-		var numPadKey;
-		var dragButton;
-		var dragY;
+	//statuses toestenbord
+	var statuses = {
+		def: "default",
+		shift: "shift",
+		number1: "number1",
+		number2: "number2"
+	};
+	var currentStatus = statuses.def;
+	var currentKeyboard;
+	var alternativeMenu;
+	var textBlinker;
+	var bigShiftOn = false;
+	var shiftKey;
+	var currentLabel;
+	var insertPoint = 0;
+	var cursorShiftMenu;
+	var buttonsCursor = [];
+	var shiftKeyIcon;
+	var backspaceIcon;
+	var hideKeyBoardIcon;
+	var showNumPadIcon;
+	var hideNumPadIcon;
+	var numPadKey;
+	var dragButton;
+	var dragY;
 
-		makeIcons();
-		makeButtons(currentStatus);
-		if (draggable) makeDragButton();
+	makeIcons();
+	makeButtons(currentStatus);
+	if (draggable) makeDragButton();
 
-		// ~~~~~~~~~~~~~~~~~  INTERACTIONS
+	// ~~~~~~~~~~~~~~~~~  INTERACTIONS
 
-		this.on("mousedown", buttonPressed);
+	this.on("mousedown", buttonPressed);
 
-		function buttonPressed(e) {
-			currentStage = that.stage;
-			if (alternativeMenu) {
-				that.removeChild(alternativeMenu);
-			}
-			if (cursorShiftMenu) {
-				if (buttonsCursor.indexOf(e.target) < 0) {
-					removeCursorShiftMenu();
-				}
-			}
-			if (!zot(e.target.na)) {
-				//WIJZIGINGEN STATUS keyboard
-				if (draggable && e.target === dragButton) {
-					that.tickerMouseEvent = currentStage.on("stagemousemove", function (e) {
-						that.mouseYAmount = e.stageY;
-					});
-					zim.Ticker.add(startDragging);
-					that.on("pressup", stopDragging);
-					dragY = e.stageY - that.localToGlobal(0, 0).y;
-				} else if (!zot(special) && e.target.na === special) {
-					that.dispatchEvent("special");
-				} else if (e.target.na === "shift") { //shift
-					shiftKeys();
-				} else if (e.target.toggle === "?123") { //nummers
-					that.removeChild(currentKeyboard);
-					makeButtons(statuses.number1);
-				} else if (e.target.toggle === "ABC") { //teksten
-					that.removeChild(currentKeyboard);
-					currentStatus = statuses.def;
-					makeButtons();
-					if (bigShiftOn) shiftKeys(true);
-				} else if (e.target.toggle === "1/2") {
-					that.removeChild(currentKeyboard);
-					makeButtons(statuses.number2);
-				} else if (e.target.toggle === "2/2") {
-					that.removeChild(currentKeyboard);
-					makeButtons(statuses.number1);
-				} else if (e.target.na === "numpad") {
-					showNumPad(e.target);
-				} else if (e.target.na === "away") {
-					that.hideKeyboard();
-					that.dispatchEvent("close");
-				} else if (data[3] && data[3][e.target.na]) {
-					makeAlternativeLetters(e.target.na);					
-					// e.target.na === "e" ||
-					// e.target.na === "u" ||
-					// e.target.na === "i" ||
-					// e.target.na === "o" ||
-					// e.target.na === "a" ||
-					// e.target.na === "n") { //VARIATIES LETTERS euioan
-					// makeAlternativeLetters(e.target.na);
-				} else if (e.target.na === "return") {
-					addToLabel("\n");
-				} else if (e.target.na === "backspace") {
-					backspaceRemovesLetter();
-				} else if (e.target.na === "back") {
-					backspaceRemovesLetter();
-				} else if (e.target.na === "") {
-					addToLabel(" ");
-				} else {
-					addToLabel(e.target.na);
-				}
-				currentStage.update();
-			}
+	function buttonPressed(e) {
+		currentStage = that.stage;
+		if (alternativeMenu) {
+			that.removeChild(alternativeMenu);
 		}
-
-		that.addChar = function (chara) { // do not use char - it is a keyword
-			if (!zot(chara) && chara.match(/^.$/)) addToLabel(chara);
-		};
-		that.removeChar = function () {
-			backspaceRemovesLetter(true);
-		};
-		that.clearText = function () {
-			currentLabel.text = "";
-			backspaceRemovesLetter(true);
-			makeWidthsArray();
-			that.selectedIndex = 0;
-		};
-		that.setText = function (text) {
-			currentLabel.text = text;
-			makeWidthsArray();
-			that.selectedIndex = text.length;
-		};
-
-		var shiftEvent;
-		function shiftKeys(immediate) {
-			var bigShift = false;
-			var i, tkb;
-			//vanuit default
-			if (currentStatus === statuses.def) {
-				shiftKey.color = immediate ? shiftHoldBackgroundColor : shiftBackgroundColor;
-				//keyboard veranderen
-				for (i = 0; i < textKeyButtons.length - 6 - (zot(special) ? 0 : 1); i++) {
-					tkb = textKeyButtons[i];
-					if (tkb.label.text.length > 0) {
-						if (tkb.na.length === 1) {
-							if (data[4] && data[4][tkb.label.text]) tkb.label.text = data[4][tkb.label.text];									
-							else tkb.label.text = layout=="turkish"?tkb.label.text.toLocaleUpperCase("tr-TR"):tkb.label.text.toUpperCase();
-							tkb.label.centerReg(tkb).mov(0, 6);							
-						} else {
-							tkb.label.centerReg(tkb);
-						}
-					}
-				}
-				if (!immediate) {
-					//na halve seconde gaat groot shift aan
-					bigShift = true;
-					setTimeout(putBigShiftOn, 500);
-					shiftEvent = that.on("pressup", doNotPutBigShiftOn);
-				}
-				currentStatus = statuses.shift;
-				//vanuit shift
-			} else {
-				shiftKey.color = backgroundColor;
-				bigShiftOn = false;
-				//keyboard veranderen
-				for (i = 0; i < textKeyButtons.length - 6; i++) {
-					tkb = textKeyButtons[i];
-					if (tkb.label.text.length > 0) {
-						if (tkb.na.length === 1) {
-							if (data[5] && data[5][tkb.label.text]) tkb.label.text = data[5][tkb.label.text];
-							else tkb.label.text = tkb.label.text.toLowerCase();
-							tkb.label.centerReg(tkb).mov(0, 3);
-						} else {
-							tkb.label.centerReg(tkb);
-						}
-					}
-				}
-				currentStatus = statuses.def;
-			}
-			currentKeyboard.updateCache();
-			if (that.stage) that.stage.update();
-			function putBigShiftOn() {
-				if (bigShift) {
-					bigShiftOn = true;
-					shiftKey.color = shiftHoldBackgroundColor;
-					currentKeyboard.updateCache();
-					if (that.stage) that.stage.update();
-				}
-			}
-			function doNotPutBigShiftOn() {
-				that.off("pressup", shiftEvent);
-				bigShift = false;
-			}
-		}
-
-		// ~~~~~~~~~~~~~~~~~  ASSETS
-
-		function makeButtons(which) {
-			var typeKeyboard;
-			var label;
-			var button;
-			var xPos = 0;
-			var yPos = 0;
-			var thisWidth;
-			var bigKey;
-			var thisIsSpacekey = false;
-			var thisKeyLetter;
-			var passesLetter;
-			var dark = false;
-			//zonder parameters maak ik letters
-			if (zot(which)) which = statuses.def;
-			//letters
-			if (which === statuses.def) {
-				typeKeyboard = textKeys;
-				//nummers1
-			} else if (which === statuses.number1) {
-				typeKeyboard = numberKeys1;
-				//nummers 2
-			} else if (which === statuses.number2) {
-				typeKeyboard = numberKeys2;
-			}
-			//container maken
-			that.keys = currentKeyboard = new zim.Container(1000, 430, null, null, false).addTo(that).vis(!numPadOnly);
-			//alle toetsen, door arrays heen wandelen
-			for (var i = 0; i < typeKeyboard.length; i++) {
-				if (i <= 1 || (which == statuses.def && i == 2 && typeKeyboard[2][0] != "shift")) {
-					xPos = (size / 2 + 2.5) * (numH - typeKeyboard[i].length);
-				}
-				for (var j = 0; j < typeKeyboard[i].length; j++) {
-					thisIsSpacekey = false;
-					thisKeyLetter = null;
-					dark = false;
-					if (typeKeyboard[i][j] == "backspace") {
-						bigKey = true;
-						thisKeyLetter = backspaceIcon;
-						dark = true;
-					} else if (typeKeyboard[i][j] == "back") {
-						bigKey = false;
-						thisKeyLetter = backspaceIcon;
-						dark = true;					
-					} else if (typeKeyboard[i][j] == "shift") {
-						bigKey = true;
-						thisKeyLetter = shiftKeyIcon;
-					} else if ((i == 3 || (which != statuses.def && i == 2)) && j == 0) {
-						bigKey = true;
-						dark = true;
-					} else if (typeKeyboard[i][j] == "") {
-						bigKey = false;
-						thisIsSpacekey = true;
-					} else if (typeKeyboard[i][j] == "numpad") {
-						thisKeyLetter = showNumPadIcon;
-						bigKey = false;
-						dark = true;
-					} else if (typeKeyboard[i][j] == "away") {
-						thisKeyLetter = hideKeyBoardIcon;
-						bigKey = true;
-						dark = true;
-					} else {
-						bigKey = false;
-					}
-					//brede toets: breedte instellen
-					if (bigKey) {
-						thisWidth = (size * 1.5 + 2.5);
-					} else if (thisIsSpacekey) {	
-						// Dan Zen Cat 03 patch - make spacebar take up available space					
-						thisWidth = (size + 5) * ((zot(special) ? 3 : 2) + numH-10+1-data[0][3].length) - 5;
-						if (data[0][3].indexOf("backspace") != -1) {
-							thisWidth -= size/2;
-						} 
-					} else {
-						thisWidth = size;
-					}
-					button = new zim.Rectangle(thisWidth, size, backgroundColor, borderColor, borderWidth, corner, null, null, null, false).cur().addTo(currentKeyboard);
-					if (dark) button.addChild(new zim.Rectangle(thisWidth, size, "black", null, null, corner, null, null, null, false).alp(shadeAlpha));
-
-					if (thisKeyLetter) {
-						button.label = label = new zim.Label({ text: "", backgroundColor: "ignore", font: DS.font != null ? DS.font : null, style: false });
-					} else {
-						button.label = label = new zim.Label({
-							lineWidth: 10,
-							lineHeight: 25,
-							font: DS.font != null ? DS.font : null,
-							text: typeKeyboard[i][j],
-							color: color,
-							align: "center",
-							style: false
-						});
-					}
-					//plaatje op bakking
-					if (thisKeyLetter) {
-						var clone = thisKeyLetter.clone();
-						var sc;
-						if (typeKeyboard[i][j]=="numpad") {
-							sc = 60;
-							numPadKey = button;
-						} else {
-							sc = 70;
-						}
-						clone.scaleTo(button, sc, sc);
-						clone.centerReg(button);
-					}
-					if (!passesLetter) {
-						label.centerReg(button).mov(0, (!isNaN(label.text)) ? 7 : 3);
-						button.x = xPos;
-						button.y = yPos;
-						button.na = typeKeyboard[i][j];
-						if (i == 2 && j == 0 && which == statuses.number1) button.toggle = "1/2";
-						if (i == 2 && j == 0 && which == statuses.number2) button.toggle = "2/2";
-						if (i == 3 && j == 0 && which == statuses.def) button.toggle = "?123";
-						if (i == 3 && j == 0 && which != statuses.def) button.toggle = "ABC";
-						if (button.toggle) label.mov(0, 3);
-						textKeyButtons.push(button);
-						if (button.na == "shift") {
-							shiftKey = button;
-						}
-						xPos = button.x + button.width + 5;
-					} else {
-						passesLetter = false;
-						xPos += 67.33;
-					}
-				}
-				yPos += size + 5;
-				xPos = 0;
-			}
-			currentKeyboard.cache(borderWidth ? -borderWidth : 0, borderWidth ? -borderWidth : 0, borderWidth ? currentKeyboard.width + borderWidth * 2 : currentKeyboard.width, borderWidth ? currentKeyboard.height + borderWidth * 2 : currentKeyboard.height);
-		}
-
-		function makeAlternativeLetters(letter) {
-			var thisArray = data[3][letter];
-			var mouseReleased = false;
-			var alternativeMenuIsmade = false;
-			var timeWait;			
-			// switch (letter) {
-			// 	case "e":
-			// 		thisArray = eLetters;
-			// 		break;
-			// 	case "u":
-			// 		thisArray = uLetters;
-			// 		break;
-			// 	case "i":
-			// 		thisArray = iLetters;
-			// 		break;
-			// 	case "o":
-			// 		thisArray = oLetters;
-			// 		break;
-			// 	case "a":
-			// 		thisArray = aLetters;
-			// 		break;
-			// 	case "n":
-			// 		thisArray = nLetters;
-			// 		break;
-			// 	default:
-			// 		break;
-			// }
-			timeWait = zim.timeout(500, makeAlternatemenu, null, "ms");
-			var mouseUpEvent = that.on("pressup", mouseUp);
-			function mouseUp() {
-				mouseReleased = true;
-				that.off("pressup", mouseUpEvent);
-				if (!alternativeMenuIsmade) {
-					addToLabel(letter);
-				}
-			}
-			function makeAlternatemenu() {
-				var label,
-					button,
-					overlay,
-					xPos = 0,
-					thisLetter;
-				timeWait.clear();
-				if (!mouseReleased) {
-					alternativeMenuIsmade = true;
-					alternativeMenu = new zim.Container(1000, size, null, null, false).addTo(that, 0);
-					alternativeMenu.y = - size - 5;
-					for (var i = 0; i < thisArray.length; i++) {
-						if (currentStatus === statuses.shift) {
-							thisLetter = layout=="turkish"?thisArray[i].toLocaleUpperCase("tr-TR"):thisArray[i].toUpperCase();
-						} else {
-							thisLetter = thisArray[i];
-						}
-						label = new zim.Label({
-							lineWidth: 10,
-							lineHeight: 25,
-							text: thisLetter,
-							font: DS.font != null ? DS.font : null,
-							color: color,
-							align: "center",
-							style: false
-						});
-						button = new zim.Rectangle(size, size, backgroundColor, borderColor, borderWidth, corner, null, null, null, false).addTo(alternativeMenu);
-						overlay = new zim.Rectangle(size, size, "white", null, null, corner, null, null, null, false).alp(.2);
-						button.addChild(overlay);
-						label.center(button);
-						button.na = thisArray[i];
-						button.x = xPos;
-						xPos += size + 5;
-					}
-					if (that.stage) that.stage.update();
-				}
-			}
-		}
-
-		function makeIcons() {
-			//shift
-			shiftKeyIcon = new zim.Shape({ style: false });
-			shiftKeyIcon.graphics.f(color).p("AhIFoIAAjYIixAAID5n3ID6H3IixAAIAADYgAjHBxICeAAIAADYIBTAAIAAjYICeAAIjImSg");
-			shiftKeyIcon.setBounds(-51 / 2, -72 / 2, 51, 72);
-			//backspace
-			backspaceIcon = new zim.Container({ style: false });
-			var backspaceShape1 = new zim.Shape({ style: false });
-			backspaceShape1.graphics.f(color).p("ACgC+IigigIifCgQgGAGgJAAQgJAAgGgGQgGgGgBgJQABgJAGgGICgigIigifQgGgGgBgJQABgJAGgGQAGgGAJAAQAIAAAHAGICfCgICgigQAGgGAJAAQAJAAAGAGQAGAGABAJQgBAJgGAGIigCfICgCgQAGAGABAJQgBAJgGAGQgGAGgJAAQgJAAgGgGg");
-			backspaceShape1.setTransform(82.6, 32);
-			backspaceShape1.addTo(backspaceIcon);
-			var backspaceShape2 = new zim.Shape({ style: false });
-			backspaceShape2.graphics.f(color).s().p("AkhFAQgcAAgUgUIkHj6QgVgUAAgeQAAgdAVgVIEHj6QAUgTAcAAINKAAQAdAAAUAUQAUAUAAAdIAAH1QAAAdgUATQgUAVgdAAgAk0kOIkGD8QgIAHAAALQAAALAIAIIEGD7QAIAHALAAINKAAQALAAAIgIQAHgHAAgLIAAn1QAAgLgHgIQgIgIgLAAItKAAQgLAAgIAHg");
-			backspaceShape2.setTransform(62.2, 32);
-			backspaceShape2.addTo(backspaceIcon);
-			backspaceIcon.setBounds(0, 0, 125, 64);
-			//keyboardAway
-			hideKeyBoardIcon = new zim.Container({ style: false });
-			hideKeyBoardIcon.setBounds(0, 0, 147, 86);
-			var hideKeyBoardIconArray = [
-				{ p: ("Ai+heIF9AAIi/C9g"), transform: [73.4, 76] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [128.4, 43.2] },
-				{ p: ("AnNAzIAAhlIObAAIAABlg"), transform: [73, 43.2] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.8, 43.2] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [128.2, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [114.5, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [100.8, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [87.1, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [73.4, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [59.7, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [46, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.3, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.6, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [128, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [114.3, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [100.6, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [86.9, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [73.2, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [59.5, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [45.8, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.1, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.4, 15.8] },
-				{ p: ("AphEnQgzAAgkgkQglglAAgzIAAlVQAAgzAlglQAkgkAzAAITDAAQAzAAAkAkQAlAlAAAzIAAFVQAAAzglAlQgkAkgzAAgAqjjtQgcAcAAAnIAAFVQAAAnAcAbQAbAcAnAAITDAAQAnAAAcgcQAbgbAAgnIAAlVQAAgngbgcQgcgcgnAAIzDAAQgnAAgbAcg"), transform: [73.4, 29.5] }
-			];
-			var thisShape;
-			for (var i = 0; i < hideKeyBoardIconArray.length; i++) {
-				thisShape = new zim.Shape({ style: false });
-				thisShape.graphics.f(color).s().p(hideKeyBoardIconArray[i].p);
-				thisShape.setTransform(hideKeyBoardIconArray[i].transform[0], hideKeyBoardIconArray[i].transform[1]);
-				thisShape.addTo(hideKeyBoardIcon);
-			}
-			showNumPadIcon = new zim.Container({ style: false });
-			showNumPadIcon.setBounds(0, 0, 62, 86);
-			hideNumPadIcon = new zim.Container({ style: false });
-			hideNumPadIcon.setBounds(0, 0, 62, 86);
-			var sA = [
-				{ p: ("Ai+heIF9AAIi/C9g"), transform: [33, 76, 1, 1, 180] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [46, 43.2] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.3, 43.2] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.8, 43.2] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [46, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.3, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.6, 29.5] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [45.8, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.1, 15.8] },
-				{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.4, 15.8] }
-			];
-			for (var i = 0; i < sA.length; i++) {
-				var numShape = new zim.Shape({ style: false });
-				numShape.graphics.f(color).s().p(sA[i].p);				
-				numShape.setTransform(sA[i].transform[0], sA[i].transform[1], sA[i].transform[2], sA[i].transform[3], sA[i].transform[4]);
-				numShape.addTo(showNumPadIcon);
-				var num2Shape = new zim.Shape({ style: false });
-				num2Shape.graphics.f(color).s().p(sA[i].p);				
-				num2Shape.setTransform(sA[i].transform[0], sA[i].transform[1]);
-				num2Shape.addTo(hideNumPadIcon);
-			}
-			numShape.graphics.ef().s(white).ss(3).rr(-16,-14,60,55,10);
-			num2Shape.graphics.ef().s(white).ss(3).rr(-16,-14,60,55,10);
-		}
-
-		function makeDragButton() {
-			dragButton = new zim.Rectangle((size * 1.5 + 2.5) + 2.5, size, backgroundColor, borderColor, borderWidth, corner, null, null, null, false).addTo(that, 0).cur();
-			var rect;
-			for (var i = 0; i < 4; i++) {
-				rect = new zim.Rectangle(dragButton.width * 0.4, 4, color, null, null, null, null, null, null, false).centerReg(dragButton).alp(.2);
-				rect.y -= -22 + (i * 15);
-			}
-			dragButton.x = (8.5 * size) + (40);
-			dragButton.y = - size - 5;
-			dragButton.na = "drag";
-		}		
-		
-		function showNumPad(status) {			
-			if (!that.numPad) {
-				that.numPad = new zim.NumPad({advanced:numPadAdvanced, draggable:numPadDraggable}).sca(numPadScale);
-				if (numPadDraggable || numPadOnly) that.numPad.center({add:false});
-				else that.numPad.pos({x:0, y:8, horizontal:"center", vertical:"bottom", add:false});
-				that.numPad.on("pressed", function() {
-					if (that.numPad.key == "enter") {
-						that.dispatchEvent("enter");
-					} else if (that.numPad.key == "backspace") {
-						that.removeChar();
-					} else if (that.numPad.key == "clear") {
-						that.clearText();
-					} else if (that.numPad.key == "space") {
-						addToLabel(" ");
-					} else {
-						addToLabel(that.numPad.key);
-					}
-				});
-				that.numPad.on("close", function() {
-					numPadKey.removeChildAt(2);
-					showNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
-					currentKeyboard.updateCache();
-					if ((!that.keys.parent || !that.keys.visible) && textBlinker) {
-						textBlinker.visible = false;
-						that.toggled = false;
-						removeCursorShiftMenu();
-					}
-					that.dispatchEvent("numpadclose");
-				});
-			}
-			
-			numPadKey.removeChildAt(2);	
-			if (that.numPad.parent || status === false) {
-				that.numPad.removeFrom();
-				that.dispatchEvent("numpadclose");
-				showNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
-			} else if (!that.numPad.parent || status === true) {
-				that.numPad.addTo();
-				that.dispatchEvent("numpadopen");
-				hideNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
-			}
-			currentKeyboard.updateCache();
-			if (that.stage) that.stage.update();
-		}
-
-		function startDragging() {
-			if (that.mouseYAmount) that.y = that.parent.globalToLocal(0, that.mouseYAmount - dragY).y;
-		}
-
-		function stopDragging() {
-			currentStage.off("pressmousemove", that.tickerMouseEvent);
-			zim.Ticker.remove(startDragging);
-		}
-		
-		that.setBounds(1000,400-(numH-10)*26); // Dan Zen for any size keyboard
-
-		// ~~~~~~~~~~~~~~~~~  LABELS AND CURSOR
-
-		function positionBlinker() {
-			if (!currentLabel || !textBlinker) return;
-			// Dan Zen added 9.5.0 using CreateJS Label to avoid padding and backing issues and addition of bounds x for align issues
-			var positionXBlinker = currentLabel.label.x + currentLabel.label.getBounds().x;
-			for (var i=0; i<insertPoint;i++) {
-				positionXBlinker += currentLabel.widthArray[i]?currentLabel.widthArray[i]:0;
-			}
-			// Dan Zen added 9.5.0 padding for three types of Label (backing, backgroundColor and neither)
-			textBlinker.heightOnly = currentLabel.getBounds().height*(currentLabel.backing&&zot(currentLabel.padding)?.9:1)-((currentLabel.paddingV&&currentLabel.background)?currentLabel.paddingV*2:0);
-			textBlinker.center(currentLabel);
-			textBlinker.x = positionXBlinker;
-		}
-
-		function makeCursorShiftmenu() {
-			if (cursorShiftMenu) return that;
-			if (!currentLabel) return that;
-			var tekens = placeClose ? ["<", ">", "x"] : ["<", ">"];
-			var bakking;
-			var button;
-			var point;
-			buttonsCursor = [];
-			point = currentLabel.localToLocal(0, 0, that);
-			cursorShiftMenu = that.place = new zim.Container({ style: false }).addTo(that).cur();
-			for (var i = 0; i < tekens.length; i++) {
-				bakking = new zim.Rectangle(size, size, placeBackgroundColor, borderColor, borderWidth, corner, null, null, null, false);
-				if (tekens[i] == "x") new zim.Rectangle(size, size, "black", null, null, corner, null, null, null, false).alp(shadeAlpha).addTo(bakking);
-				button = new zim.Label({
-					lineWidth: 10,
-					// lineHeight:58, // ?
-					text: tekens[i],
-					backing: bakking,
-					font: DS.font != null ? DS.font : null,
-					color: placeColor,
-					align: "center",
-					valign: "center",
-					style: false
-				});
-				button.pos(0, 0, zim.LEFT, zim.TOP, cursorShiftMenu).cache();
-				button.x = button.x + i * (size + 5);
-				buttonsCursor.push(button);
-			}
-			point = currentLabel.localToLocal(0, 0, that);
-			cursorShiftMenu.x = point.x + placeShiftH;
-			cursorShiftMenu.y = point.y + currentLabel.height + 15 + placeShiftV;
-			cursorShiftMenu.on("click", verschuifCursor);
-			function verschuifCursor(e) {
-				if (buttonsCursor.indexOf(e.target) == 0) {
-					if (insertPoint > 0) insertPoint--;
-				} else if (buttonsCursor.indexOf(e.target) == 1) {
-					if (insertPoint < currentLabel.text.length) insertPoint++;
-				} else {
-					removeCursorShiftMenu();
-				}
-				positionBlinker();
-			}
-			if (that.stage) that.stage.update();
-		}
-		function removeCursorShiftMenu() {
-			if (!cursorShiftMenu) return that;
-			cursorShiftMenu.dispose();
-			cursorShiftMenu = null;
-		}
-
-		function addToLabel(letter) {
-			if (!currentLabel) return;
-			var measureField;
-			var widthMeasureField;
-			// backspace
-			if (letter === "del") {
-				if (currentLabel) currentLabel.text = [currentLabel.text.slice(0,insertPoint-1),currentLabel.text.slice(insertPoint)].join('');
-				insertPoint--;
-				makeWidthsArray();
-			} else {
-				if (currentStatus === statuses.shift) {
-					letter = layout=="turkish"?letter.toLocaleUpperCase("tr-TR"):letter.toUpperCase();
-				}
-				if (currentLabel && that.maxLength && currentLabel.text.length >= that.maxLength) return;
-				if (that.numbersOnly && !isFinite(Number(letter))) return;
-				var textBeforeCheck = currentLabel.text;
-				measureField = currentLabel.clone().removeFrom();
-				measureField.text = letter;
-				widthMeasureField = measureField.label.getMeasuredWidth();
-				if (!currentLabel.widthArray) {
-					currentLabel.widthArray = [currentLabel.breedte];
-				} else {
-					currentLabel.widthArray.splice(insertPoint,0,widthMeasureField);
-				}
-				//toevoegen in string
-				if (insertPoint<currentLabel.text.length) {
-					currentLabel.text = [currentLabel.text.slice(0,insertPoint),letter,currentLabel.text.slice(insertPoint)].join('');
-				} else {
-					// currentLabel.text+="\u202E" + letter;
-					currentLabel.text+=letter;
-				}
-				// if (currentLabel && currentLabel.width<maxWidth) {
-				if (currentLabel && currentLabel.label.getBounds().width<maxWidth) {
-					insertPoint++;
-					positionBlinker();
-				} else {
-					currentLabel.text = textBeforeCheck;
-				}
-			}
-			if (currentStatus === statuses.shift&&!bigShiftOn) {
-				that.removeChild(currentKeyboard);
-				makeButtons();
-				currentStatus = statuses.def;
-			}
-			positionBlinker();
-			var keyEvent = new createjs.Event("keydown");
-			keyEvent.letter = letter;
-			that.dispatchEvent(keyEvent);
-			if (that.stage) that.stage.update();
-		}
-
-		function activateLabel(e) {
-			if (!that.stage) return;
-			var point;
-			var sumUp = 0;
-			var found = false;
-			currentLabel = e.target;
-			if (!currentLabel.widthArrayCheck) makeWidthsArray();
-			maxWidth = currentLabel.label.lineWidth?currentLabel.label.lineWidth:10000;
-
-			// Dan Zen added 9.5.0 point relative to actual CreateJS Label - to avoid padding and backing issues
-			point = currentLabel.globalToLocal(e.stageX/zim.scaX, e.stageY/zim.scaY);
-			point.x -= currentLabel.label.x; // adjusted for retina - label is CreateJS with broken globalToLocal
-			point.y -= currentLabel.label.y;
-			// point opzoeken in array textfield door op te tellen
-			// for (var i=currentLabel.widthArray.length-1; i>=0; i--) {
-			// 	sumUp += currentLabel.widthArray[i];
-			// 	if (point.x < sumUp-currentLabel.widthArray[i]/2) {
-			// 		insertPoint = i;
-			// 		found = true;
-			// 		break;
-			// 	}
-			// }
-			// var rightOfLabel = currentLabel.getBounds().width + currentLabel.getBounds().x;
-			// zog(rightOfLabel);
-			// zog(currentLabel.widthArray)
-			// for (var i=0; i<currentLabel.widthArray.length; i++) {
-			// 	sumUp += currentLabel.widthArray.reverse()[i];
-			// 	if (point.x < rightOfLabel - sumUp-currentLabel.widthArray.reverse()[i]/2) {
-			// 		insertPoint = i;
-			// 		found = true;
-			// 		break;
-			// 	}
-			// }
-			for (var i=0; i<currentLabel.widthArray.length; i++) {
-				sumUp += currentLabel.widthArray[i];
-				// Dan Zen added 9.5.0 addition of bounds x for when align is center or right
-				if (point.x < sumUp-currentLabel.widthArray[i]/2+currentLabel.label.getBounds().x) {
-					insertPoint = i;
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				insertPoint = currentLabel.text.length;
-			}
-			positionBlinker();
-			if (place && !cursorShiftMenu && currentLabel.text.length > 0) {
-				makeCursorShiftmenu();
-			}
-			if (cursorShiftMenu && currentLabel) {
-				if (currentLabel.text.length > 0) {
-					point = currentLabel.localToLocal(0, 0, that);
-					cursorShiftMenu.x = point.x+placeShiftH;
-					cursorShiftMenu.y = point.y+currentLabel.height+15+placeShiftV;
-				} else {
-					removeCursorShiftMenu();
-				}
-			}
-		}
-		function makeWidthsArray() {
-			if (!currentLabel) return;
-			var measureField = new zim.Label("");
-			currentLabel.widthArray = [];
-			for (var i=0; i<currentLabel.text.length; i++) {
-				measureField = currentLabel.clone().removeFrom();
-				measureField.text = currentLabel.text[i];
-				currentLabel.widthArray.push(measureField.label.getMeasuredWidth());
-			}
-			measureField.text = currentLabel.text; // weird bug shortening clone shortens hitArea of original
-			currentLabel.widthArrayCheck = true;
-			positionBlinker();
-		}
-
-		function backspaceRemovesLetter(once) {
-			var removalOkay = true;
-			var timeOut;
-			function haalWeg() {
-				if (!currentLabel || currentLabel.text.length < 1 || that.currentIndex == 0) {
-					removalOkay = false;
-				}
-				if (removalOkay) {
-					removeLetter();
-					if (timeOut) timeOut = zim.timeout(200, haalWeg, null, "ms");
-				}
-				if (currentLabel && currentLabel.text.length < 1) {
-					stopRemoval();
-				}
-			}
-			function removeLetter() {
-				if (currentLabel && currentLabel.text.length > 0) {
-					if (that.selectedIndex > 0) addToLabel("del");
-					if (once) stopRemoval();
-					else that.on("pressup", stopRemoval);
-				} else {
-					addToLabel("del");
-				}
-			}
-			function stopRemoval() {
-				removalOkay = false;
-				if (timeOut) timeOut.clear();
-				that.off("pressup", stopRemoval);
-			}
-			removeLetter();
-			timeOut = zim.timeout(300, haalWeg, null, "ms");
-			if (that.stage) that.stage.update();
-		}
-
-		function setLabels() {
-			for (var i = 0; i < labels.length; i++) {
-				labels[i].clickEvent = labels[i].on("click", activateLabel);
-			}
-		}
-		setLabels();
-
-		function unsetLabels() {
-			if (labels.length > 1) {
-				for (var i = 0; i < labels.length; i++) {
-					labels[i].off("click", labels[i].clickEvent);
-				}
-			}
-		}
-
-		function makeCursor() {
-			if (textBlinker) return;
-			currentLabel = labels[0];
-			maxWidth = (currentLabel && currentLabel.label.lineWidth) ? currentLabel.label.lineWidth : 10000;
-			if (currentLabel) {
-				textBlinker = new zim.Rectangle(3, currentLabel.height - ((currentLabel.paddingV && currentLabel.background) ? currentLabel.paddingV * 2 : 0), cursorColor, null, null, null, null, null, null, false).center(currentLabel);
-				textBlinker.x = 0;
-				textBlinker.visible = false;
-				textBlinker.animate({
-					obj: { alpha: 0 },
-					rewind: true,
-					loop: true,
-					loopWait: 750,
-					time: 250,
-					id: "knipperTekst",
-					timeUnit: "ms"
-				});
-				for (var j = 0; j < labels.length; j++) {
-					labels[j].widthArray = [0];
-				}
-				makeWidthsArray();
-			}
-		}
-		makeCursor();
-		function removeCursor() {
-			zim.stopAnimate("knipperTekst");
-			if (currentLabel) currentLabel.removeChild(textBlinker);
-			textBlinker = null;
-			currentLabel = null;
-		}
-		
-
-		// ~~~~~~~~~~~~~~~ GETTER SETTER PROPS
-
-		Object.defineProperty(this, 'selectedLabel', {
-			get: function() {
-				return currentLabel;
-			},
-			set: function(label) {
-				var obj = {target:label};
-				activateLabel(obj);
-				that.hidePlace();
-			}
-		});
-
-		Object.defineProperty(this, 'selectedIndex', {
-			get: function() {
-				return insertPoint;
-			},
-			set: function(index) {
-				insertPoint = index;
-				positionBlinker();
-			}
-		});
-
-		// ~~~~~~~~~~~~~~~ METHODS
-
-		this.show = function(index, override) {
-			that.addTo(container);
-			// that.resize();
-			if (!zot(index)) {
-				var obj = {target:labels[index]};
-				activateLabel(obj);
-			}
-			if (textBlinker) textBlinker.visible = true;
-			that.toggled = true;	
-			if (numPadOnly) showNumPad();	
-			else if (!numPadOnly || override) {
-				that.keys.vis(true);
-				background.vis(true);
-			}
-			if (that.numPad && that.numPad.parent) that.numPad.top();
-			return that;
-		};
-		
-		this.hide = function() {
-			that.removeFrom(container);
-			showNumPad(false);
-			if (textBlinker) {textBlinker.visible = false;}
-			currentStage.update();
-			that.toggled = false;
-			return that;
-		};
-		
-		this.showNumPad = function() {
-			showNumPad(true);
-			that.toggled = true;
-			if (textBlinker) textBlinker.visible = true;
-		}
-		this.hideNumPad = function() {
-			showNumPad(false);
-			if ((!that.keys.parent || !that.keys.visible) && textBlinker) {
-				textBlinker.visible = false;
-				that.toggled = false;
+		if (cursorShiftMenu) {
+			if (buttonsCursor.indexOf(e.target) < 0) {
 				removeCursorShiftMenu();
 			}
 		}
-		
-		this.showKeyboard = function() {
-			that.show(null, true);
-		}
-		
-		this.hideKeyboard = function() {
-			if (!that.numPad || !that.numPad.parent) {
-				that.hide();
+		if (!zot(e.target.na)) {
+			//WIJZIGINGEN STATUS keyboard
+			if (draggable && e.target === dragButton) {
+				that.tickerMouseEvent = currentStage.on("stagemousemove", function (e) {
+					that.mouseYAmount = e.stageY;
+				});
+				zim.Ticker.add(startDragging);
+				that.on("pressup", stopDragging);
+				dragY = e.stageY - that.localToGlobal(0, 0).y;
+			} else if (!zot(special) && e.target.na === special) {
+				that.dispatchEvent("special");
+			} else if (e.target.na === "shift") { //shift
+				shiftKeys();
+			} else if (e.target.toggle === "?123") { //nummers
+				that.removeChild(currentKeyboard);
+				makeButtons(statuses.number1);
+			} else if (e.target.toggle === "ABC") { //teksten
+				that.removeChild(currentKeyboard);
+				currentStatus = statuses.def;
+				makeButtons();
+				if (bigShiftOn) shiftKeys(true);
+			} else if (e.target.toggle === "1/2") {
+				that.removeChild(currentKeyboard);
+				makeButtons(statuses.number2);
+			} else if (e.target.toggle === "2/2") {
+				that.removeChild(currentKeyboard);
+				makeButtons(statuses.number1);
+			} else if (e.target.na === "numpad") {
+				showNumPad(e.target);
+			} else if (e.target.na === "away") {
+				that.hideKeyboard();
+				that.dispatchEvent("close");
+			} else if (data[3] && data[3][e.target.na]) {
+				makeAlternativeLetters(e.target.na);					
+				// e.target.na === "e" ||
+				// e.target.na === "u" ||
+				// e.target.na === "i" ||
+				// e.target.na === "o" ||
+				// e.target.na === "a" ||
+				// e.target.na === "n") { //VARIATIES LETTERS euioan
+				// makeAlternativeLetters(e.target.na);
+			} else if (e.target.na === "return") {
+				addToLabel("\n");
+			} else if (e.target.na === "backspace") {
+				backspaceRemovesLetter();
+			} else if (e.target.na === "back") {
+				backspaceRemovesLetter();
+			} else if (e.target.na === "") {
+				addToLabel(" ");
 			} else {
-				that.keys.vis(false);
-				background.vis(false);
+				addToLabel(e.target.na);
 			}
+			currentStage.update();
 		}
+	}
 
-		this.toggle = function(state) {
-			if (state===true) that.show();
-			else if (state===false) that.hide();
-			else if (that.parent) that.hide();
-			else that.show();
-			return that;
-		};
+	that.addChar = function (chara) { // do not use char - it is a keyword
+		if (!zot(chara) && chara.match(/^.$/)) addToLabel(chara);
+	};
+	that.removeChar = function () {
+		backspaceRemovesLetter(true);
+	};
+	that.clearText = function () {
+		currentLabel.text = "";
+		backspaceRemovesLetter(true);
+		makeWidthsArray();
+		that.selectedIndex = 0;
+	};
+	that.setText = function (text) {
+		currentLabel.text = text;
+		makeWidthsArray();
+		that.selectedIndex = text.length;
+	};
 
-		this.showPlace = function() {
-			makeCursorShiftmenu();
-			return that;
-		};
-
-		this.hidePlace = function() {
-			removeCursorShiftMenu();
-			return that;
-		};
-
-		this.addLabels = function(labs) {
-			if (!Array.isArray(labs)) labs = [labs];
-			for (var i=labs.length-1; i>=0; i--) {
-				var ind = labels.indexOf(labs[i]);
-				if (ind >= 0 || labs[i].type != "Label") labs.splice(i, 1);
-				else labs[i].widthArray = [0];
-			}
-			unsetLabels();
-			labels = labels.concat(labs);
-			setLabels();
-			makeCursor();
-			if (textBlinker) textBlinker.visible = true;
-			return that;
-		};
-
-		this.removeLabels = function(labs) {
-			if (!Array.isArray(labs)) labs = [labs];
-			unsetLabels();
-			for (var i=0; i<labs.length; i++) {
-				var ind = labels.indexOf(labs[i]);
-				if (ind >= 0) labels.splice(ind, 1);
-			}
-			setLabels();
-			if (labels.length == 0) {
-				if (currentLabel) removeCursor();
-			} else {
-				if (currentLabel && labels.indexOf(currentLabel) == -1) {
-					removeCursor();
-					makeCursor();
-				}
-			}
-			return that;
-		};
-
-		var background = new zim.Rectangle(this.width, this.height, zim.clear, null, null, null, null, null, null, false).addTo(this).expand().bot();
-		background.on("mousedown", function(){});
-		background.on("click", function(){});
-		if (numPadOnly) background.vis(false); 
-
-		this.resize = function() {
-			that.scaleTo(currentStage, 100-margin*2/currentStage.width*100, 50-margin*2/currentStage.height*100);
-			that.y = currentStage.height - that.height - margin;
-			that.x = currentStage.width/2 - that.width/2;
-			if (currentLabel && cursorShiftMenu) {
-				var point = currentLabel.localToLocal(0, 0, that);
-				cursorShiftMenu.x = point.x;
-				cursorShiftMenu.y = point.y + currentLabel.height + 15;
-			}
-			if (that.stage) that.stage.update();
-			return that;
-		};
-		this.resize();
-
-		if (that.selectedLabel) that.selectedIndex = that.selectedLabel.text.length;
-
-		// Dan Zen added ZIM 10.5.1
-		if (hardKeyboard) {			
-			this.keydownEvent = function(e) {
-				if (!that.stage) return;
-				var k = that;
-				if (zot(k)) return;
-				if (e.keyCode==35) k.selectedIndex = k.selectedLabel.text.length; // end
-				if (e.keyCode==36) k.selectedIndex = 0; // home
-				if (e.keyCode==37) k.selectedIndex = k.selectedIndex-1; // left
-				if (e.keyCode==39) k.selectedIndex = k.selectedIndex+1; // right
-				if (e.keyCode==46) { // del
-					if (k.selectedIndex < k.selectedLabel.text.length) {
-						k.selectedIndex = k.selectedIndex + 1;
-						k.removeChar();
+	var shiftEvent;
+	function shiftKeys(immediate) {
+		var bigShift = false;
+		var i, tkb;
+		//vanuit default
+		if (currentStatus === statuses.def) {
+			shiftKey.color = immediate ? shiftHoldBackgroundColor : shiftBackgroundColor;
+			//keyboard veranderen
+			for (i = 0; i < textKeyButtons.length - 6 - (zot(special) ? 0 : 1); i++) {
+				tkb = textKeyButtons[i];
+				if (tkb.label.text.length > 0) {
+					if (tkb.na.length === 1) {
+						if (data[4] && data[4][tkb.label.text]) tkb.label.text = data[4][tkb.label.text];									
+						else tkb.label.text = layout=="turkish"?tkb.label.text.toLocaleUpperCase("tr-TR"):tkb.label.text.toUpperCase();
+						tkb.label.centerReg(tkb).mov(0, 6);							
+					} else {
+						tkb.label.centerReg(tkb);
 					}
 				}
-				if (e.keyCode==8) {
-					e.preventDefault();
-					k.removeChar(); // backspace
-				}
-				k.addChar(e.key);
-				if (that.stage) that.stage.update();
-			};
-			WW.addEventListener("keydown", this.keydownEvent);
-		}			
-
-		if (style!==false) zim.styleTransforms(this, DS);
-		this.clone = function() {
-			var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, this.group, inherit);
-			return that.cloneProps(kb);
-		};
-		this.dispose = function(a,b,disposing) {
-			background.removeAllEventListeners();
-			background = null;
-			if (that.keydownEvent) WW.removeEventListener("keydown", that.keydownEvent);
-			for(var i=0; i<that.labels.length; i++) {
-				that.labels[i].removeAllEventListeners();
 			}
-			if (that.numPad) that.numPad.dispose()	
-			if (textBlinker) textBlinker.dispose();
-			that.labels = currentLabel = null;
-			if (currentStage) currentStage.off("pressmousemove", that.tickerMouseEvent);
-			if (!disposing) that.zimContainer_dispose(true);
-			return true;
-		};
+			if (!immediate) {
+				//na halve seconde gaat groot shift aan
+				bigShift = true;
+				setTimeout(putBigShiftOn, 500);
+				shiftEvent = that.on("pressup", doNotPutBigShiftOn);
+			}
+			currentStatus = statuses.shift;
+			//vanuit shift
+		} else {
+			shiftKey.color = backgroundColor;
+			bigShiftOn = false;
+			//keyboard veranderen
+			for (i = 0; i < textKeyButtons.length - 6; i++) {
+				tkb = textKeyButtons[i];
+				if (tkb.label.text.length > 0) {
+					if (tkb.na.length === 1) {
+						if (data[5] && data[5][tkb.label.text]) tkb.label.text = data[5][tkb.label.text];
+						else tkb.label.text = tkb.label.text.toLowerCase();
+						tkb.label.centerReg(tkb).mov(0, 3);
+					} else {
+						tkb.label.centerReg(tkb);
+					}
+				}
+			}
+			currentStatus = statuses.def;
+		}
+		currentKeyboard.updateCache();
+		if (that.stage) that.stage.update();
+		function putBigShiftOn() {
+			if (bigShift) {
+				bigShiftOn = true;
+				shiftKey.color = shiftHoldBackgroundColor;
+				currentKeyboard.updateCache();
+				if (that.stage) that.stage.update();
+			}
+		}
+		function doNotPutBigShiftOn() {
+			that.off("pressup", shiftEvent);
+			bigShift = false;
+		}
+	}
+
+	// ~~~~~~~~~~~~~~~~~  ASSETS
+
+	function makeButtons(which) {
+		var typeKeyboard;
+		var label;
+		var button;
+		var xPos = 0;
+		var yPos = 0;
+		var thisWidth;
+		var bigKey;
+		var thisIsSpacekey = false;
+		var thisKeyLetter;
+		var passesLetter;
+		var dark = false;
+		//zonder parameters maak ik letters
+		if (zot(which)) which = statuses.def;
+		//letters
+		if (which === statuses.def) {
+			typeKeyboard = textKeys;
+			//nummers1
+		} else if (which === statuses.number1) {
+			typeKeyboard = numberKeys1;
+			//nummers 2
+		} else if (which === statuses.number2) {
+			typeKeyboard = numberKeys2;
+		}
+		//container maken
+		that.keys = currentKeyboard = new zim.Container(1000, 430, null, null, false).addTo(that).vis(!numPadOnly);
+		//alle toetsen, door arrays heen wandelen
+		for (var i = 0; i < typeKeyboard.length; i++) {
+			if (i <= 1 || (which == statuses.def && i == 2 && typeKeyboard[2][0] != "shift")) {
+				xPos = (size / 2 + 2.5) * (numH - typeKeyboard[i].length);
+			}
+			for (var j = 0; j < typeKeyboard[i].length; j++) {
+				thisIsSpacekey = false;
+				thisKeyLetter = null;
+				dark = false;
+				if (typeKeyboard[i][j] == "backspace") {
+					bigKey = true;
+					thisKeyLetter = backspaceIcon;
+					dark = true;
+				} else if (typeKeyboard[i][j] == "back") {
+					bigKey = false;
+					thisKeyLetter = backspaceIcon;
+					dark = true;					
+				} else if (typeKeyboard[i][j] == "shift") {
+					bigKey = true;
+					thisKeyLetter = shiftKeyIcon;
+				} else if ((i == 3 || (which != statuses.def && i == 2)) && j == 0) {
+					bigKey = true;
+					dark = true;
+				} else if (typeKeyboard[i][j] == "") {
+					bigKey = false;
+					thisIsSpacekey = true;
+				} else if (typeKeyboard[i][j] == "numpad") {
+					thisKeyLetter = showNumPadIcon;
+					bigKey = false;
+					dark = true;
+				} else if (typeKeyboard[i][j] == "away") {
+					thisKeyLetter = hideKeyBoardIcon;
+					bigKey = true;
+					dark = true;
+				} else {
+					bigKey = false;
+				}
+				//brede toets: breedte instellen
+				if (bigKey) {
+					thisWidth = (size * 1.5 + 2.5);
+				} else if (thisIsSpacekey) {	
+					// Dan Zen Cat 03 patch - make spacebar take up available space					
+					thisWidth = (size + 5) * ((zot(special) ? 3 : 2) + numH-10+1-data[0][3].length) - 5;
+					if (data[0][3].indexOf("backspace") != -1) {
+						thisWidth -= size/2;
+					} 
+				} else {
+					thisWidth = size;
+				}
+				button = new zim.Rectangle(thisWidth, size, backgroundColor, borderColor, borderWidth, corner, null, null, null, false).cur().addTo(currentKeyboard);
+				if (dark) button.addChild(new zim.Rectangle(thisWidth, size, "black", null, null, corner, null, null, null, false).alp(shadeAlpha));
+
+				if (thisKeyLetter) {
+					button.label = label = new zim.Label({ text: "", backgroundColor: "ignore", font: DS.font != null ? DS.font : null, style: false });
+				} else {
+					button.label = label = new zim.Label({
+						lineWidth: 10,
+						lineHeight: 25,
+						font: DS.font != null ? DS.font : null,
+						text: typeKeyboard[i][j],
+						color: color,
+						align: "center",
+						style: false
+					});
+				}
+				//plaatje op bakking
+				if (thisKeyLetter) {
+					var clone = thisKeyLetter.clone();
+					var sc;
+					if (typeKeyboard[i][j]=="numpad") {
+						sc = 60;
+						numPadKey = button;
+					} else {
+						sc = 70;
+					}
+					clone.scaleTo(button, sc, sc);
+					clone.centerReg(button);
+				}
+				if (!passesLetter) {
+					label.centerReg(button).mov(0, (!isNaN(label.text)) ? 7 : 3);
+					button.x = xPos;
+					button.y = yPos;
+					button.na = typeKeyboard[i][j];
+					if (i == 2 && j == 0 && which == statuses.number1) button.toggle = "1/2";
+					if (i == 2 && j == 0 && which == statuses.number2) button.toggle = "2/2";
+					if (i == 3 && j == 0 && which == statuses.def) button.toggle = "?123";
+					if (i == 3 && j == 0 && which != statuses.def) button.toggle = "ABC";
+					if (button.toggle) label.mov(0, 3);
+					textKeyButtons.push(button);
+					if (button.na == "shift") {
+						shiftKey = button;
+					}
+					xPos = button.x + button.width + 5;
+				} else {
+					passesLetter = false;
+					xPos += 67.33;
+				}
+			}
+			yPos += size + 5;
+			xPos = 0;
+		}
+		currentKeyboard.cache(borderWidth ? -borderWidth : 0, borderWidth ? -borderWidth : 0, borderWidth ? currentKeyboard.width + borderWidth * 2 : currentKeyboard.width, borderWidth ? currentKeyboard.height + borderWidth * 2 : currentKeyboard.height);
+	}
+
+	function makeAlternativeLetters(letter) {
+		var thisArray = data[3][letter];
+		var mouseReleased = false;
+		var alternativeMenuIsmade = false;
+		var timeWait;			
+		// switch (letter) {
+		// 	case "e":
+		// 		thisArray = eLetters;
+		// 		break;
+		// 	case "u":
+		// 		thisArray = uLetters;
+		// 		break;
+		// 	case "i":
+		// 		thisArray = iLetters;
+		// 		break;
+		// 	case "o":
+		// 		thisArray = oLetters;
+		// 		break;
+		// 	case "a":
+		// 		thisArray = aLetters;
+		// 		break;
+		// 	case "n":
+		// 		thisArray = nLetters;
+		// 		break;
+		// 	default:
+		// 		break;
+		// }
+		timeWait = zim.timeout(500, makeAlternatemenu, null, "ms");
+		var mouseUpEvent = that.on("pressup", mouseUp);
+		function mouseUp() {
+			mouseReleased = true;
+			that.off("pressup", mouseUpEvent);
+			if (!alternativeMenuIsmade) {
+				addToLabel(letter);
+			}
+		}
+		function makeAlternatemenu() {
+			var label,
+				button,
+				overlay,
+				xPos = 0,
+				thisLetter;
+			timeWait.clear();
+			if (!mouseReleased) {
+				alternativeMenuIsmade = true;
+				alternativeMenu = new zim.Container(1000, size, null, null, false).addTo(that, 0);
+				alternativeMenu.y = - size - 5;
+				for (var i = 0; i < thisArray.length; i++) {
+					if (currentStatus === statuses.shift) {
+						thisLetter = layout=="turkish"?thisArray[i].toLocaleUpperCase("tr-TR"):thisArray[i].toUpperCase();
+					} else {
+						thisLetter = thisArray[i];
+					}
+					label = new zim.Label({
+						lineWidth: 10,
+						lineHeight: 25,
+						text: thisLetter,
+						font: DS.font != null ? DS.font : null,
+						color: color,
+						align: "center",
+						style: false
+					});
+					button = new zim.Rectangle(size, size, backgroundColor, borderColor, borderWidth, corner, null, null, null, false).addTo(alternativeMenu);
+					overlay = new zim.Rectangle(size, size, "white", null, null, corner, null, null, null, false).alp(.2);
+					button.addChild(overlay);
+					label.center(button);
+					button.na = thisArray[i];
+					button.x = xPos;
+					xPos += size + 5;
+				}
+				if (that.stage) that.stage.update();
+			}
+		}
+	}
+
+	function makeIcons() {
+		//shift
+		shiftKeyIcon = new zim.Shape({ style: false });
+		shiftKeyIcon.graphics.f(color).p("AhIFoIAAjYIixAAID5n3ID6H3IixAAIAADYgAjHBxICeAAIAADYIBTAAIAAjYICeAAIjImSg");
+		shiftKeyIcon.setBounds(-51 / 2, -72 / 2, 51, 72);
+		//backspace
+		backspaceIcon = new zim.Container({ style: false });
+		var backspaceShape1 = new zim.Shape({ style: false });
+		backspaceShape1.graphics.f(color).p("ACgC+IigigIifCgQgGAGgJAAQgJAAgGgGQgGgGgBgJQABgJAGgGICgigIigifQgGgGgBgJQABgJAGgGQAGgGAJAAQAIAAAHAGICfCgICgigQAGgGAJAAQAJAAAGAGQAGAGABAJQgBAJgGAGIigCfICgCgQAGAGABAJQgBAJgGAGQgGAGgJAAQgJAAgGgGg");
+		backspaceShape1.setTransform(82.6, 32);
+		backspaceShape1.addTo(backspaceIcon);
+		var backspaceShape2 = new zim.Shape({ style: false });
+		backspaceShape2.graphics.f(color).s().p("AkhFAQgcAAgUgUIkHj6QgVgUAAgeQAAgdAVgVIEHj6QAUgTAcAAINKAAQAdAAAUAUQAUAUAAAdIAAH1QAAAdgUATQgUAVgdAAgAk0kOIkGD8QgIAHAAALQAAALAIAIIEGD7QAIAHALAAINKAAQALAAAIgIQAHgHAAgLIAAn1QAAgLgHgIQgIgIgLAAItKAAQgLAAgIAHg");
+		backspaceShape2.setTransform(62.2, 32);
+		backspaceShape2.addTo(backspaceIcon);
+		backspaceIcon.setBounds(0, 0, 125, 64);
+		//keyboardAway
+		hideKeyBoardIcon = new zim.Container({ style: false });
+		hideKeyBoardIcon.setBounds(0, 0, 147, 86);
+		var hideKeyBoardIconArray = [
+			{ p: ("Ai+heIF9AAIi/C9g"), transform: [73.4, 76] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [128.4, 43.2] },
+			{ p: ("AnNAzIAAhlIObAAIAABlg"), transform: [73, 43.2] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.8, 43.2] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [128.2, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [114.5, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [100.8, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [87.1, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [73.4, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [59.7, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [46, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.3, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.6, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [128, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [114.3, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [100.6, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [86.9, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [73.2, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [59.5, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [45.8, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.1, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.4, 15.8] },
+			{ p: ("AphEnQgzAAgkgkQglglAAgzIAAlVQAAgzAlglQAkgkAzAAITDAAQAzAAAkAkQAlAlAAAzIAAFVQAAAzglAlQgkAkgzAAgAqjjtQgcAcAAAnIAAFVQAAAnAcAbQAbAcAnAAITDAAQAnAAAcgcQAbgbAAgnIAAlVQAAgngbgcQgcgcgnAAIzDAAQgnAAgbAcg"), transform: [73.4, 29.5] }
+		];
+		var thisShape;
+		for (var i = 0; i < hideKeyBoardIconArray.length; i++) {
+			thisShape = new zim.Shape({ style: false });
+			thisShape.graphics.f(color).s().p(hideKeyBoardIconArray[i].p);
+			thisShape.setTransform(hideKeyBoardIconArray[i].transform[0], hideKeyBoardIconArray[i].transform[1]);
+			thisShape.addTo(hideKeyBoardIcon);
+		}
+		showNumPadIcon = new zim.Container({ style: false });
+		showNumPadIcon.setBounds(0, 0, 62, 86);
+		hideNumPadIcon = new zim.Container({ style: false });
+		hideNumPadIcon.setBounds(0, 0, 62, 86);
+		var sA = [
+			{ p: ("Ai+heIF9AAIi/C9g"), transform: [33, 76, 1, 1, 180] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [46, 43.2] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.3, 43.2] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.8, 43.2] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [46, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.3, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.6, 29.5] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [45.8, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [32.1, 15.8] },
+			{ p: ("AgyAzIAAhlIBlAAIAABlg"), transform: [18.4, 15.8] }
+		];
+		for (var i = 0; i < sA.length; i++) {
+			var numShape = new zim.Shape({ style: false });
+			numShape.graphics.f(color).s().p(sA[i].p);				
+			numShape.setTransform(sA[i].transform[0], sA[i].transform[1], sA[i].transform[2], sA[i].transform[3], sA[i].transform[4]);
+			numShape.addTo(showNumPadIcon);
+			var num2Shape = new zim.Shape({ style: false });
+			num2Shape.graphics.f(color).s().p(sA[i].p);				
+			num2Shape.setTransform(sA[i].transform[0], sA[i].transform[1]);
+			num2Shape.addTo(hideNumPadIcon);
+		}
+		numShape.graphics.ef().s(white).ss(3).rr(-16,-14,60,55,10);
+		num2Shape.graphics.ef().s(white).ss(3).rr(-16,-14,60,55,10);
+	}
+
+	function makeDragButton() {
+		dragButton = new zim.Rectangle((size * 1.5 + 2.5) + 2.5, size, backgroundColor, borderColor, borderWidth, corner, null, null, null, false).addTo(that, 0).cur();
+		var rect;
+		for (var i = 0; i < 4; i++) {
+			rect = new zim.Rectangle(dragButton.width * 0.4, 4, color, null, null, null, null, null, null, false).centerReg(dragButton).alp(.2);
+			rect.y -= -22 + (i * 15);
+		}
+		dragButton.x = (8.5 * size) + (40);
+		dragButton.y = - size - 5;
+		dragButton.na = "drag";
+	}		
+	
+	function showNumPad(status) {			
+		if (!that.numPad) {
+			that.numPad = new zim.NumPad({advanced:numPadAdvanced, draggable:numPadDraggable}).sca(numPadScale);
+			if (numPadDraggable || numPadOnly) that.numPad.center({add:false, container:container});
+			else that.numPad.pos({x:0, y:8, horizontal:"center", vertical:"bottom", add:false, container:container});
+			that.numPad.on("pressed", function() {
+				if (that.numPad.key == "enter") {
+					that.dispatchEvent("enter");
+				} else if (that.numPad.key == "backspace") {
+					that.removeChar();
+				} else if (that.numPad.key == "clear") {
+					that.clearText();
+				} else if (that.numPad.key == "space") {
+					addToLabel(" ");
+				} else {
+					addToLabel(that.numPad.key);
+				}
+			});
+			that.numPad.on("close", function() {
+				numPadKey.removeChildAt(2);
+				showNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
+				currentKeyboard.updateCache();
+				if ((!that.keys.parent || !that.keys.visible) && textBlinker) {
+					textBlinker.visible = false;
+					that.toggled = false;
+					removeCursorShiftMenu();
+				}
+				that.dispatchEvent("numpadclose");
+			});
+		}
+
+		
+		numPadKey.removeChildAt(2);	
+		if (that.numPad.parent || status === false) {
+			that.numPad.removeFrom();
+			that.dispatchEvent("numpadclose");
+			showNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
+		} else if (!that.numPad.parent || status === true) {
+			that.numPad.addTo(container);
+			that.dispatchEvent("numpadopen");
+			hideNumPadIcon.clone().scaleTo(numPadKey, 60, 60).centerReg(numPadKey,2);
+		}
+		currentKeyboard.updateCache();
+		if (that.stage) that.stage.update();
+	}
+
+	function startDragging() {
+		if (that.mouseYAmount) that.y = that.parent.globalToLocal(0, that.mouseYAmount - dragY).y;
+	}
+
+	function stopDragging() {
+		currentStage.off("pressmousemove", that.tickerMouseEvent);
+		zim.Ticker.remove(startDragging);
+	}
+	
+	that.setBounds(1000,400-(numH-10)*26); // Dan Zen for any size keyboard
+
+	// ~~~~~~~~~~~~~~~~~  LABELS AND CURSOR
+
+	function positionBlinker() {
+		if (!currentLabel || !textBlinker) return;
+		// Dan Zen added 9.5.0 using CreateJS Label to avoid padding and backing issues and addition of bounds x for align issues
+		var positionXBlinker = currentLabel.label.x + currentLabel.label.getBounds().x;
+		for (var i=0; i<insertPoint;i++) {
+			positionXBlinker += currentLabel.widthArray[i]?currentLabel.widthArray[i]:0;
+		}
+		// Dan Zen added 9.5.0 padding for three types of Label (backing, backgroundColor and neither)
+		textBlinker.heightOnly = currentLabel.getBounds().height*(currentLabel.backing&&zot(currentLabel.padding)?.9:1)-((currentLabel.paddingV&&currentLabel.background)?currentLabel.paddingV*2:0);
+		textBlinker.center(currentLabel);
+		textBlinker.x = positionXBlinker;
+	}
+
+	function makeCursorShiftmenu() {
+		if (cursorShiftMenu) return that;
+		if (!currentLabel) return that;
+		var tekens = placeClose ? ["<", ">", "x"] : ["<", ">"];
+		var bakking;
+		var button;
+		var point;
+		buttonsCursor = [];
+		point = currentLabel.localToLocal(0, 0, that);
+		cursorShiftMenu = that.placeMenu = new zim.Container({ style: false }).sca(placeScale).addTo(container).cur();
+		for (var i = 0; i < tekens.length; i++) {
+			bakking = new zim.Rectangle(size, size, placeBackgroundColor, borderColor, borderWidth, corner, null, null, null, false);
+			if (tekens[i] == "x") new zim.Rectangle(size, size, "black", null, null, corner, null, null, null, false).alp(shadeAlpha).addTo(bakking);
+			button = new zim.Label({
+				lineWidth: 10,
+				// lineHeight:58, // ?
+				text: tekens[i],
+				backing: bakking,
+				font: DS.font != null ? DS.font : null,
+				color: placeColor,
+				align: "center",
+				valign: "center",
+				style: false
+			});
+			button.pos(0, 0, zim.LEFT, zim.TOP, cursorShiftMenu).cache();
+			button.x = button.x + i * (size + 5);
+			buttonsCursor.push(button);
+		}
+		point = currentLabel.localToLocal(0, 0, container);
+		cursorShiftMenu.x = point.x + placeShiftH;
+		cursorShiftMenu.y = point.y + currentLabel.height + 15 + placeShiftV;
+		cursorShiftMenu.on("click", verschuifCursor);
+		function verschuifCursor(e) {
+			if (buttonsCursor.indexOf(e.target) == 0) {
+				if (insertPoint > 0) insertPoint--;
+			} else if (buttonsCursor.indexOf(e.target) == 1) {
+				if (insertPoint < currentLabel.text.length) insertPoint++;
+			} else {
+				removeCursorShiftMenu();
+			}
+			positionBlinker();
+		}
+		if (that.stage) that.stage.update();
+	}
+
+	function removeCursorShiftMenu() {
+		if (!cursorShiftMenu) return that;
+		cursorShiftMenu.dispose();
+		cursorShiftMenu = null;
+	}
+
+	function addToLabel(letter) {
+		if (!currentLabel) return;
+		var measureField;
+		var widthMeasureField;
+		// backspace
+		if (letter === "del") {
+			if (currentLabel) currentLabel.text = [currentLabel.text.slice(0,insertPoint-1),currentLabel.text.slice(insertPoint)].join('');
+			insertPoint--;
+			makeWidthsArray();
+		} else {
+			if (currentStatus === statuses.shift) {
+				letter = layout=="turkish"?letter.toLocaleUpperCase("tr-TR"):letter.toUpperCase();
+			}
+			if (currentLabel && that.maxLength && currentLabel.text.length >= that.maxLength) return;
+			if (that.numbersOnly && !isFinite(Number(letter))) return;
+			var textBeforeCheck = currentLabel.text;
+			measureField = currentLabel.clone().removeFrom();
+			measureField.text = letter;
+			widthMeasureField = measureField.label.getMeasuredWidth();
+			if (!currentLabel.widthArray) {
+				currentLabel.widthArray = [currentLabel.breedte];
+			} else {
+				currentLabel.widthArray.splice(insertPoint,0,widthMeasureField);
+			}
+			//toevoegen in string
+			if (insertPoint<currentLabel.text.length) {
+				currentLabel.text = [currentLabel.text.slice(0,insertPoint),letter,currentLabel.text.slice(insertPoint)].join('');
+			} else {
+				// currentLabel.text+="\u202E" + letter;
+				currentLabel.text+=letter;
+			}
+			// if (currentLabel && currentLabel.width<maxWidth) {
+			if (currentLabel && currentLabel.label.getBounds().width<maxWidth) {
+				insertPoint++;
+				positionBlinker();
+			} else {
+				currentLabel.text = textBeforeCheck;
+			}
+		}
+		if (currentStatus === statuses.shift&&!bigShiftOn) {
+			that.removeChild(currentKeyboard);
+			makeButtons();
+			currentStatus = statuses.def;
+		}
+		positionBlinker();
+		var keyEvent = new createjs.Event("keydown");
+		keyEvent.letter = letter;
+		that.dispatchEvent(keyEvent);
+		if (that.stage) that.stage.update();
+	}
+
+	function activateLabel(e) {
+		if (!that.stage) return;
+		var point;
+		var sumUp = 0;
+		var found = false;
+		currentLabel = e.target;
+		if (!currentLabel.widthArrayCheck) makeWidthsArray();
+		maxWidth = currentLabel.label.lineWidth?currentLabel.label.lineWidth:10000;
+
+		// Dan Zen added 9.5.0 point relative to actual CreateJS Label - to avoid padding and backing issues
+		point = currentLabel.globalToLocal(e.stageX/zim.scaX, e.stageY/zim.scaY);
+		point.x -= currentLabel.label.x; // adjusted for retina - label is CreateJS with broken globalToLocal
+		point.y -= currentLabel.label.y;
+		// point opzoeken in array textfield door op te tellen
+		// for (var i=currentLabel.widthArray.length-1; i>=0; i--) {
+		// 	sumUp += currentLabel.widthArray[i];
+		// 	if (point.x < sumUp-currentLabel.widthArray[i]/2) {
+		// 		insertPoint = i;
+		// 		found = true;
+		// 		break;
+		// 	}
+		// }
+		// var rightOfLabel = currentLabel.getBounds().width + currentLabel.getBounds().x;
+		// zog(rightOfLabel);
+		// zog(currentLabel.widthArray)
+		// for (var i=0; i<currentLabel.widthArray.length; i++) {
+		// 	sumUp += currentLabel.widthArray.reverse()[i];
+		// 	if (point.x < rightOfLabel - sumUp-currentLabel.widthArray.reverse()[i]/2) {
+		// 		insertPoint = i;
+		// 		found = true;
+		// 		break;
+		// 	}
+		// }
+		for (var i=0; i<currentLabel.widthArray.length; i++) {
+			sumUp += currentLabel.widthArray[i];
+			// Dan Zen added 9.5.0 addition of bounds x for when align is center or right
+			if (point.x < sumUp-currentLabel.widthArray[i]/2+currentLabel.label.getBounds().x) {
+				insertPoint = i;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			insertPoint = currentLabel.text.length;
+		}
+		positionBlinker();
+		if (place && !cursorShiftMenu && currentLabel.text.length > 0) {
+			makeCursorShiftmenu();
+		}
+		if (cursorShiftMenu && currentLabel) {
+			if (currentLabel.text.length > 0) {
+				point = currentLabel.localToLocal(0, 0, container);
+				cursorShiftMenu.x = point.x+placeShiftH;
+				cursorShiftMenu.y = point.y+currentLabel.height+15+placeShiftV;
+			} else {
+				removeCursorShiftMenu();
+			}
+		}
+	}
+	function makeWidthsArray() {
+		if (!currentLabel) return;
+		var measureField = new zim.Label("");
+		currentLabel.widthArray = [];
+		for (var i=0; i<currentLabel.text.length; i++) {
+			measureField = currentLabel.clone().removeFrom();
+			measureField.text = currentLabel.text[i];
+			currentLabel.widthArray.push(measureField.label.getMeasuredWidth());
+		}
+		measureField.text = currentLabel.text; // weird bug shortening clone shortens hitArea of original
+		currentLabel.widthArrayCheck = true;
+		positionBlinker();
+	}
+
+	function backspaceRemovesLetter(once) {
+		var removalOkay = true;
+		var timeOut;
+		function haalWeg() {
+			if (!currentLabel || currentLabel.text.length < 1 || that.currentIndex == 0) {
+				removalOkay = false;
+			}
+			if (removalOkay) {
+				removeLetter();
+				if (timeOut) timeOut = zim.timeout(200, haalWeg, null, "ms");
+			}
+			if (currentLabel && currentLabel.text.length < 1) {
+				stopRemoval();
+			}
+		}
+		function removeLetter() {
+			if (currentLabel && currentLabel.text.length > 0) {
+				if (that.selectedIndex > 0) addToLabel("del");
+				if (once) stopRemoval();
+				else that.on("pressup", stopRemoval);
+			} else {
+				addToLabel("del");
+			}
+		}
+		function stopRemoval() {
+			removalOkay = false;
+			if (timeOut) timeOut.clear();
+			that.off("pressup", stopRemoval);
+		}
+		removeLetter();
+		timeOut = zim.timeout(300, haalWeg, null, "ms");
+		if (that.stage) that.stage.update();
+	}
+
+	function setLabels() {
+		for (var i = 0; i < labels.length; i++) {
+			labels[i].clickEvent = labels[i].on("click", activateLabel);
+		}
+	}
+	setLabels();
+
+	function unsetLabels() {
+		if (labels.length > 1) {
+			for (var i = 0; i < labels.length; i++) {
+				labels[i].off("click", labels[i].clickEvent);
+			}
+		}
+	}
+
+	function makeCursor() {
+		if (textBlinker) return;
+		currentLabel = labels[0];
+		maxWidth = (currentLabel && currentLabel.label.lineWidth) ? currentLabel.label.lineWidth : 10000;
+		if (currentLabel) {
+			textBlinker = that.blinker = new zim.Rectangle(3, currentLabel.height - ((currentLabel.paddingV && currentLabel.background) ? currentLabel.paddingV * 2 : 0), cursorColor, null, null, null, null, null, null, false)
+				.center(currentLabel);
+			textBlinker.x = 0;
+			textBlinker.visible = false;
+			textBlinker.animate({
+				props: { alpha: 0 },
+				rewind: true,
+				loop: true,
+				loopWait: 750,
+				time: 250,
+				id: "knipperTekst",
+				timeUnit: "ms"
+			});
+			for (var j = 0; j < labels.length; j++) {
+				labels[j].widthArray = [0];
+			}
+			makeWidthsArray();
+		}
+	}
+	makeCursor();
+	function removeCursor() {
+		zim.stopAnimate("knipperTekst");
+		if (currentLabel) currentLabel.removeChild(textBlinker);
+		textBlinker = null;
+		currentLabel = null;
+	}
+	
+
+	// ~~~~~~~~~~~~~~~ GETTER SETTER PROPS
+
+	Object.defineProperty(this, 'selectedLabel', {
+		get: function() {
+			return currentLabel;
+		},
+		set: function(label) {
+			var obj = {target:label};
+			activateLabel(obj);
+			that.hidePlace();
+		}
+	});
+
+	Object.defineProperty(this, 'selectedIndex', {
+		get: function() {
+			return insertPoint;
+		},
+		set: function(index) {
+			insertPoint = index;
+			positionBlinker();
+		}
+	});
+
+	// ~~~~~~~~~~~~~~~ METHODS
+
+	this.show = function(index, override) {
+		that.addTo(container);
+		if (that.placeMenu) that.placeMenu.addTo(container);
+		// that.resize();
+		if (!zot(index)) {
+			var obj = {target:labels[index]};
+			activateLabel(obj);
+		}
+		setTimeout(()=>{if (textBlinker) textBlinker.visible = true;}, 200);
+		that.toggled = true;	
+		if (numPadOnly) showNumPad();	
+		else if (!numPadOnly || override) {
+			that.keys.vis(true);
+			background.vis(true);
+		}
+		if (that.numPad && that.numPad.parent) that.numPad.top();
+		return that;
 	};
-	zim.extend(zim.Keyboard, zim.Container, ["clone", "dispose"], "zimContainer", false);
+	
+	this.hide = function() {
+		that.removeFrom();
+		if (that.placeMenu) that.placeMenu.removeFrom();
+		showNumPad(false);
+		if (textBlinker) {textBlinker.visible = false;}
+		currentStage.update();
+		that.toggled = false;
+		return that;
+	};
+	
+	this.showNumPad = function() {
+		showNumPad(true);
+		that.toggled = true;
+		if (textBlinker) textBlinker.visible = true;
+	}
+	this.hideNumPad = function() {
+		showNumPad(false);
+		if ((!that.keys.parent || !that.keys.visible) && textBlinker) {
+			textBlinker.visible = false;
+			that.toggled = false;
+			removeCursorShiftMenu();
+		}
+	}
+	
+	this.showKeyboard = function() {
+		that.show(null, true);
+	}
+	
+	this.hideKeyboard = function() {
+		if (!that.numPad || !that.numPad.parent) {
+			that.hide();
+		} else {
+			that.keys.vis(false);
+			background.vis(false);
+		}
+	}
+
+	this.toggle = function(state) {
+		if (state===true) that.show();
+		else if (state===false) that.hide();
+		else if (that.parent) that.hide();
+		else that.show();
+		return that;
+	};
+
+	this.showPlace = function() {
+		makeCursorShiftmenu();
+		return that;
+	};
+
+	this.hidePlace = function() {
+		removeCursorShiftMenu();
+		return that;
+	};
+
+	this.addLabels = function(labs) {
+		if (!Array.isArray(labs)) labs = [labs];
+		for (var i=labs.length-1; i>=0; i--) {
+			var ind = labels.indexOf(labs[i]);
+			if (ind >= 0 || labs[i].type != "Label") labs.splice(i, 1);
+			else labs[i].widthArray = [0];
+		}
+		unsetLabels();
+		labels = labels.concat(labs);
+		setLabels();
+		makeCursor();
+		if (textBlinker) textBlinker.visible = true;
+		return that;
+	};
+
+	this.removeLabels = function(labs) {
+		if (!Array.isArray(labs)) labs = [labs];
+		unsetLabels();
+		for (var i=0; i<labs.length; i++) {
+			var ind = labels.indexOf(labs[i]);
+			if (ind >= 0) labels.splice(ind, 1);
+		}
+		setLabels();
+		if (labels.length == 0) {
+			if (currentLabel) removeCursor();
+		} else {
+			if (currentLabel && labels.indexOf(currentLabel) == -1) {
+				removeCursor();
+				makeCursor();
+			}
+		}
+		return that;
+	};
+
+	var background = new zim.Rectangle(this.width, this.height, zim.clear, null, null, null, null, null, null, false).addTo(this).expand().bot();
+	background.on("mousedown", function(){});
+	background.on("click", function(){});
+	if (numPadOnly) background.vis(false); 
+
+	this.resize = function() {
+		that.scaleTo(currentStage, 100-margin*2/currentStage.width*100, 50-margin*2/currentStage.height*100);
+		that.y = currentStage.height - that.height - margin;
+		that.x = currentStage.width/2 - that.width/2;
+		if (currentLabel && cursorShiftMenu) {
+			var point = currentLabel.localToLocal(0, 0, that);
+			cursorShiftMenu.x = point.x;
+			cursorShiftMenu.y = point.y + currentLabel.height + 15;
+		}
+		if (that.stage) that.stage.update();
+		return that;
+	};
+	this.resize();
+
+	if (that.selectedLabel) that.selectedIndex = that.selectedLabel.text.length;
+
+	// Dan Zen added ZIM 10.5.1
+	if (hardKeyboard) {			
+		this.keydownEvent = function(e) {
+			if (!that.stage) return;
+			var k = that;
+			if (zot(k)) return;
+			if (e.keyCode==35) k.selectedIndex = k.selectedLabel.text.length; // end
+			if (e.keyCode==36) k.selectedIndex = 0; // home
+			if (e.keyCode==37) k.selectedIndex = k.selectedIndex-1; // left
+			if (e.keyCode==39) k.selectedIndex = k.selectedIndex+1; // right
+			if (e.keyCode==46) { // del
+				if (k.selectedIndex < k.selectedLabel.text.length) {
+					k.selectedIndex = k.selectedIndex + 1;
+					k.removeChar();
+				}
+			}
+			if (e.keyCode==8) {
+				e.preventDefault();
+				k.removeChar(); // backspace
+			}
+			k.addChar(e.key);
+			if (that.stage) that.stage.update();
+		};
+		WW.addEventListener("keydown", this.keydownEvent);
+	}			
+
+	if (style!==false) zim.styleTransforms(this, DS);
+	this.clone = function() {
+		var kb = new zim.Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, cursorColor, shadeAlpha, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, placeScale, style, this.group, inherit);
+		return that.cloneProps(kb);
+	};
+	this.dispose = function(a,b,disposing) {
+		background.removeAllEventListeners();
+		background = null;
+		if (that.keydownEvent) WW.removeEventListener("keydown", that.keydownEvent);
+		for(var i=0; i<that.labels.length; i++) {
+			that.labels[i].removeAllEventListeners();
+		}
+		if (that.numPad) that.numPad.dispose()	
+		if (textBlinker) textBlinker.dispose();
+		that.labels = currentLabel = null;
+		if (currentStage) currentStage.off("pressmousemove", that.tickerMouseEvent);
+		if (!disposing) that.zimContainer_dispose(true);
+		return true;
+	};
+};
+zim.extend(zim.Keyboard, zim.Container, ["clone", "dispose"], "zimContainer", false);
 	//-67.2
 
 /*--
@@ -41137,6 +41239,15 @@ The lineType in the Line can be set to "straight", "corner" or "curve"
 Line also accepts points for any arrangement of a connector
 but in this version, these have not been used in Connectors.
 
+BASE 
+A DisplayObject can be used as a base for the connector and have nodes added.
+A base can have multiple nodes attached on any of its sides
+This approaches diagramming tools like Powerpoint, etc.
+but currently, only vertically placed nodes can connect to vertically placed nodes 
+and horizontally placed nodes can connect to horizontally placed nodes.
+DropType single works per node, not per base so use a single node on a base for this.
+A base can be a Blob or a Squiggle as well with nodes added to points.
+
 See: https://zimjs.com/cat/connectors.html
 
 PREMADE CONNECTIONS 
@@ -41192,12 +41303,26 @@ PARAMETERS
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 width - (default null) the width of the connnectors container or will grow with added connectors
 height - (default null) the height of the connnectors container or will grow with added connectors
-points - (default [[0,0], [100,0], [100,100], [0,100]]) an array of point arrays for the connectors
-	or can specify a ZIM Blob or Squiggle to place connectors on their points
-		the Blob or Squiggle do not need to be added to the stage
-		use the getPoints(true) method of the Blob or Squiggle or see https://zimjs.com/paths/
-	or can specify an array of a base (that connectors nodes will be added to) and baseInfo as follows:
+points - (default [[0,0], [100,0], [100,100], [0,100]]) an array of point arrays for the connectors	
+	or can be [[x, y, startNode, endNode, startLength, endLength], etc]
+		x - the x position of the node
+		y - the y position of the node
+		startNode - (default true) set to false to not drag from node
+		endNode - (default true) set to false to not drop on node
+		startLength - (default null) set line startLength - see Connectors line parameter (for corner or curve lineType)
+		endLength - (default null) set line endLength - see Connectors line parameter (for corner or curve lineType)	
+	example:
+		[[0,0,true,false,50], [100,0,false,true], ...] 
+			would allow dragging from the first to the second but not the second to the first 
+			and if the line (see line parameter) is lineType corner or curve the start length would be 50
+			Another point could have a different startLength to avoid overlapping lines
+		A convenience object literal can be used as well for any or all points:
+		[{x:0, y:0, endNode:false, startLength:50}, {x:100, y:0, startNode:false}, ...]	
+	or the first two items in the array can can be a base (that connectors nodes will be added to) and baseInfo as follows:
 		[[base, baseInfo], [base, baseInfo], [base, baseInfo], etc.]
+			these can have the startNode, endNode, startLength, endLength as well 
+			and can have the object literal format as follows:
+		[{base:base, info:baseInfo, etc.}, etc.] rather than the x:x and y:y properties
 	the baseInfo can be a number of nodes to place around all base sides
 	or baseInfo can be an array with three different formats:
 		[all]
@@ -41208,10 +41333,19 @@ points - (default [[0,0], [100,0], [100,100], [0,100]]) an array of point arrays
 		or -1 for both corners on the side
 		or -2 for the first corner on the side
 		or -3 for the second corner on the side
+	or can specify a ZIM Blob or Squiggle to place connectors on their points
+		so: points:blob or points:squiggle
+		the Blob or Squiggle do not need to be added to the stage
+		use the getPoints(true) method of the Blob or Squiggle or see https://zimjs.com/paths/
 node - (default new Circle(10, grey, grey)) the DisplayObject to use as a node - should be centerReg()
 line - (default new zim.Line({thickness:3, color:tin, strokeObj:{caps:"round"}})) the line to use as the connector
 	ZIM Line has a lineType parameter for "straight", "corner", and "curve" which will affect the connector lines
 	ZIM Line has a lineOrientation parameter of AUTO, HORIZONTAL or VERTICAL that will affect the connector lines
+	ZIM LIne has startLength and endLength parameters that work with "corner" and "curve"
+		these accept ZIM VEE to dynamically set random or a series of values 
+		that can help avoid overlapping lines or
+		these values can be set individually on the points parameter or on bases directly as properties
+		which will override any values set on the line provided here in the line parameter
 	ZIM Line as curveH and curveV settings that will adjust the lines for the "curve" setting
 	the caps should be set to "round" if drawing with clear or transparent nodes
 linear - (default false) lines will only connect to points that are next to one another (in the point order)
@@ -41268,9 +41402,15 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
-addNode(x, y, base) - add a node at x and y (and on a base)
-	cannot add nodes in linear mode - see linear parameter
-	addNode will not work with the dropArray parameter
+addNode(x, y, startNode, endNode, startLength, endLength) - add a node at x and y 
+		cannot add nodes in linear mode - see linear parameter
+		addNode will not work with the dropArray parameter
+	x - the x position of the node or provide a base (see Connectors points parameter)
+	y - the y position of the node or provide base info (see Connectors points parameter)
+	startNode - (default true) set to false to not drag from node
+	endNode - (default true) set to false to not drop on node
+	startLength - (default null) set line startLength - see Connectors line parameter (for corner or curve lineType)
+	endLength - (default null) set line endLength - see Connectors line parameter (for corner or curve lineType)	
 removeNode(node) - remove the node (and its children)
 removeConnectors() - removes all nodes and connectors except for root nodes which were specified in the points parameter
 selectNode(node, children) - select a node and its children unless children parameter is set to false
@@ -41346,6 +41486,12 @@ bases - an Array of DisplayObjects used as bases (provided through the points pa
 	connectorOverEvent - reference to pressmove event on base
 	connectorOutEvent - reference to pressmove event on base
 	setConnectorColors(baseColor, baseBorderColor, nodeRollColor, nodeRollBorderColor) - method to set colors
+	startNode - set to false to not start a line from this base - see points parameter
+	endNode - set to false to not end a line on this base - see points parameter
+	startLength - set a start length for the connector - see points parameter
+		good to prevent corner and curved lines from overlapping
+	endLength - set an end Length for the connector - see points parameter
+		good to prevent corner and curved lines from overlapping
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -41388,6 +41534,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			color:zim.tin,
 			strokeObj:{caps:"round"}
 		});
+		line.oStartLength = line.startLength;
+		line.oEndLength = line.endLength;
 		if (zot(num)) num = DS.num!=null?DS.num:10;
 		if (zot(linear)) linear = DS.linear!=null?DS.linear:false;
 		if (zot(linearWrap)) linearWrap = DS.linearWrap!=null?DS.linearWrap:true;
@@ -41450,17 +41598,31 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				p.push([point[0], point[1]]);
 			});
 			points = p;
+		} else {
+			// convert any convenience objects to array
+			zim.loop(points, function(p, i) {
+				if (p.constructor === {}.constructor) {
+					points[i] = [p.x, p.y, p.startNode, p.endNode, p.startLength, p.endLength];
+					if (p.base != null) points[i][0] = p.base;
+					if (p.info != null) points[i][1] = p.info;
+				}
+			});
 		}
 		that.points = points;
+		
 
-		this.addNode = function(x, y, base) {
+		this.addNode = function(x, y, startNode, endNode, startLength, endLength) {
 			if (linear) return; // cannot add nodes in linear
-			return addNode(x, y, base);
+			return addNode(x, y, startNode, endNode, startLength, endLength);
 		};
 
-		function addNode (x, y, base, orientation) {
+		function addNode (x, y, startNode, endNode, startLength, endLength, orientation) {
 			if (x.addChild) {
 				// adding connector to a base
+
+				// {base:squares.items[0], info:[0,0,1,0], startNode:true, endNode:false, startLength:50, endLength:100},
+				// [squares.items[0], [0,0,1,0], true, false, 50, 100], 
+
 				// second value is a single number for all sides
 				// or an array of two numbers for left/top and right/bottom
 				// or an array of four numbers for left,right,top,bottom
@@ -41469,17 +41631,17 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				// [[box1,3], [box2,-1]]
 				// [[box1,[0,3,0,3]], [box2,[3,0,0,3]]] none left top, none right top
 
-				// override dropType, rootLock and grandChildren
-				dropType = "on";
+				// override rootLock and grandChildren
+				// dropType = "on"; // // removed override of dropType in ZIM 016 patch
 				rootLock = true;
 				grandChildren = false;
 
-				base = x;
+				var base = x;
 
 				if (!base.connectorMoveEvent) {
 					if (!that.bases) that.bases = [];
 					that.bases.push(base);
-					base.connectorMoveEvent = base.on("pressmove", function () {
+					base.connectorMoveEvent = base.on("pressmove", function () {						
 						// move all nodes and redraw lines
 						base.positionConnectors(base, true, true);
 					});
@@ -41563,7 +41725,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				base.connectors = [];
 				base.baseStart = new zim.Point(base.x, base.y);
 				zim.loop(basePoints, function (point) {
-					var node = addNode(point[0], point[1], base, point[2]);
+					var node = addNode(point[0], point[1], startNode, endNode, startLength, endLength, point[2]);
+					if (startNode===false || (startNode!==true && base.startNode===false)) node.noMouse();
 					addBaseConnector(base, node);					
 				});
 					
@@ -41576,6 +41739,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 			var theNode = node.clone().loc(x, y, nodes).drag({boundary:boundary}).expand(expand);
 			theNode.orientation = orientation;
+			theNode.startLength = startLength;
+			theNode.endLength = endLength;
+			theNode.startNode = startNode;
+			theNode.endNode = endNode;
 			theNode.nodeColor = theNode.color;
 
 			theNode.on("mouseover", overNode);
@@ -41593,7 +41760,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		// that.added(function () {
 		function setNodes() {
 			zim.loop(points, function (point, i) {
-				var node = addNode(point[0], point[1]);
+				var node = addNode(point[0], point[1], point[2], point[3], point[4], point[5]);
+				// var node = addNode(point[0], point[1]);
 				node.dropIndex = i;
 				if (dropArray) node.dropArray = dropArray[i];
 			});
@@ -41678,8 +41846,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var downIndex;
 		function downNode(e, stepping, moving, ctrl) {
 			var child = e.target;			
-			if (zot(child)) return;
-			
+			if (zot(child)) return;		
+
 			if (moving) {
 				child.selected = true;
 				selectedList = [];
@@ -41741,6 +41909,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			parent.dropArray = child.dropArray;
 			parent.lineArray = child.lineArray;
 			parent.color = parent.nodeColor = child.nodeColor;			
+
+			parent.startLength = child.startLength;
+			parent.endLength = child.endLength;
+			parent.startNode = child.startNode;
+			parent.endNode = child.endNode;
 			
 			var newNodeNum = parent.nodeNum;
 			parent.nodeNum = child.nodeNum;
@@ -41756,7 +41929,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (parent.base.connectors) parent.base.connectors.splice(parent.base.connectors.indexOf(child), 1, parent);
 				parent.color = parent.base.connectorColor;
 				parent.borderColor = parent.base.connectorBorderColor;
+				if (parent.base.startLength != null) line.startLength = parent.base.startLength;
+				if (parent.base.endLength != null) line.endLength = parent.base.endLength;
 			}
+			if (child.startLength != null) line.startLength = child.startLength; // override base
+			if (child.endLength != null) line.endLength = child.endLength;
 
 			// adjust to handle linearWrap
 			parent.before = child.before;
@@ -41777,7 +41954,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 			// set up properties for child
 			child.creator = parent;
-			child.creatorLine = line.clone().setPoints(child.x,child.y,child.x,child.y).addTo(lines).alp(0);
+			child.creatorLine = line.clone(true).setPoints(child.x,child.y,child.x,child.y).addTo(lines).alp(0);
+			// reset original
+			line.startLength = line.oStartLength;
+			line.endLength = line.oEndLength; 
 			child.creatorLine.lineOrientation = child.orientation;
 			child.creatorLine.node = child;
 			child.creatorLine.creatorNode = parent;
@@ -41820,7 +42000,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						removeBaseColors(base);
 					}
 				});
-			}
+			}		
+			
 			var dbl = false;
 			if (!linear && downCount > 1 && !stepping) { // double click
 				clearTimeout(downID);
@@ -41929,8 +42110,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					var bad = nodes.loop(function (obj) {
 						if (node == obj) return;
 						if (node.hitTestCircles(obj)) {
-							hitObj = obj;
-							if (that.bases && (node.orientation != obj.orientation || (node.creator && node.creator.base && node.creator.base == obj.base))) return;
+							hitObj = obj;							
+							if (that.bases && (obj.endNode===false || (obj.endNode!==true && obj.base && obj.base.endNode===false) || node.orientation != obj.orientation || (node.creator && node.creator.base && node.creator.base == obj.base))) return;
 							if (node.dropArray) if (node.dropArray.indexOf(obj.dropIndex) == -1) return;
 							if (!duplicateLine && node.lineArray && node.lineArray.indexOf(obj.dropIndex) != -1) return;
 							if (dropType == "on") return false; // bad will be true
@@ -48327,13 +48508,13 @@ END EXAMPLE
 
 RETURNS obj for chaining
 --*///+33.25
-	zim.noWire = function(source, target, prop, input) {
-		var sig = "source, target, prop, input";
+	zim.noWire = function(obj, target, prop, input) {
+		var sig = "obj, target, prop, input";
 		var duo; if (duo = zob(zim.noWire, arguments, sig)) return duo;
 		z_d("33.25");
 		if (zot(zim.Ticker)) if (zon) {zogy("noWire() - requires ZIM Frame"); return source;}
-		zim.Ticker.removeWire(source, target, prop, input);
-		return source;
+		zim.Ticker.removeWire(obj, target, prop, input);
+		return obj;
 	};//-33.25
 
 //
@@ -48368,13 +48549,13 @@ END EXAMPLE
 
 RETURNS obj for chaining
 --*///+33.3
-	zim.wired = function(target, source, prop, twoWay, setSource, filter, call, input) {
-		var sig = "target, source, prop, twoWay, setSource, filter, call, input";
+	zim.wired = function(obj, source, prop, twoWay, setSource, filter, call, input) {
+		var sig = "obj, source, prop, twoWay, setSource, filter, call, input";
 		var duo; if (duo = zob(zim.wired, arguments, sig)) return duo;
 		z_d("33.3");
 		if (zot(zim.Ticker)) if (zon) {zogy("wired() - requires ZIM Frame"); return target;}
-		zim.wire(source, target, prop, twoWay, setSource, filter, call, input);
-		return target;
+		zim.wire(source, obj, prop, twoWay, setSource, filter, call, input);
+		return obj;
 	};//-33.3
 
 /*--
@@ -50688,7 +50869,7 @@ const rect = new Rectangle(30,400).centerReg().pos(70).addPhysics(false); // sta
 const tri = new Triangle(150,150,150,green,grey).center().pos(200).addPhysics({linear:10}); // does not slide easily
 
 // turn on dragging
-physics.drag(); // note: to add a boundary use the border parameter of Physics()
+physics.drag(); // note: to add a boundary use the borders parameter of Physics()
 END EXAMPLE
 
 PARAMETERS
@@ -58509,16 +58690,15 @@ you can define multiple pages objects add and remove pages objects as needed
 						emi.on("fizzed", function () {
 							if (fadeTrans) emi.dispose();
 						});
+					}					
+					if (holder && holder.type != "Stage" && holder.type != "StageGL") {	
+						if (emi.particles && holder.shape) emi.particles.setMask(holder.shape);						
 					}
 					
-					if (holder && holder.type != "Stage" && holder.type != "StageGL") {						
-						if (emi.particles && holder.shape) emi.particles.setMask(holder.shape)
-					}
-					
-				} // end emitter
+				} // end emitter				
 				
 				if (holder && holder.shape) {
-					if (emi && emi.particles) emi.particles.setMask(holder.shape)
+					if (emi && emi.particles) emi.particles.setMask(holder.shape);
 				}
 
 				removeHTML(currentPage);
@@ -58732,7 +58912,7 @@ All ZIM Button methods
 PROPERTIES
 setDisabled - set to true or false in ZIM Pages "page" event function to override Arrow button setting 
 	or just manually adjust the Pages pages swipe array - which is better as disables or enables swipe and Arrow button setting
-All ZIM Button properties
+All ZIM Button properties - including icon and rollIcon which access the ZIM Triangle for the arrow
 
 ACTIONEVENT
 This component is affected by the general ACTIONEVENT setting
@@ -69868,7 +70048,7 @@ const circle = new Circle(50,blue,grey).center().addPhysics({restitution:1.1}); 
 // make sure to reg(CENTER) or centerReg() any rectangular objects
 const rect = new Rectangle(30,400).reg(CENTER).pos(70).addPhysics(false); // static - do not move
 const tri = new Triangle(150,150,150,green,grey).center().pos(200).addPhysics({linear:10});
-physics.drag(); // note: to add a boundary use the border parameter of Physics()
+physics.drag(); // note: to add a boundary use the borders parameter of Physics()
 // test to see if circle hits rectangle
 // contact callback function receives ZIM object (and physics body as next param)
 // a ZIM border will have a type = "Border" and a side = LEFT, RIGHT, TOP, "bottom"
@@ -86033,19 +86213,19 @@ function zimify(obj, a, b, c, d, list) {
 			return zim.updateEffects(this, redoCache);
 		},
 		wire:function(target, prop, twoWay, setSource, filter, call, input) {
-			if (isDUO(arguments)) {arguments[0].source = this; return zim.wire(arguments[0]);}
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.wire(arguments[0]);}
 			else {return zim.wire(this, target, prop, twoWay, setSource, filter, call, input);}
 		},
 		noWire:function(target, prop, input) {
-			if (isDUO(arguments)) {arguments[0].source = this; return zim.noWire(arguments[0]);}
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noWire(arguments[0]);}
 			else {return zim.noWire(this, target, prop, input);}
 		},
-		wired:function(source, prop, twoWay, setSource, filter, call, input) {
-			if (isDUO(arguments)) {arguments[0].target = this; return zim.wired(arguments[0]);}
+		wired:function(source, prop, twoWay, setSource, filter, call, input) {	
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.wired(arguments[0]);}
 			else {return zim.wired(this, source, prop, twoWay, setSource, filter, call, input);}
 		},
 		noWired:function(source, prop, input) {
-			if (isDUO(arguments)) {arguments[0].target = this; return zim.noWired(arguments[0]);}
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noWired(arguments[0]);}
 			else {return zim.noWired(this, source, prop, input);}
 		},
 		bind:function(id, props, extra, filter, bindObj) {
@@ -90813,7 +90993,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-// if (zns) {
+
 	// these are global regardless
 	var globalsConstants = [
 		["FIT", zim.FIT],
@@ -90868,7 +91048,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 	  }
-// } else zimplify();
+
 
 WW.zim = zim;
 export default zim;

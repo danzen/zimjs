@@ -2662,6 +2662,7 @@ declare namespace zim {
 		resize(): this
 		readonly data: any[]
 		readonly labels: Label[]
+		readonly placeMenu: Container
 		selectedLabel: Label
 		selectedIndex: number
 		keys: Container
@@ -2714,7 +2715,7 @@ declare namespace zim {
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
 		// END ZIM Component Interface
-		addNode(x: number, y: number, base?: DisplayObject): this
+		addNode(x: number|DisplayObject, y: number|[], startNode?:boolean, endNode?:boolean, startLength?:number, endLength?:number): this
 		removeNode(node: DisplayObject): this
 		removeConnectors(): this
 		selectNode(node: DisplayObject, children?: boolean): this
