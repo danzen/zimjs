@@ -42111,7 +42111,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						if (node == obj) return;
 						if (node.hitTestCircles(obj)) {
 							hitObj = obj;							
-							if (that.bases && (obj.endNode===false || (obj.endNode!==true && obj.base && obj.base.endNode===false) || node.orientation != obj.orientation || (node.creator && node.creator.base && node.creator.base == obj.base))) return;
+							if (that.bases && (obj.endNode===false || (obj.endNode!==true && obj.base && obj.base.endNode===false) || node.orientation != obj.orientation || (node.creator && node.creator.base && node.creator.base == obj.base))) return "no";
 							if (node.dropArray) if (node.dropArray.indexOf(obj.dropIndex) == -1) return;
 							if (!duplicateLine && node.lineArray && node.lineArray.indexOf(obj.dropIndex) != -1) return;
 							if (dropType == "on") return false; // bad will be true
@@ -42120,7 +42120,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						}
 					});
 					// loop automatically returns true
-					if (bad && !(dropType=="single" && hitCount==1)) {
+					if (bad=="no" || (bad && !(dropType=="single" && hitCount==1))) {
 						noConnect(node);
 						return;
 					} else {
