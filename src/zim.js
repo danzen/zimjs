@@ -58780,7 +58780,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			var current = that.pages[that.index];			
 			if (!current || !current.swipe) return;
 			var swipe = current.swipe;
-			var directions = [zim.LEFT, zim.RIGHT, zim.DOWN, zim.UP];
+			var directions = [zim.LEFT, zim.RIGHT, zim.UP, zim.DOWN];
 			zim.loop(directions, function (d, i) {
 				if (!swipe[i]) {
 					zim.loop(that.arrows[d], function(b) {
