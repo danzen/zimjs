@@ -23522,9 +23522,9 @@ height - (default 60) the height of the button or AUTO to fit height to label (s
 label - (default "CLICK" or "" if icon or backing) ZIM Label or plain text with default settings (white)
 ---------- NORMAL MODE
 backgroundColor - |ZIM VEE| (default purple) background color of button (any CSS color)
-	also as of ZIM ZIM 01 any backgroundColor can be written as bgColor
+	also as of ZIM ZIM 01 any backgroundColor parameter can be written as bgColor
 rollBackgroundColor - |ZIM VEE| (default backgroundColor.lighten(.2)) rollover background color of button
-	also as of ZIM ZIM 01 any backgroundColor can be written as bgColor - so rollBgColor works, etc.
+	also as of ZIM ZIM 01 any backgroundColor parameter can be written as bgColor - so rollBgColor works, etc.
 downBackgroundColor - |ZIM VEE| (default null) pressing down background color of button
 color - |ZIM VEE| (default white) label color of button (any CSS color) unless a custom Label is set
 rollColor - |ZIM VEE| (default white) rollover label color of button
@@ -26609,11 +26609,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 			closeIcon.expand(40);
 			closeIcon.cur("pointer");
-			closeIcon.on((!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function () {
+			closeIcon.on((!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function (e) {
 				var s = that.stage;
 				that.removeFrom();
 				that.dispatchEvent("close");
 				s.update();
+				e.stopImmediatePropagation();
 			});
 		}
 		this.add = function(obj, index, center, replace) {
@@ -65976,7 +65977,7 @@ zim.TextureActivesManager = function(stage, toggleKey, damp) {
 		width:200,
 		height:80, 
 		titleBar:"TextureActives",
-		draggable:true,
+		// draggable:true,
 		close:true
 	}).pos(50,50,RIGHT,BOTTOM);
 	var slider = this.slider = new zim.Slider({min:0, max:100, damp:true})
