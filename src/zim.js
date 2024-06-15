@@ -15580,7 +15580,8 @@ The Squiggle is set by default to show and hide controls when clicked
 It is also draggable by default when the controls are showing
 It can be set to copy with a shift click
 
-SEE:https://www.youtube.com/watch?v=P2hDe5JCINY for Blob and Squiggle Basics
+SEE: https://www.youtube.com/watch?v=P2hDe5JCINY for Blob and Squiggle Basics
+SEE: https://zimjs.com/paths/ to make points for Blob and Squiggle
 
 MULTIPLE SELECT
 Multiple points can be selected with the CTRL key held and then dragged
@@ -15592,29 +15593,31 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 new Squiggle().center(); // makes a line with default 4 points with Bezier controls
+END EXAMPLE 
+
+EXAMPLE
 new Squiggle({points:2, controlType:"none"}).pos(100,100); // makes a diagonal straight line that is editable
 END EXAMPLE
 
 EXAMPLE
 // Animate along a Squiggle
 // see https://zimjs.com/explore/squiggleAnimate.html for more
-const line = new Squiggle().center();
-new Circle(10, red).addTo().animate({path:line}, 1);
+const path = new Squiggle().center();
+new Circle(10, red).addTo().animate({path:path}, 1);
 END EXAMPLE
 
 EXAMPLE
 // there are so many examples for Blob and Squiggle 
 // see https://www.youtube.com/watch?v=P2hDe5JCINY 
-// In this set of examples we show editing which is new in ZIM NFT
 
 // Add a new second smaller part to the Squiggle 
 // reverse points from right to left and animate along Squiggle
-const s = new Squiggle({showControls:false}).center();
+const s1 = new Squiggle({showControls:false}).center();
 const s2 = new Squiggle()
     .transformPoints("scale", .5)
-    .transformPoints("x", s.width);
+    .transformPoints("x", s1.width);
 s.appendPoints(s2.points).reversePoints();
-new Circle(10).addTo().animate({path:s}, 5);
+new Circle(10).addTo().animate({path:s1}, 5);
 END EXAMPLE 
 
 EXAMPLE 
@@ -15650,7 +15653,7 @@ color - |ZIM VEE| (default green) the line color as any CSS color including "rgb
 thickness - (default 2) the thickness of the line in pixels
 points - (default 5) a number of points to start with to make the shape
 	OR an SVG path like: points:"M0,129.5c22,0,40-31,40-41c0-8-3.2-13-10-13" etc. (also see SVGContainer)
-	OR an array of points as follows:
+	OR an array of points as follows - https://zimjs.com/paths has a tool to make points in this format
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
 	rect1X, rect1Y, rect2X, rect2Y - (default based on controlLength) the x and y location of the control rectangles relative to the control location
@@ -17677,6 +17680,9 @@ The shape of the Blob can be recorded with the recordData() method and recreated
 The Blob is set by default to show and hide controls when clicked
 It is also draggable by default when the controls are showing
 
+SEE https://zimjs.com/paths for a tool to make Blob and Squiggle shapes
+SEE https://www.youtube.com/watch?v=P2hDe5JCINY for Basics Video
+
 MULTIPLE SELECT
 Multiple points can be selected with the CTRL key held and then dragged
 or moved with the keyboard arrows (moves 10 pixels with shift key down)
@@ -17688,11 +17694,15 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 new Blob().center(); // makes a circle with default 4 points with Bezier controls
+END EXAMPLE
 
+EXAMPLE
 new Blob({
 	points:12, // 12 points for more complex shape
 }).center();
+END EXAMPLE
 
+EXAMPLE
 new Blob({
 	color:purple,
 	controlType:"free", // free will be default control type (rather than "straight")
@@ -17791,7 +17801,7 @@ points - (default 4) a number of points to start with to make the shape
 	OR a shape string of "circle", "rectangle" or "triangle"
 	OR a ZIM Circle, Rectangle, Triangle or Flare with any dimensions that will be matched
 	OR an SVG path like: points:"M0,129.5c22,0,40-31,40-41c0-8-3.2-13-10-13" etc. (also see SVGContainer)
-	OR an array of points as follows:
+	OR an array of points as follows - see https://zimjs.com/paths for a tool to make points in this format:
 	[[controlX, controlY, circleX, circleY, rect1X, rect1Y, rect2X, rect2Y, controlType], [etc]]
 	controlX and controlY - the x and y location of the control Container which holds the point circle and the two control rectangles
 	circleX and circleY - (default 0) the x and y location of the circle relative to the control location (usually 0, 0)
@@ -23799,7 +23809,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.mouseChildren = false;
 		this.cur("pointer");
 		that.focus = false;
-		that.rolled = false;
+		that.rolled = false;		
 
 		timeType = getTIME(waitTime);
 
@@ -24107,7 +24117,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		function buttonOn() {
 			that.rolled = true;
 			reallyOn = true;
-
+			
 			// specific to each setting
 			// so can have a rollover backing even without a backing
 			// also... if no rollWaitBacking or rollToggleBacking
@@ -24171,8 +24181,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			} else {
 				if (zot(backing) && that.backing) {
                     that.backing.color = rollBackgroundColor;
-                    if (willBeWaiting) that.backing.color = waitBackgroundColor;
-                    else if (that.toggled) that.backing.color = toggleBackgroundColor;
+                    if (willBeWaiting) that.backing.color = rollWaitBackgroundColor;
+                    else if (that.toggled) that.backing.color = rollToggleBackgroundColor;
                     else that.backing.color = rollBackgroundColor;
                 } else if (backing && !zot(backing.mask) && that.backing) that.backing.mask.color = rollBackgroundColor;
 			}
@@ -24994,8 +25004,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (!selectedCheck) {
 						selectedCheck = true; // first item marked selected
 						that.id = data.id;
+						selectedIndex = i;
 					} else {
 						data.selected = "false"; // turn off selected
+						selectedIndex = null;
 					}
 				}
 			}
@@ -58149,7 +58161,7 @@ transition - (default "none") the type of transition "none", "reveal", "slide", 
 		"bubbleDark", "bubbleLight", "bubbleZIM",
 		"lineDark", "lineLight", "lineZIM"
 		"explodeDark" "explodeLight" "explodeZIM"
-	NOTE: if using pages that are smaller than the sage, use a Rectangle() as the holder 
+	NOTE: if using pages that are smaller than the stage, use a Rectangle() as the holder 
 		and the transition effects will be automatically masked by the rectangle. 
 speed - (default .2) speed in seconds of the transition if set (see also ZIM TIME constant)
 transitionTable - (default none) an array to override general transitions with following format:
@@ -84915,11 +84927,11 @@ dispatches "start", "end" and "error" on the utterance object returned by talk()
 
 		if (M!="ios") {  
 			
-			var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
-			var SpeechGrammarList = SpeechGrammarList || window.webkitSpeechGrammarList;
+			var SpeechRecognition = WW.SpeechRecognition || WW.webkitSpeechRecognition;
+			var SpeechGrammarList = WW.SpeechGrammarList || WW.webkitSpeechGrammarList;
 			// this is causing an error on firefox even though they use this in their examples 
-			// and we have all the speec about:config setting set to true
-			// var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;    
+			// and we have all the speech about:config setting set to true
+			var SpeechRecognitionEvent = WW.SpeechRecognitionEvent || WW.webkitSpeechRecognitionEvent;    
 			var recognition = this.recognition = new SpeechRecognition();
 			recognition.continuous = false;
 			recognition.lang = this.language = "en-US";
@@ -85268,19 +85280,30 @@ EXAMPLE
 // pops up a PermissionAsk Pane on iOS then if yes, goes to permissions on iOS
 new PermissionAsk(init, "cam");
 function init(val) {
-    new Label(val).center(); // media stream if yes to permissions otherwise false
-    S.update();
+	new Label(val).center(); // media stream if yes to permissions otherwise false
+	S.update();
+}
+END EXAMPLE
+
+EXAMPLE 
+// on iOS, the app must be interacted with before using mic or cam
+// this goes right to permissions on computer and android
+// but pops up a PermissionAsk Pane on iOS then if yes, goes to permissions on iOS
+new PermissionAsk(init, "mic"); // or "cam" or "miccam"
+function init(val) {
+	zog(val); // media stream if yes to permissions otherwise false
+	S.update();
 }
 END EXAMPLE
 
 PARAMETERS - accepts ZIM DUO regular parameters in order or a configuration object with parameters as properties
 callback - the function to callback when permission is accepted
-    if the permissionType is deviceorientation or devicemotion this will receive true for accept or false for no permission 
-    if the permissionType is audio, video or audiovideo this will receive a stream if accepted or false if not
-    for not iOS, the system permissions will appear 
-    for iOS the PermissionAsk Pane will be shown and the system permissions 
-    in all cases, the callback will be called on result 
-    the parameter given to the callback will be true (sensors) or a media stream (mic / cam) or false if not accepted
+	if the permissionType is deviceorientation or devicemotion this will receive true for accept or false for no permission 
+	if the permissionType is audio, video or audiovideo this will receive a stream if accepted or false if not
+	for not iOS, the system permissions will appear 
+	for iOS the PermissionAsk Pane will be shown and the system permissions 
+	in all cases, the callback will be called on result 
+	the parameter given to the callback will be true (sensors) or a media stream (mic / cam) or false if not accepted
 permissionType - (default "deviceorientation") the string deviceorientation, devicemotion, mic, cam, or miccam
 color - (default zim.dark) the font and border color of the widget
 backgroundColor - (default zim.lighter) the backgroundColor of the widget
@@ -90894,7 +90917,7 @@ a ZIM Container
 	//-149
 
 /*--
-makePath = function()
+makePath = function() ** there is no makePath() - please read details
 
 makePath
 zim libraries - PIZZAZZ 4
