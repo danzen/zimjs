@@ -65977,7 +65977,7 @@ zim.TextureActivesManager = function(stage, toggleKey, damp) {
 		width:200,
 		height:80, 
 		titleBar:"TextureActives",
-		// draggable:true,
+		draggable:true,
 		close:true
 	}).pos(50,50,RIGHT,BOTTOM);
 	var slider = this.slider = new zim.Slider({min:0, max:100, damp:true})
