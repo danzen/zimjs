@@ -26909,8 +26909,8 @@ list.items[1].label.text = "Some very long but important option!";
 
 list.on("resize", ()=>{
 	const point = list.resizeHandle.localToGlobal(0,0);
-	window.resize(list.x+listWidth+windowWidth-point.x);
-	window.x = point.x;
+	win.resize(list.x+listWidth+windowWidth-point.x);
+	win.x = point.x;
 });
 
 const win = new Window({
@@ -33121,7 +33121,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-61
 
 /*--
-zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, style, group, inherit)
+zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, addZero, style, group, inherit)
 
 Slider
 zim class - extends a zim.Container which extends a createjs.Container
@@ -33201,6 +33201,7 @@ rangeWidth - (default 3 pixels wider than the barWidth on both sides) set the th
 rangeMin - (default min) set the minimum value of the range 
 rangeMax - (default (max-min)/2) set the maximum value of the range
 rangeAve - (default null) set the range average value - this may relocate rangeMin and rangeMax settings
+addZero - (default false) add zero on end of decimals for useLabels true
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -33266,8 +33267,8 @@ dispatches a "change" event when button is slid on slider (but not when setting 
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+62
-	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, style, group, inherit) {
-		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, style, group, inherit";
+	zim.Slider = function(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, addZero, style, group, inherit) {
+		var sig = "min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, currentValue, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, addZero, style, group, inherit";
 		var duo; if (duo = zob(zim.Slider, arguments, sig, this)) return duo;
 		z_d("62");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -33317,6 +33318,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(rangeMin)) rangeMin = DS.rangeMin!=null?DS.rangeMin:currentValue;
 		if (zot(rangeMax)) rangeMax = DS.rangeMax!=null?DS.rangeMax:(max-min)/2;
 		if (zot(rangeAve)) rangeAve = DS.rangeAve!=null?DS.rangeAve:null;
+		if (zot(addZero)) addZero = DS.addZero!=null?DS.addZero:false;
 		var stage;
 		var that = this;
 		this.update = function() {};
@@ -33514,9 +33516,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					y = start+spacing*i;
 					g.mt(0, y).lt(x, y);
 					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {
-						dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));					
+						dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));
 						new zim.Label({
-							text:zim.decimals(max-(max-min)/Math.abs(stepsTotal)*i,dd+1),
+							text:zim.decimals(max-(max-min)/Math.abs(stepsTotal)*i,dd+1,addZero),
 							size:DS.size?DS.size:10,
 							color:labelColor,
 							align:"left",
@@ -33550,7 +33552,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {						
 						dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));
 						new zim.Label({
-							text:zim.decimals(min+(max-min)/Math.abs(stepsTotal)*i,dd+1),
+							text:zim.decimals(min+(max-min)/Math.abs(stepsTotal)*i,dd+1,addZero),
 							size:DS.size?DS.size:10,
 							color:labelColor,
 							align:"center",
@@ -33808,7 +33810,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 
 		this.clone = function(exact) {
-			return that.cloneProps(new zim.Slider((exact||!zim.isPick(oa[0]))?that.min:oa[0], (exact||!zim.isPick(oa[1]))?that.max:oa[1], (exact||!zim.isPick(oa[2]))?that.step:oa[2], button.clone(), barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, (exact||!zim.isPick(oa[3]))?that.currentValue:oa[3], expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, style, this.group, inherit));
+			return that.cloneProps(new zim.Slider((exact||!zim.isPick(oa[0]))?that.min:oa[0], (exact||!zim.isPick(oa[1]))?that.max:oa[1], (exact||!zim.isPick(oa[2]))?that.step:oa[2], button.clone(), barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, (exact||!zim.isPick(oa[3]))?that.currentValue:oa[3], expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, addZero, style, this.group, inherit));
 		};
 
 		if (range) {
@@ -34397,7 +34399,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-62.5
 
 /*--
-zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, style, group, inherit);
+zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, addZero, style, group, inherit);
 
 Dial
 zim class - extends a zim.Container which extends a createjs.Container
@@ -34473,6 +34475,7 @@ damp - (default null) set to value such as .1 to damp the slider currentValue
 currentValue - |ZIM VEE| (default min value) - set the currentValue at start
 useLabels - (default false) - add Labels to ticks if useTicks is true - can apply STYLE 
 labelMargin - (default 10) - distance from ticks to Label if useLabels is true
+addZero - (default false) add zero on end of decimals for useLabels true
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -34533,8 +34536,8 @@ dispatches a "change" event when dial changes value (but not when setting curren
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+63
-	zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, style, group, inherit) {
-		var sig = "min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, style, group, inherit";
+	zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, addZero, style, group, inherit) {
+		var sig = "min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, currentValue, useLabels, labelMargin, addZero, style, group, inherit";
 		var duo; if (duo = zob(zim.Dial, arguments, sig, this)) return duo;
 		z_d("63");
 		this.zimContainer_constructor(null,null,null,null,false);
@@ -34582,6 +34585,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(currentValue)) currentValue = DS.currentValue!=null?DS.currentValue:null;		
 		if (zot(useLabels)) useLabels = DS.useLabels!=null?DS.useLabels:false;
 		if (zot(labelMargin)) labelMargin = DS.labelMargin!=null?DS.labelMargin:10;
+		if (zot(addZero)) addZero = DS.addZero!=null?DS.addZero:false;
 		if (limit == false) damp = null;
 
 		var that = this;
@@ -34657,10 +34661,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				tick.regX = .5;
 				tick.rotation = (360-360*gap)/(ticksTotal-(gap?1:0)) * i + 360*gap/2;
 				ticks.addChild(tick);			
+
 				if (useLabels && ((semiTicks && tickLarge) || !semiTicks)) {	
-					var dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));
+					var dd = Math.max(zim.countDecimals(step0), zim.countDecimals(min), zim.countDecimals(max));					
 					new zim.Label({
-						text:zim.decimals(min+(max-min)/Math.abs(stepsTotal||ticksTotal)*i,dd+1,true),
+						text:zim.decimals(min+(max-min)/Math.abs(stepsTotal||ticksTotal)*i,dd+1,addZero),
 						size:DS.size?DS.size:10,
 						align:"center",
 						valign:"center"
@@ -35077,7 +35082,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function(exact) {
-			return that.cloneProps(new zim.Dial((exact||!zim.isPick(oa[0]))?that.min:oa[0], (exact||!zim.isPick(oa[1]))?that.max:oa[1], (exact||!zim.isPick(oa[2]))?that.step:oa[2], width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, (exact||!zim.isPick(oa[3]))?that.currentValue:oa[3], useLabels, labelMargin, style, this.group, inherit));
+			return that.cloneProps(new zim.Dial((exact||!zim.isPick(oa[0]))?that.min:oa[0], (exact||!zim.isPick(oa[1]))?that.max:oa[1], (exact||!zim.isPick(oa[2]))?that.step:oa[2], width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, (exact||!zim.isPick(oa[3]))?that.currentValue:oa[3], useLabels, labelMargin, addZero, style, this.group, inherit));
 		};
 
 		this.dispose = function(a,b,disposing) {
@@ -58084,7 +58089,7 @@ const page1 = new Page(W, H, green);
 const page2 = new Page(W, H, purple, pink);
 const page3 = new Page(W, H, yellow);
 
-const pages = new Pages([page1, page2, page3], "bubbleIM", 1).addTo();
+const pages = new Pages([page1, page2, page3], "bubbleZIM", 1).addTo();
 new Arrow({pages:pages, direction:LEFT})
 	.rot(180)
 	.pos(50,50,LEFT,BOTTOM);
@@ -60377,6 +60382,8 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			return that;
 		};
 
+		var fl;
+
 
 		this.resize = function(w, h) {
 
@@ -60414,9 +60421,12 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			var colCount = 0;
 			var point,newX;
 
+			if (flip.type == "series") flip.index = 0;
+			fl = zim.Pick.choose(flip);
+
 			zim.loop(this, function(o, i) {
-				if (bottomFull || flip) {
-					o.pos(totalX+(o.marginRight?o.marginRight:0), totalY+(o.marginTop?o.marginTop:0), zim.RIGHT, flip?zim.TOP:zim.BOTTOM);
+				if (bottomFull || fl) {
+					o.pos(totalX+(o.marginRight?o.marginRight:0), totalY+(o.marginTop?o.marginTop:0), zim.RIGHT, fl?zim.TOP:zim.BOTTOM);
 				} else {
 					o.pos(totalX+(o.marginLeft?o.marginLeft:0), totalY+(o.marginTop?o.marginTop:0));
 				}
@@ -60424,7 +60434,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 				b = o.boundsToGlobal();
 				var pointTL = that.globalToLocal(b.x, b.y);
 				var pointBR = that.globalToLocal(b.x+b.width, b.y+b.height);
-				if (bottomFull || flip) {
+				if (bottomFull || fl) {
 					point = that.globalToLocal(b.x, b.y);
 					// o.wrapHeight = buildHeight-totalY-point.y;
 				} else {
@@ -60445,7 +60455,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 				if (co) {
 					newX = co*colCount;
 				} else {
-					if (bottomFull || flip) {
+					if (bottomFull || fl) {
 						newX = widthVoid - point.x + (o.marginLeft?o.marginLeft:0) + spacingH;
 					} else {
 						newX = point.x + (o.marginRight?o.marginRight:0) + spacingH;
@@ -60463,6 +60473,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 					ro = zim.Pick.choose(rowSize);
 					pv = zim.Pick.choose(percentVoidH);
 					ov = zim.Pick.choose(offsetVoidH);
+					
 					colCount = 0;
 					//if (i<t-1) {
 						that.items2D.push(zim.copy(currentCols));
@@ -60471,8 +60482,9 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 					//}
 					currentCols = [];
 
-					if (bottomFull || flip) {
-						o.pos(totalX+(o.marginRight?o.marginRight:0), totalY+(o.marginTop?o.marginTop:0), zim.RIGHT, flip?zim.TOP:zim.BOTTOM);
+					
+					if (bottomFull || fl) {
+						o.pos(totalX+(o.marginRight?o.marginRight:0), totalY+(o.marginTop?o.marginTop:0), zim.RIGHT, fl?zim.TOP:zim.BOTTOM);
 					} else {
 						o.pos(totalX+(o.marginLeft?o.marginLeft:0), totalY+(o.marginTop?o.marginTop:0));
 					}
@@ -60490,7 +60502,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 						newX = 0;
 					} else {
 						newX = (o.marginLeft?o.marginLeft:0) + o.wrapWidth + (o.marginRight?o.marginRight:0) + zim.Pick.choose(spacingH);
-						if (bottomFull || flip) {
+						if (bottomFull || fl) {
 							point.x = widthVoid - ((o.marginRight?o.marginRight:0) + o.wrapWidth);
 						} else {
 							point.x = (o.marginLeft?o.marginLeft:0) + o.wrapWidth;
@@ -60585,7 +60597,6 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			var al = zim.Pick.choose(align);
 			var sp = zim.Pick.choose(spread);
 			var st = zim.Pick.choose(stretch);
-			var fl = zim.Pick.choose(flip);
 			var ai = zim.Pick.choose(alignInner);
 			var vi = zim.Pick.choose(valignInner);
 
@@ -60601,8 +60612,8 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			var alignCheck = false;
 			var lastX,diffX;
 
-			if (co) { // columns
-				if (bottomFull || flip) objects.reverse();
+			if (co) { // columns		
+				if (bottomFull || fl) objects.reverse();
 				var gap = widthVoid%co;
 				var voidLoc = widthVoid/2+ov/100*widthVoid;
 				var added = 0;
@@ -60649,7 +60660,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 					}
 				}
 
-			} else if (sp || st) { // spread or stretch
+			} else if (sp || st) { // spread or stretch				
 				// equal space between
 				var spacing, extra;
 				if (sp) spacing = objects.length?((widthVoid-lineObjectWidths)/(objects.length+1)):0;
@@ -60665,7 +60676,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 				lastSpacing = spacing;
 
 				var widthTotal = 0;				
-				if (bottomFull || flip) objects.reverse();
+				if (bottomFull || fl) objects.reverse();
 				zim.loop(objects, function (obj, i) {
 					am = 0;
 					lastX = obj.x;
@@ -60707,8 +60718,8 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			} else {
 				// shifts for normal wrapping
 				if (al=="center") {
-					zim.loop(objects, function (obj) {
-						am = ((bottomFull||flip?0:width)-lastPoint.x)/2;
+					zim.loop(objects, function (obj) {						
+						am = ((bottomFull||fl?0:width)-lastPoint.x)/2;
 						if (sp || st) {
 							if (obj.marginLeft) am+=obj.marginLeft;
 							if (obj.marginRight)  am-=obj.marginRight;
@@ -60716,7 +60727,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 						obj.mov(am);
 						obj.centerX+=am;
 					});
-				} else if ((bottomFull||flip) && al=="left") {
+				} else if ((bottomFull||fl) && al=="left") {
 					extra = objects[objects.length-1].marginLeft;
 					zim.loop(objects, function (obj) {
 						am = -lastPoint.x+(extra?extra:0);
@@ -60726,7 +60737,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 						obj.mov(am);
 						obj.centerX+=am;
 					});
-				} else if (!(bottomFull||flip) && al=="right") {
+				} else if (!(bottomFull||fl) && al=="right") {
 					extra = objects[objects.length-1].marginRight;
 					zim.loop(objects, function (obj) {
 						am = width-lastPoint.x-(extra?extra:0);
@@ -60763,15 +60774,15 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 						} else {
 							if (obj.centerX > voidThresh) obj.mov(voidMove);
 						}
-					} else if (!(bottomFull||flip) && al=="right") {
+					} else if (!(bottomFull||fl) && al=="right") {
 						if (obj.centerX < width-voidThresh) obj.mov(-voidMove);
-					} else if (!(bottomFull||flip) && al=="center") {
+					} else if (!(bottomFull||fl) && al=="center") {
 						// might want to center each side on their side...
 						if (obj.centerX > width/2+ov/100*widthVoid) obj.mov(voidMove/2);
 						else obj.mov(-voidMove/2);
-					} else if ((bottomFull||flip) && al=="right") {
+					} else if ((bottomFull||fl) && al=="right") {
 						if (obj.centerX > widthVoid-voidThresh) obj.mov(voidMove);
-					} else if ((bottomFull||flip) && al=="center") {
+					} else if ((bottomFull||fl) && al=="center") {
 						if (obj.centerX > widthVoid/2+ov/100*widthVoid) obj.mov(voidMove);
 					} else { // lefts
 						if (obj.centerX > voidThresh) obj.mov(voidMove);
@@ -60798,6 +60809,9 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 					obj.mov(0, -(maxY-obj.wrapHeight)+(obj.marginTop?obj.marginTop:0));
 				});
 			}
+
+			fl = zim.Pick.choose(flip);
+
 		} // end alignObjects
 
 		
@@ -74024,7 +74038,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					call:done,
 					params:e
 				});
-				
 			}	
 			function done(e) {
 				if (!that.complete && that.test()) {
@@ -74039,7 +74052,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.mySownCheck = dCheck = false;
 				onOthers();
 				// e.target.mouseEnabled = true;
-				e.target.dragPaused = false;
+				e.target.dragPaused = false;				
 			}    
 			if (!swap) {
 				if (that.moveEvent) tile.off("pressmove", that.moveEvent);
@@ -74168,6 +74181,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		this.inactive = false;
 		this.scramble = function(time, wait, num) {
+
+			that.myDownCheck = false;
+
 			if (zot(wait)) wait = 0;
 			if (zot(time)) time = 0;
 			if (zot(num) || time==0) num = 1;
@@ -82665,7 +82681,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 					assetHolder.type = "Sound";		
 					assetHolder.src = loaded.src;
 					assetHolder.item = loaded.item;	
-					if (assetHolder.playParams) {							
+					if (assetHolder.playParams) {	
 						assetHolder.sound = assetHolder.play.apply(null, assetHolder.playParams);
 						if (assetHolder.volume != null) assetHolder.sound.volume = assetHolder.volume;
 						if (assetHolder.pan != null) assetHolder.sound.pan = assetHolder.pan;
@@ -84048,7 +84064,7 @@ loop - dispatched when the sound loops (but not at end of last loop - that is co
 		file = that.file = zim.Pick.choose(file);   
         
         var sound = that.sound = zim.asset(file, null, null, maxNum);
-        if (sound.type == "AC") {			
+        if (sound.type == "AC") {	
             sound.on("complete", function () {
 				that.src = sound.src;
 				that.item = sound.item;
@@ -84559,7 +84575,7 @@ new SVG(zid("svgTagID")).center().drag();
 END EXAMPLE
 
 EXAMPLE
-Find the SVG in an assets/ folder
+// Find the SVG in an assets/ folder
 PATH = "assets/"
 // Tile a lazy-loaded SVG with dimensions - otherwise Tile would give a console warning
 new Tile(new SVG("file.svg", 100, 100), 4, 4)).center();
@@ -84582,7 +84598,7 @@ EXAMPLE
 // see the Docs under SVGContainer for more complex examples and added information
 // note the h t t p : should be edited to not have spaces - just avoiding Doc auto linking
 const svg = `<svg  width="150" height="200" xmlns="h t t p ://www.w3.org/2000/svg">
-<path id="lineAB" d="M 0 0 l 150 200" stroke=red stroke-width="3" fill="none" />
+<path id="lineAB" d="M 0 0 l 150 200" stroke="red" stroke-width="3" fill="none" />
 </svg>`;
 new SVG(svg, null, null, false).center(); 
 END EXAMPLE 
