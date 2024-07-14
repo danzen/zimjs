@@ -2178,6 +2178,8 @@ If more data is required, use an AJAX library
 NOTE: async uses an r CGI key to send a random number to defeat cache.
 Do not send an r property
 
+SEE: https://codepen.io/danzen/pen/gNKQYY for a full example
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -2197,8 +2199,7 @@ async("https://zimjs.org/cdn/jsonp.php?api="+api+"&callback=async.getData", getD
 function getData(data) {
 	zog(data); // data will be the JSON parsed object
 }
-See a full example here: https://codepen.io/danzen/pen/gNKQYY
-Here is the jsonp.php code if you would like to host:
+// Here is the jsonp.php code if you would like to host:
 
 <?php
 $api = $_GET["api"];
@@ -14740,8 +14741,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		var poly = this.shape = new createjs.Shape();
 		this.addChild(poly);
-		poly.rotation = -90;
-
+		
 		var g = poly.graphics;
 		that.drawShape = function() {
 			g.c();
@@ -14757,7 +14757,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					if (that._dashed) that.borderDashedCommand = g.sd(Array.isArray(that._dashed)?that._dashed:[10, 10], that._dashedOffset).command;
 				}
 			}
-			g.dp(0,0,that._radius, that._sides, that._pointSize);
+			g.dp(0,0,that._radius, that._sides, that._pointSize, -90);
 			that.setBounds(-that._radius,-that._radius, that._radius*2, that._radius*2);
 		};
 		that.drawShape();
@@ -22482,6 +22482,17 @@ const letters = new LabelLetters("Label Letters", CENTER, "bottom", 5)
 	});
 END EXAMPLE
 
+EXAMPLE 
+new LabelLetters("and Radial(), LabelOnArc(), LabelLetters()")
+	.center()
+	.animate({
+		from:true,
+		props:{alpha:0},
+		time:.01,
+		sequence:.04 
+	});
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
@@ -22544,6 +22555,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - the name of the class as a String
 text - get the text of the original Label
+	See: https://zimjs.com/zapp/Z_VSR9X for updating text
 labels - an array of ZIM Label objects for the letters
 numLetters - how many letters (same as numChildren)
 
@@ -25732,7 +25744,7 @@ EXAMPLE
 // good for games that need keyboard if the game is in an iFrame like the Editor or CodePen
 // NOTE: do not use the on("close", f) method as it will not receive an event
 // with keyboardAccess the events on the canvas are turned off and captured in an any iFrame
-new Pane({content:"START", keyboardAccess:true}).show(); 
+new Pane({content:"START", keyboardAccess:true}).show(()=>{zog("Keys ready")}); 
 END EXAMPLE
 
 EXAMPLE
@@ -25783,7 +25795,7 @@ END EXAMPLE
 
 EXAMPLE
 // custom backing with ZIM Pizzazz import at top
-// import zim from https://zimjs.org/cdn/02/zim_pizzazz
+// import zim from "https://zimjs.org/cdn/016/zim_pizzazz"
 new Pane({
 	content:new Label({color:white, text:"STOP", size:50}),
 	backing:makePattern({
@@ -25849,6 +25861,7 @@ keyboardAccess - (default false) set to true to adds a click through iframe to g
 	this sets an invisible Frame keyboardMessage() that will close the pane and give key access to iFrames
 	do not use if expecting interactive content in the Pane - it is for a start message only
 	do not use on("close", f) as it will not be captured with keyboardAccess true
+	instead, use the callback in show() to call a function on close
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -41392,12 +41405,12 @@ dropArray - (defult null) with "on" or "single" dropType and NOT linear - specif
 	if "single" is set then only one line can be drawn	
 	also see dropIndex and dropArray for each node and the targetNode property 
 	each time a connection is made, a new node is created - these will inherit the dropIndex and dropArray from a targetNode
-	and if the latestNode's dropArray and its lineArray are the same and the duplicateLines is false then a "blocked" event is dispatched
+	and if the latestNode's dropArray and its lineArray are the same and the duplicateLine is false then a "blocked" event is dispatched
 continuous - (default false) set to true to force nodes to only be made from the last node 
 	all other nodes will have their noMouse() set - also see startIndex - also see linear for doing points in order
 startIndex - (default null) set to a point index to force connectors to start at that node
 	all other nodes will have there noMouse() set - also see continous 
-duplicateLines - (default true) set to false to not allow multiple lines between the same connectors
+duplicateLine - (default true) set to false to not allow multiple lines between the same connectors
 deleteNode - (default true) set to false to not allow nodes to be deleted by holding or doubleclicking and delete key
 dblclick - (default true) set to false to not allow nodes to be selected by doubleclicking
 	selected nodes can be moved together
@@ -41487,11 +41500,11 @@ node - the DisplayObject used to make the connector nodes
 	dropArray - get or set the array of dropIndexes that this node can connect to 
 		this will get transfered from a targerNode 
 		and if the dropArray and the lineArray are the same 
-		and the duplicateLines is false then a "blocked" event is dispatched
+		and the duplicateLine is false then a "blocked" event is dispatched
 	lineArray - get an array of indexes to other node connections 
 		this will get transfered to a targetNode 
 		and if the lineArray and dropArray are the same 
-		and the duplicateLines is false then a "blocked" event is dispatched
+		and the duplicateLine is false then a "blocked" event is dispatched
 line - the Line object used to make the connector lines
 	the line objects also have these added properties:
 	node - a reference to the node at the start of the line
@@ -41529,7 +41542,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 EVENTS
 dispatches a "connection" event if a new node is made and lastNode property is set to the new node
 dispatches a "noconnection" event if the connector is dropped and no new node is made
-dispatches a "blocked" event of duplicateLines is false and continuous is true and there are no more connections available 
+dispatches a "blocked" event of duplicateLine is false and continuous is true and there are no more connections available 
 	this will happen if the latestNode's dropArray is the same as its linesArray (the order in the array does not matter)
 dispatches a "complete" event in linear mode when the connections are complete
 
@@ -41871,13 +41884,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var downIndex;
 		function downNode(e, stepping, moving, ctrl) {
 			var child = e.target;			
-			if (zot(child)) return;		
+			if (zot(child)) return;	
+			// if (child.selected)	return;
 
 			if (moving) {
 				child.selected = true;
 				selectedList = [];
 				that.selectNode(child, !ctrl);
 			}	
+
 			
 			downIndex = child.nodeNum; // used in record()
 			if (!linear && (!rootLock || child.creator) && dblclick && !stepping) {
@@ -41992,6 +42007,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			child.nodeColor = child.color;
 			parent.creations.push(child);			
 			that.latestNode = child;
+
+			if (rootLock) checkRootLock(child);
+			
 
 		}
 
@@ -51995,7 +52013,7 @@ animateCall - (default null) calls function every animation
 animateParams - (default target) parameters to send animateCall function
 sequence - (default 0) the delay time in seconds to run on children of a container or an array of target animations
 	with the addition of ZIM VEE object to the target, you must noPick the array
-	for example, target = container or target = {noPick:[a,b,c]} and sequence = 1000
+	for example, target = container or target = {noPick:[a,b,c]} and sequence = 1
 	would run the animation on the first child and then 1 second later, run the animation on the second child, etc.
 	or in the case of the array, on element a and then 1 second later, element b, etc.
 	If the loop prop is true then sequenceCall below would activate for each loop
@@ -60481,7 +60499,6 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 						heights.push(totalY);
 					//}
 					currentCols = [];
-
 					
 					if (bottomFull || fl) {
 						o.pos(totalX+(o.marginRight?o.marginRight:0), totalY+(o.marginTop?o.marginTop:0), zim.RIGHT, fl?zim.TOP:zim.BOTTOM);
@@ -68872,11 +68889,10 @@ mousedownIncludes - (default null) a single object or array of objects (aside fr
 	The controller assumes everything in the container will not activate the mousedown
 	This lets you activate interface elements without moving to them ;-)
 	If for instance, a backing is used other than the stage, just pass in the backing to this parameter
-	See also the mousedownIncludes property and mousedownExcludes parameter and property
+	See also the mousedownIncludes property
 	The boundary is automatically added to mousedownIncludes
 	If the container is provided and it has a backing property, this is added automatically to the mouseDownIncludes at the start 
 	The backing can be removed from the mousedownIncludes property with mc.mousedownIncludes.splice(mc.mousedownIncludes.indexOf(mc.container.backing, 1));
-mousedownExcludes - (default null) an array of objects that the mousedown will not work on - overrides mousedownIncludes
 minPercentSpeed - (default 0) if target is an Accelerator, the percentSpeed at the left or top of the stage (depending on axis)
 minPercentSpeed - (default 100) if target is an Accelerator, the percentSpeed at the right or bottom of the stage (depending on axis)
 dampKeyup - (default .3) damping applied to slow down Accelerator with keydown
@@ -70118,7 +70134,7 @@ EXAMPLE
 // this is like a mousejoint similar to drag() but attached to an object rather than the mouse 
 // so a physics object can follow a ZIM drag() or animate() or wiggle(), etc.
 // the original distance between the objects is maintained like a distance joint
-// see https://zimjs.com/valentines/puppet.html
+// see https://zimjs.com/valentines/puppets.html
 // see https://zimjs.com/valentines/puppets2.html
 const physics = new Physics(0);
 const control = new Triangle().center().mov(0,-100).drag(); // or animate() or wiggle()
@@ -82422,7 +82438,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			}
 		}
 		
-		function svgDone(bitmap, params) {				
+		function svgDone(bitmap, params) {	
 			queue.loadAssetsCount--;
 			var item = params.item;	
 			var asset = zim.assets[item.id] = bitmap;	
@@ -82456,8 +82472,9 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			preload.on("error", function(e) {queue.dispatchEvent(e); if (!queueOnly) that.dispatchEvent(e);});
 			preload.on("fileload", function(e) {
 				// for some reason, errors are not working on IMG and SVG from PreloadJS 
-				// so check for rawResult - should really fix this in CreateJS
-				if (!e.result || ((e.result.nodeName=="IMG" || e.result.nodeName=="SVG") && !e.rawResult && xhr)) {						
+				// so check for rawResult - should really fix this in CreateJS				
+				if (!e.result || ((e.result.nodeName=="IMG" || e.result.nodeName=="SVG") && !e.rawResult && xhr)) {		
+					zog("here")			
 					var ev = new createjs.Event("error");
 					ev = new createjs.Event("error");
 					ev.item = e.item; // createjs preload item
@@ -82466,7 +82483,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 					ev = new createjs.Event("error");
 					ev.item = e.item; 				
 					that.dispatchEvent(ev);	
-				} else {					
+				} else {			
 					var item = e.item;
 					var type = e.item.type;
 					var ext = item.id.match(re);
@@ -82530,7 +82547,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 						}
 					} else if (type == "svg") {
 						queue.loadAssetsCount++;
-						zim.svgToBitmap(e.result, svgDone, null, null, {svg:e.result, item:item, type:type, ext:ext});				
+						zim.svgToBitmap(e.result, svgDone, null, null, {svg:e.result, item:item, type:type, ext:ext});	
 						return;	
 					} else {
 						asset = zim.assets[item.id] = e.result;
@@ -85966,7 +85983,7 @@ RETURNS - null
 --*///+83.27
 	zim.svgToBitmap = function(svg, callback, width, height, params) {
 		z_d("83.27");
-
+		
 		if (!zot(svg.draggable)) {
 			// CreateJS seems to wrap up an SVG with loadAssets as an SVG object
 			var parser = new DOMParser();
@@ -85977,8 +85994,10 @@ RETURNS - null
 		}
 
         if (!XMLSerializer) {if (zon) {zogy("ZIM svgToBitmap() - sorry, not supported in Browser"); return;}}
-		var svgString = (typeof svg == "string") ? svg : new XMLSerializer().serializeToString(svg);
+		var svgString = (typeof svg == "string") ? svg : new XMLSerializer().serializeToString(svg);		
 		if (svgString) {
+			// https does not work
+			svgString = svgString.replace(/https:\/\/www.w3/i, "http://www.w3");
 			// seem to need width and height parameters in svg tag
 			var first = svgString.split(">")[0];
 			if (first.length>1) {
@@ -86001,19 +86020,27 @@ RETURNS - null
 					svgString = svgString.replace(/svg /i, "svg  width=\""+w+"\" height=\""+h+"\" ");
 				}
 			}
-			if (!svgString.match(/xmlns/i)) svgString = svgString.replace(/svg /i, "svg  xmlns='https://www.w3.org/2000/svg' ");
+			if (!svgString.match(/xmlns/i)) svgString = svgString.replace(/svg /i, "svg  xmlns='http://www.w3.org/2000/svg' ");
 		}
 		var DOMURL = self.URL || self.webkitURL || self;
+		var inte = setTimeout(function() {
+			zogy("ZIM SVG() could not be made");
+			callback(new zim.Bitmap(), params);
+			DOMURL.revokeObjectURL(obu);
+		}, 100);
         var img = new Image();
         img.onload = function() {
+			clearTimeout(inte);
             var bitmap = new zim.Bitmap(img, width, height);
             callback(bitmap, params);
 			DOMURL.revokeObjectURL(obu);
-        };
+        };		
 		var obu;
-		if (document && document.Blob) obu = DOMURL.createObjectURL(new document.Blob([svgString], {type: "image/svg+xml"}));
-		else obu = DOMURL.createObjectURL(new Blob([svgString], {type: "image/svg+xml"}));
+		if (document && document.Blob) {
+			obu = DOMURL.createObjectURL(new document.Blob([svgString], {type: "image/svg+xml"}));
+		} else obu = DOMURL.createObjectURL(new Blob([svgString], {type: "image/svg+xml"}));
         img.src = obu;
+		
     };//-83.27
 
 /*--
