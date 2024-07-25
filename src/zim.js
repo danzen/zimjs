@@ -30540,6 +30540,8 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	this.hiddenInput.style.width = "1px";
 	this.hiddenInput.style.height = "1px";
 	this.hiddenInput.style.fontSize = "1px";	
+
+	// this.hiddenInput.style.direction = rtl?"rtl":"ltr";
 			
 	this.onFocus = function() {
 		if (this.stage) frame = this.stage.frame;
@@ -53262,6 +53264,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (target.handlePath) target.handlePath();
 		}
 
+
 		// PATH ANIMATION SETUP
 		var pathObject,newPoint,locPoint,segments;
 		if (!zot(obj.path) && obj.path.segmentPoints) {
@@ -53270,8 +53273,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (target.type == "Pen") target.infinite = true;
 			target.zimOnPath = true;
 			if (zot(target.pathRatio)) target.pathRatio = 0;
-			if (obj.orient) {
+			if (obj.orient===true) {
 				obj.orient = obj.path;
+			}
+			if (obj.orient) {
 				obj.startOrient = obj.rotation; // ?
 			}
 			pathObject = obj.path;
@@ -67828,7 +67833,7 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
                 if (objs.length>0) {
                     zim.loop(objs, function (obj) {
                         ids = that.objIDs.at(obj);
-                        if (ids.length>0) {
+                        if (ids && ids.length>0) {
                             zim.loop(ids, function (id) {
                                 clearID(id, false);
                             });
@@ -68212,7 +68217,7 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
         };
 
         this.clear = function() {
-            if (that.bindType == zim.LOCALSTORAGE) localStorage[that.connection] = null;
+            if (that.bindType == zim.LOCALSTORAGE) localStorage.removeItem(that.connection);
 			return that;
         };
 
@@ -72931,7 +72936,7 @@ EXAMPLE
 STYLE = {borderColor:dark, borderWidth:2};
 const front = F.makeIcon().sca(2.5);
 const back = new Page(front.width, front.height, blue, green, 1);
-const Label("ZIM Flipper").center(back);
+const label = new Label("ZIM Flipper").center(back);
 const card = new Flipper(front, back).center();
 END EXAMPLE
 
@@ -73024,6 +73029,10 @@ ALSO: see the CreateJS Easel Docs for Container properties, such as:
 x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
+ACTIONEVENT
+This component is affected by the general ACTIONEVENT setting
+The default is "mousedown" - if set to something else the component will act on click (press)
+
 EVENTS
 dispatches a "flip" event when the fipper starts the flip
 dispatches a "flipped" event when the fipper ends the flip
@@ -73073,12 +73082,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var obj;
 		if ((frontPress && !flipped) || (backPress && flipped)) {
 			obj = (interactive && front.backing)?front.backing:front;
-			obj.on("mousedown", function() {spin(front,back);});
+			obj.on((!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {spin(front,back);});
 			obj.cur();
 		}
 		if ((backPress && !flipped) || (frontPress && flipped)) {
 			obj = (interactive && back.backing)?back.backing:back;
-			obj.on("mousedown", function() {spin(back,front,-1);});
+			obj.on((!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function() {spin(back,front,-1);});
 			obj.cur();
 		}
 		front.oScale = front.scale;
