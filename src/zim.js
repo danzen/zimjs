@@ -32593,6 +32593,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				next.y = height/2;
 			}
+
+		}
+
+		if (arrows && rightForward===false) {
+			// zim.swapProperties("x", next, prev);
+			// zim.swapProperties("y", next, prev);
+			// zim.swapProperties("rotation", next, prev);
 		}
 
 		// pressdown and move mouse changes speed and direction of stepper
@@ -32943,16 +32950,30 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			arrowNext.color = arrowColor;
 			next.cur("pointer");
 			if (!continuous) {
-				if (stepperType == "number") {
-					if (index == that.min) {
-						if (numDir > 0) {greyPrev();} else {greyNext();}
-					}
-					if (index == that.max) {
-						if (numDir > 0) {greyNext();} else {greyPrev();}
+				if (rightForward!==false) {
+					if (stepperType == "number") {
+						if (index == that.min) {
+							if (numDir > 0) {greyPrev();} else {greyNext();}
+						}
+						if (index == that.max) {
+							if (numDir > 0) {greyNext();} else {greyPrev();}
+						}
+					} else {
+						if (index == 0) vertical?greyNext():greyPrev();
+						if (index == list.length-1) vertical?greyPrev():greyNext();
 					}
 				} else {
-					if (index == 0) vertical?greyNext():greyPrev();
-					if (index == list.length-1) vertical?greyPrev():greyNext();
+					if (stepperType == "number") {
+						if (index == that.min) {
+							if (numDir > 0) {greyNext();} else {greyPrev();}
+						}
+						if (index == that.max) {
+							if (numDir > 0) {greyPrev();} else {greyNext();}
+						}
+					} else {
+						if (index == 0) vertical?greyPrev():greyNext();
+						if (index == list.length-1) vertical?greyNext():greyPrev();
+					}
 				}
 			}
 		}
@@ -42298,7 +42319,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						draggable:true,
 					});
 					that.textArea = new zim.TextArea(Math.min(400, that.stage.width-70), Math.min(400, that.stage.height-70))
-						.centerReg(that.pane);
+					that.pane.add(that.textArea);
 				} 
 				that.pane.show();		
 				that.textArea.text = JSON.stringify(_steps);
@@ -52021,6 +52042,7 @@ sequence - (default 0) the delay time in seconds to run on children of a contain
 	If the loop prop is true then sequenceCall below would activate for each loop
 	For an array, you must use the zim function with a target parameter - otherwise you can use the ZIM 4TH method
 	Note: a sequence cannot be seriesed and a series cannot be sequenced
+	Note: for a sequence animate() give the animate() an id and pauseAnimate() or stopAnimate() that id.
 sequenceCall - (default null) the function that will be called for each sequence animation 
 	Note: the value of the sequenceCall parameter will be the object that just ended animation unless there is a sequenceParams value
 sequenceParams - (default null) a parameter sent to the sequenceCall function
@@ -52136,6 +52158,7 @@ PROPERTIES - zim.animate() adds the following properties to any object it animat
 		even if other animations are still running.
 		Pausing multiple objects should work fine.
 		See the tweenState property to test which ids are animating or paused
+		For a sequence animate() give the animate() an id and pauseAnimate() or stopAnimate() that id.
 	waiting - read-only - true when animation is waiting in wait, rewindWait, loopWait
 	tweenState - an object with tween ids as properties along with an all property (unless no tweens anymore)
 		these properties are true if animating and false if paused 
@@ -55016,6 +55039,8 @@ To stop a Shape tween, set an id in the animate call and use that id to stop the
 this is because the shape tween animation is not on the shape but on its many control points
 See also pauseAnimate()
 
+NOTE: for a sequence animate() give the animate() an id and pauseAnimate() or stopAnimate() that id.
+
 NOTE: formerly stopZimAnimate - which still works but is depreciated
 
 NOTE: calling stopAnimate(id) stops tweens with this id on all objects
@@ -55102,6 +55127,8 @@ An animation series will have the same id for all the animations inside.
 To pause a Shape tween, set an id in the animate call and use that id to pause the shape tween
 this is because the shape tween animation is not on the shape but on its many control points
 See also stopAnimate
+
+NOTE: for a sequence animate() give the animate() an id and pauseAnimate() or stopAnimate() that id.
 
 NOTE: formerly pauseZimAnimate - which still works but is depreciated
 
