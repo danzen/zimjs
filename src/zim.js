@@ -908,7 +908,7 @@ END EXAMPLE
 
 EXAMPLE 
 // Remember the seed for a user with localStorage (like a cookie)
-const seed = rand(100000000);
+let seed = rand(100000000);
 if (localStorage) {
 	if (localStorage.seed) seed = localStorage.seed;
 	else localStorage.seed = seed;
@@ -925,7 +925,7 @@ new Circle(100, [red, green, blue]).center().mov(0,300);
 
 seedRandom(); // clears the seed
 // below will be a random color each time
-new Circle(100, [red, green, blue]).center().mov(0,300);
+new Circle(100, [red, green, blue]).center().mov(200,300);
 END EXAMPLE
 
 PARAMETERS 
@@ -10020,12 +10020,14 @@ zim.Bitmap = function(image, width, height, left, top, scale, style, group, inhe
 			displayCheck = true;
 			var cached = image.cacheCanvas;
 			var original = image;
+			var bOriginal = original.getBounds();
 			image.cache(left,top,width,height,scale); // do not chain on end as might be createjs image
 			this.z_bc = image = image.cacheCanvas; // what we will pass to bitmap
 		}		
 	}	
 	this.cjsBitmap_constructor(image);
 	if (original && !cached) original.uncache();
+	if (bOriginal) original.setBounds(bOriginal.x, bOriginal.y, bOriginal.width, bOriginal.height);
 	
 	var that = this;
 	this.type = "Bitmap";	
@@ -29648,7 +29650,7 @@ corner - (default 0) the corner radius if there is a backdropColor provided
 	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
 indicatorType - (default "dot" or "circle") can also be "box" or "square", "heart", "star"
 	or pass in a ZIM Emoji and Indicator will fade alpha to backgroundAlpha parameter setting for unselected emojis
-    or pass any display object and the this will be used 
+	or pass any display object and the this will be used 
 fill - (default false) set to true to fill in lights to the left of the selectedIndex
 scale - (default 1) for all the lights including spacing
 lightScale - (default 1) scale for each light - keeping the spacing unchanged
@@ -29656,8 +29658,8 @@ interactive - (default false) set to true to make lights clickable
 	clicking on first light when first light is only light on, will toggle light
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
 shadowBlur - (default 5) the shadow blur if shadow is set
-selectedIndex - (default 0) - set the selectedIndex at start
-backgroundAlpha - (default 1 or .2 if indicatorType is Emoji) - affects only Emoji indicatorType
+selectedIndex - (default 0) - set the selectedIndex at start.  Use -1 for no indicator at start.
+backgroundAlpha - (default 1 or .2 if indicatorType is Emoji) - affects only Emoji and custom DisplayObject indicatorType
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -46746,6 +46748,8 @@ Chainable function that sets the object's cursor to the type provided - same as 
 
 NOTE: if using drag(), it will set its own cursor, so use the dragCursor parameter in that case.
 
+NOTE: there are also custom cursors as the cursors property of Frame.
+
 EXAMPLE
 const circle = new Circle(10, red).center().cur(); // "pointer"
 circle.on("click", ()=>{zog("yes");});
@@ -57318,7 +57322,7 @@ EXAMPLE
 // setting TIMECHECK to true will test for any time over 10 as that may be ms 
 
 TIMECHECK = true;
-new Circle().center().wiggle("x", 100,200, 2000, 4000); // will give warning in console about time not being in MS
+new Circle().center().wiggle("x", 100,200, 2000, 4000); // will give warning in console about time not being in ms
 END EXAMPLE
 --*///+29.45
 zim.TIMECHECK = false;
@@ -58391,6 +58395,7 @@ you can define multiple pages objects add and remove pages objects as needed
 
 		var swipeEvent = this.swipe.on("swipe", function(e) {
 			if (!that.active) return;
+			if (!that.parent) return;
 			var direction = e.currentTarget.direction;
 			if (direction == "none") return;
 			// swap direction (swipe up means move down)
@@ -90133,8 +90138,8 @@ const ask = new CamAsk().show(yes=>{
 		const camMotion = new CamMotion({
 			visualizerColor:[green,orange,yellow,red,blue,purple,pink], 
 			visualizerBaseColor:clear, 
-			visualizerScale:60, 
-			visualizerBaseScale:10
+			visualizerScale:6, 
+			visualizerBaseScale:1
 		}).center();
 
 		// Optionally adjust the circles 
