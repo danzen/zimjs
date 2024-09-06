@@ -30872,6 +30872,91 @@ new List({
 }).resize(300).center()
 END EXAMPLE
 
+EXAMPLE 
+const accordionData = {
+	menu: {
+		"Europe": ["London", "Paris", "Oslo"],
+		"Canada": {
+			"Ontario": {
+				"Hamilton": {
+					"Ancaster": [],
+					"Dundas": [],
+					"Westdale": []
+				},
+				"Toronto": [],
+				"Ottawa": []
+			},
+			"British Columbia": ["Victoria", "Vancouver"],
+			"Quebec": ["Montreal", "Quebec City"]
+		},
+		"United States": ["New York", "Atlanta", "San Francisco", "Portland"],
+		"China": ["Bejing", "Hong Kong"],
+		"Antarctica": []
+	},
+	shade: true,
+	dim: true,
+	shift: true,
+	bloom: true,
+	whither: true,
+	subStyles: [
+		{
+			backgroundColor: red,
+			color: white,
+			rollBackgroundColor: purple,
+			rollColor: white,
+			selectedBackgroundColor: white,
+			selectedColor: red,
+			selectedRollBackgroundColor: purple,
+			selectedRollColor: white
+		}, {
+			backgroundColor: blue,
+			color: white,
+			rollBackgroundColor: pink,
+			rollColor: white,
+			selectedBackgroundColor: black,
+			selectedColor: white,
+			selectedRollBackgroundColor: pink,
+			selectedRollColor: white
+		}, {
+			backgroundColor: green,
+			color: white,
+			rollBackgroundColor: brown,
+			rollColor: white,
+			selectedBackgroundColor: black,
+			selectedColor: white,
+			selectedRollBackgroundColor: white,
+			selectedRollColor: black
+		}
+	]
+};
+
+const list = new List({
+	list: accordionData,
+	titleBar: "PLACES",
+	titleBarBackgroundColor: orange,
+	titleBarColor: white,
+	titleBarHeight: 40,
+	scrollBarActive: false,
+	currentSelected: false,
+	indent: 20,
+	height: 650,
+	viewNum: 13.5,
+	boundary: new Boundary(0, 0, W - 200, H - 200),
+	borderWidth: -1,
+	shadowBlur: -1,
+	backdropColor: F.color,
+})
+	.loc(100, 90)
+	.tap(()=>{
+		const currentID = list.selected.listZID;
+		const currentText = list.currentValue; 
+		const parentID = list.tree.getParent(currentID);
+		let parentText;
+		if (parentID) parentText = list.tree.getData(parentID).obj;
+		zog(currentID, currentText, parentID, parentText);
+	});
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
@@ -31074,6 +31159,8 @@ accordionIndex - read only index of the selected item inside an accordion otherw
 selected - gets the current selected list object (ie. a Button)
 	use selected.checkBox to access the selected CheckBox if checkBox parameter is true
 	if custom objects are in the list then use selected.content to access the custom object
+	list.selected.listZID will give the list id in the tree hierarchy
+	list.tree.getData(list.selected.listZID).obj.text would get the text of the button - or just use list.currentValue
 currentValue - gets or sets the current value - in setting, it matches the first label that has the value anywhere in it
 text - gets or sets the current selected label text
 label - gets current selected label object
@@ -41436,7 +41523,7 @@ continuous - (default false) set to true to force nodes to only be made from the
 startIndex - (default null) set to a point index to force connectors to start at that node
 	all other nodes will have there noMouse() set - also see continous 
 duplicateLine - (default true) set to false to not allow multiple lines between the same connectors
-deleteNode - (default true) set to false to not allow nodes to be deleted by holding or doubleclicking and delete key
+deleteNode - (default true) set to false to not allow nodes to be deleted by holding or doubleclicking and delete or backspace key
 dblclick - (default true) set to false to not allow nodes to be selected by doubleclicking
 	selected nodes can be moved together
 	selecting a node selects its children unless the ctrl key is held at which point it will not select children
@@ -41866,7 +41953,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (!zot(startIndex)) that.setAvailableIndexes(startIndex);
 
 		that.keyEvent = function (e) {
-			if (deleteNode && e.keyCode == 46) { // delete
+			if (deleteNode && (e.keyCode == 46 || e.key == "Backspace")) { // delete
 				zim.loop(selectedList, function (obj) {
 					if (obj && obj.parent) removeNode(obj);
 				});
@@ -44272,6 +44359,7 @@ wrap - (default true) set to false to stop the textarea from wrapping (css white
 maxLength - (default null) set to a number to limit the number of characters in the textarea
 frame - (default the zdf) a reference to the Frame (to scale and position the HTML tag)
 expand - (default 20) hit area around background to count as a press on TextArea - handy for dragging as HTML tag area will override mouse on canvas
+keyboardShift - (default false) set to true to lift stage at least 1/4 height or up to textArea y/2 to raise textArea above keyboard
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -47522,6 +47610,7 @@ RETURNS obj for chaining
 
 		if (zot(obj) || !obj.on) return;
 
+		
 		var DA = zim.DRAGALL;
 		if (WW.DRAGALL != null) DA = WW.DRAGALL;
 		if (zot(all) && zot(currentTarget)) all = DA;
@@ -55296,6 +55385,11 @@ RETURNS target for chaining
 		checkTIME(totalTime, timeType, 40);
 		if (!zot(totalTime)) target.wiggleTimeout = setTimeout(function() {
 			target.stopAnimate(id);
+			if (endOnStart) {
+				var obj = {};
+				obj[property]=zim.Pick.choose(baseAmount);
+				zim.animate({target:target, obj:obj, time:0});
+			}
 			target.dispatchEvent("wigglestop");
 		}, totalTime*(timeType=="s"?1000:1));
 
@@ -78829,21 +78923,22 @@ EXAMPLE
 // ****** note, the app must be interacted with before sound can play
 const synth = new Synth();
 new Button({label:"START"}).center().tap(()=>{
-	synth.play(...[,0,-1500,.3,.3,1.15,,1.01,2.37,-7.65,1100,.05,2,,-0.1,.07,5e-4]); // magical arrival
+	synth.play(0,...[,0,-1500,.3,.3,1.15,,1.01,2.37,-7.65,1100,.05,2,,-0.1,.07,5e-4]); // magical arrival
 });
 // This code came from here: https://zzfx.3d2k.com
 // Note - it will have zzfx() and you want synth.play() - so copy what is in the brackets.
-// zzfx(...[,0,-1500,.3,.3,1.15,,1.01,2.37,-7.65,1100,.05,2,,-0.1,.07,5e-4]);
+// **** - but put a 0 for the pan before their arguments (or a number from -1 to 1 for pan)
+// zzfx(0,...[,0,-1500,.3,.3,1.15,,1.01,2.37,-7.65,1100,.05,2,,-0.1,.07,5e-4]);
 
 // Note - above is ES6 - otherwise in ES5:
-synth.play(null,0,-1500,.3,.3,1.15,null,1.01,2.37,-7.65,1100,.05,2,null,-0.1,.07,5e-4); // magical arrival
+synth.play(0,null,0,-1500,.3,.3,1.15,null,1.01,2.37,-7.65,1100,.05,2,null,-0.1,.07,5e-4); // magical arrival
 END EXAMPLE
 
 EXAMPLE
 // play() example with event for complete
 const synth = new Synth();
 const circle = new Circle(50,blue).center().tap(function () {
-	var synthSound = synth.play(...[,,229,.04,.04,.47,,.84,7.85,,,,,.2,,.05]);
+	var synthSound = synth.play(0,...[,,229,.04,.04,.47,,.84,7.85,,,,,.2,,.05]);
 	synthSound.on("complete", ()=>{
 		circle.removeFrom();
 		S.update();
