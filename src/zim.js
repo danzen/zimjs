@@ -9107,12 +9107,23 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				d+=that.borderWidth?that.borderWidth*2:0;
 			}
 			if (zot(margin)) margin = 0;
-			that.cjsContainer_cache(a-margin,b-margin,c+margin*2,d+margin*2,scale,options,rtl,willReadFrequently);		
+
+			that.cjsContainer_cache(a-margin,b-margin,c+margin*2,d+margin*2,scale,options,rtl,willReadFrequently);
 			
+			// if (bounds && options && options.adjustBounds && (a!=bounds.x || b!=bounds.y || c!=bounds.width || d!=bounds.height)) {  
+			// 	zog("015")                  
+            //     that.setBounds(a, b, c, d);
+            //     that.reg(a,b);
+            //     that.hitArea = new zim.Shape().f(black).dr(a-margin,b-margin,c+margin*2,d+margin*2);                
+            // }		
+		
 			if (bounds && ((that.width == 0 && c > 0) || (options && options.adjustBounds))) {   
-                that.setBounds(a, b, c, d);				
-				if (a!=bounds.x || b!=bounds.y || c!=bounds.width || d!=bounds.height) that.reg(a,b);
-                that.hitArea = new zim.Shape().f(black).dr(a-margin,b-margin,c+margin*2,d+margin*2);                
+				var oW = that.width;
+                that.setBounds(a, b, c, d);	
+				if (oW != 0) {
+					if (a!=bounds.x || b!=bounds.y || c!=bounds.width || d!=bounds.height) that.reg(a,b);
+					that.hitArea = new zim.Shape().f(black).dr(a-margin,b-margin,c+margin*2,d+margin*2);        
+				}        
             }			
 			that.z_bc = that.canvas = that.cacheCanvas;
 			return that;
@@ -51029,9 +51040,9 @@ const physics = new Physics(0);
 // create physics objects using the addPhysics() method
 const circle = new Circle(50,blue,grey).center().addPhysics({bounciness:1.1});
 
-// make sure to centerReg() any rectangular objects
-const rect = new Rectangle(30,400).centerReg().pos(70).addPhysics(false); // static - do not move
-const tri = new Triangle(150,150,150,green,grey).center().pos(200).addPhysics({linear:10}); // does not slide easily
+// make sure to reg(CENTER) or centerReg() any rectangular objects
+const rect = new Rectangle(30,400).reg(CENTER).pos(70,0,LEFT,CENTER).addPhysics(false); // static - do not move
+const tri = new Triangle(150,150,150,green,grey).pos(200,0,LEFT,CENTER).addPhysics({linear:10}); // does not slide easily
 
 // turn on dragging
 physics.drag(); // note: to add a boundary use the borders parameter of Physics()
@@ -56388,7 +56399,10 @@ Older versions returned the mask shape - the mask shape can now be accessed by o
 		var m;
 		function apply() {
 			if (dynamic && (!stage || !mask.stage)) return obj;
-			if (m && m.dispose) m.dispose();
+			if (m) {				
+				if (m.dispose) m.dispose(); // will remove
+				else mask.removeChildAt(0);
+			}
 			m = null;			
 			obj.zimMask = mask.zimMask = m = mask.shape.clone();
 			zim.copyMatrix(m, mask);
@@ -70234,8 +70248,8 @@ EXAMPLE
 const physics = new Physics(0);
 const circle = new Circle(50,blue,grey).center().addPhysics({restitution:1.1}); // how bouncy
 // make sure to reg(CENTER) or centerReg() any rectangular objects
-const rect = new Rectangle(30,400).reg(CENTER).pos(70).addPhysics(false); // static - do not move
-const tri = new Triangle(150,150,150,green,grey).center().pos(200).addPhysics({linear:10});
+const rect = new Rectangle(30,400).reg(CENTER).pos(70,0,LEFT,CENTER).addPhysics(false); // static - do not move
+const tri = new Triangle(150,150,150,green,grey).pos(200,0,LEFT,CENTER).addPhysics({linear:10}); // does not slide easily
 physics.drag(); // note: to add a boundary use the borders parameter of Physics()
 // test to see if circle hits rectangle
 // contact callback function receives ZIM object (and physics body as next param)
