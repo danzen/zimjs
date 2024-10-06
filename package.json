@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "16.4.6",
+  "version": "17.0.0",
   "type": "module",
   "main": "./src/zim.js",
   "types": "./ts-src/typings/zim",
@@ -40,7 +40,8 @@
     "Teach Coding",
     "VR",
     "XR",
-    "AR"
+    "AR",
+    "Rive"
   ],
   "author": "Dr Abstract - Dan Zen",
   "license": "ISC"

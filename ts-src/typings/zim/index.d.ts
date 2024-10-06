@@ -699,6 +699,8 @@ declare namespace zim {
 	export function appendPoints(original: [any], points: [any], controlType?: string): [any]
 	export function prependPoints(original: [any], points: [any], controlType?: string): [any]
 	export function splitPoints(points: [any], index?: number, trimEnds?: boolean): [any]
+	export function outlineImage(image: DisplayObject, reverse?: boolean): [[any]]
+	export function simplifyPoints(points: [any], tolerance?:number, highestQuality?:boolean, reverse?:boolean, removeLast?:boolean): [[any]]
 	export function mobile(orientation?: boolean): string | boolean
 	export function vee(obj?: any): boolean
 	export function async(url: string, callback?: Function): void
@@ -2325,8 +2327,8 @@ declare namespace zim {
 		readonly bar: DisplayObject
 	}
 	export class Indicator extends Container implements zimComponent {
-		constructor(config_or_width?: number, height?: number, num?: number, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, backdropColor?: color, corner?: number | any[], indicatorType?: string, fill?: boolean, scale?: number, lightScale?: number, interactive?: boolean, shadowColor?: color, shadowBlur?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { width?: number, height?: number, num?: number, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, backdropColor?: color, corner?: number | any[], indicatorType?: string, fill?: boolean, scale?: number, lightScale?: number, interactive?: boolean, shadowColor?: color, shadowBlur?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_width?: number, height?: number, num?: number, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, backdropColor?: color, corner?: number | any[], indicatorType?: string|DisplayObject, selectedIndicatorType?: string|DisplayObject, fill?: boolean, scale?: number, lightScale?: number, interactive?: boolean, shadowColor?: color, shadowBlur?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { width?: number, height?: number, num?: number, foregroundColor?: color, backgroundColor?: color, borderColor?: color, borderWidth?: number, backdropColor?: color, corner?: number | any[], indicatorType?: string|DisplayObject, selectedIndicatorType?: string|DisplayObject, fill?: boolean, scale?: number, lightScale?: number, interactive?: boolean, shadowColor?: color, shadowBlur?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
@@ -2647,8 +2649,8 @@ declare namespace zim {
 		readonly font: List
 	}
 	export class Keyboard extends Container implements zimComponent {
-		constructor(config_or_labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, numPadScale?: number, numPadDraggable?: boolean, numPadOnly?: boolean, numPadAdvanced?: boolean, maxLength?: number, numbersOnly?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, numPadScale?: number, numPadDraggable?: boolean, numPadOnly?: boolean, numPadAdvanced?: boolean, maxLength?: number, numbersOnly?: boolean, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, placeShiftH?: number, placeShiftV?: number, placeScale?: number, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, numPadScale?: number, numPadDraggable?: boolean, numPadOnly?: boolean, numPadAdvanced?: boolean, maxLength?: number, numbersOnly?: boolean, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { labels?: Label[] | Label, backgroundColor?: color, color?: color, shiftBackgroundColor?: color, shiftHoldBackgroundColor?: color, placeBackgroundColor?: color, placeColor?: color, cursorColor?: color, shadeAlpha?: number, borderColor?: color, borderWidth?: number, margin?: number, corner?: number | any[], draggable?: boolean, placeClose?: boolean, shadowColor?: color, shadowBlur?: number, container?: Container, data?: [any], place?: boolean, placeShiftH?: number, placeShiftV?: number, placeScale?: number, special?: string, rtl?: boolean, hardKeyboard?: boolean, layout?: string, numPadScale?: number, numPadDraggable?: boolean, numPadOnly?: boolean, numPadAdvanced?: boolean, maxLength?: number, numbersOnly?: boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
@@ -3929,6 +3931,54 @@ declare namespace zim {
 		pause(state?: boolean): this
 		pause(state?: boolean): this
 	}
+    export class Rive {
+        constructor(config_or_width?:number, height?:number, src?:string, stateMachines?:string, artboard?:string, animations?:string|[string], autoplay?:boolean, layout?:{}, buffer?:ArrayBuffer, file?:string, useOffscreenRenderer?:boolean, enableRiveAssetCDN?:boolean, shouldDisableRiveListeners?:boolean, isTouchScrollEnabled?:boolean, automaticallyHandleEvents?:boolean, onLoad?:Function, onLoadError?:Function, onPlay?:Function, onPause?:Function, onStop?:Function, onLoop?:Function, onStateChange?:Function, onAdvance?:Function, assetLoader?:Function, canvas?:HTMLCanvasElement)
+		constructor(config: {width?:number, height?:number, src?:string, stateMachines?:string, artboard?:string, animations?:string|[string], autoplay?:boolean, layout?:{}, buffer?:ArrayBuffer, file?:string, useOffscreenRenderer?:boolean, enableRiveAssetCDN?:boolean, shouldDisableRiveListeners?:boolean, isTouchScrollEnabled?:boolean, automaticallyHandleEvents?:boolean, onLoad?:Function, onLoadError?:Function, onPlay?:Function, onPause?:Function, onStop?:Function, onLoop?:Function, onStateChange?:Function, onAdvance?:Function, assetLoader?:Function, canvas?:HTMLCanvasElement })
+        play(names?:string|[string], autoplay?:boolean): void
+        pause(names?:string|[string]): void
+        stop(names?:string|[string]): void
+        scrub(animationNames?:string|[string], time?:number): void
+        reset(params?:{}): void
+        on(): Function
+        off(eventType:string, callback:Function): void
+        removeAllEventListeners(): void
+        stateMachineInputs(): void
+        dispose(): void
+        type: string
+        display: string
+        canvas: Bitmap
+        content: string
+        source: string
+        activeArtboard: string
+        animationNames: [string]
+        stateMachineNames: [string]
+        playingAnimationNames: [string]
+        playingStateMachineNames: [string]
+        pausedAnimationNames: [string]
+        pausedStateMachineNames: [string]
+        isPlaying: boolean
+        isPaused: boolean
+        isStopped: boolean
+        bounds: {}
+        layout: any
+    }
+    export class RiveListener {
+        constructor(src:string, damp?:number, canvas?:HTMLCanvasElement, wasm?:string)
+        dispose(): void
+        type: string
+        display: Bitmap
+        canvas: HTMLCanvasElement
+        rive: any
+        renderer: any
+        file: string
+        artboards: [string]
+        animations: [string]
+        stateMachines: [string]
+        input: any
+        pauseMove: boolean
+        pauseDown: boolean
+        pauseUp: boolean
+    }
 	export var THEME: { name?: string, lightenRatio?: number, tint?: color, tintRatio?: number, exclude?: color | [color] }
 	export class Theme {
 		constructor()
