@@ -5317,7 +5317,7 @@ zog(decimals(1.8345, 2)); // 1.83
 zog(decimals(123,-1)); // 120
 zog(decimals(2.3,null,2)); // 2.30
 zog(decimals(3,null,null,2)); // 03
-zog(decimals(.12,2,2,1,null,true)); // 0:12
+zog(decimals(12/60,2,2,1,null,true)); // 0:12
 END EXAMPLE
 
 PARAMETERS
@@ -5327,6 +5327,7 @@ addZeros - (default 0) set to number of places to fill in zeros after decimal (a
 addZerosBefore - (default 1) set to number of places to fill in zeros before decimal (and return String)
 includeZero - (default true) set to false to always have zero just be 0 without any extra zeros
 time - (default false) a swap of : for . to handle minutes and seconds (not hours)
+	take time in seconds and divide by 60 and pass that in for num
 
 RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 --*///+13
@@ -10468,6 +10469,7 @@ width - gets or sets the width. Setting the width will scale the height to keep 
 height - gets or sets the height. Setting the height will scale the width to keep proportion (see heightOnly below)
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
+cacheScale - get the requested scale parameter or if cached, the cache scale
 draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
 depth - for ZIM VR - the depth used to shift left and right channel and for parallax in VR - also see dep() ZIM Display method
@@ -10520,7 +10522,9 @@ zim.Bitmap = function(image, width, height, left, top, scale, style, group, inhe
 	
 	var that = this;
 	this.type = "Bitmap";	
-	if (!zot(width) && !zot(height)) this.setBounds(0,0,width,height);
+	if (!zot(width) && !zot(height)) this.setBounds(0,0,width*scale,height*scale);
+
+	this.cacheScale = scale;
 	
 	this.drawImageData = function(x, y, sourceX, sourceY, sourceWidth, sourceHeight) {
 		if (zot(x)) x = 0;
@@ -10607,6 +10611,7 @@ zim.Bitmap = function(image, width, height, left, top, scale, style, group, inhe
 		var sig = "a,b,c,d,scale,options,rtl,willReadFrequently";
 		var duo; if (duo = zob(that.cache, arguments, sig)) return duo;
 		var bounds;
+		that.cacheScale = scale;
 		if (zot(c)) {
 			if (zot(a)) {
 				bounds = this.getBounds();
@@ -27138,7 +27143,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		});
 		var titleBarLabel = that.titleBarLabel = t;
 		if (zot(tBarBackgroundColor)) tBarBackgroundColor = "rgba(0,0,0,.2)";
-		that.titleBar = titleBar = new zim.Container(width, titleBarHeight, null, null, false).loc(0,0,that);
+		that.titleBar = titleBar = new zim.Container(width, titleBarHeight, null, null, false).loc(0,-borderWidth/2,that);
 		var titleBarRect = that.titleBar.backing = new zim.Rectangle(width+borderWidth, titleBarHeight, tBarBackgroundColor, null, null, [corner[0]*.95, corner[1]*.95, 0, 0], true, null, null, false).center(titleBar);
 		if (titleBar) positionBar();
 		that.label = t;
@@ -30810,7 +30815,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 					that.stage.update();
 				}
 			}
-			if (placeholderInstant &&  that.placeholderLabel.parent) {
+			if (placeholderInstant && that.placeholderLabel.parent) {
 				that.placeholderLabel.removeFrom();			
 				if (that.stage) that.stage.update();
 			}
@@ -31235,7 +31240,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 			var paddingH = this.backing || this.background ? this.paddingH : 0;
 			var paddingV = this.backing || this.background ? this.paddingV : 0;
 			
-			if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd) {				
+			if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd || le == 0) {		
 				var startX, endX;
 				if (rtl) {
 					startX = this.textWidthArray[le-this.hiddenInput.selectionStart]
@@ -31255,8 +31260,10 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 			}
 			this.blinker.heightOnly = this.textHeight;
 			var xIdx = this.hiddenInput.selectionDirection === "backward" ? this.hiddenInput.selectionStart : this.hiddenInput.selectionEnd;
-			if (!xIdx) xIdx = 0; // ZIM NFT 00 Patch                
+			// if (!xIdx) xIdx = 0; // ZIM NFT 00 Patch                
+			if (xIdx==null) xIdx = le; // ZIM 017 Patch                
 			if (rtl) xIdx = le-xIdx; 
+			
 			this.blinker.pos(this.textWidthArray[xIdx] + paddingH - 1 + ((align=="right" && this.text == "")?this.width:(align=="center" && this.text == "")?this.width/2:0) + shiftH, paddingV+shiftV);
 			this.dispatchEvent("blinker");
 		}
@@ -32985,6 +32992,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				target.zgb = target.boundsToGlobal();
 				target.zgs = target.getConcatenatedDisplayProps().matrix.decompose().scaleX/frame.stage.scaleX;
 			});
+			return that;
 		}
 
 		Object.defineProperty(that, 'dropTargets', {
@@ -34523,7 +34531,7 @@ expandBarVertical - (default 0 or 20 for horizontal) set to value to expand the 
 useLabels - (default false) - add Labels to ticks if useTicks is true - can apply STYLE 
 labelMargin - (default 20) - distance from ticks to Label if useLabels is true
 labelColor - (default 20) - distance from ticks to Label if useLabels is true
-range - (default null) make the slider a range slider with two circle buttons
+range - (default false) set to true to change to a range slider with two circle buttons
 	this will provide read and write rangeMin, rangeMax and rangeAve values instead of value 
 	also will provide a read only rangeAmount 
 	rangeBar, rangeSliderA, rangeSliderB, rangeButtonA and rangeButtonB properties will be added
@@ -59713,7 +59721,7 @@ transition - (default "none") the type of transition "none", "reveal", "slide", 
 	NOTE: if using pages that are smaller than the stage, use a Rectangle() as the holder 
 		and the transition effects will be automatically masked by the rectangle. 
 speed - (default .2) speed in seconds of the transition if set (see also ZIM TIME constant)
-transitionTable - (default none) an array to override general transitions with following format:
+transitionTable - (default "none") an array to override general transitions with following format:
 	[[fromPage, toPage, "transition", seconds(optional)], etc.]
 holder - (default the default stage) where are we putting the pages (used for setting transition properties)
 	If using pages that are smaller than the stage 
@@ -60512,6 +60520,7 @@ Additional "mousedown", "click" or other button events can be added if desired
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("Arrow", this.group, inherit);
 							
+		if (zot(pages)) pages = DS.pages!=null?DS.pages:null;
 		if (zot(direction)) direction = DS.direction!=null?DS.direction:"right";
 		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:zim.blue;
 		this.arrowBackgroundColor = backgroundColor;
@@ -62850,8 +62859,8 @@ note: the item is not the event object target - as that is the tile
 		if (!zot(width)) colSize = null; // width and height override sizes
 		if (!zot(height)) rowSize = null;
 
-		if (zot(spacingH)) spacingH = DS.spacingH!=null?DS.spacingH:defaultFlag?3:null;
-		if (zot(spacingV)) spacingV = DS.spacingV!=null?DS.spacingV:defaultFlag?3:null;
+		if (zot(spacingH)) spacingH = DS.spacingH!=null?DS.spacingH:null;
+		if (zot(spacingV)) spacingV = DS.spacingV!=null?DS.spacingV:null;
 		var spacingHO = spacingH;
 		var spacingVO = spacingV;
 		if (zot(spacingH) || !zot(colSize) || !zot(width)) spacingH = 0; // sizes override spacing
@@ -70718,7 +70727,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			if (target.type == "Pen") target.write = false;
 			mouseEvent = stage.on("stagemousedown", function(e) {
 				var pp;
-				// if (target.type == "Pen" || type == "pressmove") {
+				if (target.type == "Pen" && target.draggingCheck) zogb();
 				var con;
 				if (!mouseOutside && that.boundary && !that.boundary.type=="Blob") con = that.boundary;
 				else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
@@ -70873,7 +70882,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		function moveMe() {
 			var p = container.globalToLocal(that.moveX, that.moveY);
 			that.x = p.x; that.y = p.y;
-			calculate();
+			calculate();			
 			if (target.type == "Pen" && !moveCheck && target.drawing) moveCheck = true;
 		}		
 
@@ -70957,6 +70966,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		var lastDirY=0;
 
 		var mainTicker = zim.Ticker.add(function() {	
+			if (target.draggingCheck) return;
 			if (type == "manual") calculate();
 			if (that.boundary && that.boundary.type!="Blob") {				
 				that.x = zim.constrain(that.x, that.boundary.x, that.boundary.x+that.boundary.width);
@@ -78981,6 +78991,49 @@ pen.animate({
 })
 END EXAMPLE
 
+EXAMPLE 
+// A Pen used on two different Pages with ZIM Pages
+// See https://zimjs.com/zapp/Z_VKB33
+
+const page1 = new Page(W,H,orange,red);
+page1.paper = new Container(W,H).addTo(page1);
+const page2 = new Page(W,H,pink,purple);
+page2.paper = new Container(W,H).addTo(page2);
+
+const pages = new Pages([page1, page2]).addTo();
+pages.active = false; // so drawing does not accidentally swipe pages
+
+STYLE = {
+	Arrow: {
+		type:"angle",
+		pages:pages, 
+		direction:series(RIGHT, LEFT),
+		trans:"fan",
+		rotation:series(0,180)
+	}
+}
+const next = new Arrow().pos(50,50,RIGHT,BOTTOM);
+const prev = new Arrow().pos(50,50,LEFT,BOTTOM);
+
+const pen = new Pen({
+    paper:page1.paper,
+    size:20,
+    color:series(white,black)
+}).addTo();
+
+// switch papers
+pages.on("page", ()=>{
+	pen.paper = pages.page.paper;
+});
+
+new MotionController({
+	target:pen,
+	type:"pressmove",
+	speed:40,
+	mousedownIncludes:[pages] // so will track mouse on pages
+});
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
@@ -79041,12 +79094,8 @@ saveState(obj, startLayer, endLayer) - record an undo state for the paper or a l
 	startLayer and endLayer are for if the layer level of the shape changes
 undo() - go back one undo state (called automatically by CTRL Z if undoKeys is true - default)
 redo() - go forward one undo state (called automatically by CTRL Y or CTRL SHIFT Z if undoKeys is true - default)
-delete(index) - delete a line segment at a given index (actually sets its alpha to 0 to maintain layers on undo)
-	use: pen.paper.on("mousedown", function (e) {
-		pen.delete(paper.getChildIndex(e.target)); // for instance
-	})
 deleteSegment(object) - delete a line segment object
-	use: pen.paper.on("mousedown", function (e) {
+	use: pen.paper.on("mousedown", e => {
 		pen.deleteSegment(e.target); // for instance
 	})
 clone() - clone the pen (note there is no exact clone)
@@ -79709,6 +79758,7 @@ dispatches an "undo" and a "redo" whenever undo and redo happens
 						});
 						paper.drag({onTop:onTop});
 						paper.on("pressup", function (e) {
+							that.draggingCheck = false;
 							if (deleteable && that.shiftKey) return;
 							// if (e.target.alpha == 0) return;
 							if (e.target.visible == false) return;
@@ -82523,6 +82573,18 @@ EXAMPLE
 new Pane({content:"START", keyboardAccess:true}).show(); 
 END EXAMPLE
 
+EXAMPLE
+// dynamically adjusting touch - there are also touch and singleTouch parameters of Frame
+// also, drag() has its own singleTouch parameter 
+const radio = new RadioButtons(30, ["MULTI TOUCH", "SINGLE TOUCH", "NO TOUCH"]).center().mov(0,-200).change(()=>{
+	if (radio.text.includes("MULTI")) F.singleTouch = false;
+	else if (radio.text.includes("SINGLE")) F.singleTouch = true;
+	else F.touch = false;
+});
+new Circle(50,white,red,5).center().mov(-100,50).drag();
+new Circle(50,white,purple,5).center().mov(100,50).drag();
+END EXAMPLE
+
 PARAMETERS supports DUO - parameters or single object with properties below
 scaling - (default FULL) can have values as follows 
 Note: as of ZIM Cat 04, the constant FIT or the string "fit", etc. can be used
@@ -82571,7 +82633,9 @@ ticker - (default null) - an optional callback function to be added to the ZIM T
 progress - (default null) - set to a Waiter() or ProgressBar() object to show while loading
 rollover - (default true or false on mobile) activates rollovers
 touch - (default true) activates touch on mobile - this will be multitouch by default 
-	set to false for no touch on mobile - also see singleTouch parameter to set singleTouch 
+	set to false for no touch on mobile
+	also see singleTouch parameter to set singleTouch
+	also see touch and singleTouch properties
 scrollTop - (default false) activates scrolling on older apple devices to hide the url bar
 align - (default CENTER) for FIT and FILL, the horizontal alignment LEFT, CENTER, RIGHT
 valign - (default CENTER) for FIT and FILL, the vertical alignment TOP, CENTER, BOTTOM
@@ -82620,6 +82684,7 @@ maxNum - for sound this is how many instances of the sound can play at once
 	also see sound interrupt parameter
 singleTouch - set to true for single touch rather than the default multitouch (or touch false)
 	this will override the touch setting to turn touch to true
+	also see touch and singleTouch properties
 
 METHODS
 loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, crossOrigin, fileType, queueOnly, maxConnections, maxNum)  |ZIM DUO| also accepts ZIM DUO configuration object as single parameter
@@ -82903,6 +82968,11 @@ zil - reference to zil events that stop canvas from shifting or scrolling - also
 	can set allowDefault property to false then allow specific defaults by removing zil events - see zil global function
 	example: window.removeEventListener("keydown", F.zil[0]); removes keydown preventions (for page up, page down, home, end, etc)
 allowDefault - set to true to remove zil or false to set zil (see above) also affects body overflow
+touch - get or set the touch setting - setting to false will not allow touch on mobile
+	also see touch and singleTouch parameters and singleTouch property 
+singleTouch - get or set the singleTouch setting - set to true to turn on single touch and false to turn on multitouch
+	setting either true or false will set the touch property to true
+	also see the touch and singleTouch parameters and touch property
 followBoundary - update with a ZIM Boundary for follow() if "full" mode Frame "resize" event happens, etc.
 altKey - true if the alt key is being pressed otherwise false
 ctrlKey - true if the ctrl key is being pressed otherwise false
@@ -84475,6 +84545,31 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			}
 			allowDefault = t;
 			if (stage.__touch) stage.__touch.preventDefault = !allowDefault;
+		}
+	});
+
+	Object.defineProperty(that, 'touch', {
+		get: function() {
+			return touch;
+		},
+		set: function(value) {
+			touch = value;
+			createjs.Touch.disable(that.stage);			
+			if (touch) {				
+				createjs.Touch.enable(that.stage, singleTouch); // true for single touch, false for multitouch
+			}			
+		}
+	});
+
+	Object.defineProperty(that, 'singleTouch', {
+		get: function() {
+			return singleTouch;
+		},
+		set: function(value) {
+			singleTouch = value;
+			touch = true;
+			createjs.Touch.disable(that.stage);		
+			createjs.Touch.enable(that.stage, singleTouch); // true for single touch, false for multitouch						
 		}
 	});
 
@@ -89312,7 +89407,7 @@ but usually, just pass the callback as the first parameter
 			tile.center(pane);	
 		}
 					
-		if (M && !( WW.matchMedia('(display-mode: standalone)').matches || (WW.navigator.standalone) || document.referrer.includes('android-app://') )) {		
+		if (M && !( WW.matchMedia('(display-mode: fullscreen)').matches ||  WW.matchMedia('(display-mode: standalone)').matches || (WW.navigator.fullscreen) || (WW.navigator.standalone) || document.referrer.includes('android-app://') )) {		
 			showMessage();
 		} else {
 			if (call && call.constructor === Function) call();

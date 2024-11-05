@@ -34,6 +34,7 @@ declare global {
 	var yellow: string
 	var purple: string
 	var red: string
+	var salmon: string
 	var interstellar: string
 	var black: string
 	var darker: string
@@ -1387,6 +1388,7 @@ declare namespace zim {
 		height: number
 		widthOnly: number
 		heightOnly: number
+        cacheScale: number
 		marginLeft: number
 		marginRight: number
 		marginTop: number
@@ -3772,28 +3774,12 @@ declare namespace zim {
 		visibleRight: number
 		visibleBottom: number
 		cursors: {}
+        allowDefault: boolean 
+        touch: boolean 
+        singleTouch: boolean
 		readonly cursorList: Dictionary
 		readonly cursorObj: DisplayObject
 		zil: Function[]
-		readonly orange: string
-		readonly green: string
-		readonly pink: string
-		readonly blue: string
-		readonly brown: string
-		readonly yellow: string
-		readonly red: string
-		readonly purple: string
-		readonly silver: string
-		readonly tin: string
-		readonly grey: string
-		readonly lighter: string
-		readonly light: string
-		readonly dark: string
-		readonly darker: string
-		readonly white: string
-		readonly black: string
-		readonly clear: string
-		readonly faint: string
 		altKey: boolean
 		ctrlKey: boolean
 		metaKey: boolean
