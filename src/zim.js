@@ -74936,46 +74936,45 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.setMask(that.backing);                   
 				peel.addTo(that);
 				peel.c().f(zim.black).dr(0,0,0,0);
-				that.moving = false;
+				that.moving = false;			
 													
 				// backwards                    
 				if (pages[num-1]) {
-					leftPage = pages[num-1].reg(0,0).rot(0).loc(0,0,that);
+					leftPage = pages[num-1].reg(0,0).rot(0).loc(0,0,that).setMask(null);
 				} else if (num > 0) {                        
 					lastPage.reg(0,0).rot(0).loc(0,0,that).setMask(null);
 				}     
 
 				if (pages[num-2]) {
-					pageFore = pages[num-2].reg(width/2,height).loc(0,height,that).rot(-90);
+					pageFore = pages[num-2].reg(width/2,height).loc(0,height,that).rot(-90).setMask(null);
 				} else {
-					pageFore = new zim.Rectangle(width/2,height,backgroundColor).reg(width/2,height).loc(0,height,that).rot(-90);
+					pageFore = new zim.Rectangle(width/2,height,backgroundColor).reg(width/2,height).loc(0,height,that).rot(-90).setMask(null);
 				}
 				if (pages[num-3]) {
-					pagePrev = pages[num-3].rot(0).loc(0,0,that).setMask(peel);  
+					pagePrev = pages[num-3].reg(0,0).rot(0).loc(0,0,that).setMask(peel); 
 				} else {
-					pagePrev = new zim.Rectangle(width/2,height,backgroundColor).loc(0,0,that).setMask(peel);  
+					pagePrev = new zim.Rectangle(width/2,height,backgroundColor).reg(0,0).rot(0).loc(0,0,that).setMask(peel);  
 				}     
 					
 				// forewards
 				if (pages[num]) {
-					rightPage = pages[num].rot(0).reg(0,0).pos(0,0,zim.RIGHT,zim.TOP,that); 
+					rightPage = pages[num].rot(0).reg(0,0).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(null); 
 				} else {
 					// need to make a first or last page here
 					stage.update();
 					return;
 				}                                     
 				if (pages[num+1]) {
-					pageBack = that.backNext = pages[num+1].reg(0,height).loc(width,height,that).rot(90);
+					pageBack = that.backNext = pages[num+1].reg(0,height).loc(width,height,that).rot(90).setMask(null);
 				} else {
-					pageBack = that.backNext = new zim.Rectangle(width/2,height,backgroundColor).reg(0,height).loc(width,height,that).rot(90);
+					pageBack = that.backNext = new zim.Rectangle(width/2,height,backgroundColor).reg(0,height).loc(width,height,that).rot(90).setMask(null);
 					lastPage = pageBack;
 				}
 				if (pages[num+2]) {
-					pageNext = that.backPrev = pages[num+2].rot(0).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
+					pageNext = that.backPrev = pages[num+2].reg(0,0).rot(0).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
 				} else {
-					pageNext = that.backPrev = new zim.Rectangle(width/2,height,backgroundColor).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
-				}                
-				stage.update();                                                       
+					pageNext = that.backPrev = new zim.Rectangle(width/2,height,backgroundColor).reg(0,0).rot(0).pos(0,0,zim.RIGHT,zim.TOP,that).setMask(peel);  
+				} 			                                                      
 			} 
 			toPage(startPage); 
 			
@@ -74984,17 +74983,30 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					return that._currentPage;
 				},
 				set: function(num) {
-					offHTML();
+					offHTML();					
 					if (startPage%2==1) {
-						num = Math.ceil(num/2)*2-1
+						num = Math.floor(num/2)*2+1
 					} else {
 						num = Math.ceil(num/2)*2
 					}
-					if (num==that.page) return;	
-					else if (num>that.page) { 
+					num = zim.constrain(num, 0, that.pages.length-1);
+					
+					that.currentW = 0;
+					that.currentH = 0;
+					that.lastPage = zim.constrain(that._currentPage);
+
+					if (num==that.page) return;				
+
+					else if (num>that.page) {
+						that.direction = "right";	
+						that.pageNext = pageNext.zimBookIndex;
+
 						pageBack.reg(0,0);   
 						pageNext.setMask(null); 						  
-					} else { 
+					} else { 			
+						that.direction = "left";
+						that.pageNext = pageFore.zimBookIndex;
+
 						pageFore.reg(0,0);   
 						pagePrev.setMask(null);    
 					}
@@ -75196,7 +75208,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					call:function () {
 						zim.Ticker.remove(ticker);   
 						pageBack.reg(0,0);   
-						pageNext.setMask(null); 
+						pageNext.setMask(null); 	
 						toPage(that._currentPage+2); 
 						that.moving = false; 
 						turningCheck = false; 
@@ -75250,7 +75262,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						that.dispatchEvent("page");            
 					}
 				});
-				var ticker = zim.Ticker.add(function() {                        
+				var ticker = zim.Ticker.add(function() { 
 					peel
 						.c()
 						.mt(0, height)
@@ -75299,7 +75311,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (zot(that.rollUp)) {setTimeout(function () {that.prevPage(speed);}, 10); return that;}
 			if (that.moving) return;			
 			that.rollUp(width/2+.1, height+.1, "left", speed, "quadIn"); 
-		}		
+		}				
 		that.gotoPage = function(num, speed) {
 			if (zot(that.rollUp)) {setTimeout(function () {that.gotoPage(num, speed);}, 10); return that;}
 			num = zim.constrain(num, 0, that.pages.length-1);
