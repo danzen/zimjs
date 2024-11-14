@@ -9457,7 +9457,7 @@ normalize(prop, from, from2, min, max, factor, clamp) - sets a ratio property (1
 		setting normalize("reg", CENTER) will do both horizontal and vertical to the container dimensions.
 		If this is not desired, use container.loop(item=>{item.reg(item._orX, item._orY, true)}); 
 		to set the registration point back but still keep the ratio property 
-	USAGE: the ratio property can be used by animate() with sequenceRate to set the rate of an animation based on ratio 
+	USAGE: the ratio property can be used by animate() with sequenceRatio to set the rate of an animation based on ratio 
 		Or the ratio property can be used directly - for instance, to set a scale based on a distance from somewhere 
 		Or as another example, set the alpha based on the rotation of a shape in the container    
 specialColor(colorCommand, colorObject) - used internally by ZIM Shapes
@@ -9487,8 +9487,8 @@ height - gets or sets the height. Setting the height will scale the width to kee
 widthOnly - gets or sets the width.  This sets only the width and may change the aspect ratio of the object
 heightOnly - gets or sets the height.  This sets only the height and may change the aspect ratio of the object
 ratio - get a ratio set by the Container normalize method() - or Tile itemRegX, itemRegY parameters
-    this will probably be a value from 1 to 0 as to how close the property is the end specified in the from parameter of normalize()
-    a value of 1 is the closest and a value of 0 is the farthest - see the normalize() method for details
+	this will probably be a value from 1 to 0 as to how close the property is the end specified in the from parameter of normalize()
+	a value of 1 is the closest and a value of 0 is the farthest - see the normalize() method for details
 normalized - get if the container has been normalized - see normalized parameter
 draggable - set to true for a default drag() and false for a noDrag()
 level - gets or sets the level of the object in its parent container (or the stage) - a property for parent.getChildIndex() and parent.setChildIndex()
@@ -14317,15 +14317,15 @@ dashed - (default false) set to true for dashed border (if borderWidth or border
 percent - (default 100) set to a percentage of a circle (arc) - registration stays at radius center, bounds shrink to arc
 percentClose - (default true) set to false to not close the border of a circle with percent set
 percentArc - (default false) set to a percent to make moon shapes - must have percent turned on
-    the value is the distance the arc-making circle is placed from the original circle's edge
-    this distance is given as a percentage of the original circle's radius
-    so if percentArc is set to 0 then the arc-making circle is at the radius (the edge) of the original circle
-    if the percentArc is set to 50 then the arc-making circle is half the radius outside the original radius and the arc is less
-    if the percentArc is set to -50 then the arc-making circle is half the radius inside the original radius and the arc is more
-        Note, due to canvas winding, the arc will not do very thin cresents as expected 
-        instead once the inner arc is as wide as the outer arc,  it makes a straight line
-        for thin crecents, overlap the circle with a circle that matches the background color
-        or if the background is an image, etc. then mask a clone of the background with the arc circle
+	the value is the distance the arc-making circle is placed from the original circle's edge
+	this distance is given as a percentage of the original circle's radius
+	so if percentArc is set to 0 then the arc-making circle is at the radius (the edge) of the original circle
+	if the percentArc is set to 50 then the arc-making circle is half the radius outside the original radius and the arc is less
+	if the percentArc is set to -50 then the arc-making circle is half the radius inside the original radius and the arc is more
+		Note, due to canvas winding, the arc will not do very thin cresents as expected 
+		instead once the inner arc is as wide as the outer arc,  it makes a straight line
+		for thin crecents, overlap the circle with a circle that matches the background color
+		or if the background is an image, etc. then mask a clone of the background with the arc circle
 strokeObj - (default {caps:"butt", joints:"miter", miterLimit:10, ignoreScale:false}) set to adjust stroke properties
 	// note, not all applicable to a Circle - perhaps just ignoreScale...
 	caps options: "butt", "round", "square" or 0,1,2
@@ -14474,8 +14474,18 @@ zim.Circle = function(radius, color, borderColor, borderWidth, dashed, percent, 
 			var dY = Math.cos(p*Math.PI/180)*that._radius;            
 			if (!zot(percentArc)) {
 				var r2 = Math.sqrt(Math.pow(dX,2) + Math.pow((that._radius+dY)+percentArc/100*that._radius,2));
-				var a1 = Math.asin(dX/r2);
-				g.arc(0, that._radius+percentArc/100*that._radius, r2, (-90*zim.RAD+a1), (-90*zim.RAD-a1), true);          
+				if (percentArc >= 0) {
+					var a1 = Math.asin(dX/r2);
+					var y2 = that._radius+percentArc/100*that._radius;
+					var a2 = -90*zim.RAD+a1;
+					var a3 = -90*zim.RAD-a1;
+					g.arc(0, y2, r2, a2, a3, true);     
+				} else {
+					// var y3 = dY - Math.sqrt(Math.pow(r2, 2) - Math.pow(dX, 2));
+					// var a2 = Math.acos(dX/r2);
+					// var a3 = 180*RAD - a2;
+					// g.arc(0, y3, r2, a2, a3, false); 
+				}     
 			}      
 			if (percentClose) g.cp();
 			h = that._radius-dY;
@@ -20764,7 +20774,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (color.type) that.color = color;
 		function drawShape(lengths, angles, anglesA, anglesB, anglesEnd, cross, crossColors, close) {
 			that.removeAllChildren();
-
+			
 			var s = that.shape = new zim.Shape().addTo(that);
 			that.colorCommand = s.c().f(color).command;
 			if (color && color.type) that.specialColor(that.colorCommand, color, that);
@@ -28376,6 +28386,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			setTimeout(function(){
 				if (content) {
 					zim.drag({
+						singleTouch:true,
 						obj:content,
 						currentTarget:true,
 						axis:continuous,
@@ -30514,7 +30525,7 @@ text - |ZIM VEE| String for the the text of the label
 size - (default 36) the size of the font in pixels
 font - (default arial) the font or list of fonts for the text
 color - |ZIM VEE| (default dark) color of font 
-backgroundColor - |ZIM VEE| (default lighter) background color - set to -1 for no background
+backgroundColor - |ZIM VEE| (default lighter) background color - set to clear for no background
 borderColor - |ZIM VEE| (default null) the background stroke color
 borderWidth - (default null) thickness of the background border
 maxLength - (default null) set to limit the number of characters in the field
@@ -32680,8 +32691,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			});						
 		
 			that.dropDown = that.on("mousedown", function(e){
+				// if (downItem) return;
 				// make sure is item in list		
-				downItem = checkItem = e.target;		
+				downItem = checkItem = e.target;	
 				// e.target can be something in the item - or the item
 				// but custom List items are usually in a Container 
 				// so want to drag the item which is the child of the container that is in the List items
@@ -32779,32 +32791,36 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 								return; // next in loop
 							}					
 							if (target.vertical) {
-								if (ghost.x > target.zgb.x && ghost.x < target.zgb.x + target.zgb.width) {
-									if (ghost.y < target.zgb.y) { // carefull - need to do these separately to turn off diamond
-										if (ghost.y > target.zgbtarget.zgb.y - 50) scrollUp(target, dropScrollSpeed);
-										else if (ghost.y > target.zgbtarget.zgb.y - 80) scrollUp(target, dropScrollSpeed*1.5);
-										onCheck = true;
-									} else if (ghost.y > target.zgbtarget.zgb.y + target.zgbtarget.zgb.height) {
-										if (ghost.y < target.zgbtarget.zgb.y + target.zgbtarget.zgb.height + 50) scrollDown(target, dropScrollSpeed);
-										else if (ghost.y < target.zgbtarget.zgb.y + target.zgbtarget.zgb.height + 80) scrollDown(target, dropScrollSpeed*1.5);
-										onCheck = true;
-									} else if (target.scrollInt) target.scrollInt.clear();
-								} else {
-									if (target.scrollInt) target.scrollInt.clear();
+								if (target.scrollYMax > 0) {
+									if (ghost.x > target.zgb.x && ghost.x < target.zgb.x + target.zgb.width) {
+										if (ghost.y < target.zgb.y) { // carefull - need to do these separately to turn off diamond
+											if (ghost.y > target.zgbtarget.zgb.y - 50) scrollUp(target, dropScrollSpeed);
+											else if (ghost.y > target.zgbtarget.zgb.y - 80) scrollUp(target, dropScrollSpeed*1.5);
+											onCheck = true;
+										} else if (ghost.y > target.zgbtarget.zgb.y + target.zgbtarget.zgb.height) {
+											if (ghost.y < target.zgbtarget.zgb.y + target.zgbtarget.zgb.height + 50) scrollDown(target, dropScrollSpeed);
+											else if (ghost.y < target.zgbtarget.zgb.y + target.zgbtarget.zgb.height + 80) scrollDown(target, dropScrollSpeed*1.5);
+											onCheck = true;
+										} else if (target.scrollInt) target.scrollInt.clear();
+									} else {
+										if (target.scrollInt) target.scrollInt.clear();
+									}
 								}
 							} else {
-								if (ghost.y > target.zgb.y && ghost.y < target.zgb.y + target.zgb.height) {
-									if (ghost.x < target.zgb.x) {
-										if (ghost.x > target.zgb.x - 50) scrollUp(target, dropScrollSpeed);
-										else if (ghost.x > target.zgb.x - 80) scrollUp(target, dropScrollSpeed*1.5);
-										onCheck = true;
-									} else if (ghost.x > target.zgb.x + target.zgb.width) {
-										if (ghost.x < target.zgb.x + target.zgb.width + 50) scrollDown(target, dropScrollSpeed);
-										else if (ghost.x < target.zgb.x + target.zgb.width + 80) scrollDown(target, dropScrollSpeed*1.5);
-										onCheck = true;
-									} else if (target.scrollInt) target.scrollInt.clear();
-								} else {
-									if (target.scrollInt) target.scrollInt.clear();
+								if (target.scrollXMax > 0) {
+									if (ghost.y > target.zgb.y && ghost.y < target.zgb.y + target.zgb.height) {
+										if (ghost.x < target.zgb.x) {
+											if (ghost.x > target.zgb.x - 50) scrollUp(target, dropScrollSpeed);
+											else if (ghost.x > target.zgb.x - 80) scrollUp(target, dropScrollSpeed*1.5);
+											onCheck = true;
+										} else if (ghost.x > target.zgb.x + target.zgb.width) {
+											if (ghost.x < target.zgb.x + target.zgb.width + 50) scrollDown(target, dropScrollSpeed);
+											else if (ghost.x < target.zgb.x + target.zgb.width + 80) scrollDown(target, dropScrollSpeed*1.5);
+											onCheck = true;
+										} else if (target.scrollInt) target.scrollInt.clear();
+									} else {
+										if (target.scrollInt) target.scrollInt.clear();
+									}
 								}
 							}
 		
@@ -32907,9 +32923,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 					that.dispatchEvent("dropdown");
 		
-					frame.stage.on("stagemouseup", function(){
-						frame.stage.off("stagemousemove", that.dropStage);					
-	
+					// frame.on("mouseupplus", smu, null, true); // once - but does not work with touch
+					// that.pointerUpEvent = frame.on("pointerup", smu); // pointer does not have a once!
+					frame.stage.on("stagemouseup", smu, null, true); // once - seems to be working on iframes, etc.
+					function smu() {
+						frame.off("pointerup", that.pointerUpEvent)
+						frame.stage.off("stagemousemove", that.dropStage);		
+						
 						var empty = zim.loop(dropTargets, function(target) {
 							if (target.type != "List") return;
 							if (target.scrollInt) target.scrollInt.clear();
@@ -32923,33 +32943,36 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 								ghost.dispose();
 								downItem.alpha = itemAlpha;
 								ghost = null;
-								downPoint = null;
+								downPoint = null;	
 				
 								that.dropItem = downItem;
 								that.dropList = target;
 								that.dropNewIndex = target.dropReticleIndex;
 								target.dropReticleIndex = null;
-		
+								downItem = null;
+
 								return false; 
 							}
 						});
 		
 						if (empty) {
+							if (!downItem) return;
 							var point = downItem.localToGlobal(itemPoint.x, itemPoint.y);
 							ghost.animate({x:point.x, y:point.y}, .1, null, function() {
 								ghost.dispose();
 								downItem.alpha = itemAlpha;
 								ghost = null;
 								downPoint = null;
+								downItem = null;
 							})		
 							that.dropItem = downItem;
 							that.dropList = that;
 							that.dropNewIndex = that.dropIndex;	
 						}	
-
 						that.dispatchEvent("dropup");
+						
 
-					}, null, true); // once
+					}
 					downItem.alp(.5);
 				}
 			});			
@@ -53530,7 +53553,7 @@ sequenceCall - (default null) the function that will be called for each sequence
 	Note: the value of the sequenceCall parameter will be the object that just ended animation unless there is a sequenceParams value
 sequenceParams - (default null) a parameter sent to the sequenceCall function
 sequenceReverse - |ZIM VEE| (default false) set to true to sequence through container or array backwards
-sequenceRate - (default null) set to a value to adjust the rate based on item ratio property
+sequenceRatio - (default null) set to a value to adjust the rate based on item ratio property
     see https://zimjs.com/016/normalize.html
 	see Container() ratio property and normalize() method which give a ratio property.
 	This will automatically set sequence to 0 so that each item in the container (or tile) is animated individually
@@ -77265,11 +77288,11 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 					var shrinkMe = particle.emitShape?false:that.shrink;
 
 					var myLife = (container?container:particle).life = zik(that.life);
+					that.traceFadeTime = Math.min(myLife, that.traceFadeTime);
+					that.decayTime = Math.min(myLife, that.decayTime);
 
 					if (that.decayTime > 0 && (that.fade || shrinkMe || (that.trace && that.traceFadeTime > 0))) {
-						// zog(pool)		
 						if (that.trace && that.traceFadeTime > 0) {
-                            // zog("here")
 							container.animate({
 								obj:{alpha:0},
 								time:that.traceFadeTime,
@@ -83013,7 +83036,15 @@ EVENTS
 	also stores F.altKey, F.ctrlKey, F.metaKey, F.shiftKey
 	Note: Alt ArrowLeft and Alt ArrowRight has been set to go back or forward in the browser history
 "keyup" - fired on keyup - just like the window keyup event with eventObject.keyCode, etc.
+"pointerdown", "pointermove", "pointerup", "pointerenter", "pointerleave" - mirrors DOM Pointer Events 
+	Note: the event object is a raw JavaScript event object, not a CreateJS event object
+	so there is no clear() on the event object nor a once parameter for the on() method, instead use:  
+		const ev = F.on("pointerdown", ()=>{
+			F.off("pointerdown", ev);
+			// this will only run once
+		}); 
 "mouseupplus" - fired when the browser window receives a mouseup event 
+	NOTE: deprecated - would suggest using pointerup instead of this
 	also fired when the mouse enters the stage from an iFrame and is no longer down.
 	Note there is no eventObject.
 	ALSO see mouseupplusonly for only firing as mouse enters the stage from an iFrame and is no longer down.
@@ -83026,6 +83057,7 @@ EVENTS
 	This will call the up function as the mouse comes back onto the stage 
 	if the mouse was down when leaving the stage and let up outside the iframe the canvas is in - goodness.
 "mouseuplusonly" - fired when the mouse comes back from an iframe (not holding the canvas) 
+	NOTE: deprecated - would suggest using pointerup instead of this
 	and the mouse was down on the canvas and up in the iframe.  
 	this does not fire on a regular mouseup whereas the mouseupplus will.
 "wheel" - fired on mousewheel (Window wheel event)
@@ -83487,6 +83519,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			canvas.releasePointerCapture(e.pointerId);
 			that.dispatchEvent(e);
 		});
+
 		canvas.addEventListener("pointermove", function(e) {
 			that.dispatchEvent(e);
 		});
@@ -83514,10 +83547,10 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		}
 		WW.removeEventListener("mousedown", leftEvent, true);
 		WW.removeEventListener("mousemove", leftEvent, true);
-		WW.removeEventListener("mouseup", leftEvent);			
+		WW.removeEventListener("pointerup", leftEvent);			
 		WW.addEventListener("mousedown", leftEvent, true);
 		WW.addEventListener("mousemove", leftEvent, true); // tell actual mousemove there was a mouseup
-		WW.addEventListener("mouseup", leftEvent); // give actual mouseup a chance to act
+		WW.addEventListener("pointerup", leftEvent); // give actual mouseup a chance to act
 	}		
 
 	function makeStage() {
@@ -84337,6 +84370,35 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 							if (assetHolder.sound) assetHolder.sound.pan = value;
 						}
 					});
+					Object.defineProperty(assetHolder.proxy, 'paused', {
+						get: function() {
+							if (assetHolder.sound) return assetHolder.sound.paused;
+							else return null;
+						},
+						set: function(value) {
+							assetHolder.paused = value;
+							if (assetHolder.sound) assetHolder.sound.paused = value;
+						}
+					});
+					Object.defineProperty(assetHolder.proxy, 'position', {
+						get: function() {
+							if (assetHolder.sound) return assetHolder.sound.position;
+							else return null;
+						},
+						set: function(value) {
+							assetHolder.position = value;
+							if (assetHolder.sound) assetHolder.sound.position = value;
+						}
+					});
+					Object.defineProperty(assetHolder.proxy, 'duration', {
+						get: function() {
+							if (assetHolder.sound) return assetHolder.sound.duration;
+							else return null;
+						},
+						set: function(value) {
+							zogy("ZIM Aud - duration is read only");
+						}
+					});
 					return assetHolder.proxy;
 				}
 			}				
@@ -84355,9 +84417,10 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 					assetHolder.play = loaded.play;
 					assetHolder.type = "Sound";		
 					assetHolder.src = loaded.src;
-					assetHolder.item = loaded.item;	
+					assetHolder.item = loaded.item;						
 					if (assetHolder.playParams) {	
 						assetHolder.sound = assetHolder.play.apply(null, assetHolder.playParams);
+						assetHolder.proxy.sound = assetHolder.sound;
 						if (assetHolder.volume != null) assetHolder.sound.volume = assetHolder.volume;
 						if (assetHolder.pan != null) assetHolder.sound.pan = assetHolder.pan;
 						assetHolder.sound.on("complete", function () {
@@ -85691,8 +85754,12 @@ ABSTRACT SOUND INSTANCE
 The return result of the play() makes a CreateJS AbstractSoundInstance
 var sound = Aud("sound.mp3").play(); // sound is an AbstractSoundInstance
 // note: if lazy-loaded then the result of a play() before the sound has loaded 
-// will be a proxy object with only volume and pan properties and will dispatch a complete event
-// methods, other properties and events will only be available on a play() after the sound is loaded
+// will be a proxy object with volume, pan, paused, position and duration properties and will dispatch a complete event
+// methods, other properties and events will only be available on a play() of the sound played after loaded
+// or if the sound is played before loaded, there will be a sound property added after loaded 
+// that has the rest of the AbstractSoundInstance properties and methods
+// for instance, myLazyPlay.sound.muted or myLazyPlay.sound.stop()
+// If the sound were preloaded, then these would be myPreloadPlay.muted and myPreloadPlay.stop()
 
 METHODS (of AbstractSoundInstance)
 ** full docs here: https://www.createjs.com/docs/soundjs/classes/AbstractSoundInstance.html
