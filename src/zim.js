@@ -10958,7 +10958,7 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
-run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl)
+run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, frame, tweek, id, globalControl)
 	The run() method animates the Sprite over an amount of time
 	Would recommend this method over the CreateJS play() and gotoAndPlay()
 	methods because the framerate for these get overwritten by other S.update() calls
@@ -10998,6 +10998,8 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 		note - this goes backwards - so "bounceOut" would happen at the end of the rewind
 	startFrame - (default null - or 0) the frame to start on - will be overridden by a label with frames
 	endFrame - (default null - or totalFrames) the frame to end on - will be overridden by a label with frames
+	frame - (default null) set the single frame to run - will override startFrame and endFrame
+		this is good for a TextureAtlas where you show one frame of the sprite as a picture
 	tweek - (default 1) a factor for extra time on rewind and loops if needed
 	id - (default randomly assigned) an id you can use in other animations - available as sprite.id
 		use this id in other animations for pauseRun and stopRun to act on these as well
@@ -11281,8 +11283,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			return framesNormalized;
 		};
 
-		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl, pauseOnBlur) {
-			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, tweek, id, globalControl, pauseOnBlur";
+		this.run = function(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, frame, tweek, id, globalControl, pauseOnBlur) {
+			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, frame, tweek, id, globalControl, pauseOnBlur";
 			var duo; if (duo = zob(that.run, arguments, sig)) return duo;
 
 			var timeType = getTIME();
@@ -11291,6 +11293,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			if (zot(tweek)) tweek = 1;
 			if (!zot(id)) that.id = id;
 			if (!zot(globalControl)) that.globalControl = globalControl;
+			if (!zot(frame)) startFrame = endFrame = frame;
 
 			var extraTime;
 			if (Array.isArray(label)) {
@@ -28351,7 +28354,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			stage = that.stage;
 			content.loop(function(item) {
 				// ADJUSTED ZIM 016 - look into how we can optimize a wrapper and keep scrollbars the right size
-				if (!item.hitTestBounds || !item.stage || item.type == "Wrapper") return; // don't turn off items if not on stage yet
+				if (!item.hitTestBounds || !item.stage || item.type == "Wrapper" || item.type == "List") return; // don't turn off items if not on stage yet
 				if (item.hitTestBounds(that,300)) {
 					item.visible = true;					
 					if (item.loop) item.loop(function(item2) {
@@ -30326,9 +30329,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		for (var i=0; i<num; i++) {
 			light = new Container(size,size).reg("center","center");
 			
-			// dims
-            if (indicatorType == "dot") {
-                light.dim = new zim.Circle(size/2, backgroundColor, borderColor, borderWidth, null, null, null, null, null, false);            
+			// dim
+            if (indicatorType == "dot" || indicatorType == "circle") {
+                light.dim = new zim.Circle(size/2, backgroundColor, borderColor, borderWidth, null, null, null, null, null, false); 
             } else if (indicatorType == "square" || indicatorType == "box") {
 				light.dim = new zim.Rectangle(size, size, backgroundColor, borderColor, borderWidth, null, null, null, null, false);
 				light.dim.regX = light.dim.width/2;
@@ -30351,7 +30354,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			this.lights.push(light);
 
 			// brights
-			if (selectedIndicatorType == "dot") {
+			if (selectedIndicatorType == "dot" || indicatorType == "circle") {
                 light.bright = new zim.Circle(size/2, foregroundColor, borderColor, borderWidth, null, null, null, null, null, false);            
             } else if (selectedIndicatorType == "square" || selectedIndicatorType == "box") {
 				light.bright = new zim.Rectangle(size, size, foregroundColor, borderColor, borderWidth, null, null, null, null, false);
@@ -31394,7 +31397,7 @@ zim.extend(zim.TextInput.LabelInput, zim.Label, "dispose", "zimLabel", false);
 	
 
 /*--
-zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, selectedIndex, style, group, inherit)
+zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, group, inherit)
 
 List
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -31439,6 +31442,12 @@ Indent only works with custom items in the list in left, right alignment or top,
 This moves the items away from their alignment
 There is also label indenting for items with labels - and labelIndentV and labelIndentH
 
+DROP 
+As if ZIM 017, drop parameters and properties have been added. 
+These allow List items to be dragged and dropped within the same list or to other lists or to other objects.
+Objects not in lists can also be dragged into a list - see the drag() method's drop parameters.
+See https://zimjs.com/017/dropping.html
+
 NOTE: List can have a ZIM Organizer added with the organizer parameter
 The organizer lets the user add, remove and move items up, down, to the top or the bottom
 See: https://zimjs.com/docs.html?item=organizer
@@ -31463,7 +31472,6 @@ const list = new List({
 	list:["Enormous", "Big", "Medium", "Small", "Puny"],
 	viewNum:3, // this number will change the size of the list elements (default is 5)
 }).center()
-S.update();
 END EXAMPLE
 
 EXAMPLE 
@@ -31471,6 +31479,7 @@ EXAMPLE
 // drop is set to true in the STYLE - this means the list can drop its items onto itself 
 // dropTargets is set after the lists are made - to be able to drop onto other lists 
 // these two things are separate - items can be dropped onto other lists but not their own, etc.
+// also see https://zimjs.com/017/dropping.html for dropping to and from outside a list
 
 const w = 60;
 const h = 60;
@@ -31681,10 +31690,10 @@ titleBarHeight - (default fit label) the height of the titleBar if a titleBar is
 draggable - (default true if titleBar) set to false to not allow dragging titleBar to drag list
 boundary - (default null) set to ZIM Boundary() object - or CreateJS.rectangle()
 onTop - (default true) set to false to not bring list to top of container when dragging
-close - (default false) - a close X for the top right corner that closes the list when pressed
-closeColor - (default grey) - the color of the close X if close is requested
-collapse - (default false) - set to true to add a collapse button to the titleBar that reduces the list so only the bar shows and adds a button to expand
-collapseColor - (default grey) - the color of the collapse icon
+close - (default false) a close X for the top right corner that closes the list when pressed
+closeColor - (default grey) the color of the close X if close is requested
+collapse - (default false) set to true to add a collapse button to the titleBar that reduces the list so only the bar shows and adds a button to expand
+collapseColor - (default grey) the color of the collapse icon
 collapsed - (default false) set to true to start the list collapsed
 excludeCustomTap - (default false) set to true to exclude custom buttons from tap() which would override existing tap() on the custom buttons
 organizer - (default null) the ZIM Organizer for the list
@@ -31698,15 +31707,15 @@ pulldown - (default false) set to true to have List act like a Pulldown
 	use tapClose and offClose parameters to optionally adjust behaviour 
 	See: https://zimjs.com/ten/pulldown.html
 clone - (default false) set to true to add clones of the list items rather than the items themselves
-cancelCurrentDrag - (default false) - set to true to cancel window dragging when document window loses focus
+cancelCurrentDrag - (default false) set to true to cancel window dragging when document window loses focus
 	this functionality seems to work except if ZIM is being used with Animate - so we have left it turned off by default
-index - (default 0) - set the index at start - set to -1 for no selection
-noScale - (default false) - set to true to not scale custom items - this ignores viewNum
-pulldownToggle - (default false) - set to true to collapse list in pulldown mode when final item is selected or pressing off list
+index - (default 0) set the index at start - set to -1 for no selection
+noScale - (default false) set to true to not scale custom items - this ignores viewNum
+pulldownToggle - (default false) set to true to collapse list in pulldown mode when final item is selected or pressing off list
 optimize - (default true) set to false to not turn DisplayObjects that are not on the stage visible false 
 	as the Window is scrolled, any objects within the content and any objects within one level of those objects 
 	are set to visible false if their bounds are not hitting the stage bounds
-resizeHandle - (default false) - set to true to rollover bottom right corner to resize list with resizeHandle
+resizeHandle - (default false) set to true to rollover bottom right corner to resize list with resizeHandle
 	currently, the List content does not automatically expand 
 	so create the list with a width as wide as it will go 
 	then call the resize() method to start the list at the desired width
@@ -31718,24 +31727,38 @@ resizeBoundary - (default null) add a ZIM Boundary() object for the resize handl
 resizeVisible - (default false) set to true to always see the resizeHandle - if resizeHandle is set to true
 continuous - (default false) set to true to make the list scroll continuously - should have more elements than the viewNum for this
 closeOthers - (default false) set to true to close any open branches before expanding selected branch
-drop - (default false) - set to true to allow drag and drop of items onto the current list
+drop - (default false) set to true to allow drag and drop of items onto the current list
 	if the list is vertical, dragging the item horizontally will pull it from the list 
 	the item can then be dragged to a different location and dropped in place
 	for a horizontal list, dragging the item vertical will pull it from the list 
 	also see the dropTargets parameter and the drop and dropTarget properties
 	note: the dropTargets alone can be set to drop onto other lists but not the current list
 	also see updateDrop() method if a list has been moved or scaled
-dropTargets - (default null) - add a list or an array of lists to drop an item from the current list 
+dropTargets - (default null) add a list or an array of lists to drop an item from the current list 
 	see the drop parameter and the drop and dropTargets properties 
 	note: dropTargets can be set without setting the drop parameter to true 
 	and then items can be dragged to the target lists but not onto the current list
 	also see updateDrop() method if a list has been moved or scaled
-dropColor - (default white) - the color of the diamond reticle that indicates where an item will be dropped
-dropThickness - (default 1) - the thickness of the diamond reticle that indicates where an item will be dropped
-dropScrollSpeed - (default 5) - the speed the list is scrolled as a drop item is dragged up to 50px off an end of the list 
+dropSelf - (default true) set to false to not drop on itself if drop is true
+dropCopy - (default false) set to true to drop a copy
+dropColor - (default white) the color of the diamond reticle that indicates where an item will be dropped
+dropThickness - (default 1) the thickness of the diamond reticle that indicates where an item will be dropped
+dropScrollSpeed - (default 5) the speed the list is scrolled as a drop item is dragged up to 50px off an end of the list 
 	this is only applied if the list scrolls on that end
 	the speed is multiplied by 1.5 when the item is between 50px and 80px off the end
-dropReticleAlpha - (default 1) - set the alpha of the drop reticle diamond - set to 0 to not show reticle
+dropReticleAlpha - (default 1) set the alpha of the drop reticle diamond - set to 0 to not show reticle
+dropScale - (default null) set a scale when dropped
+dropWidth - (default null) set a width when dropped - overrides scale
+	height will keep proportion unless both dropWidth and dropHeight are provided
+dropHeight - (default null) set a height when dropped - overrides scale
+	width will keep proportion unless both dropWidth and dropHeight are provided
+*** Drop parameters that work only when dropping on a dropTarget that is NOT a List
+dropHitTest - (default "bounds") can also be "reg", "circles", "circle", "rect" - see ZIM HitTests
+dropFull - (default true) do not drop on a full target
+ 		note - if the object is removed from the target then a drop can occur again on that target 
+dropSnap - (default true) snap to the target object
+dropEnd - (default true) once dropped on a target a noMouse() is set on the object
+*** End drop parameters that work only when dropping on a target that is NOT a List
 selectedIndex - same as index, kept in for backwards compatibility in ZIM DUO
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
@@ -31870,9 +31893,15 @@ dropReticle - each list that can be dropped on gets a dropReticle property that 
 	so individual reticles can be adjusted - say different colors for different lists
 dropItem - after a dropdown event, the dropItem is the ghost being dragged
 dropIndex - after a dropdown event, the dropIndex is the original index of the item being dragged
-dropList - after a dropup event, the dropList is the list that the item was dropped into (could be original list)
+dropTarget - after a dropup event, the dropTarget is the object the item was dropped into (could be original list)
 dropNewIndex - after a dropup event, the dropNewIndex is the index in the list the item has been dropped
 enabled - default is true - set to false to disable
+
+DROP ITEM PROPERTIES
+dropTarget - is the target dropped on 
+dropList - is list item came from 
+
+// dropEnd should not be false if dropBack is true - when dropping from a list
 
 ALSO: see all Window properties - like titleBar, titleBarLabel, resizeHandle, etc.
 
@@ -31892,17 +31921,18 @@ dispatches an "expanded" event when items have been expanded
 	this receives an event object with an items property of the items just opened 
 dispatches a "collapsed" event when items have been collapsed
 dispatches a "dropdown" event when drop item is pulled from list
-	list will have dropItem and dropIndex properties
+	list will have dropItem and dropIndex properties	
 dispatches a "dropup" event when drop item is dropped
-	list will have dropItem, dropList and dropNewIndex properties
+	list will have dropItem, dropTarget and dropNewIndex properties
+	item dropped will have dropList for which list it came from and dropTarget for which object it is dropped on
 
 ALSO: All Window events including "scrolling"
 
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+60.5
-	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, selectedIndex, style, group, inherit) {
-		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, selectedIndex, style, group, inherit";
+	zim.List = function(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, group, inherit) {
+		var sig = "width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, group, inherit";
 		var duo; if (duo = zob(zim.List, arguments, sig, this)) return duo;
 		z_d("60.5");
 
@@ -31997,10 +32027,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (zot(drop)) drop = DS.drop!=null?DS.drop:false;
 		if (zot(dropTargets)) dropTargets = DS.dropTargets!=null?DS.dropTargets:null;
+		if (zot(dropSelf)) dropSelf = DS.dropSelf!=null?DS.dropSelf:true;
+		if (zot(dropCopy)) dropCopy = DS.dropCopy!=null?DS.dropCopy:false;
 		if (zot(dropColor)) dropColor = DS.dropColor!=null?DS.dropColor:zim.white;
 		if (zot(dropThickness)) dropThickness = DS.dropThickness!=null?DS.dropThickness:1;
 		if (zot(dropScrollSpeed)) dropScrollSpeed = DS.dropScrollSpeed!=null?DS.dropScrollSpeed:5;
 		if (zot(dropReticleAlpha)) dropReticleAlpha = DS.dropReticleAlpha!=null?DS.dropReticleAlpha:1;
+
+		// Drop off list 
+		if (zot(dropHitTest)) dropHitTest = DS.dropHitTest!=null?DS.dropHitTest:"bounds";
+		if (zot(dropSnap)) dropSnap = DS.dropSnap!=null?DS.dropSnap:true;
+		if (zot(dropFull)) dropFull = DS.dropFull!=null?DS.dropFull:true;	
+		if (zot(dropEnd)) dropEnd = DS.dropEnd!=null?DS.dropEnd:true;	
+		if (zot(dropScale)) dropScale = DS.dropScale!=null?DS.dropScale:null;	
+		if (zot(dropWidth)) dropWidth = DS.dropWidth!=null?DS.dropWidth:null;	
+		if (zot(dropHeight)) dropHeight = DS.dropHeight!=null?DS.dropHeight:null;	
 
 
 		if (titleBar === false) titleBar = null;
@@ -32678,7 +32719,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			// drop and dropTargets are assigned independently but both are added to dropTargets array
 			if (dropTargets && !Array.isArray(dropTargets)) dropTargets = [dropTargets];
 			if (!dropTargets) dropTargets = [];
-			if (drop) dropTargets.unshift(that);
+			if (drop && dropSelf) dropTargets.unshift(that);
 								
 			that.added(function(stage) {
 				frame = stage.frame;				
@@ -32697,7 +32738,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				// e.target can be something in the item - or the item
 				// but custom List items are usually in a Container 
 				// so want to drag the item which is the child of the container that is in the List items
-				if (!that.items.includes(downItem)) {			
+				if (!that.items.includes(downItem)) {	
 					var good = false;
 					var checkItem = downItem
 					while(checkItem.parent) {				
@@ -32710,6 +32751,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					}
 					if (!good) return;
 				}
+				// watch - the List item container has a backing rectangle that has a parent that is in the items
+				// so get the parent but then get the content
+				if (that.items.includes(downItem.parent)) downItem = downItem.parent.content;
 				downPoint = that.globalToLocal(frame.mouseX, frame.mouseY);	
 				itemPoint = downItem.globalToLocal(frame.mouseX, frame.mouseY);	
 				itemIndex = zot(checkItem.znum) ? checkItem.parent.znum : checkItem.znum;
@@ -32719,45 +32763,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.dropNewIndex = null;
 			});
 		
-			function scrollUp(target, dropScrollSpeed) {
-				if (target.scrollInt) target.scrollInt.clear();
-				target.scrollInt = zim.interval(.01, function() {
-					if (target.dropReticle.parent) target.dropReticle.removeFrom();
-					if (target.vertical) {
-						target.scrollY += dropScrollSpeed;				
-						if (target.scrollY > 0) {
-							target.scrollY = 0;
-							target.scrollInt.clear();
-						}
-					} else {
-						target.scrollX += dropScrollSpeed;
-						if (target.scrollX > 0) {
-							target.scrollX = 0;
-							target.scrollInt.clear();
-						}
-					}			
-				}, null, null, null, "seconds");
-			}
-			
-			function scrollDown(target, dropScrollSpeed) {
-				if (target.scrollInt) target.scrollInt.clear();
-				target.scrollInt = zim.interval(.01, function() {
-					if (target.dropReticle.parent) target.dropReticle.removeFrom();
-					if (target.vertical) {
-						target.scrollY -= dropScrollSpeed;
-						if (target.scrollY < -target.scrollYMax) {
-							target.scrollY = -target.scrollYMax;
-							target.scrollInt.clear();
-						}
-					} else {
-						target.scrollX -= dropScrollSpeed;
-						if (target.scrollX < -target.scrollXMax) {
-							target.scrollX = -target.scrollXMax;
-							target.scrollInt.clear();
-						}
-					}			
-				}, null, null, null, "seconds");
-			}
 		
 			that.dropMove = that.on("pressmove", function() {
 				if (ghost || !downPoint) return;
@@ -32774,179 +32779,86 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				) {		
 					that.cancelCurrentDrag();
 					var sc = downItem.getConcatenatedDisplayProps().matrix.decompose().scaleX/F.stage.scaleX; // sigh
-					ghost = downItem.clone().reg(itemPoint.x, itemPoint.y).sca(sc).alp(.5); //.sha("rgba(0,0,0,.3)",5,5,5);
+					ghost = downItem.clone(true).reg(itemPoint.x, itemPoint.y).sca(sc).alp(.5); //.sha("rgba(0,0,0,.3)",5,5,5);
 					that.dropItem = ghost;
 					that.dropIndex = itemIndex;
 					that.dropStage = frame.stage.on("stagemousemove", function(){
-						ghost.loc(frame.mouseX, frame.mouseY)
-		
+						ghost.loc(frame.mouseX, frame.mouseY);		
 						// scroll if ghost is at edges of scrollable list
-						var onCheck = false;
-						zim.loop(dropTargets, function(target) {							
-							if (target.type != "List") return;		
-							if (onCheck) {
-								if (target.scrollInt) target.scrollInt.clear();
-								target.dropReticle.removeFrom();
-								target.dropReticleIndex = null;
-								return; // next in loop
-							}					
-							if (target.vertical) {
-								if (target.scrollYMax > 0) {
-									if (ghost.x > target.zgb.x && ghost.x < target.zgb.x + target.zgb.width) {
-										if (ghost.y < target.zgb.y) { // carefull - need to do these separately to turn off diamond
-											if (ghost.y > target.zgbtarget.zgb.y - 50) scrollUp(target, dropScrollSpeed);
-											else if (ghost.y > target.zgbtarget.zgb.y - 80) scrollUp(target, dropScrollSpeed*1.5);
-											onCheck = true;
-										} else if (ghost.y > target.zgbtarget.zgb.y + target.zgbtarget.zgb.height) {
-											if (ghost.y < target.zgbtarget.zgb.y + target.zgbtarget.zgb.height + 50) scrollDown(target, dropScrollSpeed);
-											else if (ghost.y < target.zgbtarget.zgb.y + target.zgbtarget.zgb.height + 80) scrollDown(target, dropScrollSpeed*1.5);
-											onCheck = true;
-										} else if (target.scrollInt) target.scrollInt.clear();
-									} else {
-										if (target.scrollInt) target.scrollInt.clear();
-									}
-								}
-							} else {
-								if (target.scrollXMax > 0) {
-									if (ghost.y > target.zgb.y && ghost.y < target.zgb.y + target.zgb.height) {
-										if (ghost.x < target.zgb.x) {
-											if (ghost.x > target.zgb.x - 50) scrollUp(target, dropScrollSpeed);
-											else if (ghost.x > target.zgb.x - 80) scrollUp(target, dropScrollSpeed*1.5);
-											onCheck = true;
-										} else if (ghost.x > target.zgb.x + target.zgb.width) {
-											if (ghost.x < target.zgb.x + target.zgb.width + 50) scrollDown(target, dropScrollSpeed);
-											else if (ghost.x < target.zgb.x + target.zgb.width + 80) scrollDown(target, dropScrollSpeed*1.5);
-											onCheck = true;
-										} else if (target.scrollInt) target.scrollInt.clear();
-									} else {
-										if (target.scrollInt) target.scrollInt.clear();
-									}
-								}
-							}
-		
-							// place reticle
-							if (target.hitTestReg(ghost)) {
-								onCheck = true;
-								var point = target.tabs.globalToLocal(ghost.x, ghost.y);					
-								var item = target.tabs.getObjectUnderPoint(point.x, point.y, 1);
-								var yy;
-								var xx;
-								var bounds;
-								if (item) {	
-									checkItem = item;			
-									var good = target.items.includes(checkItem);		
-									if (zot(item.znum)) {				
-										while(checkItem.parent) {				
-											if (target.items.includes(checkItem.parent)) {
-												good = true;
-												item = checkItem.parent;
-												break;
-											}
-											checkItem = checkItem.parent;
-										}
-									}
-									if (!good) return;
-									bounds = item.boundsToGlobal();								
-												
-									// target.dropReticle.visible = true;
-									// if (checkItem == downItem) target.dropReticle.visible = false;
-
-									if (target.vertical) {
-										if (ghost.y > bounds.y + bounds.height/2) {
-											yy = bounds.y + bounds.height + target.spacing*target.zgs/2;
-											if (yy > target.zgb.y && yy < target.zgb.y + target.zgb.height) {
-												target.dropReticle.loc(bounds.x + bounds.width/2, yy);
-												target.dropReticleIndex = item.znum + 1;
-											}
-										} else {
-											yy = bounds.y - target.spacing*target.zgs/2;
-											if (yy > target.zgb.y && yy < target.zgb.y + target.zgb.height) {
-												target.dropReticle.loc(bounds.x + bounds.width/2, yy);
-												target.dropReticleIndex = item.znum;
-											}
-										}
-									} else {
-										if (ghost.x > bounds.x + bounds.width/2) {
-											xx = bounds.x + bounds.width + target.spacing*target.zgs/2;
-											if (xx > target.zgb.x && xx < target.zgb.x + target.zgb.width) {
-												target.dropReticle.loc(xx, bounds.y + bounds.height/2);
-												target.dropReticleIndex = item.znum + 1;
-											}
-										} else {
-											xx = bounds.x - target.spacing*target.zgs/2;
-											if (xx > target.zgb.x && xx < target.zgb.x + target.zgb.width) {
-												target.dropReticle.loc(xx, bounds.y + bounds.height/2);
-												target.dropReticleIndex = item.znum;
-											}
-										}
-									}
-								} else {									
-									if (target.items.length > 0) {
-										bounds = target.items[target.items.length-1].boundsToGlobal();
-										if (target.vertical) {
-											if (ghost.y > bounds.y + bounds.height) {
-												yy = bounds.y + bounds.height + target.spacing*target.zgs/2;
-												target.dropReticle.loc(target.zgb.x + target.zgb.width/2, yy);
-												target.dropReticleIndex = target.items.length;
-											} else {
-												target.dropReticle.removeFrom();
-												target.dropReticleIndex = null;
-											}
-										} else {												
-											if (ghost.x > bounds.x + bounds.width) {
-												xx = bounds.x + bounds.width + target.spacing*target.zgs/2;
-												target.dropReticle.loc(xx, target.zgb.y + target.zgb.height/2);
-												target.dropReticleIndex = target.items.length;
-											} else {
-												target.dropReticle.removeFrom();
-												target.dropReticleIndex = null;
-											}
-										}
-									} else {
-										if (target.vertical) {
-											yy = target.zgb.y + target.spacing*target.zgs/2;
-											target.dropReticle.loc(target.zgb.x + target.zgb.width/2, yy);
-											target.dropReticleIndex = 0;
-										} else {									
-											xx = target.zgb.x + target.spacing*target.zgs/2;
-											target.dropReticle.loc(xx, target.zgb.y + target.zgb.height/2);
-											target.dropReticleIndex = 0;
-										}										
-									}
-								}
-							} else {
-								target.dropReticle.removeFrom();
-								target.dropReticleIndex = null;
-							}
-						});
+						zim.List.doDropOver(dropTargets, ghost, checkItem, dropScrollSpeed);
 					});
 
 					that.dispatchEvent("dropdown");
 		
 					// frame.on("mouseupplus", smu, null, true); // once - but does not work with touch
-					// that.pointerUpEvent = frame.on("pointerup", smu); // pointer does not have a once!
-					frame.stage.on("stagemouseup", smu, null, true); // once - seems to be working on iframes, etc.
+					that.pointerUpEvent = frame.on("pointerup", smu); // pointer does not have a once!
+					// frame.stage.on("stagemouseup", smu, null, true); // once - seems to be working on iframes, etc.
 					function smu() {
 						frame.off("pointerup", that.pointerUpEvent)
 						frame.stage.off("stagemousemove", that.dropStage);		
 						
 						var empty = zim.loop(dropTargets, function(target) {
-							if (target.type != "List") return;
+							if (target.type != "List") {		
+
+								// DROPPING OUTSIDE LIST							
+
+								if (ghost["hitTest"+String(dropHitTest).charAt(0).toUpperCase() + String(dropHitTest).slice(1)](target)) {
+									
+									if (!dropFull || !target.dropFull) {
+										downItem.alpha = itemAlpha;
+										if (!dropCopy) that.removeAt(1,itemIndex);
+										ghost.reg(downItem.regX, downItem.regY, true);
+										if (dropSnap) ghost.loc(target);
+										if (dropScale) ghost.sca(dropScale);
+										if (dropWidth || dropHeight) ghost.siz(dropWidth, dropHeight);
+										if (dropEnd) ghost.noMouse();					
+										if (dropFull) target.dropFull = true;
+										ghost.droppedTarget = target;			
+										ghost.dropClone = true;	
+										ghost.dropList = that;						
+										ghost.dropTarget = target;						
+										ghost.alpha = itemAlpha;
+
+										ghost.dropStartX = downItem.dropStartX;
+										ghost.dropStartY = downItem.dropStartY;
+										ghost.dropStartS = downItem.dropStartS;		
+
+										that.dropItem = ghost;
+										that.dropTarget = target;
+										ghost = null;
+										downPoint = null;
+										downItem = null;																
+										return false;
+									}
+								}
+								return;
+							}
 							if (target.scrollInt) target.scrollInt.clear();
 							if (!zot(target.dropReticleIndex)) {
 								target.dropReticle.removeFrom();						
-								that.removeAt(1,itemIndex);
+								if (!dropCopy) that.removeAt(1,itemIndex);
 		
 								if (itemIndex < target.dropReticleIndex && that == target) target.dropReticleIndex--;
-								target.addAt(downItem, target.dropReticleIndex);
+																
+								if (dropCopy) {
+									target.addAt(ghost, target.dropReticleIndex);
+									ghost.alpha = itemAlpha;
+									ghost.dropList = that;
+									ghost.dropTarget = target;
+									that.dropItem = ghost;
+								} else {
+									target.addAt(downItem, target.dropReticleIndex);
+									downItem.dropList = that;
+									downItem.dropTarget = target;
+									that.dropItem = downItem;
+									ghost.dispose();									
+								}					
+								ghost = null;		
 			
-								ghost.dispose();
 								downItem.alpha = itemAlpha;
-								ghost = null;
 								downPoint = null;	
-				
-								that.dropItem = downItem;
-								that.dropList = target;
+		
+								that.dropTarget = target;
 								that.dropNewIndex = target.dropReticleIndex;
 								target.dropReticleIndex = null;
 								downItem = null;
@@ -32967,10 +32879,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							})		
 							that.dropItem = downItem;
 							that.dropList = that;
+							that.dropTarget = null;
 							that.dropNewIndex = that.dropIndex;	
 						}	
 						that.dispatchEvent("dropup");
-						
+						that.stage.update();							
 
 					}
 					downItem.alp(.5);
@@ -33339,7 +33252,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(that.originalList, true), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, selectedIndex, style, this.group, inherit));
+			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(that.originalList, true), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, this.group, inherit));
 		};
 		this.dispose = function(a,b,disposing) {
 			if (!disposing) {
@@ -33352,6 +33265,188 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		};
 	};
 	zim.extend(zim.List, zim.Window, ["clone","dispose"], "zimWindow", false);
+
+
+	zim.List.scrollUp = function(target, dropScrollSpeed) {
+		if (target.scrollInt) target.scrollInt.clear();
+		target.scrollInt = zim.interval(.01, function() {
+			if (target.dropReticle.parent) target.dropReticle.removeFrom();
+			if (target.vertical) {
+				target.scrollY += dropScrollSpeed;				
+				if (target.scrollY > 0) {
+					target.scrollY = 0;
+					target.scrollInt.clear();
+				}
+			} else {
+				target.scrollX += dropScrollSpeed;
+				if (target.scrollX > 0) {
+					target.scrollX = 0;
+					target.scrollInt.clear();
+				}
+			}			
+		}, null, null, null, "seconds");
+	}
+
+	zim.List.scrollDown = function(target, dropScrollSpeed) {
+		if (target.scrollInt) target.scrollInt.clear();
+		target.scrollInt = zim.interval(.01, function() {
+			if (target.dropReticle.parent) target.dropReticle.removeFrom();
+			if (target.vertical) {
+				target.scrollY -= dropScrollSpeed;
+				if (target.scrollY < -target.scrollYMax) {
+					target.scrollY = -target.scrollYMax;
+					target.scrollInt.clear();
+				}
+			} else {
+				target.scrollX -= dropScrollSpeed;
+				if (target.scrollX < -target.scrollXMax) {
+					target.scrollX = -target.scrollXMax;
+					target.scrollInt.clear();
+				}
+			}			
+		}, null, null, null, "seconds");
+	}
+
+	zim.List.doDropOver = function(dropTargets, ghost, checkItem, dropScrollSpeed) {
+		var onCheck;
+		zim.loop(dropTargets, function(target) {	
+			if (target.type != "List") return;		
+			if (onCheck) {
+				if (target.scrollInt) target.scrollInt.clear();
+				target.dropReticle.removeFrom();
+				target.dropReticleIndex = null;
+				return; // next in loop
+			}					
+			if (target.vertical) {
+				if (target.scrollYMax > 0) {
+					if (ghost.x > target.zgb.x && ghost.x < target.zgb.x + target.zgb.width) {
+						if (ghost.y < target.zgb.y) { // carefull - need to do these separately to turn off diamond
+							if (ghost.y > target.zgb.y - 50) zim.List.scrollUp(target, dropScrollSpeed);
+							else if (ghost.y > target.zgb.y - 80) zim.List.scrollUp(target, dropScrollSpeed*1.5);
+							onCheck = true;
+						} else if (ghost.y > target.zgb.y + target.zgb.height) {
+							if (ghost.y < target.zgb.y + target.zgb.height + 50) zim.List.scrollDown(target, dropScrollSpeed);
+							else if (ghost.y < target.zgb.y + target.zgb.height + 80) zim.List.scrollDown(target, dropScrollSpeed*1.5);
+							onCheck = true;
+						} else if (target.scrollInt) target.scrollInt.clear();
+					} else {
+						if (target.scrollInt) target.scrollInt.clear();
+					}
+				}
+			} else {				
+				if (target.scrollXMax > 0) {
+					if (ghost.y > target.zgb.y && ghost.y < target.zgb.y + target.zgb.height) {
+						if (ghost.x < target.zgb.x) {
+							if (ghost.x > target.zgb.x - 50) zim.List.scrollUp(target, dropScrollSpeed);
+							else if (ghost.x > target.zgb.x - 80) zim.List.scrollUp(target, dropScrollSpeed*1.5);
+							onCheck = true;
+						} else if (ghost.x > target.zgb.x + target.zgb.width) {
+							if (ghost.x < target.zgb.x + target.zgb.width + 50) zim.List.scrollDown(target, dropScrollSpeed);
+							else if (ghost.x < target.zgb.x + target.zgb.width + 80) zim.List.scrollDown(target, dropScrollSpeed*1.5);
+							onCheck = true;
+						} else if (target.scrollInt) target.scrollInt.clear();
+					} else {
+						if (target.scrollInt) target.scrollInt.clear();
+					}
+				}
+			}
+
+			// place reticle
+			if (target.hitTestReg(ghost)) {
+				onCheck = true;
+				var point = target.tabs.globalToLocal(ghost.x, ghost.y);					
+				var item = target.tabs.getObjectUnderPoint(point.x, point.y, 1);
+				var yy;
+				var xx;
+				var bounds;						
+				if (item) {	
+					checkItem = item;			
+					var good = target.items.includes(checkItem);		
+					if (zot(item.znum)) {				
+						while(checkItem.parent) {				
+							if (target.items.includes(checkItem.parent)) {
+								good = true;
+								item = checkItem.parent;
+								break;
+							}
+							checkItem = checkItem.parent;
+						}
+					}
+					if (!good) return;
+					bounds = item.boundsToGlobal();								
+								
+					// target.dropReticle.visible = true;
+					// if (checkItem == downItem) target.dropReticle.visible = false;
+
+					if (target.vertical) {
+						if (ghost.y > bounds.y + bounds.height/2) {
+							yy = bounds.y + bounds.height + target.spacing*target.zgs/2;
+							if (yy > target.zgb.y && yy < target.zgb.y + target.zgb.height) {
+								target.dropReticle.loc(bounds.x + bounds.width/2, yy);
+								target.dropReticleIndex = item.znum + 1;
+							}
+						} else {
+							yy = bounds.y - target.spacing*target.zgs/2;
+							if (yy > target.zgb.y && yy < target.zgb.y + target.zgb.height) {
+								target.dropReticle.loc(bounds.x + bounds.width/2, yy);
+								target.dropReticleIndex = item.znum;
+							}
+						}
+					} else {
+						if (ghost.x > bounds.x + bounds.width/2) {
+							xx = bounds.x + bounds.width + target.spacing*target.zgs/2;
+							if (xx > target.zgb.x && xx < target.zgb.x + target.zgb.width) {
+								target.dropReticle.loc(xx, bounds.y + bounds.height/2);
+								target.dropReticleIndex = item.znum + 1;
+							}
+						} else {
+							xx = bounds.x - target.spacing*target.zgs/2;
+							if (xx > target.zgb.x && xx < target.zgb.x + target.zgb.width) {
+								target.dropReticle.loc(xx, bounds.y + bounds.height/2);
+								target.dropReticleIndex = item.znum;
+							}
+						}
+					}
+				} else {									
+					if (target.items.length > 0) {
+						bounds = target.items[target.items.length-1].boundsToGlobal();
+						if (target.vertical) {
+							if (ghost.y > bounds.y + bounds.height) {
+								yy = bounds.y + bounds.height + target.spacing*target.zgs/2;
+								target.dropReticle.loc(target.zgb.x + target.zgb.width/2, yy);
+								target.dropReticleIndex = target.items.length;
+							} else {
+								target.dropReticle.removeFrom();
+								target.dropReticleIndex = null;
+							}
+						} else {												
+							if (ghost.x > bounds.x + bounds.width) {
+								xx = bounds.x + bounds.width + target.spacing*target.zgs/2;
+								target.dropReticle.loc(xx, target.zgb.y + target.zgb.height/2);
+								target.dropReticleIndex = target.items.length;
+							} else {
+								target.dropReticle.removeFrom();
+								target.dropReticleIndex = null;
+							}
+						}
+					} else {
+						if (target.vertical) {
+							yy = target.zgb.y + target.spacing*target.zgs/2;
+							target.dropReticle.loc(target.zgb.x + target.zgb.width/2, yy);
+							target.dropReticleIndex = 0;
+						} else {									
+							xx = target.zgb.x + target.spacing*target.zgs/2;
+							target.dropReticle.loc(xx, target.zgb.y + target.zgb.height/2);
+							target.dropReticleIndex = 0;
+						}										
+					}
+				}
+			} else {
+				target.dropReticle.removeFrom();
+				target.dropReticleIndex = null;
+			}
+		});
+	}
 
 	zim.List.makeBase = function(c, label, paddingLeft, backgroundColor) {
 		if (zot(backgroundColor)) backgroundColor = zim.dark;
@@ -45677,10 +45772,12 @@ only if the TextArea is directly in the Pane or the page (not nested in further 
 
 NOTE: rotation and skewing of TextArea is not supported - although might work with custom CSS transformations
 
-NOTE: because of these limitations, consider the TextEditor as a solution.
+NOTE: because of these limitations, consider the TextEditor or TextInput as a solution.
 The TextEditor allows you to use a Label which is a proper part of the Canvas 
 and then change the label with a pop-up editor that includes a TextArea.
 SEE: https://zimjs.com/cat/texteditor.html
+TextInput is a one line input text field that is actually part of the canvas 
+SEE https://zimjs.com/explore/textinput.html
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -48857,7 +48954,7 @@ RETURNS obj for chaining
 	};//-47.95
 
 /*--
-obj.drag = function(boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch)
+obj.drag = function(boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight)
 
 drag
 zim DisplayObject method
@@ -48867,6 +48964,12 @@ Adds drag and drop to an object with a variety of options.
 Handles scaled, rotated nested objects.
 Also see draggable property for setting a default drag() and noDrag()
 and to indicate whether a drag has been set.
+
+DROP 
+As if ZIM 017, drop parameters and properties have been added. 
+These allow List items to be dragged and dropped on targets and ZIM Lists
+Also see ZIM List drop parameters
+See https://zimjs.com/017/dropping.html
 
 NOTE: drag() will stop ZIM Swipe() from triggering a swipe event.
 Set the overridNoSwipe parameter of ZIM Swipe() to true to capture swipe events.
@@ -48914,6 +49017,18 @@ circle.on("mousedown", ()=>{
 	}, null, true); // once
 });
 circle.on("pressup", ()=>{circle.dragBoundary()});
+END EXAMPLE
+
+EXAMPLE 
+// Dropping on targets
+// see also https://zimjs.com/017/dropping.html
+const rectangles = new Tile(new Rectangle(130,130).reg(CENTER),3,1,50,0).pos(0,100,CENTER,CENTER);
+new Tile(new Circle(50,series(red,blue,pink)),3,1,70,0).pos(0,-100,CENTER,CENTER).drag({
+	dropTargets:rectangles.items,
+	// dropEnd:false,
+	// dropCopy:true,
+	// dropBack:false // and more!
+});
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -48967,6 +49082,21 @@ immediateBoundary - (default false) set to true to add bounds immediately when d
  	this is normally set to false for a .05 second delay to allow objects to be added to Container before setting bounds.
 singleTouch - (default false) set to true to let only one touch operate the drag 
 	also see Frame() singleTouch setting - but setting on drag will only affect that object's drag
+dropTargets - an object or an array of objects that can receive a drop
+	this can be a List or a Container or a single object	
+	if it is a list see the dropListProps as well to set reticle properties and scroll speed
+dropCopy - (default false) make a copy of the object as it is being dragged
+dropSnap - (default true) snap to the target object
+dropBack - (default true) go back to start if not dropped on a target
+dropEnd - (default true) once dropped on a target a noMouse() is set on the object
+dropFull - (default true) do not drop on a full target
+	note - if the object is removed from the target then a drop can occur again on that target 
+dropHitTest - (default "bounds") can also be "reg", "circles", "circle", "rect" - see ZIM HitTests
+dropScale - set a scale for the dropped object
+dropWidth - set a width for the dropped object - overrides scale
+	height will keep aspect ratio unless dropHeight is provided
+dropHeight - set a height for the dropped object - overrides scale
+	width will keep aspect ratio unless dropWidth is provided 
 
 note: will not update stage if OPTIMIZE is set to true
 unless Ticker.update is set to true or you run Ticker.always(stage) see zim.Ticker
@@ -48974,6 +49104,19 @@ unless Ticker.update is set to true or you run Ticker.always(stage) see zim.Tick
 PROPERTIES 
 adds a dragPaused property to get or set the pause of the drag - which allows setting to be kept
 	see also noDrag() where settings will be removed
+*** if dropTargets is set then drag() adds the following properties to the dragged object:
+dropTarget - on pressup, what target the object is dropped on (or null)
+dropList - which List if any a dropped object has
+dropListProps - to be used if planning on dropping object into a List 
+	The dropListProps have the following default values 
+	{
+		color:white,
+		thickness:1,
+		alpha:1,
+		speed:5
+	}
+	These can be changed to set List reticle properties and drop speed 
+	See the ZIM List drop parameters for more information	
 
 EVENTS
 Adds a "slidestart" event to the drag object that is dispatched when the object starts sliding - if slide is true
@@ -48981,8 +49124,8 @@ Adds a "slidestop" event to the drag object that is dispatched when the object c
 
 RETURNS obj for chaining
 --*///+31
-	zim.drag = function(obj, boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch) {
-		var sig = "obj, boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch";
+	zim.drag = function(obj, boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight) {
+		var sig = "obj, boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight";
 		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
 		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("drag", arguments); return obj;}
 		z_d("31");
@@ -49033,7 +49176,20 @@ RETURNS obj for chaining
 		if (zot(startBounds)) startBounds = true;
 		if (zot(boundary) && !zot(rect)) boundary = rect;
 		if (zot(singleTouch)) singleTouch = false;
-		
+
+		if (dropTargets) {
+			slide = false;
+			obj.dropTargets = dropTargets;
+		}
+		if (zot(dropBack)) dropBack = true;
+		if (zot(dropSnap)) dropSnap = true;
+		if (zot(dropEnd)) dropEnd = true;
+		if (zot(dropFull)) dropFull = true;
+		var hitTypes = ["reg", "circles", "rect", "circle"];
+		if (dropHitTest) dropHitTest.toLowerCase();
+		if (!hitTypes.includes(dropHitTest)) dropHitTest = null;
+		if (zot(dropHitTest)) dropHitTest = "bounds";
+				
 		obj.dragPaused = false;
 		
 		if (slide) {
@@ -49174,6 +49330,7 @@ RETURNS obj for chaining
 		var stage;
 		obj.pointers = {};
 		var stCheck = false;
+		var dropListCheck;
 		obj.zimDown = obj.on("mousedown", function(e) {			
 			if (!obj.stage || obj.dragPaused) return;
 			if (singleTouch && stCheck) {
@@ -49185,6 +49342,7 @@ RETURNS obj for chaining
 			// obj.zimMove = obj.on("pressmove", obj.zimMove);	// for some reason causing squiggle drag problems
 			
 			stCheck = true;
+			dropListCheck = false;
 			stage = obj.stage;
 			if (!obj.zmu) obj.zmu = stage.frame.on("mouseupplus", function(e) {	
 				if (obj.downCheck) {
@@ -49192,6 +49350,7 @@ RETURNS obj for chaining
 					doUp(e, true); // true for cancel slide						
 				}					
 			});		
+			
 			obj.dragMouseX = Math.round(e.stageX/zim.scaX)+stage.x;
 			obj.dragMouseY = Math.round(e.stageY/zim.scaY)+stage.y;
 			var id = "id"+Math.abs(e.pointerID+1);
@@ -49201,6 +49360,8 @@ RETURNS obj for chaining
 			// bring stageX and stageY into the parent's frame of reference
 			// could use e.localX and e.localY but might be dragging container or contents
 			dragObject = (currentTarget)?e.currentTarget:e.target;
+			
+
 			if (obj.zimBoundary && !dragObject.getBounds()) {zogy("zim.drag() - drag object needs bounds set"); return;}
 			obj.downCheck = true;
 			obj.stage.mouseMoveOutside = true;
@@ -49268,6 +49429,44 @@ RETURNS obj for chaining
 				moveCheck = false;
 			}
 
+			// DROP - added ZIM 017 Patch
+			if (zot(dragObject.dropStartS)) {				
+				dragObject.dropStartX = dragObject.x;
+				dragObject.dropStartY = dragObject.y;
+				dragObject.dropStartS = dragObject.scale;
+			}			
+			if (obj.dropTargets && dropCopy && !dragObject.dropClone) {
+				if (dragObject.clone) {
+					dragObject.dropCopy = dragObject.clone(true).addTo(dragObject.parent, dragObject.parent.getChildIndex(dragObject));
+					dragObject.dropCopy.dropClone = true;
+					dragObject.dropCopy.dropStartX = dragObject.dropStartX;
+					dragObject.dropCopy.dropStartY = dragObject.dropStartY;
+					dragObject.dropCopy.dropStartS = dragObject.dropStartS;					
+					dragObject.dropCopy.noMouse();
+				}
+			} 
+			// HANDLE DROP ON LIST 
+			if (obj.dropTargets) {
+				var notList = true;
+				zim.loop(obj.dropTargets, function(target){
+					if (target.type == "List") {
+						if (!obj.dropListProps) obj.dropListProps = {
+							color:white,
+							thickness:1,
+							alpha:1,
+							speed:5
+						};		
+						if (!target.dropReticle) {								
+							target.dropReticle = new zim.Rectangle(20,20,clear,obj.dropListProps.color,obj.dropListProps.thickness).reg(CENTER).rot(45).alp(obj.dropListProps.alpha);
+							target.dropReticleIndex = null;
+							target.zgb = target.boundsToGlobal();
+							target.zgs = target.getConcatenatedDisplayProps().matrix.decompose().scaleX/stage.scaleX;	
+						}					
+						notList = false;	
+					}
+				});
+				dropListCheck = !notList;
+			}
 		}, true);
 
 		obj.zimMove = obj.on("pressmove", function(e) {
@@ -49289,7 +49488,17 @@ RETURNS obj for chaining
 			if (dragObject.ZIMoutlineShape) dragObject.outline();
 			if (obj.type == "Pen" && !moveCheck && obj.drawing) moveCheck = true;
 			else if (obj.type == "Tag" || obj.type == "TextArea" || obj.type == "Loader") obj.resize();
+			
+			// DROP ON LIST - added ZIM 017
+			if (dropListCheck) {
+				// scroll if ghost is at edges of scrollable list				
+				var ghost = dragObject;
+				var checkItem;
+				var dropScrollSpeed = obj.dropListProps.speed;
+				zim.List.doDropOver(dropTargets, ghost, checkItem, dropScrollSpeed);				
+			}
 		}, true);
+
 
 		// obj.off("pressmove",obj.zimMove);  // for some reason causing squiggle drag problems
 
@@ -49368,6 +49577,7 @@ RETURNS obj for chaining
 				diffY = diffY_o;
 			}
 		}
+
 
 		obj.zimPosition = positionObject;
 
@@ -49456,8 +49666,95 @@ RETURNS obj for chaining
 					// if (moveCheck) obj.stopCheck(); 
 				}
 			}
+
+			// DROP - added ZIM 017 patch
+
+			if (obj.dropTargets) {
+				if (!Array.isArray(obj.dropTargets)) obj.dropTargets = [obj.dropTargets];
+				// watch - could drop from one target to another
+				if (dragObject.droppedTarget) {
+					dragObject.droppedTarget.dropFull = false;
+					dragObject.droppedTarget = null;
+				}
+				var miss = zim.loop(obj.dropTargets, function(target) {
+
+					if (target.type == "List") {
+						if (target.scrollInt) target.scrollInt.clear();
+						if (!zot(target.dropReticleIndex)) {
+							target.dropReticle.removeFrom();												
+							var placeObject = dragObject;
+							if (dropCopy) {
+								// need to do the swap on one of these		
+								if (dropCopy && dragObject.dropCopy) {
+									placeObject = dragObject.dropCopy;
+									swapProperties("x", dragObject, placeObject);
+									swapProperties("y", dragObject, placeObject);
+								}
+							}								
+							if (dropScale) placeObject.sca(dropScale);
+							if (dropWidth || dropHeight) placeObject.siz(dropWidth, dropHeight);
+							if (dropEnd) placeObject.noMouse();
+							else placeObject.mouse();	
+							placeObject.droppedTarget = target;		
+							target.addAt(placeObject, target.dropReticleIndex);								
+			
+							target.dropItem = dragObject;
+							target.dropList = target;
+							target.dropNewIndex = target.dropReticleIndex;
+							target.dropReticleIndex = null;		
+							return false					 
+						}
+						return;
+					}
+
+					if (dragObject["hitTest"+String(dropHitTest).charAt(0).toUpperCase() + String(dropHitTest).slice(1)](target)) {
+						if (!dropFull || !target.dropFull) {
+							var placeObject = dragObject;
+							if (dropCopy && dragObject.dropCopy) {
+								placeObject = dragObject.dropCopy;
+								swapProperties("x", dragObject, placeObject);
+								swapProperties("y", dragObject, placeObject);
+							}
+							// clone gets all these things
+							if (dropSnap) placeObject.loc(target);
+							if (dropScale) placeObject.sca(dropScale);
+							if (dropWidth || dropHeight) placeObject.siz(dropWidth, dropHeight);
+							if (dropEnd) placeObject.noMouse();
+							else placeObject.mouse();						
+							if (dropFull) target.dropFull = true;	
+							placeObject.droppedTarget = target;													
+							return false;
+						}
+					} 
+				});
+				if (miss) {				
+					if (dropBack) {
+						dragObject.animate({
+							props:{x:dragObject.dropStartX, y:dragObject.dropStartY, scale:dragObject.dropStartS}, 
+							time:.2, 
+							timeUnit:"s",
+							call:function(target) {
+								if (dropCopy) {
+									if (target.dropCopy) target.dropCopy.dispose();
+									else target.dispose();
+								}
+							}
+						});
+					} else {
+						dragObject.sca(dragObject.dropStartS);	
+						if (dropCopy && dragObject.dropCopy) {
+							swapProperties("x", dragObject, dragObject.dropCopy);
+							swapProperties("y", dragObject, dragObject.dropCopy);
+							dragObject.dropCopy.mouse();
+						}
+					}
+					
+				}
+			}
 			if (obj.stage) obj.stage.update();
 		}
+
+
 
 		// the bounds check for registration inside the bounds
 		// or if surround is set for the whole object staying outside the bounds
@@ -83519,7 +83816,6 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			canvas.releasePointerCapture(e.pointerId);
 			that.dispatchEvent(e);
 		});
-
 		canvas.addEventListener("pointermove", function(e) {
 			that.dispatchEvent(e);
 		});
@@ -83547,10 +83843,10 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		}
 		WW.removeEventListener("mousedown", leftEvent, true);
 		WW.removeEventListener("mousemove", leftEvent, true);
-		WW.removeEventListener("pointerup", leftEvent);			
+		WW.removeEventListener("mouseup", leftEvent);			
 		WW.addEventListener("mousedown", leftEvent, true);
 		WW.addEventListener("mousemove", leftEvent, true); // tell actual mousemove there was a mouseup
-		WW.addEventListener("pointerup", leftEvent); // give actual mouseup a chance to act
+		WW.addEventListener("mouseup", leftEvent); // give actual mouseup a chance to act
 	}		
 
 	function makeStage() {
