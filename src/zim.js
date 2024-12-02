@@ -36948,10 +36948,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				loader.resize();
 			}
 			adjustBoxes();	
-			setTimeout(function(){
+			if (obj.width) {
 				obj.scaleTo(that.box,100,100).loc(0,0,sc,0);
 				that.stage.update();
-			},20);			
+			} else {
+				setTimeout(function() {
+					obj.scaleTo(that.box,100,100).loc(0,0,sc,0);
+					that.stage.update();
+				}, 50);
+			}		
 		}
 		if (resize) {
 			that.resizeHandle.on("pressup", function() {
