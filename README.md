@@ -485,13 +485,13 @@ Canadian New Media Awards Programmer of the Year<br>
 Canadian New Media Awards Educator of the Year<br>
 https://zimjs.com/interactivemedia<br>
 Hamilton Arts Awards for Media Arts<br>
-http://danzen.com - Museum of Interactive Works
+https://danzen.com - Museum of Interactive Works
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details
 
 ## Acknowledgments
-* Thanks to the folks here and on Slack with reports, requests and enthusiasm!
+* Thanks to the folks here and in forums with reports, requests and enthusiasm!
 * Thanks Sheridan College and the Interactive Media Post Grad Program for the testing grounds!
 * Thanks to family for keeping me active in the "real world"
 * Thanks for giving us a STAR on GitHub!

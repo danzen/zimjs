@@ -9745,6 +9745,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.setBounds = function(a,b,c,d) {
 			var n = normalizeBounds(a, b, c, d);
 			that.cjsContainer_setBounds(n[0],n[1],n[2],n[3]);
+			that.width;
 			return that;
 		};
 		this.getBounds = function(targetSpace) {
@@ -10197,6 +10198,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.setBounds = function(a,b,c,d) {
 			var n = normalizeBounds(a, b, c, d);
 			this.cjsShape_setBounds(n[0],n[1],n[2],n[3]);
+			this.width;
 			return this;
 		};
 		this.getBounds = function(targetSpace) {
@@ -10273,9 +10275,10 @@ zim class - extends a createjs.Bitmap
 
 DESCRIPTION
 Makes a Bitmap object from an image source (image, video or canvas).
-It is best to use the assets and path parameters of ZIM Frame or the loadAssets() method of Frame
-to preload the image and then use the asset() method to access the Bitmap.
-See the ZIM Frame class and asset example on the ZIM Frame page of templates.
+It is best to preload images in the Frame() or with loadAssets() and the path parameter
+then simply use ZIM Pic() to display the image.
+See the ZIM Frame class and ZIM Pic in the Docs.
+But Bitmap() is handy to turn other canvases or any DisplayObject into a picture.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -10597,6 +10600,7 @@ zim.Bitmap = function(image, width, height, left, top, scale, style, group, inhe
 	this.setBounds = function(a,b,c,d) {
 		var n = normalizeBounds(a, b, c, d);
 		that.cjsBitmap_setBounds(n[0],n[1],n[2],n[3]);
+		that.width;
 		return that;
 	};
 	this.getBounds = function(targetSpace) {
@@ -10785,6 +10789,424 @@ zim.extend(zim.Bitmap, createjs.Bitmap, ["cache","clone","dispose","setBounds","
 zim.Bitmap.prototype.dispose = function() {return this.doDispose();};
 zimify(zim.Bitmap.prototype);
 	//-50.7
+
+/*--
+zim.SlicedBitmap = function(width, height, obj, slices, types, gap, scale, style, group, inherit)
+
+SlicedBitmap
+zim class - extends a zim.Bitmap which extends a createjs.Bitmap
+
+DESCRIPTION
+Makes an n-sliced bitmap.  This is similar to 9-sliced, and can do 9-sliced, 
+but also can have any number of horizontal or vertical slices.
+The slices make regions that can be fixed in scale, stretched or tiled.
+This is handy for graphics that have detailed corners or edges that should not be scaled 
+and then areas that can be scaled or tiled when size is changed.
+The bitmap can then be sized with slicesWidth and slicesHeight rather than width and height 
+to stretch and tile those regions but leave fixed regions fixed in size.
+
+The ZIM transform() defaults to using slicesWidth and slicesHeight when resizing the edges 
+it will still scale when using the corners.  This can be turned off by setting sliceX and sliceY parameters of transform to false.
+
+Properties for the slice lines are available and can be set and animated as can the scalesWidth and scalesHeight.
+
+SEE: https://zimjs.com/slices for the ZIM Slices tool and example of SlicedBitmap
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
+new SlicedBitmap(1600, pic.height, pic, [0.25,0.75],[0.25,0.75]], [[0,1,0],[0,1,0])
+	.center()
+	.transform({minScaleX:.05, minScaleY:.05});
+END EXAMPLE
+
+EXAMPLE
+// slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
+const pic = new Pic("car.png"); // preload this in Frame() or loadAssets()
+const startSlices = [0.25,0.75],[0.25,0.75]];
+const startTypes = [[0,2,0],[0,1,0]; // middle is tiled horizontally and stretched vertically
+const slicer = new Slicer({
+	obj:pic.clone(),  // slicer will adjust obj so clone the pic so can use it unaffected later
+	scale:.5, 
+	slices:startSlices, 
+	types:startTypes, 
+	upload:false
+})
+	.pos(30,50)
+	.change(()=>{preview.exchange = slicer.exchange;);	// this will update the picture below
+
+// this will provide slice type options
+new SlicerTypes(slicer).pos(30,120,RIGHT,TOP);
+
+// SlicedBitmaps slicesWidth and slicesHeight do not currently scale from the registration point
+// here we animate the slicesWidth and use a container to animate from the center
+const holder = new Container(800,400).center();
+const preview = new SlicedBitmap(1600, pic.height, pic, slicer.slices, slicer.types, 2, .5)
+	.center(holder)
+	.animate({
+		props:{slicesWidth:980},
+		// props:{sH0:.31}, // alternatively, animate the first horizontal slice (vertical line) 
+		time:2,
+		ease:"elasticInOut",
+		rewind:true,
+		rewindWait:1,
+		loop:true,
+		loopWait:1,
+		animateCall:()=>{preview.center(holder)} // always recenter the SlicedBitmap in the container
+	});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+width - (default null) the width of the object - this will apply slices and types settings to keep fixed, scale or tile regions
+height - (default null) the height of the object - this will apply slices and types settings to keep fixed, scale or tile regions
+obj - (default null) a DisplayObject such as a ZIM Pic, Container, etc. or an HTML image or canvas
+slices - (default null) an array of horizontal and vertical arrays holding slice percentage 
+	[[.25,.75], [.1,.4,.5,.9]]
+	three horizontal regions made from two vertical lines placed at 1/4 and 3/4 the width 
+	five vertical regions made from four horizontal lines with 1/10 the picture at left, middle and right
+types - (default null) an array of horizontal and vertical arrays holding slice types
+	0 - fix - keeps the original width and height of the region.  Usually, good for corners.
+	1 - stretch - stretch the region to fill space as an object is stretched
+	2 - tile - tile the region at original scale - currently, will match the first side and sometimes the second side
+gap - (default 2) pixels to overlap on each side to avoid canvas ditthered edges 
+scale - (default 1) a scale for the caching
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+slicesSca() - like sca() but will call sclicesScaleX and slicesScaleY to operate on regions
+hasProp(property as String) - returns true if property exists on object else returns false
+clone() - makes a copy with properties such as x, y, etc. also copied - also copies file and src properties
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+	if this is a cloned bitmap then the original asset("image.png") will still exist unless it is disposed.
+	
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: see the ZIM Bitmap methods, such as:
+keyOut(), cache(), getColorAt(), etc.
+ALSO: see the CreateJS Easel Docs for Bitmap methods, such as:
+on(), off(), dispatchEvent(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+slices - get or set slices - see slices parameter and sH, sV properties
+types - get or set types - see types parameter and tH, tV properties
+gap - get or set the gap 0 see gap parameter
+slicesWidth - set the width so slices operate - different than width which will scale in general, not operating the slices
+slicesHeight - set the height so slices operate - different than height which will scale in general, not operating the slices
+slicesSale - set the scale so the slices operate - different than scale which will scale in general, not operating the slices
+slicesScaleX - set the scaleX so the slices operate - different than scaleX which will scale in general, not operating the slices
+slicesScaleY - set the scaleY so the slices operate - different than scaleY which will scale in general, not operating the slices
+exchange - set the [slices, types] in one array - used to recieve data from the ZIM Slicer
+sH - set an individual horizontal slice percent - these are sH0, sH1, sH2, etc. and are properties that can be animated and wiggled as well
+sV - set an individual vertical slice percent - these are sH0, sH1, sH2, etc. and are properties that can be animated and wiggled as well
+tH - set an individual horizontal slice type - also see types parameter
+tV - set an individual vertical slice type - also see types parameter
+
+ALSO: see ZIM Docs for Bitmap properties, such as:
+width, height, widthOnly, heightOnly, draggable, level, blendMode, etc.
+ALSO: see the CreateJS Easel Docs for Bitmap properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, mouseEnabled, etc.
+
+EVENTS
+See the CreateJS Easel Docs for Bitmap events, such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
+--*///+50.7
+	zim.SlicedBitmap = function(width, height, obj, slices, types, gap, scale, style, group, inherit) {	
+		var sig = "width, height, obj, slices, types, gap, scale, style, group, inherit";
+		var duo; if (duo = zob(zim.SlicedBitmap, arguments, sig, this)) return duo;
+		z_d("50.75");	
+
+		this.group = group;
+		var DS = style===false?{}:zim.getStyle("SlicedBitmap", this.group, inherit);
+
+		var objCanvas;
+		var message = "ZIM SlicedBitmap needs DisplayObject";
+		if (zot(obj)) obj = DS.obj!=null?DS.obj:null;	
+		if (!obj.getBounds) {zogy(message); return;}
+		var b = obj.getBounds();
+		var w = b.width;
+		var h = b.height;
+		if (zot(width)) width = DS.width!=null?DS.width:500;	
+		if (zot(height)) height = DS.height!=null?DS.height:500;	
+		if (!obj.cacheCanvas) {					
+			if (obj.cache) {									
+				obj.cache(b.x,b.y,w,h);
+				objCanvas = obj.cacheCanvas;
+			}
+			else {zogy(message); return;}
+		} else {
+			objCanvas = obj.cacheCanvas;
+		}
+		if (zot(slices)) slices = DS.slices!=null?DS.slices:[[],[]];	
+		var defaults = [[1],[1]];	
+		zim.loop(slices,function(s,i) {
+			zim.loop(s,function() {
+				defaults[i].push(1);
+			});
+		});
+		if (zot(types)) types = DS.types!=null?DS.types:defaults;	
+		if (zot(scale)) scale = DS.scale!=null?DS.scale:1;	
+
+		// convert to createjs pixels rather than percent
+		var slicesSend = zim.copy(slices);
+		zim.loop(slicesSend[0], function(s,i) {
+			slicesSend[0][i] = s*w;					
+		});
+		zim.loop(slicesSend[1], function(s,i) {
+			slicesSend[1][i] = s*h;					
+		});
+		var sb = this.scaleBitmap = new createjs.ScaleBitmap(objCanvas, slicesSend, types, gap);
+		slicesSend = null;
+		sb.setDrawSize(width,height);
+		sb.cache(0,0,width,height,scale);	
+		
+
+		this.zimBitmap_constructor(sb.cacheCanvas);
+		this.type = "SlicedBitmap";
+		var that = this;
+
+		// METHODS
+
+		that.slicesSca = function(scale, scaleY) {
+			if (zot(scale)) scale = that.slicesScaleX;
+			if (zot(scaleY)) scaleY = scale;
+			obj.slicesScaleX = scale; obj.slicesScaleY = scaleY;
+			return that;
+		};
+		
+		// PROPERTIES
+
+		Object.defineProperty(that, 'slicesWidth', {
+			get: function() {
+				return width;
+			},
+			set: function(value) {
+				width = value;
+				sb.setDrawSize(width, height);
+				sb.cache(0,0,width,height,scale);
+				that.sourceRect = new createjs.Rectangle(0,0,width*scale,height*scale);
+				that.setBounds(null);
+				if (that.transformControls) that.transformControls.resize();
+			}
+		});			
+		Object.defineProperty(that, 'ssW', { // no transformControls resize as was feeding back from transform
+			get: function() {
+				return width;
+			},
+			set: function(value) {
+				width = value;
+				sb.setDrawSize(width, height);
+				sb.cache(0,0,width,height,scale);
+				that.sourceRect = new createjs.Rectangle(0,0,width*scale,height*scale);
+				that.setBounds(null);
+			}
+		});			
+
+		Object.defineProperty(that, 'slicesHeight', {
+			get: function() {
+				return height;
+			},
+			set: function(value) {
+				height = value;
+				sb.setDrawSize(width, height);
+				sb.cache(0,0,width,height,scale);
+				that.sourceRect = new createjs.Rectangle(0,0,width*scale,height*scale);
+				that.setBounds(null);
+				if (that.transformControls) that.transformControls.resize();
+			}
+		});				
+		Object.defineProperty(that, 'ssH', { // no transformControls resize as was feeding back from transform
+			get: function() {
+				return height;
+			},
+			set: function(value) {
+				height = value;
+				sb.setDrawSize(width, height);
+				sb.cache(0,0,width,height,scale);
+				that.sourceRect = new createjs.Rectangle(0,0,width*scale,height*scale);
+				that.setBounds(null);
+			}
+		});			
+
+		var originalWidth = width;
+		Object.defineProperty(that, 'slicesScaleX', {
+			get: function() {
+				return width/originalWidth;
+			},
+			set: function(value) {
+				that.slicesWidth = value?originalWidth*value:0;						
+			}
+		});		
+		Object.defineProperty(that, 'ssX', { // no transformControls resize as was feeding back from transform
+			get: function() {
+				return width/originalWidth;
+			},
+			set: function(value) {
+				that.ssW = value?originalWidth*value:0;						
+			}
+		});		
+		
+		var originalHeight = height;
+		Object.defineProperty(that, 'slicesScaleY', {
+			get: function() {
+				return height/originalHeight;
+			},
+			set: function(value) {
+				that.slicesHeight = value?originalHeight*value:0;						
+			}
+		});
+		Object.defineProperty(that, 'ssY', { // no transformControls resize as was feeding back from transform
+			get: function() {
+				return height/originalHeight;
+			},
+			set: function(value) {
+				that.ssH = value?originalHeight*value:0;						
+			}
+		});	
+
+		Object.defineProperty(that, 'slicesScale', {
+			get: function() {
+				return width/originalWidth;
+			},
+			set: function(value) {
+				that.slicesWidth = value?originalWidth*value:0;
+				that.slicesHeight = value?originalHeight*value:0;						
+			}
+		});		
+
+		
+		Object.defineProperty(that, 'slices', {
+			get: function() {
+				return slices;
+			},
+			set: function(value) {
+				if (zot(value) || !Array.isArray(value)) value = [[],[]];
+				slices = value;
+				var b = obj.getBounds();
+				var w = b.width;
+				var h = b.height;		
+				var slicesSend = zim.copy(slices);	
+				zim.loop(slicesSend[0], function(s,i) {						
+					slicesSend[0][i] = s*w;					
+				});
+				zim.loop(slicesSend[1], function(s,i) {
+					slicesSend[1][i] = s*h;					
+				});
+				sb.slices = slicesSend;
+				slicesSend = null;
+				sb.updateCache();						
+			}
+		});
+
+		Object.defineProperty(that, 'types', {
+			get: function() {
+				return types;
+			},
+			set: function(value) {											
+				if (zot(value) || !Array.isArray(value)) {
+					var defaults = [[1],[1]];	
+					zim.loop(slices,function(s,i) {
+						zim.loop(s,function() {
+							defaults[i].push(1);
+						});
+					});
+					value = defaults;
+				}
+				sb.types = types = value;
+				sb.updateCache();						
+			}
+		});
+
+		Object.defineProperty(that, 'gap', {
+			get: function() {
+				return gap;
+			},
+			set: function(value) {						
+				sb.gap = gap = value;
+			}
+		});			
+
+		Object.defineProperty(that, 'exchange', {
+			get: function() {
+				return [slices, types];
+			},
+			set: function(value) {
+				var b = obj.getBounds();
+				var w = b.width;
+				var h = b.height;	
+				slices = value[0];	
+				var slicesSend = zim.copy(slices);	
+				zim.loop(slicesSend[0], function(s,i) {						
+					slicesSend[0][i] = s*w;					
+				});
+				zim.loop(slicesSend[1], function(s,i) {
+					slicesSend[1][i] = s*h;					
+				});
+				sb.slices = slicesSend;
+				slicesSend = null;
+				sb.types = types = value[1];
+				sb.updateCache();	
+			}
+		});				
+
+		zim.loop(20, function(i) {
+			Object.defineProperty(that, 'sH'+i, {
+				get: function() {
+					return slices[0][i];
+				},
+				set: function(value) {
+					slices[0][i] = value;
+					that.slices = slices;
+				}
+			});			
+		});
+
+		zim.loop(20, function(i) {
+			Object.defineProperty(that, 'sV'+i, {
+				get: function() {
+					return slices[1][i];
+				},
+				set: function(value) {
+					slices[1][i] = value;
+					that.slices = slices;
+				}
+			});			
+		});
+
+		zim.loop(20, function(i) {
+			Object.defineProperty(that, 'tH'+i, {
+				get: function() {
+					return types[0][i];
+				},
+				set: function(value) {
+					types[0][i] = value;
+					that.types = types;
+				}
+			});			
+		});
+
+		zim.loop(20, function(i) {
+			Object.defineProperty(that, 'tV'+i, {
+				get: function() {
+					return types[1][i];
+				},
+				set: function(value) {
+					types[1][i] = value;
+					that.types = types;
+				}
+			});			
+		});			
+
+	}
+	zim.extend(zim.SlicedBitmap, zim.Bitmap, null, "zimBitmap", false);
+	//-50.75
 
 /*--
 zim.Sprite = function(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, frame, style, group, inherit)
@@ -11516,6 +11938,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		this.setBounds = function(a,b,c,d) {
 			var n = normalizeBounds(a, b, c, d);
 			that.cjsSprite_setBounds(n[0],n[1],n[2],n[3]);
+			that.width;
 			return that;
 		};
 		this.getBounds = function(targetSpace) {
@@ -11703,6 +12126,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.setBounds = function(a,b,c,d) {
 			var n = normalizeBounds(a, b, c, d);
 			that.cjsMovieClip_setBounds(n[0],n[1],n[2],n[3]);
+			that.width;
 			return that;
 		};
 		this.getBounds = function(targetSpace) {
@@ -23083,8 +23507,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - the name of the class as a String
-text - get the text of the original Label
-	See: https://zimjs.com/zapp/Z_VSR9X for updating text
+text - get or set the text
 labels - an array of ZIM Label objects for the letters
 numLetters - how many letters (same as numChildren)
 
@@ -23126,391 +23549,449 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.type = "LabelLetters";
 
 		var that = this;
-		var letterData = that.letterData = [];
-		var original, data;
-		if (label.type != "Label") {
-			data = parseHTML(label); // returns {text:text, data:data}	
-			letterData = data.data;	
-			label = new zim.Label(data.text);						
-		} else {
-			data = parseHTML(label.text); 
-			letterData = data.data;	
-			label.text = data.text;
-		}
-		that.text = data.original;
-		that._color = label.color;
-		
-		// handle DIR effect 
-		if ((WW.DIR && WW.DIR=="rtl") || (!WW.DIR && zim.DIR=="rtl")) {
-			if (lineAlign=="start") lineAlign="right";
-			else if (lineAlign=="end") lineAlign="left";
-		} else {
-			if (lineAlign=="start") lineAlign="left";
-			else if (lineAlign=="end") lineAlign="right";
-		}
-		
-		function parseHTML(html) {
-			var data = [];
-						
-			// var example = "LabelLetters()<br><br><font group=heading backgroundColor=yellow rollBackgroundColor=green><a href=https://zimjs.com target=_blank>Example</a></font>: <b>strong</b> <i>emphasis</i> <u>underline</u><br><font color=red size=50 family=verdana><strong>big</strong> red verdana</font><br>the next line"
-			// "LabelLetters()Example: strong emphasis underlinebig red verdanathe next line"
-			// "01234567890123456789012345678901234567890123456789012345678901234567890120123456789012"
-			// "0         1         2         3         4         5         6         7"
-			// html = "!Roger הגיע בשבילך משהו בדואר Dan אני לומד עברית";
-			// html = "הגיע בשבילך משהו בדואר.";
-						
-			function insert(data) {	
-				return data.split("").reverse().join("")
-			}
-			if (rtl) {
-				count = -1;				
-				html = html.replace(/[\u0591-\u07FF]+/ig, insert);	
-				
-				// and there may be tags or LTR characters next to RTL without a space:
-				html = html.replace(/([^\u0591-\u07FF ])([\u0591-\u07FF])/ig, "$1-!!-$2"); // note the not space
-				html = html.replace(/([\u0591-\u07FF])([^\u0591-\u07FF ])/ig, "$1-!!-$2"); // note the not space				
-				html = html.replace(/([^\u0591-\u07FF]) ([\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
-				html = html.replace(/([\u0591-\u07FF]) ([^\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
-				
-				var sp = html.split(/-!!-/g);
-				zim.loop(sp, function(ssp, i){
-					if (ssp.match(/[\u0591-\u07FF]/i)) {
-						sp[i] = ssp.split(" ").reverse().join(" ");
-					}
-				});
-				html = sp.join("");	
-			}
-			
 
-			// normalize tags
-			html = html.replace(/\n|\r/g,"<br>");
-			html = html.replace(/<strong>|<strong \/>|<strong\/>/gi,"<b>");
-			html = html.replace(/<\/strong>/gi,"</b>");
-			html = html.replace(/<em>|<em \/>|<em\/>/gi,"<i>");
-			html = html.replace(/<\/em>/gi,"</i>");
-			html = html.replace(/\\n|\\r/g,"<br>");
-			html = html.replace(/<br>|<br \/>|<br\/>(<\/br>)?/gi,"<br>");			
-			html = html.replace(/<b/gi,"<b");
-			html = html.replace(/<i/gi,"<i");
-			html = html.replace(/<u/gi,"<u");
-			html = html.replace(/<br/gi,"<br");
-			html = html.replace(/<a/gi,"<a");
-			html = html.replace(/<font/gi,"<font");
-			
-			// turn all other tags into "" do split on tag and count index for tag 
-			// process this and store in data so get index of tags in string with no tags counted
-			
-			var regs = [
-				/<(a|i|u|f|br|\/a|\/i|\/u|\/f|\/b)[^>]*>/g,
-				/<(a|i|u|f|br|\/a|\/i|\/u|\/f|b)[^>]*>/g,				
-				/<(b|i|u|f|br|\/b|\/i|\/u|\/f|\/a)[^>]*>/g,
-				/<(b|i|u|f|br|\/b|\/i|\/u|\/f|a)[^>]*>/g,				
-				/<(b|a|u|f|br|\/b|\/a|\/u|\/f|\/i)[^>]*>/g,
-				/<(b|a|u|f|br|\/b|\/a|\/u|\/f|i)[^>]*>/g,
-				/<(b|a|i|f|br|\/b|\/a|\/i|\/f|\/u)[^>]*>/g,
-				/<(b|a|i|f|br|\/b|\/a|\/i|\/f|u)[^>]*>/g,	
-				/<(b|a|i|u|br|\/b|\/a|\/i|\/u|\/f)[^>]*>/g,
-				/<(b|a|i|u|br|\/b|\/a|\/i|\/u|f)[^>]*>/g			
-			];
-			var types = ["b","a","i","u","font"];
-			var p;
-			zim.loop(types, function(type, i) {
-				p = html.replace(regs[i*2],"");
-				var arr;
-				if (type=="font") {
-					arr = p.split("<font ");
-				} else if (type=="a") {
-					arr = p.split("<a ");
-				} else {
-					arr = p.split("<"+type+">");
-				}	
-				process(arr, type, 0); // 0 for add		
-					
-				p = html.replace(regs[i*2+1],"");				
-				arr = p.split("</"+type+">");										
-				process(arr, type, 1); // 1 for remove
-			});
-						
-			
-			p = html.replace(/<br>/gi,"@^#");
-			p = p.replace(/<(b|a|i|u|f|\/b|\/a|\/i|\/u|\/f)[^>]*>/g,"");
-			var arr = p.split("@^#");
-			original = arr.join("\n");
-			p = arr.join("");
-			process(arr, "br", 0); // 0 for add
-			
-			function process(text, type, action) {
-				if (text.length > 1) {					
-					if ((type=="font" || type=="a") && action==0) {					
-						var length = text[0].length;
-						zim.loop(text, function(s, i) {
-							
-							if (i==0) return;					
-							var d = data[length];
-							if (!d) data[length] = [];
-							d = data[length] ;
-							
-							var arr = s.split(">");
-							
-							if (d[action]) d[action].push(type + " " + arr[0]);
-							else d[action] = [type + " " + arr[0]];
-							
-							length += arr[1].length;
-						});
-					} else {										
-						text.pop();	
-						var running = 0;			
-						zim.loop(text, function(s) {
-							running += s.length;
-							var d = data[running];
-							if (!d) data[running] = [];
-							d = data[running]; 
-							if (d[action]) d[action].push(type);
-							else d[action] = [type];							
-						});
-					}
-				}
-			}		
-			
-			// [[adds at index], [removes at index]]
-			// b,i,u,br,a,font
-			// var da = [,, [["b","i"]] ,[,["b"]],,,[["br","font color=red size=10 family=courier"]],["i"]],...];
-			return {text:p, data:data, original:original};
-		}	
-		
-		that.numLetters = label.text.length;
-		
-		// NORMALIZE SPACINGS
-		var letterSpacingsOriginal = !zot(letterSpacings);
-		if (letterSpacings && !Array.isArray(letterSpacings)) letterSpacings = null;
-		var i;
-		if (!letterSpacings) {
-			letterSpacings = [];			
-			for (i = 0; i < that.numLetters; i++) {				
-				letterSpacings.push(letterSpacing);
-			}
-		} else {
-			for (i = 0; i < that.numLetters; i++) {
-				if (zot(letterSpacings[i])) letterSpacings[i] = letterSpacing;
-			}
-		}
-		that.letterSpacings = letterSpacings;
+		function make() {
 
-		if (lineSpacings && !Array.isArray(lineSpacings)) lineSpacings = null;
-		if (!lineSpacings) {
-			lineSpacings = [];
-			for (i = 0; i < that.numLetters - 1; i++) {
-				lineSpacings.push(lineSpacing);
-			}
-		} else {
-			for (i = 0; i < that.numLetters - 1; i++) {
-				if (zot(lineSpacings[i])) lineSpacings[i] = lineSpacing;
-			}
-		}
-		that.lineSpacings = lineSpacings;
-		
-		// LINE CONTROL
-		that.labels = [];
-		that.lines = [[]];
-		var lineWidths = [];
-		var lineHeights = [];
-		var linePositionsY = [0];
-		var lineY = 0;
-		var lineW = 0;
-		var lineH = 0;
-		var lineNum = 0;
-		var maxW = 0;
-		
-		// HTML CONTROL
-		var d = letterData;
-		var bCheck = false;
-		var iCheck = false;
-		var uCheck = false;
-		var brCheck = false;
-		var colorCheck = false;
-		var sizeCheck = false;
-		var groupCheck = false;		
-		var familyCheck = false;
-		var urlCheck = false;
-		var targetCheck = false;
-		var backgroundColorCheck = false;
-		var rollBackgroundColorCheck = false;
-		
-		// ROLLOVER CONTROL		
-		that.rolls = [[]];
-		
-		for (i=0; i<that.numLetters; i++) {
-			
-			// PARSE TAG CHECKS
-						
-			brCheck = false;			
-			if (d[i]) {
-				
-				// end tags - do ends first just in case tag ends at same letter it starts
-				if (d[i][1]) {
-					if (d[i][1].indexOf("b") >= 0) bCheck = false;
-					if (d[i][1].indexOf("i") >= 0) iCheck = false;
-					if (d[i][1].indexOf("u") >= 0) uCheck = false;
-					zim.loop(d[i][1], function (item) {
-						if (item.match(/^font/i)) {
-							colorCheck = false;
-							backgroundColorCheck = false;
-							if (rollBackgroundColorCheck) that.rolls.push([]);
-							rollBackgroundColorCheck = false;
-							sizeCheck = false;
-							familyCheck = false;
-							groupCheck = false;
-							return;
-						}
-						if (item.match(/^a/i)) {
-							urlCheck = false;
-							targetCheck = false;
-							return;
-						}
-					});	
-				}	
-				
-				// start tags				
-				if (d[i][0]) {
-					if (d[i][0].indexOf("b") >= 0) bCheck = true;
-					if (d[i][0].indexOf("i") >= 0) iCheck = true;
-					if (d[i][0].indexOf("u") >= 0) uCheck = true;
-					brCheck = 0;
-					zim.loop(d[i][0], function (item) {
-						if (item=="br") brCheck++;
-					});
-					zim.loop(d[i][0], function (item) {
-						var r, ind;
-						if (item.match(/^font/i)) {
-							r = item.match(/ color\s?=\s?(\S*)/i);			
-							if (r) {
-								colorCheck = r[1];
-								ind = zim.colors.indexOf(colorCheck);
-								if (ind>=0) colorCheck = zim.colorsHex[ind];
-								colorCheck = colorCheck.replace(/'/g,"");
-							}
-							r = item.match(/size\s?=\s?(\S*)/i);
-							if (r) sizeCheck = r[1];
-							r = item.match(/backgroundColor\s?=\s?(\S*)/i);						
-							if (r) {
-								backgroundColorCheck = r[1];
-								ind = zim.colors.indexOf(backgroundColorCheck);
-								if (ind>=0) backgroundColorCheck = zim.colorsHex[ind];
-								backgroundColorCheck = backgroundColorCheck.replace(/'/g,"");
-							}
-							r = item.match(/rollBackgroundColor\s?=\s?(\S*)/i);
-							if (r) {
-								rollBackgroundColorCheck = r[1];
-								ind = zim.colors.indexOf(rollBackgroundColorCheck);
-								if (ind>=0) rollBackgroundColorCheck = zim.colorsHex[ind];
-								rollBackgroundColorCheck = rollBackgroundColorCheck.replace(/'/g,"");
-							}
-							r = item.match(/group\s?=\s?(\S*)/i);
-							if (r) groupCheck = r[1];
-							r = item.match(/family\s?=\s?(.*)/i);
-							if (r) {
-								familyCheck = r[1];		
-								familyCheck = familyCheck.split(/\ssize\s?=|\scolor\s?=|\sgroup\s?=/i)[0];
-							}					
-							return;
-						} 
-						if (item.match(/^a/i)) {
-							r = item.match(/href\s?=\s?(\S*)/i);
-							if (r) urlCheck = r[1];
-							r = item.match(/target\s?=\s?(\S*)/i);
-							if (r) targetCheck = r[1];
-							return;
-						} 
-					});										
-				}	// end start tag	
-						
-			} // end all tags
-			
-			// HANDLE CHECKS AND STORE MAX SIZES
-			var letter;
-			if (groupCheck) {
-				letter = new zim.Label({text:label.text[i], group:groupCheck})
+			that.disposeAllChildren();
+
+			var letterData = that.letterData = [];
+			var original, data;
+			if (label.type != "Label") {
+				data = parseHTML(label); // returns {text:text, data:data}	
+				letterData = data.data;	
+				label = new zim.Label(data.text);						
 			} else {
-				letter = label.clone();				
-				letter.text = label.text[i];
+				data = parseHTML(label.text); 
+				letterData = data.data;	
+				label.text = data.text;
 			}
-			that.labels.push(letter);				
+			that._text = data.original;
+			that._color = label.color;
 			
-			if (bCheck) letter.bold = true;
-			if (iCheck) letter.italic = true;
-			if (colorCheck) letter.color = colorCheck;
-			if (backgroundColorCheck) letter.backgroundColor = backgroundColorCheck;
-			
-			var s = letterSpacingsOriginal?letterSpacings[i]:zot(letter.backgroundColor)?letterSpacings[i]:-.5;		
-
-			if (rollBackgroundColorCheck) {
-				letter.rollIndex = that.rolls.length-1;
-				letter.zrbc = rollBackgroundColorCheck;				
-				letter.zobc = letter.backgroundColor;
-				that.rolls[letter.rollIndex].push(letter);
-				letter.expand(0);
-				letter.on("mouseover", rollOn);				
-				letter.on("mouseout", rollOff);
+			// handle DIR effect 
+			if ((WW.DIR && WW.DIR=="rtl") || (!WW.DIR && zim.DIR=="rtl")) {
+				if (lineAlign=="start") lineAlign="right";
+				else if (lineAlign=="end") lineAlign="left";
+			} else {
+				if (lineAlign=="start") lineAlign="left";
+				else if (lineAlign=="end") lineAlign="right";
 			}
 			
-			if (urlCheck) {
-				letter.expand(s,0);
-				letter.zurl = urlCheck;
-				letter.ztar = targetCheck;
-				letter.cur();
-				letter.on("click", function (e) {
-					var letter = e.currentTarget;
-					rollOff(e);
-					if (!letter.ztar) letter.ztar = "_self";
-					zgo(letter.zurl, letter.ztar);					
-				});	
-			}
-			if (familyCheck) letter.font = familyCheck;				
-			if (sizeCheck) letter.size = sizeCheck;			
-			
-			
-			if (brCheck) {
-				lineY += (zot(lineHeight)?lineH:lineHeight) + lineSpacings[lineNum];
-				linePositionsY.push(lineY);
-				lineHeights.push(zot(lineHeight)?lineH:lineHeight);
-				lineWidths.push(lineW);						
-				maxW = Math.max(maxW, lineW);				
-			}		
-			
-			if (brCheck) {
-				if (brCheck > 1) {
-					zim.loop(brCheck-1, function () {
-						that.lines.push([]);
-						lineY += (zot(lineHeight)?lineH:lineHeight) + lineSpacings[lineNum];
-						linePositionsY.push(lineY);
-						lineHeights.push(zot(lineHeight)?lineH:lineHeight);
-						lineWidths.push(0);							
-						lineNum++;
+			function parseHTML(html) {
+				var data = [];
+							
+				// var example = "LabelLetters()<br><br><font group=heading backgroundColor=yellow rollBackgroundColor=green><a href=https://zimjs.com target=_blank>Example</a></font>: <b>strong</b> <i>emphasis</i> <u>underline</u><br><font color=red size=50 family=verdana><strong>big</strong> red verdana</font><br>the next line"
+				// "LabelLetters()Example: strong emphasis underlinebig red verdanathe next line"
+				// "01234567890123456789012345678901234567890123456789012345678901234567890120123456789012"
+				// "0         1         2         3         4         5         6         7"
+				// html = "!Roger הגיע בשבילך משהו בדואר Dan אני לומד עברית";
+				// html = "הגיע בשבילך משהו בדואר.";
+							
+				function insert(data) {	
+					return data.split("").reverse().join("")
+				}
+				if (rtl) {
+					count = -1;				
+					html = html.replace(/[\u0591-\u07FF]+/ig, insert);	
+					
+					// and there may be tags or LTR characters next to RTL without a space:
+					html = html.replace(/([^\u0591-\u07FF ])([\u0591-\u07FF])/ig, "$1-!!-$2"); // note the not space
+					html = html.replace(/([\u0591-\u07FF])([^\u0591-\u07FF ])/ig, "$1-!!-$2"); // note the not space				
+					html = html.replace(/([^\u0591-\u07FF]) ([\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
+					html = html.replace(/([\u0591-\u07FF]) ([^\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
+					
+					var sp = html.split(/-!!-/g);
+					zim.loop(sp, function(ssp, i){
+						if (ssp.match(/[\u0591-\u07FF]/i)) {
+							sp[i] = ssp.split(" ").reverse().join(" ");
+						}
 					});
-				}	
-				lineH = 0;
-				lineW = 0;
-				that.lines.push([]);
-				lineNum++;
+					html = sp.join("");	
+				}
+				
+	
+				// normalize tags
+				html = html.replace(/\n|\r/g,"<br>");
+				html = html.replace(/<strong>|<strong \/>|<strong\/>/gi,"<b>");
+				html = html.replace(/<\/strong>/gi,"</b>");
+				html = html.replace(/<em>|<em \/>|<em\/>/gi,"<i>");
+				html = html.replace(/<\/em>/gi,"</i>");
+				html = html.replace(/\\n|\\r/g,"<br>");
+				html = html.replace(/<br>|<br \/>|<br\/>(<\/br>)?/gi,"<br>");			
+				html = html.replace(/<b/gi,"<b");
+				html = html.replace(/<i/gi,"<i");
+				html = html.replace(/<u/gi,"<u");
+				html = html.replace(/<br/gi,"<br");
+				html = html.replace(/<a/gi,"<a");
+				html = html.replace(/<font/gi,"<font");
+				
+				// turn all other tags into "" do split on tag and count index for tag 
+				// process this and store in data so get index of tags in string with no tags counted
+				
+				var regs = [
+					/<(a|i|u|f|br|\/a|\/i|\/u|\/f|\/b)[^>]*>/g,
+					/<(a|i|u|f|br|\/a|\/i|\/u|\/f|b)[^>]*>/g,				
+					/<(b|i|u|f|br|\/b|\/i|\/u|\/f|\/a)[^>]*>/g,
+					/<(b|i|u|f|br|\/b|\/i|\/u|\/f|a)[^>]*>/g,				
+					/<(b|a|u|f|br|\/b|\/a|\/u|\/f|\/i)[^>]*>/g,
+					/<(b|a|u|f|br|\/b|\/a|\/u|\/f|i)[^>]*>/g,
+					/<(b|a|i|f|br|\/b|\/a|\/i|\/f|\/u)[^>]*>/g,
+					/<(b|a|i|f|br|\/b|\/a|\/i|\/f|u)[^>]*>/g,	
+					/<(b|a|i|u|br|\/b|\/a|\/i|\/u|\/f)[^>]*>/g,
+					/<(b|a|i|u|br|\/b|\/a|\/i|\/u|f)[^>]*>/g			
+				];
+				var types = ["b","a","i","u","font"];
+				var p;
+				zim.loop(types, function(type, i) {
+					p = html.replace(regs[i*2],"");
+					var arr;
+					if (type=="font") {
+						arr = p.split("<font ");
+					} else if (type=="a") {
+						arr = p.split("<a ");
+					} else {
+						arr = p.split("<"+type+">");
+					}	
+					process(arr, type, 0); // 0 for add		
+						
+					p = html.replace(regs[i*2+1],"");				
+					arr = p.split("</"+type+">");										
+					process(arr, type, 1); // 1 for remove
+				});
+							
+				
+				p = html.replace(/<br>/gi,"@^#");
+				p = p.replace(/<(b|a|i|u|f|\/b|\/a|\/i|\/u|\/f)[^>]*>/g,"");
+				var arr = p.split("@^#");
+				original = arr.join("\n");
+				p = arr.join("");
+				process(arr, "br", 0); // 0 for add
+				
+				function process(text, type, action) {
+					if (text.length > 1) {					
+						if ((type=="font" || type=="a") && action==0) {					
+							var length = text[0].length;
+							zim.loop(text, function(s, i) {
+								
+								if (i==0) return;					
+								var d = data[length];
+								if (!d) data[length] = [];
+								d = data[length] ;
+								
+								var arr = s.split(">");
+								
+								if (d[action]) d[action].push(type + " " + arr[0]);
+								else d[action] = [type + " " + arr[0]];
+								
+								length += arr[1].length;
+							});
+						} else {										
+							text.pop();	
+							var running = 0;			
+							zim.loop(text, function(s) {
+								running += s.length;
+								var d = data[running];
+								if (!d) data[running] = [];
+								d = data[running]; 
+								if (d[action]) d[action].push(type);
+								else d[action] = [type];							
+							});
+						}
+					}
+				}		
+				
+				// [[adds at index], [removes at index]]
+				// b,i,u,br,a,font
+				// var da = [,, [["b","i"]] ,[,["b"]],,,[["br","font color=red size=10 family=courier"]],["i"]],...];
+				return {text:p, data:data, original:original};
 			}	
 			
-			lineW += letter.width + s;
-			lineH = Math.max(lineH, letter.height);
+			that.numLetters = label.text.length;
 			
-			if (i==that.numLetters-1) {
-				lineWidths.push(lineW);	
-				lineHeights.push(lineH);						
-				maxW = Math.max(maxW, lineW);
+			// NORMALIZE SPACINGS
+			var letterSpacingsOriginal = !zot(letterSpacings);
+			if (letterSpacings && !Array.isArray(letterSpacings)) letterSpacings = null;
+			var i;
+			if (!letterSpacings) {
+				letterSpacings = [];			
+				for (i = 0; i < that.numLetters; i++) {				
+					letterSpacings.push(letterSpacing);
+				}
+			} else {
+				for (i = 0; i < that.numLetters; i++) {
+					if (zot(letterSpacings[i])) letterSpacings[i] = letterSpacing;
+				}
 			}
+			that.letterSpacings = letterSpacings;
+	
+			if (lineSpacings && !Array.isArray(lineSpacings)) lineSpacings = null;
+			if (!lineSpacings) {
+				lineSpacings = [];
+				for (i = 0; i < that.numLetters - 1; i++) {
+					lineSpacings.push(lineSpacing);
+				}
+			} else {
+				for (i = 0; i < that.numLetters - 1; i++) {
+					if (zot(lineSpacings[i])) lineSpacings[i] = lineSpacing;
+				}
+			}
+			that.lineSpacings = lineSpacings;
 			
-			that.lines[lineNum].push(letter);
+			// LINE CONTROL
+			that.labels = [];
+			that.lines = [[]];
+			var lineWidths = [];
+			var lineHeights = [];
+			var linePositionsY = [0];
+			var lineY = 0;
+			var lineW = 0;
+			var lineH = 0;
+			var lineNum = 0;
+			var maxW = 0;
 			
-			if (uCheck) letter.underline = new zim.Line(letter.width+s+1,1,letter.color).center(letter,this).mov(0,letter.height/2);
+			// HTML CONTROL
+			var d = letterData;
+			var bCheck = false;
+			var iCheck = false;
+			var uCheck = false;
+			var brCheck = false;
+			var colorCheck = false;
+			var sizeCheck = false;
+			var groupCheck = false;		
+			var familyCheck = false;
+			var urlCheck = false;
+			var targetCheck = false;
+			var backgroundColorCheck = false;
+			var rollBackgroundColorCheck = false;
+			
+			// ROLLOVER CONTROL		
+			that.rolls = [[]];
+			
+			for (i=0; i<that.numLetters; i++) {
+				
+				// PARSE TAG CHECKS
+							
+				brCheck = false;			
+				if (d[i]) {
 					
-		} // end checks
-		
+					// end tags - do ends first just in case tag ends at same letter it starts
+					if (d[i][1]) {
+						if (d[i][1].indexOf("b") >= 0) bCheck = false;
+						if (d[i][1].indexOf("i") >= 0) iCheck = false;
+						if (d[i][1].indexOf("u") >= 0) uCheck = false;
+						zim.loop(d[i][1], function (item) {
+							if (item.match(/^font/i)) {
+								colorCheck = false;
+								backgroundColorCheck = false;
+								if (rollBackgroundColorCheck) that.rolls.push([]);
+								rollBackgroundColorCheck = false;
+								sizeCheck = false;
+								familyCheck = false;
+								groupCheck = false;
+								return;
+							}
+							if (item.match(/^a/i)) {
+								urlCheck = false;
+								targetCheck = false;
+								return;
+							}
+						});	
+					}	
+					
+					// start tags				
+					if (d[i][0]) {
+						if (d[i][0].indexOf("b") >= 0) bCheck = true;
+						if (d[i][0].indexOf("i") >= 0) iCheck = true;
+						if (d[i][0].indexOf("u") >= 0) uCheck = true;
+						brCheck = 0;
+						zim.loop(d[i][0], function (item) {
+							if (item=="br") brCheck++;
+						});
+						zim.loop(d[i][0], function (item) {
+							var r, ind;
+							if (item.match(/^font/i)) {
+								r = item.match(/ color\s?=\s?(\S*)/i);			
+								if (r) {
+									colorCheck = r[1];
+									ind = zim.colors.indexOf(colorCheck);
+									if (ind>=0) colorCheck = zim.colorsHex[ind];
+									colorCheck = colorCheck.replace(/'/g,"");
+								}
+								r = item.match(/size\s?=\s?(\S*)/i);
+								if (r) sizeCheck = r[1];
+								r = item.match(/backgroundColor\s?=\s?(\S*)/i);						
+								if (r) {
+									backgroundColorCheck = r[1];
+									ind = zim.colors.indexOf(backgroundColorCheck);
+									if (ind>=0) backgroundColorCheck = zim.colorsHex[ind];
+									backgroundColorCheck = backgroundColorCheck.replace(/'/g,"");
+								}
+								r = item.match(/rollBackgroundColor\s?=\s?(\S*)/i);
+								if (r) {
+									rollBackgroundColorCheck = r[1];
+									ind = zim.colors.indexOf(rollBackgroundColorCheck);
+									if (ind>=0) rollBackgroundColorCheck = zim.colorsHex[ind];
+									rollBackgroundColorCheck = rollBackgroundColorCheck.replace(/'/g,"");
+								}
+								r = item.match(/group\s?=\s?(\S*)/i);
+								if (r) groupCheck = r[1];
+								r = item.match(/family\s?=\s?(.*)/i);
+								if (r) {
+									familyCheck = r[1];		
+									familyCheck = familyCheck.split(/\ssize\s?=|\scolor\s?=|\sgroup\s?=/i)[0];
+								}					
+								return;
+							} 
+							if (item.match(/^a/i)) {
+								r = item.match(/href\s?=\s?(\S*)/i);
+								if (r) urlCheck = r[1];
+								r = item.match(/target\s?=\s?(\S*)/i);
+								if (r) targetCheck = r[1];
+								return;
+							} 
+						});										
+					}	// end start tag	
+							
+				} // end all tags
+				
+				// HANDLE CHECKS AND STORE MAX SIZES
+				var letter;
+				if (groupCheck) {
+					letter = new zim.Label({text:label.text[i], group:groupCheck})
+				} else {
+					letter = label.clone();				
+					letter.text = label.text[i];
+				}
+				that.labels.push(letter);				
+				
+				if (bCheck) letter.bold = true;
+				if (iCheck) letter.italic = true;
+				if (colorCheck) letter.color = colorCheck;
+				if (backgroundColorCheck) letter.backgroundColor = backgroundColorCheck;
+				
+				var s = letterSpacingsOriginal?letterSpacings[i]:zot(letter.backgroundColor)?letterSpacings[i]:-.5;		
+	
+				if (rollBackgroundColorCheck) {
+					letter.rollIndex = that.rolls.length-1;
+					letter.zrbc = rollBackgroundColorCheck;				
+					letter.zobc = letter.backgroundColor;
+					that.rolls[letter.rollIndex].push(letter);
+					letter.expand(0);
+					letter.on("mouseover", rollOn);				
+					letter.on("mouseout", rollOff);
+				}
+				
+				if (urlCheck) {
+					letter.expand(s,0);
+					letter.zurl = urlCheck;
+					letter.ztar = targetCheck;
+					letter.cur();
+					letter.on("click", function (e) {
+						var letter = e.currentTarget;
+						rollOff(e);
+						if (!letter.ztar) letter.ztar = "_self";
+						zgo(letter.zurl, letter.ztar);					
+					});	
+				}
+				if (familyCheck) letter.font = familyCheck;				
+				if (sizeCheck) letter.size = sizeCheck;			
+				
+				
+				if (brCheck) {
+					lineY += (zot(lineHeight)?lineH:lineHeight) + lineSpacings[lineNum];
+					linePositionsY.push(lineY);
+					lineHeights.push(zot(lineHeight)?lineH:lineHeight);
+					lineWidths.push(lineW);						
+					maxW = Math.max(maxW, lineW);				
+				}		
+				
+				if (brCheck) {
+					if (brCheck > 1) {
+						zim.loop(brCheck-1, function () {
+							that.lines.push([]);
+							lineY += (zot(lineHeight)?lineH:lineHeight) + lineSpacings[lineNum];
+							linePositionsY.push(lineY);
+							lineHeights.push(zot(lineHeight)?lineH:lineHeight);
+							lineWidths.push(0);							
+							lineNum++;
+						});
+					}	
+					lineH = 0;
+					lineW = 0;
+					that.lines.push([]);
+					lineNum++;
+				}	
+				
+				lineW += letter.width + s;
+				lineH = Math.max(lineH, letter.height);
+				
+				if (i==that.numLetters-1) {
+					lineWidths.push(lineW);	
+					lineHeights.push(lineH);						
+					maxW = Math.max(maxW, lineW);
+				}
+				
+				that.lines[lineNum].push(letter);
+				
+				if (uCheck) letter.underline = new zim.Line(letter.width+s+1,1,letter.color).center(letter,that).mov(0,letter.height/2);
+						
+			} // end checks
+			
+	
+			
+			
+			// LOOP THROUGH LINES AND APPLY POSITIONS
+			var count = 0;
+			for (var j=0; j<that.lines.length; j++) {
+				var ll = that.lines[j];
+				lineW = lineWidths[j];
+				lineH = lineHeights[j];
+				lineY = linePositionsY[j];
+				
+				var startX, startY;
+				if (lineAlign=="left") startX = 0;
+				else if (lineAlign=="right") startX = maxW-lineW;
+				else startX = (maxW-lineW)/2;
+				startY = lineY;		
+									
+				for (i=0; i<ll.length; i++) {
+					count++;
+					if (cache) letter.cache();
+					letter = ll[i];
+					letter.regX = align=="left"?0:(align=="right"?letter.width:letter.width/2);
+					letter.regY = valign=="top"?0:(valign=="bottom"?letter.height:letter.height/2);				
+					
+					var sY = startY+(valign=="top"?0:valign=="bottom"?letter.height:letter.height/2);
+					if (lineValign=="center" || lineValign=="middle") {
+						sY += (lineHeights[j]-letter.height)/2;
+					} else if (lineValign=="bottom") {
+						sY += lineHeights[j]-letter.height;					
+					}
+					s = letterSpacingsOriginal?letterSpacings[count-1]:zot(letter.backgroundColor)?letterSpacings[count-1]:-.5;						
+					if (align=="left") {
+						letter.loc(startX, sY, that);
+						startX = letter.x+letter.width+s;
+					} else if (align=="right") {
+						letter.loc(startX+letter.width, sY, that);
+						startX = letter.x+s;
+					} else {
+						letter.loc(startX+letter.width/2, sY, that);
+						startX = letter.x+letter.width/2+s;
+					}
+																	
+				} // end lines letters
+			} // end lines
+	
+			if (!that.getBounds()) that.setBounds(0,0,0,0);
+			that.regX = that.getBounds().x;
+			that.regY = that.getBounds().y;
+
+		}
+
+		make();
+
 		// ROLL FUNCTIONS
-		
+
 		function rollOn(e) {
 			var letter = e.currentTarget;
 			var rolls = that.rolls[letter.rollIndex]
@@ -23527,58 +24008,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			});
 			if (letter.stage) letter.stage.update();
 		}
-		
-		
-		// LOOP THROUGH LINES AND APPLY POSITIONS
-		var count = 0;
-		for (var j=0; j<that.lines.length; j++) {
-			var ll = that.lines[j];
-			lineW = lineWidths[j];
-			lineH = lineHeights[j];
-			lineY = linePositionsY[j];
-			
-			var startX, startY;
-			if (lineAlign=="left") startX = 0;
-			else if (lineAlign=="right") startX = maxW-lineW;
-			else startX = (maxW-lineW)/2;
-			startY = lineY;		
-								
-			for (i=0; i<ll.length; i++) {
-				count++;
-				if (cache) letter.cache();
-				letter = ll[i];
-				letter.regX = align=="left"?0:(align=="right"?letter.width:letter.width/2);
-				letter.regY = valign=="top"?0:(valign=="bottom"?letter.height:letter.height/2);				
-				
-				var sY = startY+(valign=="top"?0:valign=="bottom"?letter.height:letter.height/2);
-				if (lineValign=="center" || lineValign=="middle") {
-					sY += (lineHeights[j]-letter.height)/2;
-				} else if (lineValign=="bottom") {
-					sY += lineHeights[j]-letter.height;					
-				}
-				s = letterSpacingsOriginal?letterSpacings[count-1]:zot(letter.backgroundColor)?letterSpacings[count-1]:-.5;						
-				if (align=="left") {
-					letter.loc(startX, sY, this);
-					startX = letter.x+letter.width+s;
-				} else if (align=="right") {
-					letter.loc(startX+letter.width, sY, this);
-					startX = letter.x+s;
-				} else {
-					letter.loc(startX+letter.width/2, sY, this);
-					startX = letter.x+letter.width/2+s;
-				}
-																
-			} // end lines letters
-		} // end lines
 
-		if (!this.getBounds()) this.setBounds(0,0,0,0);
-		this.regX = this.getBounds().x;
-		this.regY = this.getBounds().y;
 
 		this.setProps = function(props) {
 			zim.setProps(this.labels, props);
 			return this;
 		}
+
+		Object.defineProperty(this, 'text', {
+			get: function () {
+				return this._text;
+			},
+			set: function (value) {
+				label = value;
+				make();
+			}
+		});
 		
 		Object.defineProperty(this, 'color', {
 			get: function () {
@@ -23738,7 +24183,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - the name of the class as a String
-text - get the text of the original Label
+text - get or set the text
 labels - an array of ZIM Label objects for the letters
 numWords - how many words in labels (same as numChildren)
 
@@ -23778,28 +24223,42 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
         if (zot(spacingH)) spacingH = DS.spacingH != null ? DS.spacingH : size/2;
         if (zot(spacingV)) spacingV = DS.spacingV != null ? DS.spacingV : size/2;
 
-        var sentence;
-        if (label.type == "Label") sentence = label.text;
-        else sentence = label;
+		var that = this;
 
-        var that = this;
-        that.text = sentence;    
-        var words = sentence.split(' ').filter(Boolean);
-        var labels = that.labels = [];
-        zim.loop(words, function(word) {
-            var lab = label.type=="Label"?label.clone():new zim.Label();
-            lab.text = word;
-            lab.size = zik(size);
-            lab.font = zik(font); 
-            lab.color = zik(color); 
-            if (!zot(backgroundColor)) lab.backgroundColor = zik(backgroundColor);
-            lab.reg(zik(itemRegX), zik(itemRegY));
-            if (itemCache) lab.cache();
-            labels.push(lab);
-        });
+		function make(label) {
+			var sentence;
+			if (label.type == "Label") sentence = label.text;
+			else sentence = label;			
+			that._text = sentence;    
+			var words = sentence.split(' ').filter(Boolean);
+			var labels = that.labels = [];
+			zim.loop(words, function(word) {
+				var lab = label.type=="Label"?label.clone():new zim.Label();
+				lab.text = word;
+				lab.size = zik(size);
+				lab.font = zik(font); 
+				lab.color = zik(color); 
+				if (!zot(backgroundColor)) lab.backgroundColor = zik(backgroundColor);
+				lab.reg(zik(itemRegX), zik(itemRegY));
+				if (itemCache) lab.cache();
+				labels.push(lab);
+			});
+		}
+		make(label);
 
-        this.zimWrapper_constructor(labels, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, group, inherit);
+        this.zimWrapper_constructor(that.labels, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, group, inherit);
 		
+		Object.defineProperty(this, 'text', {
+			get: function () {
+				return this._text;
+			},
+			set: function (label) {
+				that.remove();
+				make(label);
+				that.add(that.labels);				
+			}
+		});
+
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function () {
 			return that.cloneProps(new zim.LabelWords(label, width, size, font, color, backgroundColor, itemCache, itemRegX, itemRegY, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, this.group, inherit));
@@ -24757,13 +25216,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (that.rolled) return;
 		});
 		
-		this.on("pressup", function () {			
+		this.on("pressup", function (e) {			
 			that.pressed = onCheck = pressCheck = false;		
-						
+
 			if (reallyOn) buttonOn(); // will recall the roll ZIM01
 			else if (that.rollPersist) removeRoll();
 			
-			if (WW.M) { // touch screen
+			if (e.nativeEvent && (e.nativeEvent.type == "touchend" || e.nativeEvent == "touchcancel")) { // touch screen
 				buttonOff();
 			}
 		});
@@ -27190,6 +27649,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (replace) that.contentContainer.removeAllChildren();
 			if (center) obj.center(that.contentContainer, index);
 			else obj.addTo(that.contentContainer, index);
+			addHTML(that.contentContainer);
 			return that;
 		}
 		
@@ -27334,7 +27794,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			});			
 		}
 
-
         this.on("removed", hide2);		
 		function hide2() {           
 			var ch,i;
@@ -27442,6 +27901,8 @@ NOTE: to add ZIM Swipe() to objects in window set the overrideNoSwipe parameter 
 
 NOTE: if animating the window off screen then either turn optimize:false 
 or use window.update() in the "animation" event with the animate({events:true})
+
+NOTE: if window content has items set to visible false then set optimize false to avoid conflict
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -27563,6 +28024,7 @@ optimize - (default true) set to false to not turn DisplayObjects visible false 
 	as the Window is scrolled, any objects within the content and any objects within one level of those objects 
 	are set to visible false if their bounds are not hitting the the window bounds + 300 - thanks Ami Hanya for the suggestion
 	also see optimize property
+	if window content has items set to visible false then set optimize false to avoid conflict
 resizeBoundary - (default null) add a ZIM Boundary() object for the resize handle - relative to the resize handle start position
 	new Boundary(-100, 0, 200, 0) - would allow the resize handle to move to the left or right 100 pixels but not up or down
 	new Boundary(0, -100, 0, 200) - would allow the resize handle to move to up or down 100 pixels but not left or right 
@@ -27617,7 +28079,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - holds the class name as a String
-backing - CreateJS Shape used for backing of Window
+backing - ZIM Shape used for backing of Window
 backgroundColor - the color of the backing
 borderColor - the color of the border
 borderWidth - the width of the border
@@ -27632,6 +28094,7 @@ content - gives access to the content provided as a parameter to the Window()
 		buttons - an array of the Button objects if provided
 		config - the original content config object {}
 optimize - see optimize parameter - set to true (default) or false to optimize scrolling of Window
+	if window content has items set to visible false then set optimize false to avoid conflict
 enabled - get or set whether the Window is enabled
 scrollEnabled - get or set whether the Window can be scrolled
 scrollBar - data object that holds the following properties (with defaults):
@@ -27763,6 +28226,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		var backing = this.backing = new zim.Shape({style:false});
 		this.addChild(backing);
+
+		var htmlList = new zim.Dictionary(true);
 
 		var mask = new createjs.Shape();
 		mask.type = "WindowBacking";
@@ -28163,7 +28628,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						titleBarRect.sha(null);
 						if (resizeHandle) that.resizeHandle.visible = true;
 						that.setBounds(ob.x, ob.y, ob.width, ob.height);
-						that.dispatchEvent("expand");						
+						show2();			
+						that.dispatchEvent("expand");	
 					} else {
 						collapseIcon.rot(180);	
 						that.backing.visible = false;
@@ -28176,6 +28642,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						titleBarRect.sha(shadowColor, 5,5, shadowBlur);
 						if (resizeHandle) that.resizeHandle.visible = false;
 						that.setBounds(ob.x, ob.y, ob.width, titleBar.height);
+						hide2();
 						that.dispatchEvent("collapse");
 					}
 					if (that.stage) that.stage.update();
@@ -28202,6 +28669,34 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						that.collapse(true);						
 					}					
 				});
+				
+			}
+		}
+		this.on("removed", hide2);		
+		function hide2() {           
+			var ch,i;
+            var tar = that.content||that.contentContainer||that;
+			if (tar.type != "Container") tar = that.contentContainer||that;
+			for (i=0; i<tar.numChildren; i++) { // record depths first
+				ch = tar.getChildAt(i);
+				if (ch.type == "TextArea" || ch.type == "Loader" || ch.type == "Tag") {
+					var obj = {obj:ch, depth:tar.getChildIndex(ch)};
+					htmlList.add(ch, obj);
+				}
+			}
+			for (i=tar.numChildren-1; i>=0; i--) { // remove textareas and loaders second
+				ch = tar.getChildAt(i);
+				if (ch.type == "TextArea" || ch.type == "Loader" || ch.type == "Tag") {
+					tar.removeChild(ch);
+				}
+			}			
+		}
+        this.on("added", show2);
+		function show2() {
+            var tar = that.content||that.contentContainer||that;
+			if (tar.type != "Container") tar = that.contentContainer||that;
+			for (var i=0; i<htmlList.length; i++) {
+				tar.addChildAt(htmlList.values[i].obj, htmlList.values[i].depth);
 			}
 		}
 
@@ -28270,7 +28765,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var duo; if (duo = zob(that.add, arguments, sig, that)) return duo;
 						
 			var c = obj;
-			if (!c.getBounds()) {zogy("Window.add() - please add content with bounds set"); return;}
+			if (!c.getBounds()) {zogy("Window.add() - please add content with bounds set"); return;}			
 			makeDamp(c);
 			if (zot(index)) index = content.numChildren;
 			if (replace) {
@@ -28297,7 +28792,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				});
 			}
 			if (c.x == 0) c.x = paddingH;
-			if (c.y == 0) c.y = paddingV;			
+			if (c.y == 0) c.y = paddingV;	
 			that.update();
 			return that;
 		};		
@@ -30737,7 +31232,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 	}
 	align = handleDIR(align);
 			
-	this.zimWindow_constructor(width, height, null, backgroundColor, borderColor, borderWidth, padding, corner, false, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, false, null, null, false, true, shadowColor, shadowBlur, paddingH, paddingV, true, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, style, group, zim.copy(DS));
+	this.zimWindow_constructor(width, height, null, backgroundColor, borderColor, borderWidth, padding, corner, false, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, false, null, null, false, true, shadowColor, shadowBlur, paddingH, paddingV, true, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, style, group, zim.copy(DS));
 	this.type = "TextInput";
 	var that = this;
 
@@ -30813,7 +31308,16 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 			label.onDblclick(e);
 			e.stopImmediatePropagation();
 		});			
-		
+
+
+		function vvp() {
+			if (M && !zot(lastHeight) && WW.visualViewport.height > lastHeight) {
+				that.tiBlur();
+				WW.visualViewport.removeEventListener('resize', vvp);
+			}
+			lastHeight = WW.visualViewport.height;
+		}
+		var lastHeight;
 		that.label.on("focus", function () {
 			if (WW.M && keyboardShift) {
 				if (that.re) that.stage.frame.off("resize", that.re);
@@ -30823,6 +31327,10 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 						that.stage.update();
 					}
 				});
+				if (WW.visualViewport) {
+					WW.visualViewport.removeEventListener('resize', vvp);
+					WW.visualViewport.addEventListener('resize', vvp);
+				}
 				var h = that.label.localToGlobal(0,0).y;
 				if (that.stage && h>that.stage.height/4) {
 					that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
@@ -30836,10 +31344,11 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 			that.dispatchEvent("focus");
 		});
 
-		that.label.on("blur", function () {
+		that.tiBlur = function() {
 			if (WW.M && keyboardShift) {			
 				if (that.stage) {
 					if (that.re) that.stage.frame.off("resize", that.re);
+					that.label.hiddenInput.blur();
 					that.stage.y = sYO;
 					that.stage.update();
 				}
@@ -30849,7 +31358,8 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 				if (that.stage) that.stage.update();
 			}		
 			that.dispatchEvent("blur");
-		});
+		}
+		that.label.on("blur", that.tiBlur);
 
 		that.label.on("input", function (e) {	
 			doPlaceholder();
@@ -35880,6 +36390,988 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-62.5
 
 /*--
+zim.Slicer = function(obj, objScale, slices, types, titleBar, remember, upload, selection, multiple, proportion, resize, style, group, inherit);
+
+Slicer
+zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+A Slicer provides a tool to break a DisplayObject such as a Pic() into horizontal and vertical regions.
+
+See: https://zimjs.com/slicer which shows how a Slicer can be used to create data for a ZIM SlicedBitmap
+
+The component has a horizontal track at the top which can be pressed to make editable vertical lines
+and a vertical track at the left that can be pressed to make editable horizontal lines.
+The sections can be selected or multiple selected and properties applied.
+The lines can be dragged and deleted and their percentages retrieved with the slices property.
+A new picture can be uploaded with the pic icon at the bottom right.
+The interface can be hidden, the window resized at bottom right and collapsed at top right.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
+const pic = new Pic("car.png"); // preload this in Frame() or loadAssets()
+const slicer = new Slicer({
+	obj:pic.clone(),  // slicer will adjust obj so clone the pic so can use it unaffected later
+	scale:.5,
+	upload:false
+})
+	.pos(30,50)
+	.change(()=>{preview.exchange = slicer.exchange;);	// this will update the picture below
+
+slicer.on("loaded", ()=>{
+	if (preview) preview.dispose();
+	preview = new zim.SlicedBitmap(1600, 600, slicer.obj.clone(), slicer.slices, slicer.types, 2, .5)
+		.pos(0,100,CENTER,BOTTOM)
+		.transform({minScaleX:.05, minScaleY:.05});
+});
+
+// this will provide slice type options
+new SlicerTypes(slicer).pos(30,120,RIGHT,TOP);
+
+// slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
+let preview = new SlicedBitmap(1600, pic.height, pic)
+	.center()
+	.transform({minScaleX:.05, minScaleY:.05});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+obj - (default new Tile()) a DisplayObject to slice
+objScale - (default 1) set the scale of the object in the Slicer
+slices - (default null) an array of horizontal and vertical arrays holding slice percentage 
+	[[.25,.75], [.1,.4,.5,.9]]
+	three horizontal regions made from two vertical lines placed at 1/4 and 3/4 the width 
+	five vertical regions made from four horizontal lines with 1/10 the picture at left, middle and right
+types - (default null) an array of horizontal and vertical arrays holding slice types
+	0 - fix - keeps the original width and height of the region.  Usually, good for corners.
+	1 - stretch - stretch the region to fill space as an object is stretched
+	2 - tile - tile the region at original scale - currently, will match the first side and sometimes the second side
+titleBar - (default "Slicer") the title of the window as a String or ZIM Label
+remember - (default true) use localStorage(zimSlicer) to store the last settings of the lines - see clear() method
+upload - (default true) provide a pic button at bottom right to upload a pic
+selection - (default true) let the sliced regions be selected
+multiple - (default true) if selection then let shift or the multiple button be used to select multiple regions - set to false for single selection
+proportion - (default true) when resized (or on upload) keep the percentages - set to false to keep lines at pixel setting
+resize - (default true) roll over bottom right corner to resize - set to false to not provide resizing - also can use resizeVisible as STYLE to keep visible 
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+hasProp(property as String) - returns true if property exists on object else returns false
+setObject(newObj, scale) - change the object in the slicer and set the scale of the object
+updateLines(slices) - remake lines with slices data - see slices parameter
+setSlicerTypes(slicerTypes) - add a ZIM SlicerTypes object to control slicer types
+clearSelection() - clears all highlights - not the line selections but the region selections
+clear() - clears remembered data stored in localStorage(zimSlicer)
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: All Window methods such as resize()
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: see the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+obj - get a reference to the object being sliced - see setObject() to set the object
+slices - get or set the slices array - see the slices parameter
+types - get or set the types array - see the types parameter
+exchange - get or set [slices, types] as a single array - used to set a SlicedBitmap
+selectedIndexH - get the selected index of the current horizontal slice
+selectedIndexV - get the selected index of the current vertical slice
+currentLineH - get the selected horizontal slice line (a vertical line)
+currentLineV - get the selected vertical slice line (a horizontal line)
+selection - get an array of currently highlighted regions - also see highLightContainer
+box - a reference to the box Rectangle that directly surrounds the obj
+trackH - a reference to the top track Rectangle
+trackV - a reference to the left track Rectangle
+deleteH - a reference to the delete Button at top right
+deleteV - a reference to the delete Button at bottom left
+hide - a reference to the hide Button at top left
+loader - a reference to the Loader button at bottom right
+linesHContainer - a reference to the Container of horizontal slice lines (vertical lines)
+linesVContainer - a reference to the Container of vertical slice lines (vertical lines)
+highlightContainer - a reference to the left track Rectangle
+
+ALSO: see ZIM Window for properties - like titleBar, titleBarLabel, resizeHandle, etc.
+
+ALSO: see ZIM Container for properties such as:
+width, height, widthOnly, heightOnly, draggable, level, depth, group 
+blendMode, hue, saturation, brightness, contrast, etc.
+
+ALSO: see the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+EVENTS
+change - dispatched when a line is added, deleted or moved
+selection - dispatched when a region is selected or deselected
+delete - dispatched when a line is deleted
+loaded - dispatched when an image is loaded
+
+ALSO: all Window events including "collapse", "expand", "resize"
+
+ALSO: see the CreateJS Easel Docs for Container events such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
+--*///+62.7
+	zim.Slicer = function(obj, objScale, slices, types, titleBar, remember, upload, selection, multiple, proportion, resize, style, group, inherit) {
+		var sig = "obj, objScale, slices, types, titleBar, remember, upload, selection, multiple, proportion, resize, style, group, inherit";
+		var duo; if (duo = zob(zim.Slicer, arguments, sig, this)) return duo;
+		z_d("62.7");
+		this.group = group;
+		var DS = style===false?{}:zim.getStyle("Slicer", this.group, inherit);
+
+		if (zot(obj)) obj = DS.obj!=null?DS.obj:new zim.Tile();
+		if (zot(objScale)) objScale = DS.objScale!=null?DS.objScale:1;
+		var scale = objScale;
+		var empty = slices;
+		if (zot(slices)) slices = DS.slices!=null?DS.slices:[[0,1],[0,1]];
+		var defaults = [[1],[1]];	
+		zim.loop(slices,function(s,i) {
+			zim.loop(s,function() {
+				defaults[i].push(1);
+			});
+		});
+		slices = zim.copy(slices);		
+		if (zot(types)) types = DS.slices!=null?DS.slices:defaults;
+		types = zim.copy(types);
+		if (zot(titleBar)) titleBar = DS.titleBar!=null?DS.titleBar:"Slicer";
+		if (zot(remember)) remember = DS.remember!=null?DS.remember:true;
+		if (zot(upload)) upload = DS.upload!=null?DS.upload:true;
+		if (zot(selection)) selection = DS.selection!=null?DS.selection:true;
+		if (zot(multiple)) multiple = DS.multiple!=null?DS.multiple:true;
+		if (zot(proportion)) proportion = DS.proportion!=null?DS.proportion:true;
+		if (zot(resize)) resize = DS.resize!=null?DS.resize:true;
+
+		// WINDOW
+		var wW = obj.width*scale+60;
+		var wH = obj.height*scale+60+(titleBar?30:0);
+		var oWW = wW;
+		var oWH = wH;
+		this.zimWindow_constructor(wW, wH,
+			null, null, null, null, null, null, false, null, null, null, null, null, false, false, false, null, null, null, null, null, null, null, null, null, null, 
+			titleBar, dark, moon, null, true, null, null, null, null, null, null, null, resize, true			
+		);
+		this.type = "Slicer";
+		var that = this;
+		if (that.collapseIcon) that.collapseIcon.mov(2);
+		if (that.titleBar) {
+			that.titleBarLabel.mov(26,1);
+			zdf.makeIcon(tin, clear, [tin, tin, tin, tin, tin]).scaleTo(that.titleBar,87,87).loc(5,2,that.titleBar);
+		}
+		
+		that.obj = obj;
+		that.data = slices;
+		that.dataTypes = types;				
+		// CONTAINERS
+		var hh = that.height-(titleBar?30:0);				
+		var content = new zim.Container(that.width, hh);
+		var sc = that.splitterContent = new zim.Container(that.width-60, hh-60).pos(30,30,LEFT,TOP,content);
+		
+		// OBJECT
+		var w = obj.width*scale;
+		var h = obj.height*scale;
+		obj.sca(scale).addTo(sc);
+
+
+		// CONTENT	
+		var box = that.box = new zim.Rectangle({width:w, height:h, borderColor:black, scaleDimensions:false}).alp(.5).pos(30,30,LEFT,TOP,content).expand(0)
+		box.on("mousedown", doClear);
+		function doClear() {
+			linesH.loop(function(l) {
+				l.triangle.color = faint;
+			});
+			currentH = null;
+			linesV.loop(function(l) {
+				l.triangle.color = faint;
+			});
+			currentV = null;
+			that.stage.update();
+		}
+
+		var hide = that.hide = new zim.Button({width:30, height:30, label:"-", toggle:"+", color:silver, backgroundColor:darker, rollBackgroundColor:lighter, rollColor:granite, corner:0, shadowColor:-1, style:false}).sca(1).loc(0,0,content);
+		hide.label.mov(0,-2)
+		hide.on("click", function(){
+			if (hide.toggled) {
+				hide.label.mov(0,3);
+				box.visible = trackH.visible = trackV.visible = linesH.visible = linesV.visible = deleteH.visible = deleteV.visible = highlights.visible = false;
+				if (multi) multi.vis(false);
+				if (upload) loader.removeFrom();
+			} else {
+				hide.label.mov(0,-3);
+				box.visible = trackH.visible = trackV.visible = linesH.visible = linesV.visible = deleteH.visible = deleteV.visible = highlights.visible = true;
+				if (multi) multi.vis(true);
+				if (upload) loader.addTo(that.contentContainer);
+			}
+		});
+		
+		var trackH = that.trackH = new zim.Rectangle(w, 30, white).alp(.1).loc(box.x, box.y-30, content).cur();
+		var trackV = that.trackV = new zim.Rectangle(30, h, white).alp(.1).loc(box.x-30, box.y, content).cur();
+		var deleteH = that.deleteH = new zim.Button({width:60, height:60, label:"X", backgroundColor:red, corner:0, shadowColor:-1, style:false}).sca(.5).pos(0,0,RIGHT,TOP,content);
+		var deleteV = that.deleteV = deleteH.clone().pos(0,0,LEFT,BOTTOM,content);
+		
+		if (selection && multiple) var multi = that.toggle = new zim.Toggle({height:18, width:30, backgroundColor:grey, corner:9, label:"multiple", color:tin})
+						.loc(deleteV.x + 45, deleteV.y+6, content);
+
+		if (upload) {
+			var icon1 = new zim.Circle(6,silver).reg(CENTER,3);
+			new zim.Circle({radius:9, color:silver, percent:40}).center(icon1).mov(0,8);
+			var icon2 = new zim.Circle(6,grey).reg(CENTER,3);
+			new zim.Circle({radius:9, color:grey, percent:40}).center(icon2).mov(0,8);
+			var loader = that.loader = new zim.Loader({
+				width:30,
+				height:30,
+				backgroundColor:darker,
+				rollBackgroundColor:lighter,
+				corner:3,
+				borderColor:-1,
+				label:"",
+				icon:icon1,
+				rollIcon:icon2
+			});	
+			loader.on("loaded", function(e) {	
+				obj.dispose();		
+				loader.removeRoll();
+				var f = e.bitmap.fit(0,0,oWW-60, oWH-60-(titleBar?30:0));
+				scale = f.scale;
+				e.bitmap.sca(1);
+				wW = e.bitmap.width*scale+60;
+				wH = e.bitmap.height*scale+60;
+				that.resize(wW, wH);
+				obj = e.bitmap.sca(scale).loc(0,0,sc,0);
+				that.obj = obj;
+				doResize();
+				that.dispatchEvent("loaded");
+			});
+		}
+
+		var instruct = that.instruct = new zim.Container(content.width, content.height).addTo(content).animate({
+			wait:1,
+			from:true,
+			props:{alpha:0},
+			rewind:true,
+			rewindWait:2,
+			call:function(){instruct.dispose(); instruct=null;}
+		}).noMouse();
+		new zim.Label("Add slices here", 15, null, blue).pos(0,8,CENTER,TOP,instruct);
+		new zim.Label("Add slices here", 15, null, blue).rot(-90).pos(8,0,LEFT,CENTER,instruct);
+
+		// ADD CONTENT TO WINDOW
+		that.add(content);
+		that.add(loader, null, true);
+		loader.pos(0,0,RIGHT,BOTTOM)
+
+
+		// LINES
+		var linesH = that.linesHContainer = new zim.Container(w,h).loc(box, null, content);
+		var linesV = that.linesVContainer = new zim.Container(w,h).loc(box, null, content);
+		var currentH;
+		var currentV;
+
+		// axis is direction of line, so VERTICAL will use linesH, etc.
+		that.makeLine = function(axis, ratio, selected) {					
+			if (ratio > 1) ratio /= 100;
+			var line;
+			if (axis == "vertical") {
+				var x = ratio*box.width;
+				line = new zim.Container(30,h+30).reg(15,30).loc(x, 0, linesH);	
+				line.triangle = new zim.Triangle(30,30,30,selected?blue:faint,blue).rot(180).pos(0,4,CENTER,TOP,line);
+				line.line = new zim.Rectangle(1,box.height,red).ble().expand(3).reg(0,0).pos(0,30,CENTER,TOP,line);
+				line.drag({all:true, boundary:new zim.Boundary(0,0,box.width,0), localBoundary:true});
+				line.on("mousedown", function() {
+					linesH.loop(function(l) {
+						if (l==line) l.triangle.color = blue;
+						else l.triangle.color = faint;
+					});
+					currentH = that.currentLineH = line;
+					that.stage.update();
+				});
+				line.on("pressmove", dataLinesH);						
+			} else {
+				var y = ratio*box.height;
+				line = new zim.Container(w+30,30).reg(30,15).loc(0, y, linesV);
+				line.triangle = new zim.Triangle(30,30,30,selected?blue:faint,blue).rot(90).pos(4,0,LEFT,CENTER,line);
+				line.line = new zim.Rectangle(box.width,1,red).ble().expand(3).reg(0,0).pos(30,0,LEFT,CENTER,line);
+				line.drag({all:true, boundary:new zim.Boundary(0,0,0,box.height), localBoundary:true});
+				line.on("mousedown", function() {
+					linesV.loop(function(l) {
+						if (l==line) l.triangle.color = blue;
+						else l.triangle.color = faint;
+					});
+					currentV = that.currentLineV = line;
+					that.stage.update();
+				});
+				line.on("pressmove", dataLinesV);							
+			}
+			return line;
+		}
+
+		// HORIZONTAL 
+		// across the top - will make vertical lines but slices into horizontal regions
+		trackH.on("mousedown", function() {
+			if (instruct) instruct.dispose();
+			linesH.loop(function(l) {
+				l.triangle.color = faint;
+			});
+			var point = linesH.globalToLocal(F.mouseX, F.mouseY);					
+			that.currentLineH = currentH = that.makeLine(VERTICAL, point.x/box.width, true);	
+			
+			// move any selections past the line forward one
+			var c = that.selectedIndexH = getIndexH(currentH);
+			selected.sort(function (a, b) {
+				return a[0] - b[0];
+			});
+			loop(selected, function (s, i) {
+				if (s[0] >= c) s[0]++;
+			}, true); // true for backwards
+
+			// adding dataTypes to columns in each row
+			if (that.dataTypes) {
+				that.dataTypes[0].splice(c-1, 0, that.dataTypes[0][c-1]); // take types from next door
+				// zim.loop(that.dataTypes, function(row,j){
+				// 	row.splice(c-1, 0, [row[c-1][0], row[c-1][1]]); // take types from next door
+				// });
+			}
+						
+			dataLinesH();
+			that.stage.update();
+		})
+
+		deleteH.on("click", function(){
+			if (currentH) {
+
+				// move any selections past the line including the line back one
+				var c = getIndexH(currentH);
+				selected.sort(function (a, b) {
+					return a[0] - b[0];
+				});
+				loop(selected, function (s, i) {
+					if (s[0] >= c - 1) s[0]--;
+				}, true); // true for backwards
+
+				// remove duplicates of one less than c 
+				var already = [];
+				loop(selected, function(s, i) {
+					if (s[0] == c-2 && already.indexOf(JSON.stringify(s)) >= 0) selected.splice(i,1);
+					else already.push(JSON.stringify(s));
+				}, true); 
+				already = null;
+
+				// remove data from types 
+				if (that.dataTypes) that.dataTypes[0].splice(c-1, 1);
+				
+				currentH.dispose();
+				that.currentLineH = currentH = null;
+									
+				dataLinesH();
+				that.dispatchEvent("delete");						
+				that.stage.update();
+			}
+		});
+
+		function dataLinesH() {
+			that.data[0] = [0,1];
+			linesH.loop(function(l) {
+				that.data[0].push(zim.decimals(l.x/box.width,3));
+			})
+			that.data[0].sort(function(a, b){return a-b});										
+			adjustBoxes();
+		}
+
+		function getIndexH(line) {	
+			var c = zim.loop(that.data[0], function(x,i) {
+				if (zim.decimals(line.x/box.width,3) < x) return i;
+			});
+			return c;
+		}
+			
+		// VERTICAL 
+		// same as horizontal but along left will make vertical lines but slices into vertical regions
+		trackV.on("mousedown", function() {
+			if (instruct) instruct.dispose();
+			linesV.loop(function(l) {
+				l.triangle.color = faint;
+			});
+			var point = linesV.globalToLocal(F.mouseX, F.mouseY);
+
+			var point = linesH.globalToLocal(F.mouseX, F.mouseY);
+			that.currentLineV = currentV = that.makeLine(HORIZONTAL, point.y/box.height, true);
+
+			// move any selections past the line forward one
+			var r = that.selectedIndexV = getIndexV(currentV);
+			selected.sort(function (a, b) {
+				return a[1] - b[1];
+			});
+			loop(selected, function (s, i) {
+				if (s[1] >= r) s[1]++;
+			}, true); // true for backwards
+
+			// adding row with columns
+			if (that.dataTypes) that.dataTypes[1].splice(r-1, 0, that.dataTypes[1][r-1]); // take types from next door
+										
+			dataLinesV();
+			that.stage.update();
+		})
+
+		deleteV.on("click", function(){
+			if (currentV) {				
+				// move any selections past the line including the line back one
+				var r = getIndexV(currentV);
+				selected.sort(function (a, b) {
+					return a[1] - b[1];
+				});
+				loop(selected, function (s, i) {
+					if (s[1] >= r - 1) s[1]--;
+				}, true); // true for backwards
+
+				// remove duplicates of less than r 
+				var already = [];
+				loop(selected, function(s, i) {
+					if (s[1] == r-2 && already.indexOf(JSON.stringify(s)) >= 0) selected.splice(i,1);
+					else already.push(JSON.stringify(s));
+				}, true); 
+				already = null;
+
+				// remove data from types 
+				if (that.dataTypes) that.dataTypes[1].splice(r-1, 1);
+		
+				currentV.dispose();
+				that.currentLineV = currentV = null;
+		
+				dataLinesV();
+				that.dispatchEvent("delete");
+				that.stage.update();
+			}					
+		});
+
+		function dataLinesV() {
+			that.data[1] = [0,1];
+			linesV.loop(function(l) {
+				that.data[1].push(zim.decimals(l.y/box.height,3));
+			})
+			that.data[1].sort(function(a, b){return a-b});										
+			adjustBoxes();					
+		}
+
+		function getIndexV(line) {					
+			var r = zim.loop(that.data[1], function(y,i) {
+				if (zim.decimals(line.y/box.height,3) < y) return i;
+			});
+			return r;
+		}				
+
+		// HIGHLIGHTS
+		function adjustBoxes(dispatch) {
+			if (zot(dispatch)) dispatch = true;
+			highlights.disposeAllChildren();
+			zim.loop(selected, function(s) {						
+				that.selectTile(s[0],s[1]);
+			});
+			if (dispatch) that.dispatchEvent("change");
+			if (localStorage) localStorage.zimSlicer = JSON.stringify(that.exchange);
+		}				
+
+		var selected = that.selected = [];
+
+		var highlights = that.highlightsContainer = new zim.Container(W,H).loc(box, null, content).noMouse();
+		var gap = 5;
+		that.selectTile = function(c,r,d) {
+			if (d) highlights.disposeAllChildren();
+			c = zim.constrain(c,0,that.data[0].length-1);
+			r = zim.constrain(r,0,that.data[1].length-1);
+			that.selection = new zim.Rectangle(that.data[0][c+1]*box.width-that.data[0][c]*box.width-gap*2, that.data[1][r+1]*box.height-that.data[1][r]*box.height-gap*2, white.toAlpha(.2), white, 2, 0, true)
+				.loc(that.data[0][c]*box.width+gap, that.data[1][r]*box.height+gap, highlights)
+				.ble();								 
+		}
+
+		if (selection) {
+			box.cur();
+			box.on("mousedown", function(){
+				var point = box.globalToLocal(that.stage.frame.mouseX, that.stage.frame.mouseY);						
+				var c = zim.loop(that.data[0], function(x,i) {
+					if (point.x < x*box.width) return i-1;
+				});
+				var r = zim.loop(that.data[1], function(y,i) {
+					if (point.y < y*box.height) return i-1;
+				});
+
+				var empty = zim.loop(selected, function(s,i) { 
+					if (JSON.stringify(s) == JSON.stringify([c,r])) {
+						if (selected.length > 1 && multiple && !F.shiftKey && !multi.toggled) return true; // if others just clear others
+						selected.splice(i,1); // else toggling a selected
+						return false;
+					}
+				});
+				
+				if (!multiple || (!F.shiftKey && !multi.toggled)) selected = that.selected = [];
+				if (empty) {
+					selected.push([c,r]); // could put the above like in this conditional
+				}
+
+				adjustBoxes(false);
+				that.dispatchEvent("selection");						
+			});
+		}
+
+		// RESIZE				
+		that.on("resize", doResize);
+		function doResize() {
+			hh = that.height-(titleBar?30:0);
+			var boxH = box.width;
+			var boxV = box.height;
+			that.box.siz(that.width-60, hh-60).expand(0);
+			deleteH.loc(box.x+box.width,box.y-30);
+			deleteV.loc(box.x-30,box.y+box.height);
+			trackH.widthOnly = box.width;
+			trackV.heightOnly = box.height;					
+			linesH.loop(function(line, i) {
+				line.line.heightOnly = box.height;
+				if (proportion) line.x = line.x*box.width/boxH;	
+				line.dragBoundary(new zim.Boundary(0,0,box.width,0));
+			});
+			linesV.loop(function(line) {
+				line.line.widthOnly = box.width;
+				if (proportion) line.y = line.y*box.height/boxV;
+				line.dragBoundary(new zim.Boundary(0,0,0,box.height));
+			});				
+			if (multi) multi.loc(deleteV.x + 45, deleteV.y+6, content);
+			if (upload) {
+				loader.loc(that.box.width+30,that.box.height+30);
+				loader.resize();
+			}
+			adjustBoxes();	
+			setTimeout(function(){
+				obj.scaleTo(that.box,100,100).loc(0,0,sc,0);
+				that.stage.update();
+			},20);			
+		}
+		if (resize) {
+			that.resizeHandle.on("pressup", function() {
+				var wW = obj.width+60;
+				var wH = obj.height+60;
+				that.resize(wW,wH);
+				that.stage.update()
+			});
+		}
+
+
+
+		// METHODS
+		that.setObject = function(newObj, scale) {
+			obj.dispose();	
+			obj = newObj;
+			if (zot(scale)) {
+				var f = e.bitmap.fit(0,0,oWW-60, oWH-60-(titleBar?30:0));
+				scale = f.scale;
+			}
+			obj.sca(1);
+			wW = obj.width*scale+60;
+			wH = obj.height*scale+60;
+			that.resize(wW, wH);
+			obj = obj.sca(scale).loc(0,0,sc,0);
+			that.obj = obj;
+			doResize();
+			that.dispatchEvent("loaded");
+			return that;
+		}
+
+		that.updateLines = function(slices) {
+			that.data = slices;					
+			// clear all lines and remake them to the data
+			linesH.disposeAllChildren();
+			linesV.disposeAllChildren();
+			zim.loop(slices[0], function(x,i,t) {if (i!=0 && i!=t-1) {that.makeLine(VERTICAL, x)};});
+			zim.loop(slices[1], function(y,i,t) {if (i!=0 && i!=t-1) {that.makeLine(HORIZONTAL, y)};});		
+			that.selectedIndexH = that.selectedIndexV = that.currentLineH = that.currentLineV = null;
+			if (that.stage) that.stage.update();	
+			return that;		
+		}
+		
+		that.setSlicerTypes = function(slicerTypes) {
+			if (!that.dataTypes) that.dataTypes = [[1],[1]];
+			var st = that.slicerTypes = slicerTypes;
+			that.on("select", function() {
+				if (selected.length > 0) {
+					st.shield.vis(false);
+					
+					// loop through all selected and if the same types
+					var lastH;
+					var lastV;							
+					zim.loop(selected, function(s) {
+						var type = that.dataTypes[0][s[0]];
+						if (lastH != "bad" && (lastH==null || lastH==type)) lastH = type;
+						else lastH = "bad";
+						type = that.dataTypes[1][s[1]];
+						if (lastV != "bad" && (lastV==null || lastV==type)) lastV = type;
+						else lastV = "bad";
+						if (lastH == "bad" && lastV == "bad") return false; // exits loop
+					});
+					
+					// if not the same types then yellow the box and remove selection
+					if (lastH == "bad") {
+						st.radioH.selectedIndex = -1;
+						st.tile.backgrounds[1].color = brown;
+					} else {
+						st.radioH.selectedIndex = lastH;
+						st.tile.backgrounds[1].color = light;
+					}
+
+					if (lastV == "bad") {
+						st.radioV.selectedIndex = -1;
+						st.tile.backgrounds[3].color = brown;
+					} else {
+						st.radioV.selectedIndex = lastV;
+						st.tile.backgrounds[3].color = light;
+					}
+					
+				} else {
+					st.radioH.selectedIndex = -1;
+					st.radioV.selectedIndex = -1;
+					st.shield.vis(true);
+				}
+			});
+			that.stage.update();
+			return that;
+		}
+
+		that.clearSelection = function() {
+			selected = that.selected = [];
+			highlights.disposeAllChildren();
+			if (that.slicerTypes) {
+				var st = that.slicerTypes;
+				st.radioH.selectedIndex = -1;
+				st.radioV.selectedIndex = -1;
+				st.shield.vis(true);
+			}
+			that.stage.update();
+			return that;
+		}
+
+		that.clear = function() {
+			if (localStorage) localStorage.removeItem("zimSlicer");
+			that.exchange = [[[],[]],[[1],[1]]];
+			that.clearSelection();
+			that.dispatchEvent("change");
+			return that; 
+		}
+		
+
+		// PROPERTIES
+		Object.defineProperty(that, 'slices', {
+			get: function() {
+				var temp = zim.copy(that.data);
+				temp[0].shift();
+				temp[0].pop();
+				temp[1].shift();
+				temp[1].pop();	
+				return temp;
+			},
+			set: function(value) {						
+				var slices = zim.copy(value);
+				slices[0].unshift(0);
+				slices[0].push(1);
+				slices[1].unshift(0);
+				slices[1].push(1);		
+				that.updateLines(slices);				
+			}
+		});		
+
+		Object.defineProperty(that, 'types', {
+			get: function() {
+				return zim.copy(that.dataTypes);
+			},
+			set: function(value) {						
+				that.dataTypes = zim.copy(value);						
+			}
+		});		
+
+		Object.defineProperty(that, 'exchange', {
+			get: function() {
+				var temp = zim.copy(that.data);
+				temp[0].shift();
+				temp[0].pop();
+				temp[1].shift();
+				temp[1].pop();	
+				return [temp, zim.copy(that.dataTypes)];
+			},
+			set: function(value) {						
+				var slices = zim.copy(value[0]);
+				var types = zim.copy(value[1]);
+				slices[0].unshift(0);
+				slices[0].push(1);
+				slices[1].unshift(0);
+				slices[1].push(1);	
+				that.updateLines(slices);
+				that.dataTypes = types;						
+			}
+		});				
+
+		// MEMORY
+		if (remember && localStorage && localStorage.zimSlicer) {
+			that.exchange = JSON.parse(localStorage.zimSlicer);
+			instruct.dispose();
+		} else if (empty) {
+			that.exchange =[slices, types];
+			instruct.dispose();
+		}
+		setTimeout(function(){that.dispatchEvent("change");},20);
+
+		if (style!==false) zim.styleTransforms(this, DS);
+		this.clone = function() {
+			return that.cloneProps(new zim.Slicer(obj.clone(), objScale, zim.copy(slices), zim.copy(types), titleBar, remember, upload, selection, multiple, proportion, resize, style, this.group, inherit));
+		};
+
+	}
+	zim.extend(zim.Slicer, zim.Window, ["clone"], "zimWindow", false);	
+	//-62.7
+
+//
+/*--
+zim.SlicerTypes = function(slicer, titleBar, sliceType, style, group, inherit);
+
+SlicerTypes
+zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+SlicerTypes works with ZIM Slicer to provide slice types for ZIM SlicedBitmap.
+The component is not to be used on its own.
+Pass a ZIM Slicer object to the slicer parameter - the Slicer should be made first.
+There are fixed, stretch and tile radio buttons for horizontal and vertical
+and import and export buttons to work with [slices, types] used in Slicer and SlicedBitmap parameters and exchange property.
+
+See: https://zimjs.com/slicer which shows how a Slicer can be used to create data for a ZIM SlicedBitmap
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
+const pic = new Pic("car.png"); // preload this in Frame() or loadAssets()
+const slicer = new Slicer({
+	obj:pic.clone(),  // slicer will adjust obj so clone the pic so can use it unaffected later
+	scale:.5,
+	upload:false
+})
+	.pos(30,50)
+	.change(()=>{preview.exchange = slicer.exchange;);	// this will update the picture below
+
+slicer.on("loaded", ()=>{
+	if (preview) preview.dispose();
+	preview = new zim.SlicedBitmap(1600, 600, slicer.obj.clone(), slicer.slices, slicer.types, 2, .5)
+		.pos(0,100,CENTER,BOTTOM)
+		.transform({minScaleX:.05, minScaleY:.05});
+});
+
+// this will provide slice type options
+new SlicerTypes(slicer).pos(30,120,RIGHT,TOP);
+
+// slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
+let preview = new SlicedBitmap(1600, pic.height, pic)
+	.center()
+	.transform({minScaleX:.05, minScaleY:.05});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+slicer - (default null) pass in the ZIM Slicer object to work with - required
+titleBar - (default "Slicer Types") string or Label for slicerTypes
+sliceType - (default "stretch") set the default slice type - fixed, stretch, tile
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+hasProp(property as String) - returns true if property exists on object else returns false
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: All Window methods such as resize()
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: see the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+slicer - read slicer used
+sliceType - get or set default slice type - fixed, stretch, tile
+radioH - access RadioButtons for horizontal
+radioV - access RadioButtons for horizontal
+importButton - access import Button
+exportButton - access export Button
+importPane - access import Pane
+exportPane - access export Pane
+submitButton - access import pane submit Button
+shield - access shield that darkens radio buttons
+
+ALSO: see ZIM Window for properties - like titleBar, titleBarLabel, resizeHandle, etc.
+
+ALSO: see ZIM Container for properties such as:
+width, height, widthOnly, heightOnly, draggable, level, depth, group 
+blendMode, hue, saturation, brightness, contrast, etc.
+
+ALSO: see the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+EVENTS
+ALSO: all Window events including "collapse", "expand", "resize"
+
+ALSO: see the CreateJS Easel Docs for Container events such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
+--*///+62.75
+zim.SlicerTypes = function(slicer, titleBar, sliceType, style, group, inherit) {
+	var sig = "slicer, titleBar, sliceType, style, group, inherit";
+	var duo; if (duo = zob(zim.SlicerTypes, arguments, sig, this)) return duo;
+	z_d("62.75");
+	this.group = group;
+	var DS = style===false?{}:zim.getStyle("SlicerTypes", this.group, inherit);
+
+	if (zot(slicer)) slicer = DS.slicer!=null?DS.slicer:null;
+	if (zot(slicer)) {zogy("ZIM SlicerTypes - needs a Slicer Object"); return;}
+
+	if (zot(titleBar)) titleBar = DS.titleBar!=null?DS.titleBar:"Slicer Types";
+	if (zot(sliceType)) sliceType = DS.sliceType!=null?DS.sliceType:"stretch";
+
+	var types = ["fixed", "stretch", "tile"];
+	if (types.indexOf(sliceType) < 0) sliceType = "stretch";
+	
+	this.zimWindow_constructor(470,150, null, null, null, null, null, null, false, null, null, null, null, null, false, false, null, null, null, null, null, null, null, null, null, null, null, 
+	titleBar, dark, moon, null, true, null, null, null, null, null, null, null, null, true);
+	var that = this;
+	that.collapseIcon.mov(2);
+	that.titleBarLabel.mov(25,1)
+	zdf.makeIcon(tin, clear, [tin, tin, tin, tin, tin]).scaleTo(that.titleBar,87,87).loc(5,2,that.titleBar);
+
+	that.slicer = slicer;
+	that.sliceType = sliceType;
+	that.defaultIndex = types.indexOf(sliceType);
+
+	var holder = new zim.Container();
+	var radioH = that.radioH = new zim.RadioButtons({size:20, buttons:["fixed","stretch","tile"], vertical:false, selectedIndex:-1}).change(doChangeH);
+	var radioV = that.radioV = radioH.clone().change(doChangeV);
+	Style.remember("slicer");
+	STYLE = {align:CENTER, valign:CENTER, backgroundColor:light, backgroundPaddingH:5};
+	var tile = that.tile = new zim.Tile([new Label("Horizontal", 20).alp(.5), radioH, new Label("Vertical", 20).alp(.5),radioV], 2,2, 5,5, true)
+		.sca(.8)
+		.addTo(holder);
+	Style.recall("slicer");
+
+	function doChangeH() {
+		zim.loop(slicer.selected, function(s) {
+			slicer.dataTypes[0][s[0]] = radioH.selectedIndex;
+		});
+		slicer.dispatchEvent("change");
+		tile.backgrounds[1].color = light;
+		that.stage.update();
+		if (localStorage) localStorage.zimSlicer = JSON.stringify(slicer.exchange);
+	}
+	function doChangeV() {
+		zim.loop(slicer.selected, function(s) {
+			slicer.dataTypes[1][s[1]] = radioV.selectedIndex;
+		});
+		slicer.dispatchEvent("change");
+		tile.backgrounds[3].color = light;
+		that.stage.update();
+		if (localStorage) localStorage.zimSlicer = JSON.stringify(slicer.exchange);
+	}
+
+	var importText = new zim.TextArea({width:600, height:300, wrap:true, spellCheck:false})			
+	var importPane = that.importPane = new zim.Pane({content:importText, close:true, closeColor:red});
+	importPane.content.mov(0,-20);
+	var submit = that.submitButton = new zim.Button({
+		width:220, 
+		label:"IMPORT", 
+		wait:"CONFIRM", 
+		waitTime:2,
+		waitBackgroundColor:red, 
+		rollWaitBackgroundColor:red
+	}).sca(.6).pos(0,-60,CENTER,BOTTOM,importPane.content);
+	submit.on("mousedown", function(){
+		if (submit.waiting) {
+			importPane.hide();
+			submit.clearWait();
+			slicer.clearSelection();
+			var data = importText.text.trim().split("\n");
+			// JSON does not accept decimals without a leading 0 - sigh
+			data = data.pop().replace(/([^0])\./g, "$10.");  // $1 is the match of whatever is before the .
+			data = JSON.parse("[" + data + "]");		
+			that.updateData(data[0], data[1]);
+		}
+	});
+	submit.on("close", function() {
+		submit.clearWait();
+	});
+
+	var exportText = new zim.TextArea({width:600, height:300, wrap:true, spellCheck:false});		
+	var exportPane = that.exportPane = new zim.Pane({content:exportText, close:true, closeColor:red});
+
+	var importButton = that.importButton = new zim.Button({width:220, label:"IMPORT"}).tap(function() {
+		var temp = zim.copy(slicer.data);
+		temp[0].shift();
+		temp[0].pop();
+		temp[1].shift();
+		temp[1].pop();	
+		importText.text = "// replace this current data with desired slices, types data:\n\n" + JSON.stringify(temp) +", "+ JSON.stringify(slicer.dataTypes);
+		importPane.show();
+	});
+	var exportButton = that.exportButton = new zim.Button({width:220, label:"EXPORT"}).tap(function() {
+		var temp = zim.copy(slicer.data);
+		temp[0].shift();
+		temp[0].pop();
+		temp[1].shift();
+		temp[1].pop();				
+		exportText.text = "// use as slices, types parameters in ZIM SlicedBitmap()\n// can also modify and IMPORT into Slicer Types tool\n\n" + JSON.stringify(temp) +", "+ JSON.stringify(slicer.dataTypes);
+		exportPane.show();
+	})
+	new zim.Tile([importButton,exportButton],1,2,0,20,true).siz(null,tile.height).loc(tile.width+4*5+20, 0, holder);
+	that.add(holder, 0, true);
+
+	that.shield = new zim.Rectangle(tile.width+20, tile.height, dark).alp(.7).loc(tile, null, tile.parent);
+
+	Object.defineProperty(that, 'sliceType', {
+		get: function() {						
+			return sliceType;
+		},
+		set: function(value) {
+			sliceType = value;
+			if (types.indexOf(sliceType) < 0) sliceType = "stretch";
+			that.defaultIndex = types.indexOf(sliceType);
+		}
+	});
+
+	if (slicer) slicer.setSlicerTypes(that);
+
+	that.updateData = function(slices, types) {								
+		slices[0].unshift(0);
+		slices[0].push(1);
+		slices[1].unshift(0);
+		slices[1].push(1);		
+		slicer.updateLines(slices);
+		slicer.dataTypes = types;
+	}	
+
+	if (style!==false) zim.styleTransforms(this, DS);
+	this.clone = function() {
+		return that.cloneProps(new zim.SlicerTypes(slicer, titleBar, sliceType, style, this.group, inherit));
+	};
+
+}
+zim.extend(zim.SlicerTypes, zim.Window, ["clone"], "zimWindow", false);	
+//-62.75
+
+/*--
 zim.Dial = function(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, value, useLabels, labelMargin, addZero, currentValue, style, group, inherit);
 
 Dial
@@ -37166,7 +38658,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (b && currentSelected) {
 				var ti = b.tabInfo;
 				if (ti && zot(ti.wait)) {	
-					// should be rollBackgroundColor but if setting it seems to stick after rolloff
+					// should be rollBackgroundColor but setting it seems to stick after rolloff
 					if (ti.selectedBackgroundColor) b.backgroundColor = that.selected==b?ti.selectedBackgroundColor:ti.backgroundColor					
 					if (ti.selectedColor && b.label) b.color = that.selected==b?ti.selectedColor:ti.color;
 				} 
@@ -40338,8 +41830,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(collapseColor)) collapseColor = DS.collapseColor!=null?DS.collapseColor:!zot(titleBarColor)?titleBarColor:zim.grey;
 		if (zot(collapsed)) collapsed=DS.collapsed!=null?DS.collapsed:false;
 					
-		// width, height, content, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideFactor, slideSnap, slideSnapDamp, interactive, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, collapse, collapseColor, collapsed, optimize, resizeBoundary, resizeVisible, continuous, continuous, style, group, inherit
-		this.zimWindow_constructor(width, height, null, backgroundColor, null, DS.borderWidth!=null?DS.borderWidth:2, DS.padding!=null?DS.padding:10, DS.corner!=null?DS.corner:10, null, DS.scrollBarActive!=null?DS.scrollBarActive:true, DS.scrollBarDrag!=null?DS.scrollBarDrag:true, null, null, null, false, null, null, null, null, null, true, null, null, null, null, null, null, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, DS.draggable!=null?DS.draggable:true, null, null, DS.close!=null?DS.close:true, null, null, DS.fullSize!=null?DS.fullSize:false, null, DS.resizeHandle!=null?DS.resizeHandle:false, collapse, collapseColor, collapsed, null, null, style, group, zim.copy(DS));
+		// width, height, content, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideFactor, slideSnap, slideSnapDamp, interactive, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, collapse, collapseColor, collapsed, optimize, resizeBoundary, resizeVisible, continuous, style, group, inherit
+		this.zimWindow_constructor(width, height, null, backgroundColor, null, DS.borderWidth!=null?DS.borderWidth:2, DS.padding!=null?DS.padding:10, DS.corner!=null?DS.corner:10, null, DS.scrollBarActive!=null?DS.scrollBarActive:true, DS.scrollBarDrag!=null?DS.scrollBarDrag:true, null, null, null, false, null, null, null, null, null, true, null, null, null, null, null, null, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, DS.draggable!=null?DS.draggable:true, null, null, DS.close!=null?DS.close:true, null, null, DS.fullSize!=null?DS.fullSize:false, null, DS.resizeHandle!=null?DS.resizeHandle:false, collapse, collapseColor, collapsed, null, null, null, null, style, group, zim.copy(DS));
 		this.type = "EmojiPicker";
 		var that = this;
 		
@@ -45382,7 +46874,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (accept) uploadTag.setAttribute("accept", accept);
 		uploadTag.hidden = true;
 		uploadTag.zimDisplay = uploadTag.style.display || "inline-block";
-		uploadTag.style.cssText = "border:thin solid grey; z-index:2; width:" + width + "px; height:" + height + "px; overflow:hidden; outline:none;"
+		uploadTag.style.cssText = "border:thin solid grey; z-index:2; width:" + 0 + "px; height:" + 0 + "px; overflow:hidden; outline:none;"
 								+ "position:absolute; left:0px; top:0px; display:none; cursor:pointer; opacity: 0; filter: alpha(opacity=0);";
 
 		this.addEventListener('mousedown', function() { // added for zim.Accessibility
@@ -45975,31 +47467,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}
 		var lastText = that.text;
 		var sYO = that.y;
-		that.taFocus = function() {		
-			lastText = that.text;
-			if (WW.M && keyboardShift) {
-				if (that.re) that.stage.frame.off("resize", that.re);
-				that.re = that.stage.frame.on("resize", function(){
-					if (that.stage && h>that.stage.height/4) {
-						that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
-						that.stage.update();
-					}
-				});
-				var h = that.localToGlobal(0,0).y;
-				if (that.stage && h>that.stage.height/4) {
-					that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
-					that.stage.update();
-				}
-			}
-			if (that.stage) frame = that.stage.frame;	
-			if (frame.zil) WW.removeEventListener("keydown", frame.zil[0]);
-			that.dispatchEvent("focus");
-		}
+		var lastHeight;
 		that.taBlur = function() {
 			if (WW.M && keyboardShift) {			
 				if (that.stage) {
 					if (that.re) that.stage.frame.off("resize", that.re);
 					that.stage.y = sYO;
+					textareaTag.blur();
+					that.resize();
 					that.stage.update();
 				}
 			}
@@ -46008,6 +47483,40 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			that.dispatchEvent("blur");
 			if (that.text != lastText) that.dispatchEvent("change");			
 		}
+		function vvp() {
+			if (M && !zot(lastHeight) && WW.visualViewport.height > lastHeight) {
+				that.taBlur();
+				WW.visualViewport.removeEventListener('resize', vvp);
+			}
+			lastHeight = WW.visualViewport.height;
+		}
+		that.taFocus = function() {		
+			lastText = that.text;			
+			if (WW.M && keyboardShift) {
+				if (that.re) that.stage.frame.off("resize", that.re);
+				that.re = that.stage.frame.on("resize", function(){
+					if (that.stage && h>that.stage.height/4) {
+						that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
+						that.resize();
+						that.stage.update();
+					}
+				});				
+				if (WW.visualViewport) {
+					WW.visualViewport.removeEventListener('resize', vvp);
+					WW.visualViewport.addEventListener('resize', vvp);
+				}
+				var h = that.localToGlobal(0,0).y;
+				if (that.stage && h>that.stage.height/4) {
+					that.stage.y = that.stage.scaleY*(that.stage.height/4-h);
+					that.resize();
+					that.stage.update();
+				}
+			}
+			if (that.stage) frame = that.stage.frame;	
+			if (frame.zil) WW.removeEventListener("keydown", frame.zil[0]);
+			that.dispatchEvent("focus");
+		}
+		
 		textareaTag.addEventListener('input', that.taInput);
 		textareaTag.addEventListener('focus', that.taFocus);
 		textareaTag.addEventListener('blur', that.taBlur);	
@@ -46041,13 +47550,15 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var displayProps = that.getConcatenatedMatrix().decompose();
 			var point = that.localToGlobal(padding, padding);
 			if (frame.retina) {
-				var sc = zim.browserZoom();					
+				var sc = zim.browserZoom();
 				if (frame.tag) {
 					textarea.x = point.x/pRatio/sc;
 					textarea.y = point.y/pRatio/sc;						
 				} else {
-					textarea.x = frame.x/stage.scaleX + point.x/pRatio/sc;
-					textarea.y = frame.y/stage.scaleY + point.y/pRatio/sc;
+					var shiftX = (stage.x-stage.x/pRatio/sc)/frame.scale;
+					var shiftY = (stage.y-stage.y/pRatio/sc)/frame.scale;
+					textarea.x = frame.x/stage.scaleX + point.x/pRatio/sc - shiftX;
+					textarea.y = frame.y/stage.scaleY + point.y/pRatio/sc - shiftY;
 				}			
 				// CreateJS DOMElement is scaling tag as stage scales
 				zim.sca(textarea, displayProps.scaleX/pRatio/stage.scaleX/sc, displayProps.scaleY/pRatio/stage.scaleY/sc);
@@ -50546,7 +52057,7 @@ RETURNS obj for chaining
 	};//-33.18
 
 /*--
-obj.transform = function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container)
+obj.transform = function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY)
 
 transform
 zim DisplayObject method
@@ -50639,6 +52150,12 @@ container (default stage) - set to a container to keep transforms within that co
 	normally leave as default so transforms will stay above other objects
 	but on occasion such as when using with ZIM TextureActives, a container is required
 	as the container is cached and used on a texture
+minScaleX (default null) - set a min scale in the x for the transform
+maxScaleX (default null) - set a max scale in the x for the transform 
+minScaleY (default null) - set a min scale in the y for the transform 
+maxScaleY (default null) - set a max scale in the y for the transform 
+sliceX (default true) - this is for transforming ScaledBitmap objects in x - to use slicesWidth on edges.  Set to false to use width.
+sliceY (default true) - this is for transforming ScaledBitmap objects in y - to use slicesWidth on edges.  Set to false to use width. 
 
 PROPERTIES
 toggled - adds a read-only Boolean to the object that is true if controls are showing otherwise false
@@ -50698,8 +52215,8 @@ If TransformManager() is used there are more events available such as "persistse
 
 RETURNS obj for chaining
 --*///+33.5
-zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container) {
-	var sig = "obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container";
+zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY) {
+	var sig = "obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY";
 	var duo; if (duo = zob(zim.transform, arguments, sig)) return duo;
 	if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("transform", arguments); return obj;}
 	z_d("33.5");
@@ -50744,6 +52261,14 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 	if (zot(cache)) cache = true;
 	if (zot(events)) events = false;	
 	if (obj.type == "Tag" || obj.type == "TextArea" || obj.type == "Loader") events = true;
+
+	if (zot(minScaleX)) minScaleX = -Number.MAX_VALUE;	
+	if (zot(maxScaleX)) maxScaleX = Number.MAX_VALUE;	
+	if (zot(minScaleY)) minScaleY = -Number.MAX_VALUE;	
+	if (zot(maxScaleY)) maxScaleY = Number.MAX_VALUE;	
+
+	if (zot(sliceX)) sliceX = true;	
+	if (zot(sliceY)) sliceY = true;	
 
 	obj.zimMCO = obj.mouseChildren;
 	obj.mouseChildren = false;
@@ -51034,6 +52559,10 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		if (frame.ctrlKey && obj.transformControls.visible) {
 			obj.scaleX = 1;
 			obj.scaleY = 1;
+			if (obj.type=="SlicedBitmap") {
+				if (sliceX) obj.slicesScaleX = 1;
+				if (sliceY) obj.slicesScaleY = 1;
+			}
 			obj.rotation = 0;
 			// if (customCursors) moveCursor.rot(obj.rotation);
 			makeControls();
@@ -51090,6 +52619,8 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 	var startY; // target start y
 	var startSX;
 	var startSY;
+	var startSSX; // for SlicedBitmap
+	var startSSY;
 	var startR; // rotation of object to start
 	var startAngle; // angle of mouse down to x axis
 	var diffX;
@@ -51212,6 +52743,10 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		objStartY = obj.y;
 		startSX = obj.scaleX;
 		startSY = obj.scaleY;
+		if (obj.type=="SlicedBitmap") {
+			startSSX = obj.slicesScaleX;
+			startSSY = obj.slicesScaleY;
+		}
 		var pp = container.globalToLocal(e.stageX/zim.scaX, e.stageY/zim.scaY);
 		if (e.target.controlType == "rotate") {
 			rotateCheck = true;
@@ -51264,11 +52799,13 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 		}
 		
 		if (e.target.controlType == "corner") {
-			obj.scaleX = scale * startSX;
-			obj.scaleY = scale * startSY;
+			obj.scaleX = zim.constrain(scale * startSX, minScaleX, maxScaleX);
+			obj.scaleY = zim.constrain(scale * startSY, minScaleY, maxScaleY);
 		} else {
-			obj.scaleX = (e.target.cu == "e-resize") ? scale * startSX : startSX;
-			obj.scaleY = (e.target.cu == "n-resize") ? scale * startSY : startSY;
+			if (obj.type != "SlicedBitmap" || !sliceX) obj.scaleX = zim.constrain((e.target.cu == "e-resize") ? scale * startSX : startSX, minScaleX, maxScaleX);
+			else obj.ssX = zim.constrain((e.target.cu == "e-resize") ? scale * startSSX : startSSX, minScaleX, maxScaleX);
+			if (obj.type != "SlicedBitmap" || !sliceY) obj.scaleY = zim.constrain((e.target.cu == "n-resize") ? scale * startSY : startSY, minScaleY, maxScaleY);
+			else obj.ssY = zim.constrain((e.target.cu == "n-resize") ? scale * startSSY : startSSY, minScaleY, maxScaleY);			
 		}			
 		makeControls();
 		var pp = container.globalToLocal(e.stageX/zim.scaX, e.stageY/zim.scaY);
@@ -51343,7 +52880,12 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 			}
 			if (cursors) tCheck = squares.hitTestPoint(pp.x, pp.y);
 		} else if (type == "side") {
-			if (obj.scaleX != startProperties.scaleX || obj.scaleY != startProperties.scaleY) {
+			if (
+				obj.scaleX != startProperties.scaleX || 
+				obj.scaleY != startProperties.scaleY || 
+				(sliceX && obj.type=="SlicedBitmap" && obj.slicesScaleX != startProperties.slicesScaleX) ||
+				(sliceY && obj.type=="SlicedBitmap" && obj.slicesScaleY != startProperties.slicesScaleY)
+			) {
 				transformEvent = new createjs.Event("transformed");
 				transformEvent.transformType = "stretch";
 			}
@@ -51573,6 +53115,10 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 
 	function getStartProperies() {
 		startProperties = {x:obj.x, y:obj.y, rotation:obj.rotation, regX:obj.regX, regY:obj.regY, scaleX:obj.scaleX, scaleY:obj.scaleY};
+		if (obj.type=="SlicedBitmap") {
+			if (sliceX) startProperties.slicesScaleX = obj.slicesScaleX;
+			if (sliceY) startProperties.slicesScaleY = obj.slicesScaleY;
+		}
 	}
 	var startProperties;
 	getStartProperies();
@@ -51710,6 +53256,10 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 				regY:obj.regY,
 				controls:obj.transformControls.visible
 			};
+			if (obj.type=="SlicedBitmap") {
+				if (sliceX) data.slicesScaleX = obj.slicesScaleX;
+				if (sliceY) data.slicesScaleY = obj.slicesScaleY;
+			}
 			return toJSON ? JSON.stringify(data) : data;
 		},
 		setData:function(data, fromJSON) {
@@ -51770,7 +53320,7 @@ zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowTogg
 			makeControls();
 			drawDragger();
 			setRotators();
-			if (visible) obj.transformControls.show(); // bring on top
+			if (obj.transformControls.visible) obj.transformControls.show(); // bring on top
 			if (dispatch) {
 				var transformEvent = new createjs.Event("transformed");
 				transformEvent.pressup = true;
@@ -54189,6 +55739,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 			sequenceTarget = target;
 			target = newTarget;
+			sequenceTarget.animating = true;
+		}
+		function sequenceDone() {
+			sequenceTarget.animating = false;
+			if (call) call(params||sequenceTarget);
 		}
 
 		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
@@ -54232,8 +55787,10 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					rrr = rate + (tar.ratio?tar.ratio:0);
 				}
 				var seqTime = i*sequence;
-				if (i==0 && sequence!=0) seqTime = timeType=="s"?.02:20; // patched in 10.7.0 and 10.7.1				
-				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null), wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rrr, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp); // do not send from!
+				if (i==0 && sequence!=0) seqTime = timeType=="s"?.02:20; // patched in 10.7.0 and 10.7.1
+								
+				// zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null)
+				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?sequenceDone:null), null, wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rrr, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp); // do not send from!
 	
 			}
 			return sequenceTarget;
@@ -54645,7 +56202,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					if (typeof target.zimLastObj[o] == "string" && o != "transform") {
 						target.zimLastObj[o] = target[o] + Number(target.zimLastObj[o].replace(/\s/g,""));
 					}
-					setValue(target, o, target.zimLastObj[o]);
+					setValue(target, o, target.zimLastObj[o]);					
 				});
 				// zim.loop(obj, function (o) {
 				// 	if (typeof obj[o] == "string") {
@@ -54770,6 +56327,22 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 
+		
+		// moved these to before protect (to catch scale convert) - ZIM Cat
+		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
+		// moved to before color code - ZIM 017
+		var savedPicks = {};
+		for (i in obj) {
+			// zogb(i)
+			if (extraTypes.indexOf(i) >= 0) continue; // skip for extras
+			savedPicks[i] = zim.copy(obj[i]); // store pre picked to use if loopPick is true
+			obj[i] = zim.Pick.choose(obj[i], null, target);
+		}
+		if (!zot(obj.scale)) {
+			obj.scaleX = obj.scaleY = zim.Pick.choose(obj.scale, null, target);
+			delete obj.scale;
+		}
+
 		// convert color tween - added protect for colorRange in ZIM 016
 		var colorBusy = target.zimBusy && target.zimBusy.colorRange; 
 		if (!colorBusy) {
@@ -54822,19 +56395,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 
 
-		// moved these to before protect (to catch scale convert) - ZIM Cat
-		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
-		var savedPicks = {};
-		for (i in obj) {
-			// zogb(i)
-			if (extraTypes.indexOf(i) >= 0) continue; // skip for extras
-			savedPicks[i] = zim.copy(obj[i]); // store pre picked to use if loopPick is true
-			obj[i] = zim.Pick.choose(obj[i], null, target);
-		}
-		if (!zot(obj.scale)) {
-			obj.scaleX = obj.scaleY = zim.Pick.choose(obj.scale, null, target);
-			delete obj.scale;
-		}
 
 
 		// PROTECT LOOPS AND REWINDS WITH BUSY
@@ -56265,18 +57825,24 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 						return;
 					} else {
 						if (rewind) {
-							if (target.set) target.set(startObj);
+							if (target.set) target.set(startObj);							
 						} else {							
 							if (target.set) target.set(obj);
 						}
 					}
-				} else {
+				} else {									
 					if (wait3>0) target.waiting = true;
 					doLoopWaitCall();
 					return;
 				}
-			}
-
+			} else {
+				if (rewind) {
+					if (target.set) target.set(startObj);							
+				} else {							
+					if (target.set) target.set(obj);
+				}
+			}	
+			
 			// ZIM 015 - this was the first thing we tried to scrub a series with percentComplete 
 			// there were lots of other things too to make it work.
 			// Leaving the seriesTween test in here... but probably not doing much			
@@ -56299,7 +57865,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		
 		function getStart() {
 			// for rewind, we need to know the start value
-			// which could be modified by the set parameter
+			// which could be modified by the set parameter			
 			for (var i in obj) {
 				if (css && target.style) {
 					if (!zot(set[i]) && !from) {
@@ -56310,7 +57876,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					}
 				} else {
 					if (!zot(set[i]) && !from) {
-						// !!!!!! maybe fix for dot plugin
 						startObj[i] = set[i];
 					} else {
 						if (i.substr(0,1) == ".") {
@@ -60774,13 +62339,20 @@ EXAMPLE
 new Arrow({type:"thick"}).pos(30,30,RIGHT,BOTTOM).tap(next);
 END EXAMPLE
 
-EXAMPLE
-// Assuming a pages variable that points to a ZIM Pages object
-// These will go through the pages in order 
-// and default to remove themselves if not needed at start or end
+EXAMPLE 
+const page2 = new Page(W,H,orange);
+const page3 = new Page(W,H,yellow);
+const pages = new Pages([page1,page2,page3], "slide").addTo();
 
-new Arrow(blue, green, pages, RIGHT).pos(30,30,RIGHT,BOTTOM);
-new Arrow(blue, green, pages, LEFT).pos(30,30,LEFT,BOTTOM);
+const left = new Arrow({
+	pages:pages,
+	direction:LEFT
+}).rot(180).pos(50,50,LEFT,BOTTOM);
+    
+const right = new Arrow({
+	pages:pages,
+	direction:RIGHT
+}).pos(50,50,RIGHT,BOTTOM);
 END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
@@ -62243,10 +63815,13 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			return that;
 		};
 		this.remove = function(obj) {
-			if (!Array.isArray(obj)) obj = [obj];
-			zim.loop(obj, function(o) {
-				if (o && o.removeFrom) o.removeFrom();
-			}, true);
+			if (zot(obj)) that.removeAllChildren();
+			else {
+				if (!Array.isArray(obj)) obj = [obj];
+				zim.loop(obj, function(o) {
+					if (o && o.removeFrom) o.removeFrom();
+				}, true);
+			}
 			that.resize();
 			return that;
 		};
@@ -63120,7 +64695,7 @@ current2DCols ** - read only array the current order of columns each containing 
 tileNum - this property is added to each object in the tile to give its number in the tile
 tileCol - this property is added to each object in the tile to give its column number in the tile
 tileRow - this property is added to each object in the tile to give its row number in the tile
-backgrounds - an array of ZIM Rectangle objects set by the backdroundColor parameter
+backgrounds - an array of ZIM Rectangle objects set by the backgroundColor parameter
 backings - an array of DisplayObjects set by the backing parameter
 backdrop - a ZIM Rectangle set by the backdropColor parameter 
 mat - a DisplayObject set by the mat parameter
@@ -70666,32 +72241,35 @@ new MotionController({
 END EXAMPLE
 
 EXAMPLE 
-const background = new Pic("background.png").addTo(); // assuming loaded in Frame
-const ball = new Circle().centerReg();
-const scroller = new Scroller(background); 
-const accelerator = new Accelerator(scroller);
+F.loadAssets(["beach02.jpg", "playbeachball.png"], "https://zimjs.org/assets/"); // or load in Frame()
+F.on("complete", ()=>{
+	const background = new Pic("beach02.jpg").scaleTo().center();
+	const ball = new Pic("playbeachball.png").siz(100).centerReg();
+	const scroller = new Scroller(background); 
+	const accelerator = new Accelerator(scroller);
 
-// control speed of Accelerator with MotionController
-new MotionController({
-	target:accelerator,
-	type:"mousemove", // or "pressmove"
-	axis:HORIZONTAL,
-	// the Scroller makes two backings - backing1 and backing2
-	// allow pressing on both backings and ball to control scroller
-	mousedownIncludes:[scroller.backing1, scroller.backing2, ball],
-	speed:30,            
-	minPercentSpeed:-1000,
-	maxPercentSpeed:1000,
-	boundary:new Boundary(0,0,W,0) // setting a boundary and speed will balance the control
-});
+	// control speed of Accelerator with MotionController
+	new MotionController({
+		target:accelerator,
+		type:"mousemove", // or "pressmove"
+		axis:HORIZONTAL,
+		// the Scroller makes two backings - backing1 and backing2
+		// allow pressing on both backings and ball to control scroller
+		mousedownIncludes:[scroller.backing1, scroller.backing2, ball],
+		speed:30,            
+		minPercentSpeed:-1000,
+		maxPercentSpeed:1000,
+		boundary:new Boundary(0,0,W,0) // setting a boundary and speed will balance the control
+	});
 
-// control position of ball with MotionController
-new MotionController({
-	target:ball,
-	type:"mousemove",
-	// allow press on Scroller backings
-	mousedownIncludes:[scroller.backing1, scroller.backing2],
-	speed:10            
+	// control position of ball with MotionController
+	new MotionController({
+		target:ball,
+		type:"mousemove",
+		// allow press on Scroller backings
+		mousedownIncludes:[scroller.backing1, scroller.backing2],
+		speed:10            
+	});
 });
 END EXAMPLE
 
@@ -73390,6 +74968,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 		blurX = zik(blurX); // inherits these properties
 		blurY = zik(blurY);
+		if (blurX === 0 && blurY === 0) blurX = 1;
 		quality = zik(quality);
 
 		color = zik(color); // will convert after setting color getter setter
@@ -76295,19 +77874,18 @@ and animate and swap the backgrounds when needed.
 
 NOTE: A scroller can be added to a Accelerator object
 this will allow the percentSpeed to be synched with other Scroller and Dynamo objects
-See https://zimjs.com/zide/
-See https://zimjs.com/explore/sidescroller.html (with keys)
+See https://zimjs.com/zide/ - full scene
+See https://zimjs.com/zapp/E_EPRSP - Flinstones
+See https://zimjs.com/zapp/Z_6EEB5 - beach
+See https://zimjs.com/zapp/Z_ZCDQN - spaceguy
+See https://zimjs.com/zapp/Z_UC7DN - keyboard
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-const one = new Rectangle(1200, 400, red);
+const one = new Rectangle(1100, 400, red).center();
 F.makeCircles().center(one);
-S.addChild(one);
-
-const scroller = new Scroller(one);
-
-S.update();
+const scroller = new Scroller(one,20);
 END EXAMPLE
 
 PARAMETERS
@@ -88415,9 +89993,9 @@ function zimify(obj, a, b, c, d, list) {
 		dragRect:function(boundary) {
 			return zim.dragBoundary(this, boundary);
 		},
-		transform:function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container) {
+		transform:function(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.transform(arguments[0]);}
-			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container);}
+			else {return zim.transform(this, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY);}
 		},
 		setSwipe:function(swipe) {
 			return zim.setSwipe(this, swipe);
@@ -93724,16 +95302,16 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 		["RAD", zim.RAD],
 		["PHI", zim.PHI],
 		["IGNORE", zim.ignore]
-	  ];
-	  
-	  for (z_i = 0; z_i < globalsConstants.length; z_i++) {
+	];
+
+	for (z_i = 0; z_i < globalsConstants.length; z_i++) {
 		var pair = globalsConstants[z_i];  
 		WW[pair[0]] = pair[1];
-	  }
-	  
-	  for (z_i = 0; z_i < zim.colors.length; z_i++) {
+	}
+
+	for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
-	  }
+	}
 
 
 WW.zim = zim;
@@ -93837,6 +95415,7 @@ export let StageGL = zim.StageGL;
 export let Container = zim.Container;
 export let Shape = zim.Shape;
 export let Bitmap = zim.Bitmap;
+export let SlicedBitmap = zim.SlicedBitmap;
 export let Sprite = zim.Sprite;
 export let MovieClip = zim.MovieClip;
 export let SVGContainer = zim.SVGContainer;
@@ -93881,6 +95460,8 @@ export let List = zim.List;
 export let Stepper = zim.Stepper;
 export let Slider = zim.Slider;
 export let Selector = zim.Selector;
+export let Slicer = zim.Slicer;
+export let SlicerTypes = zim.SlicerTypes;
 export let Dial = zim.Dial;
 export let Tabs = zim.Tabs;
 export let Pad = zim.Pad;

@@ -1076,8 +1076,10 @@ declare namespace zim {
 	}
 
 	export class Shape extends createjs.Shape implements zimDisplay {
-		constructor(width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number, graphics?: createjs.Graphics, style?: boolean, group?: string, inherit?: {})
-		// ZIM Display Interface
+		constructor(config_or_width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number, graphics?: createjs.Graphics, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number, graphics?: createjs.Graphics, style?: boolean, group?: string, inherit?: {} })
+		
+        // ZIM Display Interface
 		// ZIM 4TH Methods
 		movement(call: Function): this
 		noMovement(): this
@@ -1265,8 +1267,9 @@ declare namespace zim {
 	}
 
 	export class Bitmap extends createjs.Bitmap implements zimDisplay {
-		constructor(image?: HTMLImageElement | DisplayObject, width?: number, height?: number, left?: number, top?: number, id?: string, style?: boolean, group?: string, inherit?: {})
-		// ZIM Display Interface
+		constructor(config_or_image?: HTMLImageElement | DisplayObject, width?: number, height?: number, left?: number, top?: number, id?: string, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { image?: HTMLImageElement | DisplayObject, width?: number, height?: number, left?: number, top?: number, id?: string, style?: boolean, group?: string, inherit?: {} })
+        // ZIM Display Interface
 		// ZIM 4TH Methods
 		movement(call: Function): this
 		noMovement(): this
@@ -1433,6 +1436,57 @@ declare namespace zim {
 		imageData: { data: [number] }
 		svg: SVGElement
 	}
+
+    export class SlicedBitmap extends zim.Bitmap implements zimDisplay {
+		constructor(config_or_width?: number, height?: number, obj?: HTMLImageElement | DisplayObject, slices?:[[]], types?:[[]], gap?: number, scale?: number, style?: boolean, group?: string, inherit?: {})
+        constructor(config: { width?: number, height?: number, obj?: HTMLImageElement | DisplayObject, slices?:[[]], types?:[[]], gap?: number, scale?: number, style?: boolean, group?: string, inherit?: {} })
+        slicesSca(): this
+        slices: [[]]
+        types: [[]]
+        gap: number
+        slicesWidth: number
+        slicesHeight: number
+        slicesSale: number
+        slicesScaleX: number
+        slicesScaleY: number
+        exchange: [[[]]]
+        sH0: number
+        sV0: number
+        tH0: number
+        tV0: number
+        sH1: number
+        sV1: number
+        tH1: number
+        tV1: number
+        sH2: number
+        sV2: number
+        tH2: number
+        tV3: number
+        sH3: number
+        sV3: number
+        tH4: number
+        tV4: number
+        sH4: number
+        sV5: number
+        tH5: number
+        tV5: number
+        sH6: number
+        sV6: number
+        tH6: number
+        tV6: number
+        sH7: number
+        sV7: number
+        tH7: number
+        tV7: number
+        sH8: number
+        sV8: number
+        tH8: number
+        tV8: number
+        sH9: number
+        sV9: number
+        tH9: number
+        tV9: number
+    }
 
 	export class MovieClip extends createjs.MovieClip implements zimDisplay {
 		constructor(mode?: string, startPosition?: number, loop?: boolean, labels?: {}, style?: boolean, group?: string, inherit?: {})
@@ -2500,6 +2554,49 @@ declare namespace zim {
         readonly selector: Rectangle
         blendMode: string
         keyFocus: boolean
+	}
+    export class Slicer extends Window implements zimComponent {
+		constructor(config_or_obj?: HTMLCanvasElement | DisplayObject, objScale?: number, slices?: [[]], types?: [[]], titleBar?: string | Label, remember?: boolean, upload?: boolean, selection?: boolean, multiple?: boolean, proportion?: boolean, resize?: boolean, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { obj?: HTMLCanvasElement | DisplayObject, objScale?: number, slices?: [[]], types?: [[]], titleBar?: string | Label, remember?: boolean, upload?: boolean, selection?: boolean, multiple?: boolean, proportion?: boolean, resize?: boolean, style?: boolean, group?: string, inherit?: {} })
+		setObject(newObj:HTMLCanvasElement | DisplayObject, scale?: number) : this
+        updateLines(slices: [[]]): this
+        setSlicerTypes(slicerTypes: SlicerTypes): this
+        clearSelection(): this
+        clear(): this
+        clone(): Slicer
+		readonly obj: HTMLCanvasElement | DisplayObject
+        slices: [[]]
+        types: [[]]
+        exchange: [[[]]]
+        readonly selectedIndexH: number
+        readonly selectedIndexV: number
+        readonly currentLineH: Container
+        readonly currentLineV: Container
+        readonly selection: [[]]
+        readonly box: Rectangle
+        readonly trackH: Rectangle
+        readonly trackV: Rectangle
+        readonly deleteH: Button
+        readonly deleteV: Button
+        readonly hide: Button
+        readonly loader: Loader
+        readonly linesHContainer: Container
+        readonly linesVContainer: Container
+        readonly highlightContainer: Container
+	}
+    export class SlicerTypes extends Window implements zimComponent {
+		constructor(config_or_slicer: Slicer, titleBar?: string | Label, sliceType?: string, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { slicer: Slicer, titleBar?: string | Label, sliceType?: string, style?: boolean, group?: string, inherit?: {} })
+		slicer: Slicer
+        sliceType: string
+        readonly radioH: RadioButtons
+        readonly radioV: RadioButtons
+        readonly importButton: Button
+        readonly exportButton: Button
+        readonly importPane: Pane
+        readonly exportPane: Pane
+        readonly submitButton: Button
+        readonly shield: Rectangle
 	}
 	export class Dial extends Container implements zimComponent {
 		constructor(config_or_min?: number, max?: number, step?: number, width?: number, backgroundColor?: color, indicatorColor?: color, indicatorScale?: number, indicatorType?: string, useTicks?: boolean, innerTicks?: boolean, tickColor?: color, tickStep?: number, semiTicks?: number, tickScale?: number, semiTickScale?: number, innerCircle?: boolean, innerScale?: number, innerColor?: color, inner2Color?: color, accentSize?: number, accentRadius?: number, accentColor?: color, accentBackgroundColor?: color, accentDifference?: number, sound?: boolean, linear?: boolean, gap?: number, limit?: boolean, keyArrows?: number, keyArrowsStep?: number, keyArrowsH?: boolean, keyArrowsV?: boolean, continuous?: boolean, continuousMin?: number, continuousMax?: number, value?: number, useLabels?: boolean, labelMargin?: number, addZero?: boolean, currentValue?: number, style?: boolean, group?: string, inherit?: {})
