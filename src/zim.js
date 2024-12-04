@@ -27649,7 +27649,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (replace) that.contentContainer.removeAllChildren();
 			if (center) obj.center(that.contentContainer, index);
 			else obj.addTo(that.contentContainer, index);
-			addHTML(that.contentContainer);
 			return that;
 		}
 		
