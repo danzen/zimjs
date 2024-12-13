@@ -10816,16 +10816,16 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 // slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
-new SlicedBitmap(1600, pic.height, pic, [0.25,0.75],[0.25,0.75]], [[0,1,0],[0,1,0])
+new SlicedBitmap(1600, pic.height, pic, [[0.25,0.75],[0.25,0.75]], [[0,1,0],[0,1,0]])
 	.center()
 	.transform({minScaleX:.05, minScaleY:.05});
 END EXAMPLE
 
 EXAMPLE
 // slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
-const pic = new Pic("car.png"); // preload this in Frame() or loadAssets()
-const startSlices = [0.25,0.75],[0.25,0.75]];
-const startTypes = [[0,2,0],[0,1,0]; // middle is tiled horizontally and stretched vertically
+const pic = new Pic("pic.png"); // preload this in Frame() or loadAssets()
+const startSlices = [[0.25,0.75],[0.25,0.75]];
+const startTypes = [[0,2,0],[0,1,0]]; // middle is tiled horizontally and stretched vertically
 const slicer = new Slicer({
 	obj:pic.clone(),  // slicer will adjust obj so clone the pic so can use it unaffected later
 	scale:.5, 
@@ -17592,36 +17592,35 @@ Note the points property has been split into points and pointObjects (and there 
 			};
 
 			// squiggle
-			if (that.interactive) {
-				if (move) shape.drag({onTop:false});
-				moveDownEvent = shape.on("mousedown", function(e) {
-					stage = e.target.stage;
-					startPosition = {x:shape.x, y:shape.y};
-					if (that.selectPoints) that.keyFocus = true;
-					upTop();
-				});
-				movePressEvent = shape.on("pressmove", function() {
-					sets.x = shape.x;
-					sets.y = shape.y;
-					sticks.x = shape.x;
-					sticks.y = shape.y;
-				});
-				moveUpEvent = shape.on("pressup", function() {
-					var moveControlCheck = (shape.x != startPosition.x || shape.y != startPosition.y);
-					var movePoint = shape.localToLocal(that.regX,that.regY,that.parent);
-					that.x = movePoint.x;
-					that.y = movePoint.y;
-					sets.x = sets.y = sticks.x = sticks.y = shape.x = shape.y = 0;
-					if (moveControlCheck) {
-						var ev = new createjs.Event("change");
-						ev.controlType = "move";
-						that.dispatchEvent(ev);
-					}
-					if (stage) stage.update();
-				});
+			if (that.interactive && move) shape.drag({onTop:false});
+			moveDownEvent = shape.on("mousedown", function(e) {
+				stage = e.target.stage;
+				startPosition = {x:shape.x, y:shape.y};
+				if (that.selectPoints) that.keyFocus = true;
+				upTop();
+			});
+			movePressEvent = shape.on("pressmove", function() {
+				sets.x = shape.x;
+				sets.y = shape.y;
+				sticks.x = shape.x;
+				sticks.y = shape.y;
+			});
+			moveUpEvent = shape.on("pressup", function() {
+				var moveControlCheck = (shape.x != startPosition.x || shape.y != startPosition.y);
+				var movePoint = shape.localToLocal(that.regX,that.regY,that.parent);
+				that.x = movePoint.x;
+				that.y = movePoint.y;
+				sets.x = sets.y = sticks.x = sticks.y = shape.x = shape.y = 0;
+				if (moveControlCheck) {
+					var ev = new createjs.Event("change");
+					ev.controlType = "move";
+					that.dispatchEvent(ev);
+				}
+				if (stage) stage.update();
+			});
 
-				if (!that.move) stopDragging(true); // true is first time
-			}
+			if (!that.move) stopDragging(true); // true is first time
+			
 
 			function upTop() {
 				if (that.onTop) {
@@ -27649,6 +27648,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (replace) that.contentContainer.removeAllChildren();
 			if (center) obj.center(that.contentContainer, index);
 			else obj.addTo(that.contentContainer, index);
+			// addHTML(that.contentContainer);
 			return that;
 		}
 		
@@ -31526,10 +31526,10 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 		},
 		set: function(value) {			
 			readOnly = value;
-			that.htmlTag.setAttribute("readonly", readOnly);
+			that.htmlTag.readOnly = readOnly;
 		}
 	});
-	if (readOnly) that.readOnly = true;
+	if (readOnly) that.htmlTag.readOnly = true;
 
 	Object.defineProperty(that, 'focus', {
 		get: function() {
@@ -32144,9 +32144,10 @@ list - (default Options 1-30) an array of strings, numbers or zim Label objects 
 	note: the Accordion List is currently incompatible with the Organizer, addTo() and removeFrom()
 viewNum - (default 5) how many items to show in the width and height provided
 	adjusting this number will also change the overall scale of custom items for horizontal lists 
-    (this does not affect vertical lists due to the way vertical tabs are optimized)
+	(this does not affect vertical lists due to the way vertical tabs are optimized)
 	or see the noScale parameter to avoid scaling custom items in horizontal lists
 	if no items are provided to start but rather added with addAt() then choose a viewNum that roughly matches how many items will fit in the view
+	Note - the items will not be scaled larger by a viewNum setting... only scaled smaller.
 vertical - (default true) set to false to make a horizontal list
 currentSelected - (default false) set to true to show the current selection as highlighted
 align - (default CENTER) horizontal align
@@ -32171,8 +32172,8 @@ borderColor - (default silver) border color
 borderWidth - (default 1) the thickness of the border
 padding - (default 0) places the content in from edges of border (see paddingH and paddingV)
 corner - (default 0) is the rounded corner of the list (does not accept corner array - scrollBars are too complicated)
-swipe - (default auto/true) the direction for swiping set to none / false for no swiping
-	also can set swipe to just vertical or horizontal
+swipe - (default AUTO/true) the direction for swiping set to NONE / false for no swiping
+	also can set swipe to just VERTICAL or HORIZONTAL
 scrollBarActive - (default true) shows scrollBar (set to false to not)
 scrollBarDrag - (default true) set to false to not be able to drag the scrollBar
 scrollBarColor - (default borderColor) the color of the scrollBar
@@ -34084,18 +34085,23 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (zot(align)) align = DS.align!=null?DS.align:"center";
 		if (zot(spacing)) spacing = DS.spacing!=null?DS.spacing:2;
-		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:zim.tin;
+		if (zot(backgroundColor)) backgroundColor = DS.backgroundColor!=null?DS.backgroundColor:zim.tin;		
 		if (zot(rollBackgroundColor)) rollBackgroundColor = DS.rollBackgroundColor!=null?DS.rollBackgroundColor:zim.grey;
 		if (zot(selectedBackgroundColor)) selectedBackgroundColor = DS.selectedBackgroundColor!=null?DS.selectedBackgroundColor:zim.charcoal;
 		if (zot(selectedRollBackgroundColor)) selectedRollBackgroundColor = DS.selectedRollBackgroundColor!=null?DS.selectedRollBackgroundColor:zim.grey;
-		if (zot(color)) color = DS.color!=null?DS.color:zim.white;
+		if (zot(color)) color = DS.color!=null?DS.color:zim.white;		
 		if (zot(rollColor)) rollColor = DS.rollColor!=null?DS.rollColor:color;
 		if (zot(selectedColor)) selectedColor = DS.selectedColor!=null?DS.selectedColor:color;
 		if (zot(selectedRollColor)) selectedRollColor = DS.selectedRollColor!=null?DS.selectedRollColor:rollColor;
 
 		var c = new zim.Container();
 		c.type = "CheckItem";
-		c.checkBox = new zim.CheckBox({size:size, label:label, color:color, tap:true}),
+		label = zik(label);
+		rollColor = zik(rollColor);
+		selectedColor = zik(selectedColor);
+		rollBackgroundColor = zik(rollBackgroundColor);
+		 
+		c.checkBox = new zim.CheckBox({size:size, label:label, color:color, tap:true});
 		c.backing = new zim.Rectangle(width-spacing*2, c.checkBox.height+paddingV*2, backgroundColor).addTo(c);
 		c.checkBox.center(c);
 		if (align != "center" && align != "middle") c.checkBox.pos(paddingH,null,align=="right");
@@ -36410,7 +36416,7 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 // slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
-const pic = new Pic("car.png"); // preload this in Frame() or loadAssets()
+const pic = new Pic("pic.png"); // preload this in Frame() or loadAssets()
 const slicer = new Slicer({
 	obj:pic.clone(),  // slicer will adjust obj so clone the pic so can use it unaffected later
 	scale:.5,
@@ -36421,7 +36427,7 @@ const slicer = new Slicer({
 
 slicer.on("loaded", ()=>{
 	if (preview) preview.dispose();
-	preview = new zim.SlicedBitmap(1600, 600, slicer.obj.clone(), slicer.slices, slicer.types, 2, .5)
+	preview = new SlicedBitmap(1600, 600, slicer.obj.clone(), slicer.slices, slicer.types, 2, .5)
 		.pos(0,100,CENTER,BOTTOM)
 		.transform({minScaleX:.05, minScaleY:.05});
 });
@@ -36947,6 +36953,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				loader.resize();
 			}
 			adjustBoxes();	
+			
 			if (obj.width) {
 				obj.scaleTo(that.box,100,100).loc(0,0,sc,0);
 				that.stage.update();
@@ -36955,7 +36962,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					obj.scaleTo(that.box,100,100).loc(0,0,sc,0);
 					that.stage.update();
 				}, 50);
-			}		
+			}
+						
 		}
 		if (resize) {
 			that.resizeHandle.on("pressup", function() {
@@ -37157,7 +37165,7 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 
 EXAMPLE
 // slice a pic in four at 25% from the edges, scale the middle and keep the sides and corners not scaled.
-const pic = new Pic("car.png"); // preload this in Frame() or loadAssets()
+const pic = new Pic("pic.png"); // preload this in Frame() or loadAssets()
 const slicer = new Slicer({
 	obj:pic.clone(),  // slicer will adjust obj so clone the pic so can use it unaffected later
 	scale:.5,
@@ -51214,6 +51222,8 @@ RETURNS obj for chaining
 							target.addAt(placeObject, target.dropReticleIndex);								
 			
 							target.dropItem = dragObject;
+							dragObject.droppedTarget = target;
+							dragObject.dropTarget = target;
 							target.dropList = target;
 							target.dropNewIndex = target.dropReticleIndex;
 							target.dropReticleIndex = null;		
@@ -51238,6 +51248,7 @@ RETURNS obj for chaining
 							else placeObject.mouse();						
 							if (dropFull) target.dropFull = true;	
 							placeObject.droppedTarget = target;													
+							placeObject.dropTarget = target;													
 							return false;
 						}
 					} 
@@ -53912,7 +53923,7 @@ Dynamically changes or adds a boundary rectangle to the object being dragged wit
 
 EXAMPLE
 const boundary = new Boundary(100,100,500,400); // x,y,w,h
-circle.gestureBoundary(boundary);
+new Circle().center().gestureBoundary(boundary);
 END EXAMPLE
 
 PARAMETERS
@@ -93299,9 +93310,11 @@ Or, the Three class can be used to help show ZIM in threejs
 as an interactive and animated canavs texture.
 See also TextureActive and TextureActives in the main ZIM docs.
 
+See: https://zimjs.com/three - for the mini-site with three.js
+
 three.js examples - with three.js inside ZIM
 https://zimjs.com/bits/view/three.html
-https://zimjs.com/three/
+https://zimjs.com/capture/three/
 https://codepen.io/zimjs/pen/abzXeZX
 https://codepen.io/zimjs/pen/qGPVqO
 
