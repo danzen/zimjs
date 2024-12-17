@@ -29112,6 +29112,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}
 
 		this._enabled = true;
+		var lastReadOnly;
+		setTimeout(function() {
+			lastReadOnly = that.readOnly;
+		},50);
 		Object.defineProperty(that, 'enabled', {
 			get: function() {
 				return that._enabled;
@@ -29122,6 +29126,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					zim.noDrag(content);
 				} else {
 					setDrag();
+				}
+				if (that.blinker) {
+					if (!value) {
+						that.blinker.vis(false);
+						that.selection.vis(false);
+						lastReadOnly = that.readOnly;
+						that.readOnly = true;
+					} else {
+						that.readOnly = lastReadOnly;
+						if (!that.readOnly) that.blinker.vis(true);
+						that.selection.vis(true);
+					}
 				}
 				zenable(that, value);
 			}
@@ -31109,7 +31125,12 @@ align - get or set the horizontal alignment of the text
 color - gets or sets the label text color
 backgroundColor - gets or sets the background color
 readOnly - get or set the field as readOnly - also see readOnly parameter
+	read only of true will allow selection and copy but not typing and cursor will be removed
+	set enabled to false to not allow selection and copy
 enabled - default is true - set to false to disable
+	setting enabled false will remember the readOnly setting when enabled is set to false 
+	so when set to true again it will be that remembered readOnly and will not rememember any changes to readOnly made in-between 
+	so any in-between readOnly changes will have to be re-applied after enabled is set back to true
 veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE values to be referenced
 	for instance, obj.prop = Pick.choose(obj.veeObj.prop); will reset the the prop to the result of the original ZIM VEE value
 
@@ -31522,14 +31543,16 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 	
 	Object.defineProperty(that, 'readOnly', {
 		get: function() {
-			return readOnly;
+			return readOnly;			
 		},
 		set: function(value) {			
 			readOnly = value;
 			that.htmlTag.readOnly = readOnly;
+			if (value) that.blinker.vis(false);
+			else that.blinker.vis(true);
 		}
 	});
-	if (readOnly) that.htmlTag.readOnly = true;
+	that.readOnly = readOnly;
 
 	Object.defineProperty(that, 'focus', {
 		get: function() {
@@ -47368,6 +47391,7 @@ value - get or set the text content of the TextArea
 text - get or set the text value
 focus - get or set if the TextArea tag has focus or use setFocus() to set (might need timeout 100ms before setting)
 readOnly - set to true to not be able to edit or to false to be able to edit (always can select)
+	set enabled to false to disable selection
 maxLength - get or set the maximum number of characters typed - will not truncate existing characters until typed
 tag - the HTML textarea tag - just a regular HMTL form tag which can be styled
 background - access to the Rectangle() used for the background
@@ -47376,6 +47400,8 @@ background - access to the Rectangle() used for the background
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
 keyFocus - get or set the keyboard focus on the component - see also zim.KEYFOCUS
 	will be set to true if this component is the first made or component is the last to be used
+enabled - get or set enabled of TextArea 
+	this will remember last readOnly so any setting of readonly in between enabled settings will have to be reapplied.
 frame - get or set the frame - set this if changing frames
 
 ALSO: see ZIM Container for properties such as:
@@ -47685,6 +47711,30 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					stage = frame.stage;
 					that.resize();
 				}
+			}
+		});
+
+		that._enabled = true;
+		var lastReadOnly = that.readOnly;
+		Object.defineProperty(that, 'enabled', {
+			get: function() {
+				zog("here")
+				return that._enabled;
+			},
+			set: function(value) {
+				if (!value) {
+					lastReadOnly = that.readOnly;
+					that.readOnly = false; // needed to remove selection
+					that.focus = false;						
+					that.tag.style.pointerEvents = "none";
+					setTimeout(function() {						
+						that.readOnly = true;
+					},50); // setting readonly brings back selection even after blur - bug in HTML
+				} else {
+					that.tag.style.pointerEvents = "unset"; // tried all, unset, inherent, auto, initial, revert
+					that.readOnly = lastReadOnly; // does not bring selection back
+				}				
+				zenable(that, value);
 			}
 		});
 	
@@ -51130,7 +51180,7 @@ RETURNS obj for chaining
 
 			if (e.stageX == null) return; // added for TextureActive drag in 2D view
 
-			if (slide) {				
+			if (slide) {	
 				dragObject.dispatchEvent("slidestart");
 				
 				if (dragObject.parent) {
@@ -51171,6 +51221,12 @@ RETURNS obj for chaining
 					lastBackY = upY = 0;
 					lastBackT = upT = 0;
 				}				
+
+				if (Math.abs(dX) < 1 && Math.abs(dY) < 1) {
+					hasMoved = false;
+					dragObject.dispatchEvent("slidestop");
+					zim.Ticker.remove(obj.zimDragTicker);
+				}
 
 				// if (dampX) dampX.immediate(50);
 				// if (dampY) dampY.immediate(0);
@@ -51253,7 +51309,8 @@ RETURNS obj for chaining
 						}
 					} 
 				});
-				if (miss) {				
+				if (miss) {		
+					dragObject.dropTarget = dragObject.droppedTarget = null;		
 					if (dropBack) {
 						dragObject.animate({
 							props:{x:dragObject.dropStartX, y:dragObject.dropStartY, scale:dragObject.dropStartS}, 
@@ -51362,7 +51419,7 @@ RETURNS obj for chaining
 				o.y = desiredY;
 				o.slideStartX = null;
 				o.slideStartY = null;
-				if (hasMoved) {
+				if (hasMoved) {					
 					o.dispatchEvent("slidestop");
 					zim.Ticker.remove(obj.zimDragTicker);
 				}
@@ -51387,7 +51444,7 @@ RETURNS obj for chaining
 		function setUpSlide() {
 			obj.zimDragTicker = function() {
 				if (zot(obj.slideStartX)) return; // don't stop other things like window scrollbar from moving object
-
+				
 				if (!dragObject) dragObject = obj; // could be risky if intending to drag children
 				if (obj.downCheck) {
 					var point;
@@ -58074,7 +58131,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				// if (internal) target.percentComplete = target.pathRatio = 0;
 
 				if (zot(command)) command = true;
-				if (target.pan == undefined) {
+				if (target.pan == undefined && target.type != "Timer") { // hmmm what about other objects with paused properties...
 					if (target.type != undefined) target.paused = true;
 					target.animating = false;
 				}
@@ -79163,7 +79220,6 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 							}
 						});
 					}
-
 					if (
 						cache && 
 						!particle.emitShape && 
@@ -79275,7 +79331,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 					else max = zik(life);
 					var min;
 					if (interval.min) min = interval.min;
-					else if (Array.isArray(interval)) min = zim.arrayMinmin(interval).min;
+					else if (Array.isArray(interval)) min = zim.arrayMinMax(interval).min;
 					else min = zik(interval);
 					warm = Math.min(200, Math.round(max/min));
 				}		
@@ -79520,6 +79576,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 		return that.cloneProps(new zim.Emitter(objClone, width, height, that.interval, that.num, that.life, that.fade, that.shrink, warm, that.decayTime, that.decayStart, that.trace, that.traceFadeTime, that.traceShiftX, that.traceShiftY, that.angle, that.emitterForce, that.gravity, that.wind, that.layers, that.animation, zim.copy(that.random), that.horizontal, that.vertical, that.sink, that.sinkForce, cache, that.events, startPaused, that.pool, that.poolMin, particles, focusWarm, style, that.group, inherit));
 	};
 
+	
 	this.dispose = function() {
 		if (that.zimInterval) that.zimInterval.clear();
 		if (emitterTicker) {
