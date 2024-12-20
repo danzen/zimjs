@@ -46667,10 +46667,12 @@ loader.on("loaded", e=>{
 	S.update();
 });
 
-// and to later save for instance in a button event:
-saveButton.on("click") {
-	loader.save(stage); // or some other container... can specify crop bounds too
-}
+// if wanting a save button
+const saveButton = new Button({label:"SAVE"})
+	.pos(10,10,RIGHT,BOTTOM)
+	.tap(()=>{
+		loader.save(S); // or some other container... can specify crop bounds too
+	}
 END EXAMPLE
 
 EXAMPLE
@@ -46909,7 +46911,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (accept) uploadTag.setAttribute("accept", accept);
 		uploadTag.hidden = true;
 		uploadTag.zimDisplay = uploadTag.style.display || "inline-block";
-		uploadTag.style.cssText = "border:thin solid grey; z-index:2; width:" + 0 + "px; height:" + 0 + "px; overflow:hidden; outline:none;"
+		uploadTag.style.cssText = "border:thin solid grey; z-index:2; width:" + width + "px; height:" + height + "px; overflow:hidden; outline:none;"
 								+ "position:absolute; left:0px; top:0px; display:none; cursor:pointer; opacity: 0; filter: alpha(opacity=0);";
 
 		this.addEventListener('mousedown', function() { // added for zim.Accessibility
@@ -83800,7 +83802,10 @@ zim.VR = function(content, angle, distance, parallax, parallaxAngle, damp, paral
 
 VR
 zim class - extends a ZIM Container which extends a CreateJS Container
-NOTE: Also see the ZIM Three Helper Module for XR controllers, movement and teleport in three.js with ZIM TextureActive (this VR() class is not related)
+
+NOTE: Also see the ZIM Three Helper Module for XR controllers, movement and teleport in three.js
+with ZIM TextureActive (this VR() class is much simplified and not related to TextureActive)
+See: https://zimjs.com/three - for proper 3D
 
 DESCRIPTION
 Copies the content and displays a left and right channel (side-by-side) to be viewed with a VR helmet.
@@ -83847,7 +83852,8 @@ So if you have a label variable for the Label in the original content,
 you can access the label in the right hand channel with label.vrMatch
 The right channel objects also have vrMatch properties so label.vrMatch.vrMatch is the label ;-)
 
-SEE: https://zimjs.com/vr/
+SEE: https://zimjs.com/vr.html
+SEE: https://zimjs.com/vr/sample.html
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
