@@ -50935,6 +50935,8 @@ RETURNS obj for chaining
 			// bring stageX and stageY into the parent's frame of reference
 			// could use e.localX and e.localY but might be dragging container or contents
 			dragObject = (currentTarget)?e.currentTarget:e.target;
+			dragObject.dragStartX = dragObject.x;
+			dragObject.dragStartY = dragObject.y;
 			
 
 			if (obj.zimBoundary && !dragObject.getBounds()) {zogy("zim.drag() - drag object needs bounds set"); return;}
@@ -51224,7 +51226,8 @@ RETURNS obj for chaining
 					lastBackT = upT = 0;
 				}				
 
-				if (Math.abs(dX) < 1 && Math.abs(dY) < 1) {
+				// if (Math.abs(dX) < 1 && Math.abs(dY) < 1) {
+				if (Math.abs(dragObject.x-dragObject.dragStartX) < 1 && Math.abs(dragObject.y-dragObject.dragStartY) < 1) {
 					hasMoved = false;
 					dragObject.dispatchEvent("slidestop");
 					zim.Ticker.remove(obj.zimDragTicker);
@@ -55265,7 +55268,18 @@ interval(.05, ()=>{
 
 // or if you have a THREEJS mesh
 // use quotes to animate a dot property:
-animate(mesh, {"rotation.y":360*RAD}, 50);
+animate(mesh, {"rotation.y":360*RAD}, 10); 
+
+// or to use the ZIM DUO technique with the animate function (not method), 
+// the normal obj parameter is called target so as not to conflict
+// with the old obj parameter which is now props but is kept for legacy purposes ;-)
+animate({
+	target:mesh, 
+	props:{"rotation.y":360*RAD}, 
+	time:10,
+	loop:true,
+	rewind:true
+});
 
 // or CSS properties - see the CSS parameter for setup info
 zss("tagID").opacity = 1; // set this even if it is default
