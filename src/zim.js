@@ -28418,6 +28418,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							hitArea.y = -content.y;
 						}
 						content.x = hscrollBar.proportion.convert(hscrollBar.x);
+						if (!damp) desiredX = that.scrollX;
 						testContent();
 					});
 				}
@@ -28450,7 +28451,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							hitArea.y = -content.y;
 						}
 						if (damp) desiredY = vscrollBar.proportion.convert(vscrollBar.y);
-						else content.y = vscrollBar.proportion.convert(vscrollBar.y);
+						else {
+							content.y = vscrollBar.proportion.convert(vscrollBar.y);
+							desiredY = that.scrollY;
+						}
 						testContent();
 					});
 				}
@@ -28969,7 +28973,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			document.WW.addEventListener("blur", that.blurEvent);
 		}
 
-		function stageUp() {
+		function stageUp() {		
 			zim.Ticker.remove(swipeMovescrollBars);
 			swipeCheck = false;
 			if (hCheck) if (scrollBarFade && scrollBarActive) zim.animate(hscrollBar, {alpha:0}, scrollBar.fadeTime);
@@ -69082,9 +69086,10 @@ function apply () {
 		} else {
 			var point;
 			if (!zimThree || zimThree.resizeEvent) {
+				var rec = renderer.domElement.getBoundingClientRect();
 				point = {
-					x: (e.clientX/window.innerWidth*2-1),
-					y: (1-e.clientY/window.innerHeight*2)
+					x: ((e.clientX-rec.x)/rec.width*2-1),
+					y: (1-(e.clientY-rec.y)/rec.height*2)
 				}
 			} else {
 				point = {
@@ -69195,9 +69200,10 @@ function apply () {
 		} else {
 			var point;
 			if (!zimThree || zimThree.resizeEvent) {
+				var rec = renderer.domElement.getBoundingClientRect();
 				point = {
-					x: (e.clientX/window.innerWidth*2-1),
-					y: (1-e.clientY/window.innerHeight*2)
+					x: ((e.clientX-rec.x)/rec.width*2-1),
+					y: (1-(e.clientY-rec.y)/rec.height*2)
 				}
 			} else {
 				point = {
@@ -69464,8 +69470,8 @@ zim.TextureActivesManager = function(stage, toggleKey, damp) {
 	var that = this;
 	this.type = "TextureActivesManager";
 
-	that.color = zim.darker;
-	that.outerColor = "black";
+	that.color = darker;
+	that.outerColor = black;
 
 	var moveCheck = false;
 
@@ -69478,7 +69484,7 @@ zim.TextureActivesManager = function(stage, toggleKey, damp) {
 
 	var sP = new zim.Proportion({baseMin:1000, baseMax:9000, targetMin:-.1, targetMax:-.05, clamp:false});
 
-	that.backing = new zim.Rectangle(100,100,zim.faint).addTo(stage,0);
+	that.backing = new zim.Rectangle(100,100,black).addTo(stage,0);
 	var updateList = [];
 	that.updateTile = function(obj, textureActives, remove) {
 		if (!remove) objs.add(obj, textureActives);
@@ -69627,8 +69633,8 @@ zim.TextureActivesManager = function(stage, toggleKey, damp) {
 	}
 	this.hide = function() {
 		if (!that.toggled) return;
-		frame.color = lastColor; 
-		frame.outerColor = lastOuter; 
+		frame.color = lastColor==undefined?null:lastColor==null?null:lastColor;
+		frame.outerColor = lastOuter==undefined?null:lastOuter==null?null:lastOuter; 
 		that.toggled = false;
 		zim.Ticker.remove(that.ticker);
 		nav.removeFrom();
@@ -93371,7 +93377,7 @@ click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pre
 // the Three section is for the ZIM Three helper library
 
 /*--
-zim.Three = function(width, height, color, cameraPosition, cameraLook, interactive, resize, frame, ortho, textureActive, colorSpace, colorManagement, legacyLights, throttle, lay, full, xr, VRButton, xrBufferScale)
+zim.Three = function(width, height, color, cameraPosition, cameraLook, interactive, resize, frame, ortho, textureActive, colorSpace, colorManagement, legacyLights, throttle, lay, full, xr, VRButton, xrBufferScale, tag)
 
 Three
 zim class
@@ -93491,6 +93497,10 @@ xr - (default false) set to true to make the renderer prepared for XR (AR/VR)
 VRButton - (default true if xr is true and will add a VRButton if using zim_three import) adds an ENTER VR button 
 	or pass in the VRButton class from three.js if not using the zim_three import
 xrBufferScale - (default 2) magnification of scene - 2 makes for better quality in VR
+tag - (default null) a string to an HTML tag with id or the HTML Element to add the three.js renderer domElement to 
+	this is to be used with TextureActive to be able to add a feature to an existing html tag
+	the width and height of the tag will be used and should be set ahead of time with CSS - px or percent is okay
+	See: https://zimjs.com/015/textureactive_simple_tag.html
 
 METHODS
 position(x, y) - position the three.js canvas (registration point in center) to the stage coordinates
@@ -93891,11 +93901,6 @@ zim.Socket = function(server, appName, roomName, maxPeople, fill, initObj)
 
 Socket
 zim class extends a zim EventDispatcher (with the normal event object replaced by a data param)
-** MUST import socket.io.js with a script tag - SEE link at top of Docs for socket.io.js under ZIM works with...
-** MUST import zim_socket - see https://zimjs.com/es6.html#MODULES
-** MUST request a ZIM Socket Server ID or have a NodeJS server running zimserver.js with SocketIO on server (and client as mentioned)
-** MUST test on a server to avoid CORS errors
-See: https://zimjs.com/es6.html#MODULES
 
 OVERVIEW
 Sockets are how multiuser games, chats, avatars, etc. work.
@@ -93923,16 +93928,14 @@ https://zimjs.com/control.html // works with control.html
 NOTE as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-// up top after loading CreateJS and ZIM add the latest versions of these files
-// https://zimjs.org/cdn/2.3.0/socket.io.js
-// https://zimjs.org/cdn/zimserver_urls.js
-// https://zimjs.org/cdn/zimsocket_1.1.js
+// must import the socket module at the top of the script
+import zim from "https://zimjs.org/cdn/017/zim_socket";
 
 // We will make a single Ball that multiple people can drag around
 // In the ZIM Frame here is the preparation and the code:
 
 // For the first parameter:
-// The zimSocketURL comes from zimserver_urls.js and points to the ZIM Socket server.
+// The zimSocketURL comes from the import of zim_socket and points to the ZIM Socket server.
 // This way, if we change the server, the app will still work.
 
 // For the second parameter:
@@ -94080,6 +94083,7 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 server - (default https://localhost:3000) the server that is running node and the zimsocket.js : portNumber
+	if using the ZIM socket server then this should be zimSocketURL which is defined in the zim_socket import
 appName - (required) a string id (one word or joined words) and unique for your app
 roomName - (default "default") optional room name otherwise just uses a default room (can represent many rooms if maxPeople is set)
 maxPeople - (default 0) how many people are allowed per room - default is 0 which is virtually unlimited
