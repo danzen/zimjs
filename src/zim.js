@@ -747,11 +747,12 @@ EXAMPLE
 const array = ["happy", "sad", "spooked"];
 const randomFromArray = shuffle(array)[0];
 // this will be randomized each time it is run
+// or use ZIM pluck() 
 END EXAMPLE
 
 EXAMPLE
 const array = shuffle(["happy", "sad", "spooked"]);
-for (let i=0; i<array.length, i++) zog(array[i]);
+loop(array, feeling=>{zog(feeling);});
 // this will get random and unique elements of the array
 END EXAMPLE
 
@@ -1652,7 +1653,7 @@ call - the function to call
 	if the obj is an object literal then the first and second parameters are the property name and property value at the current index
 	if the obj is an string then the first parameter is the letter
 	if the obj is an HTMLCollection then the first parameter is the tag
-	if the obj is a Container then the first paramter is the child
+	if the obj is a Container then the first parameter is the child
 reverse - (default false) set to true to run the loop backwards to 0
 interval - (default 0) set to a number of seconds between each loop
 	use return NEXT to go immediately to the next interval 
@@ -1721,13 +1722,13 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						i = start-i;
 						
 						if (type=="number") {
-							r = call(i, total, start, end, obj);
+							r = call(i, total, start, end, obj, io);
 						} else if (type=="array" || type=="string") {
-							r = call(obj[i], i, total, start, end, obj);
+							r = call(obj[i], i, total, start, end, obj, io);
 						} else if (type=="Dictionary") {
-							r = call(obj[i], vals[i], i, total, start, end, obj);
+							r = call(obj[i], vals[i], i, total, start, end, obj, io);
 						} else { // nodelist
-							r = call(obj.item(i), i, total, start, end, obj);
+							r = call(obj.item(i), i, total, start, end, obj, io);
 						}					
 						
 						if (r == 'next') io.next();
@@ -1762,7 +1763,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						} else if (type=="array" || type=="string") {
 							r = call(obj[i], i, total, start, end, obj, io);
 						} else if (type=="Dictionary") {
-							r = call(obj[i], vals[i], i, total, start, end, obj);
+							r = call(obj[i], vals[i], i, total, start, end, obj, io);
 						} else { // nodelist or htmlcollection
 							r = call(obj.item(i), i, total, start, end, obj, io);
 						}
@@ -1799,7 +1800,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (step) i *= step;
 						i = start-i;
 						
-						r = call(props[i], obj[props[i]], i, total, start, end, obj);
+						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
 						if (r == 'next') io.next();
 						else if (typeof r != 'undefined') {
@@ -1820,7 +1821,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (!immediate) i--;
 						if (step != 1) i = -start + i*step;
 						
-						r = call(props[i], obj[props[i]], i, total, start, end, obj);
+						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
 						if (r == 'next') io.next();
 						else if (typeof r != 'undefined') {
@@ -2104,7 +2105,7 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 			setTimeout(function() {
 				(call)(obj);
 				checkTotal();
-			}, 10);
+			}, 5);
 		}
 		function checkTotal() {
 			if (total == -1) return;
@@ -5433,7 +5434,7 @@ speed = 0;
 zog(sign(speed)); // 0
 
 speed = -20;
-zog(sSign(speed)); // -1
+zog(sign(speed)); // -1
 END EXAMPLE
 
 PARAMETERS
@@ -8878,18 +8879,20 @@ Might have set these on CreateJS DisplayObject
 		});
 		
 		var frame;
-		var adCheck;
+		var addCheck;
 		that.on("mousedown", function (e) {
-			if (e.target.stage) {
-				frame = e.target.stage.frame;
-				if (frame.allowDefault) {
-					adCheck = true;
-					frame.allowDefault = false;
+			if (e && e.nativeEvent && e.nativeEvent.touches) {
+				if (e.target.stage) {
+					frame = e.target.stage.frame;
+					if (frame.allowDefault) {
+						addCheck = true;
+						frame.allowDefault = false;					
+					}
 				}
-			}
+			}			
 		});
 		that.on("pressup", function () {
-			if (frame && adCheck) frame.allowDefault = true;
+			if (frame && addCheck) frame.allowDefault = true;
 		});
 		
 		// EFFECTS
@@ -9755,7 +9758,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return that.cjsContainer_getBounds();
 		};
 				
-		this.disposeAllChildren = function() {
+		this.disposeAllChildren = function() {			
 			for (var i=this.numChildren-1; i>=0; i--) {
 				var child = this.getChildAt(i)
 				if (child.dispose) child.dispose();
@@ -9780,7 +9783,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return (!zot(this[prop]) || Object.prototype.hasOwnProperty.call(this,prop));
 		};
 	};
-	zim.Container.prototype.dispose = function(disposing) {			
+	zim.Container.prototype.dispose = function(disposing) {		
 		recursiveDispose(this, disposing);
 		return true;
 	};
@@ -27344,7 +27347,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return p2;
 		};
 	};
-	zim.extend(zim.Pane, zim.Container, "clone", "zimContainer", false);
+	zim.extend(zim.Pane, zim.Container, ["clone", "dispose"], "zimContainer", false);
 	//-58
 
 /*--
@@ -33792,11 +33795,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(that.originalList, true), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, this.group, inherit));
 		};
 		this.dispose = function(a,b,disposing) {
-			if (!disposing) {
+			// if (!disposing) {
 				if (that.stageToggleEvent) stage.off("stagemousedown", that.stageToggleEvent);
 				if (that.organizer) that.organizer.dispose();
 				this.zimWindow_dispose();
-			}
+			// }
 			// that.tabs = that.selected = selected = that.originalList = list = that.organizer = null;
 			return true;
 		};
@@ -58961,13 +58964,13 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (step) i *= step;
 						i = start-i;
 						if (type=="number") {
-							r = call(i, total, start, end, obj);
+							r = call(i, total, start, end, obj, io);
 						} else if (type=="array" || type=="string") {
-							r = call(obj[i], i, total, start, end, obj);
+							r = call(obj[i], i, total, start, end, obj, io);
 						} else if (type=="Dictionary") {
-							r = call(obj[i], vals[i], i, total, start, end, obj);
+							r = call(obj[i], vals[i], i, total, start, end, obj, io);
 						} else { // nodelist
-							r = call(obj.item(i), i, total, start, end, obj);
+							r = call(obj.item(i), i, total, start, end, obj, io);
 						}					
 						
 						if (r == 'next') io.next();
@@ -59002,7 +59005,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						} else if (type=="array" || type=="string") {
 							r = call(obj[i], i, total, start, end, obj, io);
 						} else if (type=="Dictionary") {
-							r = call(obj[i], vals[i], i, total, start, end, obj);
+							r = call(obj[i], vals[i], i, total, start, end, obj, io);
 						} else { // nodelist or htmlcollection
 							r = call(obj.item(i), i, total, start, end, obj, io);
 						}
@@ -59039,7 +59042,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (step) i *= step;
 						i = start-i;
 						
-						r = call(props[i], obj[props[i]], i, total, start, end, obj);
+						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
 						if (r == 'next') io.next();
 						else if (typeof r != 'undefined') {
@@ -59060,7 +59063,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (!immediate) i--;
 						if (step != 1) i = -start + i*step;
 						
-						r = call(props[i], obj[props[i]], i, total, start, end, obj);
+						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
 						if (r == 'next') io.next();
 						else if (typeof r != 'undefined') {
@@ -59088,7 +59091,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (step) i *= step;
 						i = start-i;
 						
-						r = call(obj.getChildAt(i), i, total, start, end, obj);
+						r = call(obj.getChildAt(i), i, total, start, end, obj, io);
 						
 						if (r == 'next') io.next();
 						else if (typeof r != 'undefined') {
@@ -59109,7 +59112,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (!immediate) i--;
 						if (step != 1) i = -start + i*step;
 						
-						r = call(obj.getChildAt(i), i, total, start, end, obj);
+						r = call(obj.getChildAt(i), i, total, start, end, obj, io);
 						
 						if (r == 'next') io.next();
 						else if (typeof r != 'undefined') {
@@ -65059,7 +65062,8 @@ note: the item is not the event object target - as that is the tile
 		var rowSpacings;
 		var widthScaling = 1;
 		var heightScaling = 1;		
-		
+
+				
 		function resize(width, height) {
 
 			if (that.normalized) that.resetOriginalReg();
@@ -69074,6 +69078,7 @@ function apply () {
 	window.addEventListener("pointerdown", that.doPointerDown);			
 	function doDown(e) {
 
+		
 		if (!that.raycast) return;
 
 		if (XR) {
@@ -69115,6 +69120,7 @@ function apply () {
 					break;
 				}
 			}
+			
 			if (material 
 				&& material.map 
 				&& material.map.source 
@@ -69123,11 +69129,12 @@ function apply () {
 				&& material.userData.ta_content                       
 			) {        
 				currentDown = obj; 
+				
 				var content = material.userData.ta_content;
 				that.pointerData.mousedown = true; 
-				doRaycast(content, intersects[i], material.userData.ta_flipped); 
-				createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "down", e, stage, e.pointerId);
-
+				
+				doRaycast(content, intersects[i], material.userData.ta_flipped); 				
+				createjs.handleRemotePointer(that.pointerData.x, that.pointerData.y, "down", e, stage, e.pointerId);			
 				if (controls && controls.maxAzimuthAngle && content) {
 					if (content.backingOrbit) {
 						var p = content.globalToLocal(frame.mouseX, frame.mouseY);
@@ -69140,6 +69147,7 @@ function apply () {
 					}
 				}
 				var e2 = new createjs.Event("raydown");  
+				
 				e2.mesh = that.mesh = obj;
 				e2.material = that.material = material;
 				e2.textureActive = that.textureActive = content;
@@ -76643,10 +76651,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(backPress)) backPress = DS.backPress!=null?DS.backPress:true;
 		if (zot(reverse)) reverse = DS.reverse!=null?DS.reverse:false;
 		if (zot(continuous)) continuous = DS.continuous!=null?DS.continuous:false;
-		var startFlipped = flipped;
-
+		
 		this.flipped = flipped;
-		var that = this;
+		var that = this;		
 
 		front.centerReg(this);
 		var obj;
@@ -76670,13 +76677,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		this.flip = function(state, time) {
 			if (state == that.flipped) return;
-			if (!that.flipped) spin(startFlipped?back:front,startFlipped?front:back,1,time);
-			else spin(startFlipped?front:back,startFlipped?back:front,-1,time);
+			if (that.flipped) spin(back,front,-1,time);
+			else spin(front,back,1,time);
 		};
 		function spin(f, b, d, t) { // current front, back, direction
 			if (zot(d)) d = 1;
 			d *= reverse?-1:1;
-			if (continuous) d = reverse?startFlipped?1:-1:startFlipped?-1:1;
+			if (continuous) d = reverse?-1:1;
 			if (zot(t)) t = time;
 			that.flipped = !that.flipped;
 			that.dispatchEvent("flip");
@@ -76714,6 +76721,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					});
 				}
 			});
+		}
+
+		if (flipped) {
+			that.flipped = false;
+			that.flip(true, 0);
 		}
 
 		if (style!==false) zim.styleTransforms(this, DS);
@@ -87208,7 +87220,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			[127.55,73.3, "#A1E543","AAjLSIAAp6IEiAAIAAJ6gAlELOIAAp2IEiAAIAAJ2gAlEihIAAowIKEAAIAAIwg"],
 			[32.55,73.05, "#B545E4","Ak6LQIAA2fIJ1AAIAAWfg"]
 		];
-		var icon = new zim.Rectangle(200,200);
+		var icon = new zim.Rectangle(200,200,color);
 		zim.loop(data, function (d) {
 			var s = new zim.Shape().f(d[2]).p(d[3]);
 			s.setTransform(d[0]+20,d[1]+27);
@@ -91623,10 +91635,10 @@ pause(state) - pause or unpause the gif
 	see also the startPaused parameter
 stop() - stop the gif (same as dispose())
 keyout(color, tolerance, replacement) - remove color from Bitmap and a tolerance between 0-1
-   the default color is "#389b26" which is a medium dark green
-   the default tolerance is .1 - the higher the tolerance the less sensitive the keying process - so more colors will be removed similar to the provided color
-   color and tolerance can be an array of colors and tolerances (or just one tolerance if all are the same)
-   replacement (default clear) a color to replace the keyed out color with or an optional array to match the colors array if an array is used
+	the default color is "#389b26" which is a medium dark green
+	the default tolerance is .1 - the higher the tolerance the less sensitive the keying process - so more colors will be removed similar to the provided color
+	color and tolerance can be an array of colors and tolerances (or just one tolerance if all are the same)
+	replacement (default clear) a color to replace the keyed out color with or an optional array to match the colors array if an array is used
 reset() - restarts the GIF
 dispose() - delete the GIF and remove Ticker
 
