@@ -3202,8 +3202,8 @@ declare namespace zim {
 		constructor()
 	}
 	export class Layout extends createjs.EventDispatcher {
-		constructor(config_or_holder: Stage | Container, regions: {}[], lastMargin?: number | string, lastMarginMin?: number, backgroundColor?: color, vertical?: boolean, regionShape?: boolean, scalingObject?: Stage | Container, hideKey?: string, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { holder: Stage | Container, regions: {}[], lastMargin?: number | string, lastMarginMin?: number, backgroundColor?: color, vertical?: boolean, regionShape?: boolean, scalingObject?: Stage | Container, hideKey?: string, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_holder: Stage | Container, regions: {}[], lastMargin?: number | string, lastMarginMin?: number, backgroundColor?: color, vertical?: boolean, showRegions?: boolean, scalingObject?: Stage | Container, hideKey?: string, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { holder: Stage | Container, regions: {}[], lastMargin?: number | string, lastMarginMin?: number, backgroundColor?: color, vertical?: boolean, showRegions?: boolean, scalingObject?: Stage | Container, hideKey?: string, style?: boolean, group?: string, inherit?: {} })
 		resize(): void
 		dispose(): boolean
 		addShape(shape: Shape): void

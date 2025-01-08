@@ -28956,8 +28956,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			stageEvent = stage.on("stagemousemove", function (e) {
 				// that.windowMouseX = e.stageX/zim.scaX;
 				// that.windowMouseY = e.stageY/zim.scaY;
-				that.windowMouseX = stage.frame.mouseX;
-				that.windowMouseY = stage.frame.mouseY;
+				if (stage && stage.frame) {
+					that.windowMouseX = stage.frame.mouseX;
+					that.windowMouseY = stage.frame.mouseY;
+				}
 			});
 		});
 
@@ -31400,7 +31402,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 			// that.dispatchEvent(e);
 		});	
 		that.label.on("blinker", function () {
-	
+			
 			// Pettis Brandon code '23
 			var thatX = that.localToGlobal(0,0).x; // Get the global X of that.
 			var thatFull = thatX + width-paddingH-label.blinker.width; // Get the global coordinates of the far right corner.
@@ -31669,6 +31671,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 		this.hiddenInput.pattern = "[^(0-9).\-+*/%$]*";
 		this.hiddenInput.inputmode = "numeric";
 	}	
+	var that = this;
 	
 	if (maxLength > 0) this.hiddenInput.maxLength = maxLength;
 	this.hiddenInput.autocapitalize = "off";
@@ -31786,14 +31789,18 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 		this.hiddenInput.select();
 		this.positionBlinkerAndSelection();
 	}		
+	this.hiddenInput.addEventListener("paste", function() {
+		setTimeout(function() {			
+			that.hiddenInput.setSelectionRange(that.hiddenInput.selectionStart, that.hiddenInput.selectionEnd, rtl?"forward":"backward");
+		}, 50);
+	});
 	this.positionBlinkerAndSelection = function() {
 		// ZIM NFT 01 Patch any le or rtl
 		var le = this.text.length;
 		if (this.focus) {			
 			var paddingH = this.backing || this.background ? this.paddingH : 0;
 			var paddingV = this.backing || this.background ? this.paddingV : 0;
-			
-			if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd || le == 0) {		
+			if (this.hiddenInput.selectionStart !== this.hiddenInput.selectionEnd || le == 0) {						
 				var startX, endX;
 				if (rtl) {
 					startX = this.textWidthArray[le-this.hiddenInput.selectionStart]
