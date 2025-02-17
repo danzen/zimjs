@@ -11226,9 +11226,19 @@ with various features like playing a labelled animation,
 playing animation series, wait, loop, rewind and call functions.
 This actually runs a ZIM animation and animates the frames.
 
+Sprites can also be used a Texture Atlas
+which is one image that holds many pictures.
+The sprite can be told to go to a frame and show the picture.
+This is how most games are made with a SpriteSheet of treasures, trees, etc.
+It is faster as it makes one GPU call.
+If the Sprite is not run, it will show a random frame (as if ZIM 017).
+If you want a specific frame then use the frame property or the run({frame:num}).
+
 SEE: 
 https://zimjs.com/interactiveanimation.html
 https://zimjs.com/interactiveanimation/
+
+older:
 https://zimjs.com/spritesheet/
 https://zimjs.com/spritesheet/skateboard.html
 https://codepen.io/danzen/pen/yEKbbR
@@ -11303,9 +11313,21 @@ END EXAMPLE
 
 EXAMPLE
 // using Sprite as a texture atlas - or spritesheet of different images
+// load in assets and path
+new Frame({ready, assets:"ai_trees02.png", path:"https://zimjs.org/assets/"});
+function ready() {
+	new Sprite("ai_trees02.png", 5, 4).center(); // will show a random tree
+	new Sprite("ai_trees02.png", 5, 4).loc(200,200).run({frame:2}); // will show the third tree
+	const tree = new Sprite("ai_trees02.png", 5, 4).loc(500,500);
+	tree.frame = 5; // will show the 6th tree
+}
+END EXAMPLE
+
+EXAMPLE
+// using Sprite as a texture atlas - or spritesheet of different images
 // see: https://zimjs.com/zapp/Z_FDJXA
 // load in assets and path
-new Frame({ready, assets:["fruit.png", "fruit.json"], path:"assets/"});
+new Frame({ready, assets:["fruit.png", "fruit.json"], path:"https://zimjs.org/assets/"});
 function ready() {
 	new Sprite({json:"fruit.json", label:"apple"}).center();
 }
@@ -11378,6 +11400,7 @@ globalControl - (default true) pauseRun and stopRun will control other animation
 spriteSheet - (default null) pass in a CreateJS SpriteSheet to build a Sprite from that
 label - (default null) pass in a label to stop on initially - to play from a label use the run({label:val}) method
 frame - (default zimDefaultFrame) specify a Frame other than the default frame
+	note - this is not the frame number of the Sprite - for that use the frame property or run({frame:num})
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -11425,6 +11448,7 @@ run(time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, 
 	endFrame - (default null - or totalFrames) the frame to end on - will be overridden by a label with frames
 	frame - (default null) set the single frame to run - will override startFrame and endFrame
 		this is good for a TextureAtlas where you show one frame of the sprite as a picture
+		also see frame property - this just goes to the frame and does not use ZIM animate() in the background
 	tweek - (default 1) a factor for extra time on rewind and loops if needed
 	id - (default randomly assigned) an id you can use in other animations - available as sprite.id
 		use this id in other animations for pauseRun and stopRun to act on these as well
@@ -11458,6 +11482,7 @@ PROPERTIES
 type - holds the class name as a String
 id - an id that you can use in other animations to also be controlled by pauseRun() and stopRun()
 frame - get and set the current frame of the Sprite
+	As of ZIM 017, if the sprite is not run() then it will show a random frame
 normalizedFrame - if animations have CreateJS speeds applied, zim handles these by making extra frames
 	for example, if a speed is given of .5 then two frames are made (min resulution is .1)
 normalizedFrames - an array of total frames after being normalized - really for internal usage
@@ -11718,7 +11743,12 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			if (zot(tweek)) tweek = 1;
 			if (!zot(id)) that.id = id;
 			if (!zot(globalControl)) that.globalControl = globalControl;
-			if (!zot(frame)) startFrame = endFrame = frame;
+			if (!zot(frame)) {
+				startFrame = endFrame = frame;
+				that.frame = frame;
+				that.randFrame = false;
+				return that; // just go to the frame ZIM 017
+			}
 
 			var extraTime;
 			if (Array.isArray(label)) {
@@ -11772,7 +11802,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				_normalizedFrame = 0;
 				that.gotoAndStop(_normalizedFrames[_normalizedFrame]);
 				startFrame = endFrame = null;
-				obj = {normalizedFrame:_normalizedFrames.length-1};
+				obj = {normalizedFrame:_normalizedFrames.length-1};				
 			}
 
 			if (zot(time)) time = timeType=="s"?1:1000;
@@ -11843,6 +11873,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			}
 			return that;
 		};
+		
 
 		Object.defineProperty(this, 'frame', {
 			get: function() {
@@ -11850,6 +11881,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			},
 			set: function(value) {
 				value = Math.round(value);
+				that.randFrame = false;
 				if (this.paused) {
 					this.gotoAndStop(value);
 				} else {
@@ -11887,11 +11919,11 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 		});
 
 		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
-		this.clone = function() {
+		this.clone = function(exact) {
 			var s = this.cloneProps(new zim.Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, null, globalControl, spriteSheet, label, frame, style, this.group, inherit));
 			
-			// if it is 0 it will be 0 anyway and including 0 seems to make it so a clone can't set a frame
-			if (that.frame > 0) s.run({startFrame:that.frame, endFrame:that.frame});
+			// modified ZIM 017 late patch - for random frame sprite default with Tile, etc.
+			if (exact || !that.randFrame) s.frame = that.frame;
 			
 			return s;			
 		};
@@ -11950,6 +11982,12 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			}
 			return that.cjsSprite_getBounds();
 		};
+
+		if (!label) {
+			that.gotoAndStop(zim.rand(that.totalFrames-1));
+			that.randFrame = true;
+		}
+
 		this.dispose = function() {
 			zim.gD(this); // globalDispose function for common elements
 			this.dispatchEvent("removed");
@@ -17316,7 +17354,7 @@ Note the points property has been split into points and pointObjects (and there 
 			});
 
 			if (that.selectPoints) {
-				sets.tap(function (e) {
+				sets.tap({call:function (e) {
 					if (e.target.rect1) { // then mousedown on ball - which has a rect1
 						var ball = e.target;
 						that.selectedBalls.toggle(ball.parent.num);
@@ -17335,7 +17373,7 @@ Note the points property has been split into points and pointObjects (and there 
 						po[3].color = that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(po[4]);
 					}
 					stage.update();
-				});
+				}, mobileUp:true});
 			}
 
 			sets.on("pressmove", function(e) {
@@ -19567,7 +19605,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			});
 
 			if (that.selectPoints) {
-				sets.tap(function (e) {
+				sets.tap({call:function (e) {
 					var ball;
 					if (e.target.rect1) { // then mousedown on ball - which has a rect1
 						ball = e.target;
@@ -19587,7 +19625,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						po[3].color = that.selectedRect2s.isSelected(i)?selectColor:getBackgroundColor(po[4]);
 					}
 					e.target.stage.update();
-				});
+				}, mobileUp:true});
 			}
 
 			sets.on("pressmove", function(e) {
@@ -24942,6 +24980,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var originalText = label.text;
 			var originalColor = label.color;
 			var originalRollColor = label.rollColor;
+			var originalDownColor = label.rollColor;
 			this.on(toggleEvent, function() {
 				that.toggled = !that.toggled;
 				setToggled();
@@ -25334,7 +25373,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				downColor = value;
 				if (originalDownColor) originalDownColor = downColor;
 				if (that.label) {
-					that.label.downColor = downColor;
+					that.label.colorOnly = downColor;
 				}
 			}
 		});
@@ -27769,7 +27808,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}          
 			that.titleBar.tap(function () {
 				that.collapsed = !that.collapsed;
-			}, null, null, null, true, null, null, null, null, false);                                                                        
+			}, null, null, null, true, null, null, null, null, false, true);                                                                        
 			// that.collapseEvent = that.titleBar.on("dblclick", function () {
 			// 	that.collapsed = !that.collapsed;
 			// });
@@ -29264,7 +29303,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (that.titleBar) {
 			that.titleBar.tap(function () {
 				that.collapsed = !that.collapsed;
-			}, null, null, null, true, null, null, null, null, false);     
+			}, null, null, null, true, null, null, null, null, false, true);     
 			// that.collapseEvent = that.titleBar.on("dblclick", function () {
 			// 	that.collapsed = !that.collapsed;
 			// });
@@ -30723,7 +30762,7 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-width - (default 100) width of indicator
+width - (default 300) width of indicator
 height - (default 50) height of indicator
 num - (default 6) the number of lights
 foregroundColor - (default "orange") color of the light(s) turned on
@@ -31792,6 +31831,7 @@ zim.TextInput.LabelInput = function(text, size, maxLength, password, selectionCo
 	this.hiddenInput.addEventListener("paste", function() {
 		setTimeout(function() {			
 			that.hiddenInput.setSelectionRange(that.hiddenInput.selectionStart, that.hiddenInput.selectionEnd, rtl?"forward":"backward");
+			// setTimeout(function() {that.positionBlinkerAndSelection()}, 50);
 		}, 50);
 	});
 	this.positionBlinkerAndSelection = function() {
@@ -32148,7 +32188,7 @@ const list = new List({
 	.tap(()=>{
 		const currentID = list.accordionIndex;
 		const currentText = list.value; 
-		const parentID = list.tree.getParent(currentID);
+		const parentID = list.tree.getParent("id"+currentID);
 		let parentText;
 		if (parentID) parentText = list.tree.getData(parentID).obj;
 		zog(currentID, currentText, parentID, parentText);
@@ -32178,7 +32218,7 @@ list - (default Options 1-30) an array of strings, numbers or zim Label objects 
 		expander - (default "plus") set to "arrow" or "none" to change the expander icon - thanks Christopher Browne and Ofweird Top for the suggestions
 		subStyles - (default null) an array of style objects for each sublevel - with all the color and background color properties
 		See: https://zimjs.com/ten/accordion.html
-	note: the Accordion List is currently incompatible with the Organizer, addTo() and removeFrom()
+	note: the Accordion List is currently incompatible with the Organizer, addAt() and removeAt()
 viewNum - (default 5) how many items to show in the width and height provided
 	adjusting this number will also change the overall scale of custom items for horizontal lists 
 	(this does not affect vertical lists due to the way vertical tabs are optimized)
@@ -32186,7 +32226,7 @@ viewNum - (default 5) how many items to show in the width and height provided
 	if no items are provided to start but rather added with addAt() then choose a viewNum that roughly matches how many items will fit in the view
 	Note - the items will not be scaled larger by a viewNum setting... only scaled smaller.
 vertical - (default true) set to false to make a horizontal list
-currentSelected - (default false) set to true to show the current selection as highlighted
+currentSelected - (default false) set to true to show the curret selection as highlighted
 align - (default CENTER) horizontal align
 	set to START to align LEFT for ZIM DIR constant is "ltr" or RIGHT when DIR="rtl" - END is the opposite
 valign - (default CENTER) vertical align
@@ -33073,7 +33113,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 			});
 
-			that.tap(function(e) {
+			that.tap({call:function(e) {
 				if (!that.selected || !that.selected.expander) return;			
 				var data = tree.getData(that.selected.listZID);	
 				if (!data.open && closeOthers) { // close						
@@ -33082,19 +33122,19 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					return;					
 				}
 				tapList(e);
-			});
+			}, mobileUp:true});
 		}
 
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 		var _index;
-		tabs.tap(function (e) {
+		tabs.tap({call:function (e) {
 			if (e.target.index == that.index) return;
 			that.index = tabs.index;
 			that.dispatchEvent("change");
 			if (pulldownToggle) that.index = 0; // will cause pulldown to collapse
 			e.preventDefault();			
-		});
+		}, mobileUp:true});
 		tabs.on("keychange", function (e) {
 			if (e.target.index == that.index) return;
 			that.index = tabs.index;	
@@ -34142,10 +34182,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		c.backing = new zim.Rectangle(width-spacing*2, c.checkBox.height+paddingV*2, backgroundColor).addTo(c);
 		c.checkBox.center(c);
 		if (align != "center" && align != "middle") c.checkBox.pos(paddingH,null,align=="right");
-		c.backing.tap(function () {
+		c.backing.tap({call:function () {
 			c.checkBox.toggle();
 			c.zimOut(); // could do over() but like out()
-		});
+		}, mobileUp:true});
 		c.checkBox.change(function () {
 			c.zimOut();
 		});
@@ -38588,7 +38628,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				button.on("mousedown", function(e) {
 					that.buttonDown = e.currentTarget;
 				});
-				button.on("pressup", function(e) {
+				button.on("pressup", function(e) {					
 					that.buttonDown = null;
 					var num = e.currentTarget.znum;
 					if (useTap || zim.ACTIONEVENT=="click") setTimeout(function(){changeBack(num);},50)
@@ -41339,7 +41379,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			that.titleBar.tap(function () {
 					if (that.collapsed) that.collapse(false);
 					else that.collapse(true);
-			}, null, null, null, true, null, null, null, null, false);     
+			}, null, null, null, true, null, null, null, null, false, true);     
 			// that.collapseEvent = dragger.on("dblclick", function () {
 			// 	if (that.collapsed) that.collapse(false);
 			// 	else that.collapse(true);
@@ -50152,16 +50192,16 @@ RETURNS obj for chaining
 	};//-47.76
 
 /*--
-obj.tap = function(call, distance, time, once, dbl, dblTime, call2, call3, call4)
+obj.tap = function(call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp)
 
 tap
 zim DisplayObject method
 
 DESCRIPTION
 Chainable convenience method that adds a mousedown and mouseup event to the object
-that requires the to move less than distance parameter
+that requires the mouse to move less than distance parameter
 This is more like a proper click - down up without dragging.
-This method works on desktop or mobile, etc.
+This method works on desktop or mobile, etc. but on mobile, the default tap is mousedown
 An optional time parameter is provided if a minimum time is desired.
 Note that a click event also works on mobile as a "tap"
 but click also allows dragging between down and up presses - so really is a mouseup.
@@ -50223,11 +50263,12 @@ call2 - (default null) a function to call on pressup if a tap is not made
 call3 - (default null) with dbl set to true, a function to call on single tap regardless of a double tap or not 
 call4 - (default null) with dbl set to true, a function to call on single tap only if double tap fails
 cursor - (default pointer) set to a CSS cursor or false if not wanting to set cursor on tap
+mobileUp - (default false) set to true to make tap() work on pressup on mobile - by default tap on mobile works on mousedown
 
 RETURNS obj for chaining
 --*///+47.8
-	zim.tap = function(obj, call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor) {
-		var sig = "obj, call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor";
+	zim.tap = function(obj, call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp) {
+		var sig = "obj, call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp";
 		var duo; if (duo = zob(zim.tap, arguments, sig)) return duo;
 		z_d("47.8");
 		if (zot(obj) || zot(call) || typeof call != "function") return;
@@ -50305,23 +50346,33 @@ RETURNS obj for chaining
 					var local = e.currentTarget.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
 					if (local.y <= 0) return; // avoid titleBar and organizer
 				}
-				var lastX = e.stageX / zim.scaX;
-				var lastY = e.stageY / zim.scaY;
-				var startTime = Date.now();
-				obj.zimClickUpEvent = obj.on("pressup", function (e) {	
-					// commented does not work on 45 degree - hahaha - was still activating tap on 45 degree sliding list	
-					// if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
-					if (Math.abs(lastX - e.stageX / zim.scaX) < distance && Math.abs(lastY - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
-						if (obj.excludeTap) return;
-						call(e);
-						if (once) {
-							obj.off("mousedown", obj.zimClickDownEvent);
-							obj.zimClickDownEvent = null;
-							if (obj.cursor) obj.cur("default");
-						}
-					} else if (call2) call2(e);
-					e.remove();					
-				});
+				if (M && !mobileUp && e.currentTarget.type != "List") {
+					if (obj.excludeTap) return;
+					call(e);
+					if (once) {
+						obj.off("mousedown", obj.zimClickDownEvent);
+						obj.zimClickDownEvent = null;
+						if (obj.cursor) obj.cur("default");
+					}
+				} else {
+					var lastX = e.stageX / zim.scaX;
+					var lastY = e.stageY / zim.scaY;
+					var startTime = Date.now();
+					obj.zimClickUpEvent = obj.on("pressup", function (e) {	
+						// commented does not work on 45 degree - hahaha - was still activating tap on 45 degree sliding list	
+						// if (Math.abs(lastX + lastY - e.stageX / zim.scaX - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
+						if (Math.abs(lastX - e.stageX / zim.scaX) < distance && Math.abs(lastY - e.stageY / zim.scaY) < distance && Date.now() - startTime < (timeType=="s"?time*1000:time)) {
+							if (obj.excludeTap) return;
+							call(e);
+							if (once) {
+								obj.off("mousedown", obj.zimClickDownEvent);
+								obj.zimClickDownEvent = null;
+								if (obj.cursor) obj.cur("default");
+							}
+						} else if (call2) call2(e);
+						e.remove();					
+					});
+				}
 			});
 		}
 		
@@ -59625,6 +59676,7 @@ RETURNS obj for chaining
 	zim.expand = function(obj, padding, paddingV, paddingRight, paddingBottom) {
 		var sig = "obj, padding, paddingV, paddingRight, paddingBottom";
 		var duo; if (duo = zob(zim.expand, arguments, sig)) return duo;
+		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("expand", arguments); return obj;}
 		z_d("50");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zogy("zim methods - expand(): please provide object with bounds set"); return obj;}
 		if (zot(padding)) padding = 20;
@@ -64892,6 +64944,7 @@ note: the item is not the event object target - as that is the tile
 		if (zot(backdropPaddingH)) backdropPaddingH = DS.backdropPaddingH!=null?DS.backdropPaddingH:!zot(backdropColor)?backdropPadding:0;
 		if (zot(backdropPaddingV)) backdropPaddingV = DS.backdropPaddingV!=null?DS.backdropPaddingV:!zot(backdropColor)?backdropPadding:0;
 		if (backdropPaddingV || backdropPaddingH) backdropPadding = true; // numbers only used from H and V values
+		if (zot(exact)) exact = DS.exact!=null?DS.exact:null;
 		if (zot(mat)) mat = DS.mat!=null?DS.mat:false;
 
 		var that = this;
@@ -78376,6 +78429,7 @@ dispatches a "pause" event when the Dynamo is paused - could be delayed
 		var frames = this.frames = sprite.parseFrames(label, startFrame, endFrame, true); // last true is fromDynamo
 		if (frames.length == 0) return;
 		this.totalFrames = frames.length;
+		if (startFrame==null) sprite.frame = 0;
 		var _frame = 0; // frame for getter and setter methods
 		if (zot(speed)) speed = DS.speed!=null?DS.speed:30;
 		if (zot(reversible)) reversible = DS.reversible!=null?DS.reversible:true;
@@ -81073,7 +81127,7 @@ borderWidth - |ZIM VEE| (default depends on penType) the thickness of a line dow
 end - (default "butt") the cap type as a String "butt", "square", "round" - from CreateJS
 paper - (default null) a ZIM Container to hold the drawing - or Pen will make a Container to use
 	see also the paper property to change containers - for layers in a drawing for instance
-nib - (default null) an optional DisplayObject that will be used as the pen - would suggest centerReg({add:false}) this
+nib - (default null) an optional DisplayObject that will be used as the pen - would suggest reg(CENTER) for this
 cache - (default true) caches drawing in a Bitmap (improves performance) - set to false to not cache - the paper property points to the Bitmap or the Shape depending
 ctrlKey - (default true) turns off drawing when CTRL key is being pressed. Set to false to not turn off drawing when the CTRL key is pressed
 cropScale - (default 1) number times stage dimensions image will be cropped
@@ -89287,7 +89341,7 @@ END EXAMPLE
 		zim[zim.colors[z_i]] = zim.colorsHex[z_i];
 	}
 	// zim.red   	= "#fb4758"; // red dedicated to Alexa
-	// zim.salmon 	= "#FFE5B4";
+	// zim.salmon 	= "#fa8072";
 	// zim.orange 	= "#f58e25";
 	// zim.yellow	= "#ebcb35";
 	// zim.green  	= "#acd241";
@@ -90293,9 +90347,9 @@ function zimify(obj, a, b, c, d, list) {
 		noMovement:function() {
 			return zim.noMovement(this);
 		},
-		tap:function(call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor) {
+		tap:function(call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.tap(arguments[0]);}
-			else {return zim.tap(this, call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor);}			
+			else {return zim.tap(this, call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp);}			
 		},
 		noTap:function() {
 			return zim.noTap(this);
