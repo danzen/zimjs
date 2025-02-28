@@ -2470,8 +2470,8 @@ declare namespace zim {
 		scrollEnabled: boolean
 	}
 	export class Stepper extends Container implements zimComponent {
-		constructor(config_or_list?: string[] | number[], width?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, label?: Label, color?: color, vertical?: boolean, arrows?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, loop?: boolean, display?: boolean, press?: boolean, hold?: boolean, holdDelay?: number, holdSpeed?: number, draggable?: boolean, dragSensitivity?: number, dragRange?: number, stepperType?: string, min?: number, max?: number, step?: number, step2?: number, arrows2?: boolean, arrows2Scale?: number, keyEnabled?: boolean, keyArrows?: number, rightForward?: boolean, downForward?: boolean, index?: number, value?: string | number, arrowColor?: color, arrowScale?: number, selectedIndex?: number, currentValue?: string | number, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { list?: string[] | number[], width?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, label?: Label, color?: color, vertical?: boolean, arrows?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, loop?: boolean, display?: boolean, press?: boolean, hold?: boolean, holdDelay?: number, holdSpeed?: number, draggable?: boolean, dragSensitivity?: number, dragRange?: number, stepperType?: string, min?: number, max?: number, step?: number, step2?: number, arrows2?: boolean, arrows2Scale?: number, keyEnabled?: boolean, keyArrows?: number, rightForward?: boolean, downForward?: boolean, index?: number, value?: string | number, arrowColor?: color, arrowScale?: number, selectedIndex?: number, currentValue?: string | number, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_list?: string[] | number[], width?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, label?: Label, color?: color, vertical?: boolean, arrows?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, continuous?: boolean, display?: boolean, press?: boolean, hold?: boolean, holdDelay?: number, holdSpeed?: number, draggable?: boolean, dragSensitivity?: number, dragRange?: number, stepperType?: string, min?: number, max?: number, step?: number, step2?: number, arrows2?: boolean, arrows2Scale?: number, keyEnabled?: boolean, keyArrows?: number, rightForward?: boolean, downForward?: boolean, index?: number, value?: string | number, arrowColor?: color, arrowScale?: number, selectedIndex?: number, currentValue?: string | number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { list?: string[] | number[], width?: number, backgroundColor?: color, borderColor?: color, borderWidth?: number, label?: Label, color?: color, vertical?: boolean, arrows?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, continuous?: boolean, display?: boolean, press?: boolean, hold?: boolean, holdDelay?: number, holdSpeed?: number, draggable?: boolean, dragSensitivity?: number, dragRange?: number, stepperType?: string, min?: number, max?: number, step?: number, step2?: number, arrows2?: boolean, arrows2Scale?: number, keyEnabled?: boolean, keyArrows?: number, rightForward?: boolean, downForward?: boolean, index?: number, value?: string | number, arrowColor?: color, arrowScale?: number, selectedIndex?: number, currentValue?: string | number, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
@@ -2482,7 +2482,7 @@ declare namespace zim {
 		selectedIndex: number
         value: string | number
 		currentValue: string | number
-		currentValueEvent: string | number
+		valueEvent: string | number
 		stepperArray: string[] | number[]
 		containerPrev: Container
 		containerNext: Container
@@ -2496,6 +2496,7 @@ declare namespace zim {
 		max: number
 		label: Label
 		textBox: Shape
+        continuous: boolean
 		keyFocus: boolean
 	}
 	export class Slider extends Container implements zimComponent {
