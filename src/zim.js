@@ -732,7 +732,7 @@ RETURNS a Tile or an array of Bitmaps depending on tile parameter
 	};//-7.8
 	
 /*--
-zim.shuffle = function(array)
+zim.shuffle = function(array, different)
 
 shuffle
 zim function
@@ -770,10 +770,20 @@ RETURNS the modified Array
 		var i = array.length, j, temp;
 		if (i == 0) return array;
 		if (different) {
-			var original = zim.copy(array);
-			while (zim.arraysEqual(original, array)) {
-				zim.shuffle(array);
+			var sur = {};
+			var arr = [];
+			for (var i=0; i<array.length; i++) {
+				sur[i] = array[i];
+				arr.push(i);
+			}
+			var original = zim.copy(arr);
+			zim.shuffle(arr);
+			while (zim.arraysEqual(original, arr)) {
+				zim.shuffle(arr);
 			} 
+			for (i=0; i<arr.length; i++) {
+				array[i] = sur[arr[i]];
+			}
 			return array;
 		} else {
 			while(--i) {
@@ -2424,7 +2434,8 @@ zim function
 
 DESCRIPTION
 Converts color to HEX - for example: "#333333"
-Converts color to HEX NUMBER - for example: 0x333333
+Converts color to HEX NUMBER - for example: 819
+Converts color to HEX STRING - for example: "0xff333333"
 Or converts color to HTML string - for example: "red"
 Or converts color to RGB - for example: "rgb(0,0,0)"
 Or converts color to RGBA - for example: "rgba(0,0,0,.5)"
@@ -2444,7 +2455,8 @@ color = convertColor(blue, "rgba", .5); // result is "rgba(80,196,183,0.5)"
 color = convertColor("rgb(256,256,0)", "rgba", .3); // result is "rgba(256,256,0,.3)"
 color = convertColor("rgba(0,0,0,.2)", "rgba", .5); // result is "rgba(0,0,0,.5)"
 color = convertColor("rgba(0,0,0,.2)", "hex", .5); // result adds alpha to hex "#00000080"
-color = convertColor("red", "hexNumber"); // result is 0xff0000
+color = convertColor("red", "hexnumber"); // result is 16467800
+color = convertColor("red", "hexstring"); // result is "0xff0000"
 color = convertColor("rgba(0,0,0,.2)", "array"); // result is [0,0,0,.2]
 color = convertColor(blue, "hsl"); // result is [173.28,49.57,54.12] // first is angle then two percentages
 color = convertColor(0x00FF00); // result is "#00FF00";
@@ -2453,11 +2465,12 @@ END EXAMPLE
 PARAMETERS
 color - (default black) the HTML string or HEX color (case insensitive) or HEX number starting with 0x
 	HEX can be a # followed by 6, 3, 8 or 4 characters (3 or 4 characters will be duplicated to 6 or 8)
-toColorType - (default "hex") or use "string", "rgb", "rgba", "array", "hsl" (different than "hsv") "zim", "hexNumber"
+toColorType - (default "hex") or use "string", "rgb", "rgba", "array", "hsl" (different than "hsv") "zim", "hexnumber", "hexstring"
 	if "string" and color does not match existing HTML string color
-	then will return HEX number as string
+	then will return HEX as string
 	zim will convert zim rgb to zim string like "blue"
-	hexNumber is the color.parseInt(16) - similar to 0x format
+	hexnumber is the color.parseInt(16) - similar to 0x format
+	hexstring is the 0x format as a string
 	array will give [r,g,b,a] as array
 	hsl will give [degree, percent, percent] - note, hsv and hsl are similar but only the hue is the same
 alpha - (default 1) the alpha used for the "rgba" and "hex" toColorType
@@ -2557,6 +2570,10 @@ RETURNS a String with the converted color
 				added = alpha != 1?","+alpha:0;
 				co = getRGB(answer[1]+added);
 				return parseInt(co[0]+""+co[1]+""+co[2], 16);
+			} else if (toColorType == "hexstring") {
+				added = alpha != 1?","+alpha:0;
+				co = getRGB(answer[1]+added);
+				return "0xff"+co[0]+""+co[1]+""+co[2];
 			} else if (toColorType == "string") {
 				color = getRGB(answer[1]).join("").toLowerCase();
 				index = hex.indexOf(color);
@@ -2645,6 +2662,15 @@ RETURNS a String with the converted color
 			if (color.charAt(0)=="#") {
 				return parseInt(color.replace(/^#/, ''), 16);
 			}	
+		} else if (toColorType == "hexstring") {
+			if (color.charAt(0)=="#") {
+				color = color.replace("#","");
+				if (color.length == 3) {
+					color = color.charAt(0)+color.charAt(0)+color.charAt(1)+color.charAt(1)+color.charAt(2)+color.charAt(2);
+				}
+				if (color.length == 6) color = "ff" + color;
+				return "0x" + color.replace(/^#/, '');
+			}	
 		} else {
 			if (color.charAt(0)=="#") {
 				color = color.replace("#","");
@@ -2659,6 +2685,10 @@ RETURNS a String with the converted color
 			else return colors[index];
 		} else if (toColorType == "hexnumber") {
 			return parseInt(hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0], 16);
+		} else if (toColorType == "hexstring") {
+			color = hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0];
+			if (color.length == 6) color = "ff" + color;
+			return "0x" + color.replace(/^#/, '');
 		} else {	
 			added = (alpha!=1)?rgbToHex(Math.round(alpha*255)):"";
 			return "#"+hex[colors.indexOf(color.toLowerCase())!=-1?colors.indexOf(color):0]+added;
@@ -8188,6 +8218,323 @@ choices - a reference to the choices object provided as the Pick(choices) parame
 		else return {min:null, max:null}
 	};//-17.6
 
+// SUBSECTION CREATEJS CLASSES
+
+/*--
+createjs.BitmapData = function(width, height, transparent, fillColor)
+
+BitmapData
+createjs class - DOES NOT extend a DisplayObject
+
+DESCRIPTION
+This class and supporting classes (BitmapDataChannel, ColorTransform), come from Adobe Flash .
+They were ported here: https://github.com/u-kudox/BitmapData_for_EaselJS (thanks u-kudox).
+These docs come from: https://airsdk.dev/reference/actionscript/3.0/ (thanks Adobe).
+Under ALL CLASSES select BitmapData - note that each property and method can be selected for information and examples.
+
+The BitmapData class lets you work with the data (pixels) of a Bitmap object bitmap image. 
+You can use the methods of the BitmapData class to create arbitrarily sized transparent or opaque bitmap images and manipulate them in various ways at runtime. 
+You can also access the BitmapData for a bitmap image that you load with the flash.display.Loader class.
+This class lets you separate bitmap rendering operations from the internal display updating routines. 
+By manipulating a BitmapData object directly, you can create complex images without incurring the per-frame overhead of constantly redrawing the content from vector data.
+
+The methods of the BitmapData class support effects that are not available through the filters available to non-bitmap display objects.
+
+A BitmapData object contains an array of pixel data. This data can represent either a fully opaque bitmap or a transparent bitmap that contains alpha channel data. 
+Either type of BitmapData object is stored as a buffer of 32-bit integers. 
+Each 32-bit integer determines the properties of a single pixel in the bitmap.
+
+Each 32-bit integer is a combination of four 8-bit channel values (from 0 to 255) that describe 
+the alpha transparency and the red, green, and blue (ARGB) values of the pixel. 
+(For ARGB values, the most significant byte represents the alpha channel value, followed by red, green, and blue.)
+
+The four channels (alpha, red, green, and blue) are represented as numbers 
+when you use them with the BitmapData.copyChannel() method or the DisplacementMapFilter.componentX and DisplacementMapFilter.componentY properties, 
+and these numbers are represented by the following constants in the BitmapDataChannel class:
+
+BitmapDataChannel.ALPHA
+BitmapDataChannel.RED
+BitmapDataChannel.GREEN
+BitmapDataChannel.BLUE
+
+SEE:
+https://zimjs.com/zapp/Z_X4PYD - coloring a Pic
+https://zimjs.com/zapp/Z_XMT78 - coloring a Tile
+https://github.com/u-kudox/BitmapData_for_EaselJS/tree/master/examples
+
+
+EXAMPLE 
+// coloring a pic with floodFill()
+new Frame(FIT, 1024, 768, "ai_coloring_groovy.png", "https://zimjs.org/assets/", ready)
+function ready() {
+	// cache the pic to get a cacheCanvas for the BitmapData
+	const pic = new Pic("ai_coloring_groovy.png").cache();
+	// pic.contrast = 30; // might need to increase contrast
+	// pic.updateCache();
+
+	// Make a new createjs.BitmapData - needs a canvas
+	const bitmapData = new createjs.BitmapData(pic.cacheCanvas);
+
+	// Just a normal ZIM ColorPicker
+	STYLE = {shadowColor:-1, circles:true};
+	const picker = new ColorPicker(300, [red,orange,green,yellow,purple,blue,white], 7)
+		.pos(0,30,CENTER,BOTTOM);
+
+	// Make a Bitmap to show the bitmapData.canvas
+	const bitmap = new Bitmap(bitmapData.canvas)
+		.scaleTo(S,100).center().cur();
+		
+	bitmap.on("mousedown", ()=>{
+		
+		// convert our mouse point to a point on the bitmap
+		const point = bitmap.globalToLocal(F.mouseX, F.mouseY);
+		
+		// avoid pressing on the same color or the border color
+		const currentColor = bitmapData.getPixel(point.x, point.y);
+		if (
+			currentColor == convertColor(picker.selectedColor, 'hexnumber') || 
+			currentColor <  convertColor(dark, "hexnumber") // towards black
+		) return;
+		
+		// get the colorPicker color as hexstring - needed for floodFill
+		const newColor = convertColor(picker.selectedColor, 'hexstring');
+		
+		// do a floodFill from the point with the new color
+		bitmapData.floodFill(point.x, point.y, newColor);
+		
+		S.update();
+	});
+} // end ready
+END EXAMPLE
+
+EXAMPLE
+// coloring a Tile with floodFill()
+// cache the tile to get a cacheCanvas for the BitmapData
+STYLE = {color:white, borderColor:black, borderWidth:3, backdropColor:white, backdropPadding:20};
+const tile = new Tile([new Circle(50), new Rectangle(100,100)],5,4,20,20).cache();
+
+// Create a new createjs.BitmapData - needs a canvas
+const bitmapData = new createjs.BitmapData(tile.cacheCanvas);
+
+// Just a normal ZIM ColorPicker
+STYLE = {shadowColor:-1};
+const picker = new ColorPicker(250, [red,orange,green,yellow], 4)
+    .pos(0,30,CENTER,BOTTOM);
+
+// Make a Bitmap to show the bitmapData.canvas
+const bitmap = new Bitmap(bitmapData.canvas).center().cur();
+bitmap.on("mousedown", ()=>{
+    // convert our mouse point to a point on the bitmap
+	const point = bitmap.globalToLocal(F.mouseX, F.mouseY);
+	// avoid pressing on a dark color
+	const currentColor = bitmapData.getPixel(point.x, point.y);
+    if (currentColor<convertColor(dark, "hexnumber")) return;
+    // get the colorPicker color as hexstring - needed for floodFill
+    const newColor = convertColor(picker.selectedColor, 'hexstring');
+    // do a floodFill from the point with the new color
+	bitmapData.floodFill(point.x, point.y, newColor);
+	S.update();
+});
+END EXAMPLE
+
+PARAMETERS
+width - the width of the bitmap image in pixels.
+height - the height of the bitmap image in pixels.
+transparent (default true) - Boolean that defines whether the bitmap image supports per-pixel transparency.
+fillColor (default 0xffffffff) - the fill color as a HEX Number.
+
+METHODS 
+** see also https://airsdk.dev/reference/actionscript/3.0/ 
+** search under ALL CLASSES for BitmapData - press on methods for details
+** note - none of these support ZIM DUO as this is a createjs class and methods
+applyFilter(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, filter:BitmapFilter):void
+	Takes a source image and a filter object and generates the filtered image.
+clone():BitmapData
+	Returns a new BitmapData object that is a clone of the original instance with an exact copy of the contained bitmap.
+colorTransform(rect:Rectangle, colorTransform:ColorTransform):void
+	Adjusts the color values in a specified area of a bitmap image by using a ColorTransform object.
+compare(otherBitmapData:BitmapData):Object
+	Compares two BitmapData objects.
+convertColorProfile(source:Screen, destination:Screen):BitmapData
+	Create a copy of the image data, converting between color profiles based on the provided Screen objects.
+copyChannel(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, sourceChannel:uint, destChannel:uint):void
+	Transfers data from one channel of another BitmapData object or the current BitmapData object into a channel of the current BitmapData object.
+copyPixels(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, alphaBitmapData:BitmapData = null, alphaPoint:Point = null, mergeAlpha:Boolean = false):void
+	Provides a fast routine to perform pixel manipulation between images with no stretching, rotation, or color effects.
+copyPixelsToByteArray(rect:Rectangle, data:ByteArray):void
+	Fills a byte array from a rectangular region of pixel data.
+decode(data:ByteArray):BitmapData
+	[static] Decompresses encoded image data (PNG/GIF89a/JPEG) into a new BitmapData object using data provided in a ByteArray.
+dispose():void
+	Frees memory that is used to store the BitmapData object.
+draw(source:IBitmapDrawable, matrix:Matrix = null, colorTransform:ColorTransform = null, blendMode:String = null, clipRect:Rectangle = null, smoothing:Boolean = false):void
+	Draws the source display object onto the bitmap image, using the Flash runtime vector renderer.
+drawWithQuality(source:IBitmapDrawable, matrix:Matrix = null, colorTransform:ColorTransform = null, blendMode:String = null, clipRect:Rectangle = null, smoothing:Boolean = false, quality:String = null):void
+	Draws the source display object onto the bitmap image, using the Flash runtime vector renderer.
+encode(rect:Rectangle, compressor:Object, byteArray:ByteArray = null):ByteArray
+	Compresses this BitmapData object using the selected compressor algorithm and returns a new ByteArray object.
+fillRect(rect:Rectangle, color:uint):void
+	Fills a rectangular area of pixels with a specified ARGB color.
+floodFill(x:int, y:int, color:uint):void
+	Performs a flood fill operation on an image starting at an (x, y) coordinate and filling with a certain color.
+generateFilterRect(sourceRect:Rectangle, filter:BitmapFilter):Rectangle
+	Determines the destination rectangle that the applyFilter() method call affects, given a BitmapData object, a source rectangle, and a filter object.
+getColorBoundsRect(mask:uint, color:uint, findColor:Boolean = true):Rectangle
+	Determines a rectangular region that either fully encloses all pixels of a specified color within the bitmap image (if the findColor parameter is set to true) or fully encloses all pixels that do not include the specified color (if the findColor parameter is set to false).
+getPixel(x:int, y:int):uint
+	Returns an integer that represents an RGB pixel value from a BitmapData object at a specific point (x, y).
+getPixel32(x:int, y:int):uint
+	Returns an ARGB color value that contains alpha channel data and RGB data.
+getPixels(rect:Rectangle):ByteArray
+	Generates a byte array from a rectangular region of pixel data.
+getVector(rect:Rectangle):Vector.<uint>
+	Generates a vector array from a rectangular region of pixel data.
+histogram(hRect:Rectangle = null):Vector.<Vector.<Number>>
+	Computes a 256-value binary number histogram of a BitmapData object.
+hitTest(firstPoint:Point, firstAlphaThreshold:uint, secondObject:Object, secondBitmapDataPoint:Point = null, secondAlphaThreshold:uint = 1):Boolean
+	Performs pixel-level hit detection between one bitmap image and a point, rectangle, or other bitmap image.
+lock():void
+	Locks an image so that any objects that reference the BitmapData object, such as Bitmap objects, are not updated when this BitmapData object changes.
+merge(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, redMultiplier:uint, greenMultiplier:uint, blueMultiplier:uint, alphaMultiplier:uint):void
+	Performs per-channel blending from a source image to a destination image.
+noise(randomSeed:int, low:uint = 0, high:uint = 255, channelOptions:uint = 7, grayScale:Boolean = false):void
+	Fills an image with pixels representing random noise.
+paletteMap(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, redArray:Array = null, greenArray:Array = null, blueArray:Array = null, alphaArray:Array = null):void
+	Remaps the color channel values in an image that has up to four arrays of color palette data, one for each channel.
+perlinNoise(baseX:Number, baseY:Number, numOctaves:uint, randomSeed:int, stitch:Boolean, fractalNoise:Boolean, channelOptions:uint = 7, grayScale:Boolean = false, offsets:Array = null):void
+	Generates a Perlin noise image.
+pixelDissolve(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, randomSeed:int = 0, numPixels:int = 0, fillColor:uint = 0):int
+	Performs a pixel dissolve either from a source image to a destination image or by using the same image.
+scroll(x:int, y:int):void
+	Scrolls an image by a certain (x, y) pixel amount.
+setPixel(x:int, y:int, color:uint):void
+	Sets a single pixel of a BitmapData object.
+setPixel32(x:int, y:int, color:uint):void
+	Sets the color and alpha transparency values of a single pixel of a BitmapData object.
+setPixels(rect:Rectangle, inputByteArray:ByteArray):void
+	Converts a byte array into a rectangular region of pixel data.
+setVector(rect:Rectangle, inputVector:Vector.<uint>):void
+	Converts a Vector into a rectangular region of pixel data.
+threshold(sourceBitmapData:BitmapData, sourceRect:Rectangle, destPoint:Point, operation:String, threshold:uint, color:uint = 0, mask:uint = 0xFFFFFFFF, copySource:Boolean = false):uint
+	Tests pixel values in an image against a specified threshold and sets pixels that pass the test to new color values.
+unlock(changeRect:Rectangle = null):void
+	Unlocks an image so that any objects that reference the BitmapData object, such as Bitmap objects, are updated when this BitmapData object changes.
+
+PROPERTIES 
+** see also https://airsdk.dev/reference/actionscript/3.0/ 
+** search under ALL CLASSES for BitmapData - press on properties for details
+width - read-only - The width of the bitmap image in pixels.
+height - read-only - The height of the bitmap image in pixels.
+rect - read-only - The rectangle that defines the size and location of the bitmap image.
+transparent - read-only - Boolean that defines whether the bitmap image supports per-pixel transparency.
+--*///+17.65
+
+	// THE CODE FOR THE METHOD IS IN CREATEJS
+
+	//-17.65
+
+/*--
+createjs.BitmapDataChannel = function()
+
+BitmapDataChannel
+createjs static class
+
+DESCRIPTION
+This class is a supporting class for CreateJS BitmapData. It comes from Adobe Flash. 
+They were ported here: https://github.com/u-kudox/BitmapData_for_EaselJS (thanks u-kudox).
+These docs come from: https://airsdk.dev/reference/actionscript/3.0/ (thanks Adobe).
+Under ALL CLASSES select BitmapDataChannel
+
+The BitmapDataChannel class is an enumeration of constant values that indicate which channel to use: red, blue, green, or alpha transparency.
+When you call some methods, you can use the bitwise OR operator (|) to combine BitmapDataChannel constants to indicate multiple color channels.
+
+PROPERTIES 
+ALPHA: uint = 8
+	[static] The alpha channel.
+BLUE: uint = 4
+	[static] The blue channel.
+GREEN: uint = 2
+	[static] The green channel.
+RED: uint = 1
+	[static] The red channel.
+--*///+17.66
+
+	// THE CODE FOR THE METHOD IS IN CREATEJS
+
+	//-17.66
+
+/*--
+createjs.ColorTransform = function(redMultiplier, greenMultiplier, blueMultiplier, alphaMultiplier, redOffset, greenOffset, blueOffset, alphaOffset)
+
+ColorTransform
+createjs class
+
+DESCRIPTION
+This class is a supporting class for CreateJS BitmapData. It comes from Adobe Flash. 
+They were ported here: https://github.com/u-kudox/BitmapData_for_EaselJS (thanks u-kudox).
+These docs come from: https://airsdk.dev/reference/actionscript/3.0/ (thanks Adobe).
+Under ALL CLASSES select ColorTransform
+
+The ColorTransform class lets you adjust the color values in a display object. 
+The color adjustment or color transformation can be applied to all four channels: red, green, blue, and alpha transparency.
+When a ColorTransform object is applied to a display object, 
+a new value for each color channel is calculated like this:
+
+New red value = (old red value * redMultiplier) + redOffset
+New green value = (old green value * greenMultiplier) + greenOffset
+New blue value = (old blue value * blueMultiplier) + blueOffset
+New alpha value = (old alpha value * alphaMultiplier) + alphaOffset
+If any of the color channel values is greater than 255 after the calculation, it is set to 255. If it is less than 0, it is set to 0.
+
+You can use ColorTransform objects in the following ways:
+
+In the colorTransform parameter of the colorTransform() method of the BitmapData class
+As the colorTransform property of a Transform object (which can be used as the transform property of a display object)
+You must use the new ColorTransform() constructor to create a ColorTransform object before you can call the methods of the ColorTransform object.
+
+PARAMETERS
+** see also https://airsdk.dev/reference/actionscript/3.0/ 
+** search under ALL CLASSES for ColorTransform - press on properties for details
+alphaMultiplier : Number
+	A decimal value that is multiplied with the alpha transparency channel value.
+alphaOffset : Number
+	A number from -255 to 255 that is added to the alpha transparency channel value after it has been multiplied by the alphaMultiplier value.
+blueMultiplier : Number
+	A decimal value that is multiplied with the blue channel value.
+blueOffset : Number
+	A number from -255 to 255 that is added to the blue channel value after it has been multiplied by the blueMultiplier value.
+color : uint
+	The RGB color value for a ColorTransform object.
+greenMultiplier : Number
+	A decimal value that is multiplied with the green channel value.
+greenOffset : Number
+	A number from -255 to 255 that is added to the green channel value after it has been multiplied by the greenMultiplier value.
+redMultiplier : Number
+	A decimal value that is multiplied with the red channel value.
+redOffset : Number
+	A number from -255 to 255 that is added to the red channel value after it has been multiplied by the redMultiplier value.
+
+METHODS
+** see also https://airsdk.dev/reference/actionscript/3.0/ 
+** search under ALL CLASSES for ColorTransform - press on methods for details
+colorTransform(redMultiplier:Number = 1.0, greenMultiplier:Number = 1.0, blueMultiplier:Number = 1.0, alphaMultiplier:Number = 1.0, redOffset:Number = 0, greenOffset:Number = 0, blueOffset:Number = 0, alphaOffset:Number = 0)
+	Creates a ColorTransform object for a display object with the specified color channel values and alpha values.
+concat(second:ColorTransform):void
+	Concatenates the ColorTranform object specified by the second parameter with the current ColorTransform object 
+	and sets the current object as the result, which is an additive combination of the two color transformations.
+toString():String
+	Formats and returns a string that describes all of the properties of the ColorTransform object.
+
+PROPERTIES 
+** see also https://airsdk.dev/reference/actionscript/3.0/ 
+** search under ALL CLASSES for ColorTransform - press on properties for details
+See the parameters - which are all properties
+--*///+17.67
+
+	// THE CODE FOR THE METHOD IS IN CREATEJS
+
+	//-17.67
+
 	// DOM CODE
 
 // SUBSECTION HTML FUNCTIONS
@@ -10363,7 +10710,7 @@ const thumbs = [];
 const cols = 5;
 const rows = 5;
 
-const image = asset("yourimage.jpg");
+const image = new Pic("yourimage.jpg");
 const w = image.width/cols;
 const h = image.height/cols;
 loop(rows, r=>{
@@ -31616,7 +31963,7 @@ zim.TextInput = function(width, height, placeholder, text, size, font, color, ba
 			return label.color;
 		},
 		set: function(value) {
-			label.color = latestColor = value;
+			label.color = value;
 			if ((!zim.OPTIMIZE&&(zns||!WW.OPTIMIZE)) && that.stage) that.stage.update();
 		}
 	});
@@ -40685,6 +41032,12 @@ const cp = new ColorPicker()
 	});
 END EXAMPLE
 
+EXAMPLE 
+STYLE = {shadowColor:-1, circles:true};
+const picker = new ColorPicker(300, [red,orange,green,yellow,purple,blue,white], 7)
+    .pos(0,30,CENTER,BOTTOM);
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
@@ -41183,7 +41536,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				"rgb(0 0 255)",
 				"rgb(255 0 255)",
 				"rgb(255 0 0)"
-			],[0,1/6,2/6,3/6,4/6,5/6,6/6],0,0,500,0)).addTo(spect).mov(0,gH-1);
+			],[0,1/6,2/6,3/6,4/6,5/6,6/6],0,0,that.width,0)).addTo(spect).mov(0,gH-1);
 			new zim.Rectangle(that.width,cH/2,new zim.GradientColor(["rgba(255,255,255,1)","rgba(255,255,255,0)"],[0,1],0,0,0,cH/2)).loc(main, null, spect);
 			new zim.Rectangle(that.width,cH/2+.5,new zim.GradientColor(["rgba(0,0,0,1)","rgba(0,0,00,0)"],[1,0],0,0,0,cH/2+.5)).loc(main, null, spect).mov(0,cH/2);
 			new zim.Rectangle(that.width,20,new zim.GradientColor(["black","white"],[.1,.9],0,0,that.width,0)).addTo(spect);
@@ -50984,13 +51337,14 @@ RETURNS obj for chaining
 			stCheck = true;
 			dropListCheck = false;
 			stage = obj.stage;
-			if (!obj.zmu) obj.zmu = stage.frame.on("mouseupplus", function(e) {	
-				if (obj.downCheck) {
-					if (!slide) obj.downCheck = false;						
-					doUp(e, true); // true for cancel slide						
-				}					
+			if (!obj.zmu) obj.zmu = stage.frame.on("mouseupplus", function(e) {				
+				if (obj.downCheck) {				
+					// Note - adjusted the mouseupplus event to delay 30ms if triggered on a mousemove 	
+					if (!slide) obj.downCheck = false;					
+					doUp(e, true); // true for cancel slide		
+				}				
 			});		
-			
+						
 			obj.dragMouseX = Math.round(e.stageX/zim.scaX)+stage.x;
 			obj.dragMouseY = Math.round(e.stageY/zim.scaY)+stage.y;
 			var id = "id"+Math.abs(e.pointerID+1);
@@ -54404,6 +54758,15 @@ new Circle().center().addPhysics(); // circle will fall with gravity to the floo
 END EXAMPLE
 
 EXAMPLE
+// usually, we add a Physics object so we can set gravity, drag, etc.
+const physics = new Physics().drag(); // turn drag on
+// center registration for rectangular objects
+const rect1 = new Rectangle(200,100,purple).reg(CENTER).pos(50,50).addPhysics(); 
+const rect2 = new Rectangle(100,200,blue).reg(CENTER).pos(50,50,RIGHT).addPhysics();
+// physics.debug(); // uncomment to see debug mode
+END EXAMPLE
+
+EXAMPLE
 // create a world with no gravity (viewed from top like air-hockey)
 const physics = new Physics(0);
 
@@ -55312,7 +55675,7 @@ const circles = new Container(W, H).addTo();
 const circle1 = new Circle(50, red).center(circles);
 const circle2 = new Circle(50, blue).center(circles).mov(70);
 circles.animate({
-	props:{scale:1},
+	props:{scale:0},
 	time:.5,
 	loop:true,
 	rewind:true,
@@ -59893,7 +60256,7 @@ circle.outline();
 END EXAMPLE
 
 EXAMPLE
-Dynamic Examples
+// Dynamic Examples
 const ball = new Circle().center().drag({removeTweens:false});
 ball.on("mousedown", ()=>{
 	ball.outline();
@@ -73701,18 +74064,22 @@ SEE: https://zimjs.com/physics/ for examples
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-// add a rectangle to a default Physics world,
-// set it draggable and turn debug mode on
-const rect = new Rectangle().centerReg().addPhysics(); // center registration for rectangular objects
-rect.physics.drag();
-rect.physics.debug();
-// note: we would usually make a Physics() object first (see below)
+new Circle().center().addPhysics(); // circle will fall with gravity to the floor
+END EXAMPLE
+
+EXAMPLE
+// usually, we add a Physics object so we can set gravity, drag, etc.
+const physics = new Physics().drag(); // turn drag on
+// center registration for rectangular objects
+const rect1 = new Rectangle(200,100,purple).reg(CENTER).pos(50,50).addPhysics(); 
+const rect2 = new Rectangle(100,200,blue).reg(CENTER).pos(50,50,RIGHT).addPhysics();
+// physics.debug(); // uncomment to see debug mode
 END EXAMPLE
 
 EXAMPLE
 // create a world with no gravity (viewed from top like air-hockey)
 const physics = new Physics(0);
-const circle = new Circle(50,blue,grey).center().addPhysics({restitution:1.1}); // how bouncy
+const circle = new Circle(50,blue,grey).center().addPhysics({bounciness:.7}); 
 // make sure to reg(CENTER) or centerReg() any rectangular objects
 const rect = new Rectangle(30,400).reg(CENTER).pos(70,0,LEFT,CENTER).addPhysics(false); // static - do not move
 const tri = new Triangle(150,150,150,green,grey).pos(200,0,LEFT,CENTER).addPhysics({linear:10}); // does not slide easily
@@ -73757,19 +74124,19 @@ EXAMPLE
 import zim from "https://zimjs.org/cdn/017/zim_physics"; // or latest version
 new Frame(FIT, 1024, 768, light, dark, ready, "cathead.png", "https://zimjs.org/assets/");
 function ready() {
-    const pic = new Pic("cathead.png").center();
-    const physics = new Physics().drag();
+	const pic = new Pic("cathead.png").center();
+	const physics = new Physics().drag();
 
-    const blob = new Blob({
-        points:simplifyPoints(outlineImage(pic), 10), // 10 is the default tolerance 
-        color:faint, 
-        interactive:false
-    }).loc(pic).addPhysics();
-    pic.addTo(blob);
+	const blob = new Blob({
+		points:simplifyPoints(outlineImage(pic), 10), // 10 is the default tolerance 
+		color:faint, 
+		interactive:false
+	}).loc(pic).addPhysics();
+	pic.addTo(blob);
 
-    zog(physics.validate(blob)); // check validation
+	zog(physics.validate(blob)); // check validation
 
-    new Circle(50,black).pos(0,100,CENTER).addPhysics();
+	new Circle(50,black).pos(0,100,CENTER).addPhysics();
 }
 END EXAMPLE 
 
@@ -73973,12 +74340,18 @@ customControl(dir, speed, speedY) - available only if control() is set.
 	these will then take the place of keys or DPad
 noControl() - remove control for an object set with control()
 contact(call) - run the call function when object's body contacts another body
-	the callback function receives two parameters - the ZIM object and the Physics body that the object has hit
+	the callback function receives three parameters
+		the other ZIM object being hit 
+		the other ZIM object being hit's Physics body 
+		the original ZIM object that the contact method is on
 	a border will have a type = "Border" and a side = LEFT, RIGHT, TOP, "bottom"
 	but it is not really a ZIM Rectangle but just an object literal placeholder
 	Also see sensor parameter to trigger contact but with no physics interaction
 contactEnd(call) - run the call function when object's body ends contacts with another body
-	the callback function receives two parameters - the ZIM object and the Physics body that the object has hit
+	the callback function receives three parameters
+		the other ZIM object being hit 
+		the other ZIM object being hit's Physics body 
+		the original ZIM object that the contact method is on
 	a border will have a type = "Border" and a side = LEFT, RIGHT, TOP, "bottom"
 	but it is not really a ZIM Rectangle but just an object literal placeholder
 	Also see sensor parameter to trigger contact but with no physics interaction
@@ -74164,24 +74537,26 @@ b2ContactListener = Box2D.Dynamics.b2ContactListener;
 			WW.zimContactListener.EndContact = endContact;
 			function beginContact(e) {
 				var match = zimContactBeginList.at(e.m_fixtureB.GetBody());
-				if (match) match(e.m_fixtureA.GetBody().zimObj, e.m_fixtureA.GetBody());
+				if (match) match(e.m_fixtureA.GetBody().zimObj, e.m_fixtureA.GetBody(), match.obj);
 				match = zimContactBeginList.at(e.m_fixtureA.GetBody());
-				if (match) match(e.m_fixtureB.GetBody().zimObj, e.m_fixtureB.GetBody());
+				if (match) match(e.m_fixtureB.GetBody().zimObj, e.m_fixtureB.GetBody(), match.obj);
 			}
 			function endContact(e) {
 				var match = zimContactEndList.at(e.m_fixtureB.GetBody());	
-				if (match) match(e.m_fixtureA.GetBody().zimObj, e.m_fixtureA.GetBody());				// else {
+				if (match) match(e.m_fixtureA.GetBody().zimObj, e.m_fixtureA.GetBody(), match.obj);				// else {
 				match = zimContactEndList.at(e.m_fixtureA.GetBody());
-				if (match) match(e.m_fixtureB.GetBody().zimObj, e.m_fixtureB.GetBody());
+				if (match) match(e.m_fixtureB.GetBody().zimObj, e.m_fixtureB.GetBody(), match.obj);
 			}
 			obj.physics.world.SetContactListener(WW.zimContactListener);
 		}
 		obj.contact = function(f) {
+			f.obj = obj;
 			if (!WW.zimContactListener) makeContact();
 			zimContactBeginList.add(obj.body, f);
 			return obj;
 		};
 		obj.noContact = function() {
+			f.obj = obj;
 			zimContactBeginList.remove(obj.body);
 			return obj;
 		};
@@ -77554,6 +77929,9 @@ scramble(time, wait, num) - scramble the tile - this is done by default when mak
 	time and wait default to 0 and are the seconds to animate and wait to animate - also see ZIM TIME constant
 	num is how many times to scramble within the time - set to 3 for instance to scramble a small number of items
 	note that the tiles cannot be dragged from when called to when done scrambling
+	note a Scrambler will not scramble() if already scrambling 
+	so scramble() chained on to new Scrambler() or run right away will be ignored unless the Scranbler scramble parameter is false
+	Just use the time, wait and num parameters of the Scrambler instead
 	returns object for chaining
 solve(time, wait, disable) - solve the tile - so arrange the tile in the start order
 	time and wait default to 0 and are the seconds to animate and wait to animate - also see ZIM TIME constant
@@ -77616,7 +77994,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(shadowBlur)) shadowBlur=DS.shadowBlur!=null?DS.shadowBlur:5;
 		if (zot(swap)) swap=DS.swap!=null?DS.swap:false;
 		if (zot(swapLock)) swapLock=DS.swapLock!=null?DS.swapLock:false;
-		if (swapLock) swap = true;
+		if (swapLock) swap = true;	
 
 		if (zot(tile)) tile = new zim.Tile(new zim.Rectangle(100,100,zim.series(zim.silver,zim.tin,zim.grey,zim.dark,zim.darker)),5,1,5);
 		tile.addTo(this);
@@ -77630,6 +78008,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		var frame = WW.zdf;        		
 		var scramblerID = zim.makeID(null,10);
+		var scrambling = false;
 
 		var startX, startY;
 		var lastTile;
@@ -77860,18 +78239,23 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		this.inactive = false;
 		this.scramble = function(time, wait, num) {
-
+			if (scrambling) return that;
+			scrambling = true;
+			
 			that.myDownCheck = false;
 
 			if (zot(wait)) wait = 0;
 			if (zot(time)) time = 0;
 			if (zot(num) || time==0) num = 1;
 
-			offScrambler();
-			zim.timeout(wait, function () {
-				if (time>0) zim.interval(time/num, doScramble, num, true);
-				else doScramble();
-			});
+			offScrambler(time, wait);
+			if (time==0) doScramble();
+			else {
+				zim.timeout(wait, function () {
+					if (time>0) zim.interval(time/num, doScramble, num, true);
+					else doScramble();
+				});
+			}
 			setTimeout(function () {
 				that.complete = false;
 				tile.loop(function (t) {
@@ -77901,8 +78285,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				// scramble location (not tile.remake()) to order
 				moveTiles(order, time/num);
-				zim.timeout(time, function () {
+				zim.timeout(time+.1, function () {
 					that.dispatchEvent("scrambled");
+					scrambling = false;
 				})
 			}
 			return that;
@@ -77916,10 +78301,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			});
 		}
 
-		function offScrambler() {
+		function offScrambler(time, wait) {
 			if (that.upEvent) tile.off("pressup", that.upEvent);
 			if (that.moveEvent) tile.off("pressmove", that.moveEvent);
-
 			tile.noDrag();
 			if (wait+time>0) {
 				that.noMouse();
@@ -77965,7 +78349,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 			setTimeout(function () {
 				order = startOrder.slice();
-				offScrambler();
+				offScrambler(time, wait);
 				moveTiles(order, time, 0, disable);
 			}, timeType=="s"?wait*1000:wait);
 
@@ -85234,7 +85618,16 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	function leftEvent(e) {
 		// e = e.nativeEvent;	
 		that.leftMouseDown = e.buttons === undefined?e.which === 1:e.buttons === 1;
-		if (oldLeft && !that.leftMouseDown) that.dispatchEvent("mouseupplus");
+		if (oldLeft && !that.leftMouseDown) {
+			// adjusted ZIM 017 patch to accomodate mousemove trigger on fast apple drags
+			if (e && e.type == "mouseup") {
+				that.dispatchEvent("mouseupplus");						
+			} else {
+				setTimeout(function() {
+					that.dispatchEvent("mouseupplus");
+				}, 30);	
+			}
+		}
 		if (old2Left && !that.leftMouseDown) that.dispatchEvent("mouseupplusonly");
 		oldLeft = old2Left = that.leftMouseDown;
 	}
@@ -88068,6 +88461,42 @@ video.on("mousedown", ()=>{
 	// not paused (which is for animation)
 	video.pause(!video.videoPaused);        
 });
+END EXAMPLE 
+
+EXAMPLE 
+// getting a preview 
+const video = new Vid("video.mp4")
+    .scaleTo()
+    .center()
+    .vis(false);    
+
+new Pane("WELCOME").show(init);
+
+function init() {  
+    video.play().pause().vis(true);
+	// note, to play after this use video.pause(false); // not video.play()
+    Ticker.always();
+}
+END EXAMPLE 
+
+EXAMPLE 
+// getting a keyed out preview 
+const video = new Vid("video.mp4")
+    .scaleTo()
+    .center()
+    .vis(false);    
+
+new Pane("WELCOME").show(init);
+
+function init() {  
+    video
+        .keyOut("#01b03f", .25) // key out the green
+        .play();            
+    timeout(.05, ()=>{
+        video.pause().vis(true);
+    });       
+    Ticker.always();
+}
 END EXAMPLE 
 
 PARAMETERS
