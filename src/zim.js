@@ -8258,10 +8258,34 @@ BitmapDataChannel.GREEN
 BitmapDataChannel.BLUE
 
 SEE:
+https://zimjs.com/zapp/Z_ADQEH - simple version
 https://zimjs.com/zapp/Z_X4PYD - coloring a Pic
 https://zimjs.com/zapp/Z_XMT78 - coloring a Tile
 https://github.com/u-kudox/BitmapData_for_EaselJS/tree/master/examples
 
+EXAMPLE 
+// this is a shortened version of the examples below using internal code 
+// the addBitmapData() will create take the current Bitmap and pass it to a BitmapData object 
+// then take that BitmapData object and create a new Bitmap from the BitmapData 
+// this is then returned by the addBitmapData()
+// the color() then applies a floodFill() internally saving a half dozen lines of code
+const assets = "ai_coloring_groovy.png";
+const path = "https://zimjs.org/assets/";
+new Frame(FIT, 1481, 745, light, dark, ready, assets, path);
+function ready() {
+	const pic = new Pic("ai_coloring_groovy.png");
+	const bitmap = new Bitmap(pic)
+		.addBitmapData()
+		.scaleTo()
+		.cur()
+		.center();	
+	const color = series(red, orange, blue, green, yellow);
+	bitmap.on("mousedown", ()=>{
+		bitmap.color(color); // or get from ColorPicker()
+		S.update();
+	});		
+}
+END EXAMPLE
 
 EXAMPLE 
 // coloring a pic with floodFill()
@@ -10641,6 +10665,26 @@ function ready() {
 END EXAMPLE
 
 EXAMPLE
+// https://zimjs.com/zapp/Z_ADQEH - coloring a Bitmap pic
+const assets = "ai_coloring_groovy.png";
+const path = "https://zimjs.org/assets/";
+new Frame(FIT, 1481, 745, light, dark, ready, assets, path);
+function ready() {
+	const pic = new Pic("ai_coloring_groovy.png");
+	const bitmap = new Bitmap(pic)
+		.addBitmapData()
+		.scaleTo()
+		.cur()
+		.center();	
+	const color = series(red, orange, blue, green, yellow);
+	bitmap.on("mousedown", ()=>{
+		bitmap.color(color); // or get from ColorPicker()
+		S.update();
+	});		
+}
+END EXAMPLE
+
+EXAMPLE
 // turn a container of circles into a Bitmap
 const circles = new Container(W, H).addTo();
 loop(10, ()=>{
@@ -10746,6 +10790,12 @@ group - (default null) set to String (or comma delimited String) so STYLE can se
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
+addBitmapData() - returns a new Bitmap of the original but with the CreateJS BitmapData class added as a bitmapData property
+	see https://zimjs.com/docs.html?item=BitmapData 
+color(color, thresholdColor, x, y) - color a Bitmap. The Bitmap must be made with addBitmapData() - or have equivilant adjustments applied.
+	color - |ZIM VEE| (default red) is the color to do a BitmapData floodFill() - it will automatically be converted to the right color format 
+	thresholdColor (default dark) is the color for which darker colors will not be colored allowing dark lines to separate coloring areas 
+	x and y (default F.mouseX and F.mouseY relative to the Bitmap) an x and y inside the Bitmap coordinates to apply BitmapData floodFill()
 keyOut(color, tolerance, replacement) - remove color from Bitmap and a tolerance between 0-1
 	the default color is "#389b26" which is a medium dark green
 	the default tolerance is .1 - the higher the tolerance the less sensitive the keying process - so more colors will be removed similar to the provided color
@@ -10815,6 +10865,8 @@ imageData - data for the pixels stored in a data property of an ImageData object
 	eg. 0,0,0,255,255,255,255,255 is a black pixel with 1 alpha and a white pixel with 1 alpha
 	You set this before calling the Bitmap drawImageData() method
  	See also https://developer.mozilla.org/en-US/docs/Web/API/ImageData - but let ZIM do the work
+bitmapData - if a Bitmap is created with addBitmapData() then a bitmapData property is added to reference its CreateJS BitmpaData object 
+	see https://zimjs.com/docs.html?item=BitmapData
 group - used when the object is made to add STYLE with the group selector (like a CSS class)
 ** bounds must be set first (or width and height parameters set) for these to work
 ** setting these adjusts scale not bounds and getting these uses the bounds dimension times the scale
@@ -11096,6 +11148,46 @@ zim.Bitmap = function(image, width, height, left, top, scale, style, group, inhe
 		// that.updateCache()
 		return this;
 	} 
+
+	this.addBitmapData = function() {
+		if (!createjs.BitmapData) {
+			zogy("zim.Bitmap addBitmapData() needs CreatejS 1.5.0 or greater"); return that;
+		}			
+		var cc = that.cacheCanvas?that.cacheCanvas:that.cache().cacheCanvas;
+		var bitmapData = new createjs.BitmapData(cc);
+		var bbd = new zim.Bitmap(bitmapData.canvas);
+		bbd.bitmapData = bitmapData;
+		return bbd;
+	}
+
+	this.color = function(color, thresholdColor, x, y) {
+		if (!that.stage) return;
+		if (!that.bitmapData) {
+			zogy("zim.Bitmap must be made with addBitmapData() to use color()"); return that;
+		}
+		if (zot(color)) color = red;
+		color = zik(color);
+		if (zot(thresholdColor)) thresholdColor = dark;
+		var F = that.stage.frame?that.stage.frame:zdf;			
+		// convert our mouse point to a point on the bitmap
+		var point;
+		if (x!=null && y!=null) {
+			point = {x:x, y:y};
+		} else {
+			point = that.globalToLocal(F.mouseX, F.mouseY);	
+		}
+		// avoid pressing on the same color or the border color
+		var currentColor = this.bitmapData.getPixel(point.x, point.y);
+		if (
+			currentColor == zim.convertColor(color, 'hexnumber') || 
+			currentColor <  zim.convertColor(thresholdColor, "hexnumber") // towards black
+		) return;    
+		// get the colorPicker color as hexstring - needed for floodFill
+		var newColor = zim.convertColor(color, 'hexstring');    
+		// do a floodFill from the point with the new color
+		that.bitmapData.floodFill(point.x, point.y, newColor);
+		return that;
+	}
 
 	zim.displayBase(that);
 	
@@ -12018,8 +12110,12 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				var a = that.animations[label];
 				processAnimation(a);
 			}
-			function processAnimation(a) {
+			function processAnimation(a) {				
 				if (Array.isArray(a)) {
+					if (a.length==1) {
+						processAnimation(a[0]);
+						return;
+					}
 					processArray(a);
 				} else if (a.constructor == {}.constructor) {
 					processObject(a);
@@ -12084,6 +12180,8 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			var sig = "time, label, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startFrame, endFrame, frame, tweek, id, globalControl, pauseOnBlur";
 			var duo; if (duo = zob(that.run, arguments, sig)) return duo;
 
+			if (that.running) that.stopAnimate(that.id); // ZIM 017 - moved this up so single frame stops previous animation			
+
 			var timeType = getTIME();
 
 			var obj;
@@ -12097,8 +12195,10 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				return that; // just go to the frame ZIM 017
 			}
 
+			that.running = true; // not calling a single frame a run - as it does not animate - ZIM 017
+
 			var extraTime;
-			if (Array.isArray(label)) {
+			if (Array.isArray(label)) {				
 				// check labels
 				var innerLabel;
 				var lastLabel;
@@ -12130,7 +12230,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 					if (endFrame-startFrame > 0) extraTime = tt / (endFrame-startFrame) / 2; // slight cludge - seems to look better?
 
 					// if (i==0) firstStartFrame = startFrame;
-				}
+				}				
 				//startFrame = firstStartFrame;
 				if (obj.length == 0) return this;
 				if (obj.length == 1) { // just one label in list ;-)
@@ -12142,7 +12242,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 				}
 			} else { // single label
 				setSingle();
-			}
+			}			
 
 			function setSingle() {
 				_normalizedFrames = that.parseFrames(label, startFrame, endFrame);
@@ -12153,9 +12253,7 @@ animationend, change, added, click, dblclick, mousedown, mouseout, mouseover, pr
 			}
 
 			if (zot(time)) time = timeType=="s"?1:1000;
-			// if already running the sprite then stop the last run
-			if (that.running) that.stopAnimate(that.id);
-			that.running = true;
+			
 			
 			if (!Array.isArray(obj)) {
 				extraTime = 0;
@@ -16324,7 +16422,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(startHead)) startHead = DS.startHead!=null?DS.startHead:null;
 		if (zot(endHead)) endHead = DS.endHead!=null?DS.endHead:null;
 		if (zot(strokeObj)) strokeObj = DS.strokeObj!=null?DS.strokeObj:{};
-
+	
 		if (zot(lineType)) lineType = DS.lineType!=null?DS.lineType:"straight";
 		if (lineType !== "corner" && lineType != "curve") lineType = "straight";
 		if (zot(lineOrientation)) lineOrientation = DS.lineOrientation!=null?DS.lineOrientation:"auto";
@@ -16402,6 +16500,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 			var startArrowGuide;
 			var endArrowGuide;
+
 			if (that._points) {
 				var start = that._points[0];
 				that._startX = start[0];
@@ -16492,6 +16591,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						if (endHead && endHead.type == "Triangle") endHead.regY = endHead.startRegY;
 					}
 				}
+				
 
 				if (that.lineType == "straight") {
 					g.mt(sX, sY).lt(eX, eY);
@@ -23795,7 +23895,7 @@ zim.extend(zim.LabelOnArc, zim.Container, "clone", "zimContainer", false);
 //-54.55
 
 /*--
-zim.LabelLetters = function(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, style, group, inherit)
+zim.LabelLetters = function(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, lineWidth, style, group, inherit)
 
 LabelLetters
 zim class - extends a zim.Container which extends a createjs.Container
@@ -23843,6 +23943,7 @@ label - (default "Label Letters") a String or a ZIM Label
 	<i>italic</i> - or <em>italic</em>
 	<u>underline</u> - can use this with <a> to make a classic underlined link 
 	<a href=url target=_blank>link</a>
+	<br> - for a break or use \n
 	<font 
 		color=zimColor 
 		backgroundColor='htmlColor'
@@ -23873,6 +23974,7 @@ lineAlign - (default LEFT or RIGHT for rtl:true) the horizontal alignment of lin
 lineValign - (default BOTTOM) the vertical alignment within lineSpacing if multiple lines - set to TOP, CENTER/MIDDLE, BOTTOM
 cache - (default false) set to true to cache each letter - improves performance on animation
 rtl - (default false) set to true to reverse letters other than a-zA-Z0-9 and set default lineAlign to RIGHT
+lineWidth - (default null) set the line width - could cause wrapping.  Also see lineWidth property
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -23897,6 +23999,7 @@ type - the name of the class as a String
 text - get or set the text
 labels - an array of ZIM Label objects for the letters
 numLetters - how many letters (same as numChildren)
+lineWidth - get or set the line width - could cause wrapping
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -23911,8 +24014,8 @@ See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.57
 
-	zim.LabelLetters = function(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, style, group, inherit) {
-		var sig = "label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, style, group, inherit";
+	zim.LabelLetters = function(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, lineWidth, style, group, inherit) {
+		var sig = "label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, lineWidth, style, group, inherit";
 		var duo; if (duo = zob(zim.LabelLetters, arguments, sig, this)) return duo;
 		z_d("54.57");
 
@@ -23930,6 +24033,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(rtl)) rtl = DS.rtl != null ? DS.rtl : false;		
 		if (zot(lineAlign)) lineAlign = DS.lineAlign != null ? DS.lineAlign : rtl?"right":"left";
 		if (zot(lineValign)) lineValign = DS.lineValign != null ? DS.lineValign : "bottom";
+		if (zot(lineWidth)) lineWidth = DS.lineWidth != null ? DS.lineWidth : "bottom";
 		if (zot(cache)) cache = DS.cache != null ? DS.cache : false;
 
 		this.zimContainer_constructor(null, null, null, null, false);
@@ -23974,28 +24078,28 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				// html = "!Roger הגיע בשבילך משהו בדואר Dan אני לומד עברית";
 				// html = "הגיע בשבילך משהו בדואר.";
 							
-				function insert(data) {	
-					return data.split("").reverse().join("")
-				}
-				if (rtl) {
-					count = -1;				
-					html = html.replace(/[\u0591-\u07FF]+/ig, insert);	
+				// function insert(data) {	
+				// 	return data.split("").reverse().join("")
+				// }
+				// if (rtl) {
+				// 	count = -1;				
+				// 	html = html.replace(/[\u0591-\u07FF]+/ig, insert);	
 					
-					// and there may be tags or LTR characters next to RTL without a space:
-					html = html.replace(/([^\u0591-\u07FF ])([\u0591-\u07FF])/ig, "$1-!!-$2"); // note the not space
-					html = html.replace(/([\u0591-\u07FF])([^\u0591-\u07FF ])/ig, "$1-!!-$2"); // note the not space				
-					html = html.replace(/([^\u0591-\u07FF]) ([\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
-					html = html.replace(/([\u0591-\u07FF]) ([^\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
+				// 	// and there may be tags or LTR characters next to RTL without a space:
+				// 	html = html.replace(/([^\u0591-\u07FF ])([\u0591-\u07FF])/ig, "$1-!!-$2"); // note the not space
+				// 	html = html.replace(/([\u0591-\u07FF])([^\u0591-\u07FF ])/ig, "$1-!!-$2"); // note the not space				
+				// 	html = html.replace(/([^\u0591-\u07FF]) ([\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
+				// 	html = html.replace(/([\u0591-\u07FF]) ([^\u0591-\u07FF])/ig, "$1-!!- -!!-$2");
 					
-					var sp = html.split(/-!!-/g);
-					zim.loop(sp, function(ssp, i){
-						if (ssp.match(/[\u0591-\u07FF]/i)) {
-							sp[i] = ssp.split(" ").reverse().join(" ");
-						}
-					});
-					html = sp.join("");	
-				}
-				
+				// 	var sp = html.split(/-!!-/g);
+				// 	zim.loop(sp, function(ssp, i){
+				// 		if (ssp.match(/[\u0591-\u07FF]/i)) {
+				// 			sp[i] = ssp.split(" ").reverse().join(" ");
+				// 		}
+				// 	});
+				// 	html = sp.join("");	
+				// }
+							
 	
 				// normalize tags
 				html = html.replace(/\n|\r/g,"<br>");
@@ -24091,7 +24195,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				// b,i,u,br,a,font
 				// var da = [,, [["b","i"]] ,[,["b"]],,,[["br","font color=red size=10 family=courier"]],["i"]],...];
 				return {text:p, data:data, original:original};
-			}	
+
+			}	// end parse html
+
 			
 			that.numLetters = label.text.length;
 			
@@ -24310,6 +24416,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}	
 				
 				lineW += letter.width + s;
+
+				// if (lineW > lineWidth && letter.text == " ") {					
+				// 	lineY += (zot(lineHeight)?lineH:lineHeight) + lineSpacings[lineNum];
+				// 	linePositionsY.push(lineY);
+				// 	lineHeights.push(zot(lineHeight)?lineH:lineHeight);
+				// 	lineWidths.push(lineW);						
+				// 	maxW = Math.max(maxW, lineW);
+				// 	lineH = 0;
+				// 	lineW = 0;
+				// 	that.lines.push([]);
+				// 	lineNum++;		
+				// 	letter.dispose();
+				// 	continue;			
+				// }
+					
 				lineH = Math.max(lineH, letter.height);
 				
 				if (i==that.numLetters-1) {
@@ -24328,52 +24449,203 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			
 			
 			// LOOP THROUGH LINES AND APPLY POSITIONS
-			var count = 0;
-			for (var j=0; j<that.lines.length; j++) {
-				var ll = that.lines[j];
-				lineW = lineWidths[j];
-				lineH = lineHeights[j];
-				lineY = linePositionsY[j];
-				
-				var startX, startY;
-				if (lineAlign=="left") startX = 0;
-				else if (lineAlign=="right") startX = maxW-lineW;
-				else startX = (maxW-lineW)/2;
-				startY = lineY;		
-									
-				for (i=0; i<ll.length; i++) {
-					count++;
-					if (cache) letter.cache();
-					letter = ll[i];
-					letter.regX = align=="left"?0:(align=="right"?letter.width:letter.width/2);
-					letter.regY = valign=="top"?0:(valign=="bottom"?letter.height:letter.height/2);				
-					
-					var sY = startY+(valign=="top"?0:valign=="bottom"?letter.height:letter.height/2);
-					if (lineValign=="center" || lineValign=="middle") {
-						sY += (lineHeights[j]-letter.height)/2;
-					} else if (lineValign=="bottom") {
-						sY += lineHeights[j]-letter.height;					
-					}
-					s = letterSpacingsOriginal?letterSpacings[count-1]:zot(letter.backgroundColor)?letterSpacings[count-1]:-.5;						
-					if (align=="left") {
-						letter.loc(startX, sY, that);
-						startX = letter.x+letter.width+s;
-					} else if (align=="right") {
-						letter.loc(startX+letter.width, sY, that);
-						startX = letter.x+s;
-					} else {
-						letter.loc(startX+letter.width/2, sY, that);
-						startX = letter.x+letter.width/2+s;
-					}
-																	
-				} // end lines letters
-			} // end lines
-	
-			if (!that.getBounds()) that.setBounds(0,0,0,0);
-			that.regX = that.getBounds().x;
-			that.regY = that.getBounds().y;
+			function doPositions(second) {
+				var count = 0;
+				for (var j=0; j<that.lines.length; j++) {
+					var ll = that.lines[j];
+					if (rtl) ll.reverse(); // ZIM 017 PATCH
+					lineW = lineWidths[j];
+					lineH = lineHeights[j];
+					lineY = linePositionsY[j];
 
-		}
+					var startX, startY;
+					if (lineAlign=="left" || (lineWidth>0 && !second)) startX = 0; // if lineWidth first time just measuring
+					else if (lineAlign=="right") startX = maxW-lineW;
+					else startX = (maxW-lineW)/2;
+					startY = lineY;		
+																				
+					for (i=0; i<ll.length; i++) {
+						count++;
+						if (cache) letter.cache();
+						letter = ll[i];
+						letter.regX = (align=="left")?0:(align=="right"?letter.width:letter.width/2);
+						letter.regY = valign=="top"?0:(valign=="bottom"?letter.height:letter.height/2);				
+						
+						var sY = startY+(valign=="top"?0:valign=="bottom"?letter.height:letter.height/2);
+						if (lineValign=="center" || lineValign=="middle") {
+							sY += (lineHeights[j]-letter.height)/2;
+						} else if (lineValign=="bottom") {
+							sY += lineHeights[j]-letter.height;					
+						}
+						s = letterSpacingsOriginal?letterSpacings[count-1]:zot(letter.backgroundColor)?letterSpacings[count-1]:-.5;						
+						if (align=="left") {
+							letter.loc(startX, sY, that);
+							startX = letter.x+letter.width+s;
+						} else if (align=="right") {
+							letter.loc(startX+letter.width, sY, that);
+							startX = letter.x+s;
+						} else {
+							letter.loc(startX+letter.width/2, sY, that);
+							startX = letter.x+letter.width/2+s;
+						}
+																		
+					} // end lines letters			
+				
+
+				} // end lines
+			}
+			doPositions();
+
+
+			if (lineWidth > 0) {
+				var lines = [];
+				var letters = [];
+				var lastSpace;
+				var row = 0;
+
+				if (rtl) {
+
+					for (var j=0; j<that.lines.length; j++) {
+						var list = that.lines[j];
+						var count = 0;
+						var back = 0;
+						lines[row] = [];
+						letters[row] = [];								
+						lastSpace = null;
+
+						var startX = list[list.length-1].x;
+
+						for (var i=list.length-1; i>=0; i--) {
+							var letter = list[i];	
+							letter.mov(back);
+							lines[row].push(letter);	
+							letters[row].push(letter.text)		
+							if (startX-letter.x > lineWidth) {
+								if (letter.text == " ") {
+									lines[row].pop();
+									letters[row].pop();
+									row++;
+									back += letter.x+letterSpacing;
+									letter.dispose();
+									lines[row] = [];
+									letters[row] = [];								
+									lastSpace = null;
+									count = -1;
+								} else if (lastSpace > 0) {
+									var move = lines[row].splice(lastSpace);
+									var move2 = letters[row].splice(lastSpace);
+									row++;
+									var space = move.shift(); // remove space from start
+									move2.shift();								
+									for (var k=0; k<move.length; k++) {
+										move[k].mov(startX-space.x-letterSpacing);									
+									}
+									back += startX-(space.x+letterSpacing);																
+									space.dispose();
+									lines[row] = move;
+									letters[row] = move2;								
+									lastSpace = null;
+									count = lines[row].length-1;
+								} 
+							}
+							if (letter.text == " ") lastSpace = count;
+							count++;
+						}
+						row++
+					}
+					
+				
+				} else {
+
+					for (var j=0; j<that.lines.length; j++) {
+						var list = that.lines[j];
+						var count = 0;
+						var back = 0;
+						lines[row] = [];
+						letters[row] = [];								
+						lastSpace = null;
+						for (var i=0; i<list.length; i++) {
+							var letter = list[i];	
+							letter.mov(-back);
+							lines[row].push(letter);	
+							letters[row].push(letter.text)		
+							if (letter.x + letter.width > lineWidth) {
+								if (letter.text == " ") {
+									lines[row].pop();
+									letters[row].pop();
+									row++;
+									back += letter.x+letterSpacing;
+									letter.dispose();
+									lines[row] = [];
+									letters[row] = [];								
+									lastSpace = null;
+									count = -1;
+								} else if (lastSpace > 0) {
+									var move = lines[row].splice(lastSpace);
+									var move2 = letters[row].splice(lastSpace);
+									row++;
+									var space = move.shift(); // remove space from start
+									move2.shift();								
+									for (var k=0; k<move.length; k++) {
+										move[k].mov(-space.x-letterSpacing);									
+									}
+									back += space.x+letterSpacing;																
+									space.dispose();
+									lines[row] = move;
+									letters[row] = move2;								
+									lastSpace = null;
+									count = lines[row].length-1;
+								} 
+							}
+							if (letter.text == " ") lastSpace = count;
+							count++;
+						}
+						row++
+					}
+
+				}
+
+
+				that.lines = lines;
+				lineWidths = [];
+				lineHeights = [];
+				linePositionsY = [];
+				maxW = lineWidth;
+
+				var currentHeight = 0;
+				var lastMaxHeight = 0;
+				
+				for (j=0; j<that.lines.length; j++) {					
+					var maxHeight = 0;
+					var totalW = 0;
+					var list = that.lines[j];					
+					for (i=0; i<list.length; i++) {
+						var letter = list[i];	
+						totalW += letter.width + letterSpacing;
+						if (letter.height > maxHeight) maxHeight = letter.height;
+					}		
+					if (list.length==0) maxHeight = lastMaxHeight;			
+					lineWidths[j] = totalW-letterSpacing;
+					lineHeights[j] = maxHeight;
+					linePositionsY[j] = currentHeight;
+					currentHeight += maxHeight + lineSpacing;
+					lastMaxHeight = maxHeight;
+					totalW = 0;
+				}
+
+				doPositions(true); // second time for real
+
+
+			} // end line width 
+	
+			var bou = that.getBounds();
+			if (!bou) that.setBounds(0,0,0,0);
+			if (lineWidth>0) that.setBounds(0,0,lineWidth,bou.height);
+			bou = that.getBounds();
+			that.regX = bou.x;
+			that.regY = bou.y;
+
+		} // end make
 
 		make();
 
@@ -24423,6 +24695,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 		});
 
+		Object.defineProperty(this, 'lineWidth', {
+			get: function () {
+				return lineWidth;
+			},
+			set: function (value) {
+				lineWidth = value;
+				make();
+			}
+		});
+
 		this.dispose = function() {
 			zim.gD(this); // globalDispose function for common elements
 			zim.loop(that.labels, function (letter) {
@@ -24434,7 +24716,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function () {
-			return that.cloneProps(new zim.LabelLetters(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, style, this.group, inherit));
+			return that.cloneProps(new zim.LabelLetters(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, lineWidth, style, this.group, inherit));
 		};
 
 	};
@@ -47060,6 +47342,30 @@ This is so ZIM does not have to keep track of HTML tags each time a container is
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
+// loading a single pic
+const loader = new Loader({
+	label:"UPLOAD PIC HERE",
+	width:700,
+	height:400,
+	corner:50,
+	multiple:false // or don't bother and it just gets the first loaded
+}).center();
+loader.on("loaded", e=>{
+	e.bitmap.centerReg().drag();
+	loader.removeFrom();
+	S.update();
+});
+
+// if wanting a save button
+const saveButton = new Button({label:"SAVE"})
+	.pos(10,10,RIGHT,BOTTOM)
+	.tap(()=>{
+		loader.save(S); // or some other container... can specify crop bounds too
+	});
+END EXAMPLE
+
+EXAMPLE
+// loading multiple pics
 const loader = new Loader({
 	label:"UPLOAD PIC OR DROP PICS HERE",
 	width:700,
@@ -47073,13 +47379,6 @@ loader.on("loaded", e=>{
 	loader.removeFrom();
 	S.update();
 });
-
-// if wanting a save button
-const saveButton = new Button({label:"SAVE"})
-	.pos(10,10,RIGHT,BOTTOM)
-	.tap(()=>{
-		loader.save(S); // or some other container... can specify crop bounds too
-	}
 END EXAMPLE
 
 EXAMPLE
@@ -54783,7 +55082,9 @@ END EXAMPLE
 
 EXAMPLE
 const physics = new Physics().drag();
-const points = [ // fish shape
+// fish shape 
+// make sure points are clockwise in order - if counterClockwise then use myBlob.reversePoints()
+const points = [ 
 	[0.5,-29.2,0,0,-79.1,25.5,79.1,-25.5,"mirror"],[182.3,15.9,0,0,-33.9,-59.6,-31.1,55.6,"free"],
 	[15.4,86.2,0,0,67,10.4,-67,-10.4,"mirror"],[-163.6,73.2,0,0,67.9,-49.9,10.7,-51.8,"free"],
 	[-165.7,-43.9,0,0,11.9,40.8,70.1,43.6,"free"]
@@ -54808,7 +55109,8 @@ shape - (default object shape) - "rectangle" for any object other than Circle, D
  	but can specify a "circle" for a Sprite or Bitmap, for instance - to try and match shape
 	custom polygon bodies can also be made with manual Box2D and then use physics.addMap()
 	but the only shapes available automatically are "rectangle", "circle", "triangle"
-	Note - addPhysics() can be placed on a ZIM Blob as well
+	Note - addPhysics() can be placed on a ZIM Blob as well - see Physics.validate() for more details
+	such as the Blob must have clockwise points - if counterClockwise then use myBlob.reversePoints()
 friction - (default .8) - how sticky will the body act - set to 0 to slide.
 linear - (default .5) - linear damping which slows the movement - set to 0 for no damping
 angular - (default .5) - angular damping which slows the rotation - set to 0 for no damping
@@ -62012,6 +62314,9 @@ See https://zimjs.com/cat/page.html
 
 ZIM Cat 03 intruduces the ZIM Arrow() class for an easy previous/next button system.
 See https://zimjs.com/survey.html 
+
+ZIM 017 added continuous pages 
+See https://zimjs.com/017/continuous.html
 
 As of ZIM ZIM 02 a GlobalManager will be added to handle Pages resize for cached transitions.
 
@@ -88825,6 +89130,23 @@ new Tile(new SVG("file.svg", 100, 100), 4, 4)).center();
 // would be better to preload - see next example
 END EXAMPLE 
 
+EXAMPLE 
+// Adding Physics to an SVG
+// Must import zim_physics or have Physics checked in the Editor 
+// cannot make a Bitmap until SVG is made:
+const physics = new Physics();
+const svg = new SVG("file.svg");
+svg.on("complete", ()=>{
+	const bitmap = new Bitmap(svg).center();
+	const blob = new Blob({
+		points:simplifyPoints(outlineImage(bitmap), 10), 
+		color:faint, 
+		interactive:false
+	}).loc(bitmap).addPhysics();
+	bitmap.addTo(blob);	
+});
+END EXAMPLE 
+
 EXAMPLE
 // pre-load and Tile an SVG
 new Frame(FIT, 1024, 768, light, grey, ready, "file.svg", "assets/");
@@ -89174,7 +89496,7 @@ dispatches "result" when either as each word is spoken if listen() is used (inte
 	Note: iOS (at this time) does not support the listen() and result event
 dispatches "speechend" events when listen() has detected an end to the talking 
 dispatches an "error" event if no words are spoken, etc. the event object has an error property with the error message
-dispatches "start", "end" and "error" on the utterance object returned by talk()
+dispatches "start", "end", "boundary", and "error" on the utterance object returned by talk()
 	Note: there are more features to the Web Speech API - see the HTML docs
 --*///+83.095
 	zim.Speech = function() {
@@ -89241,6 +89563,7 @@ dispatches "start", "end" and "error" on the utterance object returned by talk()
 			var utter = new SpeechSynthesisUtterance();
 			utter.addEventListener("start", function(e) {that.dispatchEvent(e);});
 			utter.addEventListener("end", function(e) {that.dispatchEvent(e);});
+			utter.addEventListener("boundary", function(e) {that.dispatchEvent(e);});
 			utter.addEventListener("error", function(e) {that.dispatchEvent(e);});
 
 			if (voice && typeof voice == "string" && that.voiceLookup) voice = that.voiceLookup[voice];
@@ -89375,7 +89698,7 @@ In ZIM 014 we added a keyboardMessage() method to prompt for an interaction so k
 Also see ZIM Keyboard(), TextEditor(), TextInput() and MotionController() for various keyboard functionality.
 
 EXAMPLE
-keyboardMessage(); // will prompt for keyboard control 
+F.keyboardMessage(); // will prompt for keyboard control 
 F.on("keydown", e=>{
 	zog(e.key) // a string of the keypress 
 	zog(e.keyCode) // the numeric code of the keypress (older but used in lots of examples)
@@ -89436,51 +89759,56 @@ DESCRIPTION
 The Frame has a "devicemotion" event to capture device tilt 
 and a "deviceorientation" to capture device rotation (like a compass)
 
-Also see the PermissionAsk() class which will handle asking for permission on iOS devices.
+Also see the PermissionAsk() class which will handle asking for permission.
 
 NOTE:
 For either event the Frame sensors parameter MUST be set to true
 
 EXAMPLE
-// for capturing tilt on device (rotation about an axis)
-// also SEE the PermissionAsk example below
-// also set Frame sensors parameter to true
-// and be on a mobile device
-const label = new Label().center();
-F.on("deviceorientation", e=>{
-	label.text = e.rotation.x +","+ e.rotation.y +","+ e.rotation.z;
-	S.update();
-});
-END EXAMPLE
+// DEVICE ORIENTATION - gives angle of device in all 3 dimensions
+// Note: this is NOT an orientation event to see if phone is portrait or landscape (see Frame orientation event)
+// Note: must set Frame() sensors true - for example:
+// new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
 
-EXAMPLE
-// on iOS, the sensors must be allowed first - this example works for all devices
-const permissionType = "deviceorientation"; // or "devicemotion"
+const permissionType = "deviceorientation"; 
 const ask = new PermissionAsk(init, permissionType);
-function init(yes) {
-	// if the user answers yes to the PermissionAsk
-	const errorPane = new Pane("SENSOR not available",yellow);
-	if (yes) {		
-		// use the sensors 		
-		label.text = decimals(e.rotation.x) +","+ decimals(e.rotation.y) +","+ decimals(e.rotation.z);
-		S.update();
-	} else { // answered no to PermissionAsk dialog		
+function init(yes) {	
+	const errorPane = new Pane("SENSOR not available",yellow);	
+	if (yes) { // the user answers yes to the PermissionAsk
+		// use the sensors 
+		const label = new Label("test on mobile").centerReg();
+		F.on("deviceorientation", e=>{
+			// use the sensors 		
+			label.text = label.text = "x: "+decimals(e.rotation.x) +"\ny: "+ decimals(e.rotation.y) +"\nz: "+ decimals(e.rotation.z);
+			S.update();
+		});
+	} else { // the user answered no to PermissionAsk dialog		
 		errorPane.show();
 	}	
 }
 END EXAMPLE
 
 EXAMPLE
-// for shaking motion - ALSO see the PermissionAsk example above for iOS
-// and replace "deviceorientation" with "devicemotion" 
-// and replace e.rotation.x, etc. with e.acceleration.x etc.
-// also set Frame sensors parameter to true
-// and be on a mobile device
-const label = new Label().center();
-F.on("devicemotion", e=>{
-	label.text = e.acceleration.x +","+ e.acceleration.y +","+ e.acceleration.z;
-	S.update();
-});
+// DEVICE MOTION - gives accelerometer values in all 3 dimensions
+// Note: must set Frame() sensors true - for example:
+// new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
+
+const permissionType = "devicemotion"; 
+const ask = new PermissionAsk(init, permissionType);
+function init(yes) {	
+	const errorPane = new Pane("SENSOR not available",yellow);	
+	if (yes) { // the user answers yes to the PermissionAsk
+		// use the sensors 
+		const label = new Label("test on mobile").centerReg();
+		F.on("devicemotion", e=>{
+			// use the sensors 		
+			label.text = "x: "+decimals(e.acceleration.x, 3) +"\ny: "+ decimals(e.acceleration.y, 3) +"\nz: "+ decimals(e.acceleration.z, 3);
+			S.update();
+		});
+	} else { // the user answered no to PermissionAsk dialog		
+		errorPane.show();
+	}	
+}
 END EXAMPLE
 
 EVENTS 
@@ -89510,30 +89838,59 @@ This is for iOS only - if not in iOS then will just pass through the test.
 
 NOTE: this started as SensorAsk but the class has been adjusted to handle other permissions and the name has been changed in ZIM 016
 
+NOTE: for deviceorientation and devicemotion the Frame sensors parameter must be set to true
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-// on iOS, the sensors must be allowed first
-const permissionType = "deviceorientation"; // or "devicemotion"
+// DEVICE ORIENTATION - gives angle of device in all 3 dimensions
+// Note: this is NOT an orientation event to see if phone is portrait or landscape (see Frame orientation event)
+// Note: must set Frame() sensors true - for example:
+// new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
+
+const permissionType = "deviceorientation"; 
 const ask = new PermissionAsk(init, permissionType);
-function init(yes) {
-	// if the user answers yes to the PermissionAsk
-	const errorPane = new Pane("SENSOR not available",yellow);
-	if (yes) {		
+function init(yes) {	
+	const errorPane = new Pane("SENSOR not available",yellow);	
+	if (yes) { // the user answers yes to the PermissionAsk
 		// use the sensors 
-		const label = new Label({text:"test on mobile", align:CENTER}).centerReg();
+		const label = new Label("test on mobile").centerReg();
+		F.on("deviceorientation", e=>{
+			// use the sensors 		
+			label.text = label.text = "x: "+decimals(e.rotation.x) +"\ny: "+ decimals(e.rotation.y) +"\nz: "+ decimals(e.rotation.z);
+			S.update();
+		});
+	} else { // the user answered no to PermissionAsk dialog		
+		errorPane.show();
+	}	
+}
+END EXAMPLE
+
+EXAMPLE
+// DEVICE MOTION - gives accelerometer values in all 3 dimensions
+// Note: must set Frame() sensors true - for example:
+// new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
+
+const permissionType = "devicemotion"; 
+const ask = new PermissionAsk(init, permissionType);
+function init(yes) {	
+	const errorPane = new Pane("SENSOR not available",yellow);	
+	if (yes) { // the user answers yes to the PermissionAsk
+		// use the sensors 
+		const label = new Label("test on mobile").centerReg();
 		F.on("devicemotion", e=>{
 			// use the sensors 		
-			label.text = decimals(e.rotation.x) +","+ decimals(e.rotation.y) +","+ decimals(e.rotation.z);
+			label.text = "x: "+decimals(e.acceleration.x, 3) +"\ny: "+ decimals(e.acceleration.y, 3) +"\nz: "+ decimals(e.acceleration.z, 3);
 			S.update();
-		})
-	} else { // answered no to PermissionAsk dialog		
+		});
+	} else { // the user answered no to PermissionAsk dialog		
 		errorPane.show();
 	}	
 }
 END EXAMPLE
 
 EXAMPLE 
+// on iOS, the app must be interacted with before using mic or cam
 // goes right to permissions on computer and android
 // pops up a PermissionAsk Pane on iOS then if yes, goes to permissions on iOS
 new PermissionAsk(init, "cam");
@@ -89549,7 +89906,7 @@ EXAMPLE
 // but pops up a PermissionAsk Pane on iOS then if yes, goes to permissions on iOS
 new PermissionAsk(init, "mic"); // or "cam" or "miccam"
 function init(val) {
-	zog(val); // media stream if yes to permissions otherwise false
+	new Label(val).center(); // media stream if yes to permissions otherwise false
 	S.update();
 }
 END EXAMPLE
@@ -89558,8 +89915,8 @@ PARAMETERS - accepts ZIM DUO regular parameters in order or a configuration obje
 callback - the function to callback when permission is accepted
 	if the permissionType is deviceorientation or devicemotion this will receive true for accept or false for no permission 
 	if the permissionType is audio, video or audiovideo this will receive a stream if accepted or false if not
-	for not iOS, the system permissions will appear 
-	for iOS the PermissionAsk Pane will be shown and the system permissions 
+	for not iOS, the system permissions will appear if needed
+	for iOS the PermissionAsk Pane will be shown and then system permissions 
 	in all cases, the callback will be called on result 
 	the parameter given to the callback will be true (sensors) or a media stream (mic / cam) or false if not accepted
 permissionType - (default "deviceorientation") the string deviceorientation, devicemotion, mic, cam, or miccam
@@ -89601,7 +89958,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 	zim.PermissionAsk = function(callback, permissionType, color, backgroundColor, style, group, inherit) {
 		var sig = "callback, permissionType, color, backgroundColor, style, group, inherit";
 		var duo; if (duo = zob(zim.PermissionAsk, arguments, sig, this)) return duo;
-		z_d("83.01");
+		z_d("83.01");		
 		
 		this.group = group;
 		var DS = style===false?{}:zim.getStyle("PermissionAsk", this.group, inherit);	
@@ -89626,79 +89983,104 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 			borderColor:color,
 			borderWidth:2         
 		});
-        var pt = permissionType;
-		that.yes = new zim.Button({label:"YES", group:"PermissionAsk"}).sca(.65).pos(0,30,CENTER,TOP,this).tap(function() {
-			that.hide(true);            
-            if (pt == "mic" || pt == "cam" || pt == "miccam") {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({audio: (pt=="mic" || pt=="miccam"), video:(pt=="cam" || pt=="miccam") })
-                        .then(function(stream) {
-                            callback(stream);
-                        })
-                        .catch(function(err) {
-                            callback(false);
-                        });
-                } else callback(false);
-            } else {
-                var s = DeviceMotionEvent;
-                if (pt != "devicemotion") s = DeviceOrientationEvent;
-                s.requestPermission().then(function(result) {
-                    if (result != "denied") callback(true);
-                    else callback(false);
-                }); 
-            }
-		});
-        var words = {deviceorientation:"sensors", devicemotion:"sensors", mic:"mic", cam:"cam", miccam:"mic/cam"};      
+		var pt = permissionType;
+		var okay = false;
+		that.yes = new zim.Button({label:"YES", group:"PermissionAsk"}).sca(.65).pos(0,30,CENTER,TOP,this);
+		var words = {deviceorientation:"sensors", devicemotion:"sensors", mic:"mic", cam:"cam", miccam:"mic/cam"};      
 		that.label = new zim.Label("Use " + (words[pt]?words[pt]:"feature") + "?", 30, null, color, null, null, null, "center").sca(.9).centerReg(this);
-		that.no = new zim.Button({label:"NO", group:"PermissionAsk"}).sca(.65).pos(0,30,CENTER,BOTTOM,this).tap(function() {
-			that.hide(false);
-			callback(false);
-		});
+		that.no = new zim.Button({label:"NO", group:"PermissionAsk"}).sca(.65).pos(0,30,CENTER,BOTTOM,this);
 		
 		new zim.Circle(110, zim.clear, color, 1).center(this).alp(.8);
 		new zim.Circle(120, zim.clear, color, 1).center(this).alp(.5);
 		new zim.Circle(130, zim.clear, color, 1).center(this).alp(.2);        
 		if (style!==false) zim.styleTransforms(this, DS);
 
-        if (pt == "mic" || pt == "cam" || pt == "miccam") {
-            if (M=="ios") {
-                that.show();
-                return;
-            }
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({audio: (pt=="mic" || pt=="miccam"), video:(pt=="cam" || pt=="miccam") })
-                    .then(function(stream) {
-                        callback(stream);
-                    })
-                    .catch(function(err) {
-                        callback(false);
-                    });
-            } else callback(false);
-            return;
-        }
+		var frame = WW.zdf;
+		if (pt == "mic" || pt == "cam" || pt == "miccam") {
+			if (M=="ios") {				
+				setPane();
+				return;
+			}
+			if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+				navigator.mediaDevices.getUserMedia({audio: (pt=="mic" || pt=="miccam"), video:(pt=="cam" || pt=="miccam") })
+					.then(function(stream) {
+						callback(stream);
+					})
+					.catch(function(err) {
+						callback(false);
+					});
+			} else callback(false);
+			return;
+		}
 
-        // sensors only		
+		// sensors only		
 		if (typeof DeviceOrientationEvent != "undefined" && DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission == "function") {
-			that.show();
+			setPane();
 		} else {
 			var called = false;
 			WW.addEventListener(permissionType, testMe);
 			// instead of testing for mobile - some laptops like chromebook have sensors so test for a reading
 			function testMe(e) {
+				if (okay) return;
 				if (permissionType=="deviceorientation") {
 					if (e.alpha==null || (e.alpha==0&&e.beta==0&&e.gamma==0)) callback(false);
-					else callback(true);
+					else setEvents();
 				} else {
-					if (!e.acceleration || e.acceleration.x==null || (e.acceleration.x==0&&e.acceleration.y==0&&e.acceleration.z==0)) callback(false);
-					else callback(true);
+					// if (!e.acceleration || e.acceleration.x==null || (e.acceleration.x==0&&e.acceleration.y==0&&e.acceleration.z==0)) callback(false);
+					if (!e.acceleration || e.acceleration.x==null) callback(false);
+					else setEvents();
 				}	
 				called = true;
-				WW.removeEventListener(permissionType, testMe);					               
-            }
+				WW.removeEventListener(permissionType, testMe);				               
+			}
 			setTimeout(function(){
 				if (!called) callback(false);
 			}, 100);
 		}
+
+		function setEvents() {			
+			callback(true);
+		}
+
+		function setPane() {
+			frame.canvas.style.pointerEvents = "none";
+			that.show();
+			document.addEventListener("mousedown", kmd);
+		}
+
+		function kmd (e) {
+			frame.canvas.style.pointerEvents = "auto"; 	
+			document.removeEventListener("mousedown", kmd);				
+			that.hide(true);    
+			if (e.clientY-frame.y <= that.y*frame.scale/2) { // yes
+				if (pt == "mic" || pt == "cam" || pt == "miccam") {
+					if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+						navigator.mediaDevices.getUserMedia({audio: (pt=="mic" || pt=="miccam"), video:(pt=="cam" || pt=="miccam") })
+							.then(function(stream) {														
+								callback(stream);
+							})
+							.catch(function(err) {
+								callback(false);
+							});
+					} else callback(false);
+				} else {
+					var s = DeviceMotionEvent;
+					if (pt != "devicemotion") s = DeviceOrientationEvent;
+					s.requestPermission().then(function(result) {
+						if (result != "denied") {
+							setEvents();
+							okay = true;
+						}
+						else callback(false);
+					}).catch(function(e){
+						callback(false);
+					}); 
+				}
+			} else {
+				callback(false);
+			}
+		}
+
 	}
 	zim.extend(zim.PermissionAsk, zim.Pane, null, "zimPane", false);//-83.01
 
@@ -94788,6 +95170,10 @@ keyOut(color, tolerance, replacement) - remove color from Cam's bitmap and a tol
 	replacement (default clear) a color to replace the keyed out color with or an optional array to match the colors array if an array is used
 setFacingMode(mode) - set to "user", "exact_user", "environment", "exact_environment", "auto" to choose camera on mobile
 	see facingMode parameter for more info
+getCanvas() - caches the cam display and adds updateCache to a cam.canvasTicker 
+	use this if a canvas showing what the cam sees is needed
+	for instance with computer vision libraries like ML5 or TenserFlow, etc.
+forgetCanvas() - turn off getCanvas() cam display cache and Ticker function
 dispose() - close the cam and remove events
 
 ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:

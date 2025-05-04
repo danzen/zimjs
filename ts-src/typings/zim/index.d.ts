@@ -1432,6 +1432,7 @@ declare namespace zim {
 		keyOut(color?: string, tolerance?: number, replacement?: color): this
 		getColorAt(x: number, y: number, array?: boolean): string | [number]
 		drawImageData(x?: number, y?: number, sourceX?: number, srcY?: number, srcWidth?: number, srcHeight?: number): void
+        addBitmapData(): Bitmap
 		static fromData(data: any, callback: Function): void
 		imageData: { data: [number] }
 		svg: SVGElement
