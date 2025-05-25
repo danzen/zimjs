@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "17.3.4",
+  "version": "18.0.0",
   "type": "module",
   "main": "./src/zim.js",
   "types": "./ts-src/typings/zim",
@@ -41,7 +41,8 @@
     "VR",
     "XR",
     "AR",
-    "Rive"
+    "Rive",
+    "ML5"
   ],
   "author": "Dr Abstract - Dan Zen",
   "license": "ISC"

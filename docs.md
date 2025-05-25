@@ -1,4 +1,4 @@
-ZIM DOCS 017
+ZIM DOCS 018
 
 http://zimjs.com/docs.html
 http://zimjs.com/updates.html
@@ -89,7 +89,7 @@ MODULE 1: ZIM FRAME
 ------------------------------------
 
 ************************************
-[85188] Frame(scaling, width, height, color, outerColor, ready, assets, path, progress, ticker, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, sensors, retina, mouseMoveOutside, captureMouse, shim, maxConnections, maxNum, singleTouch)
+[86277] Frame(scaling, width, height, color, outerColor, ready, assets, path, progress, ticker, rollover, touch, scrollTop, align, valign, canvasID, rollPerSecond, delay, canvasCheck, gpu, gpuObj, nextFrame, nextStage, allowDefault, loadFailObj, retina, mouseMoveOutside, captureMouse, shim, maxConnections, maxNum, singleTouch)
 
 Frame
 zim class - extends a createjs EventDispatcher
@@ -469,6 +469,7 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
    It is recommended to use the Queue any time you use multiple LoadAssets() calls at the same time
    You still access assets with asset() as outlined below whether you use the Queue or not
 asset(file, width, height, maxNum) - access an asset such as an image or sound - see loadAssets() for more on types
+   note: asset() is a general alternative to new Pic(), new Aud(), new Dat() - also see new Vid() and new SVG()
    file is the string name or url to the file   
       if the asset was loaded with a string then use the string (less the path if provided)
       if the asset was loaded with a full URL then use the full URL here
@@ -694,7 +695,7 @@ EVENTS
    and then perhaps constrain the value - here the scale is constrained between .5 and 5
    note - when changing scale, it is better to multiply by a factor rather than add to the scale
    eg. circle.scale = constrain(circle.scale*(sign(e.deltaY)>0?.75:1.25), .5, 5);
-"deviceorientation" - MUST SET Frame sensors parameter to true
+"deviceorientation" - turned on when using ZIM PermissionAsk()
    fired as device orientation changes:
    eventObject.rotation.x (beta in HTML specs) holds rotation about the x axis between -180 and 180 (tipped forward or backward)
    eventObject.rotation.y (gamma in HTML specs) holds rotation about the y axis between -90 and 90 (tipped left or right)
@@ -703,14 +704,16 @@ EVENTS
       note also that beta, gamma and alpha from the HTML 5 specs are also provided
    eg.
    var label = new Label().center();
+   // Note: MUST USE PermissionAsk()
    F.on("deviceorientation", function(e) {
       label.text = e.rotation.x +","+ e.rotation.y +","+ e.rotation.z;
       S.update();
    });
-"devicemotion" - MUST SET Frame sensors parameter to true
+"devicemotion" -  turned on when using ZIM PermissionAsk()
    fired on moving mobile device - like a tilt or shake - eventObject.acceleration holds x, y and z properties of motion
    eg.
    var label = new Label().center();
+   // Note: MUST USE PermissionAsk()
    F.on("devicemotion", function(e) {
       label.text = e.acceleration.x +","+ e.acceleration.y +","+ e.acceleration.z;
       S.update();
@@ -738,7 +741,7 @@ MORE: http://zimjs.com/code/bits.html?title=Frame
 
 
 ************************************
-[88035] Pic(file, width, height, noCors, style, group, inherit)
+[89124] Pic(file, width, height, noCors, style, group, inherit)
 
 Pic
 zim class - extends a zim.Container which extends a createjs.Container
@@ -921,7 +924,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[88295] Aud(file, volume, loop, loopCount, pan, offset, delay, interrupt, maxNum, style, group, inherit)
+[89384] Aud(file, volume, loop, loopCount, pan, offset, delay, interrupt, maxNum, style, group, inherit)
 
 Aud
 zim class - extends a createjs.EventDispatcher
@@ -1169,7 +1172,7 @@ loop - dispatched when the sound loops (but not at end of last loop - that is co
 
 
 ************************************
-[88663] Vid(file, width, height, volume, loop, align, valign, type, style, group, inherit)
+[89752] Vid(file, width, height, volume, loop, align, valign, type, style, group, inherit)
 
 Vid
 zim class - extends a zim.Container which extends a createjs.Container
@@ -1382,7 +1385,86 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[89051] SVG(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, style, group, inherit)
+[90146] Dat(file)
+
+Dat
+zim class - extends a createjs EventDispatcher
+
+DESCRIPTION
+Use Dat() to load data files like text, csv, XML and json.
+Then use the data property to get the data.
+
+Before ZIM version ZIM 018 the Frame asset() method was used for data
+and asset(file) can still be used - the Dat() class is a wrapper class to match Pic(), Aud(), etc.
+It is just a dozen lines long.
+
+PRELOADING
+It is recommended that you preload data files using the Frame() assets and path parameters.
+After the frame loads, data files can also be loaded on demand with F.loadAssets().
+
+LAZY-LOADING
+The data file can be lazy loaded at which point the data property will be available in a complete or ready event
+
+Dat will give a "ready" and a "complete" event when loaded.
+These events are triggered 20 ms after making the object if the object is already preloaded.
+
+See: https://zimjs.com/018/dat.html
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// loading a text file with some text
+new Frame(FIT, 1024, 768, light, dark, ready, "data.txt", "assets/");
+function ready() {
+   const data = new Dat("data.txt").data;
+   new Label(data).center();
+}
+
+EXAMPLE
+// loading a JSON file with {"test":"complete"}
+new Frame(FIT, 1024, 768, light, dark, ready, "data.json", "assets/");
+function ready() {
+   const data = new Dat("data.json").data;
+   new Label(data.test).center(); // will say complete
+}
+
+EXAMPLE
+// loading an XML file with <test>complete</test>
+new Frame(FIT, 1024, 768, light, dark, ready, "data.xml", "assets/");
+function ready() {
+   const data = new Dat("data.xml").data;
+   // also children property and getAttribute() method, etc.
+   new Label(data.innerHTML).center(); // will say complete
+}
+// also see https://zimjs.com/018/dat.html for looping through multiple tags
+
+EXAMPLE
+// lazy loading a text file with some text
+new Frame(FIT, 1024, 768, light, dark, ready);
+function ready() {
+   const text = new Dat("assets/data.txt");
+   data.on("complete", ()=>{
+      new Label(text.data).center();
+   });   
+}
+
+PARAMETERS
+file - the file provided to the Frame class (or Frame loadAssets method) assets parameter
+   or if not preloaded then the file to lazy load - then must wait for the complete or ready event
+
+PROPERTIES
+type - holds the class name as a String
+data - the data such as the text for a txt file or will be a JSON parsed object for a JSON file
+
+EVENTS
+dispatches a "complete" and a "ready" event
+   used primarily for lazy loading of the file
+   if preloaded then the Frame or loadAsssets ready event is all that is needed
+   there will be a complete or ready event on the Dat() dispatched 20 ms later for compatibility
+
+
+************************************
+[90258] SVG(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, style, group, inherit)
 
 SVG
 zim class - extends a zim.Container which extends a createjs.Container
@@ -1563,7 +1645,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[89395] Speech()
+[90604] Speech()
 
 Speech
 zim class - extends a createjs.EventDispatcher
@@ -1657,13 +1739,14 @@ dispatches "result" when either as each word is spoken if listen() is used (inte
    and a confidence property that is a ratio (0-1) for confidence in the result
    Note: iOS (at this time) does not support the listen() and result event
 dispatches "speechend" events when listen() has detected an end to the talking
+dispatches "start", "end" events
+dispatches a "boundary" event between words
 dispatches an "error" event if no words are spoken, etc. the event object has an error property with the error message
-dispatches "start", "end" and "error" on the utterance object returned by talk()
-   Note: there are more features to the Web Speech API - see the HTML docs
+Note: there are more features to the Web Speech API - see the HTML docs
 
 
 ************************************
-[89614] Fonts - loaded into Frame()
+[90825] Fonts - loaded into Frame()
 
 Fonts
 For a Label object or components with labels
@@ -1719,7 +1802,7 @@ F.on("complete", ()=>{
 
 
 ************************************
-[89677] Keys - keyboard methods and events
+[90888] Keys - keyboard methods and events
 
 Keys
 "keydown" and "keyup" Frame events
@@ -1731,7 +1814,7 @@ and a keyboardMessage() method to prompt for keyboard interactivity.
 When an app is first loaded it cannot receive keyboard events until it is interacted with.
 Interaction must be a mousedown or click - not just an over or move interaction.
 Often, we will make an intro Pane() or play Button() for a game, for instance, before playing sounds.
-In ZIM 014 we added a keyboardMessage() method to prompt for an interaction so key events are activated.
+In ZIM 014 we added a keyboardMessage() method to the Frame to prompt for an interaction so key events are activated.
 
 Also see ZIM Keyboard(), TextEditor(), TextInput() and MotionController() for various keyboard functionality.
 
@@ -1747,7 +1830,7 @@ F.on("keydown", e=>{
 
 
 ************************************
-[89708] Cursors - custom cursors
+[90919] Cursors - custom cursors
 
 Cursors
 Frame property
@@ -1782,7 +1865,7 @@ const rect = new Rectangle(500,500,red).center().cur("box"); // apply the box cu
 
 
 ************************************
-[89746] Tilt - device motion and orientation events
+[90957] Tilt - device motion and orientation events
 
 Tilt
 "devicemotion" and "deviceorientation" Frame events
@@ -1791,55 +1874,53 @@ DESCRIPTION
 The Frame has a "devicemotion" event to capture device tilt
 and a "deviceorientation" to capture device rotation (like a compass)
 
-Also see the PermissionAsk() class which will handle asking for permission.
+Also see the PermissionAsk() class which will handle asking for permission on iOS devices.
 
 NOTE:
 For either event the Frame sensors parameter MUST be set to true
 
 EXAMPLE
-// DEVICE ORIENTATION - gives angle of device in all 3 dimensions
-// Note: this is NOT an orientation event to see if phone is portrait or landscape (see Frame orientation event)
-// Note: must set Frame() sensors true - for example:
-// new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
+// for capturing tilt on device (rotation about an axis)
+// also SEE the PermissionAsk example below
+// also set Frame sensors parameter to true
+// and be on a mobile device
+const label = new Label().center();
+F.on("deviceorientation", e=>{
+   label.text = e.rotation.x +","+ e.rotation.y +","+ e.rotation.z;
+   S.update();
+});
 
-const permissionType = "deviceorientation";
+EXAMPLE
+// on iOS, the sensors must be allowed first - this example works for all devices
+const label = new Label().center();
+const permissionType = "deviceorientation"; // or "devicemotion"
 const ask = new PermissionAsk(init, permissionType);
-function init(yes) {   
-   const errorPane = new Pane("SENSOR not available",yellow);   
-   if (yes) { // the user answers yes to the PermissionAsk
-      // use the sensors
-      const label = new Label("test on mobile").centerReg();
+function init(yes) {
+   // if the user answers yes to the PermissionAsk
+   const errorPane = new Pane("SENSOR not available",yellow);
+   if (yes) {      
+      // use the sensors       
       F.on("deviceorientation", e=>{
-         // use the sensors       
-         label.text = label.text = "x: "+decimals(e.rotation.x) +"\ny: "+ decimals(e.rotation.y) +"\nz: "+ decimals(e.rotation.z);
+         label.text = e.rotation.x +","+ e.rotation.y +","+ e.rotation.z;
          S.update();
       });
-   } else { // the user answered no to PermissionAsk dialog      
+      S.update();
+   } else { // answered no to PermissionAsk dialog      
       errorPane.show();
    }   
 }
 
 EXAMPLE
-// DEVICE MOTION - gives accelerometer values in all 3 dimensions
-// Note: must set Frame() sensors true - for example:
-// new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
-
-const permissionType = "devicemotion";
-const ask = new PermissionAsk(init, permissionType);
-function init(yes) {   
-   const errorPane = new Pane("SENSOR not available",yellow);   
-   if (yes) { // the user answers yes to the PermissionAsk
-      // use the sensors
-      const label = new Label("test on mobile").centerReg();
-      F.on("devicemotion", e=>{
-         // use the sensors       
-         label.text = "x: "+decimals(e.acceleration.x, 3) +"\ny: "+ decimals(e.acceleration.y, 3) +"\nz: "+ decimals(e.acceleration.z, 3);
-         S.update();
-      });
-   } else { // the user answered no to PermissionAsk dialog      
-      errorPane.show();
-   }   
-}
+// for shaking motion - ALSO see the PermissionAsk example above for iOS
+// and replace "deviceorientation" with "devicemotion"
+// and replace e.rotation.x, etc. with e.acceleration.x etc.
+// also set Frame sensors parameter to true
+// and be on a mobile device
+const label = new Label().center();
+F.on("devicemotion", e=>{
+   label.text = e.acceleration.x +","+ e.acceleration.y +","+ e.acceleration.z;
+   S.update();
+});
 
 EVENTS
 "devicemotion" - for tilt (also set Frame sensors parameter to true)
@@ -1854,7 +1935,7 @@ EVENTS
 
 
 ************************************
-[89822] PermissionAsk(callback, permissionType, color, backgroundColor, style, group, inherit)
+[91032] PermissionAsk(callback, permissionType, color, backgroundColor, style, group, inherit)
 
 PermissionAsk
 zim class - extends a zim.Pane which extends a zim.Container
@@ -1864,16 +1945,17 @@ A circular confirmation widget to ask the user if they want a permission for iOS
 For some iOS permissions, the app needs to be interactive with first before permission can be asked!
 This is for iOS only - if not in iOS then will just pass through the test.
 
-NOTE: this started as SensorAsk but the class has been adjusted to handle other permissions and the name has been changed in ZIM 016
+Also adds Frame deviceorientation and devicemotion events for a matching permissionType.
+Pre ZIM 018, this was done with a sensors parameter on the Frame.
+The sensors parameter has now been removed and the events are handled with PermissionAsk.
 
-NOTE: for deviceorientation and devicemotion the Frame sensors parameter must be set to true
+NOTE: this started as SensorAsk but the class has been adjusted to handle other permissions and the name has been changed in ZIM 016
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
 // DEVICE ORIENTATION - gives angle of device in all 3 dimensions
 // Note: this is NOT an orientation event to see if phone is portrait or landscape (see Frame orientation event)
-// Note: must set Frame() sensors true - for example:
 // new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
 
 const permissionType = "deviceorientation";
@@ -1882,7 +1964,7 @@ function init(yes) {
    const errorPane = new Pane("SENSOR not available",yellow);   
    if (yes) { // the user answers yes to the PermissionAsk
       // use the sensors
-      const label = new Label("test on mobile").centerReg();
+      const label = new Label("on mobile").centerReg();
       F.on("deviceorientation", e=>{
          // use the sensors       
          label.text = label.text = "x: "+decimals(e.rotation.x) +"\ny: "+ decimals(e.rotation.y) +"\nz: "+ decimals(e.rotation.z);
@@ -1895,7 +1977,6 @@ function init(yes) {
 
 EXAMPLE
 // DEVICE MOTION - gives accelerometer values in all 3 dimensions
-// Note: must set Frame() sensors true - for example:
 // new Frame({scaling:FIT, width:1024, height:768, color:white, outerColor:dark, ready:ready, sensors:true});
 
 const permissionType = "devicemotion";
@@ -1904,7 +1985,7 @@ function init(yes) {
    const errorPane = new Pane("SENSOR not available",yellow);   
    if (yes) { // the user answers yes to the PermissionAsk
       // use the sensors
-      const label = new Label("test on mobile").centerReg();
+      const label = new Label("on mobile").centerReg();
       F.on("devicemotion", e=>{
          // use the sensors       
          label.text = "x: "+decimals(e.acceleration.x, 3) +"\ny: "+ decimals(e.acceleration.y, 3) +"\nz: "+ decimals(e.acceleration.z, 3);
@@ -1939,8 +2020,8 @@ PARAMETERS - accepts ZIM DUO regular parameters in order or a configuration obje
 callback - the function to callback when permission is accepted
    if the permissionType is deviceorientation or devicemotion this will receive true for accept or false for no permission
    if the permissionType is audio, video or audiovideo this will receive a stream if accepted or false if not
-   for not iOS, the system permissions will appear if needed
-   for iOS the PermissionAsk Pane will be shown and then system permissions
+   for not iOS, the system permissions will appear
+   for iOS the PermissionAsk Pane will be shown and the system permissions
    in all cases, the callback will be called on result
    the parameter given to the callback will be true (sensors) or a media stream (mic / cam) or false if not accepted
 permissionType - (default "deviceorientation") the string deviceorientation, devicemotion, mic, cam, or miccam
@@ -1981,7 +2062,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 
 ************************************
-[90081] Colors - red, salmon, orange, green, pink, blue, brown, yellow, purple, interstellar, black, darker, licorice, dark, charcoal, grey, gray, granite, tin, pewter, silver, fog, mist, light, moon, lighter, white, faint, clear
+[91315] Colors - red, salmon, orange, green, pink, blue, brown, yellow, purple, interstellar, black, darker, licorice, dark, charcoal, grey, gray, granite, tin, pewter, silver, fog, mist, light, moon, lighter, white, faint, clear
 
 Colors - red, salmon, orange, green, pink, blue, brown, yellow, purple, interstellar, black, darker, licorice, dark, charcoal, grey, gray, granite, tin, pewter, silver, fog, mist, light, moon, lighter, wh¡te, faint, clear
 zim constants (lowercase)
@@ -2043,7 +2124,7 @@ new Circle(100, blue.toColor(red, .2)).center();
 
 
 ************************************
-[90184] Constants - FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, START, END, TOP, BOTTOM, OVER, UNDER, HORIZONTAL, VERTICAL, BOTH, RANDOM, RADIAL, UP, DOWN, NEXT, PREV, AUTO, DEFAULT, ALL, NONE, AVE, GET, POST, LOCALSTORAGE, SOCKET, TO, FROM, BOTH, SINE, SQUARE, TRIANGLE, SAW, ZAP, IGNORE
+[91418] Constants - FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, START, END, TOP, BOTTOM, OVER, UNDER, HORIZONTAL, VERTICAL, BOTH, RANDOM, RADIAL, UP, DOWN, NEXT, PREV, AUTO, DEFAULT, ALL, NONE, AVE, GET, POST, LOCALSTORAGE, SOCKET, TO, FROM, BOTH, SINE, SQUARE, TRIANGLE, SAW, ZAP, IGNORE
 
 Constants - FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, START, END, TOP, BOTTOM, OVER, UNDER, HORIZONTAL, VERTICAL, BOTH, RANDOM, RADIAL, UP, DOWN, NEXT, PREV, AUTO, DEFAULT, ALL, NONE, AVE, GET, POST, LOCALSTORAGE, SOCKET, TO, FROM, BOTH, SINE, SQUARE, TRIANGLE, SAW, ZAP, IGNORE
 zim constants
@@ -2054,7 +2135,7 @@ These DO NOT require the zim namespace, even if zns=true is set or if using node
 These are all equal to strings with lowercase values.
 So using TOP is the same as using "top"
 
-Positioning: FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, START, END, TOP, BOTTOM, OVER, UNDER, HORIZONTAL, VERTICAL, BOTH, RANDOM, RADIAL, UP, DOWN, NEXT, PREV, AUTO, DEFAULT, ALL, NONE, AVE
+Positioning: FIT, FILL, FULL, LEFT, RIGHT, CENTER, MIDDLE, JUSTIFY, START, END, TOP, BOTTOM, OVER, UNDER, HORIZONTAL, VERTICAL, BOTH, RANDOM, RADIAL, UP, DOWN, NEXT, PREV, AUTO, DEFAULT, ALL, NONE, AVE
 Data: GET, POST, LOCALSTORAGE, SOCKET, TO, FROM, BOTH
 Sound: SINE, SQUARE, TRIANGLE, SAW, ZAP
 Style: IGNORE
@@ -2072,7 +2153,7 @@ new Tip("hello", "right", "middle").show();
 
 
 ************************************
-[90255] Globals - F, S, W, H, M
+[91490] Globals - F, S, W, H, M
 
 Globals - F, S, W, H, M
 zim globals
@@ -2150,14 +2231,14 @@ MODULE 2: ZIM DISPLAY
 ------------------------------------
 
 ************************************
-[09036] Coordinates(canvasID)
+[09038] Coordinates(canvasID)
 
 Helper functions for localToGlobal, globalToLocal and localToLocal
 
 
 
 ************************************
-[09083] displayBase()
+[09085] displayBase()
 
 displayBase
 zim function
@@ -2173,7 +2254,7 @@ Might have set these on CreateJS DisplayObject
 
 
 ************************************
-[09296] gD()
+[09298] gD()
 
 gD
 zim function
@@ -2184,7 +2265,7 @@ Used internally by ZIM to globally dispose common connections
 
 
 ************************************
-[09332] Stage(canvasID, touch, singleTouch)
+[09334] Stage(canvasID, touch, singleTouch)
 
 Stage
 zim class - extends a createjs.Stage which extends a createjs.Container
@@ -2240,7 +2321,7 @@ click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pre
 
 
 ************************************
-[09491] StageGL(canvasID, options, touch, singleTouch)
+[09493] StageGL(canvasID, options, touch, singleTouch)
 
 StageGL
 zim class - extends a zim.Stage which extends a createjs.Stage
@@ -2302,7 +2383,7 @@ click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pre
 
 
 ************************************
-[09654] Container(a, b, c, d, style, group, inherit)
+[09656] Container(a, b, c, d, style, group, inherit)
 
 Container
 zim class - extends a createjs.Container
@@ -2534,7 +2615,7 @@ MORE: http://zimjs.com/code/bits.html?title=Container
 
 
 ************************************
-[10281] Shape(a, b, c, d, graphics, optimize, style, group, inherit)
+[10283] Shape(a, b, c, d, graphics, optimize, style, group, inherit)
 
 Shape
 zim class - extends a createjs.Shape
@@ -2723,7 +2804,7 @@ MORE: http://zimjs.com/code/bits.html?title=Shape
 
 
 ************************************
-[10641] Bitmap(image, width, height, left, top, scale, style, group, inherit)
+[10643] Bitmap(image, width, height, left, top, scale, style, group, inherit)
 
 Bitmap
 zim class - extends a createjs.Bitmap
@@ -2874,6 +2955,12 @@ keyOut(color, tolerance, replacement) - remove color from Bitmap and a tolerance
    the default tolerance is .1 - the higher the tolerance the less sensitive the keying process - so more colors will be removed similar to the provided color
    color and tolerance can be an array of colors and tolerances (or just one tolerance if all are the same)
    replacement (default clear) a color to replace the keyed out color with or an optional array to match the colors array if an array is used
+removeGreenScreen(smoothing, hueMin, hueMax, satMin, lightMin) - alternative to keyOut() that keys out green
+   smoothing (default 0) Edge smoothing factor (0-10) - higher values create smoother edges around subjects
+hueMin (default 80) Minimum hue value (0-360) for green detection - sets the lower bound of green hues
+hueMax (default 160) Maximum hue value (0-360) for green detection - sets the upper bound of green hues
+satMin (default 30) Minimum saturation value (0-100) - avoids detecting desaturated/grayish pixels as green
+lightMin (default 15) Minimum lightness value (0-100) - avoids detecting very dark pixels as green
 fromData(data, callback) - STATIC method so use the Bitmap class directly: Bitmap.fromData()
    The callback will receive a reference to the Bitmap after 50ms or 100ms.
    There is no event for making a Bitmap from base64 for instance - so this will have to do.
@@ -2973,7 +3060,7 @@ MORE: http://zimjs.com/code/bits.html?title=Bitmap
 
 
 ************************************
-[11232] SlicedBitmap(width, height, obj, slices, types, gap, scale, style, group, inherit)
+[11334] SlicedBitmap(width, height, obj, slices, types, gap, scale, style, group, inherit)
 
 SlicedBitmap
 zim class - extends a zim.Bitmap which extends a createjs.Bitmap
@@ -3100,7 +3187,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[11650] Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, frame, style, group, inherit)
+[11752] Sprite(image, cols, rows, count, offsetX, offsetY, spacingX, spacingY, width, height, animations, json, id, globalControl, spriteSheet, label, frame, style, group, inherit)
 
 Sprite
 zim class - extends a createjs.Sprite
@@ -3411,7 +3498,7 @@ MORE: http://zimjs.com/code/bits.html?title=Sprite
 
 
 ************************************
-[12444] MovieClip(mode, startPosition, loop, labels, style, group, inherit)
+[12546] MovieClip(mode, startPosition, loop, labels, style, group, inherit)
 
 MovieClip
 zim class - extends a createjs.MovieClip
@@ -3514,7 +3601,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[12633] SVGContainer(svg, splitTypes, geometric, showControls, interactive, style, group, inherit)
+[12735] SVGContainer(svg, splitTypes, geometric, showControls, interactive, style, group, inherit)
 
 SVGContainer
 zim class - extends a zim.Container which extends a createjs.Container
@@ -3595,7 +3682,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[13696] Tag(width, height, id, frame, backgroundColor, padding, paddingH, paddingV, expand, style, group, inherit)
+[13798] Tag(width, height, id, frame, backgroundColor, padding, paddingH, paddingV, expand, style, group, inherit)
 
 Tag
 zim class - extends a zim.Container which extends a createjs.Container
@@ -3685,7 +3772,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[13963] Shader(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, style, group, inherit)
+[14065] Shader(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, style, group, inherit)
 
 Shader
 zim class - extends a zim.Bitmap which extends a createjs.Bitmap
@@ -4138,7 +4225,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[14481] ShaderOverlay(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, style, group, inherit)
+[14583] ShaderOverlay(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, style, group, inherit)
 
 ShaderOverlay
 zim class - extends a zim.Tag
@@ -4183,7 +4270,7 @@ function ready() {
 
 
 ************************************
-[14587] makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, tether)
+[14689] makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, tether)
 
 makeShader
 function - used internally only
@@ -4203,7 +4290,7 @@ Introduced in ZIM 016
 
 
 ************************************
-[14826] Uniforms(obj)
+[14928] Uniforms(obj)
 
 Uniforms
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4278,7 +4365,7 @@ uniforms.dimensions_B = 500
 
 
 ************************************
-[14945] CustomShape(x, y, w, h)
+[15047] CustomShape(x, y, w, h)
 
 CustomShape
 zim class - extends a zim.Container which extends a createjs.Container
@@ -4318,7 +4405,7 @@ SEE - ZIM shapes for details.
 
 
 ************************************
-[15178] Circle(radius, color, borderColor, borderWidth, dashed, percent, percentClose, percentArc, strokeObj, style, group, inherit)
+[15280] Circle(radius, color, borderColor, borderWidth, dashed, percent, percentClose, percentArc, strokeObj, style, group, inherit)
 
 Circle
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -4460,7 +4547,7 @@ MORE: http://zimjs.com/code/bits.html?title=Circle
 
 
 ************************************
-[15468] Rectangle(width, height, color, borderColor, borderWidth, corner, dashed, strokeObj, scaleDimensions, style, group, inherit)
+[15570] Rectangle(width, height, color, borderColor, borderWidth, corner, dashed, strokeObj, scaleDimensions, style, group, inherit)
 
 Rectangle
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -4594,7 +4681,7 @@ MORE: http://zimjs.com/code/bits.html?title=Rectangle
 
 
 ************************************
-[15724] Triangle(a, b, c, color, borderColor, borderWidth, corner, center, adjust, dashed, strokeObj, style, group, inherit)
+[15826] Triangle(a, b, c, color, borderColor, borderWidth, corner, center, adjust, dashed, strokeObj, style, group, inherit)
 
 Triangle
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -4723,7 +4810,7 @@ MORE: http://zimjs.com/code/bits.html?title=Triangle
 
 
 ************************************
-[16009] Poly(radius, sides, pointSize, color, borderColor, borderWidth, dashed, strokeObj, flat, style, group, inherit)
+[16111] Poly(radius, sides, pointSize, color, borderColor, borderWidth, dashed, strokeObj, flat, style, group, inherit)
 
 Poly
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -4836,7 +4923,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[16246] Line(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, startLength, endLength, style, group, inherit)
+[16348] Line(length, thickness, color, startHead, endHead, dashed, strokeObj, lineType, lineOrientation, curveH, curveV, points, startLength, endLength, style, group, inherit)
 
 Line
 zim class - extends a zim.CustomShape which extends a zim.Container which extends a createjs.Container
@@ -4996,7 +5083,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[16997] Squiggle(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, circleColor, circleBorderColor, stickColor, stickThickness, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit)
+[17099] Squiggle(color, thickness, points, length, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, circleColor, circleBorderColor, stickColor, stickThickness, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit)
 
 Squiggle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5346,7 +5433,7 @@ Note the points property has been split into points and pointObjects (and there 
 
 
 ************************************
-[19096] Blob(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, circleColor, circleBorderColor, stickColor, stickThickness, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit)
+[19198] Blob(color, borderColor, borderWidth, points, radius, controlLength, controlType, lockControlType, showControls, lockControls, handleSize, allowToggle, move, dashed, onTop, circleColor, circleBorderColor, stickColor, stickThickness, selectColor, selectPoints, editPoints, interactive, strokeObj, style, group, inherit)
 
 Blob
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5739,7 +5826,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[21398] Flare(color, borderColor, borderWidth, crossAngle, thickness, thicknessA, thicknessB, pin, startX, startY, lengths, angles, anglesA, anglesB, anglesEnd, cross, crossColors, close, dashed, strokeObj, spineColor, spineBorderWidth, spineBorderColor, spineDashed, spineStrokeObj, closeColor, closeBorderWidth, closeBorderColor, closeDashed, closeStrokeObj, style, group, inherit)
+[21500] Flare(color, borderColor, borderWidth, crossAngle, thickness, thicknessA, thicknessB, pin, startX, startY, lengths, angles, anglesA, anglesB, anglesEnd, cross, crossColors, close, dashed, strokeObj, spineColor, spineBorderWidth, spineBorderColor, spineDashed, spineStrokeObj, closeColor, closeBorderWidth, closeBorderColor, closeDashed, closeStrokeObj, style, group, inherit)
 
 Flare
 zim class - extends a zim.Container which extends a createjs.Container
@@ -5923,7 +6010,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[22139] MultiFlare(flares, pins, angles, endToEnd, style, group, inherit)
+[22241] MultiFlare(flares, pins, angles, endToEnd, style, group, inherit)
 
 MultiFlare
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6020,7 +6107,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[22314] FlareBox(width, height, color, borderColor, borderWidth, flares, corners, pins, style, group, inherit)
+[22416] FlareBox(width, height, color, borderColor, borderWidth, flares, corners, pins, style, group, inherit)
 
 FlareBox
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6164,7 +6251,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[22532] Label(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingH, paddingV, shiftH, shiftV, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, group, inherit)
+[22634] Label(text, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, bold, italic, variant, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingH, paddingV, shiftH, shiftV, rollPersist, labelWidth, labelHeight, maxSize, splitWords, style, group, inherit)
 
 Label
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6339,7 +6426,7 @@ MORE: http://zimjs.com/code/bits.html?title=Label
 
 
 ************************************
-[23330] LabelOnPath(label, path, percentAngle, percents, showPath, allowToggle, interactive, onTop, rtl, style, group, inherit)
+[23432] LabelOnPath(label, path, percentAngle, percents, showPath, allowToggle, interactive, onTop, rtl, style, group, inherit)
 
 LabelOnPath
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6445,7 +6532,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[23634] LabelOnArc(label, size, font, color, radius, flip, spacing, letterSpacing, angles, showCircle, arcColor, arcBorderColor, arcBorderWidth, radiusSpread, rtl, style, group, inherit)
+[23737] LabelOnArc(label, size, font, color, radius, flip, spacing, letterSpacing, angles, showCircle, arcColor, arcBorderColor, arcBorderWidth, radiusSpread, rtl, style, group, inherit)
 
 LabelOnArc
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6536,7 +6623,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[23892] LabelLetters(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, lineWidth, style, group, inherit)
+[23995] LabelLetters(label, align, valign, letterSpacing, letterSpacings, lineSpacing, lineSpacings, lineHeight, lineAlign, lineValign, cache, rtl, lineWidth, lineAlignLast, style, group, inherit)
 
 LabelLetters
 zim class - extends a zim.Container which extends a createjs.Container
@@ -6608,12 +6695,15 @@ lineSpacing - (default 5) - the space between lines (not including lineHeight)
 lineSpacings - (default null) - an array of the space between lines
    any values here will override the lineSpacing
 lineHeight - (default null) null will auto set the height.  Set to a number to force line heights - if \n or <br> are present in label
-lineAlign - (default LEFT or RIGHT for rtl:true) the horizontal alignment of lines if multiple lines - set to LEFT, CENTER/MIDDLE, RIGHT
+lineAlign - (default LEFT or RIGHT for rtl:true) the horizontal alignment of lines if multiple lines - set to LEFT, CENTER/MIDDLE, RIGHT, JUSTIFY
    set to START to lineAlign LEFT for ZIM DIR constant is "ltr" or RIGHT when DIR="rtl" - END is the opposite
+   note the lineAlignLast parameter if using JUSTIFY
 lineValign - (default BOTTOM) the vertical alignment within lineSpacing if multiple lines - set to TOP, CENTER/MIDDLE, BOTTOM
 cache - (default false) set to true to cache each letter - improves performance on animation
 rtl - (default false) set to true to reverse letters other than a-zA-Z0-9 and set default lineAlign to RIGHT
 lineWidth - (default null) set the line width - could cause wrapping.  Also see lineWidth property
+lineAlignLast - (default LEFT or RIGHT for rtl:true) - only applied if lineAlign is JUSTIFY
+   this value can also be JUSTIFY to spread the words of the last line
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -6654,7 +6744,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[24721] LabelWords(label, width, size, font, color, backgroundColor, itemCache, itemRegX, itemRegY, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, group, inherit)
+[24854] LabelWords(label, width, size, font, color, backgroundColor, itemCache, itemRegX, itemRegY, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, group, inherit)
 
 LabelWords
 zim class - extends a zim Wrapper which extends a zim.Container which extends a createjs.Container
@@ -6801,7 +6891,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[24937] Emoji(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, group, inherit)
+[25071] Emoji(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, group, inherit)
 
 Emoji
 zim class - extends a zim.Label which extends a zim.Container
@@ -6893,7 +6983,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[25111] Button(width, height, label, backgroundColor, rollBackgroundColor, downBackgroundColor, color, rollColor, downColor, borderColor, borderWidth, rollBorderColor, downBorderColor, backing, rollBacking, downBacking, icon, rollIcon, downIcon, corner, dashed, shadowColor, shadowBlur, gradient, gloss, align, valign, indent, indentH, indentV, hitPadding, autoPadding, autoPaddingH, autoPaddingV, rollPersist, toggle, toggleBackgroundColor, rollToggleBackgroundColor, downToggleBackgroundColor, toggleColor, rollToggleColor, downToggleColor, toggleBacking, rollToggleBacking, downToggleBacking, toggleIcon, rollToggleIcon, downToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, downWaitBackgroundColor, waitColor, rollWaitColor, downWaitColor, waitBacking, rollWaitBacking, downWaitBacking, waitIcon, rollWaitIcon, downWaitIcon, waitModal, waitEnabled, style, group, inherit)
+[25245] Button(width, height, label, backgroundColor, rollBackgroundColor, downBackgroundColor, color, rollColor, downColor, borderColor, borderWidth, rollBorderColor, downBorderColor, backing, rollBacking, downBacking, icon, rollIcon, downIcon, corner, dashed, shadowColor, shadowBlur, gradient, gloss, align, valign, indent, indentH, indentV, hitPadding, autoPadding, autoPaddingH, autoPaddingV, rollPersist, toggle, toggleBackgroundColor, rollToggleBackgroundColor, downToggleBackgroundColor, toggleColor, rollToggleColor, downToggleColor, toggleBacking, rollToggleBacking, downToggleBacking, toggleIcon, rollToggleIcon, downToggleIcon, toggleEvent, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, downWaitBackgroundColor, waitColor, rollWaitColor, downWaitColor, waitBacking, rollWaitBacking, downWaitBacking, waitIcon, rollWaitIcon, downWaitIcon, waitModal, waitEnabled, style, group, inherit)
 
 Button
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7163,7 +7253,7 @@ MORE: http://zimjs.com/code/bits.html?title=Button
 
 
 ************************************
-[26234] CheckBox(size, label, startChecked, color, backgroundColor, borderColor, borderWidth, corner, margin, indicatorType, indicatorColor, tap, rtl, style, group, inherit)
+[26368] CheckBox(size, label, startChecked, color, backgroundColor, borderColor, borderWidth, corner, margin, indicatorType, indicatorColor, tap, rtl, style, group, inherit)
 
 CheckBox
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7253,7 +7343,7 @@ MORE: http://zimjs.com/code/bits.html?title=CheckBox
 
 
 ************************************
-[26526] RadioButtons(size, buttons, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, index, rtl, selectedIndex, style, group, inherit)
+[26660] RadioButtons(size, buttons, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, index, rtl, selectedIndex, style, group, inherit)
 
 RadioButtons
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7346,7 +7436,7 @@ MORE: http://zimjs.com/code/bits.html?title=RadioButtons
 
 
 ************************************
-[26883] Toggle(width, height, label, startToggled, backgroundColor, margin, indicatorType, indicatorColor, tap, toggleBackgroundColor, color, borderColor, borderWidth, corner, indicatorCorner, shadowColor, shadowBlur, time, labelLeft, style, group, inherit)
+[27017] Toggle(width, height, label, startToggled, backgroundColor, margin, indicatorType, indicatorColor, tap, toggleBackgroundColor, color, borderColor, borderWidth, corner, indicatorCorner, shadowColor, shadowBlur, time, labelLeft, style, group, inherit)
 
 Toggle
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7429,7 +7519,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[27138] Tip(text, tipAlign, tipValign, margin, marginH, marginV, outside, target, delay, time, mouseClose, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingH, paddingV, shiftH, shiftV, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, splitWords, style, group, inherit)
+[27272] Tip(text, tipAlign, tipValign, margin, marginH, marginV, outside, target, delay, time, mouseClose, size, font, color, rollColor, shadowColor, shadowBlur, align, valign, lineWidth, lineHeight, backing, outlineColor, outlineWidth, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backgroundDashed, padding, paddingH, paddingV, shiftH, shiftV, rollPersist, labelWidth, labelHeight, maxSize, bold, italic, variant, splitWords, style, group, inherit)
 
 Tip
 zim class - extends a a zim.Label which extends a zim.Container which extends a createjs.Container
@@ -7558,7 +7648,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[27402] Pane(content, backgroundColor, color, width, height, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, autoPadding, autoPaddingH, autoPaddingV, keyboardAccess, style, group, inherit)
+[27536] Pane(content, backgroundColor, color, width, height, draggable, resets, modal, corner, backdropColor, shadowColor, shadowBlur, center, displayClose, backdropClose, backing, fadeTime, container, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, close, closeColor, autoPadding, autoPaddingH, autoPaddingV, keyboardAccess, style, group, inherit)
 
 Pane
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7788,7 +7878,7 @@ MORE: http://zimjs.com/code/bits.html?title=Pane
 
 
 ************************************
-[28016] Panel(width, height, content, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, next, nextColor, extraButton, collapse, collapseColor, collapsed, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit)
+[28150] Panel(width, height, content, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, close, closeColor, next, nextColor, extraButton, collapse, collapseColor, collapsed, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit)
 
 Panel
 zim class - extends a zim.Container which extends a createjs.Container
@@ -7991,7 +8081,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[28552] Window(width, height, content, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideFactor, slideSnap, slideSnapDamp, interactive, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, collapse, collapseColor, collapsed, optimize, resizeBoundary, resizeVisible, continuous, style, group, inherit)
+[28687] Window(width, height, content, backgroundColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, slide, slideFactor, slideSnap, slideSnapDamp, interactive, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, cancelCurrentDrag, fullSize, fullSizeColor, resizeHandle, collapse, collapseColor, collapsed, optimize, resizeBoundary, resizeVisible, continuous, style, group, inherit)
 
 Window
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8260,7 +8350,7 @@ MORE: http://zimjs.com/code/bits.html?title=Window
 
 
 ************************************
-[29977] Page(width, height, color, color2, angle, corner, pattern, scalePattern, cache, style, group, inherit)
+[30116] Page(width, height, color, color2, angle, corner, borderColor, borderWidth, pattern, scalePattern, cache, style, group, inherit)
 
 Page
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8303,6 +8393,7 @@ height - (default zimDefaultFrame.height) the height of the Page
 color - |ZIM VEE| (default zim.light) the color of the page
 color2 - |ZIM VEE| (default null) a second color which would form a zim.GradientColor() as the color
 angle - (default 90) the angle for the gradient if there is a gradient
+corner
 pattern - (default null) a DisplayObject that will be added to the page above the backing
    For instance, import zim_pizzazz and use:
    makePattern("slants", series(grey,dark), 20, 52, 40).alp(.2)
@@ -8311,6 +8402,8 @@ scalePattern - (default "fill") scale the pattern so it fills the window (former
    FIT or "fit" fits inside the Page keeping proportion (formerly "smallest")
    FILL or "fill" fills the Page keeping proportion (formerly "biggest" or "outside")
    FULL or "full" keeps both x and y scales - may stretch object (formerly "both")
+borderColor (default null) set a color for the border
+borderWidth (default 1 if borderColor) set a borderWidth for the border
 cache - (default false or true for gradient or pattern) whether the backing and pattern is cached
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
@@ -8348,7 +8441,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[30131] Central(width, height, style, group, inherit)
+[30276] Central(width, height, style, group, inherit)
 
 Central
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8417,7 +8510,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[30227] Layer(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, onTop, style, group, inherit)
+[30372] Layer(width, height, titleBar, titleBarContainer, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, borderWidth, borderColor, dashed, transformObject, titleBarWidth, titleBarHeight, titleBarX, titleBarY, titleBarDraggable, close, closeColor, closeBackgroundColor, closeIndicatorColor, anchor, onTop, style, group, inherit)
 
 Layer
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8614,7 +8707,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[30772] Waiter(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group, inherit)
+[30917] Waiter(container, speed, foregroundColor, backgroundColor, corner, shadowColor, shadowBlur, fadeTime, style, group, inherit)
 
 Waiter
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8688,7 +8781,7 @@ MORE: http://zimjs.com/code/bits.html?title=Waiter
 
 
 ************************************
-[31004] ProgressBar(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, width, style, group, inherit)
+[31149] ProgressBar(barType, foregroundColor, backgroundColor, borderColor, borderWidth, padding, label, color, labelPosition, percentage, corner, shadowColor, shadowBlur, backing, delay, fastClose, container, autoHide, width, style, group, inherit)
 
 ProgressBar
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8751,8 +8844,9 @@ show() - shows the progress bar (returns the progress bar for chaining)
 hide() - hides the progress bar
 toggle(state - default null) - shows progress bar if hidden and hides progress bar if showing (returns the object for chaining)
    or pass in true to show progress bar or false to hide progress bar
-run(time, close) - shows and runs the progress bar for the given time (default 3s) (also see ZIM TIME constant)
+run(time, close, repeat) - shows and runs the progress bar for the given time (default 3s) (also see ZIM TIME constant)
    setting close to true or false will set the main class autoHide setting
+   set repeat to true to keep repeating
    thanks Racheli Golan for the request
 setBacking(backing) - change the backing of the progress bar
 hasProp(property as String) - returns true if property exists on object else returns false
@@ -8791,7 +8885,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[31354] Indicator(width, height, num, foregroundColor, backgroundColor, borderColor, borderWidth, backdropColor, corner, indicatorType, selectedIndicatorType, fill, scale, lightScale, interactive, shadowColor, shadowBlur, index, backgroundAlpha, selectedIndex, style, group, inherit)
+[31505] Indicator(width, height, num, foregroundColor, backgroundColor, borderColor, borderWidth, backdropColor, corner, indicatorType, selectedIndicatorType, fill, scale, lightScale, interactive, shadowColor, shadowBlur, index, backgroundAlpha, selectedIndex, toggleFirst, delayLights, indicatorList, selectedIndicatorList, style, group, inherit)
 
 Indicator
 zim class - extends a zim.Container which extends a createjs.Container
@@ -8843,17 +8937,22 @@ scale - (default 1) for all the lights including spacing
 lightScale - (default 1) scale for each light - keeping the spacing unchanged
 interactive - (default false) set to true to make lights clickable
    clicking on first light when first light is only light on, will toggle light
+   unless toggleFirst is set to false
 shadowColor - (default rgba(0,0,0,.3)) set to -1 for no shadow
 shadowBlur - (default 5) the shadow blur if shadow is set
 index - (default 0) - set the index at start.  Use -1 for no indicator at start.
 backgroundAlpha - (default 1 or .2 if indicatorType is Emoji) - affects only Emoji and custom DisplayObject indicatorType
 selectedIndex - same as index, kept in for backwards compatibility in ZIM DUO
+toggleFirst - (default true) set to false to not toggle first light if indicator is set to interactive
+delayLight - (default false) set to true to not activate the light when interactive is true
+   sometimes something else will set the lights so just dispatch a change event without updating the light
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
 
 METHODS
 hasProp(property as String) - returns true if property exists on object else returns false
+update() - updates lights - needed only if indicatorList or selectedIndicatorList is used and changed dynamically
 clone() - makes a copy with properties such as x, y, etc. also copied
 dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
 
@@ -8891,7 +8990,7 @@ MORE: http://zimjs.com/code/bits.html?title=Indicator
 
 
 ************************************
-[31670] TextInput(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingH, paddingV, shiftH, shiftV, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, readOnly, inputType, rtl, uppercase, placeholderInstant, keyboardShift, style, group, inherit)
+[31845] TextInput(width, height, placeholder, text, size, font, color, backgroundColor, borderColor, borderWidth, maxLength, password, selectionColor, selectionAlpha, cursorColor, cursorSpeed, shadowColor, shadowBlur, align, corner, padding, paddingH, paddingV, shiftH, shiftV, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, readOnly, inputType, rtl, uppercase, placeholderInstant, keyboardShift, style, group, inherit)
 
 TextInput
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -9062,7 +9161,7 @@ focus, blur are dispatched when the text gains and loses focus
 input is dispatched when the input text is typed or pasted into
    capture the key with the event object data property
 change is dispatched when the input text is different after losing focus (except if text is set programmatically)
-   capture the key with the event object key or keyCode properties
+   capture the key a F.keydown event object key or keyCode properties
 See the events for HTML input field of type text
 See the events for ZIM Window()
 See the CreateJS Easel Docs for Container events such as:
@@ -9070,7 +9169,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[32609] List(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, group, inherit)
+[32789] List(width, height, list, viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, borderColor, borderWidth, padding, corner, swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, group, inherit)
 
 List
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -9602,7 +9701,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[34836] Stepper(list, width, backgroundColor, borderColor, borderWidth, label, color, vertical, arrows, corner, shadowColor, shadowBlur, continuous, display, press, hold, holdDelay, holdSpeed, draggable, dragSensitivity, dragRange, stepperType, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward, index, value, arrowColor, arrowScale, selectedIndex, currentValue, style, group, inherit)
+[35016] Stepper(list, width, backgroundColor, borderColor, borderWidth, label, color, vertical, arrows, corner, shadowColor, shadowBlur, continuous, display, press, hold, holdDelay, holdSpeed, draggable, dragSensitivity, dragRange, stepperType, min, max, step, step2, arrows2, arrows2Scale, keyEnabled, keyArrows, rightForward, downForward, index, value, arrowColor, arrowScale, selectedIndex, currentValue, style, group, inherit)
 
 Stepper
 zim class - extends a zim.Container which extends a createjs.Container
@@ -9726,7 +9825,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[35796] Slider(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, value, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, addZero, currentValue, style, group, inherit)
+[35976] Slider(min, max, step, button, barLength, barWidth, barColor, vertical, useTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, inside, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, damp, value, expand, expandVertical, expandBar, expandBarVertical, useLabels, labelMargin, labelColor, range, rangeColor, rangeWidth, rangeMin, rangeMax, rangeAve, addZero, currentValue, style, group, inherit)
 
 Slider
 zim class - extends a zim.Container which extends a createjs.Container
@@ -9877,7 +9976,7 @@ MORE: http://zimjs.com/code/bits.html?title=Slider
 
 
 ************************************
-[36622] Selector(tile, borderColor, borderWidth, backgroundColor, corner, dashed, paddingH, paddingV, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, index, liveIndex, selectedIndex, style, group, inherit);
+[36802] Selector(tile, borderColor, borderWidth, backgroundColor, corner, dashed, paddingH, paddingV, speed, diagonal, dim, multi, keyArrows, behind, resizeScale, index, liveIndex, selectedIndex, style, group, inherit);
 
 Selector
 zim class - extends a zim.Container which extends a createjs.Container
@@ -9992,7 +10091,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[37098] Slicer(obj, objScale, slices, types, titleBar, remember, upload, selection, multiple, proportion, resize, style, group, inherit);
+[37278] Slicer(obj, objScale, slices, types, titleBar, remember, upload, selection, multiple, proportion, resize, style, group, inherit);
 
 Slicer
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -10125,7 +10224,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[37850] SlicerTypes(slicer, titleBar, sliceType, style, group, inherit);
+[38032] SlicerTypes(slicer, titleBar, sliceType, style, group, inherit);
 
 SlicerTypes
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -10222,7 +10321,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[38087] Dial(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, value, useLabels, labelMargin, addZero, currentValue, style, group, inherit);
+[38269] Dial(min, max, step, width, backgroundColor, indicatorColor, indicatorScale, indicatorType, useTicks, innerTicks, tickColor, tickStep, semiTicks, tickScale, semiTickScale, innerCircle, innerScale, innerColor, inner2Color, accentSize, accentOffset, accentColor, accentBackgroundColor, accentDifference, sound, linear, gap, limit, keyArrows, keyArrowsStep, keyArrowsH, keyArrowsV, continuous, continuousMin, continuousMax, damp, value, useLabels, labelMargin, addZero, currentValue, style, group, inherit);
 
 Dial
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10364,7 +10463,7 @@ MORE: http://zimjs.com/code/bits.html?title=Dial
 
 
 ************************************
-[38798] Tabs(width, height, tabs, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, downColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, useTap, excludeCustomTap, index, styleLabels, keyWrap, selectedIndex, style, group, inherit)
+[38980] Tabs(width, height, tabs, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, downColor, selectedColor, selectedRollColor, vertical, spacing, currentEnabled, currentSelected, corner, base, keyEnabled, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, backdropColor, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, useTap, excludeCustomTap, index, styleLabels, keyWrap, selectedIndex, style, group, inherit)
 
 Tabs
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10527,7 +10626,7 @@ MORE: http://zimjs.com/code/bits.html?title=Tabs
 
 
 ************************************
-[39743] Pad(width, cols, rows, keys, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, downColor, selectedColor, selectedRollColor, spacing, currentEnabled, currentSelected, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, index, selectedIndex, style, group, inherit)
+[39925] Pad(width, cols, rows, keys, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, downColor, selectedColor, selectedRollColor, spacing, currentEnabled, currentSelected, corner, labelColor, gradient, gloss, backing, rollBacking, wait, waitTime, waitBackgroundColor, rollWaitBackgroundColor, waitColor, rollWaitColor, waitModal, waitEnabled, index, selectedIndex, style, group, inherit)
 
 Pad
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10651,7 +10750,7 @@ MORE: http://zimjs.com/code/bits.html?title=Pad
 
 
 ************************************
-[40019] NumPad(advanced, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, numberCorner, close, closeColor, collapse, collapseColor, collapsed, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit)
+[40201] NumPad(advanced, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, backgroundColor, borderColor, borderWidth, corner, numberCorner, close, closeColor, collapse, collapseColor, collapsed, align, shadowColor, shadowBlur, draggable, boundary, style, group, inherit)
 
 NumPad
 zim class - extends a zim.Panel which extends a zim.Container which extends a createjs.Container
@@ -10749,7 +10848,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[40215] DPad(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit)
+[40397] DPad(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit)
 
 DPad
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10835,7 +10934,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[40425] Radial(labels, size, font, height, coreRadius, coreColor, startAngle, totalAngle, angles, flip, shiftV, icons, rollIcons, rotateIcons, iconsShiftVertical, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, index, selectedIndex, style, group, inherit)
+[40607] Radial(labels, size, font, height, coreRadius, coreColor, startAngle, totalAngle, angles, flip, shiftV, icons, rollIcons, rotateIcons, iconsShiftVertical, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, index, selectedIndex, style, group, inherit)
 
 Radial
 zim class - extends a zim.Container which extends a createjs.Container
@@ -10963,7 +11062,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[40835] RadialMenu(menu, size, font, height, coreRadius, coreColor, title, titleIcon, startAngle, totalAngle, flip, shiftRadial, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, open, under, style, group, inherit)
+[41017] RadialMenu(menu, size, font, height, coreRadius, coreColor, title, titleIcon, startAngle, totalAngle, flip, shiftRadial, rotateIcons, iconsShiftRadial, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, selectedColor, selectedRollColor, borderColor, borderWidth, gradient, gap, gapAsAngle, spacing, spacingInner, spacingOuter, currentEnabled, currentSelected, open, under, style, group, inherit)
 
 RadialMenu
 zim class - extends a zim.Container which extends a createjs.Container
@@ -11157,7 +11256,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[41288] ColorPicker(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, index, selectedColor, dropperTarget, spectrumCollapse, spectrumMode, spectrumClose, spectrumOk, spectrumTitle, tolerancePicker, collapsed, selectedIndex, style, group, inherit)
+[41471] ColorPicker(width, colors, cols, spacing, greyPicker, alphaPicker, startBackgroundColor, draggable, shadowColor, shadowBlur, buttonBar, circles, indicator, backgroundColor, keyArrows, container, index, selectedColor, dropperTarget, spectrumCollapse, spectrumMode, spectrumClose, spectrumOk, spectrumTitle, tolerancePicker, collapsed, selectedIndex, style, group, inherit)
 
 ColorPicker
 zim class - extends a zim.Container which extends a createjs.Container
@@ -11323,7 +11422,7 @@ MORE: http://zimjs.com/code/bits.html?title=ColorPicker
 
 
 ************************************
-[42435] EmojiPicker(width, height, emojis, monochrome, backgroundColor, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, cache, size, collapse, collapseColor, collapsed, colSize, rowSize, style, group, inherit)
+[42618] EmojiPicker(width, height, emojis, monochrome, backgroundColor, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, cache, size, collapse, collapseColor, collapsed, colSize, rowSize, style, group, inherit)
 
 EmojiPicker
 zim class - extends a zim.Window which extends a zim.Container which extends a createjs.Container
@@ -11417,7 +11516,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[42597] TextEditor(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, fontListHeight, fontListViewNum, style, group, inherit)
+[42780] TextEditor(width, color, backgroundColor, fieldColor, fieldHeight, textSize, sizeList, optionList, colorList, fontList, live, button, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, wrap, limit, scroll, placeholder, password, borderColor, borderWidth, margin, corner, shadowColor, shadowBlur, draggable, boundary, frame, fontListHeight, fontListViewNum, style, group, inherit)
 
 TextEditor
 zim class - extends a zim.Panel which extends a zim.Container which extends a createjs.Container
@@ -11577,7 +11676,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[43149] Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, placeScale, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit)
+[43332] Keyboard(labels, backgroundColor, color, shiftBackgroundColor, shiftHoldBackgroundColor, placeBackgroundColor, placeColor, cursorColor, shadeAlpha, borderColor, borderWidth, margin, corner, draggable, placeClose, shadowColor, shadowBlur, container, data, place, placeShiftH, placeShiftV, placeScale, special, rtl, hardKeyboard, layout, numPadScale, numPadDraggable, numPadOnly, numPadAdvanced, maxLength, numbersOnly, style, group, inherit)
 
 Keyboard
 zim class - extends a zim.Container which extends a createjs.Container
@@ -11782,7 +11881,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[44641] Organizer(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit)
+[44824] Organizer(width, list, useAdd, useRemove, usePosition, autoAdd, autoRemove, autoPosition, addForward, removeForward, backgroundColor, rollBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, color, rollColor, selectedColor, selectedRollColor, spacing, corner, keyEnabled, gradient, gloss, backdropColor, style, group, inherit)
 
 Organizer
 zim class - extends a zim.Tabs which extends a zim.Container which extends a createjs.Container
@@ -11919,7 +12018,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[45035] Connectors(width, height, points, node, line, linear, linearWrap, linearOrder, num, snapH, snapV, dropType, dropArray, continuous, startIndex, duplicateLine, deleteNode, dblclick, fullMove, min, max, boundary, expand, nodeRollColor, nodeRollBorderColor, nodeSelectedColor, nodeSelectedBorderColor, baseColor, baseBorderColor, baseRollover, rootLock, grandChildren, dblclickTime, steps, style, group, inherit)
+[45218] Connectors(width, height, points, node, line, linear, linearWrap, linearOrder, num, snapH, snapV, dropType, dropArray, continuous, startIndex, duplicateLine, deleteNode, dblclick, fullMove, min, max, boundary, expand, nodeRollColor, nodeRollBorderColor, nodeSelectedColor, nodeSelectedBorderColor, baseColor, baseBorderColor, baseRollover, rootLock, grandChildren, dblclickTime, steps, style, group, inherit)
 
 Connectors
 zim class - extends a zim.Container which extends a createjs.Container
@@ -12215,7 +12314,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[46379] Marquee(width, height, items, time, transition, speed, direction, marginLeft, marginRight, marqueeType, borderColor, borderWidth, refresh, mix, style, group, inherit)
+[46562] Marquee(width, height, items, time, transition, speed, direction, marginLeft, marginRight, marqueeType, borderColor, borderWidth, refresh, mix, style, group, inherit)
 
 Marquee
 zim class - extends a zim.Container which extends a createjs.Container
@@ -12256,17 +12355,17 @@ PARAMETERS
 width - (default 300) width of marquee content
    final marquee width will have marginLeft and marginRight added to this width
 height - (default 100) height of content and marquee
-items - default(null) an array of Display Objects - can be interactive
-time - default(5) time interval in seconds for changing items (also see ZIM TIME constant)
+items - (default null) an array of Display Objects - can be interactive
+time - (default 5) time interval in seconds for changing items (also see ZIM TIME constant)
    also see marqueeTime property for each item to individually override the time for viewing
-transition - default("slide") the transition between items
+transition - (default "slide") the transition between items
    options are: "none", "reveal", "slide", "fade", "clear", "black", "white", "fan"
-speed - default(.5) speed of transition in seconds (also see ZIM TIME constant)
-direction - default(RIGHT) location of next item relative to current item
+speed - (default .5) speed of transition in seconds (also see ZIM TIME constant)
+direction - (default RIGHT) location of next item relative to current item
    options are: RIGHT, LEFT, UP, DOWN
-marginLeft - default(25) width at left of content for Indicator and Pause button
+marginLeft - (default 25) width at left of content for Indicator and Pause button
    set to 0 to not show indicator and pause button
-marginRight - default(25) width at right of content for Z logo with animated MARQUEE
+marginRight - (default 25) width at right of content for Z logo with animated MARQUEE
    set to 0 to not show Z logo with animated MARQUEE
 marqueeType - (default "dot" or "circle") the Indicator type - also "box" or "square"
 borderColor - (default dark) border color - any ZIM or HTML color - set to -1 for no border
@@ -12343,7 +12442,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[46805] Carousel(items, viewNum, time, spacing, backgroundColor, backing, padding, paddingH, paddingV, arrowLeft, arrowRight, arrowGap, valign, ease, swipe, remember, index, continuous, selectedIndex, style, group, inherit)
+[46988] Carousel(items, viewNum, time, spacing, backgroundColor, backing, padding, paddingH, paddingV, arrowLeft, arrowRight, arrowGap, valign, ease, swipe, remember, index, continuous, selectedIndex, style, group, inherit)
 
 Carousel
 zim class - extends a zim.Container which extends a createjs.Container
@@ -12375,24 +12474,24 @@ PARAMETERS
 items - default(seven multicolored rectangles) an array of Display Objects - can be interactive
    items will be scaled to the most common width and tiled - see the tile property   
    a String item will be converted to a new Pic(item)
-viewNum - default(3) the number of items to show
-time - default(.2) time in seconds to animate between items (also see ZIM TIME constant)
-spacing - default(20) the space between the items
-backgroundColor - default(clear) the backgroundColor - also see background property
-backing - default(null) - an optional backing DisplayObject that goes on top of the backing and under the tile
-padding - default(0) - the default for the background outside the tile
-paddingH - default(padding) - the horizontal padding to override the padding setting
-paddingV - default(padding) - the vertical padding to override the padding setting
-arrowLeft - default(new Arrow().rot(180)) - an arrow for going left
-arrowRight - default(new Arrow()) - an arrow for going right
-arrowGap - default(20) the gap between the arrow and the backing
-valign - default(CENTER) the vertical alignment of the tile items
-ease - default(quadInOut) the ease of the animation - see ZIM animate() ease parameter for types
-swipe - default(true) set to false to not make the tile swipeable - see also the swipe property
-remember - default("zimCarousel") set to false to not remember the index when reloading the page
-index - default(0 or remembered index) the starting index - see also the index property
+viewNum - (default 3) the number of items to show
+time - (default .2) time in seconds to animate between items (also see ZIM TIME constant)
+spacing - (default 20) the space between the items
+backgroundColor - (default clear) the backgroundColor - also see background property
+backing - (default null) - an optional backing DisplayObject that goes on top of the backing and under the tile
+padding - (default 0) - the default for the background outside the tile
+paddingH - (default padding) - the horizontal padding to override the padding setting
+paddingV - (default padding) - the vertical padding to override the padding setting
+arrowLeft - (default new Arrow().rot(180)) - an arrow for going left
+arrowRight - (default new Arrow()) - an arrow for going right
+arrowGap - (default 20) the gap between the arrow and the backing
+valign - (default CENTER) the vertical alignment of the tile items
+ease - (default quadInOut) the ease of the animation - see ZIM animate() ease parameter for types
+swipe - (default true) set to false to not make the tile swipeable - see also the swipe property
+remember - (default "zimCarousel") set to false to not remember the index when reloading the page
+index - (default 0 or remembered index) the starting index - see also the index property
    this is the index of the first (left) item in view
-continuous - default(true) set to false to stop at ends
+continuous - (default true) set to false to stop at ends
    this will clone the items and use the modulus to keep index numbers correct
    if continuous is false and the carousel is cycled then it will bounce back and forth
 selectedIndex - same as index, kept in for backwards compatibility in ZIM DUO
@@ -12471,7 +12570,174 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[47317] Loader(width, height, label, type, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, frame, multiple, accept, style, group, inherit)
+[47501] Carousel3D(width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, style, group, inherit)
+
+Carousel3D
+zim class - extends a zim.Container which extends a createjs.Container
+
+DESCRIPTION
+A 3D carousel that cycles through items as it is swiped
+or using next(), prev() or go() methods or index property.
+Can be horizontal or vertical.
+See: ZIM Carousel for a 2D component.
+See: https://zimjs.com/018/carousel3D.html for an example
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// normally load this in the Frame()
+F.loadAssets("ai_monsters.png", "https://zimjs.org/assets/");
+F.on("complete", ()=>{
+   const pages = [];
+   loop(4*4, i=>{
+      const sprite = new Sprite("ai_monsters.png", 4, 4)
+         .run({frame:i})
+         .reg(CENTER);
+      pages.push(sprite);
+   });
+
+   // 2.5 will spread the items more in the width
+   // 10 will increase height difference
+   // .6 will curve them a little more
+   const carousel = new zim.Carousel3D(700, 500, pages, 2.5, 10, .6)
+      .center()
+      .change(()=>{
+         indicator.index = carousel.index;      
+      });   
+
+   // optional indicator
+   const indicator = new Indicator({
+      width:pages.length*20,
+      height:25,
+      num:pages.length,
+      interactive:true,
+      toggleFirst:false,
+      delayLights:true
+   }).pos(0,80,CENTER,BOTTOM).change(()=>{
+      carousel.go(indicator.index);
+   });
+   
+   // optional arrows
+   new Arrow().pos(50,0,RIGHT,CENTER).tap(()=>{
+      carousel.next();
+   });
+   new Arrow().rot(180).pos(50,0,LEFT,CENTER).tap(()=>{
+      carousel.prev();
+   });
+   S.update();
+});   
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+** supports OCT - parameter defaults can be set with STYLE control (like CSS)
+width - (default 300) the width of the component
+   if vertical is false then this may not match the actual content as the equations for spreading are complex
+   if vertical is true then this will set the width of the items to match
+   note: if horizontal, the fade is applied across the width, so this can be adjusted to affect the fade effect
+height - (default 200) the height of the component
+   if vertical is false then this will set the height of the items to match
+   if vertical is true then this may not match the actual content as the equations for spreading are complex
+   note: if vertical, the fade is applied across the height, so this can be adjusted to affect the fade effect
+items - (default six Pages) an array of Display Objects
+   items will be scaled to the height of the component if the vertical is false
+   or to the width of the component if the vertical is true
+   a String item will be converted to a new Pic(item)
+   if the item is not a form of Container then it will be placed in a Container so fade will work
+   the original item will then be available as currentItem.content
+   items will also automatically have their registration points set to the center
+widthFactor - (default 1) a number to spread out items horizontally - just experiment, for instance 2.5 or 10 and see results
+heightFactor - (default 1) a number to spread out items vertically - just experiment, for instance 2.5 or 10 and see results
+curve - (default .5) a ratio from 0-1 that will move outside items inward to make the carousel look more curved
+   the equations for spreading out and scaling the items is pretty tricky
+   settings also change depending on the number of items
+   adjust widthFactor, heightFactor and curve until the desired look is reached
+   for a horizontal carousel, adjusting the height factor will cause outside items to get smaller faster
+   sometimes outside items will appear to float so then increase the curve
+   sometimes the curve will cause unexpected behavior like crossing over... then reduce the curve... try .98 rather than 1 etc.
+interactive - (default false) set to true to allow interactivity within the items
+   setting to true may remove swiping on the items - but this can be adjusted
+   for instance, use a Page() to hold the interactive objects
+   then for each page set page.background.noMouse()
+   and then the items can be swiped and the interactive objects interacted with
+continuous - (default true) set to false to stop at the last item and not go backwards past the first item
+fade - (default .5) the outside alpha of the fade object that gets added to each item
+   the fade object is added automatically to the top of the item and is a rectangle colored to the fadeColor parameter
+   set fade to 1 to completely fade, set fade to 0 or false to not fade
+   the fade is applied with 0 in the middle and the fade amount at the edges
+   based on the provided width parameter for horizontal or height parameter for vertical
+   so whichever of these values can be adjusted to fine tune the fade
+fadeColor - (default Frame.color) the color of the fade object - see fade
+   note: just setting the alpha of an item will not work as there are items beneath
+   so a fade object has been added to each item
+vertical - (default false) set to true to make a vertical carousel
+sensitivity - (default .2) the sensitivity of the ZIM Swiper() object
+   set to higher to speed up and lower to slow down
+damp - (default .1) the damp value with 1 being no damping and 0 being no movement
+factor - (default 1) set to -1 to swipe the opposite way
+index - (default 0) set the desired starting index - see also the index property
+selectedIndex - same as index, kept in for backwards compatibility in ZIM DUO
+style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
+group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
+inherit - (default null) used internally but can receive an {} of styles directly
+
+METHODS
+go(index, immediate, wrap) - go to an index - returns the object for chaining
+   immediate defaults to false - set to true to avoid animating
+   wrap defaults to false - set to true to animate the shortest route to the index
+      for instance, if there are 22 items and the carousel is at index 2
+      if wrap is false, it will animate forward (2,3,4,...19,20) to target index of 20
+      if wrap is true, it will animate backwards (2,1,22,21,20) to a target index of 20
+prev(immediate) - go to the previous item - returns object for chaining
+   immediate defaults to false - set to true to go to the item without animating
+next(immediate) - go to the next item - returns object for chaining
+   immediate defaults to false - set to true to go to the item without animating    
+addItem(item, index) - add an item or an array of items at an index (default at the end)
+   this will adjust the items array and call makeCarousel
+removeItem(index, num) - remove an item at an index - pass an optional num to remove that many items
+makeCarousel() - if the items array is changed must call makeCarousel - see the items property
+clone() - makes a copy with properties such as x, y, etc. also copied
+dispose() - removes from parent, removes event listeners - must still set outside references to null for garbage collection
+
+ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
+drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
+addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
+ALSO: see the CreateJS Easel Docs for Container methods, such as:
+on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
+addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
+
+PROPERTIES
+type - holds the class name as a String
+index - get or set the index of the item
+selectedItem - the item at the front
+   each item has a content property if the item was added to a container by the carousel (only if item was not a container)
+   each item has a fader property which is a ZIM Rectangle - if the fade was not false or 0
+items - the array of items
+   if setting this then call makeCarousel() - also see addItem() and removeItem()
+curve - get or set the curve - see the curve parameter
+continuous - get or set whether the carousel is continuous - see the continuous parameter
+   if setting this then call makeCarousel()
+swiper - reference to the ZIM Swiper object
+backing - the clear rectangle that is the swiper object
+holder - the Container that holds all the items
+
+ALSO: see ZIM Container for properties such as:
+width, height, widthOnly, heightOnly, draggable, level, depth, group
+blendMode, hue, saturation, brightness, contrast, etc.
+
+ALSO: see the CreateJS Easel Docs for Container properties, such as:
+x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
+alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
+
+EVENTS
+dispatches a "change" event (or use change() method) when a new item is at the front
+dispatches a "still" event when the pointer is up and the carousel has stopped movings
+
+ALSO: see the CreateJS Easel Docs for Container events such as:
+added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
+
+
+************************************
+[47983] Loader(width, height, label, type, backgroundColor, rollBackgroundColor, color, rollColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, hitPadding, gradient, gloss, dashed, backing, rollBacking, rollPersist, icon, rollIcon, toggle, toggleBacking, rollToggleBacking, toggleIcon, rollToggleIcon, toggleEvent, frame, multiple, accept, style, group, inherit)
 
 Loader
 zim class - extends a zim.Button which extends a zim.Container
@@ -12713,7 +12979,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[47975] TextArea(width, height, placeholder, text, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, readOnly, spellCheck, password, inputType, wrap, maxLength, frame, expand, keyboardShift, style, group, inherit)
+[48641] TextArea(width, height, placeholder, text, size, padding, color, backgroundColor, borderColor, borderWidth, corner, shadowColor, shadowBlur, dashed, id, readOnly, spellCheck, password, inputType, wrap, maxLength, frame, expand, keyboardShift, style, group, inherit)
 
 TextArea
 zim class - extends a zim.Container which extends a createjs.Container
@@ -12873,7 +13139,7 @@ MODULE 3: ZIM METHODS
 ------------------------------------
 
 ************************************
-[48493] obj.cache(width||x, height||y, null||width, null||height, scale, options, margin)
+[49168] obj.cache(width||x, height||y, null||width, null||height, scale, options, margin)
 
 cache
 zim DisplayObject method overrides CreateJS cache() method with more flexible parameters
@@ -12944,7 +13210,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[48570] obj.updateCache(blendMode)
+[49245] obj.updateCache(blendMode)
 
 updateCache
 CreateJS method
@@ -12977,7 +13243,7 @@ RETURNS null
 
 
 ************************************
-[48608] obj.uncache()
+[49283] obj.uncache()
 
 uncache
 zim DisplayObject method overrides CreateJS cache() to return object for chaining
@@ -13006,7 +13272,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[48642] obj.on(type, listener, scope, once, data, useCapture)
+[49317] obj.on(type, listener, scope, once, data, useCapture)
 
 on
 CreateJS method
@@ -13132,7 +13398,7 @@ RETURNS a reference to use as the second parameter of the off() method to turn t
 
 
 ************************************
-[48776] obj.off(type, listener, useCapture)
+[49451] obj.off(type, listener, useCapture)
 
 off
 CreateJS method
@@ -13177,7 +13443,7 @@ RETURNS null
 
 
 ************************************
-[48826] obj.removeAllEventListeners(type)
+[49501] obj.removeAllEventListeners(type)
 
 removeAllEventListeners
 CreateJS method
@@ -13200,7 +13466,7 @@ RETURNS null
 
 
 ************************************
-[48854] obj.getBounds()
+[49529] obj.getBounds()
 
 getBounds
 CreateJS method
@@ -13236,7 +13502,7 @@ RETURNS object with x, y, width and height properties
 
 
 ************************************
-[48895] obj.setBounds(width||x||Boundary, height||y, null||width, null||height)
+[49570] obj.setBounds(width||x||Boundary, height||y, null||width, null||height)
 
 setBounds
 zim DisplayObject method overrides CreateJS setBounds() method with more flexible parameters
@@ -13286,7 +13552,7 @@ RETURNS the object for chaining
 
 
 ************************************
-[48951] obj.localToGlobal(x, y)
+[49626] obj.localToGlobal(x, y)
 
 localToGlobal
 zim DisplayObject method overrides CreateJS localToGlobal() method with adjustment for scaled stage due to retina pixel density
@@ -13323,7 +13589,7 @@ RETURNS a Point with x and y properties on the stage (global) that match the pro
 
 
 ************************************
-[48993] obj.globalToLocal(x, y)
+[49668] obj.globalToLocal(x, y)
 
 globalToLocal
 zim DisplayObject method overrides CreateJS globalToLocal() method with adjustment for scaled stage due to retina pixel density
@@ -13364,7 +13630,7 @@ RETURNS a Point with x and y properties inside the container that match the prov
 
 
 ************************************
-[49039] obj.localToLocal(x, y, target)
+[49714] obj.localToLocal(x, y, target)
 
 localToLocal
 zim DisplayObject method overrides CreateJS localToLocal() method with adjustment for scaled stage due to retina pixel density
@@ -13406,7 +13672,7 @@ RETURNS a Point with x and y properties in the target container that match the p
 
 
 ************************************
-[49086] obj.clone(exact)
+[49761] obj.clone(exact)
 
 clone
 zim DisplayObject method overrides CreateJS cache()
@@ -13439,7 +13705,7 @@ RETURNS the object for chaining
 
 
 ************************************
-[49125] obj.dispose(disposing)
+[49800] obj.dispose(disposing)
 
 dispose
 zim DisplayObject method
@@ -13476,7 +13742,7 @@ RETURNS the object for chaining
 
 
 ************************************
-[49169] obj.addTo(container, index, still)
+[49844] obj.addTo(container, index, still)
 
 addTo
 zim DisplayObject method
@@ -13544,7 +13810,7 @@ MORE: http://zimjs.com/code/bits.html?title=addTo
 
 
 ************************************
-[49256] obj.removeFrom(container)
+[49931] obj.removeFrom(container)
 
 removeFrom
 zim DisplayObject method
@@ -13572,7 +13838,7 @@ MORE: http://zimjs.com/code/bits.html?title=removeFrom
 
 
 ************************************
-[49293] obj.added(call, interval, maxTime)
+[49968] obj.added(call, interval, maxTime)
 
 added
 zim DisplayObject method
@@ -13601,7 +13867,7 @@ RETURNS id of interval so clearInterval(id) will stop added() from checking for 
 
 
 ************************************
-[49371] obj.centerReg(container, index, add)
+[50046] obj.centerReg(container, index, add)
 
 centerReg
 zim DisplayObject method
@@ -13642,7 +13908,7 @@ MORE: http://zimjs.com/code/bits.html?title=centerReg
 
 
 ************************************
-[49432] obj.center(container, index, add)
+[50107] obj.center(container, index, add)
 
 center
 zim DisplayObject method
@@ -13678,7 +13944,7 @@ MORE: http://zimjs.com/code/bits.html?title=center
 
 
 ************************************
-[49544] obj.place(id)
+[50219] obj.place(id)
 
 place
 zim DisplayObject method
@@ -13703,7 +13969,7 @@ MORE: http://zimjs.com/code/bits.html?title=place
 
 
 ************************************
-[49598] obj.placeReg(id)
+[50273] obj.placeReg(id)
 
 placeReg
 zim DisplayObject method
@@ -13723,7 +13989,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[49642] obj.pos(x, y, horizontal, vertical, container, index, add, reg, regX, regY)
+[50317] obj.pos(x, y, horizontal, vertical, container, index, add, reg, regX, regY)
 
 pos
 zim DisplayObject method
@@ -13807,7 +14073,7 @@ MORE: http://zimjs.com/code/bits.html?title=pos
 
 
 ************************************
-[49932] obj.loc(target|x, y, container, index, add, localToLocal)
+[50607] obj.loc(target|x, y, container, index, add, localToLocal)
 
 loc
 zim DisplayObject method
@@ -13845,7 +14111,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50019] obj.mov(x, y)
+[50694] obj.mov(x, y)
 
 mov
 zim DisplayObject method
@@ -13871,7 +14137,7 @@ MORE: http://zimjs.com/code/bits.html?title=mov
 
 
 ************************************
-[50054] obj.sca(scale, scaleY)
+[50729] obj.sca(scale, scaleY)
 
 sca
 zim DisplayObject method
@@ -13896,7 +14162,7 @@ MORE: http://zimjs.com/code/bits.html?title=sca
 
 
 ************************************
-[50087] obj.alp(alpha)
+[50762] obj.alp(alpha)
 
 alp
 zim DisplayObject method
@@ -13918,7 +14184,7 @@ MORE: http://zimjs.com/code/bits.html?title=alp
 
 
 ************************************
-[50121] obj.vis(visible)
+[50796] obj.vis(visible)
 
 vis
 zim DisplayObject method
@@ -13937,7 +14203,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50151] obj.ble(blendMode)
+[50826] obj.ble(blendMode)
 
 ble
 zim DisplayObject method
@@ -13970,7 +14236,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50193] obj.dye(color)
+[50868] obj.dye(color)
 
 dye
 zim DisplayObject method
@@ -13991,7 +14257,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50224] obj.hov(value, prop)
+[50899] obj.hov(value, prop)
 
 hov
 zim DisplayObject method
@@ -14020,7 +14286,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50284] obj.rot(rotation, x, y)
+[50959] obj.rot(rotation, x, y)
 
 rot
 zim DisplayObject method
@@ -14043,7 +14309,7 @@ MORE: http://zimjs.com/code/bits.html?title=rot
 
 
 ************************************
-[50330] obj.siz(width, height, only)
+[51005] obj.siz(width, height, only)
 
 siz
 zim DisplayObject method
@@ -14076,7 +14342,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50378] obj.ske(skewX, skewY)
+[51053] obj.ske(skewX, skewY)
 
 ske
 zim DisplayObject method
@@ -14098,7 +14364,7 @@ MORE: http://zimjs.com/code/bits.html?title=ske
 
 
 ************************************
-[50407] obj.reg(regX, regY, still)
+[51082] obj.reg(regX, regY, still)
 
 reg
 zim DisplayObject method
@@ -14138,7 +14404,7 @@ MORE: http://zimjs.com/code/bits.html?title=reg
 
 
 ************************************
-[50492] obj.top()
+[51167] obj.top()
 
 top
 zim DisplayObject method
@@ -14160,7 +14426,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50521] obj.bot()
+[51196] obj.bot()
 
 bot
 zim DisplayObject method
@@ -14177,7 +14443,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50546] obj.ord(num)
+[51221] obj.ord(num)
 
 ord
 zim DisplayObject method
@@ -14199,7 +14465,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50576] obj.cur(type)
+[51251] obj.cur(type)
 
 cur
 zim DisplayObject method
@@ -14224,7 +14490,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50626] obj.sha(color||Shadow, offsetX, offsetY, blur)
+[51301] obj.sha(color||Shadow, offsetX, offsetY, blur)
 
 sha
 zim DisplayObject method
@@ -14255,7 +14521,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50670] obj.dep(depth)
+[51345] obj.dep(depth)
 
 dep
 zim DisplayObject method
@@ -14279,7 +14545,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50702] obj.nam(name)
+[51377] obj.nam(name)
 
 nam
 zim DisplayObject method
@@ -14324,7 +14590,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50762] obj.movement(call)
+[51437] obj.movement(call)
 
 movement
 zim DisplayObject method
@@ -14352,7 +14618,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50818] obj.noMovement()
+[51493] obj.noMovement()
 
 noMovement
 zim DisplayObject method
@@ -14367,7 +14633,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[50841] obj.tap(call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp)
+[51516] obj.tap(call, distance, time, once, dbl, dblTime, call2, call3, call4, cursor, mobileUp)
 
 tap
 zim DisplayObject method
@@ -14441,7 +14707,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[51029] obj.noTap()
+[51704] obj.noTap()
 
 noTap
 zim DisplayObject method
@@ -14462,7 +14728,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[51061] obj.hold(call, distance, time, once)
+[51736] obj.hold(call, distance, time, once)
 
 hold
 zim DisplayObject method
@@ -14496,7 +14762,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[51151] obj.noHold()
+[51826] obj.noHold()
 
 noHold
 zim DisplayObject method
@@ -14515,7 +14781,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[51183] obj.change(call, once)
+[51858] obj.change(call, once)
 
 change
 zim DisplayObject method
@@ -14540,7 +14806,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[51218] obj.noChange()
+[51893] obj.noChange()
 
 noChange
 zim DisplayObject method
@@ -14558,7 +14824,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[51243] obj.drag(boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight)
+[51918] obj.drag(boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight)
 
 drag
 zim DisplayObject method
@@ -14729,7 +14995,7 @@ MORE: http://zimjs.com/code/bits.html?title=drag
 
 
 ************************************
-[52256] obj.noDrag(recursive)
+[52932] obj.noDrag(recursive)
 
 noDrag
 zim DisplayObject method
@@ -14751,7 +15017,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52321] obj.dragBoundary(boundary)
+[52997] obj.dragBoundary(boundary)
 
 dragBoundary
 zim DisplayObject method
@@ -14778,7 +15044,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52358] obj.mouse()
+[53034] obj.mouse()
 
 mouse
 zim DisplayObject method
@@ -14804,7 +15070,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52392] obj.noMouse()
+[53068] obj.noMouse()
 
 noMouse
 zim DisplayObject method
@@ -14829,7 +15095,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52426] obj.wire(target, prop, twoWay, setSource, filter, call, input)
+[53102] obj.wire(target, prop, twoWay, setSource, filter, call, input)
 
 wire
 zim DisplayObject method
@@ -15006,7 +15272,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52636] obj.noWire(target, prop, input)
+[53312] obj.noWire(target, prop, input)
 
 noWire
 zim DisplayObject method
@@ -15031,7 +15297,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52672] obj.wired(source, prop, twoWay, setSource, filter, call, input)
+[53348] obj.wired(source, prop, twoWay, setSource, filter, call, input)
 
 wired
 zim DisplayObject method
@@ -15062,7 +15328,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52712] obj.noWired()
+[53388] obj.noWired()
 
 noWired
 zim DisplayObject method
@@ -15079,7 +15345,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52738] obj.bind(id, props, extra, filter, bindObj)
+[53414] obj.bind(id, props, extra, filter, bindObj)
 
 bind
 zim DisplayObject method
@@ -15126,7 +15392,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52803] obj.noBind(props, removeConnectionData, call, bindObj)
+[53479] obj.noBind(props, removeConnectionData, call, bindObj)
 
 noBind
 zim DisplayObject method
@@ -15162,7 +15428,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[52849] obj.transform(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY)
+[53525] obj.transform(move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY)
 
 transform
 zim DisplayObject method
@@ -15320,7 +15586,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[54180] obj.gesture(move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBoundary, slide, slideFactor, regControl, onTop, surround, circularBounds, rect)
+[54856] obj.gesture(move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBoundary, slide, slideFactor, regControl, onTop, surround, circularBounds, rect)
 
 gesture
 zim DisplayObject method
@@ -15374,7 +15640,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[54643] obj.noGesture(move, scale, rotate)
+[55319] obj.noGesture(move, scale, rotate)
 
 noGesture
 zim DisplayObject method
@@ -15399,7 +15665,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[54690] obj.gestureBoundary(boundary, new)
+[55366] obj.gestureBoundary(boundary, new)
 
 gestureBoundary
 zim DisplayObject method
@@ -15419,7 +15685,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[54733] obj.effect(effect, x, y, width, height)
+[55409] obj.effect(effect, x, y, width, height)
 
 effect
 zim DisplayObject method
@@ -15575,7 +15841,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[54920] obj.updateEffects(redoChache)
+[55596] obj.updateEffects(redoChache)
 
 updateEffects
 zim DisplayObject method
@@ -15608,7 +15874,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[54965] obj.noEffect(effects, cache)
+[55641] obj.noEffect(effects, cache)
 
 noEffect
 zim DisplayObject method
@@ -15647,7 +15913,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[55032] obj.addPhysics(dynamic, contract, shape, friction, linear, angular, density, bounciness, maskBits, categoryBits, physics, restitution, sensor)
+[55708] obj.addPhysics(dynamic, contract, shape, friction, linear, angular, density, bounciness, maskBits, categoryBits, physics, restitution, sensor)
 
 addPhysics
 zim DisplayObject method
@@ -15746,7 +16012,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[55157] obj.removePhysics()
+[55833] obj.removePhysics()
 
 removePhysics
 zim DisplayObject method
@@ -15763,7 +16029,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[55187] obj.hitTestPoint(x, y, boundsCheck)
+[55863] obj.hitTestPoint(x, y, boundsCheck)
 
 hitTestPoint
 zim DisplayObject method
@@ -15795,7 +16061,7 @@ RETURNS a Boolean true if hitting, false if not
 
 
 ************************************
-[55238] obj.hitTestReg(other, boundsCheck)
+[55914] obj.hitTestReg(other, boundsCheck)
 
 hitTestReg
 zim DisplayObject method
@@ -15823,7 +16089,7 @@ MORE: http://zimjs.com/code/bits.html?title=hitTestReg
 
 
 ************************************
-[55283] obj.hitTestRect(other, num, boundsCheck, inside)
+[55959] obj.hitTestRect(other, num, boundsCheck, inside)
 
 hitTestRect
 zim DisplayObject method
@@ -15860,7 +16126,34 @@ MORE: http://zimjs.com/code/bits.html?title=hitTestRect
 
 
 ************************************
-[55380] obj.hitTestCircle(other, num, boundsCheck, inside)
+[56057] obj.hitTestRectPoint(x, y, margin)
+
+hitTestRectPoint
+zim DisplayObject method
+
+DESCRIPTION
+Uses an equation to see if the bounds of a rectangular object is hitting a point x, y.
+This is faster than hitTests on shapes - so will have the speed of hitTestBounds, hitTestCircles and hitTestGrid.
+A margin parameter is provided to tweak the hitTest
+
+EXAMPLE
+const rect = new Rectangle(50, 50, red).center().drag();
+rect.on("pressmove", ()=>{
+   if (rect.hitTestRectPoint(W/2, H/2)) {
+      zog("hitting!");
+   }
+});
+
+PARAMETERS
+x - the global x for the point to test
+y - the global y for the point to test
+margin (default 0) pixels the bounds of the rectangle is increased or decreased to effect the hit
+
+RETURNS a Boolean true if hitting, false if not
+
+
+************************************
+[56100] obj.hitTestCircle(other, num, boundsCheck, inside)
 
 hitTestCircle
 zim DisplayObject method
@@ -15894,7 +16187,7 @@ MORE: http://zimjs.com/code/bits.html?title=hitTestCircle
 
 
 ************************************
-[55460] obj.hitTestCircleRect(other, margin)
+[56180] obj.hitTestCircleRect(other, margin)
 
 hitTestCircleRect
 zim DisplayObject method
@@ -15914,7 +16207,7 @@ const ball = new Circle(50, red).center().drag();
 const box = new Rectangle(100, 100, blue).loc(100,100);
 ball.on("pressmove", ()=>{
    if (ball.hitTestCircleRect(box)) {
-      zog("points!");
+      zog("hitting!");
    }
 });
 
@@ -15926,7 +16219,36 @@ RETURNS a Boolean true if hitting, false if not
 
 
 ************************************
-[55526] obj.hitTestCircles(other, margin)
+[56246] obj.hitTestCirclePoint(x, y, margin)
+
+hitTestCirclePoint
+zim DisplayObject method
+
+DESCRIPTION
+Uses an equation to see if a circlular object is hitting a point x, y.
+This is faster than hitTests on shapes - so will have the speed of hitTestBounds, hitTestCircles and hitTestGrid.
+The circle is based on a the object radius if there is one
+and if no radius then the average of the width and height divided by two.
+A margin parameter is provided to tweak the hitTest
+
+EXAMPLE
+const ball = new Circle(50, red).center().drag();
+ball.on("pressmove", ()=>{
+   if (ball.hitTestCirclePoint(W/2, H/2)) {
+      zog("hitting!");
+   }
+});
+
+PARAMETERS
+x - the global x for the point to test
+y - the global y for the point to test
+margin (default 0) pixels the bounds of the circle is increased or decreased to effect the hit
+
+RETURNS a Boolean true if hitting, false if not
+
+
+************************************
+[56298] obj.hitTestCircles(other, margin)
 
 hitTestCircles
 zim DisplayObject method
@@ -15955,7 +16277,7 @@ RETURNS a Boolean true if hitting, false if not
 
 
 ************************************
-[55583] obj.hitTestBounds(other, margin, boundsShape)
+[56355] obj.hitTestBounds(other, margin, boundsShape)
 
 hitTestBounds
 zim DisplayObject method
@@ -15987,7 +16309,7 @@ MORE: http://zimjs.com/code/bits.html?title=hitTestBounds
 
 
 ************************************
-[55643] obj.hitTestPath(other, num, showPoints, returnPoints)
+[56415] obj.hitTestPath(other, num, showPoints, returnPoints)
 
 hitTestPath
 zim DisplayObject method
@@ -16019,7 +16341,7 @@ RETURNS a Boolean true if hitting (or an array of {x,y} points if returnPoints i
 
 
 ************************************
-[55725] obj.hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
+[56497] obj.hitTestGrid(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type)
 
 hitTestGrid
 zim DisplayObject method
@@ -16059,7 +16381,7 @@ MORE: http://zimjs.com/code/bits.html?title=hitTestGrid
 
 
 ************************************
-[55807] obj.animate(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp)
+[56579] obj.animate(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp)
 
 animate
 zim DisplayObject method
@@ -16633,7 +16955,7 @@ MORE: http://zimjs.com/code/bits.html?title=animate
 
 
 ************************************
-[59218] obj.stopAnimate(ids, toEnd)
+[59990] obj.stopAnimate(ids, toEnd)
 
 stopAnimate
 zim function - and Display object function
@@ -16689,7 +17011,7 @@ MORE: http://zimjs.com/code/bits.html?title=stopAnimate
 
 
 ************************************
-[59307] obj.pauseAnimate(state, ids)
+[60079] obj.pauseAnimate(state, ids)
 
 pauseAnimate
 zim function - and Display object function
@@ -16751,7 +17073,7 @@ RETURNS null if run as pauseAnimate() or the obj if run as obj.pauseAnimate()
 
 
 ************************************
-[59405] obj.wiggle(property, baseAmount, minAmount, maxAmount, minTime, maxTime, totalTime, type, ease, integer, id, startType, ticker, wait, pauseOnBlur, endOnStart)
+[60177] obj.wiggle(property, baseAmount, minAmount, maxAmount, minTime, maxTime, totalTime, type, ease, integer, id, startType, ticker, wait, pauseOnBlur, endOnStart)
 
 wiggle
 zim DisplayObject method
@@ -16809,7 +17131,7 @@ RETURNS target for chaining
 
 
 ************************************
-[59544] obj.loop(call, reverse, interval, step, start, end, immediate, complete, completeParams)
+[60316] obj.loop(call, reverse, interval, step, start, end, immediate, complete, completeParams)
 
 loop
 zim DisplayObject method
@@ -16898,7 +17220,7 @@ MORE: http://zimjs.com/code/bits.html?title=loop
 
 
 ************************************
-[59861] obj.scaleTo(boundObj, percentX, percentY, type, boundsOnly, simple)
+[60633] obj.scaleTo(boundObj, percentX, percentY, type, boundsOnly, simple)
 
 scaleTo
 zim DisplayObject method
@@ -16940,7 +17262,7 @@ MORE: http://zimjs.com/code/bits.html?title=scaleTo
 
 
 ************************************
-[59967] obj.fit(left, top, width, height, type)
+[60739] obj.fit(left, top, width, height, type)
 
 fit
 zim DisplayObject method
@@ -16968,7 +17290,7 @@ MORE: http://zimjs.com/code/bits.html?title=fit
 
 
 ************************************
-[60069] obj.boundsToGlobal(rect, flip, inside, globalObj)
+[60841] obj.boundsToGlobal(rect, flip, inside, globalObj)
 
 boundsToGlobal
 zim DisplayObject method
@@ -16994,7 +17316,7 @@ RETURNS a createjs Rectangle of the bounds of object projected onto the stage
 
 
 ************************************
-[60149] obj.resetBounds(width||boundsX, height||boundsY, null||width, null||height, margin)
+[60921] obj.resetBounds(width||boundsX, height||boundsY, null||width, null||height, margin)
 
 resetBounds
 zim DisplayObject method
@@ -17052,7 +17374,7 @@ RETURNS object for chaining
 
 
 ************************************
-[60233] obj.copyMatrix(source)
+[61005] obj.copyMatrix(source)
 
 copyMatrix
 zim DisplayObject method
@@ -17075,7 +17397,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[60270] obj.duplicate(exact)
+[61042] obj.duplicate(exact)
 
 duplicate
 zim DisplayObject method
@@ -17093,7 +17415,7 @@ RETURNS cloned object with cloned custom properties
 
 
 ************************************
-[60304] obj.expand(padding, paddingV, paddingRight, paddingBottom)
+[61076] obj.expand(padding, paddingV, paddingRight, paddingBottom)
 
 expand
 zim DisplayObject method
@@ -17127,7 +17449,7 @@ MORE: http://zimjs.com/code/bits.html?title=expand
 
 
 ************************************
-[60362] obj.setSwipe(swipe)
+[61134] obj.setSwipe(swipe)
 
 setSwipe
 zim DisplayObject method
@@ -17146,7 +17468,7 @@ RETURNS obj for chaining
 
 
 ************************************
-[60400] obj.setMask(mask, dynamic)
+[61172] obj.setMask(mask, dynamic)
 
 setMask
 zim DisplayObject method
@@ -17216,7 +17538,7 @@ MORE: http://zimjs.com/code/bits.html?title=setMask
 
 
 ************************************
-[60529] obj.outline(color, size, boundsOnly)
+[61301] obj.outline(color, size, boundsOnly)
 
 outline
 zim DisplayObject method
@@ -17281,7 +17603,7 @@ MORE: http://zimjs.com/code/bits.html?title=outline
 
 
 ************************************
-[60689] obj.blendmodes(time, basic)
+[61461] obj.blendmodes(time, basic)
 
 blendmodes
 zim DisplayObject method
@@ -17310,10 +17632,11 @@ MODULE 4: ZIM CONTROLS
 ------------------------------------
 
 ************************************
-[60744] STYLE and Style()
+[61516] STYLE and Style()
 
 STYLE
 zim constant and static Class
+Also GLOBALSTYLE zim constant
 
 DESCRIPTION
 STYLE can be used to set any parameter on a DisplayObject and many of the Controls.
@@ -17333,7 +17656,14 @@ They are cascading with each level overriding the previous level:
 See: https://zimjs.com/style.html for an example
 And: https://zimjs.com/test/styles.html for Control Styles
 
-NOTE: As of ZIM Cat, a Style class has been added with the static methods to manage styles
+NOTE: As of ZIM 018, GLOBALSTYLE has been added.
+GLOBALSTYLE can be used like STYLE and any styles in GLOBALSTYLE will be added to STYLE.
+GLOBALSTYLE is only active after it is set and it can be cleared with GLOBALSTYLE = {} or null.
+GLOBALSTYLE properties that are the same as STYLE properties will be overwritten by STYLE properties
+including all of type and group styles, ie. if both have Button styles only the STYLE Button styles will be applied.
+GLOBALSTYLE makes it easier to keep common styles across multiple specific STYLE changes.
+
+NOTE: As of ZIM Cat, a Style class has been added with the static methods to manage styles.
 STYLE is an object so all of these are just a couple lines to make it easier to update the object.
 These include methods such as clear(), add(), remember(), addType(), addGroup(), etc.
 See the Style entry down below for a complete listing and description.
@@ -17445,6 +17775,24 @@ STYLE = {color:red, wonder:{percent:50}};
 new Circle({style:false, group:"wonder"}).center();
 
 EXAMPLE
+GLOBALSTYLE = {font:"courier"};
+STYLE = {size:50}
+new Label("hello").center(); // courier and size 50
+STYLE = {size:20}
+new Label("goodbye").center().mov(0,50); // courier and size 20
+STYLE = {font:"lidia", size:30}
+new Label("ciao").center().mov(0,150); // lucidia and size 30
+STYLE = {size:20}
+new Label("bella").center().mov(0,180); // courier and size 20
+GLOBALSTYLE = null;
+new Label("greets").center().mov(0,-100); // default font size 20
+GLOBALSTYLE = {Button:{corner:0}}; // can reset a GLOBALSTYLE
+STYLE = {font:"courier"};
+new Button().pos(100,100,RIGHT,BOTTOM); // courier with 0 corner
+STYLE = {Button:{font:"courier"}}; // this will override all Button styles in GLOBALSTYLE
+new Button().pos(100,100,RIGHT,BOTTOM); // courier with default corner
+
+EXAMPLE
 // Note: these commands are on the Style class not STYLE - but they operate on STYLE
 // Also remember that ZIM STYLE only gets applied to new objects
 // changing a STYLE will not change objects already created - this is different than CSS
@@ -17512,7 +17860,7 @@ If it does not work, just turn the STYLE = {} or Style.clear() manually.
 FUNCTION STYLES
 The following functions have been added:
 addTo, loc, pos, center, centerReg, reg, transform, drag, gesture,
-tap, change, hold, outline, bounds, mov, animate, wiggle, expand and cache
+tap, change, hold, outline, bounds, mov, animate, wiggle, expand, cache, and mouse
 Values of true will give default functionality for all but tap, change, mov, animate and wiggle
 ZIM DUO configuration objects can be set as a value for any of these
 example: drag:true;  or  drag:{onTop:false}
@@ -17520,6 +17868,7 @@ For animate and wiggle, [] can be put around multiple configuration objects
 to wiggle in the x and y for instance or run multiple animate calls on the object
 The tap, change and hold events are only what function to call - no extra parameters are available
 They can be turned off with noTap, noChange and noHold styles.
+Note: ZIM will run faster if non-interactive objects have their noMouse set.
 
 CONVENIENCE STYLES
 add:true - has been provided to add to the stage (use addTo for other containers)
@@ -17609,7 +17958,7 @@ Style.removeGroup(groupName) - removes a group as a string
 
 
 ************************************
-[61403] PATH
+[62211] PATH
 
 PATH
 zim global variable
@@ -17651,7 +18000,7 @@ new Pic("new.png").center(); // will look in test/ directory
 
 
 ************************************
-[61449] TIME
+[62257] TIME
 
 TIME
 zim global variable
@@ -17697,7 +18046,7 @@ new Circle().center().animate({
 
 
 ************************************
-[61498] TIMECHECK
+[62306] TIMECHECK
 
 TIMECHECK
 zim global variable
@@ -17723,7 +18072,7 @@ new Circle().center().wiggle("x", 100,200, 2000, 4000); // will give warning in 
 
 
 ************************************
-[61527] DIR
+[62335] DIR
 
 DIR
 zim global variable
@@ -17755,7 +18104,7 @@ new Label({
 
 
 ************************************
-[61563] SEEDRAND
+[62371] SEEDRAND
 
 SEEDRAND
 zim global variable
@@ -17799,7 +18148,7 @@ new Circle(100, [red, green, blue]).center().mov(0,300);
 
 
 ************************************
-[61611] SEEDRANDCOUNT
+[62419] SEEDRANDCOUNT
 
 SEEDRANDCOUNT
 zim global variable
@@ -17842,7 +18191,7 @@ zog(rand(100)); // a new random number but at index 2 as SEEDRANDCOUNT does NOT 
 
 
 ************************************
-[61657] ANIMATE
+[62465] ANIMATE
 
 ANIMATE
 zim global variable
@@ -17880,7 +18229,7 @@ circle2.animate({props:{alpha:0, scale:0}, time:.7, wait:.7, from:true});
 
 
 ************************************
-[61698] OPTIMIZE
+[62506] OPTIMIZE
 
 OPTIMIZE
 zim global variable
@@ -17923,7 +18272,7 @@ See zim.Ticker as you may have to set Ticker.update = true;
 
 
 ************************************
-[61744] ACTIONEVENT
+[62552] ACTIONEVENT
 
 ACTIONEVENT
 zim global variable
@@ -17947,7 +18296,7 @@ new CheckBox().center();
 
 
 ************************************
-[61771] DEFAULTWIRE
+[62579] DEFAULTWIRE
 
 DEFAULTWIRE
 zim global variable
@@ -17972,7 +18321,7 @@ new ColorPicker().center().wire(selector, "index");
 
 
 ************************************
-[61799] KEYFOCUS
+[62607] KEYFOCUS
 
 KEYFOCUS
 zim global variable
@@ -18003,7 +18352,7 @@ const stepper = new Stepper().center().mov(0, 100);
 
 
 ************************************
-[61833] POSREG
+[62641] POSREG
 
 POSREG
 zim global variable
@@ -18025,7 +18374,7 @@ new Rectangle().pos({x:10, right:true}); // will position registration point 10 
 
 
 ************************************
-[61858] DRAGALL
+[62666] DRAGALL
 
 DRAGALL
 zim global variable
@@ -18048,7 +18397,7 @@ containerOfMonsters.drag(); // will drag all the monsters at once
 
 
 ************************************
-[61884] MOBILE
+[62692] MOBILE
 
 MOBILE
 zim global variable
@@ -18115,7 +18464,7 @@ MOBILE = "default";
 
 
 ************************************
-[61954] Ticker = {}
+[62762] Ticker = {}
 
 Ticker
 zim static class
@@ -18206,7 +18555,7 @@ then set OPTIMIZE = false and then set Ticker.update = false
 
 
 ************************************
-[62291] Pages(pages, transition, speed, transitionTable, holder, arrowDisableColor, continuous, style, group, inherit)
+[63099] Pages(pages, transition, speed, transitionTable, holder, arrowDisableColor, continuous, style, group, inherit)
 
 Pages
 zim class - extends a zim.Container which extends a createjs.Container
@@ -18436,7 +18785,7 @@ MORE: http://zimjs.com/code/bits.html?title=Pages
 
 
 ************************************
-[63125] Arrow(backgroundColor, rollBackgroundColor, pages, direction, type, newPage, trans, speed, style, group, inherit)
+[63933] Arrow(backgroundColor, rollBackgroundColor, pages, direction, type, newPage, trans, speed, style, group, inherit)
 
 Arrow
 zim class - extends a zim.Button which extends a zim.Container which extends a createjs.Container
@@ -18534,7 +18883,7 @@ Additional "mousedown", "click" or other button events can be added if desired
 
 
 ************************************
-[63353] HotSpot(obj, x, y, width, height, call, callOver, callOut, local, talk)
+[64161] HotSpot(obj, x, y, width, height, call, callOver, callOut, local, talk)
 
 HotSpot
 zim class - extends a zim.Container which extends a createjs.Container
@@ -18580,7 +18929,7 @@ The default is "mousedown" - if set to something else the component will act on 
 
 
 ************************************
-[63471] HotSpots(spots, local, mouseDowns)
+[64279] HotSpots(spots, local, mouseDowns)
 
 HotSpots
 zim class - extends a zim.Container which extends a createjs.Container
@@ -18652,7 +19001,7 @@ the class creates HotSpot objects - see the class underneath this one
 
 
 ************************************
-[63678] Guide(obj, vertical, pixels, hideKey, pixelKey, style, group, inherit)
+[64486] Guide(obj, vertical, pixels, hideKey, pixelKey, style, group, inherit)
 
 Guide Class
 extends a zim.Container which extends a createjs.Container
@@ -18711,7 +19060,7 @@ pixels - boolean - set to true to change to pixels, false to go to percent
 
 
 ************************************
-[64000] Grid(obj, color, pixels, hideKey, pixelKey, allowToggle, cache, numbers, style, group, inherit)
+[64808] Grid(obj, color, pixels, hideKey, pixelKey, allowToggle, cache, numbers, style, group, inherit)
 
 Grid
 zim class - extends a zim.Container which extends a createjs.Container
@@ -18771,7 +19120,7 @@ MORE: http://zimjs.com/code/bits.html?title=Grid
 
 
 ************************************
-[64361] Wrapper(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, group, inherit)
+[65169] Wrapper(items, width, spacingH, spacingV, wrapperType, align, valign, alignInner, valignInner, flip, reverse, bottomFull, colSize, rowSize, height, minSpreadNum, minStretchNum, percentVoidH, offsetVoidH, percentVoidV, offsetVoidV, minStretchFirst, style, group, inherit)
 
 Wrapper
 zim class - extends a zim.Container which extends a createjs.Container
@@ -18975,7 +19324,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 
 ************************************
-[65265] Tile(obj, cols, rows, spacingH, spacingV, unique, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, events, exact, scaleToH, scaleToV, scaleToType, backgroundColor, backgroundPadding, backgroundPaddingH, backgroundPaddingV, backing, backdropColor, backdropPadding, backdropPaddingH, backdropPaddingV, mat, style, group, inherit)
+[66073] Tile(obj, cols, rows, spacingH, spacingV, unique, width, height, squeezeH, squeezeV, colSize, rowSize, align, valign, count, mirrorH, mirrorV, snapToPixel, clone, events, exact, scaleToH, scaleToV, scaleToType, backgroundColor, backgroundPadding, backgroundPaddingH, backgroundPaddingV, backing, backdropColor, backdropPadding, backdropPaddingH, backdropPaddingV, mat, style, group, inherit)
 
 Tile
 zim class - extends a zim.Container which extends a createjs.Container
@@ -19098,8 +19447,8 @@ obj - |ZIM VEE| (default new Circle()) the display object to tile
    If the obj is a ZIM VEE function (not array, object literal or series) then the Tile clone parameter will default to false
 cols - (default 1 - if no cols and rows then 3) the columns to tile
 rows - (default 1 - if no cols and rows then 3) the rows to tile
-spacingH - (default 0 - if no cols and rows then 3) a spacing between columns - ignored if colSize is set
-spacingV - (default 0 - if no cols and rows then 3) a spacing between rows - ignored if rowSize is set
+spacingH - |ZIM VEE| (default 0 - if no cols and rows then 3) a spacing between columns - ignored if colSize is set
+spacingV - |ZIM VEE| (default 0 - if no cols and rows then 3) a spacing between rows - ignored if rowSize is set
 unique - (default false) - set to true if tiling unique items like components with events set or objects with custom properties
    1. this will turn off ZIM VEE for the obj parameter which will accept an array of unique objects
    2. the count parameter will be set to the length of the array
@@ -19187,6 +19536,10 @@ itemUnderPoint(x, y, ignoreSpacing) - gets the item under a global point - (with
 setProps(properties) - sets provided properties (as {prop:val, prop:val}) for each item
    the values accept ZIM VEE - dynamic parameters - see ZIM Pick()
    returns object for chaining
+setSpacing(h,v) - set arrays of horizontal and vertical spacing
+   ZIM Tile() makes spacing arrays for horizontal and vertical spacing based on ZIM VEE calculations from the spacingH and spacingV parameters
+   to change spacing afterwards, new arrays can be provided to setSpacing()
+   the arrays must have col-1 and row-1 items - although h or v can be left null or undefined to keep existing spacing
 remake(items) - pass in an array of items to tile - see items property for editing current list - returns tile for chaining
    can also change rows and cols and remake()
 resize(width, height) - resize the tile with new width and/or height if the width and/or height parameters were set - returns tile for chaining
@@ -19229,14 +19582,13 @@ These properties can be changed by calling remake()
    cols - number of columns - can modify - need to call remake() to see changes
    rows - number of rows - can modify - need to call remake() to see changes
 These properties can be changed by calling resize(width, height) - set width or height to 0 for no spreading
-   spacingH - horizontal spacing - can modify - need to call resize() to see changes
-   spacingV - vertical spacing - can modify - need to call resize() to see changes
    squeezeH - horizontal compression - can modify - need to call resize() to see changes
    squeezeV - vertical compression - can modify - need to call resize() to see changes
    align - (not with ZIM VEE) horizontal alignment - can modify - need to call resize() to see changes
    valign - (not with ZIM VEE) vertical alignment - can modify - need to call resize() to see changes
    mirrorH - horizontal mirroring - can modify - need to call resize() to see changes
    mirrorV - vertical mirroring - can modify - need to call resize() to see changes
+   NOTE: spacingV and spacingH can be adjusted with setSpacing() method
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group
@@ -19255,7 +19607,7 @@ note: the item is not the event object target - as that is the tile
 
 
 ************************************
-[66304] Pack(width, height, items, spacingH, spacingV, flatten, direction, lock, backgroundColor, align, valign, lastAlign, paddingH, paddingV, dragOrder, dragColor, dragThickness, dragDashed, reverse, funnel, showPacking, order, container, style, group, inherit)
+[67162] Pack(width, height, items, spacingH, spacingV, flatten, direction, lock, backgroundColor, align, valign, lastAlign, paddingH, paddingV, dragOrder, dragColor, dragThickness, dragDashed, reverse, funnel, showPacking, order, container, style, group, inherit)
 
 Pack
 zim class - extends a zim.Container which extends a createjs.Container
@@ -19398,7 +19750,7 @@ dispatches a change event if items are re-ordered
 
 
 ************************************
-[67156] Beads(path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit)
+[68014] Beads(path, obj, count, angle, startPercent, endPercent, percents, onTop, showControls, visible, interactive, clone, group, style, inherit)
 
 Beads
 zim class - extends a zim.Container which extends a createjs.Container
@@ -19513,7 +19865,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 
 ************************************
-[67388] Layout(holder, regions, lastMargin, lastMarginMin, backgroundColor, vertical, showRegions, scalingObject, hideKey, style, group, inherit)
+[68246] Layout(holder, regions, lastMargin, lastMarginMin, backgroundColor, vertical, showRegions, scalingObject, hideKey, style, group, inherit)
 
 Layout
 zim class - extends a createjs.EventDispatcher
@@ -19639,7 +19991,7 @@ MORE: http://zimjs.com/code/bits.html?title=Layout
 
 
 ************************************
-[68030] Accessibility(appName, tabOrder, tabIndex, cycle, decimals, frame, application, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale)
+[68888] Accessibility(appName, tabOrder, tabIndex, cycle, decimals, frame, application, alwaysHighlight, AHTime, AHColor, AHBorderWidth, AHBorderPadding, AHAlpha, AHObject, AHObjectScale)
 
 Accessibility
 zim class - extends a createjs.EventDispatcher
@@ -19781,7 +20133,7 @@ The Enter key dispatches mousedown and click events from object with focus
 
 
 ************************************
-[69113] TextureActive(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, group, inherit)
+[69971] TextureActive(width, height, color, color2, angle, borderColor, borderWidth, corner, interactive, animated, backingOrbit, pattern, scalePattern, style, group, inherit)
 
 TextureActive
 zim class extends a zim Page which extends a ZIM Container which extends a createjs Container
@@ -19977,7 +20329,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[69398] TextureActives(actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit)
+[70253] TextureActives(actives, threejs, zimThree, renderer, scene, camera, controls, layers, near, far, ignoreList, toggleKey, color, outerColor, damp, style, group, inherit)
 
 TextureActives
 zim class extends a createjs EventDispatcher
@@ -20178,7 +20530,7 @@ rayout - dispatched when mouse is moves out from a ZIM TextureActive material
 
 
 ************************************
-[70151] TextureActivesManager(stage, toggleKey, damp)
+[71006] TextureActivesManager(stage, toggleKey, damp)
 
 TextureActivesManager
 zim class extends a createjs EventDispatcher
@@ -20226,7 +20578,7 @@ swiper - access to the ZIM Swiper for swiping the panel - note, only works outsi
 
 
 ************************************
-[70431] Manager()
+[71287] Manager()
 
 DEPRECATED - as of ZIM ZIM 02, a GlobalManager is added to handle any resizing
 
@@ -20249,7 +20601,7 @@ dispose(obj) - disposes objects in the manager
 
 
 ************************************
-[70534] ResizeManager()
+[71390] ResizeManager()
 
 DEPRECATED - as of ZIM ZIM 02, a GlobalManager is added to handle any resizing
 
@@ -20286,7 +20638,7 @@ items - get or set an array of objects currently in the Manager
 
 
 ************************************
-[70579] TransformManager(objects, persistID)
+[71435] TransformManager(objects, persistID)
 
 TransformManager
 zim class extends CreateJS EventDispatcher
@@ -20359,7 +20711,7 @@ Dispatches a "persistcomplete" event when all persist data has been set + 100ms 
 
 
 ************************************
-[71033] GuideManager()
+[71889] GuideManager()
 
 DEPRECATED - as of ZIM ZIM 02, a GlobalManager is added to handle any resizing
 
@@ -20409,7 +20761,7 @@ disposing will remove the G, P key listener and the guide
 
 
 ************************************
-[71091] GridManager()
+[71947] GridManager()
 
 DEPRECATED - as of ZIM ZIM 02, a GlobalManager is added to handle any resizing
 
@@ -20454,7 +20806,7 @@ items - an array of all Grid objects added with add()
 
 
 ************************************
-[71144] LayoutManager()
+[72000] LayoutManager()
 
 DEPRECATED - as of ZIM ZIM 02, a GlobalManager is added to handle any resizing
 
@@ -20517,7 +20869,7 @@ items - an array of all Layout objects added with add()
 
 
 ************************************
-[71266] SelectionSet(selections)
+[72122] SelectionSet(selections)
 
 SelectionSet
 zim class
@@ -20569,7 +20921,7 @@ items - an array of all Layout objects added with add()
 
 
 ************************************
-[71396] SelectionManager(sets, multipleKey, multipleSets)
+[72252] SelectionManager(sets, multipleKey, multipleSets)
 
 SelectionManager
 zim class extends a CreateJS EventDispatcher
@@ -20635,7 +20987,7 @@ dispatches an "undo" event if a CTRL or META plus the U key is pressed
 
 
 ************************************
-[71524] Bind(connection, bindType, master, masterFilter, couple, smartDecimals, report, setDefault)
+[72382] Bind(connection, bindType, master, masterFilter, couple, smartDecimals, report, setDefault)
 
 Bind
 zim class
@@ -21036,7 +21388,7 @@ fromIDs - an object of from() properties in the form {prop1:[id1, id2], prop2:[i
 
 
 ************************************
-[72523] Swipe(obj, distance, duration, isometric, overrideNoSwipe)
+[73381] Swipe(obj, distance, duration, isometric, overrideNoSwipe)
 
 Swipe
 zim class - extends a createjs.EventDispatcher
@@ -21117,7 +21469,7 @@ MORE: http://zimjs.com/code/bits.html?title=Swipe
 
 
 ************************************
-[72706] Swiper(swipeOn, target, property, sensitivity, swiperType, min, max, damp, integer, factor, loop, pauseTime, otherSwiper)
+[73564] Swiper(swipeOn, target, property, sensitivity, swiperType, min, max, damp, integer, factor, loop, pauseTime, otherSwiper)
 
 Swiper
 zim class - extends a createjs EventDispatcher
@@ -21195,7 +21547,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 
 
 ************************************
-[73027] MotionController(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside)
+[73885] MotionController(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj)
 
 MotionController
 zim class - extends a createjs EventDispatcher
@@ -21207,6 +21559,7 @@ For instance, you can control a player in a game or a butterfly in field
 SEE: https://zimjs.com/controller for more examples
 SEE: https://zimjs.com/explore/sidescroller.html for keyboard work with Scroller, Sprite, Dynamo, Accelerator
 SEE: https://zimjs.com/pen or https://zimjs.com/genpen (complex example)
+SEE: https://zimjs.com/018/tileObj.html for moving on tile squares
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -21314,7 +21667,7 @@ firstPerson - (default false) set to true for keydown, gamebutton and gamecontro
    speed will be damped by damp parameter - also, map parameter changes if in firstPerson mode - see map parameter
 turnSpeed - (default speed*.4) - the speed for turning in firstPerson mode - will be damped but damp parameter
 moveThreshold - (default 5) pixels negative or positive to treat damped motion as stopped
-stickThreshold - (default .2) gamepad stick axes values are from -1 to 1 but there is a lot of noise
+stickThreshold - (default .2, default .8 with tileObj) gamepad stick axes values are from -1 to 1 but there is a lot of noise
    so consider within +- stickThreshold as no motion 0
 container - (default zimDefaultFrame stage) the Container the target is in - the stage is most likely fine
    if container is specified, it must be on the stage when the MotionController is made
@@ -21334,6 +21687,31 @@ minPercentSpeed - (default 100) if target is an Accelerator, the percentSpeed at
 dampKeyup - (default .3) damping applied to slow down Accelerator with keydown
 rotate - (depreciated) the same as orient - kept for backwards compatibility as of ZIM Cat 01
 mouseOutside - (default false) if a container or boundary is provided, set to true to start motion if pressing outside container or boundary
+tileObj - (default null) an object to direct the target to move on a theoretical board with tiles
+   works with type keydown, dPad, gamebutton and gamestick - for press tile movement see ZIM GameBoard and EasyStar path finding
+   note: the target must be initially placed properly on a tile to start
+      and if this is not the 0,0 tile then set the startCol and startRow properties
+      moves are then calculated based on original target position, the w, h, spacingH and spacingV
+   tileObj properties are as follows:   
+      time (default .2, or .3 for type gamestick, or .4 for dPad) - the time between moves or to animate to next move
+      animate (default true) - set to false to not animate the target to the new tile
+      cols (default 5) - the number of columns of the tile (not used if there is a moves property)
+      rows (default 5) - the number of rows of the tile (not used if there is a moves property)
+      w (default 50) - the width of a tile (not the whole board but just a tile and not including spacing)
+      h (default 50) - the height of a tile (not the whole board but just a tile and not including spacing)
+      spacingH (default 3) - the spacing horizontal between each tile
+      spacingV (default 3) - the spacing vertical between each tile
+      startCol (default 0) - the column index on which the target starts (must still place target at the right location)
+      startRow (default 0) - the row index on which the target starts (must still place target at the right location)
+      moves (default null) - set to an array of rows each with array of columns         
+         for allowed moves use 1 and for not-allowed moves use 0
+         to move anywhere on 5x3 grid except the corners and the middle
+            moves:[
+               [0,1,1,1,0],
+               [1,1,0,1,1],
+               [0,1,1,1,0]
+            ]
+         note: this will override the cols and rows values         
 
 METHODS
 pause(state, time) - state defaults to true and pauses the motionController (sets speed to 0)
@@ -21370,6 +21748,8 @@ moveThreshold - the maximum value (+-) within which movement is considered stopp
 stickThreshold - the maximum value (+-) within which the gamepad stick axes values are considered 0
 mousedownIncludes - an array of objects that the mousedown will work on - along with the stage
    note: if manually setting this and there is a boundary then add the boundary to the mousedownIncludes as well
+moveGrid - get or set the moves of a provided tileObj - see the tileObj parameter
+   note: this will not reposition the target if changed
 enabled - set to false to disable or true to enable MotionController - can toggle with enabled = !enabled
 
 ALSO: adds a motionController property to target referencing the MotionController object
@@ -21383,7 +21763,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 
 
 ************************************
-[73980] GamePad()
+[75022] GamePad()
 
 GamePad
 zim class - extends a createjs EventDispatcher
@@ -21464,7 +21844,7 @@ dispatches a "data" event with axes and buttons array properties
 
 
 ************************************
-[74147] Portal(obj, lands)
+[75189] Portal(obj, lands)
 
 Portal
 zim class - extends a CreateJS EventDispatcher
@@ -21538,7 +21918,7 @@ dispatches an enter event on mouseover of the portal and an exit event on mouseo
 
 
 ************************************
-[74306] Physics(gravity, borders, scroll, frame)
+[75348] Physics(gravity, borders, scroll, frame)
 
 Physics
 zim module
@@ -21667,6 +22047,22 @@ function ready() {
 
    new Circle(50,black).pos(0,100,CENTER).addPhysics();
 }
+
+EXAMPLE
+new Physics();
+const circle = new Circle(20,red)
+   .center()
+   .wiggle("x", null, 100,200,1,2)
+   .wiggle("y", null, 100,200,1,2); // note - no physics
+const ring = new Circle(100,clear,purple,2)
+   .center()
+   .addPhysics()
+   .puppet(circle); // ring will follow circle
+new Rectangle(100,100,purple)
+   .reg(CENTER)
+   .center()
+   .mov(50,50)
+   .addPhysics(false); // static
 
 PARAMETERS - FOR PHYSICS
 ** supports DUO - parameters or single object with properties below
@@ -21885,12 +22281,20 @@ contactEnd(call) - run the call function when object's body ends contacts with a
    Also see sensor parameter to trigger contact but with no physics interaction
 noContact() - remove contact call
 noContactEnd() - remove contactEnd call
+puppet(o) - make object go to the x and y of the object passed into to the o parameter.
+   this will make the equivilant of a mouseJoin so physics is not broken
+   so that physics objects can be joined to ZIM objects
+   and controlled with animate(), wiggle(), zim drag(), gesture(), transform(), etc.
+   note: it is the x and y property only, not rotation or scale.
+   see https://zimjs.com/018/puppet.html
+puppetEnd() - stop the object from being a puppet
 
 PROPERTIES - FOR OBJECTS - see also BODY PROPERTIES below
 dynamic - set to true for dynamic and false for static
    there is also kinematic that can be set using the obj.body.SetType(1)
 speed - get or set the speed of an object that is controlled by control()
 speedY - get or set the speedY of an object that is controlled by control()
+puppetJoint - get the puppetJoint if puppet is set - will be null if puppet is not set
 ** normal x, y, rotation or pos(), loc(), rot() will not work with physics!
 ** see the BODY loc(x,y) METHOD and the rotation PROPERTY below
 ** these should really not be set at all in the physics world
@@ -21951,7 +22355,7 @@ b2ContactListener = Box2D.Dynamics.b2ContactListener;
 
 
 ************************************
-[74885] TimeLine(objects, width, startPaused, barColor, buttonColor, themeColor, corner, ticks, damp, loop, noLoop, call, style, group, inherit)
+[75974] TimeLine(objects, width, startPaused, barColor, buttonColor, themeColor, corner, ticks, damp, loop, noLoop, call, style, group, inherit)
 
 TimeLine
 zim class extends zim Container which extends a createjs Container
@@ -22033,7 +22437,7 @@ themeColor - get the current theme color
 
 
 ************************************
-[75314] BlurEffect(blurX, blurY, quality, style, group, inherit)
+[76403] BlurEffect(blurX, blurY, quality, style, group, inherit)
 
 BlurEffect
 zim class extends createjs BlurFilter
@@ -22118,7 +22522,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 
 ************************************
-[75435] GlowEffect(color, alpha, blurX, blurY, strength, quality, inner, knockout, hideObject, style, group, inherit)
+[76524] GlowEffect(color, alpha, blurX, blurY, strength, quality, inner, knockout, hideObject, style, group, inherit)
 
 GlowEffect
 zim class extends createjs BlurFilter
@@ -22216,7 +22620,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 
 ************************************
-[75678] ShadowEffect(distance, angle, color, alpha, blurX, blurY, strength, quality, inner, knockout, hideObject, style, group, inherit)
+[76767] ShadowEffect(distance, angle, color, alpha, blurX, blurY, strength, quality, inner, knockout, hideObject, style, group, inherit)
 
 ShadowEffect
 zim class extends createjs BlurFilter
@@ -22318,7 +22722,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 
 ************************************
-[75990] ThresholdEffect(redValue, greenValue, blueValue, passColor, failColor, style, group, inherit)
+[77079] ThresholdEffect(redValue, greenValue, blueValue, passColor, failColor, style, group, inherit)
 
 ThresholdEffect
 zim class extends createjs Filter
@@ -22385,7 +22789,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 
 ************************************
-[76160] ColorEffect(redMultiplier, greenMultiplier, blueMultiplier, alphaMultiplier, redOffset, greenOffset, blueOffset, alphaOffset, style, group, inherit)
+[77249] ColorEffect(redMultiplier, greenMultiplier, blueMultiplier, alphaMultiplier, redOffset, greenOffset, blueOffset, alphaOffset, style, group, inherit)
 
 ColorEffect
 zim class extends createjs ColorFilter
@@ -22477,7 +22881,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 
 ************************************
-[76303] MultiEffect(hue, saturation, brightness, contrast, style, group, inherit)
+[77392] MultiEffect(hue, saturation, brightness, contrast, style, group, inherit)
 
 MultiEffect
 zim class extends createjs ColorMatrixFilter
@@ -22555,7 +22959,7 @@ veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE v
 
 
 ************************************
-[76465] AlphaEffect(mask, style, group, inherit)
+[77554] AlphaEffect(mask, style, group, inherit)
 
 AlphaEffect
 zim class extends createjs AlphaMaskFilter
@@ -22664,7 +23068,7 @@ ALSO See the CreateJS Easel Docs for Filter methods, such as: getBounds()
 
 
 ************************************
-[76620] Pixel(obj, amount, amountY, blur, dynamic, blendmode, boundary, expand, amountFactor, blurFactor, style, group, inherit)
+[77709] Pixel(obj, amount, amountY, blur, dynamic, blendmode, boundary, expand, amountFactor, blurFactor, style, group, inherit)
 
 Pixel
 zim class extends ZIM Bitmap which extends CreateJS Bitmap
@@ -22775,7 +23179,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 
 ************************************
-[76939] Parallax(layers, damp, auto, stage, startPaused, mouseMoveOutside, clamp)
+[78028] Parallax(layers, damp, auto, stage, startPaused, mouseMoveOutside, clamp)
 
 Parallax
 zim class
@@ -22895,7 +23299,7 @@ MORE: http://zimjs.com/code/bits.html?title=Parallax
 
 
 ************************************
-[77229] Flipper(front, back, interactive, time, vertical, flipped, ease, frontPress, backPress, reverse, continuous, style, group, inherit)
+[78318] Flipper(front, back, interactive, time, vertical, flipped, ease, frontPress, backPress, reverse, continuous, style, group, inherit)
 
 Flipper
 zim class - extends a zim.Container which extends a createjs.Container
@@ -23021,7 +23425,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[77474] Book(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows, handleHTML)
+[78563] Book(width, height, pages, startPage, rollUp, radius, backgroundColor, arrows, handleHTML)
 
 Book
 zim class - extends a zim.Container which extends a createjs.Container
@@ -23166,7 +23570,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[78158] Scrambler(tile, keys, keyProperty, scramble, time, wait, num, shadowColor, shadowBlur, swap, swapLock, style, group, inherit)
+[79247] Scrambler(tile, keys, keyProperty, scramble, time, wait, num, shadowColor, shadowBlur, swap, swapLock, style, group, inherit)
 
 Scrambler
 zim class - extends a zim.Container which extends a createjs.Container
@@ -23284,7 +23688,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[78714] Scroller(backing, speed, direction, horizontal, gapFix, stage, container, backing2, style, group, inherit)
+[79803] Scroller(backing, speed, direction, horizontal, gapFix, stage, container, backing2, style, group, inherit)
 
 Scroller
 zim class extends a createjs.EventDispatcher
@@ -23353,7 +23757,7 @@ MORE: http://zimjs.com/code/bits.html?title=Scroller
 
 
 ************************************
-[78996] Dynamo(sprite, speed, label, startFrame, endFrame, update, reversible, flip, flipVertical, style, group, inherit)
+[80085] Dynamo(sprite, speed, label, startFrame, endFrame, update, reversible, flip, flipVertical, style, group, inherit)
 
 Dynamo
 zim class - extends a createjs EventDispatcher
@@ -23457,7 +23861,7 @@ dispatches a "pause" event when the Dynamo is paused - could be delayed
 
 
 ************************************
-[79262] Accelerator(objects)
+[80351] Accelerator(objects)
 
 Accelerator
 zim class extends a createjs.EventDispatcher
@@ -23533,7 +23937,7 @@ items - an array of all objects added with add()
 
 
 ************************************
-[79436] Emitter(obj, width, height, interval, num, life, fade, shrink, warm, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles, focusWarm, style, group, inherit)
+[80525] Emitter(obj, width, height, interval, num, life, fade, shrink, warm, decayTime, decayStart, trace, traceFadeTime, traceShiftX, traceShiftY, angle, force, gravity, wind, layers, animation, random, horizontal, vertical, sink, sinkForce, cache, events, startPaused, pool, poolMin, particles, focusWarm, style, group, inherit)
 
 Emitter
 zim class - extends a zim.Container which extends a createjs.Container
@@ -23787,7 +24191,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 
 ************************************
-[80383] Generator(color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, output, outputType, style, group, inherit)
+[81472] Generator(color, strokeColor, strokeWidth, draw, stamp, setup, maxCount, boundary, drawCount, drawPause, drawSpacebarPause, startX, startY, cache, recordLinePoints, frame, seed, output, outputType, style, group, inherit)
 
 Generator
 zim class - extends a ZIM Container which extends a CreateJS Container
@@ -24292,7 +24696,7 @@ and drawpause or drawSpacebarPause parameters are true
 
 
 ************************************
-[81693] Pen(size, color, penType, damp, spread, borderColor, borderWidth, end, paper, nib, cache, ctrlKey, cropScale, undo, undoKeys, move, onTop, deleteable, doubleClickDelete, holdDelete, immediateStop, lineAlpha, lineBlendMode, frame, dashed, pullColor, pullThickness, style, group, inherit)
+[82782] Pen(size, color, penType, damp, spread, borderColor, borderWidth, end, paper, nib, cache, ctrlKey, cropScale, undo, undoKeys, move, onTop, deleteable, doubleClickDelete, holdDelete, immediateStop, lineAlpha, lineBlendMode, frame, dashed, pullColor, pullThickness, style, group, inherit)
 
 Pen
 zim class - extends a ZIM Container which extends a CreateJS Container
@@ -24533,7 +24937,7 @@ dispatches an "undo" and a "redo" whenever undo and redo happens
 
 
 ************************************
-[82813] SoundWave(num, input, include, smoothing, min, max, operation, baseline, magnify, reduce, adjust, channel)
+[83902] SoundWave(num, input, include, smoothing, min, max, operation, baseline, magnify, reduce, adjust, channel)
 
 SoundWave
 zim class - extends a CreateJS EventDispatcher
@@ -24638,7 +25042,7 @@ dispatches a "ready" event when the sound source is connected and the calculate(
 
 
 ************************************
-[83135] Synth(volume, frequency)
+[84224] Synth(volume, frequency)
 
 Synth
 zim class - extends a CreateJS EventDispatcher
@@ -25047,7 +25451,7 @@ the result of the play() or tone() method will dispatch a "complete" event when 
 
 
 ************************************
-[84577] VR(content, angle, distance, parallax, parallaxAngle, damp, parallaxDamp, startAngle, negativeParallax, borderMarkers, swiper, holder)
+[85666] VR(content, angle, distance, parallax, parallaxAngle, damp, parallaxDamp, startAngle, negativeParallax, borderMarkers, swiper, holder)
 
 VR
 zim class - extends a ZIM Container which extends a CreateJS Container
@@ -25274,7 +25678,7 @@ MODULE 5: ZIM CODE
 ------------------------------------
 
 ************************************
-[00650] chop(obj, cols, rows, tile, margin, scale)
+[00652] chop(obj, cols, rows, tile, margin, scale)
 
 chop
 zim function
@@ -25316,7 +25720,7 @@ RETURNS a Tile or an array of Bitmaps depending on tile parameter
 
 
 ************************************
-[00731] shuffle(array, different)
+[00733] shuffle(array, different)
 
 shuffle
 zim function
@@ -25349,7 +25753,7 @@ MORE: http://zimjs.com/code/bits.html?title=shuffle
 
 
 ************************************
-[00796] pluck(array, remove)
+[00798] pluck(array, remove)
 
 pluck
 zim function
@@ -25374,7 +25778,7 @@ RETURNS a random item from an array
 
 
 ************************************
-[00831] rand(a, b, integer, negative)
+[00833] rand(a, b, integer, negative)
 
 rand
 zim function
@@ -25420,7 +25824,7 @@ MORE: http://zimjs.com/code/bits.html?title=rand
 
 
 ************************************
-[00893] seedRandom(seed)
+[00895] seedRandom(seed)
 
 seedRandom
 zim function
@@ -25472,7 +25876,7 @@ RETURNS the seed
 
 
 ************************************
-[00957] odds(percent)
+[00959] odds(percent)
 
 odds
 zim function
@@ -25500,7 +25904,7 @@ RETURNS a Boolean
 
 
 ************************************
-[00991] rarity(weights, shuffle, zimColors, dynamicPayload)
+[00993] rarity(weights, shuffle, zimColors, dynamicPayload)
 
 rarity
 zim function
@@ -25632,7 +26036,7 @@ these properties may have a payload property if payloads are used
 
 
 ************************************
-[01171] repeats(array, total)
+[01173] repeats(array, total)
 
 repeats
 zim function
@@ -25665,7 +26069,7 @@ if total is true then returns all the repeats - possibly from different sets
 
 
 ************************************
-[01221] series(array|item1|obj, item2, item3)
+[01223] series(array|item1|obj, item2, item3)
 
 series
 zim function
@@ -25772,7 +26176,7 @@ RETURNS a function that can be called many times - each time returning the next 
 
 
 ************************************
-[01519] loop(obj, call, reverse, interval, step, start, end, immediate, complete, completeParams)
+[01521] loop(obj, call, reverse, interval, step, start, end, immediate, complete, completeParams)
 
 loop
 zim function
@@ -25932,7 +26336,7 @@ MORE: http://zimjs.com/code/bits.html?title=loop
 
 
 ************************************
-[01855] getTIME(time, timeType, minWarning, maxWarning, noWarning)
+[01857] getTIME(time, timeType, minWarning, maxWarning, noWarning)
 
 getTIME
 global function
@@ -25953,7 +26357,7 @@ Set TIMECHECK = false to turn off check if desired - for instance if getting fal
 
 
 ************************************
-[01899] timeout(time, call, pauseOnBlur, timeUnit)
+[01901] timeout(time, call, pauseOnBlur, timeUnit)
 
 timeout
 zim function
@@ -26021,7 +26425,7 @@ MORE: http://zimjs.com/code/bits.html?title=timeout
 
 
 ************************************
-[01976] interval(time, call, total, immediate, pauseOnBlur, timeUnit, complete, completeParams)
+[01978] interval(time, call, total, immediate, pauseOnBlur, timeUnit, complete, completeParams)
 
 interval
 zim function
@@ -26126,7 +26530,7 @@ MORE: http://zimjs.com/code/bits.html?title=interval
 
 
 ************************************
-[02168] async(url, callback, callbackString, maxTime, maxCancel)
+[02170] async(url, callback, callbackString, maxTime, maxCancel)
 
 async
 zim function
@@ -26236,7 +26640,7 @@ MORE: http://zimjs.com/code/bits.html?title=async
 
 
 ************************************
-[02325] couple(json)
+[02327] couple(json)
 
 couple
 zim function
@@ -26267,7 +26671,7 @@ RETURNS a JSON string with one less level of objects in form of:
 
 
 ************************************
-[02370] decouple(json)
+[02372] decouple(json)
 
 decouple
 zim function
@@ -26309,7 +26713,7 @@ the original JSON string will be returned if the initial JSON string is not coup
 
 
 ************************************
-[02426] convertColor(color, toColorType, alpha)
+[02428] convertColor(color, toColorType, alpha)
 
 convertColor
 zim function
@@ -26361,7 +26765,7 @@ RETURNS a String with the converted color
 
 
 ************************************
-[02695] colorRange(color1, color2, ratio)
+[02697] colorRange(color1, color2, ratio)
 
 colorRange
 zim function
@@ -26391,7 +26795,7 @@ RETURNS a hex color string
 
 
 ************************************
-[02760] lighten(color, ratio)
+[02762] lighten(color, ratio)
 
 lighten
 zim function
@@ -26424,7 +26828,7 @@ RETURNS a hex color string
 
 
 ************************************
-[02801] darken(color, ratio)
+[02803] darken(color, ratio)
 
 darken
 zim function
@@ -26457,7 +26861,7 @@ RETURNS a hex color string
 
 
 ************************************
-[02841] toColor(color, targetColor, ratio)
+[02843] toColor(color, targetColor, ratio)
 
 toColor
 zim function
@@ -26492,7 +26896,7 @@ RETURNS a hex color string
 
 
 ************************************
-[02882] toAlpha(color, alpha)
+[02884] toAlpha(color, alpha)
 
 toAlpha
 zim function
@@ -26522,7 +26926,7 @@ RETURNS a hex color string
 
 
 ************************************
-[02918] toBW(hex)
+[02920] toBW(hex)
 
 toBW
 zim function
@@ -26547,7 +26951,7 @@ RETURNS either "#000000" or "#ffffff" depending on which has more contrast again
 
 
 ************************************
-[02964] invertColor(hex)
+[02966] invertColor(hex)
 
 invertColor
 zim function
@@ -26572,7 +26976,7 @@ RETURNS a hex color string of inverted color
 
 
 ************************************
-[03018] zimEase(points, polynomials, convert, reverse, lockEnds)
+[03020] zimEase(points, polynomials, convert, reverse, lockEnds)
 
 zimEase
 zim function
@@ -26638,7 +27042,7 @@ RETURNS an easing function for ZIM animate() or CreateJS TweenJS
 
 
 ************************************
-[03252] spline(points, tension, close, shape, removeLast)
+[03254] spline(points, tension, close, shape, removeLast)
 
 spline
 zim function
@@ -26680,7 +27084,7 @@ RETURNS an SVG path that can be passed into Squiggle or Blob
 
 
 ************************************
-[03366] getPointAtPercent(x1, y1, x2, y2, percent)
+[03368] getPointAtPercent(x1, y1, x2, y2, percent)
 
 getPointAtPercent
 zim function
@@ -26706,7 +27110,7 @@ RETURNS an ZIM Point() with x an y at the percentage along the straight line
 
 
 ************************************
-[03406] pointAlongCurve(points, ratio, getAngle)
+[03408] pointAlongCurve(points, ratio, getAngle)
 
 pointAlongCurve
 zim function
@@ -26741,7 +27145,7 @@ RETURNS a point object with x and y properties on the curve at the ratio
 
 
 ************************************
-[03477] distanceAlongCurve(points)
+[03479] distanceAlongCurve(points)
 
 distanceAlongCurve
 zim function
@@ -26771,7 +27175,7 @@ RETURNS an approximate distance along the curve
 
 
 ************************************
-[03516] closestPointAlongCurve(point, segmentPoints, num, interpolate, percentage)
+[03518] closestPointAlongCurve(point, segmentPoints, num, interpolate, percentage)
 
 closestPointAlongCurve
 zim function
@@ -26811,7 +27215,7 @@ RETURNS the index of the closest point in segmentPoints before the given point
 
 
 ************************************
-[03598] transformPoints(points, transformType, amount, x, y)
+[03600] transformPoints(points, transformType, amount, x, y)
 
 transformPoints
 zim function
@@ -26845,7 +27249,7 @@ RETURNS an array of points with numbers transformed
 
 
 ************************************
-[03694] trimEndPoints(points)
+[03696] trimEndPoints(points)
 
 trimEndPoints
 zim function
@@ -26871,7 +27275,7 @@ RETURNS an array of points with with the first point having no left control and 
 
 
 ************************************
-[03730] reversePoints(points)
+[03732] reversePoints(points)
 
 reversePoints
 zim function
@@ -26895,7 +27299,7 @@ RETURNS an array of points that is in reverse order to the input points
 
 
 ************************************
-[03769] appendPoints(original, points, controlType)
+[03771] appendPoints(original, points, controlType)
 
 appendPoints
 zim function
@@ -26929,7 +27333,7 @@ RETURNS the original array of points with the points added to the end
 
 
 ************************************
-[03816] prependPoints(original, points, controlType)
+[03818] prependPoints(original, points, controlType)
 
 prependPoints
 zim function
@@ -26963,7 +27367,7 @@ RETURNS the original array of points with the points added to the beginning
 
 
 ************************************
-[03863] splitPoints(points, index, trimEnds)
+[03865] splitPoints(points, index, trimEnds)
 
 splitPoints
 zim function
@@ -26989,7 +27393,7 @@ RETURNS an array if the first and second set of points
 
 
 ************************************
-[03905] outlineImage(image, reverse)
+[03907] outlineImage(image, reverse)
 
 outlineImage
 zim function
@@ -27033,7 +27437,7 @@ RETURNS an array [[x,y], [x,y]...] points (probably thousands) outlining the sol
 
 
 ************************************
-[04178] simplifyPoints(points, tolerance, highestQuality, reverse, removeLast)
+[04180] simplifyPoints(points, tolerance, highestQuality, reverse, removeLast)
 
 simplifyPoints
 zim function
@@ -27075,7 +27479,7 @@ RETURNS an array [[x,y],[x,y]...] simplified x and y points
 
 
 ************************************
-[04345] makeID(type, length, letterCase)
+[04347] makeID(type, length, letterCase)
 
 makeID
 zim function
@@ -27102,7 +27506,7 @@ RETURNS a String id (even if type is number)
 
 
 ************************************
-[04405] makeSyllable(length, firstVowel)
+[04407] makeSyllable(length, firstVowel)
 
 makeSyllable
 zim function
@@ -27131,7 +27535,7 @@ RETURNS a String syllable of the length
 
 
 ************************************
-[04455] makePrimitive(obj)
+[04457] makePrimitive(obj)
 
 makePrimitive
 zim function
@@ -27163,7 +27567,7 @@ RETURNS the object with String, Number and Boolean objects converted to primitiv
 
 
 ************************************
-[04511] makeMath()
+[04513] makeMath()
 
 makeMath
 zim function
@@ -27180,7 +27584,7 @@ zog(sin(20*RAD));
 
 
 ************************************
-[04538] swapProperties(property, objA, objB)
+[04540] swapProperties(property, objA, objB)
 
 swapProperties
 zim function
@@ -27205,7 +27609,7 @@ MORE: http://zimjs.com/code/bits.html?title=swapProperties
 
 
 ************************************
-[04570] setProps(obj, props)
+[04572] setProps(obj, props)
 
 setProps
 zim function
@@ -27237,7 +27641,7 @@ props - an object literal {} of properties and values to set on the object or ob
 
 
 ************************************
-[04614] mobile(orientation)
+[04616] mobile(orientation)
 
 mobile
 zim function
@@ -27286,7 +27690,7 @@ MORE: http://zimjs.com/code/bits.html?title=mobile
 
 
 ************************************
-[04679] vee(obj)
+[04681] vee(obj)
 
 vee
 zim function
@@ -27314,7 +27718,7 @@ RETURNS a Boolean true if Pick format or false if not (such as just a number, st
 
 
 ************************************
-[04712] extend(subclass, superclass, override, prefix, prototype)
+[04714] extend(subclass, superclass, override, prefix, prototype)
 
 extend
 zim function - modified CreateJS extend and promote utility methods
@@ -27470,7 +27874,7 @@ MORE: http://zimjs.com/code/bits.html?title=extend
 
 
 ************************************
-[04918] copy(obj, clone, cloneContainers)
+[04920] copy(obj, clone, cloneContainers)
 
 copy
 zim function
@@ -27516,7 +27920,7 @@ RETURNS a new Object
 
 
 ************************************
-[04986] merge(objects)
+[04988] merge(objects)
 
 merge
 zim function
@@ -27541,7 +27945,7 @@ RETURNS a new Object
 
 
 ************************************
-[05024] sortObject(obj, property, reverse)
+[05026] sortObject(obj, property, reverse)
 
 sortObject
 zim function
@@ -27579,7 +27983,7 @@ RETURNS a new Object with sorted properties - the original object is left as is
 
 
 ************************************
-[05079] arraysEqual(a, b, strict)
+[05081] arraysEqual(a, b, strict)
 
 arraysEqual
 zim function
@@ -27606,7 +28010,7 @@ RETURNS a Boolean
 
 
 ************************************
-[05126] arrayMinMax(arr)
+[05128] arrayMinMax(arr)
 
 arrayMinMax
 zim function
@@ -27628,7 +28032,7 @@ RETURNS an object with min and max properties
 
 
 ************************************
-[05163] isEmpty(obj)
+[05165] isEmpty(obj)
 
 isEmpty
 zim function
@@ -27651,7 +28055,7 @@ RETURNS a Boolean
 
 
 ************************************
-[05196] isPick(obj)
+[05198] isPick(obj)
 
 isPick
 zim function
@@ -27686,7 +28090,7 @@ RETURNS a Boolean as to whether obj is SPECIAL ZIM Pick literal
 
 
 ************************************
-[05237] isJSON(str)
+[05239] isJSON(str)
 
 isJSON
 zim function
@@ -27709,7 +28113,7 @@ RETURNS a Boolean
 
 
 ************************************
-[05274] parseJSON(str)
+[05276] parseJSON(str)
 
 parseJSON
 zim function
@@ -27741,7 +28145,7 @@ RETURNS an object
 
 
 ************************************
-[05326] decimals(num, places, addZeros, addZerosBefore, includeZero, time)
+[05328] decimals(num, places, addZeros, addZerosBefore, includeZero, time)
 
 decimals
 zim function
@@ -27777,7 +28181,7 @@ RETURNS a rounded Number or a String if addZeros, addZerosBefore or time is true
 
 
 ************************************
-[05416] countDecimals(num)
+[05418] countDecimals(num)
 
 countDecimals
 zim function
@@ -27799,7 +28203,7 @@ RETURNS the number of decimal places
 
 
 ************************************
-[05444] sign(num)
+[05446] sign(num)
 
 sign
 zim function
@@ -27827,7 +28231,7 @@ RETURNS -1, 0 or 1
 
 
 ************************************
-[05478] constrain(num, min, max, negative)
+[05480] constrain(num, min, max, negative)
 
 constrain
 zim function
@@ -27856,7 +28260,7 @@ RETURNS num between -max and -min if num is negative and negative parameter is s
 
 
 ************************************
-[05521] dist(a, b, c, d)
+[05523] dist(a, b, c, d)
 
 dist
 zim function
@@ -27889,7 +28293,7 @@ RETURNS a positive Number that is the distance (could be on an angle)
 
 
 ************************************
-[05570] rectIntersect(a, b, margin)
+[05572] rectIntersect(a, b, margin)
 
 rectIntersect
 zim function
@@ -27915,7 +28319,7 @@ RETURNS a Boolean as to whether rectangles are intersecting
 
 
 ************************************
-[05607] boundsAroundPoints(points)
+[05609] boundsAroundPoints(points)
 
 boundsAroundPoints
 zim function
@@ -27940,7 +28344,7 @@ representing the rectangle around the points provided
 
 
 ************************************
-[05648] angle(a, b, c, d)
+[05650] angle(a, b, c, d)
 
 angle
 zim function
@@ -27984,7 +28388,7 @@ RETURNS a positive Number that is the angle between first and second point
 
 
 ************************************
-[05716] TAU, DEG, RAD, PHI
+[05718] TAU, DEG, RAD, PHI
 
 TAU, DEG, RAD, PHI
 zim constants
@@ -28009,7 +28413,7 @@ Math.asin(1)*DEG; // is 90
 
 
 ************************************
-[05747] smoothStep(num, min, max)
+[05749] smoothStep(num, min, max)
 
 smoothStep
 zim function
@@ -28075,7 +28479,7 @@ RETURNS a number between 0 and 1 that represents a transition factor
 
 
 ************************************
-[05819] unicodeToUTF(val)
+[05821] unicodeToUTF(val)
 
 unicodeToUTF
 zim function
@@ -28100,7 +28504,7 @@ RETURNS a UTF string matching the unicode
 
 
 ************************************
-[05859] capitalizeFirst(string)
+[05861] capitalizeFirst(string)
 
 capitalizeFirst
 zim function
@@ -28122,7 +28526,7 @@ RETURNS the string with the first letter capitalized
 
 
 ************************************
-[05889] Ajax(master, couple, lock, unique)
+[05891] Ajax(master, couple, lock, unique)
 
 Ajax
 zim class
@@ -28251,7 +28655,7 @@ lock - get or set the lock data being sent with each get() or post() (not put())
 
 
 ************************************
-[06082] Noise(seed)
+[06084] Noise(seed)
 
 Noise
 zim class
@@ -28358,7 +28762,7 @@ seed - read only - the seed that was used for the Noise object
 
 
 ************************************
-[06612] Point(x, y, z, q, r, s, t, u, v, w)
+[06614] Point(x, y, z, q, r, s, t, u, v, w)
 
 Point
 zim class extends a createjs.Point
@@ -28420,7 +28824,7 @@ w - the w value of the point - very probably not used
 
 
 ************************************
-[06710] Bezier(a, b, c, d)
+[06712] Bezier(a, b, c, d)
 
 Bezier
 zim class
@@ -28467,7 +28871,7 @@ a, b, c, d - the points passed in - each having x and y properties
 
 
 ************************************
-[06828] Boundary(x|bounds, y, width, height)
+[06830] Boundary(x|bounds, y, width, height)
 
 Boundary
 zim class
@@ -28523,7 +28927,7 @@ contract(number|x, y, width, height) - number of pixels to make the Boundary sma
 
 
 ************************************
-[06919] GradientColor(colors, ratios|angle, x0, y0, x1, y1)
+[06921] GradientColor(colors, ratios|angle, x0, y0, x1, y1)
 
 GradientColor
 zim class
@@ -28589,7 +28993,7 @@ type - the type of color as a String
 
 
 ************************************
-[07013] RadialColor(colors, ratios, x0, y0, r0, x1, y1, r1)
+[07015] RadialColor(colors, ratios, x0, y0, r0, x1, y1, r1)
 
 RadialColor
 zim class
@@ -28649,7 +29053,7 @@ type - the type of color as a String
 
 
 ************************************
-[07095] BitmapColor(image, repetition, matrix)
+[07097] BitmapColor(image, repetition, matrix)
 
 BitmapColor
 zim class
@@ -28693,7 +29097,7 @@ type - the type of color as a String
 
 
 ************************************
-[07149] Damp(startValue, damp)
+[07151] Damp(startValue, damp)
 
 Damp
 zim class
@@ -28748,7 +29152,7 @@ MORE: http://zimjs.com/code/bits.html?title=Damp
 
 
 ************************************
-[07218] Proportion(baseMin, baseMax, targetMin, targetMax, factor, targetRound, clamp, clampMin, clampMax)
+[07220] Proportion(baseMin, baseMax, targetMin, targetMax, factor, targetRound, clamp, clampMin, clampMax)
 
 Proportion
 zim class
@@ -28801,7 +29205,7 @@ MORE: http://zimjs.com/code/bits.html?title=Proportion
 
 
 ************************************
-[07303] ProportionDamp(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound, clamp, clampMin, clampMax)
+[07305] ProportionDamp(baseMin, baseMax, targetMin, targetMax, damp, factor, targetRound, clamp, clampMin, clampMax)
 
 ProportionDamp
 zim class
@@ -28852,7 +29256,7 @@ MORE: http://zimjs.com/code/bits.html?title=ProportionDamp
 
 
 ************************************
-[07436] Dictionary(unique)
+[07438] Dictionary(unique)
 
 Dictionary
 zim class
@@ -28919,7 +29323,7 @@ values - array of values synched to keys
 
 
 ************************************
-[07557] Hierarchy(input)
+[07559] Hierarchy(input)
 
 Hierarchy
 zim class
@@ -29123,7 +29527,7 @@ length - read only total length of all nodes
 
 
 ************************************
-[08013] Pick(choices)
+[08015] Pick(choices)
 
 Pick
 zim class
@@ -29184,10 +29588,10 @@ choice = Pick.choose([1,2,3]); // 1, 2, or 3
 const rotation = {min:10, max:20, integer:false, negative:true};
 // an example of a Range object - this will give values between -20 and -10 or 10 and 20
 // rotation now holds an object as to how to pick its value
-// this can be passed into a zim.Emitter() for instance
+// this can be passed into a ZIM Emitter() for instance
 // which will make multiple copies and rotate them based on Pick.choose()
 // or this can be passed into an animation object
-// and then into zim.Emitter() for the animate parameter
+// and then into Emitter() for the animate parameter
 
 const emitter = new Emitter({
    obj:new Rectangle(),
@@ -29262,7 +29666,7 @@ choices - a reference to the choices object provided as the Pick(choices) parame
 
 
 ************************************
-[08220] createjs.BitmapData(width, height, transparent, fillColor)
+[08222] createjs.BitmapData(width, height, transparent, fillColor)
 
 BitmapData
 createjs class - DOES NOT extend a DisplayObject
@@ -29492,7 +29896,7 @@ transparent - read-only - Boolean that defines whether the bitmap image supports
 
 
 ************************************
-[08457] createjs.BitmapDataChannel()
+[08459] createjs.BitmapDataChannel()
 
 BitmapDataChannel
 createjs static class
@@ -29518,7 +29922,7 @@ RED: uint = 1
 
 
 ************************************
-[08487] createjs.ColorTransform(redMultiplier, greenMultiplier, blueMultiplier, alphaMultiplier, redOffset, greenOffset, blueOffset, alphaOffset)
+[08489] createjs.ColorTransform(redMultiplier, greenMultiplier, blueMultiplier, alphaMultiplier, redOffset, greenOffset, blueOffset, alphaOffset)
 
 ColorTransform
 createjs class
@@ -29586,7 +29990,7 @@ See the parameters - which are all properties
 
 
 ************************************
-[08563] scrollX(num, time)
+[08565] scrollX(num, time)
 
 scrollX
 zim function
@@ -29610,7 +30014,7 @@ RETURNS a Number
 
 
 ************************************
-[08593] scrollY(num, time)
+[08595] scrollY(num, time)
 
 scrollY
 zim function
@@ -29634,7 +30038,7 @@ RETURNS a Number
 
 
 ************************************
-[08653] windowWidth()
+[08655] windowWidth()
 
 windowWidth
 zim function
@@ -29652,7 +30056,7 @@ RETURNS a Number
 
 
 ************************************
-[08687] windowHeight()
+[08689] windowHeight()
 
 windowHeight
 zim function
@@ -29670,7 +30074,7 @@ RETURNS a Number
 
 
 ************************************
-[08721] browserZoom()
+[08723] browserZoom()
 
 browserZoom
 zim function
@@ -29696,7 +30100,7 @@ RETURNS a Number
 
 
 ************************************
-[08770] getQueryString(string)
+[08772] getQueryString(string)
 
 getQueryString
 zim function
@@ -29732,7 +30136,7 @@ RETURNS an object literal with properties matching the keys and values matching 
 
 
 ************************************
-[08826] swapHTML(idA, idB)
+[08828] swapHTML(idA, idB)
 
 swapHTML
 zim function
@@ -29754,7 +30158,7 @@ RETURNS Boolean indicating success
 
 
 ************************************
-[08853] urlEncode(string)
+[08855] urlEncode(string)
 
 urlEncode
 zim function
@@ -29778,7 +30182,7 @@ RETURNS a String
 
 
 ************************************
-[08884] urlDecode(string)
+[08886] urlDecode(string)
 
 urlDecode
 zim function
@@ -29801,7 +30205,7 @@ RETURNS a String
 
 
 ************************************
-[08912] setCookie(name, value, days)
+[08914] setCookie(name, value, days)
 
 setCookie
 zim function
@@ -29830,7 +30234,7 @@ RETURNS a Boolean indicating success
 
 
 ************************************
-[08956] getCookie(name)
+[08958] getCookie(name)
 
 getCookie
 zim function
@@ -29856,7 +30260,7 @@ RETURNS a String or undefined if not found
 
 
 ************************************
-[08995] deleteCookie(name)
+[08997] deleteCookie(name)
 
 deleteCookie
 zim function
@@ -29894,13 +30298,14 @@ to log the item(s) to the console.
 Use F12 to open your Browser console.
 zog is dedicated to Pragma (Madeline Zen) who was coding with Dr Abstract (Dan Zen) from the start
 
-Also comes in six ZIM colors:
+Also comes in seven ZIM colors:
    zogg("green");
    zogp("pink");
    zogb("blue");
    zogr("red");
    zogy("yellow");
    zogo("orange");
+   zogs("salmon");
 
 Note: If zon (comments on) is set to false before ZIM runs, then all zog() commands are turned off
 
@@ -29925,7 +30330,7 @@ MORE: http://zimjs.com/code/bits.html?title=zog
 
 
 ************************************
-[00134] zid(string)                     ~ id
+[00136] zid(string)                     ~ id
 
 zid
 global function
@@ -29944,7 +30349,7 @@ RETURNS HTML tag with id of string or null if not found
 
 
 ************************************
-[00158] zss(string)                     ~ css
+[00160] zss(string)                     ~ css
 
 zss
 global function
@@ -29963,7 +30368,7 @@ RETURNS style property of HTML tag with id of string or undefined if not found
 
 
 ************************************
-[00183] zgo(url, target, width, height, fullscreen, modal)         ~ go
+[00185] zgo(url, target, width, height, fullscreen, modal)         ~ go
 
 zgo
 global function
@@ -29998,7 +30403,7 @@ MORE: http://zimjs.com/code/bits.html?title=zgo
 
 
 ************************************
-[00231] zum(string)                     ~ num
+[00233] zum(string)                     ~ num
 
 zum
 global function
@@ -30024,7 +30429,7 @@ RETURNS a Number
 
 
 ************************************
-[00263] zot(value)                      ~ not
+[00265] zot(value)                      ~ not
 
 zot
 global function
@@ -30051,7 +30456,7 @@ MORE: http://zimjs.com/code/bits.html?title=zot
 
 
 ************************************
-[00292] zop(e)                          ~ stop
+[00294] zop(e)                          ~ stop
 
 zop
 global function
@@ -30076,7 +30481,7 @@ RETURNS null
 
 
 ************************************
-[00324] zil()                           ~ still
+[00326] zil()                           ~ still
 
 zil
 global function
@@ -30102,7 +30507,7 @@ RETURNS an Array
 
 
 ************************************
-[00366] zet(selector, first)            ~ set
+[00368] zet(selector, first)            ~ set
 
 zet
 global function
@@ -30149,7 +30554,7 @@ MORE: http://zimjs.com/code/bits.html?title=zet
 
 
 ************************************
-[00482] zob(func, args, sig, scope)     ~ object
+[00484] zob(func, args, sig, scope)     ~ object
 
 zob
 global function
@@ -30212,7 +30617,7 @@ MORE: http://zimjs.com/code/bits.html?title=zob
 
 
 ************************************
-[00564] zik(Array|function|object|Pick) ~ pick
+[00566] zik(Array|function|object|Pick) ~ pick
 
 zik
 global function
@@ -30223,7 +30628,7 @@ See ZIM Pick() under the Code module Classes.
 
 
 ************************************
-[00581] zta(item1, item2, etc.)         ~ table
+[00583] zta(item1, item2, etc.)         ~ table
 
 zta
 global function
@@ -30245,7 +30650,7 @@ RETURNS items it is logging
 
 
 ************************************
-[00606] zor(item1, item2, etc.)         ~ or
+[00608] zor(item1, item2, etc.)         ~ or
 
 zor
 global function
@@ -30274,7 +30679,7 @@ MODULE 7: ZIM META
 ------------------------------------
 
 ************************************
-[90336] DISTILL
+[91571] DISTILL
 
 distill
 zim constant
@@ -30312,7 +30717,7 @@ MORE: http://zimjs.com/code/bits.html?title=distill
 
 
 ************************************
-[90376] distill()
+[91611] distill()
 
 distill
 zim function
@@ -30355,7 +30760,7 @@ MORE: http://zimjs.com/code/bits.html?title=distill
 
 
 ************************************
-[90433] parseAudioSprite(audioSpriteData, outputAudioSprite)
+[91668] parseAudioSprite(audioSpriteData, outputAudioSprite)
 
 parseAudioSprite
 zim function
@@ -30405,7 +30810,7 @@ RETURNS - a CreateJS AudioSprite data object
 
 
 ************************************
-[90502] previewAudioSprite(audioSpriteData, numLetters, frame)
+[91737] previewAudioSprite(audioSpriteData, numLetters, frame)
 
 previewAudioSprite
 zim function
@@ -30451,7 +30856,7 @@ RETURNS - a ZIM Tab which is automatically added to the frame's stage
 
 
 ************************************
-[90588] svgToBitmap(svg, callback, width, height, params)
+[91823] svgToBitmap(svg, callback, width, height, params)
 
 svgToBitmap
 zim function
@@ -30490,7 +30895,7 @@ RETURNS - null
 
 
 ************************************
-[90689] makeContent(content, maxWidth, color, scrollBar)
+[91924] makeContent(content, maxWidth, color, scrollBar)
 
 makeContent
 zim function
@@ -30554,7 +30959,7 @@ RETURNS - a Label if a string or number is passed as content, a Container if a c
 
 
 ************************************
-[90831] zimify(obj, a, b, c, d, list)
+[92066] zimify(obj, a, b, c, d, list)
 
 zimify
 global function
@@ -30636,7 +31041,7 @@ MORE: http://zimjs.com/code/bits.html?title=zimify
 
 
 ************************************
-[91299] zimplify(exclude)
+[92540] zimplify(exclude)
 
 zimplify
 global function
@@ -30685,7 +31090,7 @@ exclude - (default null) a String command or an array of command strings to not 
 
 
 ************************************
-[91365] fastFrame(cjs, stage)
+[92606] fastFrame(cjs, stage)
 
 fastFrame
 Function
@@ -30714,7 +31119,7 @@ stage - (default null) a reference to the CreateJS stage
 
 
 ************************************
-[91408] addWires(obj)
+[92649] addWires(obj)
 
 addWires
 Function
@@ -30743,7 +31148,7 @@ RETURNS - obj for chainging
 
 
 ************************************
-[91464] setBlurDetect()
+[92705] setBlurDetect()
 
 setBlurDetect
 Function
@@ -30776,7 +31181,7 @@ and a "tabfocus" event to the ZIM Default Frame when focused
 
 
 ************************************
-[91608] ZIMONON
+[92849] ZIMONON
 
 ZIMONON (note the extra ON at the end of ZIMON - so ZIMONON)
 ZIM constant
@@ -30817,7 +31222,7 @@ function ready() {
 
 
 ************************************
-[91657] ZIMON = {}
+[92898] ZIMON = {}
 
 ZIMON
 zim static class
@@ -30929,7 +31334,7 @@ parse(string) - pass in the ZIMON string to turn back into an object (or objects
 
 
 ************************************
-[91905] Wonder(wid, client, app, notes, server)
+[93146] Wonder(wid, client, app, notes, server)
 
 Wonder
 zim class
@@ -31042,7 +31447,7 @@ dispose() - clear any event listeners, etc.
 
 
 ************************************
-[92112] VERSION
+[93353] VERSION
 
 VERSION
 zim constant
@@ -31066,7 +31471,7 @@ getLatestVersions(function(versions) {
 
 
 ************************************
-[92139] getLatestVersions(call)
+[93380] getLatestVersions(call)
 
 getLatestVersions
 zim function
@@ -31101,7 +31506,7 @@ call - a callback function with a versions object is provided to the parameter
 
 
 ************************************
-[92183] PWA(call, label, backgroundColor, color, backdropColor, pane, noScale)
+[93424] PWA(call, label, backgroundColor, color, backdropColor, pane, noScale)
 
 PWA
 zim class extends a CreateJS EventDispatcher
@@ -31218,7 +31623,7 @@ but usually, just pass the callback as the first parameter
 
 
 ************************************
-[92378] QR(url, color, backgroundColor, size, clickable, correctLevel)
+[93619] QR(url, color, backgroundColor, size, clickable, correctLevel)
 
 QR
 zim class extends a ZIM Bitmap which extends a CreateJS Bitmap
@@ -31248,7 +31653,7 @@ correctLevel - (default 2) numbers from 0(M), 1(L), 2(H), 3(Q) corresponding to 
 
 
 ************************************
-[92445] GIF(file, width, height, startPaused)
+[93686] GIF(file, width, height, startPaused)
 
 GIF
 zim class extends a ZIM Bitmap which extends a CreateJS Bitmap
@@ -31326,7 +31731,7 @@ animator - the Gifler animator
 
 
 ************************************
-[92637] Rive(width, height, src, stateMachines, artboard, animations, autoplay, layout, buffer, file, useOffscreenRenderer, enableRiveAssetCDN, shouldDisableRiveListeners, isTouchScrollEnabled, automaticallyHandleEvents, onLoad, onLoadError, onPlay, onPause, onStop, onLoop, onStateChange, onAdvance, assetLoader, canvas)
+[93882] Rive(width, height, src, stateMachines, artboard, animations, autoplay, layout, buffer, file, useOffscreenRenderer, enableRiveAssetCDN, shouldDisableRiveListeners, isTouchScrollEnabled, automaticallyHandleEvents, onLoad, onLoadError, onPlay, onPause, onStop, onLoop, onStateChange, onAdvance, assetLoader, canvas)
 
 Rive
 zim class extends the Rive class
@@ -31504,7 +31909,7 @@ riveevent - dispatched when a Rive Event gets reported
 
 
 ************************************
-[92872] RiveListener(src, damp, canvas, wasm)
+[94117] RiveListener(src, damp, canvas, wasm)
 
 RiveListener
 zim class extends a CreateJS EventDispatcher
@@ -31590,7 +31995,7 @@ pointerup - dispatches a pointerup event when pointer is up
 
 
 ************************************
-[93143] THEME()
+[94388] THEME()
 
 THEME
 zim static class
@@ -31719,11 +32124,3 @@ And follow on Twitter:
 https://twitter.com/Dr_Abstract
 
 Thanks for using ZIM - all the best!
-
-
-
-
-
-
-
-

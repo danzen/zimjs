@@ -108,6 +108,7 @@ declare global {
 	function zogg(item1: any, ...item2: any): string
 	function zogp(item1: any, ...item2: any): string
 	function zogo(item1: any, ...item2: any): string
+	function zogs(item1: any, ...item2: any): string
 	function zid(id: string): HTMLElement
 	function zss(id: string): CSSStyleDeclaration
 	function zgo(url: string, target?: string, width?: number, height?: number, fullscreen?: boolean, modal?: boolean): void
@@ -217,9 +218,11 @@ declare namespace zim {
 		hitTestPoint(x: number, y: number, boundsCheck?: boolean): boolean
 		hitTestReg(other: DisplayObject): boolean
 		hitTestRect(other: DisplayObject, num?: number, boundsCheck?: boolean, inside?: boolean): boolean
+		hitTestRectPoint(x: number, y: number, margin?: number): boolean
 		hitTestCircle(other: DisplayObject, num?: number, boundsCheck?: boolean, inside?: boolean): boolean
-		hitTestCircles(other: DisplayObject, margin?: number): boolean
+        hitTestCirclePoint(x: number, y: number, margin?: number): boolean
 		hitTestCircleRect(other: DisplayObject, margin?: number): boolean
+		hitTestCircles(other: DisplayObject, margin?: number): boolean
 		hitTestBounds(other: DisplayObject, margin?: number, boundsShape?: boolean): boolean
 		boundsToGlobal(rect: createjs.Rectangle | { x: number, y: number, width: number, height: number }, flip?: boolean): createjs.Rectangle
 		resetBounds(width_or_boundsX?: number, height_or_boundsY?: number, width?: number, height?: number): this
@@ -2937,6 +2940,28 @@ declare namespace zim {
 		readonly background: Rectangle
 		readonly backing: Rectangle
 	}
+	export class Carousel3D extends Container implements zimComponent {
+		constructor(config_or_width?: number, height?: number, items?: DisplayObject, widthFactor?: number, heightFactor?: number, curve?: number, interactive?: boolean, continuous?: number, fade?: number, fadeColor?: color, vertical?: boolean, sensitivity?: number, damp?: number, factor?: number, index?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { width?: number, height?: number, items?: DisplayObject, widthFactor?: number, heightFactor?: number, curve?: number, interactive?: boolean, continuous?: number, fade?: number, fadeColor?: color, vertical?: boolean, sensitivity?: number, damp?: number, factor?: number, index?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {} })
+		// ZIM Component Interface
+		// dispose():boolean // now added to Container, etc.
+		enabled: boolean
+		// END ZIM Component Interface
+        go(index?:number, immediate?:boolean, wrap?:boolean):this
+        prev(immediate?:boolean):this
+        next(immediate?:boolean):this
+        addItem(item:DisplayObject, index?:number):this
+        removeItem(index?:number, num?:number):this
+        makeCarousel():this
+		index: number
+        readonly selectedItem:DisplayObject
+        items: [DisplayObject]
+        curve: number
+        continuous: boolean
+        readonly swiper: Swiper
+        readonly backing: Rectangle
+        readonly holder: Container
+	}
 	export class Loader extends Button implements zimComponent {
 		constructor(config_or_width?: number | string, height?: number | string, label?: string | Label, type?: string, backgroundColor?: color, rollBackgroundColor?: color, color?: color, rollColor?: color, borderColor?: color, borderWidth?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, hitPadding?: number, gradient?: number, gloss?: number, dashed?: boolean | [number], backing?: DisplayObject, rollBacking?: DisplayObject, rollPersist?: boolean, icon?: DisplayObject, rollIcon?: DisplayObject, toggle?: string, rollToggle?: DisplayObject, toggleEvent?: string, frame?: Frame, multiple?: boolean, accept?: [any], style?: boolean, group?: string, inherit?: {})
 		constructor(config: { width?: number | string, height?: number | string, label?: string | Label, type?: string, backgroundColor?: color, rollBackgroundColor?: color, color?: color, rollColor?: color, borderColor?: color, borderWidth?: number, corner?: number | any[], shadowColor?: color, shadowBlur?: number, hitPadding?: number, gradient?: number, gloss?: number, dashed?: boolean | [number], backing?: DisplayObject, rollBacking?: DisplayObject, rollPersist?: boolean, icon?: DisplayObject, rollIcon?: DisplayObject, toggle?: string, rollToggle?: DisplayObject, toggleEvent?: string, frame?: Frame, multiple?: boolean, accept?: [any], style?: boolean, group?: string, inherit?: {} })
@@ -2987,6 +3012,7 @@ declare namespace zim {
 	export var OPTIMIZE: boolean
 	export var ACTIONEVENT: string
 	export var STYLE: {}
+	export var GLOBALSTYLE: {}
 	export class Style {
 		static clear(): void
 		static clearTypes(): void
@@ -3905,6 +3931,11 @@ declare namespace zim {
 		readonly file: string
 		readonly src: string
 		readonly item: {}
+	}
+    export class Dat extends createjs.EventDispatcher {
+		constructor(file: string)
+		readonly data: any
+		readonly file: string
 	}
 	export class Vid extends Container {
 		constructor(config_or_file?: string, width?: number, height?: number, volume?: number, loop?: boolean, align?: string, valign?: string, type?: string, style?: boolean, group?: string, inherit?: {})
