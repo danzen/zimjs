@@ -47502,7 +47502,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-67.45
 
 /*--
-zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, style, group, inherit)
+zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, selectedIndex, style, group, inherit)
 
 Carousel3D
 zim class - extends a zim.Container which extends a createjs.Container
@@ -47669,8 +47669,8 @@ ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+67.47
 
-zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, style, group, inherit) {
-	var sig = "width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, style, group, inherit";
+zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, selectedIndex, style, group, inherit) {
+	var sig = "width, height, items, widthFactor, heightFactor, curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, selectedIndex, style, group, inherit";
 	var duo; if (duo = zob(zim.Carousel3D, arguments, sig, this)) return duo;
 	z_d("67.47");
 
@@ -47977,7 +47977,7 @@ zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve
 			else if (newItem.clone) newItems.push(newItem.clone());
 			else newItems.push(zim.copy(that.items[i]));
 		}
-		return that.cloneProps(new zim.Carousel3D(width, height, newItems, widthFactor, heightFactor, that.curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, style, this.group));
+		return that.cloneProps(new zim.Carousel3D(width, height, newItems, widthFactor, heightFactor, that.curve, interactive, continuous, fade, fadeColor, vertical, sensitivity, damp, factor, index, selectedIndex, style, this.group));
 	};	
 }
 zim.extend(zim.Carousel3D, zim.Container, ["clone", "dispose"], "zimContainer", false);	
@@ -87720,14 +87720,19 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		var imagesNoCORS = [];
 		var mainCount = 0;
 		var firstSoundCheck = true;
-		var emptyAssets = false;
+		
+		// 018 TRYING TO FIX CREATEJS ERROR IF SOUND LOADED AGAIN - BUT BREAKS LAZY LOAD
+		// var emptyAssets = false;
 
 		for (i=0; i<assets.length; i++) {			
 			a = assets[i];	
-			if (zim.assets[a]) {
-				if (assets.length==1) emptyAssets = true;
-				continue;
-			}
+			// if (zim.assets[a]) {
+			// 	// 018 TRYING TO FIX CREATEJS ERROR IF SOUND LOADED AGAIN - BUT BREAKS LAZY LOAD
+			// 	// if (assets.length==1) {
+			// 	// 		emptyAssets = true;
+			// 			// continue;
+			// 	// }
+			// }
             if (a.replace) a = a.replace(/gf_/i, "https://fonts.googleapis.com/css?family=");			
 			// split multi into individual ZIM asset objects and make the first of these
 			if (a.assets) {				
@@ -88125,10 +88130,11 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 
 		} // end non font/noCORSonImage
 
-		// if calling an already preloaded asset
-		if (emptyAssets && queue.loadAssetsCount == 0) {			
-			endAssetLoad();
-		}
+		// 018 TRYING TO FIX CREATEJS ERROR IF SOUND LOADED AGAIN - BUT BREAKS LAZY LOAD
+		// // if calling an already preloaded asset
+		// if (emptyAssets && queue.loadAssetsCount == 0) {			
+		// 	endAssetLoad();
+		// }
 
 		function endAssetLoad() {
 			// setting a time will force the preload to wait at least this amount of time
@@ -90236,6 +90242,7 @@ zim.Dat = function(file) {
 	if (asset && asset.type != "AC") {
 		if (asset.documentElement) asset = asset.documentElement;
 		that.data = asset;
+		that.file = file;
 		setTimeout(function() {
 			that.dispatchEvent("ready");
 			that.dispatchEvent("complete");
@@ -90251,6 +90258,7 @@ zim.Dat = function(file) {
 			var asset = zim.asset(file);
 			if (asset.documentElement) asset = asset.documentElement;
 			that.data = asset;
+			that.file = file;	
 			that.dispatchEvent("ready");
 			that.dispatchEvent("complete");
 		});
@@ -91504,7 +91512,7 @@ The globals NEVER require the zim namespace and are global in the JavaScript win
 
 ZIM has a method called zimplify() that can make all ZIM classes, functions and properties global.
 zimplify() loops through all properties on the zim namespace and adds them to the JavaScript window.
-Examples are Frame(), Button(), center(), STYLE, Emitter(), etc.
+Examples are Frame(), Button(), center(), STYLE, GLOBALSTYLE, Emitter(), etc.
 zimplify() is automatically run when using the CDN ES module or script tags
 unless the global variable zns is set to true before importing ZIM.
 If zns is set to true, then the zim namespace is required: zim.Frame(), etc.
@@ -98071,3 +98079,4 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
+
