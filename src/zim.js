@@ -51674,7 +51674,7 @@ RETURNS obj for chaining
 				var windowParent = false;
 				var pp = e.target.parent.parent;
 				if (pp && pp.type == "Window") windowParent = true;
-				else if (pp.parent && pp.parent.type == "Window") windowParent = true;
+				else if (pp && pp.parent && pp.parent.type == "Window") windowParent = true;
 				if (M && !mobileUp && e.currentTarget.type != "List" && !windowParent) {
 					if (obj.excludeTap) return;
 					call(e);
@@ -98083,4 +98083,3 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
-
