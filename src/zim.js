@@ -51665,13 +51665,17 @@ RETURNS obj for chaining
 				});
 			});
 		} else {
-			obj.zimClickDownEvent = obj.on("mousedown", function (e) {	
+			obj.zimClickDownEvent = obj.on("mousedown", function (e) {
 				if (e.currentTarget.type == "List") {
 					if (e.target.type == "WindowBacking") return;
 					var local = e.currentTarget.globalToLocal(e.stageX / zim.scaX, e.stageY / zim.scaY);
 					if (local.y <= 0) return; // avoid titleBar and organizer
 				}
-				if (M && !mobileUp && e.currentTarget.type != "List") {
+				var windowParent = false;
+				var pp = e.target.parent.parent;
+				if (pp && pp.type == "Window") windowParent = true;
+				else if (pp.parent && pp.parent.type == "Window") windowParent = true;
+				if (M && !mobileUp && e.currentTarget.type != "List" && !windowParent) {
 					if (obj.excludeTap) return;
 					call(e);
 					if (once) {
