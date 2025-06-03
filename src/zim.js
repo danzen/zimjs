@@ -47513,6 +47513,7 @@ or using next(), prev() or go() methods or index property.
 Can be horizontal or vertical.
 See: ZIM Carousel for a 2D component.
 See: https://zimjs.com/018/carousel3D.html for an example
+See: https://zimjs.com/018/carousel3D_2.html for a simple example
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -66412,28 +66413,31 @@ note: the item is not the event object target - as that is the tile
 
 		if (zot(spacingH) || !zot(colSize) || !zot(width)) spacingH = 0; // sizes override spacing
 		if (zot(spacingV) || !zot(rowSize) || !zot(height)) spacingV = 0;	
-
-		// Added ZIM 018
-		var spacingHList = [];
-		var spacingVList = [];
-		var spacingHTotal = 0;
-		var spacingVTotal = 0;
-		for (i=0; i<cols-1; i++) {
-			var s = zik(spacingH);
-			spacingHList.push(s);
-			spacingHTotal += s;
-		}
-		for (i=0; i<rows-1; i++) {
-			var s = zik(spacingV);
-			spacingVList.push(s);
-			spacingVTotal += s;
-		}	
 		if (zot(squeezeH)) squeezeH = DS.squeezeH!=null?DS.squeezeH:false;
 		if (zot(squeezeV)) squeezeV = DS.squeezeV!=null?DS.squeezeV:false;
 		if (zot(align)) align = DS.align!=null?DS.align:"left";
 		if (zot(valign)) valign = DS.valign!=null?DS.valign:"top";
 		if (zot(count)) count = DS.count!=null?DS.count:(unique&&Array.isArray(obj))?obj.length:null;
 		if (count === 0) {count = null; if (zon) {zogy("ZIM Tile() - count parameter of 0 is ignored - see docs");}}
+
+		// Added ZIM 018
+		var spacingHList = [];
+		var spacingVList = [];
+		var spacingHTotal = 0;
+		var spacingVTotal = 0;
+		var mCols = (count && count<cols)?count-1:cols-1;
+		for (i=0; i<mCols; i++) {
+			var s = zik(spacingH);
+			spacingHList.push(s);
+			spacingHTotal += s;
+		}
+		var mRows = (count && Math.ceil(count/cols)<rows)?Math.ceil(count/cols)-1:rows-1;
+		for (i=0; i<mRows; i++) {
+			var s = zik(spacingV);
+			spacingVList.push(s);
+			spacingVTotal += s;
+		}	
+
 		if (zot(mirrorH)) mirrorH = DS.mirrorH!=null?DS.mirrorH:false;
 		if (zot(mirrorV)) mirrorV = DS.mirrorV!=null?DS.mirrorV:false;
 		if (zot(snapToPixel)) snapToPixel = DS.snapToPixel!=null?DS.snapToPixel:true;
@@ -66665,15 +66669,15 @@ note: the item is not the event object target - as that is the tile
 			}
 
 			if (!zot(height)&&that.squeezeV=="full") {
-				overallHeight = height;
-			} else if (!zot(height)) {				
+				overallHeight = height;				
+			} else if (!zot(height)) {						
 				if (scaleToV) overallHeight = height;
 				else overallHeight = Math.max(heightTotalMax+spacingVTotal, height);
 			} else {
 				if (heightUncompressedMax > 0) overallHeight = heightUncompressedMax+spacingVTotal;
 				else overallHeight = heightTotalMax+spacingVTotal;
 			}
-
+			
 			that.setBounds(0,0,overallWidth,overallHeight);
 			widthScaling = (overallWidth-spacingHOTotal)/(widthO);
 			heightScaling = (overallHeight-spacingVOTotal)/(heightO);
