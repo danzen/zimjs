@@ -65349,7 +65349,7 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 items - an array of the wrapper items 
-items2D - read only array of rows each containing an array of colums of items
+items2D - read only array of rows each containing an array of columns of items
 ** see the parameter for descriptions of the following
 ** setting each will resize the wrapper at the current width and height
 ** all these properties accept ZIM VEE (except spacingH) for instance: flip:series(false,true)
@@ -66322,12 +66322,12 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 PROPERTIES
 type - holds the class name as a String
 items - read only array of the original tile items - or use tile.getChildAt() or tile.loop(function (item) {})
-items2D - read only array of rows each containing an array of colums of items
+items2D - read only array of rows each containing an array of columns of items
 items2DCols - read only array of columns each containing array of rows of items
 ** the current properties work for equal column size and equal row size
 ** although the row and column size can be different
 current ** - a read only array of the current order of tile items - if items have been scrambled
-current2D ** - read only array the current order of rows each containing an array of colums of items
+current2D ** - read only array the current order of rows each containing an array of columns of items
 current2DCols ** - read only array the current order of columns each containing array of rows of items
 tileNum - this property is added to each object in the tile to give its number in the tile
 tileCol - this property is added to each object in the tile to give its column number in the tile
@@ -66392,24 +66392,6 @@ note: the item is not the event object target - as that is the tile
 
 		if (zot(spacingH)) spacingH = DS.spacingH!=null?DS.spacingH:null;
 		if (zot(spacingV)) spacingV = DS.spacingV!=null?DS.spacingV:null;
-	
-		// Added ZIM 018
-		var spacingHOList = [];
-		var spacingVOList = [];
-		var spacingHOTotal = 0;
-		var spacingVOTotal = 0;
-		for (i=0; i<cols-1; i++) {
-			var s = zik(spacingH);
-			spacingHOList.push(s);
-			spacingHOTotal += s;
-		}
-		for (i=0; i<rows-1; i++) {
-			var s = zik(spacingV);
-			spacingVOList.push(s);
-			spacingVOTotal += s;
-		}
-		var spacingHAve = cols-1>0?spacingHTotal/(cols-1):0
-		var spacingVAve = rows-1>0?spacingVTotal/(rows-1):0
 
 		if (zot(spacingH) || !zot(colSize) || !zot(width)) spacingH = 0; // sizes override spacing
 		if (zot(spacingV) || !zot(rowSize) || !zot(height)) spacingV = 0;	
@@ -66421,6 +66403,7 @@ note: the item is not the event object target - as that is the tile
 		if (count === 0) {count = null; if (zon) {zogy("ZIM Tile() - count parameter of 0 is ignored - see docs");}}
 
 		// Added ZIM 018
+
 		var spacingHList = [];
 		var spacingVList = [];
 		var spacingHTotal = 0;
@@ -66437,6 +66420,15 @@ note: the item is not the event object target - as that is the tile
 			spacingVList.push(s);
 			spacingVTotal += s;
 		}	
+
+		var spacingHOList = zim.copy(spacingHList);
+		var spacingVOList = zim.copy(spacingVList);;
+		var spacingHOTotal = spacingHTotal;
+		var spacingVOTotal = spacingVTotal;
+		var spacingHAve = cols-1>0?spacingHTotal/(cols-1):0
+		var spacingVAve = rows-1>0?spacingVTotal/(rows-1):0
+
+		// end add 018
 
 		if (zot(mirrorH)) mirrorH = DS.mirrorH!=null?DS.mirrorH:false;
 		if (zot(mirrorV)) mirrorV = DS.mirrorV!=null?DS.mirrorV:false;
