@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>Sounds Assets - Slate - ZIM Kids</title>
+        <link href="assets.css" rel="stylesheet" type="text/css" />
+        <script src="https://zimjs.org/cdn/1.3.3/createjs.js"></script>
+        <script src="https://zimjs.org/cdn/cat/04/zim.js"></script>
+        
+
+        <style>
+            .sublinks {text-align:center; margin-bottom:-40px; margin-top:-25px;}
+            .sublinks a {margin-top:15px; display:inline-block; padding:5px 10px; text-decoration:none; margin-left:10px; border:#ccc thin solid; border-radius:5px; color:#ccc;}
+            .sublinks a:hover {color:white; border-color:white}
+            .barholder {position:relative}
+            .gotop {position:absolute; right:75px; top:14px; color:#ddd;}
+        </style>
+            
+    </head>
+    <body>
+        <div class="type" style="color:#fa8072">ASSETS</div>
+        <a href="assets_intro.html" class=button id=intro>INTRO</a>  
+        <a href="assets_help.html" class=button id=help>HELP</a>        
+        <div id="holder">     
+            <div class="buttonbar">               
+                <a href="assets_ai.html">AI</a>
+                <a href="assets_backings.html">Backings</a>
+                <a href="assets_nature.html">Nature</a>
+                <a href="assets_people.html">People</a>
+                <a href="assets_things.html">Things</a>
+                <a href="assets_sounds.html" style="background-color: #fa8072 !important;">Sounds</a>
+                <a href="assets_all.html">All</a>
+            </div>
+        </div>         
+
+        <nav>           
+            Select sounds that you want. Press&nbsp;update&nbsp;when&nbsp;done.
+            <br><br>
+            <div style="white-space: nowrap; display:inline-block; margin-top:-5px; margin-right:-60px;">
+            <a href="save" onclick="goBack(); return false;" class=button id=close>UPDATE</a>
+            <a href="clear" onclick="clearPage(); return false;" class=button id=clear>UNCHECK</a>
+            <a href="clearAll" onclick="clearAll(); return false;" class=button id=clearall>UNCHECK ALL</a>
+            </div>
+        </nav>
+        
+        <br>
+        <div class=sublinks>
+            <a href="jump" onclick="goto('original'); return false;">ORIGINAL</a>  <a href="jump" onclick="goto('ambient'); return false;">AMBIENT</a>  <a href="jump" onclick="goto('chimes'); return false;">CHIMES</a>
+            <a href="jump" onclick="goto('creatures'); return false;">CREATURES</a>  <a href="jump" onclick="goto('hits'); return false;">HITS</a>  <a href="jump" onclick="goto('backgrounds'); return false;">BACKGROUNDS</a>
+            <a href="jump" onclick="goto('noises'); return false;">NOISES</a>  <a href="jump" onclick="goto('scifi'); return false;">SCIFI</a>  <a href="jump" onclick="goto('vehicles'); return false;">VEHICLES</a>
+            <a href="jump" onclick="goto('voices'); return false;">VOICES</a>        
+        </div>
+        
+
+        
+        <section id="pics">            
+            <!-- <figure>
+                <input type=checkbox name=cave.jpg value=''> 
+                <figcaption class=title>cave</figcaption>
+                <br>
+                <img src=assets/thumbs/cave.jpg>
+            </figure> -->                     
+        </section>
+        
+        <nav>
+            <a href="save" onclick="goBack(); return false;" class=button id=close>UPDATE</a>
+            <a href="top" onclick="goTop(); return false;"  class=button id=close>TOP</a>
+        </nav>
+
+        <div id="holder">     
+            <div class="buttonbar">               
+                <a href="assets_ai.html">AI</a>
+                <a href="assets_backings.html">Backings</a>
+                <a href="assets_nature.html">Nature</a>
+                <a href="assets_people.html">People</a>
+                <a href="assets_things.html">Things</a>
+                <a href="assets_sounds.html" style="background-color: #fa8072 !important;">Sounds</a>
+                <a href="assets_all.html">All</a>
+            </div>
+        </div>         
+               
+        <footer>Sounds in most part by Pixart, ZapSplat, FreeSound - thanks Nav Shubh for processing</footer>
+    
+        <div id=pop>Uncheck SOUNDS asset selections?
+            <br><br>
+            <a id="clearYes" href="#">YES</a>
+            <a id="clearNo" href="#">NO</a>
+        </div>
+        
+        <div id=pop2>Uncheck ALL asset selections?
+            <br><br>
+            <a id="clearYes2" href="#">YES</a>
+            <a id="clearNo2" href="#">NO</a>
+        </div>
+        
+        <script>
+            var assetType = "Sounds";
+            var sprites = [];
+            var animations = [];
+            var pics = [
+                "SECTION_original", 
+                "backing.mp3", "bleep01.mp3", "bleep02.mp3", "bleep03.mp3", "bleep04.mp3", "bleep05.mp3", "bleep06.mp3", "bleep07.mp3", "bleep08.mp3", "bleep09.mp3", "bleep10.mp3", "boom.mp3", "bounce.mp3", "click.mp3", "end.mp3", "powerdown.mp3", "powerup.mp3", "shoot.mp3", "siren.mp3", "start.mp3", "static.mp3", "warble.mp3", "warning.mp3",
+                "SECTION_ambient", 
+                "synth_ah.mp3", "synth_air.mp3", "synth_cave.mp3", "synth_chord.mp3", "synth_hollow.mp3", "synth_magestic.mp3", "synth_pan.mp3", "synth_soft.mp3", "synth_swell.mp3", "synth_wind.mp3",
+                "SECTION_chimes", 
+                "church_bell.mp3", "fairy_dust.mp3", "treasure.mp3", "victory.mp3", "zen.mp3",
+                "SECTION_creatures", 
+                "alien.mp3", "baby.mp3", "dragon.mp3", "fairywings.mp3", "ghost.mp3", "monster.mp3", "mumble.mp3", "screetch.mp3", "squelch.mp3",
+                "SECTION_hits", 
+                "blaster.mp3", "blub.mp3", "crump.mp3", "cymbal.mp3", "drill.mp3", "frump.mp3", "punch.mp3", "smash_bottle.mp3", "smash_plate.mp3", "splat.mp3", "thwack.mp3", "toing.mp3", "whack.mp3", "zap.mp3",
+                "SECTION_backgrounds", 
+                "afterglow-synthwave.mp3", "beat01.mp3", "beat02.mp3", "beat03.mp3", "circuit-synthwave.mp3", "exiting-orbit.mp3", "flowers-of-osaka.mp3", "hot-pursuit.mp3", "martians-on-the-lawn.mp3", "meet-me-at-the-piaaza.mp3", "mouse-investigation.mp3", "old-house.mp3", "resist-the-zombies.mp3", "tales-from-the-isles.mp3", "vaporwave.mp3", "whispers-of-the-forest.mp3",
+                "SECTION_noises", 
+                "clink_bonk.mp3", "cuckoo.mp3", "falling_down.mp3", "fission.mp3", "footsteps.mp3", "gloria.mp3", "pie.mp3", "rim_shot.mp3", "spring.mp3", "swoosh01.mp3", "swoosh02.mp3", "swoosh03.mp3", "swoosh04.mp3", "swoosh05.mp3", "swoosh06.mp3", "swoosh07.mp3", "tiny-claps.mp3", "typewriter.mp3", "violin.mp3", "woop-woop.mp3", "zipper.mp3",
+                "SECTION_scifi", 
+                "alarm.mp3", "derelict_spaceship.mp3", "droid_deep01.mp3", "droid_deep02.mp3", "droid_deep03.mp3", "droid_deep04.mp3", "droid_deep05.mp3", "droid_deep06.mp3", "droid_deep07.mp3", "droid_deep08.mp3", "droid01.mp3", "droid02.mp3", "droid03.mp3", "droid04.mp3", "droid05.mp3", "droid06.mp3", "droid07.mp3", "droid09.mp3", "droid10.mp3", "droid11.mp3", "droid12.mp3", "droid13.mp3", "droid14.mp3", "hum.mp3", "modem01.mp3", "modem02.mp3", "modem03.mp3", "scifi_confirm.mp3", "scifi_door.mp3", "scifi_tweek.mp3", "spaceship.mp3",
+                "SECTION_vehicles", 
+                "car_hit01.mp3", "car_hit02.mp3", "car_hit03.mp3", "car_idle.mp3", "car_start.mp3", "car_stop.mp3", "garage_close.mp3", "garage_open.mp3", "horn01.mp3", "horn02.mp3", "horn03.mp3", "horn04.mp3", "horn05.mp3", "horn06.mp3", "horn07.mp3", "horn08.mp3", "sonar.mp3", "truck_idle.mp3", "truck_start.mp3", "truck_stop.mp3",
+                "SECTION_voices",
+                "do-you-have-one.mp3", "hm-approving.mp3", "hm-question.mp3", "safe-journey.mp3", "scream01.mp3", "scream02.mp3", "system-malfunction.mp3", "welcome-back.mp3"
+                ];
+        </script>
+        <script src="assets.js"></script> 
+
+    </body>
+</html>

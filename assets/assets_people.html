@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>People Assets - Slate - ZIM Kids</title>
+        <link href="assets.css" rel="stylesheet" type="text/css" />
+        <script src="https://zimjs.org/cdn/1.3.3/createjs.js"></script>
+        <script src="https://zimjs.org/cdn/cat/04/zim.js"></script>
+            
+    </head>
+    <body>
+        <div class="type" style="color:#fa8072">ASSETS</div>
+        <a href="assets_intro.html" class=button id=intro>INTRO</a>  
+        <a href="assets_help.html" class=button id=help>HELP</a>        
+        <div id="holder">     
+            <div class="buttonbar">               
+                <a href="assets_ai.html">AI</a>
+                <a href="assets_backings.html">Backings</a>
+                <a href="assets_nature.html">Nature</a>
+                <a href="assets_people.html" style="background-color: #fa8072 !important;">People</a>
+                <a href="assets_things.html">Things</a>
+                <a href="assets_sounds.html">Sounds</a>
+                <a href="assets_all.html">All</a>
+            </div>
+        </div>
+        
+        <nav>           
+            Select images that you want. Press&nbsp;update&nbsp;when&nbsp;done.
+            <br><br>
+            <div style="white-space: nowrap; display:inline-block; margin-top:-5px; margin-right:-60px;">
+            <a href="save" onclick="goBack(); return false;" class=button id=close>UPDATE</a>
+            <a href="clear" onclick="clearPage(); return false;" class=button id=clear>UNCHECK</a>
+            <a href="clearAll" onclick="clearAll(); return false;" class=button id=clearall>UNCHECK ALL</a>
+            </div>
+        </nav>
+        
+        <section id="pics">            
+            <!-- <figure>
+                <input type=checkbox name=cave.jpg value=''> 
+                <figcaption class=title>cave</figcaption>
+                <br>
+                <img src=assets/thumbs/cave.jpg>
+            </figure> -->                     
+        </section>
+        
+        <nav>
+            <a href="save" onclick="goBack(); return false;" class=button id=close>UPDATE</a>
+            <a href="top" onclick="goTop(); return false;"  class=button id=close>TOP</a>
+        </nav>
+
+        <div id="holder">     
+            <div class="buttonbar">               
+                <a href="assets_ai.html">AI</a>
+                <a href="assets_backings.html">Backings</a>
+                <a href="assets_nature.html">Nature</a>
+                <a href="assets_people.html" style="background-color: #fa8072 !important;">People</a>
+                <a href="assets_things.html">Things</a>
+                <a href="assets_sounds.html">Sounds</a>
+                <a href="assets_all.html">All</a>
+            </div>
+        </div>
+        
+        <footer>Thanks to Image Authors at <a href="https://vecteezy.com" target="_blank">Vecteezy.com</a></footer>
+    
+        <div id=pop>Uncheck PEOPLE asset selections?
+            <br><br>
+            <a id="clearYes" href="#">YES</a>
+            <a id="clearNo" href="#">NO</a>
+        </div>
+        
+        <div id=pop2>Uncheck ALL asset selections?
+            <br><br>
+            <a id="clearYes2" href="#">YES</a>
+            <a id="clearNo2" href="#">NO</a>
+        </div>
+        
+        <script>
+            var assetType = "People";            
+            var path = "addYourPath/";                    
+            var pics = ["boy01.png", "boy02.png", "boy03.png", "boy04.png", "boy05.png", "boy06.png", "boy07.png", "boy08.png", "boy09.png", "boyipad01.png", "boylaptop01.png", "cartoon01.png", "cartoon02.png", "cartoon03.png", "cartoon04.png", "cartoon05.png", "cartoon06.png", "cartoon07.png", "cartoon08.png", "cartoon09.png", "cartoon10.png", "emoji01.png", "emoji02.png", "emoji03.png", "emoji04.png", "emoji05.png", "emoji06.png", "emoji07.png", "emoji08.png", "emoji09.png", "emoji10.png", "emoji11.png", "emoji12.png", "emoji13.png", "emoji14.png", "emoji15.png", "eyes01.png", "eyes02.png", "eyes03.png", "eyes04.png", "eyes05.png", "eyes06.png", "eyes07.png", "eyes08.png", "eyes09.png", "eyes10.png", "eyes11.png", "eyes12.png", "eyes13.png", "eyes14.png", "eyes15.png", "eyes16.png", "eyes17.png", "eyes18.png", "eyes19.png", "eyes20.png", "eyes21.png", "girl01.png", "girl02.png", "girl03.png", "girl04.png", "girl05.png", "girl06.png", "girl07.png", "girl08.png", "girl09.png", "girlipad01.png", "girlipad02.png", "girllaptop01.png", "girllaptop02.png", "moustache01.png", "moustache02.png", "moustache03.png", "moustache04.png", "moustache05.png", "moustache06.png", "moustache07.png", "mouthtalking01.png", "mouthtalking02.png", "mouthtalking03.png", "mouthtalking04.png", "mustache01.png", "mustache02.png", "mustache03.png", "mustache04.png", "mustache05.png", "mustache06.png", "mustache07.png", "mustache08.png", "spacer01.png", "spacer02.png", "spacer03.png", "spacer04.png", "spacer05.png", "spacer06.png", "spacer07.png", "spacer08.png", "spacer09.png", "spacer10.png", "spacer11.png", "spacer12.png", "spacer13.png"];
+            var sprites = [];
+            var animations = [];
+        </script>
+        <script src="assets.js"></script> 
+
+    </body>
+</html>

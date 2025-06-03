@@ -1,0 +1,63 @@
+{
+    "resources": [
+        "audiosprite.mp3"
+    ],
+    "spritemap": {
+        "blackball": {
+            "start": 1.041,
+            "end": 2.475,
+            "loop": false
+        },
+        "bounce": {
+            "start": 3.567,
+            "end": 4.232,
+            "loop": false
+        },
+        "end": {
+            "start":5.396,
+            "end": 9.315,
+            "loop": false
+        },
+        "help": {
+            "start":10.373,
+            "end": 10.499,
+            "loop": false
+        },
+        "powerdown": {
+            "start":11.607,
+            "end": 14.254,
+            "loop": false
+        },
+        "powerup": {
+            "start":15.672,
+            "end": 17.081,
+            "loop": false
+        },
+        "slow": {
+            "start":18.354,
+            "end": 19.163,
+            "loop": false
+        },
+        "start": {
+            "start":20.151,
+            "end": 23.594,
+            "loop": false
+        },
+        "submit": {
+            "start":24.931,
+            "end": 27.673,
+            "loop": false
+        },
+        "wallend": {
+            "start":28.632,
+            "end": 29.351,
+            "loop": false
+        },
+        "wallstart": {
+            "start":30.640,
+            "end": 32.323,
+            "loop": false
+        }
+    },
+    "autoplay": ""
+}

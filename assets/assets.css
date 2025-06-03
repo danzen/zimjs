@@ -1,0 +1,298 @@
+
+body {
+    font-family:verdana;
+    background-color:#333;
+    margin:0px;
+    padding:0px;
+}
+.type {
+    font-size:30px !important;
+    padding:27px 40px 0px 40px;
+    font-weight: bold;
+    font-style:italic;
+}
+#holder {
+    white-space: nowrap;
+    padding:0px; margin:0px;
+    text-align:center;
+    position:relative;
+}
+.buttonbar:not(:last-child) { margin-right:30px; }
+.buttonbar {       
+    display:inline-block;
+    position:relative;
+    /* margin-top:-62px; */
+    
+    margin-bottom:20px;
+    margin-top:20px;
+}
+
+#intro {
+    position:absolute;
+    top:25px;
+    right:125px;
+    transform:scale(.8,.8)
+}
+#help {
+    position:absolute;
+    top:25px;
+    right:10px;
+    transform:scale(.8,.8)
+}
+
+#logo_new {
+    margin-top:24px; margin-bottom:18px;
+    position:relative; top:8px; left:12px;
+    margin-left:-28px;
+}
+.imgHolder {   
+    width:150px;
+    height:90px;
+    position:relative;
+}
+.imgHolder img {
+    margin: 0;
+    margin-top:5px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+}
+figure {    
+    background-color:#ddd;
+    border-radius:6px;    
+    padding:10px;
+    display:inline-block;
+    margin:6px;
+}
+input[type=checkbox] {
+    width:20px;
+    height:20px
+}
+img {margin-top:10px;}
+.title {font-size:30px; color:#333;}
+h1 {
+    display:inline-block;
+    font-weight:normal;
+    font-size:24px;
+    color:#50c4b7;
+    margin-left:20px;
+    position:relative;
+    top:-2px;
+}
+h1:before {
+    color: #acd241;
+    content: "ASSETS - ";
+  }
+footer {
+    
+    font-size:20px;
+    color:#aaa;
+    text-align:center;
+    margin-top:40px;
+}
+footer a {
+    color: #aaa;
+}
+
+/* #clearall {
+    right:150px;
+}
+#close {
+    right:50px;
+} */
+
+section {
+    text-align: center
+}
+
+nav {
+    clear:both;
+    padding:20px;
+    /* border-radius:20px; */
+    background-color:#222;
+    margin-bottom:20px;
+    color:#ddd;
+    font-size:20px;
+    text-align:center;
+}
+.button {
+    position:relative;                
+    display:inline-block;
+    width:110px;
+    margin-right:10px;
+    text-align: center;
+    padding:10px;
+    background-color:#993399;
+    text-decoration:none;
+    color:white;
+    font-size:20px;
+    border-radius:5px;
+}
+.button[href="clear"] {
+    background-color:#555;
+    transform:scale(.7, .7);
+    position:relative;
+    left:-10px;
+    top:7px;
+}
+.button[href="clearAll"] {
+    width:150px;
+    background-color:#555;
+    transform:scale(.7, .7); 
+    position:relative;
+    left:-60px;
+    top:7px;
+}
+.button:hover {
+    background-color:#e472c4;
+}
+.asset_item {
+    position:relative;
+}
+
+#pop, #pop2 {
+    display:none;
+    position:absolute;
+    left:50%;
+    margin-left:-275px;
+    top:15%;
+    text-align: center;
+    z-index: 70;
+    padding:50px;
+    width:470px;
+
+    background-color:#ebcb35;
+    font-family:verdana;
+    font-size:24px;
+    border:10px #fb4758 solid;
+    box-shadow: rgba(0,0,0,.3) 10px 10px 10px;
+}
+#pop a, #pop2 a  {
+    text-decoration: none;
+    display:inline-block;
+    background-color:white;
+    color:#333;
+    padding:20px 30px;
+    margin:10px;
+    box-shadow: rgba(0,0,0,.3) 5px 5px 5px;
+}
+#helplink{color:#acd241; text-decoration: none;}
+#helplink:hover{color:#e472c4}
+#pop a:hover, #pop2 a:hover {
+    background-color:#acd241;
+}
+figcaption {
+    display:inline-block;
+    font-size:14px !important;
+    position:relative;
+    top:-5px;
+}
+
+.subtutorial {
+    font-size:26px;
+    color:#ddd;
+    font-family:'Courier New', Courier, monospace;
+    margin-left:14px;
+}
+footer {
+    margin-bottom:50px;
+}
+
+/* .buttonbar {
+    position:absolute;
+    right:4%;
+    top:47px;
+} */
+/* .buttonbar a {
+    display:inline-block;
+    text-decoration: none;
+    font-size:12px;
+    padding:6px 10px !important;
+    margin:3px;
+    color:white !important;
+    font-weight:bold;
+    margin-bottom:0px;
+    border-radius:0px;
+    background-color:#50c4b7;
+}
+.buttonbar a:hover {
+    background-color:#e472c4;
+}
+.buttonbar div {
+    display:inline-block;
+    vertical-align: bottom;
+    margin-right:10px;
+    text-transform:uppercase;
+    color:#f58e25;
+    font-size:24px;
+    margin:0px !important;
+} */
+
+
+
+.buttonbar a {
+    text-decoration: none;
+    display:inline-block;
+    font-size:14px;
+    padding:8px 10px !important;
+    margin:2px;
+    color:white !important;
+    text-transform:uppercase;
+    margin-bottom:0px;
+    border-radius:0px;
+    background-color:#50c4b7;
+}
+.buttonbar a:hover {
+    background-color:#e472c4;
+}
+.buttonbar div {
+    display:inline-block;
+    vertical-align: bottom;
+    margin-right:10px;
+    text-transform:uppercase;
+    color:#f58e25;
+    font-size:22px;
+}
+
+@media all and (max-width: 640px){
+    /* these styles show if screen width is less than or equal to 640 */             
+    .buttonbar a {
+        font-size:12px;
+        padding:6px 6px !important;
+    }
+}
+
+.all {
+    display:inline-block;
+    font-family:verdana;
+    text-decoration: underline;
+    font-size:16px;
+    padding:6px 10px !important;
+    margin:3px;
+    color:#50c4b7 !important;
+    font-weight:normal !important;
+    margin-bottom:0px;
+    border-radius:0px;
+    background-color:transparent;
+}
+.all:hover {
+    color:#e472c4 !important;
+}
+.audio {opacity:75%}
+.audio:hover {opacity:100%}
+#assethelp {background-color:#993399}
+#assethelp:hover {background-color:#e472c4}
+
+figure {position:relative;}
+figure.white {outline: 3px dashed #555; outline-offset: -6px;} 
+figure.red {outline: 3px dashed #cc0000; outline-offset: -6px;} 
+.preview {position:absolute; right:10px; top:3px; color:violet; font-size:25px !important;}
+.preview a {text-decoration:none; opacity:80%}
+.preview a:hover {opacity:100%}
+.preview2 {display:inline-block; margin-right:6px; color:violet; font-size:25px !important;}
+.preview2 a {text-decoration:none; opacity:80%}
+.preview2 a:hover {opacity:100%}
+.check {position:relative; top:2px;}
+

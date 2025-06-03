@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html>
+    <head>        
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-GSHN2BZVKW"></script>
+        <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'G-GSHN2BZVKW');</script>  
+        <meta charset="utf-8">
+        <title>Slate - ZIM Kids - JavaScript Code Camp Tutorial Workshop</title>
+        <script src="https://d309knd7es5f10.cloudfront.net/vee/vee.js"></script>
+        
+        <link href="../vee/veeSecondary.css" rel="stylesheet" type="text/css" />
+        <link href="../kids/kids_slate.css" rel="stylesheet" type="text/css" />
+        <script src="https://d309knd7es5f10.cloudfront.net/zim_8.js"></script>
+        <script src="../kids/scroll.js"></script>
+        <script src="../kids/slate.js"></script>
+        <script src="../kids/slate_info.js"></script>
+        <script src="https://d309knd7es5f10.cloudfront.net/run_prettify.js"></script>
+
+        <!-- for Google -->
+        <meta name="description" content="ZIM Kids - Coding Workshop, Lessons, Tutorial, Camp, School. Free JavaScript basics for Left Brain and Right Brain - visual results fun to learn and teach!" />
+        <meta name="keywords" content="zimjs, kids, camp, workshops, lessons, tutorials, school, curriculum, learn, teach, danzen, javascript, code, free, interactive media, html5, canvas, framework" />
+        <meta name="author" content="Dan Zen" />
+        <meta name="copyright" content="Dan Zen" />
+
+        <!-- for Facebook -->
+        <meta property="og:title" content="ZIM Kids - Coding Workshop, Tutorial, Camp, School. Free JavaScript lessons for Left Brain and Right Brain - visual results fun to learn and teach!" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://zimjs.com/kids/promo.jpg" />
+        <meta property="og:url" content="https://zimjs.com/kids.html" />
+        <meta property="og:description" content="ZIM Kids - Coding Workshop, Tutorial, Camp, School. Free JavaScript lessons for Left Brain and Right Brain - visual results fun to learn and teach!" />
+
+        <!-- for Twitter -->
+        <meta name="twitter:card" content="summary" /> <!-- do not edit this line (must say "summary") -->
+        <meta name="twitter:title" content="ZIM - JavaScript Lessons for School Curriculum" />
+        <meta name="twitter:description" content="ZIM Kids - Coding Workshop, Lessons, Tutorial, Camp, School. Free JavaScript basics for Left Brain and Right Brain - visual results fun to learn and teach! #teach #learn #code #Canvas with #JavaScript and #ZIMjs" />
+        <meta name="twitter:image" content="https://zimjs.com/kids/promo.jpg" />
+
+        <!-- for Apple -->
+        <meta name="viewport" content="width=device-width, user-scalable=yes, minimal-ui" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+        <!-- icons -->
+        <link rel="apple-touch-icon-precomposed" sizes="57x57" href="https://zimjs.com/icons/apple-touch-icon-57x57.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="114x114" href="https://zimjs.com/icons/apple-touch-icon-114x114.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="72x72" href="https://zimjs.com/icons/apple-touch-icon-72x72.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zimjs.com/icons/apple-touch-icon-144x144.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="60x60" href="https://zimjs.com/icons/apple-touch-icon-60x60.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="120x120" href="https://zimjs.com/icons/apple-touch-icon-120x120.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="76x76" href="https://zimjs.com/icons/apple-touch-icon-76x76.png" />
+        <link rel="apple-touch-icon-precomposed" sizes="152x152" href="https://zimjs.com/icons/apple-touch-icon-152x152.png" />
+        <link rel="icon" type="image/png" href="https://zimjs.com/icons/favicon-32x32.png" sizes="32x32" />
+        <meta name="application-name" content="ZIM"/>
+        <meta name="msapplication-TileColor" content="#000000" />
+        <meta name="msapplication-TileImage" content="https://zimjs.com/icons/mstile-144x144.png" />
+        <meta name="msapplication-square70x70logo" content="https://zimjs.com/icons/mstile-70x70.png" />
+        <meta name="msapplication-square150x150logo" content="https://zimjs.com/icons/mstile-150x150.png" />
+        <meta name="msapplication-wide310x150logo" content="https://zimjs.com/icons/mstile-310x150.png" />
+        <meta name="msapplication-square310x310logo" content="https://zimjs.com/icons/mstile-310x310.png" />
+
+
+        
+        <script>
+
+            window.addEventListener("DOMContentLoaded", function() {
+
+                zet("section").prop({show:false});
+                zet(".bar").on("click", function(e) {
+                    var type = e.currentTarget.parentElement;                   
+                    toggle(type);
+                });
+                function toggle(type, which) {
+                    if (!zot(which)) type.show = !which;
+                    if (type.show) {
+                        zet("#" + type.id + " .innerContent").css("display","none");
+                        zet("#" + type.id + " .show").prop("innerHTML", "SHOW &#x25bc;&#xfe0e;")
+                    } else {
+                        zet("#" + type.id + " .innerContent").css("display","block");
+                        zet("#" + type.id + " .show").prop("innerHTML", "HIDE &#x25b2;&#xfe0e;");
+                    }
+                    type.show = !type.show;
+                };
+
+                var query0 = window.location.search.substring(1).split("=")[0];
+                var query = window.location.search.substring(1).split("=")[1];
+                if (query && query0 != "page") {
+                    toggle(zid(query.toLowerCase()), true)
+                    zid(query.toLowerCase()).scrollIntoView();
+                }
+
+                // toggle(zid("controls"), true);
+            });
+
+        </script>
+        
+        <style>
+            #assethelp {background-color:#993399}
+            #assethelp:hover {background-color:#e472c4}
+            /* desert scheme ported from vim to google prettify */
+            pre.prettyprint {
+                font-size:22px !important;
+                background-color:#333;
+                padding:20px;
+                padding-top:30px;
+                margin-top:6px;
+                display: block;
+                -moz-border-radius: 30px;
+                border-radius: 30px;
+                border:none !important;
+            }
+            pre .nocode { background-color: none; color: #000 }
+            pre .str { color: #ffa0a0 } /* string  - pink */
+            pre .kwd { color: #f0e68c; font-weight: bold }
+            pre .com { color: #87ceeb } /* comment - skyblue */
+            pre .typ { color: #98fb98 } /* type    - lightgreen */
+            pre .lit { color: #FC9; } /* peach #cd5c5c }*/ /* literal - darkred */
+            pre .pun { color: #fff }    /* punctuation */
+            pre .pln { color: #fff }    /* plaintext */
+            pre .tag { color: #f0e68c; font-weight: bold } /* html/xml tag    - lightyellow */
+            pre .atn { color: #bdb76b; font-weight: bold } /* attribute name  - khaki */
+            pre .atv { color: #fff; }/* #ffa0a0 }*/ /* attribute value - pink */
+            pre .dec { color: #98fb98 } /* decimal         - lightgreen */
+
+            /* Specify class=linenums on a pre to get line numbering */
+            ol.linenums { margin-top: 0; margin-bottom: 0; color: #AEAEAE } /* IE indents via margin-left */
+            li.L0,li.L1,li.L2,li.L3,li.L5,li.L6,li.L7,li.L8 { list-style-type: none }
+            /* Alternate shading for lines */
+            li.L1,li.L3,li.L5,li.L7,li.L9 { }
+
+            @media print {
+              pre.prettyprint { background-color: none }
+              pre .str, code .str { color: #060 }
+              pre .kwd, code .kwd { color: #006; font-weight: bold }
+              pre .com, code .com { color: #600; font-style: italic }
+              pre .typ, code .typ { color: #404; font-weight: bold }
+              pre .lit, code .lit { color: #044 }
+              pre .pun, code .pun { color: #440 }
+              pre .pln, code .pln { color: #000 }
+              pre .tag, code .tag { color: #006; font-weight: bold }
+              pre .atn, code .atn { color: #404 }
+              pre .atv, code .atv { color: #060 }
+            }
+            
+            .buttonbar a {
+                font-size:16px !important;
+            }
+            
+            #help {                
+                right:60px !important;
+            }
+            #help a {
+                font-size:17px !important;            
+            }
+            
+            .smaller {
+                padding-top:11px !important;
+                padding-bottom:9px !important;
+                width:65px !important;
+                font-size:16px !important;
+            }
+
+            body {
+                margin-left:5px !important;
+                padding-left:0px !important;
+            }
+            #content {
+                margin-left:0px !important;
+                padding-left:0px !important;
+                margin-right:0px !important;
+            }
+            section {
+                margin-right:0px !important;
+                border-radius:0px;
+                width:100%;
+            }
+            #title {
+                font-size:30px !important;
+                margin-left:30px;
+                margin-top:-8px;
+            }
+            li {
+                margin-top:4px;
+            }
+            html {
+                padding:0px !important; margin:0px !important;
+            }            
+            body {
+                padding:0px !important; margin:0px !important;
+            }
+
+            .type {
+                font-size:30px !important;
+                padding:27px 40px 0px 40px;
+                font-weight: bold;
+                font-style:italic;
+            }
+
+            .buttonbar2:not(:last-child) { margin-right:30px; }
+            .buttonbar2 {       
+                display:inline-block;
+                position:relative;
+                /* margin-top:-62px; */
+                
+                margin-bottom:20px;
+                margin-top:20px;
+            }
+
+            .buttonbar2 a {
+                text-decoration: none;
+                display:inline-block;
+                font-size:14px;
+                padding:8px 10px !important;
+                margin:2px;
+                color:white !important;
+                text-transform:uppercase;
+                margin-bottom:0px;
+                border-radius:0px;
+                background-color:#50c4b7;
+            }
+            .buttonbar2 a:hover {
+                background-color:#e472c4;
+            }
+            .buttonbar2 div {
+                display:inline-block;
+                vertical-align: bottom;
+                margin-right:10px;
+                text-transform:uppercase;
+                color:#f58e25;
+                font-size:22px;
+            }
+
+
+            @media all and (max-width: 640px){
+                /* these styles show if screen width is less than or equal to 640 */             
+                .buttonbar2 a {
+                    font-size:12px;
+                    padding:6px 6px !important;
+                }
+            }
+
+            
+        </style>
+        <link href="assets.css" rel="stylesheet" type="text/css" />
+
+    </head>
+    <body style="overflow-x: hidden;">
+
+
+<!-- <div class="type" style="font-size:30px !important; padding:27px 40px 0px 40px; font-weight: bold; font-style:italic;color:#fa8072;">ASSETS - Help</div>
+<a href="back" onclick="window.history.go(-1); return false;" class=button style="margin-right:-40px !important;" id=help>BACK</a>     -->
+   
+<div class="type" style="color:#fa8072">ASSETS - Help</div>
+<a href="assets_intro.html" class=button style="right:10px !important;" id=intro>INTRO</a>    
+<!-- <a href="assets_intro.html" class=button id=intro>INTRO</a>   -->
+<div id="holder" style="margin-bottom:-50px; position:relative; z-index:5;">     
+    <div class="buttonbar2">               
+        <a href="assets_ai.html">AI</a>
+        <a href="assets_backings.html">Backings</a>
+        <a href="assets_nature.html">Nature</a>
+        <a href="assets_people.html">People</a>
+        <a href="assets_things.html">Things</a>
+        <a href="assets_sounds.html">Sounds</a>
+        <a href="assets_all.html">All</a>
+    </div>
+</div>
+
+
+<div id="content"  style="width:95% !important; max-width:1500px; text-align:left; position:relative;">
+
+   
+    <!-- <section id="listSpells" style="margin-right:1.5%; background-color:#222; color:#aaa; text-align: left; margin-bottom:20px !important; font-size: min(3vw, 30px);">
+        
+        <style media="screen">
+            #assetslink{color:#50c4b7; text-decoration: none;}
+            #assetslink:hover{color:#e472c4}
+        </style>
+
+        <br><br>
+        <em style="color:#fa8072;">Press bars below for examples. </em> <a id=assetslink href="https://www.youtube.com/watch?v=7F6O_O9bBGA" target="_blank">SEE&nbsp;VIDEO</a>           
+        <br>
+    </section> -->
+        
+    <style>
+         html {
+                min-width:auto !important;
+            }    
+        .spells {
+            margin-left:16px;
+            padding:10px 30px 3px 10px;
+            background-color: #ddd;
+            border-radius: 40px;
+            display:inline-block;
+        }
+        @font-face {
+            font-family: "ESKARGOT";
+            src: url(kids/ESKARGOT.ttf);
+        }
+        .magic {
+            font-family:"ESKARGOT";
+            text-transform: uppercase;
+            font-size:24px;
+            color:#ddd;
+        }
+        .imageHolder {
+            text-align:center; display:block; margin-top:20px; margin-bottom:-10px;
+        }
+        .imageHolder img {
+            width:100%; max-width:600px;
+        }
+        .codeHolder {
+            background-color: #444;
+            padding:10px;
+        }
+        .codeHolder pre {
+            color:#ddd !important; margin-top:0px; margin-bottom:5px;
+            /* overflow:hidden; */
+            white-space: pre-wrap;
+        }
+        .mainSection {
+            background-color:#222; color:#aaa; text-align:left
+        }
+        .mainSection h2 {
+            color:#fff;
+            font-weight: normal;
+        }
+        .show {
+            margin-top:-39px;
+            width:90px;
+            text-align: right;
+            padding:2px 8px;
+            position:absolute;
+            font-size: 18px;
+            right:10%;
+            display:inline-block;
+            background-color: rgba(0,0,0,.2);
+            color:#ddd;
+            cursor:pointer
+        }
+        .bar {cursor:pointer;}
+        .bar h2 {
+            font-size:20px !important;
+        }
+        .show:hover {
+            background-color: rgba(0,0,0,.4) !important;
+        }
+        .innerContent {
+            display:none;
+        }
+    
+        .more {
+            text-align:center; margin-top:40px;
+        }
+        .more img {
+            margin-bottom:-10px; margin-right:10px;
+        }
+        ol, ul {
+             background-color:#333; padding-top:18px; color:#ccc; border-radius:20px !important;
+        }
+        #title {
+            font-size:30px !important;
+            margin-left:30px;
+        }
+        .assetslink {
+            color:#50c4b7;
+        }
+        .assetslink:hover {
+            color:#acd241;
+        }
+    </style>
+
+<section id="example0" class="mainSection" style="margin-top:42px !important;">
+    <div class="bar"><h2 style="background-color:#de776b;">0. SELECTING ASSETS</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+    <div class="innerContent">
+        Assets are <span style="color:white">images</span>, <span style="color:white">sprites</span> and <span style="color:white">sounds</span> that we use in our apps.  Here are the steps to pick assets.  See <a class=assetslink href="https://www.youtube.com/watch?v=fl_eY-20dE8" target="_blank">VIDEO</a>.
+        <br><br>
+
+        A. Select (check) the pictures and sounds you want to use.
+        <br>
+        <img style="margin-bottom:6px" src="https://zimjs.s3.amazonaws.com/kids/assets_checked.png" alt="">
+        <br>
+        B. When all done selecting, press the <span style="color:#d74fd7">UPDATE</span> button.
+        <br><br>
+        C. The selected assets will be listed in the code comments //. 
+        <br><br>
+        D. Use <span style="color:white; font-family: 'Courier New', Courier, monospace;  font-size: min(3vw, 30px);">new Pic("name")</span> or <span style="color:white;  font-family: 'Courier New', Courier, monospace;  font-size: min(3vw, 30px);">new Aud("name")</span>
+        <br><br>    
+        E. Sprites have dashes around the box and cols and rows. 
+        <br>
+        <img style="margin-bottom:6px" src="https://zimjs.s3.amazonaws.com/kids/assets_sprite.png" alt="">
+        <br>
+        F. Use <span style="color:white; font-family: 'Courier New', Courier, monospace;  font-size: min(3vw, 30px);">new Sprite("name",cols,rows).run({frame:num})</span>
+        <br><br>    
+        G. Sprites with red dashes are animations. 
+        <br>
+        <img style="margin-bottom:6px" src="https://zimjs.s3.amazonaws.com/kids/assets_sprite_animation.png" alt="">
+        <br>
+        H. Use <span style="color:white; font-family: 'Courier New', Courier, monospace;  font-size: min(3vw, 30px);">new Sprite("name",cols,rows).run(time)</span>
+        <br><br>    
+        <em style="color:#fa8072;">Press bars below for more examples. </em><br><br>
+        <a class=assetslink href="https://www.youtube.com/watch?v=7F6O_O9bBGA" target="_blank">SEE&nbsp;EXAMPLES&nbsp;VIDEO</a>
+
+        </div>
+    </section>
+    
+    
+<section id="example1" class="mainSection" style="margin-top:42px !important;">
+<div class="bar"><h2 style="background-color:#b862a0;">1. ADDING A BACKGROUND COLOR</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    To change the background color you can use the <span style="color:white">color</span> property of the <span style="color:white">frame (F)</span><br>
+    <br>
+    <img src="https://zimjs.s3.amazonaws.com/kids/colors.jpg" alt="background colors and gradients for example of what we can make with SLATE and assets in ZIM!">
+    
+</p>
+<div class="codeHolder"><div class=id>01</div>
+    <pre class="prettyprint">// use the color property of the <span style="color:white">frame</span> for the stage color
+F.color = yellow; // F is the frame!
+
+// use the outerColor property for the color outside the stage
+F.outerColor = blue;
+
+// use a Page to make a gradient 
+new Page(W, H, green, pink).addTo();
+</pre>
+
+</div>
+<br>    
+    </div>
+</section>
+
+<section id="example2" class="mainSection" style="margin-top:42px !important;">
+<div class="bar"><h2 style="background-color:#49a096;">2. ADDING A BACKGROUND PICTURE</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    We will add a picture of a <strong>BEACH</strong> for a background picture.<br>
+    <br>
+    <img src="https://zimjs.s3.amazonaws.com/kids/backing.jpg" alt="picture of a beach for example of what we can make with SLATE and assets in ZIM!">
+
+    <h4>steps to add picture</h4>
+    <ol>
+        <li>Press the <strong>BACKINGS</strong> button at the top</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"beach01"</span> picture</li>
+        <li>You should see <span style="color:white">"Backings: beach01"</span> in the comments</li>
+        <li>Use the code below to put the asset on the stage</li>
+    </ol>
+    
+</p>
+<div class="codeHolder"><div class=id>02</div>
+    <pre class="prettyprint">// ** DO THE STEPS ABOVE FIRST **
+// A background picture can be scaled to the stage
+// then center() and mov(x, y) or loc(x, y) can be used
+new Pic("beach01")
+   .scaleTo()
+   .center();
+</pre>
+
+</div>
+<br>    
+    </div>
+</section>
+    
+    
+<section id="example3" class="mainSection">
+<div class="bar"><h2 style="background-color:#8eaa3e;">3. ADDING PICTURES</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    Let's add a picture of a <strong>BUTTERFLY</strong> and make it draggable!<br>
+    <br>
+    <img src="https://zimjs.s3.amazonaws.com/kids/beach.jpg" alt="picture of a butterfly on a beach for example of what we can make with SLATE and assets in ZIM!">
+
+    <h4>steps to add picture</h4>
+    <ol>
+        <li>Press the <strong>NATURE</strong> button at the top</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"bug01"</span> picture</li>
+        <li>You should see <span style="color:white">"Nature: bug01"</span> in the comments</li>
+        <li>Use the code below to put the asset on the stage</li>
+    </ol>
+    
+</p>
+<div class="codeHolder"><div class=id>03</div>
+    <pre class="prettyprint">// pictures can be scaled with sca() if you want
+// sca(.5) is half as big, sca(2) is twice as big
+// You can use center() and mov(x, y) or
+// loc(x, y) or pos(x, y, RIGHT, BOTTOM), etc. 
+// Store the bug in a variable to use later with sounds
+const bug = new Pic("bug01")
+   .sca(.5)
+   .center()
+   .drag(); 
+</pre>
+</div>
+<br>    
+    </div>
+</section>
+
+
+<section id="example4" class="mainSection">
+    <div class="bar"><h2 style="background-color:#d15662;">4. ADDING EMOJIS</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+    <div class="innerContent">
+        <p>
+        Emojis are fun!  We can easily add Emojis using the ZIM Emoji() class:<br>
+    </p>
+    <div class="codeHolder"><div class=id>04</div>
+        <pre class="prettyprint">// add an Emoji
+// inside "", use WINDOW KEY . to pick an emoji 
+// or use Control + Command + Space on a Mac
+// choose a number for the size like 100
+new Emoji("🐞", 100).center().drag(); 
+    </pre>
+    </div>
+    <br>    
+
+    <img src="https://zimjs.s3.amazonaws.com/kids/emojis.jpg" alt="Using the Emoji Picker to get Emojis in SLATE and assets in ZIM!">
+
+    <p>
+        You can also copy the code from the ZIM <a href=https://zimjs.com/emoji target="_blank">Emoji Picker</a><br>
+    </p>
+    <div class="codeHolder"><div class=id>05</div>
+        <pre class="prettyprint">// add an Emoji with an Emoji Code
+// go to the Emoji Picker and press an Emoji 
+// then press COPY and paste the code in the ""
+new Emoji("\ud83c\udf1d", 200).loc(100,100).drag(); 
+    </pre>
+    </div>
+    <br>    
+
+
+
+    </div>
+</section>
+    
+
+
+<section id="example5" class="mainSection">
+<div class="bar"><h2 style="background-color:#b69f32;">5. USING CONTAINERS</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    Sometimes we want to group our objects so they move together.<br>
+    Let's put <span style="color:white">"gem01"</span> and <span style="color:white">"cartoon02"</span> in a Container and drag them.<br>
+    <br>
+    <img src="https://zimjs.s3.amazonaws.com/kids/gem.jpg" alt="gem with face in container for example of what we can make with SLATE and assets in ZIM!">
+
+    <h4>steps to add pictures</h4>
+    <ol>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"gem01"</span> picture from <strong>NATURE</strong> assets</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"cartoon02"</span> picture from <strong>PEOPLE</strong> assets</li>
+        <li>You should see the pictures listed in the comments</li>
+        <li>Use the code below to put the pictures in a Container</li>
+    </ol>
+    
+</p>
+<div class="codeHolder"><div class=id>06</div>
+    <pre class="prettyprint">// make a Container (an invisible holder)
+const holder = new Container();
+
+// add the gem 
+new Pic("gem01").addTo(holder);
+
+// scale the cartoon face to FIT in 60% the holder width 
+// and center it in the container 
+new Pic("cartoon02")
+   .scaleTo(holder, 60) // 60% the size
+   .center(holder);
+
+// position the container and drag all of it together 
+holder
+   .pos(100,50,RIGHT,BOTTOM)
+   .drag({all:true});
+</pre>
+</div>
+<br>    
+    </div>
+</section>
+
+
+<section id="example6" class="mainSection">
+<div class="bar"><h2 style="background-color:#c57729;">6. ADDING SOUNDS</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    Here we play a <strong>POWERUP</strong> sound when we press the butterfly!<br>
+    <h4>steps to add sound</h4>
+    <ol>
+        <li>Press the <strong>SOUNDS</strong> button at the top</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"powerup"</span> sound</li>
+        <li>You should see <span style="color:white">"Sounds: powerup"</span> in the comments</li>
+        <li>Use the code below play the sound when pressing the butterfly</li>
+    </ol>
+    
+</p>
+<div class="codeHolder"><div class=id>07</div>
+    <pre class="prettyprint">// To play a sound when pressing a bug 
+const bug = new Pic("bug01")
+   .sca(.5)
+   .center()
+   .drag(); 
+
+// use an event and play the sound in the event function
+// Aud is short form for Audio - another way to say sound!
+const sound = new Aud("powerup"); // make the sound once
+bug.on("mousedown", ()=>{
+   sound.play(); // play the sound every time we press the bug
+}); 
+</pre>
+</div>
+<br>    
+    </div>
+</section>
+
+
+<section id="example7" class="mainSection">
+<div class="bar"><h2 style="background-color:#aa8661;">7. ADDING A BACKGROUND SOUND</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    Let's play some <strong>BACKING</strong> music. We show four ways to play a background sound because sounds can only be played after the first mousedown.<br>
+    <h4>steps to add sound</h4>
+    <ol>
+        <li>Press the <strong>SOUNDS</strong> button at the top</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"backing"</span> sound</li>
+        <li>From wand 5 you may already have a powerup sound
+        <li>So you should see <span style="color:white">"Sounds: backing, powerup"</span> in the comments</li>
+        <li>Use <strong>ONE</strong> of the examples below to play the background sound</li>
+    </ol>
+    
+</p>
+<div class="codeHolder"><div class=id>08</div>
+    <pre class="prettyprint">// ** OPTION ONE - BASIC **
+// This code works when we TEST to play a backing sound
+// but will not work when we use FULL and SAVE - boo!
+// Here we lower the volume and loop the backing sound.  
+new Aud("backing").play(.1, true);
+</pre>
+</div>
+<br>
+
+<div class="codeHolder"><div class=id>09</div>
+    <pre class="prettyprint">// ** OPTION TWO - PANE **
+// This code works in TEST, FULL and SAVE. Yay!
+// Here we play the backing sound once a Pane() is closed.
+new Pane("START", yellow).show(()=>{
+   new Aud("backing").play(.1, true);
+});
+
+<img src="https://zimjs.s3.amazonaws.com/kids/start.jpg" alt="A start Pane so sound plays when in FULL or SAVE modes">
+
+</pre>
+</div>
+<br>
+<div class="codeHolder"><div class=id>10</div>
+    <pre class="prettyprint">// ** OPTION THREE - TOGGLE **
+// This code lets people turn on and off the sound.
+// Do not worry if this is complicated looking 
+// it will just help you pause or play the sound.
+let backingSound;
+const toggle = new Toggle({
+   label:"music",
+   startToggled:false
+})
+   .sca(.7)
+   .pos(40,40,LEFT,BOTTOM)
+   .change(()=>{
+      if (!backingSound) {
+         backingSound = new Aud("backing").play(.1, true);
+      }
+      backingSound.paused = !toggle.toggled;
+   }); 
+    
+<img src="https://zimjs.s3.amazonaws.com/kids/music.jpg" alt="a pause button for sound that will work everywhere">
+
+</pre>
+</div>
+<br>
+<div class="codeHolder"><div class=id>11</div>
+    <pre class="prettyprint">// ** OPTION FOUR - BUTTON **
+// This code uses a Button to toggle sound.
+// We use pizzazz to make sound icons 
+// or you could use label:"play" and toggle:"mute"
+// We use the tap() method which is like on("click", function).
+let backingSound;
+const button = new Button({
+   width:60,
+   height:60,
+   corner:0,
+   backgroundColor:purple,
+   rollBackgroundColor:pink,
+   icon:makeIcon("sound", white),
+   toggleIcon:makeIcon("mute", white)
+}).pos(50,50,LEFT,BOTTOM).tap(()=>{
+   if (!backingSound) {
+      backingSound = new Aud("backing").play(.1, true);
+   }
+   backingSound.paused = !button.toggled;
+});
+    
+<img src="https://zimjs.s3.amazonaws.com/kids/toggle.jpg" alt="a toggle button for sound that will work everywhere">
+
+</pre>
+</div>
+<br>  
+    </div>
+</section>
+
+
+<section id="example8" class="mainSection">
+<div class="bar"><h2 style="background-color:#8449c1;">8. ADDING SPRITES</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    A Sprite() is made from a SpriteSheet which is a grid of pictures.  There are TWO types:
+    <br><br>
+    1. DIFFERENT OBJECTS<br>
+    Found in the AI images. You can run() a single frame to show the image you want.
+    <br><br>
+
+        <img style="margin-left:0px;" src="https://zimjs.s3.amazonaws.com/kids/assets_sprite_backpack.png" alt="">
+        <br>
+
+    <img src="https://zimjs.s3.amazonaws.com/kids/sprite3.png" style="min-width:320px; width:80%; max-width:450px;" alt="Picture of SpriteSheet with columns across the top and rows down the side">
+	<h4>steps to add a sprite</h4>
+    <ol>
+        <li>Press the <strong>AI</strong> button at the top</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"ai_backpacks"</span> picture</li>
+        <li>You should see <span style="color:white">"AI: ai_backpacks"</span> in the comments</li>
+        <li>Use the code below to show a backpack</li>
+    </ol>
+
+    <div class="codeHolder"><div class=id>12</div>
+    <pre class="prettyprint">// A Sprite() to show different objects.
+// Object Sprites have a grey dashed border 
+// with COLS and ROWS in black
+// press the purple arrow to see a preview
+new Sprite("ai_backpacks", 5, 2) // 5 columns and 2 rows
+   .center(); // will display a random backpack 
+
+// or chose which backpack to show:
+new Sprite("ai_backpacks", 5, 2) 
+   .center()
+   .run({frame:1}); // show the second backpack (0 is the first)
+
+// or Emit a bunch of backpacks!
+new Emitter(new Sprite("ai_backpacks", 5, 2)).center();
+</pre>
+</div>
+
+    <br>2. ANIMATIONS<br>
+    An animation Sprite() uses pictures of an object in motion. 
+    There are a few animation sprites (not in AI).  Here is a <a style="color:violet !important;" href="https://www.youtube.com/watch?v=TspiclSy_Jc" target="_blank">Video about Sprites</a><br>
+    
+    <br>
+        <img style="margin-left:60px;" src="https://zimjs.s3.amazonaws.com/kids/assets_sprite_monkey.png" alt="">
+    <br>
+
+	<img src="https://zimjs.s3.amazonaws.com/kids/sprite2.png" style="min-width:320px; width:80%; max-width:450px;" alt="Picture of SpriteSheet with columns across the top and rows down the side">
+	<h4>steps to add a sprite</h4>
+    <ol>
+        <li>Press the <strong>NATURE</strong> button at the top</li>
+        <li>Select and <strong>UPDATE</strong> the <span style="color:white">"monkey"</span> picture</li>
+        <li>You should see <span style="color:white">"Nature: monkey"</span> in the comments</li>
+        <li>Use the code below to animate the sprite</li>
+    </ol>
+    
+</p>
+<div class="codeHolder"><div class=id>13</div>
+    <pre class="prettyprint">// The Sprite is made from a SpriteSheet.
+// Animated Sprites have a red dashed border 
+// with COLS and ROWS in black
+// press the purple arrow to see a preview
+// We must run() the sprite as well 
+// which is like animate() but for Sprites.
+// The longer the time the slower the animation.
+new Sprite("monkey", 4, 4)
+   .center()
+   .run({time:1, loop:true});
+</pre>
+</div>
+<br>    
+
+<br>
+    </div>
+</section>
+
+
+<section id="example9" class="mainSection">
+<div class="bar"><h2 style="background-color:#666;">9. ADDING ASSETS FROM INTERNET</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    Pictures, Sounds and Sprites can be loaded from the Internet.  
+    There may be permission issues so talk to your leader.
+    
+</p>
+
+<div class="codeHolder"><div class=id>14</div>
+    <pre class="prettyprint" style="font-size:18px !important">// Here we load from the ZIM assets folder.
+// See assets: <a href="https://zimjs.org/assets/" target="_blank" style="background-color:#222 !important"> https://zimjs.org/assets/ </a>
+
+PATH = "https://zimjs.org/assets/"; // tell ZIM where the assets are
+
+new Pic("nature03.jpg")
+   .scaleTo()
+   .center();
+const start = new Aud("start.mp3");
+const bike = new Pic("transport03.png")
+   .reg(CENTER,BOTTOM)
+   .pos(0,100,CENTER,BOTTOM)
+   .tap(()=>{
+      start.play();
+      bike.animate({x:-200}, 3, "backIn");
+});
+</pre>
+</div>
+<br><br>
+<div class="codeHolder"><div class=id>15</div>
+    <pre class="prettyprint" style="font-size:18px !important">// For a Sprite, we have to preload the asset
+// We normally load assets in the ZIM Frame()
+// but the Frame is already made in Slate
+// so instead, we can use loadAssets()
+
+// this sprite is packed so needs json data
+F.loadAssets(["spaceguy.png", "spaceguy.json"], "https://zimjs.org/assets/");
+F.on("complete", ()=>{
+   new Sprite({json:"spaceguy.json"})
+      .sca(2)
+      .center()
+      .run({loop:true});
+});
+
+// See sidescroller examples with mouse:
+// <a href="https://zimjs.org/slate/view/Z_ZCDQN" target="_top" style="background-color:#222 !important"> Sidescroller with Mouse </a>
+// with keyboard and shooting:
+// <a href="https://zimjs.org/slate/view/Z_UC7DN" target="_top" style="background-color:#222 !important"> Sidescroller with Keys </a>
+</pre>
+</div>
+<br>    
+    </div>
+</section>
+
+
+
+<section id="example10" class="mainSection">
+<div class="bar"><h2 style="background-color:rgb(81, 155, 228);">10. ADDING FONTS</h2><div class="show">SHOW &#x25bc;&#xfe0e;</div></div>
+<div class="innerContent">
+    <p>
+    Fonts can easily be loaded from Google as follows. See <a href="https://fonts.google.com/" target="_blank">https://fonts.google.com</a>.
+   <br><br><i>Fonts can also be loaded from font files like the examples in Adding Assets from the Internet.</i>
+    
+</p>
+
+<div class="codeHolder"><div class=id>16</div>
+    <pre class="prettyprint" style="font-size:18px !important">// Here we load Google Fonts using F.zapp_assets.
+
+F.zapp_assets = "gf_Dancing+Script"; // add gf_ before the Google font name
+
+new Label("This is fancy!", 50, "Dancing Script").center();
+</pre>
+</div>
+<br><br>
+<div class="codeHolder"><div class=id>17</div>
+    <pre class="prettyprint" style="font-size:18px !important">// Here we use loadAssets()
+F.loadAssets("gf_Dancing+Script"); // add gf_ before the Google font name
+F.on("complete", ()=>{
+    new Label("This is fancy!", 50, "Dancing Script").center();
+    S.update();
+});
+    </pre>
+</div>
+<br>    
+    </div>
+</section>
+
+
+</div> <!-- end content -->
+
+
+
+        <script>
+        var r=Math.round(Math.random()*1000000);
+        document.write('<img src=/cgi-bin/traffic_plus?company=danzen&page=zimKids_t_Slate&r='+r+' width=1 height=1>');
+        </script>
+
+
+
+    </body>
+</html>

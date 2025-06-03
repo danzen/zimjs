@@ -1,0 +1,34 @@
+{
+
+"images": [
+    "fruit.png"
+],
+
+"frames": [
+    [1, 1, 100, 66, 0, 0, 0],
+    [103, 1, 77, 92, 0, -2, -2],
+    [1, 95, 83, 92, 0, -3, -2],
+    [86, 95, 79, 98, 0, -9, 0],
+    [1, 195, 90, 91, 0, -4, -2],
+    [93, 195, 95, 94, 0, -1, 0],
+    [1, 291, 81, 111, 0, -4, 0],
+    [84, 291, 93, 105, 0, -2, -3]
+],
+
+"animations": {
+    "melon": { "frames": [0] },
+    "apple": { "frames": [1] },
+    "orange": { "frames": [2] },
+    "avacado": { "frames": [3] },
+    "grapefruit": { "frames": [4] },
+    "cherries": { "frames": [5] },
+    "papya": { "frames": [6] },
+    "strawberry": { "frames": [7] }
+},
+
+"texturepacker": [
+        "SmartUpdateHash: $TexturePacker:SmartUpdate:858889a03a20951db5148d4d63575efe:5ccc6bcae1f3082f3b21349a54f62065:a2a2182a87aec7c2742d42359809aa8c$",
+        "Created with TexturePacker (https://www.codeandweb.com/texturepacker) for EaselJS"
+]
+
+}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>Backings Assets - Slate - ZIM Kids</title>
+        <link href="assets.css" rel="stylesheet" type="text/css" />
+        <script src="https://zimjs.org/cdn/1.3.3/createjs.js"></script>
+        <script src="https://zimjs.org/cdn/cat/04/zim.js"></script>
+            
+    </head>
+    <body>
+      
+        <div class="type" style="color:#fa8072">ASSETS</div>
+        <a href="assets_intro.html" class=button id=intro>INTRO</a>  
+        <a href="assets_help.html" class=button id=help>HELP</a>        
+        <div id="holder">     
+            <div class="buttonbar">               
+                <a href="assets_ai.html">AI</a>
+                <a href="assets_backings.html" style="background-color: #fa8072 !important;">Backings</a>
+                <a href="assets_nature.html">Nature</a>
+                <a href="assets_people.html">People</a>
+                <a href="assets_things.html">Things</a>
+                <a href="assets_sounds.html">Sounds</a>
+                <a href="assets_all.html">All</a>
+            </div>
+        </div>
+        
+        <nav>           
+            Select images that you want. Press&nbsp;update&nbsp;when&nbsp;done.
+            <br><br>
+            <div style="white-space: nowrap; display:inline-block; margin-top:-5px; margin-right:-60px;">
+            <a href="save" onclick="goBack(); return false;" class=button id=close>UPDATE</a>
+            <a href="clear" onclick="clearPage(); return false;" class=button id=clear>UNCHECK</a>
+            <a href="clearAll" onclick="clearAll(); return false;" class=button id=clearall>UNCHECK ALL</a>
+            </div>
+        </nav>   
+
+        
+        <section id="pics">            
+            <!-- <figure>
+                <input type=checkbox name=cave.jpg value=''> 
+                <figcaption class=title>cave</figcaption>
+                <br>
+                <img src=assets/thumbs/cave.jpg>
+            </figure> -->                     
+        </section>
+        
+        <nav>
+            <a href="save" onclick="goBack(); return false;" class=button id=close>UPDATE</a>
+            <a href="top" onclick="goTop(); return false;"  class=button id=close>TOP</a>
+        </nav>
+
+        <div id="holder">     
+            <div class="buttonbar">               
+                <a href="assets_ai.html">AI</a>
+                <a href="assets_backings.html" style="background-color: #fa8072 !important;">Backings</a>
+                <a href="assets_nature.html">Nature</a>
+                <a href="assets_people.html">People</a>
+                <a href="assets_things.html">Things</a>
+                <a href="assets_sounds.html">Sounds</a>
+                <a href="assets_all.html">All</a>
+            </div>
+        </div>
+                   
+        <footer>Thanks to Image Authors at <a href="https://vecteezy.com" target="_blank">Vecteezy.com</a></footer>
+    
+        <div id=pop>Uncheck BACKINGS asset selections?
+            <br><br>
+            <a id="clearYes" href="#">YES</a>
+            <a id="clearNo" href="#">NO</a>
+        </div>
+        
+        <div id=pop2>Uncheck ALL asset selections?
+            <br><br>
+            <a id="clearYes2" href="#">YES</a>
+            <a id="clearNo2" href="#">NO</a>
+        </div>
+        
+        <script>
+            var assetType = "Backings";
+            var pics = ["barn.jpg", "beach01.jpg", "beach02.jpg", "beach03.jpg", "cave01.jpg", "cave02.jpg", "city01.jpg", "city02.jpg", "city03.jpg", "city04.jpg", "city05.jpg", "city06.jpg", "city07.jpg", "city08.jpg", "city09.jpg", "desert01.jpg", "desert02.jpg", "desert03.jpg", "desert04.jpg", "desert05.jpg", "desert06.jpg", "desert07.jpg", "flowers01.jpg", "flowers02.jpg", "nature01.jpg", "nature02.jpg", "nature03.jpg", "nature04.jpg", "nature05.jpg", "nature06.jpg", "nature07.jpg", "nature08.jpg", "nature09.jpg", "nature10.jpg", "nature11.jpg", "nature12.jpg", "nature13.jpg", "nature14.jpg", "nature15.jpg", "nature16.jpg", "nature17.jpg", "nature18.jpg", "nature19.jpg", "nature20.jpg", "nature21.jpg", "nature22.jpg", "nature23.jpg", "nature24.jpg", "nature25.jpg", "nature26.jpg", "nature27.jpg", "nature28.jpg", "nature29.jpg", "nature30.jpg", "nature31.jpg", "nature32.jpg", "nature33.jpg", "ocean01.jpg", "ocean02.jpg", "ocean03.jpg", "ocean04.jpg", "ocean05.jpg", "ocean06.jpg", "ocean07.jpg", "ocean08.jpg", "ocean09.jpg", "outerspace01.jpg", "outerspace02.jpg", "outerspace03.jpg", "outerspace04.jpg", "outerspace05.jpg", "outerspace06.jpg", "outerspace07.jpg", "outerspace08.jpg", "outerspace09.jpg", "park01.jpg", "park02.jpg", "park03.jpg", "park04.jpg", "park05.jpg"];
+            var sprites = [];
+            var animations = [];
+        </script>
+        <script src="assets.js"></script> 
+
+    </body>
+</html>
