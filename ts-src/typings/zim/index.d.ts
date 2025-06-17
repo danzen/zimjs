@@ -215,6 +215,8 @@ declare namespace zim {
 		contactEnd(call: Function): this
 		noContact(): this
 		noContactEnd(): this
+        puppet(o: DisplayObject): this
+        noPuppet(): this
 		hitTestPoint(x: number, y: number, boundsCheck?: boolean): boolean
 		hitTestReg(other: DisplayObject): boolean
 		hitTestRect(other: DisplayObject, num?: number, boundsCheck?: boolean, inside?: boolean): boolean
