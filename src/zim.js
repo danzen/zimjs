@@ -15469,7 +15469,7 @@ zim.Circle = function(radius, color, borderColor, borderWidth, dashed, percent, 
 	that.drawShape = function() {
 		g.c();
 		that.colorCommand = g.f(that._color).command;
-		if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
+		// if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
 		// border of 0 or a string value still draws a border in CreateJS
 		if (zot(that._borderWidth) || that._borderWidth > 0) { // no border specified or a border > 0
 			if (!zot(that._borderColor) || !zot(that._borderWidth)) { // either a border color or thickness
@@ -15508,9 +15508,10 @@ zim.Circle = function(radius, color, borderColor, borderWidth, dashed, percent, 
 			g.dc(0,0,that._radius);
 		}
 		that.setBounds(-that._radius,-that._radius,that._radius*2,h);
+		if (that._color.type) that.color = that._color;
 	};
 	that.drawShape();
-	if (color.type) that.color = color;
+	
 
 	Object.defineProperty(that, 'radius', {
 		get: function() {
@@ -15754,7 +15755,7 @@ zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner,
     that.drawShape = function() {
         g.c();
         that.colorCommand = g.f(that._color).command;
-        if (color && color.type) that.specialColor(that.colorCommand, color, that);
+        // if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
         // border of 0 or a string value still draws a border in CreateJS
         if (zot(that._borderWidth) || that._borderWidth > 0) { // no border specified or a border > 0
             if (!zot(that._borderColor) || !zot(that._borderWidth)) { // either a border color or thickness
@@ -15796,7 +15797,7 @@ zim.Rectangle = function(width, height, color, borderColor, borderWidth, corner,
         }
 
         that.setBounds(0,0,width,height);
-		if (color.type) that.color = color;
+		if (that._color.type) that.color = that._color;
 		
     };
 	that.drawShape();
@@ -16028,7 +16029,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
 		
         g.c();
         that.colorCommand = g.f(that._color).command;
-        if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
+        // if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
         // border of 0 or a string value still draws a border in CreateJS
         if (zot(that._borderWidth) || that._borderWidth > 0) { // no border specified or a border > 0
             if (!zot(that._borderColor) || !zot(that._borderWidth)) { // either a border color or thickness
@@ -16090,9 +16091,10 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
         if (adjust) {
             that.shape.y+=adjust;
         }
+		if (that._color.type) that.color = that._color;
     };
 	that.drawShape();
-	if (color.type) that.color = color;
+	
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // NOTE: extends ZIM CustomShape for more properties and a few functions.
@@ -16275,7 +16277,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		that.drawShape = function() {
 			g.c();
 			that.colorCommand = g.f(that._color).command;
-			if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
+			// if (that._color && that._color.type) that.specialColor(that.colorCommand, that._color, that);
 			// border of 0 or a string value still draws a border in CreateJS
 			if (zot(that._borderWidth) || that._borderWidth > 0) { // no border specified or a border > 0
 				if (!zot(that._borderColor) || !zot(that._borderWidth)) { // either a border color or thickness
@@ -16296,9 +16298,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			}
 			g.dp(0,0,that._radius, that._sides, that._pointSize, angle);
 			that.setBounds(-that._radius,-that._radius, that._radius*2, that._radius*2);
+			if (that._color.type) that.color = that._color;
 		};
-		that.drawShape();
-		if (color.type) that.color = color;
+		that.drawShape();		
 
 		Object.defineProperty(that, 'radius', {
 			get: function() {
@@ -16595,7 +16597,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		that.drawShape = function(arrowAdjustStart, arrowAdjustEnd) {
 			g.c();
 			that.colorCommand = g.s(that._color).command;
-			if (color && color.type) that.specialColor(that.colorCommand, color, that);
+			// if (color && color.type) that.specialColor(that.colorCommand, color, that);
 			that.thicknessCommand = g.ss(that._thickness, strokeObj.caps, strokeObj.joints, strokeObj.miterLimit, strokeObj.ignoreScale).command;
 			if (that._dashed) {
 				that.dashedCommand = g.sd(Array.isArray(that._dashed)?that._dashed:[10, 10], that._dashedOffset).command;
@@ -16863,10 +16865,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				var endAngle = Math.atan2(endArrowGuide[3]-endArrowGuide[1], endArrowGuide[2]-endArrowGuide[0]) * 180 / Math.PI;
 				that._endHead.rotation = endAngle+that._endHead.startAngle;
 			}
-
+			if (that._color.type) that.color = that._color;
 		};
 		that.drawShape();
-		if (color.type) that.color = color;
+		
 
 		// ALSO ADJUST ZIM ZIM 02 - to localToLocal
 		this.setPoints = function(a, b, c, d, arrowAdjustStart, arrowAdjustEnd) {
@@ -17786,7 +17788,7 @@ Note the points property has been split into points and pointObjects (and there 
 
 				if (!that.colorCommand) {
 					that.colorCommand = g.s(that._color).command;
-					if (color && color.type) that.specialColor(that.colorCommand, color, that);
+					// if (color && color.type) that.specialColor(that.colorCommand, color, that);
 				}
 				if (!that.thicknessCommand) that.thicknessCommand = g.ss(that._thickness, strokeObj.caps, strokeObj.joints, strokeObj.miterLimit, strokeObj.ignoreScale).command;
 				if (that._dashed) {
@@ -17840,9 +17842,9 @@ Note the points property has been split into points and pointObjects (and there 
 				if (that._dashed) g.append(that.dashedCommand);
 				g.append(that.thicknessCommand);
 				g.append(that.colorCommand);
+				if (that._color.type) that.color = that._color;
 			};
 			that.drawShape();
-			if (color.type) that.color = color;
 
 			var startPosition;
 			var mDown = false;
@@ -20031,7 +20033,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				g.c();
 				if (!that.colorCommand) {
 					that.colorCommand = g.f(that._color).command;
-					if (color && color.type) that.specialColor(that.colorCommand, color, that);
+					// if (color && color.type) that.specialColor(that.colorCommand, color, that);
 				}
 				// border of 0 or a string value still draws a border in CreateJS
 				if (zot(that._borderWidth) || that._borderWidth > 0) { // no border specified or a border > 0
@@ -20091,9 +20093,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (that._dashed) g.append(that.borderDashedCommand);
 				if (that.borderWidthCommand) g.append(that.borderWidthCommand);
 				if (that.borderColorCommand) g.append(that.borderColorCommand);
+				if (that._color.type) that.color = that._color;
 			};
 			that.drawShape();
-			if (color.type) that.color = color;
+			// if (color.type) that.color = color;
 
 			var startPosition;
 			var mDown;
@@ -49334,6 +49337,7 @@ Here are some types:
 "click", "dblclick", "mousedown/pressdown", "pressmove", "pressup",
 "mousemove", "stagemousemove", "mouseover", "mouseout"
 "ready", "complete", "change", "keydown", "keyup"
+Note: would suggest using tap() with dbl:true instead of "dblclick" for proper performance on mobile
 
 The events available for ZIM Objects are listed at the bottom of their Doc entry. 
 Events can also be turned off in a couple ways - see the examples.
@@ -49429,6 +49433,7 @@ type - the type of event as a string - this depends on the object on which the e
 	"click", "dblclick", "mousedown/pressdown", "pressmove", "pressup",
 	"mousemove", "stagemousemove", "mouseover", "mouseout"
 	"ready", "complete", "change", "keydown", "keyup"
+	Note: would suggest using tap() with dbl:true instead of "dblclick" for proper performance on mobile
 listener - the function to call when the event happens	
 	this is often an arrow function or an anonymous function but can be a named function
 	the function will receive an event object as its parameter often collected as e
@@ -51547,14 +51552,14 @@ NOTE: set an object's noTap property to true to avoid activating a hold on an ob
 SEE: noTap() as well
 
 EXAMPLE
-new Circle(50, red).tap(e=>{
+new Circle(50, red).center().tap(e=>{
 	e.target.alpha = .5;
 	S.update();
 });
 END EXAMPLE
 
 EXAMPLE
-new Button().tap(()=>{
+new Button().center().tap(()=>{
 	zgo("https://zimjs.com", "_blank"); // open ZIM site in new tab
 });
 END EXAMPLE
@@ -75725,7 +75730,7 @@ puppet(o) - make object go to the x and y of the object passed into to the o par
 	and controlled with animate(), wiggle(), zim drag(), gesture(), transform(), etc.
 	note: it is the x and y property only, not rotation or scale.
 	see https://zimjs.com/018/puppet.html 
-puppetEnd() - stop the object from being a puppet
+noPuppet() - stop the object from being a puppet
 
 PROPERTIES - FOR OBJECTS - see also BODY PROPERTIES below
 dynamic - set to true for dynamic and false for static
@@ -75956,6 +75961,7 @@ b2ContactListener = Box2D.Dynamics.b2ContactListener;
 			return obj;
 		};
 		obj.noPuppet = function() {
+			var physics = obj.physics;
 			physics.world.DestroyJoint(obj.puppetJoint);
             obj.puppetJoint = null;            
             zim.Ticker.remove(obj.zimPuppetTicker);
@@ -89172,6 +89178,8 @@ so when dragging, for instance, the whole pic moves rather than the bitmap insid
 To interact with objects inside, set pic.mouseChildren = true.
 Generally, for clarity, avoid adding objects to Shapes or Pics unless you are used to the mouseChildren setting.
 
+NOTE: there is an outlineImage(pic, reverse) function that can be called to outline a DisplayObject - search docs for outlineImage
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -89283,7 +89291,8 @@ keyOut(color, tolerance, replacement) - remove a certain color in the picture an
 	the default tolerance is .1 - the higher the tolerance the less sensitive the keying process - so more colors will be removed similar to the provided color
 	color and tolerance can be an array of colors and tolerances (or just one tolerance if all are the same)
 	replacement (default clear) a color to replace the keyed out color with or an optional array to match the colors array if an array is used
-	
+Note: there is an outlineImage(pic, reverse) function that can be called to outline a DisplayObject - search docs for outlineImage
+
 ZIM 4TH adds all the methods listed under Container (see above), such as:
 drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
 addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
