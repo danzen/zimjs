@@ -47691,6 +47691,11 @@ zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve
 		new zim.Page(200,200,blue).reg(CENTER), new zim.Page(200,200,green).reg(CENTER), new zim.Page(200,200,orange).reg(CENTER),
 		new zim.Page(200,200,red).reg(CENTER), new zim.Page(200,200,pink).reg(CENTER), new zim.Page(200,200,yellow).reg(CENTER)
 	];    
+	if (items[0] && typeof(items[0]) == "string") {
+		zim.loop(items, function(item, i) {
+			items[i] = new zim.Pic(item);
+		});
+	}
 	if (zot(widthFactor)) widthFactor = DS.widthFactor!=null?DS.widthFactor:1;
 	if (zot(heightFactor)) heightFactor = DS.heightFactor!=null?DS.heightFactor:1;
 	if (zot(curve)) curve = DS.curve!=null?DS.curve:.5;
@@ -98088,3 +98093,4 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
+
