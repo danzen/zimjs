@@ -15968,7 +15968,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
     if (zot(c)) c = DS.c!=null?DS.c:a;
     if (b==-1) b = Math.sqrt(Math.pow(a,2)+Math.pow(c,2));
     if (c==-1) c = Math.sqrt(Math.pow(a,2)+Math.pow(b,2));
-	if (zot(corner)) corner = DS.corner!=null?DS.corner:0;
+    if (zot(corner)) corner = DS.corner!=null?DS.corner:0;
     if (zot(center)) center = DS.center!=null?DS.center:true;
     if (zot(adjust)) adjust = DS.adjust!=null?DS.adjust:0;
     if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
@@ -15981,7 +15981,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
 
     // PICK
     var oa = remember(a, b, c, color, borderColor, borderWidth);
-	this.veeObj = {a:oa[0], b:oa[1], c:oa[2], color:oa[3], borderColor:oa[4], borderWidth:oa[5]};
+    this.veeObj = {a:oa[0], b:oa[1], c:oa[2], color:oa[3], borderColor:oa[4], borderWidth:oa[5]};
     function remember() {return arguments;} // for cloning PICK
     a = zim.Pick.choose(a);
     b = zim.Pick.choose(b);
@@ -15999,7 +15999,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
     that._borderWidth = borderWidth;
     that._dashed = dashed;
     if (that._dashed && !Array.isArray(that._dashed)) that._dashed = [10, 10];
-	that._corner = corner;
+    that._corner = corner;
 
 
     var lines = [a,b,c];
@@ -16020,12 +16020,12 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
 
     var g = tri.graphics;
     that.drawShape = function() {
-		var corners = [];		
-		if (Array.isArray(that._corner)) corners = that._corner;
-		else corners.push(that._corner, that._corner, that._corner);
-		for(var i=0; i<3; i++) {
-			if (corners[i] < 0 || typeof corners[i] != "number") corners[i] = 0;
-		}
+        var corners = [];		
+        if (Array.isArray(that._corner)) corners = that._corner;
+        else corners.push(that._corner, that._corner, that._corner);
+        for(var i=0; i<3; i++) {
+            if (corners[i] < 0 || typeof corners[i] != "number") corners[i] = 0;
+        }
 		
         g.c();
         that.colorCommand = g.f(that._color).command;
@@ -16040,11 +16040,7 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
                 if (that._dashed) that.borderDashedCommand = g.sd(Array.isArray(that._dashed)?that._dashed:[10, 10], that._dashedOffset).command;
             }
         }
-		
-		// g.mt(5,100)
-		// g.at(100,100, 0,0, 15).at(0,0, 0,100, 5).at(0,100,100,100, 5)
-		
-        
+		       
         that.one={x:0,y:0};        
         that.two={x:a,y:0};
 
@@ -16074,13 +16070,13 @@ zim.Triangle = function(a, b, c, color, borderColor, borderWidth, corner, center
 			
         that.three={x:a-backX,y:0-upY};
 				
-		var sX = a*corners[0]/((corners[0]+corners[1])||1);
-		g
-			.mt(sX,0)
-			.at(a,0, a-backX,0-upY, corners[1])
-			.at(a-backX,0-upY, 0,0, corners[2])
-			.at(0,0, a,0, corners[0])
-			.lt(sX,0);
+        var sX = a*corners[0]/((corners[0]+corners[1])||1);
+        g
+            .mt(sX,0)
+            .at(a,0, a-backX,0-upY, corners[1])
+            .at(a-backX,0-upY, 0,0, corners[2])
+            .at(0,0, a,0, corners[0])
+            .lt(sX,0);
 			
 		g.cp();
 
@@ -25400,7 +25396,7 @@ wait - (default null) - String word for button to show when button is pressed an
 	LOADING: this can be used as a loading message - so change the button to "LOADING"
 	When the asset has loaded, use the clearWait() method to return to the normal button or toggled button state
 	CONFIRMING: this can also be used to confirm user action rather than a full new confirm panel
-	Set wait:"CONFIRM", set the waitBackgroundColor and rollWaitBackground parameters to red and the waitTime parameter to 4
+	Set wait:"CONFIRM", set the waitBackgroundColor and rollWaitBackgroundColor parameters to red and the waitTime parameter to 4
 	In a button mousedown (must use mousedown - not click or tap if ACTIONEVENT is mousedown - the default),
 	check if the waiting property is true to test for confirmation
 	The waiting property will not be true for the first button press but will be true during the wait period
@@ -48196,7 +48192,7 @@ rollIcon - references the rollIcon (if set)
 toggleObj - references the toggle object (string or display object if set)
 rollToggle - references the rollToggle (if set)
 toggled - true if button is in toggled state, false if button is in original state
-enabled - default is true - set to false to disable
+enabled - default is true - set to false to disable (the HTML aspect of the Loader will remail - so use loader.removeFrom() or loader.dispose() if you do not need it gain)
 rollPersist - default is false - set to true to keep rollover state when button is pressed even if rolling off
 focus - get or set the focus property of the Button used for tabOrder
 
@@ -63264,7 +63260,8 @@ arrowDisableColor - (default grey) the disabled backgroundColor of the ZIM Arrow
 continuous - (default false) when default swiping is on, set to true to make pages continuous
 	so last page goes forward to first page and first page goes backwards to last page 
 	
-METHODS
+METHODS 
+** these return the Pages object for chaining unless another value is specified
 addPage(page, swipeArray) - lets you alternatively add pages after you create the object
 removePage(page) - lets you remove a page (if on this page, call a go() first and remove on the page event)
 setSwipeArray(page, swipeArray) - lets you set the swipe array for a page
@@ -63280,7 +63277,7 @@ settle() - removes all pages except the currentPage
 setArrows(index) - disables or enables Arrow buttons held in arrows property - called automatically by Arrow buttons
 disable() - stops swipe from activating and sets active = false
 enable() - enables swipe action and sets active = true
-dispose() - clears listeners and pages
+dispose() - clears listeners and pages - returns true if successful
 
 PROPERTIES
 type - holds the class name as a String
@@ -63500,6 +63497,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			} else {
 				if (page.parent) page.parent.removeChild(page);
 			}
+			return that;
 		};
 
 		this.removePage = function(page) {
@@ -63513,19 +63511,23 @@ you can define multiple pages objects add and remove pages objects as needed
 				if (p.page == page || p == page) that.pages.splice(i, 1);
 			}, true);
 			page.zimSwipeArray = null;
+			return that;
 		};
 
 		this.setSwipeArray = function(page, swipeArray) {
 			if (zot(swipeArray)) swipeArray = [];
 			var data = {page:page, swipe:swipeArray};
 			data.page.zimSwipeArray = (data.swipe) ? data.swipe : [];
+			return that;
 		};
 
 		this.pause = function() {
 			paused = true;
+			return that;
 		};
 		this.unpause = function() {
 			if (paused) that.go(pauseInfo[0], pauseInfo[1], pauseInfo[2], pauseInfo[3], pauseInfo[4]);
+			return that;
 		};
 
 		var goCheck = true;
@@ -63836,6 +63838,7 @@ you can define multiple pages objects add and remove pages objects as needed
 				that.setArrows(pages.index);
 				if (holder.stage) holder.stage.update();
 			}
+			return that;
 		};
 		
 		if (holder && holder.shape) {			
@@ -63848,6 +63851,7 @@ you can define multiple pages objects add and remove pages objects as needed
 			hW = holder.getBounds().width;
 			hH = holder.getBounds().height;
 			if (transition!="none" || transitionTable!=[]) makeTransitionAssets();
+			return that;
 		};
 
 		this.puff = function(time) {
@@ -63862,20 +63866,24 @@ you can define multiple pages objects add and remove pages objects as needed
 					that.settle();
 				}, time*(timeType=="s"?1000:1));
 			}
+			return that;
 		};
 
 		this.settle = function() {
 			that.removeAllChildren();
 			that.addChild(currentPage);
 			that.dispatchEvent("puffed");
+			return that;
 		};
 
 		this.disable = function() {
 			that.active = false;
+			return that;
 		};
 
 		this.enable = function() {
 			that.active = true;
+			return that;
 		};
 		
 		this.arrows = {};
@@ -63901,6 +63909,7 @@ you can define multiple pages objects add and remove pages objects as needed
 				}
 			});
 			if (that.stage) that.stage.update();
+			return that;
 		}
 		// function arrowsOn(b) {
 		// 	b.enabled = true;
@@ -66311,8 +66320,10 @@ setSpacing(h,v) - set arrays of horizontal and vertical spacing
 	ZIM Tile() makes spacing arrays for horizontal and vertical spacing based on ZIM VEE calculations from the spacingH and spacingV parameters
 	to change spacing afterwards, new arrays can be provided to setSpacing()
 	the arrays must have col-1 and row-1 items - although h or v can be left null or undefined to keep existing spacing
-remake(items) - pass in an array of items to tile - see items property for editing current list - returns tile for chaining
+remake(items, newSpacingH, newSpacingV, newCount) - pass in an array of items to tile - see items property for editing current list - returns tile for chaining
 	can also change rows and cols and remake()
+	optionally pass in new spacing parameters and/or a newCount 
+	Note: if the items length is different than the previous items length then the count will be automatically made cols*rows - unless newCount is provided
 resize(width, height) - resize the tile with new width and/or height if the width and/or height parameters were set - returns tile for chaining
 hasProp(property as String) - returns true if property exists on object else returns false
 clone(exact) - makes a copy with properties such as x, y, etc. also copied
@@ -66542,6 +66553,8 @@ note: the item is not the event object target - as that is the tile
 		// remember any set widths and heights in case
 		// zik is used for colSize and rowSize
 		var widthHeights;
+		var widthO;
+		var heightO;
 
 		function makeTile() {
 
@@ -66633,11 +66646,11 @@ note: the item is not the event object target - as that is the tile
 					heightUncompressedMax+=val;
 				}
 			}
-
+			widthO = widthUncompressedMax;
+			heightO = heightUncompressedMax;
 		}
 		makeTile();
-		var widthO = widthUncompressedMax;
-		var heightO = heightUncompressedMax;
+		
 
 		var overallWidth;
 		var overallHeight;
@@ -66727,11 +66740,13 @@ note: the item is not the event object target - as that is the tile
 							rowTops[i] = 0;
 						}
 					}
+					
 
 					if (i==0) {
 
 						// ~~~~~~~~~~~~~~~~~~~  HORIZONTAL ALIGN ~~~~~~~~~~~~~~~
 
+						
 						if (!zot(width)) {
 							if (that.squeezeH=="full") {
 								spreadXspacing = rowObjects.length>1?((width - widthTotals[j]) / (rowObjects.length-1)):0;
@@ -66769,16 +66784,16 @@ note: the item is not the event object target - as that is the tile
 					} else {
 						// tile.x = colTotal + (tile.regX-b.x);
 					}
-					tile.pos(colTotal, null);
+					tile.pos(colTotal, null);			
 
-					if (!that.squeezeH && VEEAlign) {						
+					if (!that.squeezeH && VEEAlign) {
 						if (zot(width) && (align=="center" || align=="middle")) {
 							tile.x += (widthMax[i]-tile.fW)/2;
 						} else if (zot(width) && align=="right") {
 							tile.x += widthMax[i]-tile.fW;
 						}
-					} else if (!that.squeezeH) { // this allows for dynamic setting of align (for non-VEE, non squeezeH)						
-						if (zot(width) && (that.align=="center" || that.align=="middle")) {
+					} else if (!that.squeezeH) { // this allows for dynamic setting of align (for non-VEE, non squeezeH)
+						if (zot(width) && (that.align=="center" || that.align=="middle")) {							
 							tile.x += (widthMax[i]-tile.fW)/2;
 						} else if (zot(width) && that.align=="right") {
 							tile.x += widthMax[i]-tile.fW;
@@ -66822,7 +66837,7 @@ note: the item is not the event object target - as that is the tile
 					} else {
 						colTotal += widthMax[i]+(!zot(width)?spreadXspacing:spacingHList[i]);
 					}
-
+					
 					tile.x += left;
 					tile.y += rowTops[i];
 
@@ -66881,9 +66896,41 @@ note: the item is not the event object target - as that is the tile
 			return that.items2D[ro][co];
 		};
 
-		this.remake = function(items) {
+		this.remake = function(items, newSpacingH, newSpacingV, newCount) {
+
+			// a little complicated so we just remake the spacings if provided or items length has gotten bigger
+			// if items length is different we create a new count - can override with newCount
+			if (zot(newCount) && items.length != that.items.length) count = that.cols*that.rows;
+			if (!zot(newSpacingH) || !zot(newSpacingV) || items.length > that.items.length) {
+				if (!zot(newSpacingH)) spacingH = sH;
+				if (!zot(newSpacingV)) spacingV = sV;
+				spacingHList = [];
+				spacingVList = [];
+				spacingHTotal = 0;
+				spacingVTotal = 0;
+				mCols = (count && count<that.cols)?count-1:that.cols-1;
+				for (i=0; i<mCols; i++) {
+					var s = zik(spacingH);
+					spacingHList.push(s);
+					spacingHTotal += s;
+				}
+				mRows = (count && Math.ceil(count/that.cols)<that.rows)?Math.ceil(count/that.cols)-1:that.rows-1;
+				for (i=0; i<mRows; i++) {
+					var s = zik(spacingV);
+					spacingVList.push(s);
+					spacingVTotal += s;
+				}
+				spacingHOList = zim.copy(spacingHList);
+				spacingVOList = zim.copy(spacingVList);;
+				spacingHOTotal = spacingHTotal;
+				spacingVOTotal = spacingVTotal;
+				spacingHAve = that.cols-1>0?spacingHTotal/(that.cols-1):0
+				spacingVAve = that.rows-1>0?spacingVTotal/(that.rows-1):0
+			}
+
 			if (!zot(items)) that.items = items;
 			makeTile();
+			
 			resize(width, height);
 			makeAdditions(true);
 			return that;
@@ -70280,7 +70327,7 @@ This has world-wide wonderful applications!
 TextureActives applies the interactivity to TextureActive objects
 and has an addMesh() method to register three.js meshes with their TextureActive 
 A TextureActives object must be made after the TextureActive objects are made 
-and after a three.js renderer, scene, camera and constrols are made.
+and after a three.js renderer, scene, camera and controls are made.
 But it can be made before the meshes that use the TextureActive objects are made.
 Then either a Three.makePanel() or a textureActives.addMesh() method can be used to add TextureActive objects.
 
@@ -70303,6 +70350,10 @@ https://zimjs.com/015/textureactive4.html - HUD, Noise, Synth
 https://zimjs.com/015/textureactive5.html - Physics
 https://zimjs.com/015/textureactive_hud.html - HUD affecting three object
 https://zimjs.com/015/textureactive_hud_raw.html - same but without ZIM Three 
+
+SEE:
+TextureActive Studio
+https://zimjs.com/studio
 
 XR
 TextureActive will detect if XR (AR/VR) is being used and will use the suitable Raycaster
@@ -74376,7 +74427,6 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			if (target.type == "Pen") target.write = false;
 			mouseEvent = stage.on("stagemousedown", function(e) {
 				var pp;
-				if (target.type == "Pen" && target.draggingCheck) zogb();
 				var con;
 				if (!mouseOutside && that.boundary && !that.boundary.type=="Blob") con = that.boundary;
 				else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
@@ -74385,9 +74435,11 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 					if (
 						pp.x < con.x || pp.x > con.x+con.width ||
 						pp.y < con.y || pp.y > con.y+con.height
-					) return;
+					) {
+						moveCheck = false;
+						return;
+					}
 				}
-				// }
 				if (that.boundary && that.boundary.type=="Blob" && (type=="pressmove" || type=="pressdrag")) {
 					pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};
 					if (!that.boundary.shape.hitTestPoint(pp.x,pp.y)) return;
@@ -83182,7 +83234,6 @@ dispatches an "undo" and a "redo" whenever undo and redo happens
 			that.stop = function() {that.stopCheck(true);};
 			that.infinite = false;
 			that.stopCheck = function(override) {
-		
 				if (!override) {
 					if (that.infinite) return;
 					if (that.zimDragCheck) return;
@@ -91399,6 +91450,7 @@ new Circle(100, blue.darken(.5)).center();
 new Circle(100, blue.toColor(red, .2)).center();
 END EXAMPLE
 	--*///+83.55
+	// note - first 9 or 10 colors are used in THEME
 	zim.colorsHex = ["#fb4758","#fa8072","#f58e25","#ebcb35","#acd241","#50c4b7","#993399","#e472c4","#d1a170","#112233","#000000","#111111","#222222","#333333","#444444","#555555","#555555","#666666","#777777","#888888","#999999","#aaaaaa","#bbbbbb","#cccccc","#dddddd","#eeeeee","#ffffff","rgba(0,0,0,.01)","rgba(0,0,0,0)"];
 	zim.colors = ["red","salmon","orange","yellow","green","blue","purple","pink","brown","interstellar","black","darker","licorice","dark","charcoal","grey","gray","granite","tin","pewter","silver","fog","mist","light","moon","lighter","white","faint","clear"];
 	for (z_i=0; z_i<zim.colors.length; z_i++) {
@@ -94532,9 +94584,9 @@ THEME - a Theme object literal with name, lightnessRatio, tint, tintRatio and ex
 		    zim.THEME = window.THEME = {name:theme, lightenRatio:lightenRatio, tint:tint, tintRatio:tintRatio, exclude:exclude};
 		    var colors = {};
 			var c;
-			var cn = zim.colors.slice(0,8); 
-			// ["red", "orange", "yellow", "green", "blue", "purple", "pink", "brown", "interstellar"];
-			var gn = zim.colors.slice(8,25); 
+			var cn = zim.colors.slice(0,9); 
+			// ["red", "salmon", "orange", "yellow", "green", "blue", "purple", "pink", "brown", "interstellar"];
+			var gn = zim.colors.slice(9,26); 
 			// ["black","licorice","darker","dark","charcoal","grey","gray","granite","tin","pewter","silver","fog","mist","light","moon","lighter","white"];
 			if (theme == "zim") {
 				zim.loop(zim.colors, function(color, i) {
@@ -94549,12 +94601,12 @@ THEME - a Theme object literal with name, lightnessRatio, tint, tintRatio and ex
  				   colors[color] = zim.colorsHex[i+8];
  			   	});	 
 			} else if (theme == "future") {
-				c = ["f25019","fd8918","ffc955","1dcfae","00a5ab","007175","00969b","d6b361"];
+				c = ["f25019","f88e82","fd8918","ffc955","1dcfae","00a5ab","007175","00969b","d6b361"];
 				zim.loop(cn, function(color, i) {
 					colors[color] = "#"+c[i];
 				});		
 				zim.loop(gn, function(color, i) {					
-					colors[color] = zim.colorsHex[i+8].toColor("#1dcfae",.4-i*.025); 
+					colors[color] = zim.colorsHex[i+9].toColor("#1dcfae",.4-i*.025); 
  			   	});	  
 		   } else if (theme == "invert") {
 			   colors = {};
@@ -94568,34 +94620,34 @@ THEME - a Theme object literal with name, lightnessRatio, tint, tintRatio and ex
 					colors[color] = "#"+c[i];
 				});	
 			} else if (theme == "neon") {
-				c = ["FF3624","ff6f00","e2f705","a3f307","05f9e2","ED0AF5","ff33c9","e16d00"];
+				c = ["FF3624","fd6f6f","ff6f00","e2f705","a3f307","05f9e2","ED0AF5","ff33c9","e16d00"];
 				zim.loop(cn, function(color, i) {
 					colors[color] = "#"+c[i];
 				});		
 				zim.loop(gn, function(color, i) {
-					colors[color] = zim.colorsHex[i+8].toColor("#000",.9);
+					colors[color] = zim.colorsHex[i+9].toColor("#000",.9);
 				});	
 				colors["light"] = zim.lighter;	  
 				colors["moon"] = zim.lighter;	  
 				colors["lighter"] = zim.white;	  
 				colors["white"] = zim.white;	  
 		  	} else if (theme == "seventies") {
-				c = ["e5771e","f4a127","ffecb4","6F8212","75c8ae","5a3d2b","956e4e","4c3607"];
+				c = ["e5771e","d66a5e","f4a127","ffecb4","6F8212","75c8ae","5a3d2b","956e4e","4c3607"];
 				zim.loop(cn, function(color, i) {
 					colors[color] = "#"+c[i];
 				});	
 				zim.loop(gn, function(color, i) {
 					// colors[color] = zim.colorsHex[i+8].toColor("#568203",1-i*.06);
-					colors[color] = zim.colorsHex[i+8].toColor(i<8?"#344f00":"#f4a127",.8-i*.04);
+					colors[color] = zim.colorsHex[i+9].toColor(i<8?"#344f00":"#f4a127",.8-i*.04);
 				});	 
 			} else if (theme == "warm") {
-				c = ["965746","c07768","ffecb4","8da279","6da0b1","745c58","9a7e79","be8858"];
+				c = ["965746","dd5c4d","c07768","ffecb4","8da279","6da0b1","745c58","9a7e79","be8858"];
 				zim.loop(cn, function(color, i) {
 					colors[color] = "#"+c[i];
 				});	
 				zim.loop(gn, function(color, i) {
 					// colors[color] = zim.colorsHex[i+8].toColor("#965746",.1);
-					colors[color] = zim.colorsHex[i+8].toColor(i<8?"#4e352e":"#745c58",.8-i*.05);
+					colors[color] = zim.colorsHex[i+9].toColor(i<8?"#4e352e":"#745c58",.8-i*.05);
 				});				
 		   	} else if (theme.constructor == {}.constructor) {
 		        colors = theme;
@@ -94606,12 +94658,12 @@ THEME - a Theme object literal with name, lightnessRatio, tint, tintRatio and ex
 			zim.loop(exclude, function(item) {
 				if (item.toLowerCase()=="colors") {
 					zim.loop(zim.colors, function(color, i) {
-						if (i >= 8) return 1;
+						if (i >= 9) return 1;
 						exclude.push(color);
 					});
 				} else if (item.toLowerCase()=="greys" || item.toLowerCase()=="grays") {
 					zim.loop(zim.colors, function(color, i) {
-						if (i < 8) return;
+						if (i < 9) return;
 						exclude.push(color);
 					});
 				}
@@ -98093,4 +98145,3 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
-

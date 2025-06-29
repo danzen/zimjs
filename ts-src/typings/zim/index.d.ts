@@ -3138,17 +3138,17 @@ declare namespace zim {
 	export class Pages extends Container {
 		constructor(config_or_pages?: DisplayObject[] | { page: DisplayObject, swipe?: DisplayObject[] }[], transition?: string, speed?: number, transitionTable?: any[][], holder?: Stage | Container, arrowDisableColor?: color, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { pages?: DisplayObject[] | { page: DisplayObject, swipe?: DisplayObject[] }[], transition?: string, speed?: number, transitionTable?: any[][], holder?: Stage | Container, arrowDisableColor?: color, style?: boolean, group?: string, inherit?: {} })
-		addPage(page: DisplayObject, swipeArray?: string[]): void
-		removePage(page: DisplayObject): void
-		setSwipeArray(page: DisplayObject, swipeArray?: string[]): void
-		go(newPage: DisplayObject | number, direction: string, trans?: string, ms?: number): void
-		resize(): void
-		pause(): void
-		unpause(): void
-		puff(time: number): void
-		settle(): void
-		disable(): void
-		enable(): void
+		addPage(page: DisplayObject, swipeArray?: string[]): this
+		removePage(page: DisplayObject): this
+		setSwipeArray(page: DisplayObject, swipeArray?: string[]): this
+		go(newPage: DisplayObject | number, direction: string, trans?: string, ms?: number): this
+		resize(): this
+		pause(): this
+		unpause(): this
+		puff(time: number): this
+		settle(): this
+		disable(): this
+		enable(): this
 		dispose(): boolean
 		readonly type: string
 		speed: number
