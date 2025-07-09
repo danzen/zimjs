@@ -56591,7 +56591,7 @@ RETURNS an index Number (or undefined) | col | row | an Array of [index, col, ro
 // SUBSECTION ANIMATE, WIGGLE, LOOP
 
 /*--
-obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp)
+obj.animate = function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick)
 
 animate
 zim DisplayObject method
@@ -56807,6 +56807,18 @@ const line = new Squiggle().center();
 new Circle(10, red).addTo().animate({path:line}, 1);
 END EXAMPLE
 
+EXAMPLE
+// animate across colors
+const colors = series("#f0f","#0f0","#00f","#f00","#ff0").mix();
+new Rectangle(W,H,colors)
+	.addTo()
+	.animate({
+		props:{color:colors},
+		loopPick:true,
+		rewindPick:true
+	});
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
@@ -56954,6 +56966,7 @@ call - (default null) the function to call when the animation is done
 params - (default target) a single parameter for the call function (eg. use object literal or array)
 wait - |ZIM VEE| (default 0) seconds to wait before doing animation
 	can be negative for series to start animation before previous animation ends
+	also see the waiting property
 waitedCall - (default null) calls function after wait is done if there is a wait
 waitedParams - (default target) parameters to send waitedCall function
 loop - (default false) set to true to loop animation
@@ -56976,7 +56989,6 @@ rewindEase - (default null) overwrite the ease for the rewind direction
 	so setting rewindEase:"bounceOut" will bounce back at the start of the animation
 	note - setting ease:"bounceOut" will bounce at the end of the animation
 	this allows for a normal start with a bounce and then a normal start at rewind and a bounce
-
 startCall - (default null) calls function at the start of actual animation and after any wait (and waitedCall)
 	this is basically the same as the waitedCall but will also be called at the start of animation when there is no waitedCall
 startParams - (default target) parameters to send startCall function
@@ -57098,6 +57110,12 @@ timeUnit - (default TIME) override the TIME setting to "seconds" / "s" or "milli
 timeCheck - (default true) set to false to not have animate() warn of potentially wrong time units - see also TIMECHECK
 noAnimateCall - (default true) set to false to not call the callback function if ANIMATE is set to false
 pathDamp - (default .15) damping for drag along path
+rewindPick - (default false) set to true to pick from props as it rewinds
+	this will be moved to the other rewind parameters in ZIM 019 
+	also see loopPick - using both loopPick and rewindPick will act like a series
+	where if the property has a series it will animate one after the other 
+	do not use if the property is just a regular value as it will appear to stop the animation.
+	Can use a series, results of a function, min max or array for random picks
 
 PROPERTIES - zim.animate() adds the following properties to any object it animates:
 	animating - read-only - true when animating (including when waiting) 
@@ -57168,8 +57186,8 @@ EVENTS - zim animate() will add an "animation" event to the target IF the events
 
 RETURNS the target for chaining (or null if no target is provided and run on zim with series)
 --*///+45
-	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp) {
-		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp";
+	zim.animate = function(target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick) {
+		var sig = "target, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick";
 
 		if (target && (target.props || target.obj)) {
 			var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
@@ -57190,8 +57208,8 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// last param is noWarning - sent internal as false by wiggle for instance
 		var timeType = getTIME(null, timeUnit, null, null, zot(timeCheck)?false:!timeCheck);
 
-		if (loopCount || loopCall || loopWait) loop = true;
-		if (rewindTime || rewindCall || rewindTime || rewindEase || rewindWait) rewind = true;
+		if (loopCall || loopWait || loopPick || loopCount) loop = true;
+		if (rewindCall || rewindWait || rewindPick || rewindTime || rewindEase) rewind = true;
 
 		var i, prop, currentCount;
 		var startArguments = arguments;
@@ -57341,7 +57359,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			sequenceTarget.animating = true;
 		}
 		function sequenceDone() {
-			sequenceTarget.animating = false;
 			if (call) call(params||sequenceTarget);
 		}
 
@@ -57389,7 +57406,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (i==0 && sequence!=0) seqTime = timeType=="s"?.02:20; // patched in 10.7.0 and 10.7.1
 								
 				// zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null)
-				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?sequenceDone:null), null, wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rrr, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp); // do not send from!
+				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?sequenceDone:null), null, wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rrr, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick); // do not send from!
 	
 			}
 			return sequenceTarget;
@@ -57737,7 +57754,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 
-		props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp
+		// props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick
 
 
 		// -----------------------------
@@ -57747,7 +57764,6 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (!target.tweenStates) target.tweenStates = {all:true};	
 
 		var fromCheck = false;
-
 									
 		// Handle notes
 		if (obj.note) {
@@ -58691,7 +58707,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			sequenceWait:sequenceWait
 		}
 
-		function doLoopCall() {
+		function doLoopCall() {			
 			if (wait3>0) target.waiting = false;
 			if (!cjsProps.loop) return; // added Cat 03 - was being called even if not looping
 			if (sequenceCall && typeof sequenceCall == 'function') {				
@@ -58718,11 +58734,23 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					adjustedScale = zim.Pick.choose(savedPicks.scale, null, target);
 				}
 
+			
+
 				if (!from) {
+
 					if (tween.step && tween.step.prev && tween.step.prev.props) {
 						for (var i in tween.step.prev.props) {
 							if (extraTypes.indexOf(i) >= 0) continue; // skip for extras
 							var p = zim.Pick.choose(savedPicks[i], null, target);
+
+							// handle color at loop - ZIM 018
+							if (i=="colorRange") i = "color"
+							var p = zim.Pick.choose(savedPicks[i], null, target);
+							if (i=="color") i = "colorRange";
+							if (target.setColorRange && i=="colorRange") {
+								target.setColorRange(target.color, p);
+								continue;
+							}
 
 							// also handle relative
 							if (typeof p == "string" && i != "transform") {
@@ -58738,7 +58766,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 							// ZIM ZIM 02 patch to make non-rewind work with loopPick
 							// the difference seems to be using tween.step.prev for rewind and tween.step for non-rewind
-							// we had tween.step.prev for both since the beggining - we must not have tested on a non-rewind
+							// we had tween.step.prev for both since the begining - we must not have tested on a non-rewind
 							if (rewind) {
 								if (!zot(savedPicks[i])) tween.step.prev.props[i] = p;
 								if (i=="scaleX" && !zot(adjustedScale)) tween.step.prev.props.scaleX = adjustedScale;
@@ -58793,7 +58821,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			params6 = cjsProps.startParams;
 			delete cjsProps.startParams;
 		}
-		function doStartCall(tween) {
+		function doStartCall(tween) {				
 			if (tween.startCalled) return;
 			tween.startCalled = true;
 			if (call6 && typeof call6 == 'function') {(call6)(params6||target);}
@@ -58935,11 +58963,65 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// REWIND TWEENS
 		
-		function doRewindCall() {
+		function doRewindCall() {	
+			// ADDED in ZIM 018
+
+			if (!from && rewindPick) {
+
+				var adjustedScale;
+				if (!zot(savedPicks.scale)) {
+					adjustedScale = zim.Pick.choose(savedPicks.scale, null, target);
+				}
+
+				if (tween.step && tween.step.props) {
+					for (var i in tween.step.props) {
+						if (extraTypes.indexOf(i) >= 0) continue; // skip for extras
+
+						// handle color at rewind - ZIM 018
+						if (i=="colorRange") i = "color"
+						var p = zim.Pick.choose(savedPicks[i], null, target);
+						if (i=="color") i = "colorRange";
+						if (target.setColorRange && i=="colorRange") {
+							target.setColorRange(p, target.color);
+							continue;
+						}
+
+						// also handle relative
+						if (typeof p == "string" && i != "transform") {
+							if (p.substr(0,1) != "+" && p.substr(0,1) != "-") {
+								var newStart;
+								if (target.zimLastObj && !zot(target.zimLastObj[i])) newStart = target.zimLastObj[i];
+								else newStart = target[i];
+								p = newStart + Number(p.replace(/\s/g,""));
+							}
+						}
+						// end handle relative
+						
+						// target.zimLastObj[i] = rewind?target.zimTweenOriginals[i]:p;
+						target.zimLastObj[i] = p;
+								
+						if (!zot(savedPicks[i])) {
+							tween.step.props[i] = p; // sets the rewind property
+							tween._stepHead.props[i] = p; // sets the start of a loop to end of rewind
+						}
+						if (i=="scaleX" && !zot(adjustedScale)) {
+							tween.step.props.scaleX = adjustedScale;
+							tween._stepHead.props.scaleX = adjustedScale;
+						}
+						if (i=="scaleY" && !zot(adjustedScale)) {
+							tween.step.props.scaleY = adjustedScale;
+							tween._stepHead.props.scaleY = adjustedScale;
+						}
+						
+					}
+				}
+			}		
+			// END ADDED in ZIM 018				
+			
 			if (wait2>0) target.waiting = false;
 			if (call2 && typeof call2 == 'function') {(call2)(params2);}
 		}
-		function doRewindWaitCall() {
+		function doRewindWaitCall() {				
 			if (wait2>0) target.waiting = true;
 			if (call5 && typeof call5 == 'function') {(call5)(params5);}
 		}
@@ -58963,23 +59045,28 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		}
 		
 		var startTest = false;
-		var obj2;
+		var obj2;	
+
 		function tween1(lastTween) {	
 			if (!startTest)	{
-				obj2 = getStart();	
-				startTest = true;
-			}		
-			if (target.set && !from) target.set(set);				
+				obj2 = getStart();				
+				startTest = true;				
+			} 
+			
+			if (target.set && !from) target.set(set);	
 			tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
-				.call(doStartCall)	
+				.call(doStartCall)				
 				.to(obj, t, finalEase)				
 				.call(doRewindWaitCall)
 				.wait(wait2, true)
 				.call(doRewindCall)
-				.to(obj2, t2, finalEase2)
+				// this is hard coded... need to inject a different obj2 into createjs tween
+				// and activate the code in doStartCall that makes loop start at end of new rewind
+				.to(obj2, t2, finalEase2) 
 				.call(doneAnimating)
 				.wait(wait3, true)
 				.call(doLoopCall);
+				
 			tween.timeScale = target.futureRate;
 			if (lastTween) transferIds(lastTween, tween);
 			setZimTweenProps();
@@ -59416,20 +59503,20 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				return;
 			}
 			if (cjsProps.loop) {
-				if (count > 0) {
+				if (count > 0) {					
 					if (currentCount < count) {
 						if (wait3>0) target.waiting = true;
 						doLoopWaitCall();
 						currentCount++;
 						return;
 					} else {
-						if (rewind) {
+						if (rewind) {							
 							if (target.set) target.set(startObj);							
 						} else {							
 							if (target.set) target.set(obj);
 						}
 					}
-				} else {									
+				} else {							
 					if (wait3>0) target.waiting = true;
 					doLoopWaitCall();
 					return;
@@ -62390,7 +62477,7 @@ zim global variable
 
 DESCRIPTION
 
-WARNING - currently, this does not work - see seedRandom() in CODE module.
+WARNING - currently, this does not work - instead, see seedRandom() in CODE module.
 
 If set, the ZIM rand() function will be seeded with its value.
 This means that rand() will repeat in order its random results.
@@ -62438,7 +62525,7 @@ zim global variable
 
 DESCRIPTION
 
-WARNING - currently, this does not work - see seedRandom() in CODE module.
+WARNING - currently, this does not work - instead, see seedRandom() in CODE module.
 but there is no equivilant to SEEDRANDOMCOUNT yet - we are working on it.
 
 The current order number used for rand() if SEEDRAND is set or the rand() seedRand parameter is set
@@ -80746,7 +80833,7 @@ layers - (default TOP) where to place the current particle being emitted - value
 animation - |ZIM VEE| (default null) a zim animate config object to apply to the particle
 	This is the whole zim DUO object to pass to animate - including a props parameter that holds the animation object
 	To pass in two or more animations on the same particle then use {noPick:[{animation1}, {animation2}, {etc.}]}
-random - (default null) an object holding properties to animate, each property holding a ZIM VEE Value object for Pick.choose() to pick from per particle
+random - (default null) an object holding properties to set, each property holding a ZIM VEE Value object for Pick.choose() to pick from per particle
 	eg: {color:[red, white, green], scale:{min:1, max:2}} // scale is a convienence property for both scaleX and scaleY
 horizontal - (default false) start the particles across the emitter's width at the top of the emitter (unless vertical is set to true)
 vertical - (default false) start the particles across the emitter's height at the left of the emitter (unless horizontal is set to true)
@@ -92349,7 +92436,7 @@ function zimify(obj, a, b, c, d, list) {
 		hitTestGrid:function(width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type) {
 			return zim.hitTestGrid(this, width, height, cols, rows, x, y, offsetX, offsetY, spacingX, spacingY, local, type);
 		},
-		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp) {
+		animate:function(props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick) {
 			if (props && (props.props || props.obj) && isDUO(arguments)) {
 				// run this if duo but only if props object has a props or obj object
 				// can you believe that sentence makes sense
@@ -92358,7 +92445,7 @@ function zimify(obj, a, b, c, d, list) {
 				// it can only be a configuration object if there is a props or obj property
 				arguments[0].target = this; return zim.animate(arguments[0]);
 			}
-			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp);}
+			else {return zim.animate(this, props, time, ease, call, params, wait, waitedCall, waitedParams, loop, loopCount, loopWait, loopCall, loopParams, loopWaitCall, loopWaitParams, loopPick, rewind, rewindWait, rewindCall, rewindParams, rewindWaitCall, rewindWaitParams, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, sequence, sequenceCall, sequenceParams, sequenceReverse, sequenceRatio, ticker, cjsProps, css, protect, override, from, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, sequenceWait, rate, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick);}
 		},
 		pauseAnimate:function(){return this;},
 		stopAnimate:function(){return this;},
@@ -92742,39 +92829,63 @@ EXAMPLE
 	const data = {size:10, season:"summer"};
 	// addWires returns the object data - which will now have the wired method
 	// now, when the slider or tabs change the data object will be updated
-	// note: we want the slider to be set to the object's start value so set the setSource to "target"
+	// note: we want the slider to be set to the object's start value so set the setSource to true
 	// note: we want the text of the tabs not the default index so need to provide input property
-	addWires(data).wired(slider, "size", null, "target").wired({source:tabs, prop:"season", input:"text"});
+	addWires(data).wired(slider, "size", null, true).wired({source:tabs, prop:"season", input:"text"});
+	S.on("stagemouseup", ()=>{zog(data);});
 END EXAMPLE
 
 PARAMETERS
 obj - the object to receive the wire and wired methods
 
-RETURNS - obj for chainging
+RETURNS - obj for chaining
 --*///+83.365
 zim.addWires = function(obj) {
-	if (isDUO(arguments)) {arguments[0].obj = this; return zim.addWires(arguments[0]);}
+	// if (isDUO(arguments)) {arguments[0].obj = this; return zim.addWires(arguments[0]);}
 	z_d("83.365");
 	obj.wire = function() {
+		if (isDUO(arguments)) {arguments[0].obj = this; return zim.wire(arguments[0]);}
 		Array.prototype.unshift.call(arguments, obj);
 		zim.wire.apply(null, arguments);
 		return obj;
 	};
 	obj.noWire = function() {
+		if (isDUO(arguments)) {arguments[0].obj = this; return zim.noWire(arguments[0]);}
 		Array.prototype.unshift.call(arguments, obj);
 		zim.noWire.apply(null, arguments);
 		return obj;
 	};
 	obj.wired = function() {
+		if (isDUO(arguments)) {arguments[0].obj = this; return zim.wired(arguments[0]);}
 		Array.prototype.unshift.call(arguments, obj);
 		zim.wired.apply(null, arguments);
 		return obj;
 	};
 	obj.noWired = function() {
+		if (isDUO(arguments)) {arguments[0].obj = this; return zim.noWired(arguments[0]);}
 		Array.prototype.unshift.call(arguments, obj);
 		zim.noWired.apply(null, arguments);
 		return obj;
 	};
+
+
+	// wire:function(target, prop, twoWay, setSource, filter, call, input) {
+	// 		if (isDUO(arguments)) {arguments[0].obj = this; return zim.wire(arguments[0]);}
+	// 		else {return zim.wire(this, target, prop, twoWay, setSource, filter, call, input);}
+	// 	},
+	// 	noWire:function(target, prop, input) {
+	// 		if (isDUO(arguments)) {arguments[0].obj = this; return zim.noWire(arguments[0]);}
+	// 		else {return zim.noWire(this, target, prop, input);}
+	// 	},
+	// 	wired:function(source, prop, twoWay, setSource, filter, call, input) {	
+	// 		if (isDUO(arguments)) {arguments[0].obj = this; return zim.wired(arguments[0]);}
+	// 		else {return zim.wired(this, source, prop, twoWay, setSource, filter, call, input);}
+	// 	},
+	// 	noWired:function(source, prop, input) {
+	// 		if (isDUO(arguments)) {arguments[0].obj = this; return zim.noWired(arguments[0]);}
+	// 		else {return zim.noWired(this, source, prop, input);}
+	// 	},
+
 	return obj;
 };//-83.365
 
