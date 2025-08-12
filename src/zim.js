@@ -2239,7 +2239,7 @@ function myFunction(data){
 // in the php file we would use the following to return JSON:
 <?php
 header('Content-type: text/javascript');
-$data = [test=>"wow", score=>[1,2,3]];
+$data = ["test"=>"wow", "score"=>[1,2,3]];
 echo "async.myFunction(".JSON_encode($data).")";
 ?>
 
@@ -11354,7 +11354,7 @@ it will still scale when using the corners.  This can be turned off by setting s
 
 Properties for the slice lines are available and can be set and animated as can the scalesWidth and scalesHeight.
 
-SEE: https://zimjs.com/slices for the ZIM Slices tool and example of SlicedBitmap
+SEE: https://zimjs.com/slicer for the ZIM Slices tool and example of SlicedBitmap
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -11803,6 +11803,8 @@ NOTE: You can use CreateJS gotoAndPlay(), play(), etc.
 but we found the framerate could not be kept
 with other animations or Ticker events running.
 So we recommend using the ZIM Sprite run() method.
+
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -22641,13 +22643,12 @@ zim class - extends a zim.Container which extends a createjs.Container
 
 DESCRIPTION
 Makes a label - wraps the createjs Text object.
-Can use with Button, CheckBox, RadioButtons and Pane.
-Text seems to come in different sizes so we do our best.
-Have tended to find that left and alphabetic are most consistent across browsers.
-Custom fonts loaded through css can be used as well.
+Can also use with Button, CheckBox, RadioButtons, Pane, etc.
+System fonts, Google fonts and custom fonts can be used.
 
-NOTE: can wrap text at given width using lineWidth (or labelWidth) parameter.
-To dynamically change the width without changing the font size use the labelWidth property.
+NOTE: can wrap text at given width using labelWidth (or lineWidth) parameter.
+
+NOTE: can make text fit to dimensions by setting both labelWidth and labelHeight parameters.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -22665,6 +22666,16 @@ new Label({
 }).loc(100,100).tap(()=>{zog("tapping");});
 END EXAMPLE
 
+EXAMPLE 
+// using the Google Font gf_ short cut for "Joti+One"
+// and also a custom font (Reuben) that would be in the assets folder
+new Frame(FIT, 1024, 768, ready ["gf_Joti+One", "Reuben.otf"], "assets/");
+function ready() {
+	new Label("Hello", 100, "Joti One").loc(100,100);
+	new Label("Greets", 50, "Reuben").center();
+}
+END EXAMPLE
+
 EXAMPLE
 // with text that wraps at labelWidth
 // can also set this as a property later to dynamically change width of text 
@@ -22673,6 +22684,17 @@ new Label({
 	text:"this is a long bunch of text, this is a long bunch of text, this is a long bunch of text",
 	labelWidth:200
 }).center();
+END EXAMPLE
+
+EXAMPLE
+// with text that fits into labelWidth and labelHeight
+// will change font size.
+new Label({
+	text:"Fit this text into the width and height",
+	labelWidth:300,
+	labelHeight:150,
+	align:CENTER
+}).center().outline();
 END EXAMPLE
 
 EXAMPLE
@@ -27546,6 +27568,7 @@ Adds a window for alerts, etc.
 You need to call the pane.show() to show the pane and pane.hide() to hide it.
 You do not need to add it to the stage - it adds itself centered.
 You can change the x and y (the origin and registration point are in the middle).
+Content is added to the pane with the content parameter or the add() method.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -28157,7 +28180,8 @@ zim class - extends a zim.Container which extends a createjs.Container
 
 DESCRIPTION
 A simple panel with titleBar and optional arrow for more panels.
-Panel can be set draggable and can have a collapse button and a close button
+Panel can be set draggable and can have a collapse button and a close button.
+Content is added to the panel with the content parameter or the add() method.
 See: https://zimjs.com/explore/panel.html
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
@@ -28694,6 +28718,8 @@ zim class - extends a zim.Container which extends a createjs.Container
 
 DESCRIPTION
 Adds a window for content that can be swiped and scrolled.
+Content is added to the Window with the content parameter or the add() method.
+
 NOTE: if zim namespace zns = true then this overwrites a JS Window - so the JS Window is stored as document.Window
 
 NOTE: set the enable property to false if animating the position of the whole Window
@@ -48724,7 +48750,6 @@ shadowColor - (default null) the shadow color (css color) of a drop shadow
 shadowBlur - (default null) pixels of how blurred the shadow is if the shadow is set - eg. 10
 dashed - (default true) set to false to turn off the dashed for the border
 id - (default null) a string id for the HTML textarea tag for CSS styling, etc.
-placeholder - (default null) a string that is used for the HTML textarea tag placeholder parameter
 readOnly - (default false) set to true to make TextArea read only (still selectable)
 spellCheck - (default true) set to false to turn Browser spell check off
 password - (default false) set to true to turn the field into a password field - single line only (uses input field type=password and not TextArea)
@@ -55506,6 +55531,8 @@ Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
 
 NOTE: when applying effects to rtl fonts make sure the DIR = "rtl" is set.
+
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
 	
 EXAMPLE
 // create a Label with a GlowEffect that shows through to the image below
@@ -70244,11 +70271,11 @@ color2 - (default null) a second color which would form a zim.GradientColor() as
 angle - (default 90) the angle for the gradient if there is a gradient
 borderColor - (default null) the stroke color
 borderWidth - (default 1 if stroke is set) the size of the stroke in pixels
-corner - (default 0) the round of corner
-   can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
-   inside this array can be arrays of [horizontal, vertical] which skews each corner
-   can also be a combination array of values and skew arrays
-   [topLeft, [horizontal, vertical], bottomRight, [horizontal, vertical]]
+corner - (default 10) the round of corner
+	can also be an array of [topLeft, topRight, bottomRight, bottomLeft]
+	inside this array can be arrays of [horizontal, vertical] which skews each corner
+	can also be a combination array of values and skew arrays
+	[topLeft, [horizontal, vertical], bottomRight, [horizontal, vertical]]
 interactive - (default true) set to false to not be interactive 
 	interactive will use raycasting in the TextureActives object 
 	to provide x and y to CreateJS which is then used by ZIM
@@ -70262,8 +70289,8 @@ pattern - (default null) a DisplayObject that will be added to the TextureActive
 scalePattern - (default "fill") scale the pattern so it fills the window (formerly "bigger" or "outside")
 	set to false for no scaling or:
 	FIT or "fit" fits inside the TextureActive keeping proportion (formerly "smallest")
-   	FILL or "fill" fills the TextureActive keeping proportion (formerly "biggest" or "outside")
-   	FULL or "full" keeps both x and y scales - may stretch object (formerly "both")
+	FILL or "fill" fills the TextureActive keeping proportion (formerly "biggest" or "outside")
+	FULL or "full" keeps both x and y scales - may stretch object (formerly "both")
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -75363,29 +75390,31 @@ SEE: https://zimjs.com/portal/
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
-F.loadAssets(["researchbuilding.jpg", "jungle.jpg"]);
+F.loadAssets(["ai_future03.jpg", "ai_alienplanet01.jpg"], "https://zimjs.org/assets/");
 F.on("complete", ()=>{
+
 	const lands = new Container(W, H).addTo();
-	const jungle = new Pic("jungle.jpg")
+	const planet = new Pic("ai_alienplanet01.jpg")
 		.scaleTo(lands)
 		.center(lands);
-	const researchBuilding = new Pic("researchbuilding.jpg")
+	const future = new Pic("ai_future03.jpg")
 		.scaleTo(lands)
 		.center(lands);
+		
 	const portalObject = new Circle(118, faint, pink, 16, true)
-		.addTo(stage)
-		.pos(580, 470)
+		.center()
+		.mov(0,90)
 		.animate({obj:{rotation:"360"}, time:70, ease:"linear", loop:true});
+
 	const portal = new Portal(portalObject, lands);
-	portal.on("enter", function() {
+	portal.on("enter", ()=>{
 		// play a sound here!
 	});
 
 	// use enabled to turn on and off portal
-	timeout(1, ()=>{portal.enabled = false; portalObject.pauseAnimate(true);});
-	timeout(5, ()=>{portal.enabled = true; portalObject.pauseAnimate(false);});
+	// timeout(1, ()=>{portal.enabled = false; portalObject.pauseAnimate(true);});
+	// timeout(5, ()=>{portal.enabled = true; portalObject.pauseAnimate(false);});
 
-	S.update();
 }); // assets loaded
 END EXAMPLE
 
@@ -76575,6 +76604,8 @@ to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
 
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -76697,6 +76728,8 @@ ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate s
 to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
+
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -76943,6 +76976,8 @@ ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate s
 to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
+
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -77248,6 +77283,8 @@ to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
 
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -77438,6 +77475,8 @@ to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
 
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
@@ -77569,6 +77608,8 @@ ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate s
 to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
+
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -77751,6 +77792,8 @@ ZIM has wrapped the CreateJS filters, filter property, caching and cacheUpdate s
 to make accessing filters easy - but apps will slow down if they are over-used.
 Keep the quality at 1 for animating filters at a decent framerate.
 Consider pre-processing images if effects do not have to be dynamic.
+
+NOTE: when applying an effect to a Sprite, put the sprite in a Container and apply the effect on the container
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -90016,36 +90059,36 @@ END EXAMPLE
 EXAMPLE 
 // getting a preview 
 const video = new Vid("video.mp4")
-    .scaleTo()
-    .center()
-    .vis(false);    
+	.scaleTo()
+	.center()
+	.vis(false);    
 
 new Pane("WELCOME").show(init);
 
 function init() {  
-    video.play().pause().vis(true);
+	video.play().pause().vis(true);
 	// note, to play after this use video.pause(false); // not video.play()
-    Ticker.always();
+	Ticker.always();
 }
 END EXAMPLE 
 
 EXAMPLE 
 // getting a keyed out preview 
 const video = new Vid("video.mp4")
-    .scaleTo()
-    .center()
-    .vis(false);    
+	.scaleTo()
+	.center()
+	.vis(false);    
 
 new Pane("WELCOME").show(init);
 
 function init() {  
-    video
-        .keyOut("#01b03f", .25) // key out the green
-        .play();            
-    timeout(.05, ()=>{
-        video.pause().vis(true);
-    });       
-    Ticker.always();
+	video
+		.keyOut("#01b03f", .25) // key out the green
+		.play();
+	timeout(.05, ()=>{
+		video.pause().vis(true);
+	});
+	Ticker.always();
 }
 END EXAMPLE 
 
@@ -90228,9 +90271,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
                     var replacement = that.keyObj.replacement;
                     that.ticker = zim.Ticker.add(function(){
                         bitmap.keyOut(color, tolerance, replacement);
-                    });
+                    }, that.stage);
                 } else {
-                    that.ticker = zim.Ticker.add(function(){});
+                    that.ticker = zim.Ticker.add(function(){}, that.stage);
                 }
             }         
             return that;   
@@ -91166,7 +91209,7 @@ function init(yes) {
 END EXAMPLE
 
 EXAMPLE
-// for shaking motion - ALSO see the PermissionAsk example above for iOS
+// for shaking motion - ALSO see the PermissionAsk example above
 // and replace "deviceorientation" with "devicemotion" 
 // and replace e.rotation.x, etc. with e.acceleration.x etc.
 // also set Frame sensors parameter to true
@@ -96599,7 +96642,7 @@ const ask = new CamAsk().show(yes => {
 END EXAMPLE
 
 EXAMPLE 
-// use ML5 at https://unpkg.com/ml5@1/dist/ml5.min.js for hand tracking
+// use ML5 at https://unpkg.com/ml5@1.2.1/dist/ml5.min.js for hand tracking
 // on a Mac, the canvas must be interacted with first
 // so would recommend always using CamAsk first:
 const ask = new CamAsk().show(yes=>{
@@ -97284,6 +97327,17 @@ EXAMPLE
 // so would recommend always using CamAsk first:
 const ask = new CamAsk().show(yes=>{	
 	if (yes) {
+		const cam = new Cam(W,H).alp(.3).center();		 
+		new CamAlpha(cam).pos(50,50,LEFT,BOTTOM);
+	}
+}); // end CamAsk show() - see CamAsk() docs for error checking example
+END EXAMPLE
+
+EXAMPLE
+// on a Mac, the canvas must be interacted with first 
+// so would recommend always using CamAsk first:
+const ask = new CamAsk().show(yes=>{	
+	if (yes) {
 		const camMotion = new CamMotion({preview:.5}).center(); 
 		camMotion.on("ready", ()=>{   
 			new CamAlpha(camMotion).pos(50,50,RIGHT,TOP);
@@ -97618,6 +97672,8 @@ resize
 rotate2
 save
 mark
+pic
+chart
 
 Pizzazz Icons example:
 https://zimjs.com/bits/view/icons.html
@@ -97633,8 +97689,8 @@ const icon = makeIcon("home", white, 2).pos(40,40,RIGHT);
 var info = new Button({
 	width:50,
 	height:50,
-	color:blue, // or "red", "#666" etc.
-	rollColor:pink,
+	backgroundColor:blue, // or "red", "#666" etc.
+	rollBackgroundColor:pink,
 	corner:0,
 	label:"",
 	icon:makeIcon("info", "white")
@@ -97765,7 +97821,7 @@ where various Blob and Squiggle shapes can be selected from a menu
 or custom Blob And Squiggle shapes can be made.
 The code for the shapes can be copied into your app 
 as the Blob or Squiggle points parameter.
-Please contact us at https:forum.zimjs.com
+Please contact us at https://forum.zimjs.com
 and we can perhaps add your Blob or Squiggle in the menu!
 
 Note that PIZZAZZ 04 was created during ZIM NIO (version 9)

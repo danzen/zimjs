@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "18.0.9",
+  "version": "18.1.0",
   "type": "module",
   "main": "./src/zim.js",
   "types": "./ts-src/typings/zim",
