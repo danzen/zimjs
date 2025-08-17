@@ -2094,7 +2094,7 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 		if (zot(immediate)) immediate = false;
 		if (!zot(total) && (isNaN(total) || total<=0)) return;
 		if (zot(total)) total = -1;
-		var obj = {count:0, total:total, paused:false, time:time, active:true, timeUnit:timeUnit};
+		var obj = {count:(immediate && time <= (timeType=="s"?5/1000:5)) ? -1:0, total:total, paused:false, time:time, active:true, timeUnit:timeUnit};
 
 		if (pauseOnBlur) {
 			if (zot(zim.blurCheck)) zim.setBlurDetect();
@@ -2113,7 +2113,7 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 				checkTotal();
 			}, obj.interval*(timeType=="s"?1000:1));
 		}
-		if (immediate) {
+		if (immediate && time > (timeType=="s"?5/1000:5)) {
 			setTimeout(function() {
 				(call)(obj);
 				checkTotal();
@@ -24158,7 +24158,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(rtl)) rtl = DS.rtl != null ? DS.rtl : false;		
 		if (zot(lineAlign)) lineAlign = DS.lineAlign != null ? DS.lineAlign : rtl?"right":"left";
 		if (zot(lineValign)) lineValign = DS.lineValign != null ? DS.lineValign : "bottom";
-		if (zot(lineWidth)) lineWidth = DS.lineWidth != null ? DS.lineWidth : "bottom";
+		if (zot(lineWidth)) lineWidth = DS.lineWidth != null ? DS.lineWidth : null;
 		if (zot(lineAlignLast)) lineAlignLast = DS.lineAlignLast != null ? DS.lineAlignLast : rtl?"right":"left";
 		if (zot(cache)) cache = DS.cache != null ? DS.cache : false;
 
@@ -25033,16 +25033,22 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
        
         var originalLabel = !zot(label) && label.type == "Label";
 		if (zot(label)) label = DS.label != null ? DS.label : new zim.Label("Will this wind be so mighty as to lay low the mountains of the Earth?");
-        if (zot(width)) width = DS.width != null ? DS.width : originalLabel ? label.width : 500; 
+		if (zot(size)) size = DS.size != null ? DS.size : originalLabel? label.size : 36;
+		if (zot(spacingH)) spacingH = DS.spacingH != null ? DS.spacingH : size/2;
+        if (zot(spacingV)) spacingV = DS.spacingV != null ? DS.spacingV : size/2;
+		if (originalLabel) {
+			var numWords = label.text.split(" ").length;
+			var paddingT = label.background?label.paddingH*numWords*2:0;
+		}
+        if (zot(width)) width = DS.width != null ? DS.width : originalLabel ? label.width*(paddingT?1.05:1.07)+paddingT : 500; 
         if (zot(itemRegX)) itemRegX = DS.itemRegX != null ? DS.itemRegX : "center";
         if (zot(itemRegY)) itemRegY = DS.itemRegY != null ? DS.itemRegY : "center";
-        if (zot(size)) size = DS.size != null ? DS.size : originalLabel? label.size : 36;
+
         if (zot(font)) font = DS.font != null ? DS.font : originalLabel? label.font : "arial";
         if (zot(color)) color = DS.color != null ? DS.color : originalLabel? label.color : "black";
         if (zot(backgroundColor)) backgroundColor = DS.backgroundColor != null ? DS.backgroundColor : originalLabel? label.backgroundColor : null;
         if (zot(itemCache)) itemCache = DS.itemCache != null ? DS.itemCache : false;
-        if (zot(spacingH)) spacingH = DS.spacingH != null ? DS.spacingH : size/2;
-        if (zot(spacingV)) spacingV = DS.spacingV != null ? DS.spacingV : size/2;
+
 
 		var that = this;		
 
@@ -79944,6 +79950,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					tile.drag({boundary:tile, singleTouch:true});
 				}, timeType=="s"?(wait+time)*1000:wait+time);
 			}
+			return that;
 		};
 
 		this._enabled = true;
@@ -87874,7 +87881,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			var duo; if (duo = zob(that.loadAssets, arguments, sig)) return duo;
 		}
 
-		if (!zot(path)) {
+		if (!zot(path)) {s
 			path = path.replace(/\/$/,"");
 			path = path + "/";
 			WW.PATH = path;
@@ -88374,9 +88381,9 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		
 		if (WW.PATH!=null) zim.PATH = WW.PATH;
 		if (zim.PATH!=null) {
-			zim.PATH.replace(/\/$/,"");
+			zim.PATH = zim.PATH.replace(/\/$/,"");
 			zim.PATH = zim.PATH + "/";
-		}					
+		}				
 		if (second) {
 			var empty;
 			if (that.loadFailObj == "circles") empty = that.makeCircles(14);
@@ -90205,7 +90212,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (WW.PATH!=null) zim.PATH = WW.PATH;
 		if (zim.PATH!=null) {
-			zim.PATH.replace(/\/$/,"");
+			zim.PATH = zim.PATH.replace(/\/$/,"");
 			zim.PATH = zim.PATH + "/";
 		}	
 
@@ -90445,8 +90452,8 @@ zim.Dat = function(file) {
 	} else {
 		if (WW.PATH!=null) zim.PATH = WW.PATH;
 		if (zim.PATH!=null) {
-			zim.path.replace(/\/$/,"");
-			zim.path = zim.path + "/";
+			zim.PATH = zim.PATH.replace(/\/$/,"");
+			zim.PATH = zim.PATH + "/";
 		}	
 		var loader = zdf.loadAssets(file, zim.PATH);
 		loader.on("complete", function() {
@@ -94018,8 +94025,8 @@ animator - the Gifler animator
 		var f;
 		if (WW.PATH!=null) zim.PATH = WW.PATH;
 		if (zim.PATH!=null) {
-			zim.path.replace(/\/$/,"");
-			zim.path = zim.path + "/";
+			zim.PATH = zim.PATH.replace(/\/$/,"");
+			zim.PATH = zim.PATH + "/";
 		}	
 		if (file.match(/http/) || file.match(/^\//)) f = file;
 		else f = (zim.PATH?zim.PATH:"")+file;
@@ -98312,3 +98319,4 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
+
