@@ -770,7 +770,7 @@ RETURNS the modified Array
 		if (zot(array)) return;
 		if (!Array.isArray(array)) array = Object.values(arguments);
 		var i = array.length, j, temp;
-		if (i == 0) return array;
+		if (i <= 1) return array;
 		if (different) {
 			var sur = {};
 			var arr = [];
@@ -48558,6 +48558,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 			content.cache(x, y, width, height);
 
+
 			if (data) {
 				var image = content.cacheCanvas.toDataURL('image/' + type, quality);
 				if (cached) {
@@ -57409,7 +57410,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 					var val;
 					tar.zimObj = {};
 					for (prop in obj) {
-						if (extraTypes.indexOf(prop) >= 0) val = obj[prop];
+						if (extraTypes.indexOf(prop) >= 0) val = obj[prop];						
 						else val = zim.Pick.choose(obj[prop]);
 						tar.zimObj[prop] = tar[prop];
 
@@ -89484,6 +89485,11 @@ keyOut(color, tolerance, replacement) - remove a certain color in the picture an
 	the default tolerance is .1 - the higher the tolerance the less sensitive the keying process - so more colors will be removed similar to the provided color
 	color and tolerance can be an array of colors and tolerances (or just one tolerance if all are the same)
 	replacement (default clear) a color to replace the keyed out color with or an optional array to match the colors array if an array is used
+destroy() - remove image references and dispose 
+	normal dispose() on a Pic() will just dispose the specific container and cloned bitmap 
+	leaving the original HTML image reference and ZIM Bitmap so that more Pic objects can be made from the loaded image 
+	destroy() will dispose the original ZIM Bitmap and set references to the HTML image to null letting HTML clear the image from memory
+
 Note: there is an outlineImage(pic, reverse) function that can be called to outline a DisplayObject - search docs for outlineImage
 
 ZIM 4TH adds all the methods listed under Container (see above), such as:
@@ -89546,7 +89552,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (inner.type == "Bitmap" || inner.type == "Image") {
 			if (inner.type == "Bitmap") that.bitmap = inner.clone().addTo(that);
 			else that.bitmap = inner.getChildAt(0).clone().addTo(that);
-			that.id = inner.id;
+			that.id = that.bitmap.id = file;
+			zogb(that.id)
 			that.image = that.bitmap.image;
 			that.src = that.bitmap.src;
 			that.item = that.bitmap.item;
@@ -89559,7 +89566,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		} else {
 			inner.on("complete", function () {
 				that.bitmap = inner.getChildAt(0).clone().addTo(that);
-				that.id = inner.id;
+				that.id = that.bitmap.id = file;
 				that.setBounds(null); // resets size
 				that.type = "Pic";
 				if (that.commands) {
@@ -89577,6 +89584,26 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (that.stage) that.stage.update();
 			});    
 		}      
+
+		this.destroy = function() {
+			if (this.id && this.bitmap) {
+				this.image = this.bitmap.image = null;
+				var frame;
+				if (this.stage && this.stage.frame) frame = this.stage.frame;
+				else frame = WW.zdf;
+				if (frame && frame.assets) {					
+					if (frame.assets[this.id]) {
+						if (frame.assets[this.id].dispose) frame.assets[this.id].dispose();
+						delete frame.assets[this.id];
+					}
+				}
+				if (zim.assets[this.id]) {
+					if (zim.assets[this.id].dispose) zim.assets[this.id].dispose();
+					delete zim.assets[this.id];
+				}
+			}	
+			this.dispose();	
+		}
 		
 		that.keyOut = function(color, tolerance, replacement) {			
 			if (that.type=="AC"&&WW.zdf) {WW.zdf.ac("keyOut", arguments, that); return that;}
@@ -98319,4 +98346,3 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
-

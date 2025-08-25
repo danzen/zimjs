@@ -3920,6 +3920,7 @@ declare namespace zim {
 		constructor(config_or_file?: string, width?: number, height?: number, noCors?: boolean, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { file?: string, width?: number, height?: number, noCors?: boolean, style?: boolean, group?: string, inherit?: {} })
 		keyOut(color?: string, tolerance?: number, replacement?: color): this
+		destroy(): void
 		readonly file: string
 		readonly src: string
 		readonly image: HTMLImageElement
