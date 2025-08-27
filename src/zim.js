@@ -27659,7 +27659,7 @@ content - (default " ") optional content to be centered in one of three formats:
 		header - a ZIM DisplayObject for the top of the content
 		message - text that will put into a ZIM Label - default darker - see color property
 		display - a ZIM DisplayObject for beneath the message
-	 	buttons - an array of ZIM Button objects or configuration objects {} as follows:
+		buttons - an array of ZIM Button objects or configuration objects {} as follows:
 			{label, color, rollColor, backgroundColor, rollBackgroundColor, call}
 			with call being a callback function for when the button is pressed 
 		buttonScale - the scale for the buttons 
@@ -28270,7 +28270,7 @@ content - (default null) optional content to be centered in one of three formats
 		header - a ZIM DisplayObject for the top of the content
 		message - text that will put into a ZIM Label - default color white - see color property
 		display - a ZIM DisplayObject for beneath the message
-	 	buttons - an array of ZIM Button objects or configuration objects {} as follows:
+		buttons - an array of ZIM Button objects or configuration objects {} as follows:
 			{label, color, rollColor, backgroundColor, rollBackgroundColor, call}
 			with call being a callback function for when the button is pressed 
 		buttonScale - the scale for the buttons 
@@ -28799,7 +28799,7 @@ content - (default null) optional content to be centered in one of three formats
 		header - a ZIM DisplayObject for the top of the content
 		message - text that will put into a ZIM Label - default color white - see color property
 		display - a ZIM DisplayObject for beneath the message
-	 	buttons - an array of ZIM Button objects or configuration objects {} as follows:
+		buttons - an array of ZIM Button objects or configuration objects {} as follows:
 			{label, color, rollColor, backgroundColor, rollBackgroundColor, call}
 			with call being a callback function for when the button is pressed 
 		buttonScale - the scale for the buttons 
@@ -89553,7 +89553,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (inner.type == "Bitmap") that.bitmap = inner.clone().addTo(that);
 			else that.bitmap = inner.getChildAt(0).clone().addTo(that);
 			that.id = that.bitmap.id = file;
-			zogb(that.id)
 			that.image = that.bitmap.image;
 			that.src = that.bitmap.src;
 			that.item = that.bitmap.item;
@@ -92251,15 +92250,19 @@ RETURNS - a Label if a string or number is passed as content, a Container if a c
 				var buts = new zim.Container().loc(0,obj.height+(data.header||data.message||data.display?spacingV:0),obj);	
 				for (var bb=0; bb<data.buttons.length; bb++) {
 					var bd = data.buttons[bb];
-					var call = bd.call||function(){};
-					if (!bd.button) bd.button = new zim.Button({
-						width:bd.width,
-						label:bd.label,
-						backgroundColor:bd.backgroundColor||bd.bgColor,
-						color:bd.color,
-						rollBackgroundColor:bd.rollBackgroundColor||bd.rollBgColor,
-						rollColor:bd.rollColor
-					});
+					var call = bd.call||function(){};					
+					if (bd.type != "Button") {
+						bd.button = new zim.Button({
+							width:bd.width,
+							label:bd.label,
+							backgroundColor:bd.backgroundColor||bd.bgColor,
+							color:bd.color,
+							rollBackgroundColor:bd.rollBackgroundColor||bd.rollBgColor,
+							rollColor:bd.rollColor
+						});
+					} else {
+						bd.button = bd;
+					}
 					bd.button.call = call;					
 					bd.button.sca(data.buttonScale).loc((bb==0?0:buts.width+spacingH),0,buts).tap(function(e){e.target.call(e.target)});					
 				}					
@@ -98346,3 +98349,4 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
+
