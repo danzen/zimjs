@@ -26688,7 +26688,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-56
 
 /*--
-zim.RadioButtons = function(size, buttons, vertical, color, backgroundColor, spacing, margin, always, indicatorColor, index, rtl, selectedIndex, style, group, inherit)
+zim.RadioButtons = function(size, buttons, vertical, color, backgroundColor, borderColor, borderWidth, spacing, margin, always, indicatorColor, index, rtl, selectedIndex, style, group, inherit)
 
 RadioButtons
 zim class - extends a zim.Container which extends a createjs.Container
@@ -51581,6 +51581,7 @@ To give a more responsive single tap it reduces the default dblTime value
 
 NOTE: tap() ignores List titleBar and organizer as to not conflict with tapping on actual list
 NOTE: set an object's noTap property to true to avoid activating a hold on an object
+NOTE: use mobileUp:true for tapping to use Speech talk() as Apple currently does not talk on mousedown - sigh.
 
 SEE: noTap() as well
 
@@ -57280,7 +57281,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			loopWait = zim.Pick.choose(loopWait);
 			rewind = zim.Pick.choose(rewind);
 			rewindWait = zim.Pick.choose(rewindWait);
-			if (zot(rewindTime)) rewindTime = time;
+			if (rewind && zot(rewindTime)) rewindTime = time;
 			else rewindTime = zim.Pick.choose(rewindTime);
 			sequenceReverse = zim.Pick.choose(sequenceReverse);
 			from = zim.Pick.choose(from);
@@ -57400,6 +57401,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		var extraTypes = ["extra", "zoom", "speed", "layer", "fade"];
 		var extraLookup = {zoom:target.type=="Pen"?"size":"scale", speed:"percentSpeed", layer:"layer", fade:"alpha"};
 
+		
 		if (target instanceof Array) {
 			if (sequenceReverse) target.reverse();
 			
@@ -57439,7 +57441,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				var seqTime = i*sequence;
 				if (i==0 && sequence!=0) seqTime = timeType=="s"?.02:20; // patched in 10.7.0 and 10.7.1
 								
-				// zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null)
+				// zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?call:null), (i==target.length-1?params:null)			
 				zim.animate(tar, tar.zimObj, time, ease, (i==target.length-1?sequenceDone:null), null, wait, waitedCall, waitedParams, null, null, null, null, null, null, null, loopPick, null, null, null, null, null, null, rewindTime, rewindEase, startCall, startParams, animateCall, animateParams, null, sequenceCall, sequenceParams, null, null, ticker, zim.copy(cjsProps), css, protect, override, null, set, id, events, sequenceTarget, dynamic, drag, clamp, startPaused, clean, obj, seriesWait, seqTime, rrr, pauseOnBlur, easeAmount, easeFrequency, timeUnit, timeCheck, noAnimateCall, pathDamp, rewindPick); // do not send from!
 	
 			}
@@ -66604,9 +66606,10 @@ note: the item is not the event object target - as that is the tile
 		that.rows = rows = Math.round(rows);
 		that.squeezeH = squeezeH;
 		that.squeezeV = squeezeV;
-		var VEEAlign = (typeof align=="function");
-		var VEEVAlign = (typeof valign=="function");
-		// these two are used only for not ZIM VEE - as there are VEE with Squeeze is not supported
+		var VEEAlign = zim.isPick(align)
+		var VEEVAlign = zim.isPick(valign);
+	
+		// these two are used only for not ZIM VEE - as VEE with Squeeze is not supported
 		that.align = VEEAlign?"left":align;
 		that.valign = VEEVAlign?"top":valign;
 		that.mirrorH = mirrorH;
@@ -66728,6 +66731,7 @@ note: the item is not the event object target - as that is the tile
 					scalesX[j].push(tile.scaleX);
 					scalesY[j].push(tile.scaleY);
 					if (colSize&&zot(width)) w = zim.Pick.choose(colSize);
+					
 					if (j==0) finalAlign.push(zim.Pick.choose(align));
 
 					// needs projected width and height on the tile 
@@ -66907,7 +66911,7 @@ note: the item is not the event object target - as that is the tile
 					}
 					tile.pos(colTotal, null);			
 
-					if (!that.squeezeH && VEEAlign) {
+					if (!that.squeezeH && VEEAlign) {	
 						if (zot(width) && (align=="center" || align=="middle")) {
 							tile.x += (widthMax[i]-tile.fW)/2;
 						} else if (zot(width) && align=="right") {
@@ -90858,14 +90862,18 @@ SEE: https://zimjs.com/016/speech.html
 
 NOTE: The listen() method is currently not supported by Apple iOS Web - only Native apps (grr)
 But the talk() method works on iOS and Android Web - however, there seems to be one voice.
+NOTE: The talk() method on iOS currently does not work on mousedown - so use mobileUp:true on tap() or a pressup event
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 EXAMPLE
 const speech = new Speech();
 // interact at least once before talking
-new Button({label:"TALK"}).center().tap(()=>{
-	speech.talk("Hello World");
+new Button({label:"TALK"}).center().tap({
+	call:()=>{
+		speech.talk("Hello World");
+	},
+	mobileUp:true // talk() on iOS does not seem to work on mousedown - or use pressup event on Button
 });
 END EXAMPLE 
 
@@ -90873,8 +90881,11 @@ EXAMPLE
 // let user pick a voice
 const speech = new Speech();
 // interact at least once before talking
-new Button({label:"TALK"}).center().mov(0,-120).tap(()=>{    
-	speech.talk("Hello World!", list?list.text:null);
+new Button({label:"TALK"}).center().mov(0,-120).tap({
+	call:()=>{    
+		speech.talk("Hello World!", list?list.text:null);
+	},
+	mobileUp:true // talk() on iOS does not seem to work on mousedown - or use pressup event on Button
 });
 let list;
 speech.on("voiceschanged", ()=>{ // must wait for voices to be loaded
@@ -90900,6 +90911,7 @@ END EXAMPLE
 METHODS
 talk(text, voice, volume, lang, rate, pitch) - the computer will say the words
 	returns an utterance object on which all these parameter can be dynamically set including the words
+	note: currently, talk() does not work on mousedown on iOS so use pressup events or set tap to mobileUp:true
 	text - the text to say (or see Web Speech API for special formats)
 	voice (default "Microsoft David - English (United States)") - the voice 
 		also see "voiceschanged" event at which point speech.voices will be a list 
@@ -90938,7 +90950,8 @@ dispatches "result" when either as each word is spoken if listen() is used (inte
 	and a confidence property that is a ratio (0-1) for confidence in the result
 	Note: iOS (at this time) does not support the listen() and result event
 dispatches "speechend" events when listen() has detected an end to the talking 
-dispatches "start", "end" events 
+dispatches "start" event when reading 
+dispatches "end" event when reading 
 dispatches a "boundary" event between words
 dispatches an "error" event if no words are spoken, etc. the event object has an error property with the error message
 Note: there are more features to the Web Speech API - see the HTML docs
@@ -98349,4 +98362,3 @@ export let Style = zim.Style;
 export let assets = zim.assets;
 export let assetIDs = zim.assetIDs;
 export let ZIMON = zim.ZIMON;
-
