@@ -92619,9 +92619,9 @@ function zimify(obj, a, b, c, d, list) {
 		sca:function(scale, scaleY) {
 			return zim.sca(this, scale, scaleY);
 		},
-		scaleTo:function(boundObj, percentX, percentY, type, boundsOnly) {
+		scaleTo:function(boundObj, percentX, percentY, type, boundsOnly, simple) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.scaleTo(arguments[0]);}
-			else {return zim.scaleTo(this, boundObj, percentX, percentY, type, boundsOnly);}
+			else {return zim.scaleTo(this, boundObj, percentX, percentY, type, boundsOnly, simple);}
 		},
 		fit:function(left, top, width, height, type) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.fit(arguments[0]);}
