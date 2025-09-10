@@ -39458,7 +39458,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						that.dispatchEvent("change");
 						if ((!zim.OPTIMIZE&&(zns||!WW.OPTIMIZE)) && that.stage) that.stage.update();
 					});
-				} else {
+				} else {					
 					button.zimTabEvent = button.on((!zns?WW.ACTIONEVENT=="mousedown":zim.ACTIONEVENT=="mousedown")?"mousedown":"click", function(e) {
 						change(e.currentTarget.znum);
 						that.dispatchEvent("change");
@@ -74072,7 +74072,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 	//-69.5
 
 /*--
-zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj)
+zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown)
 
 MotionController
 zim class - extends a createjs EventDispatcher
@@ -74240,7 +74240,9 @@ tileObj - (default null) an object to direct the target to move on a theoretical
 					[1,1,0,1,1], 
 					[0,1,1,1,0]
 				]
-			note: this will override the cols and rows values			
+			note: this will override the cols and rows values		
+penDown - (default null) set to true with Pen to make MotionControler draw the Pen on mousedown so a dot can be drawn 
+	otherwise the dot is drawn on mouseup if the pen has not moved more than 2 pixels
 
 METHODS
 pause(state, time) - state defaults to true and pauses the motionController (sets speed to 0)
@@ -74290,8 +74292,8 @@ dispatches a "mousedown" event if type is "mousedown" or "pressmove"
 dispatches a "pressing" event if type is "pressmove" - note, this dispatches even if not moving
 dispatches a "moving" event if target is moving and "startmoving" and "stopmoving" events
 --*///+69.7
-	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj) {
-		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj";
+	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown) {
+		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown";
 		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
 		z_d("69.7");
 
@@ -74613,11 +74615,16 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 					target.write = true;
 					target.paper.noMouse(); // no need to drag others while drawing
 					target.zimDragCheck = true;
+					if (penDown) {
+						target.x+=2
+						target.write = false;
+						timeout(0, function() {target.write = true});		
+					}			
 				}
 			});
 			mouseEvent3 = stage.on("stagemouseup", function(){
 				if (target.type == "Pen") {
-					if (target.zpenX==Math.round(target.x) && target.zpenY==Math.round(target.y)) target.x+=2
+					if (!penDown && target.zpenX <= target.x+2 && target.zpenX >= target.x-2 && target.zpenY <= target.y+2  && target.zpenY >= target.y-2) target.x+=2
 					target.write = false;
 					target.paper.mouse();
 					target.zimDragCheck = false;
@@ -89817,6 +89824,11 @@ play(volume, loop, loopCount, pan, offset, delay, interrupt) - play the sound
 		"early" - interrupt only the previously playing sound that has progressed the least
 		"late" - interrupt only the previously playing sound that has progressed the most
 		** thank you CreateJS and SoundJS for providing these options
+destroy() - remove sound references and dispose 
+	normal dispose() on an Aud() will just dispose the specific sound
+	leaving the original audio reference so that more Aud objects can be made from the loaded audio 
+	destroy() will remove references to the original HTML audio so HTML will garbage collect it
+	Note: there is a single audio file made (for an app with sound) to help Apple play sounds that will be left in memory
 	
 ABSTRACT SOUND INSTANCE
 The return result of the play() makes a CreateJS AbstractSoundInstance
@@ -89974,6 +89986,26 @@ loop - dispatched when the sound loops (but not at end of last loop - that is co
             }
 			return that.soundInstance;
         }
+
+		this.destroy = function() {
+			if (this.file) {
+				this.src = this.item = null;
+				var frame;
+				if (this.stage && this.stage.frame) frame = this.stage.frame;
+				else frame = WW.zdf;
+				if (frame && frame.assets) {					
+					if (frame.assets[this.file]) {
+						if (frame.assets[this.file].dispose) frame.assets[this.file].dispose();
+						delete frame.assets[this.file];
+					}
+				}
+				if (zim.assets[this.file]) {
+					if (zim.assets[this.file].dispose) zim.assets[this.file].dispose();
+					delete zim.assets[this.file];
+				}
+			}	
+			this.dispose();	
+		}
         
         that.dispose = function() {
             if (that.sound) {
