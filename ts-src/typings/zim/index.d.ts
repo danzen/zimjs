@@ -3561,8 +3561,8 @@ declare namespace zim {
 		enabled: boolean
 	}
 	export class MotionController extends createjs.EventDispatcher {
-		constructor(config_or_target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean, mouseOutside?: boolean)
-		constructor(config: { target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean, mouseOutside?: boolean })
+		constructor(config_or_target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean, mouseOutside?: boolean, penDown?: boolean)
+		constructor(config: { target?: DisplayObject, type?: string, speed?: number, axis?: string, boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, map?: [number | number[]], diagonal?: boolean, damp?: number, flip?: string, orient?: boolean, constant?: boolean, firstPerson?: boolean, turnSpeed?: number, moveThreshold?: number, stickThreshold?: number, container?: Stage | StageGL | Container, localBounds?: boolean, mouseMoveOutside?: boolean, mousedownIncludes?: DisplayObject[], minPercentSpeed?: number, maxPercentSpeed?: number, dampKeyup?: number, rotate?: boolean, mouseOutside?: boolean, penDown?: boolean })
 		immediate(x: number, y: number): void
 		convert(x: number, y: number): void
 		pause(state?: boolean, time?: number): this
@@ -3931,7 +3931,8 @@ declare namespace zim {
 		constructor(config_or_file?: string, volume?: number, loop?: number, loopCount?: number, pan?: number, offset?: number, delay?: number, interrupt?: string, maxNum?: number, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { file?: string, volume?: number, loop?: number, loopCount?: number, pan?: number, offset?: number, delay?: number, interrupt?: string, maxNum?: number, style?: boolean, group?: string, inherit?: {} })
 		play(volume?: number, loop?: number, loopCount?: number, pan?: number, offset?: number, delay?: number, interrupt?: string): createjs.AbstractSoundInstance
-		readonly file: string
+		destroy() : void
+        readonly file: string
 		readonly src: string
 		readonly item: {}
 	}
