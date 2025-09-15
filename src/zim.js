@@ -74618,7 +74618,10 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 					if (penDown) {
 						target.x+=2
 						target.write = false;
-						timeout(0, function() {target.write = true});		
+						timeout(0, function() {
+							target.write = true;
+							if (target.stage) target.stage.update();
+						});		
 					}			
 				}
 			});
@@ -80768,6 +80771,11 @@ If you have moved, scaled or rotated the Emitter or its container,
 then you will want to use var point = myEmitter.localToGlobal(particle.x, particle.y)
 and get point.x and point.y to find the location of the particle relative to the stage coordinates
 
+NOTE: the Emitter sets the stage snapToPixelEnabled to true if cache is true 
+As of ZIM 018, when the emitter is done it sets it to false (default for ZIM Stage).
+We do not know when its value is set ss the property is a CreateJS property - unless we override 
+but for now, if snapToPixelEnabled is desired to be true, set it to true after using the emitter. 
+
 PARTICLES CONTAINER
 By default, the Emitter will make a Container and place it beneath itself when added to the stage.
 by separating the particles from the emitter, it allows the emitter to be moved without all the particles moving
@@ -81074,7 +81082,6 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 	var stage;
 	zim.added(that, addedToStage);
 	function addedToStage(s) {
-
 		that.emitterPaused = null; // will set back using that.startEmitterPaused
 
 		that.on("added", function () {
@@ -81498,6 +81505,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 		if (p.trace?p.getChildAt(0).endSpurt:p.endSpurt) {
 			sendEvent("spurtfizzed", p);
 			that.spurting = false;
+			if (cache) stage.snapToPixelEnabled = false;
 		}
 		if (that.pool) {
 			if (p.pooled == "end") {
@@ -81559,12 +81567,14 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 		// that.removeFrom();
 		if (that.parent) that.parent.removeChild(that);
 		that.particles.removeFrom();
+		if (cache) stage.snapToPixelEnabled = false;
 	};
 
 	this.spurting = false;
 	this.spurt = function(num, time, restart) {
 		var sig = "num, time, restart";
 		var duo; if (duo = zob(that.spurt, arguments, sig)) return duo;
+		if (cache) stage.snapToPixelEnabled = true;
 		if (!zot(time)) {
 			zim.timeout(zim.Pick.choose(time), function() {
 				lastSpurt(that.currentParticle);
@@ -81612,6 +81622,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 			}
 			that.zimInterval.pause();
 			that.emitterPaused = true;
+			if (cache) stage.snapToPixelEnabled = false;
 		} else { // unpausing
 			if (!that.emitterPaused) return that;
 			if (restart) {
@@ -81632,6 +81643,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 			}
 			if (that.zimInterval) that.zimInterval.pause(false, immediate);
 			that.emitterPaused = false;
+			if (cache) stage.snapToPixelEnabled = true;
 		}
 		return that;
 	};
@@ -81661,6 +81673,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 
 	
 	this.dispose = function() {
+		if (cache) stage.snapToPixelEnabled = true;
 		if (that.zimInterval) that.zimInterval.clear();
 		if (emitterTicker) {
 			zim.Ticker.remove(emitterTicker);
