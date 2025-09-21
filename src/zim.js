@@ -31324,6 +31324,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			group:this.group
 		});
 		if (!zot(percentage) && zot(label)) label = new zim.Label("");
+		if (zot(percentage)) percentage=DS.percentage!=null?DS.percentage:false;
 		this.label = label;
 
 		var height = 30;
@@ -31388,7 +31389,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (!zot(label)) {
 			label.scaleX = label.scaleY = .8;
 			label.startText = label.text;
-			if (!zot(percentage)) label.text = label.startText + "  0%";
+			if (percentage) label.text = label.startText + "  0%";
 			label.center(that);
 			if (labelPosition == "above") {
 				label.y -= 60;
@@ -31496,7 +31497,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				mask.sca(amount/100, 1);
 				bar.setMask(mask);
 			}
-			if (!zot(percentage)) label.text = label.startText + " " + Math.min(Math.round(amount), 100) + "%";
+			if (percentage) label.text = label.startText + " " + Math.min(Math.round(amount), 100) + "%";
 			if (autoHide && fastClose && Math.round(amount) >= 100) that.timeOut = setTimeout(function(){that.hide();}, 200);
 			if (!that.dispatched && Math.round(amount) >= 100) {
 				that.dispatchEvent("complete");
@@ -74072,7 +74073,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 	//-69.5
 
 /*--
-zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown)
+zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime)
 
 MotionController
 zim class - extends a createjs EventDispatcher
@@ -74153,6 +74154,9 @@ target (default null) - the object you want to control
 	if you only want data from the MotionController you can leave the target parameter as null (don't include it)
 	can be a Pen() - both pen and motionController have damp parameter so probably adjust one or the other to 1
 type - (default "mousedown") by default will move to where you press in the container
+		see upTime parameter to stop moving when mouse is up
+	set to "follow" to mousedown and hold to keep moving towards mouse or press position - can also use F.follow() to move stage as well
+		see upTime parameter to stop moving when mouse is up
 	set to "mousemove" to have the target follow the mouse movement
 	set to "pressmove" to have target jump to mousedown position then follow while pressing - good for Pen
 	set to "pressdrag" to have target follow mouse if pressed on and then dragged (dedicated to Shan Ruan)
@@ -74160,7 +74164,6 @@ type - (default "mousedown") by default will move to where you press in the cont
 	set to "gamebutton" to use gamepad buttons to control the target (see map parameter)
 	set to "gamestick" to use gamepad stick(s) to control the target (see map parameter)
 	set to "swipe" to use swipe to control the target
-	set to "follow" to mousedown and hold and use F.follow() to keep moving towards mouse or press position
 	set to "manual" to set your own with myController.convert() or myController.x and myController.y properties
 	set to a ZIM DPad object to use the DPad to control the motion
 speed - (default 7 or 20 if type is pressmove) pixels it will move each tick, keypress buttonpress, swipe, etc.
@@ -74243,6 +74246,10 @@ tileObj - (default null) an object to direct the target to move on a theoretical
 			note: this will override the cols and rows values		
 penDown - (default null) set to true with Pen to make MotionControler draw the Pen on mousedown so a dot can be drawn 
 	otherwise the dot is drawn on mouseup if the pen has not moved more than 2 pixels
+offTime - (default null) set to a time (including 0) to slow movement when mouse or press is up
+	normally a mousedown or mousemove, etc. will move the target to the last mouse position
+	but sometimes it is desired to have the movement stop when the mouse or press is up 
+	set a time here to allow the movement to slow to a stop on mouse or press up
 
 METHODS
 pause(state, time) - state defaults to true and pauses the motionController (sets speed to 0)
@@ -74292,8 +74299,8 @@ dispatches a "mousedown" event if type is "mousedown" or "pressmove"
 dispatches a "pressing" event if type is "pressmove" - note, this dispatches even if not moving
 dispatches a "moving" event if target is moving and "startmoving" and "stopmoving" events
 --*///+69.7
-	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown) {
-		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown";
+	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime) {
+		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime";
 		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
 		z_d("69.7");
 
@@ -74465,6 +74472,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		var mouseEvent2;
 		var mouseEvent3;
 		var mouseEvent4;
+		var offTimeEvent;
 		var pressing = false;
 		var moveCheck = false;
 		var under, i, a, gamepad, first;
@@ -74523,7 +74531,13 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				calculate();
 			}, stage);
 		} else if (type == "mousedown" || type == "mousemove") {			
-			mouseEvent = stage.on("stage" + type, function(e){				
+			mouseEvent = stage.on("stage" + type, function(e){		
+				if (that.offSpeed) {
+					that.stopAnimate("off");
+					that.paused = false;
+					that.speed = that.offSpeed;
+					that.offSpeed = null; 
+				}		
 				stage = e.target.stage;
 				var pp;
 				var con;
@@ -74550,7 +74564,14 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				that.x = p.x; that.y = p.y;				
 				calculate();
 			});
+			if (!zot(offTime)) offTimeEvent = stage.on("stagemouseup", doOffTime);
 		} else if (type == "pressmove" || type == "pressdrag" || type == "follow") {
+			if (that.offSpeed) {
+				that.stopAnimate("off");
+				that.paused = false;
+				that.speed = that.offSpeed;
+				that.offSpeed = null; 
+			}	
 			if (target.type == "Pen") target.write = false;
 			mouseEvent = stage.on("stagemousedown", function(e) {
 				var pp;
@@ -74637,6 +74658,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				stage.off("stagemousemove", mouseEvent2);
 				pressing = false;
 			});			
+			if (!zot(offTime)) offTimeEvent = stage.on("stagemouseup", doOffTime)
 
 		} else if (type == "gamestick") {
 			gamepad = this.gamepad = new zim.GamePad();
@@ -74695,6 +74717,20 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			});
 		}
 		
+		var offCheck = false;
+		function doOffTime() {			
+			if (offCheck) return;
+			offCheck = true;
+			if (that.paused || !that.enabled) return;
+			that.offSpeed = that.speed;
+			zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, id:"off", time:offTime, call:function() {
+				that.immediate(that.target.x, that.target.y);
+				that.speed = that.offSpeed;
+				that.offSpeed = null;
+				that.paused = false;
+				offCheck = false;
+			}});
+		}
 		
 		function doDown(e) {
 			wasDown = true;
@@ -75131,11 +75167,11 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				that.enabled = true;
 				if (time > 0) {
 					zim.animate({target:that, obj:{pausingSpeed:lastSpeed}, ticker:false, time:time, call:function() {
-						that.speed = lastSpeed;
+						if (lastSpeed) that.speed = lastSpeed;
 						that.paused = false;
 					}});
-				} else {
-					that.speed = lastSpeed;
+				} else {					
+					if (lastSpeed) that.speed = lastSpeed;
 					that.paused = false;
 				}
 			}
@@ -75177,10 +75213,12 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				if (swiperEvent) swiperEvent = swiperX.on("swipemove", swiperEvent);
 			} else if (type == "mousedown" || type == "mousemove") {
 				mouseEvent = stage.on("stage" + type, mouseEvent);
+				if (offTimeEvent) offTimeEvent = stage.on("stagemouseup", offTimeEvent);
 			} else if (type == "pressmove") {
 				mouseEvent = stage.on("stagemousedown", mouseEvent);
 				if (mouseEvent2) mouseEvent2 = stage.on("stagemousemove", mouseEvent2);
 				if (mouseEvent3) mouseEvent3 = stage.on("stagemouseup", mouseEvent3);
+				if (offTimeEvent) offTimeEvent = stage.on("stagemouseup", offTimeEvent);
 			}
 			mainTicker = zim.Ticker.add(mainTicker, stage);
 		}
@@ -75201,10 +75239,12 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 				swiperX.off("swipemove", swiperEvent);
 			} else if (type == "mousedown" || type == "mousemove") {
 				stage.off("stage" + type, mouseEvent);
+				stage.off("stagemouseup", offTimeEvent);				
 			} else if (type == "pressmove") {
 				stage.off("stagemousedown", mouseEvent);
 				stage.off("stagemousemove", mouseEvent2);
 				stage.off("stagemouseup", mouseEvent3);
+				stage.off("stagemouseup", offTimeEvent);
 			}
 			zim.Ticker.remove(mainTicker);
 		}
