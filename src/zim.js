@@ -47749,6 +47749,8 @@ zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve
 
 	var shift;
 	var min, max;
+
+
 	
 	this.makeCarousel = function() {
 
@@ -47811,7 +47813,7 @@ zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve
 				that.holder.loop(function(item, i) {					
 					item.y = item.start - r + (that.amount+r+r*2*1000000 + item.shift) % (r*2);
 					var delta = item.y - center;
-					var w = Math.sqrt(Math.pow(r,2) - Math.pow(delta,2)) * 2;				
+					var w = (Math.sqrt(Math.pow(r,2) - Math.pow(delta,2)) * 2) || 0;				
 					item.width = w;
 					var sh = zim.sign((height/2-item.y)) * Math.round(Math.pow((height/2-item.y), 2)/(10+900*(1-that.curve)));
 					item.mov(0,delta*heightFactor+sh);
@@ -47824,12 +47826,12 @@ zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve
 				that.holder.loop(function(item, i) {					
 					item.x = item.start - r + (that.amount+r+r*2*1000000 + item.shift) % (r*2);
 					var delta = item.x - center;
-					var h = Math.sqrt(Math.pow(r,2) - Math.pow(delta,2)) * 2;				
-					item.height = h;
+					var h = (Math.sqrt(Math.pow(r,2) - Math.pow(delta,2)) * 2) || 0;			
+					item.height = h;					
 					var sh = zim.sign((width/2-item.x)) * Math.round(Math.pow((width/2-item.x), 2)/(10+900*(1-that.curve)));
-					item.mov(delta*widthFactor+sh);
+					item.mov(delta*widthFactor+sh);					
 					item.height = constrain(item.height - (height-item.height)*heightFactor,0,100000);
-					item.visible = item.height>0;									
+					item.visible = item.height>0;					
 				});
 				that.holder.sortBy("height");
 			}
@@ -47837,7 +47839,7 @@ zim.Carousel3D = function(width, height, items, widthFactor, heightFactor, curve
 			var index = that.currentItem.dexIndex;
 			if (index != that.latestIndex) {
 				that.holder.loop(function(item,i,t) {	
-					if (interactive) {					
+					if (interactive) {				
 						if (item==that.currentItem) { 
 							item.mouseEnabled = true;
 							item.mouseChildren = true;
@@ -74111,6 +74113,18 @@ new MotionController({
 	type:"pressmove",
 	damp:.5, // pen has damp too so can up this number
 	speed:20
+});
+END EXAMPLE
+
+EXAMPLE
+// good setting for motion following cursor 
+// on mousedown or finger dragging on mobile
+const t = new Triangle(80,100,100).rot(90).center();
+const mc = new MotionController({
+	target:t,
+	type:"follow", 
+	orient:true,
+	offTime:.25
 });
 END EXAMPLE
 
