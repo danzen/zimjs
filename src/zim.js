@@ -55919,7 +55919,9 @@ hitTestPoint
 zim DisplayObject method
 
 DESCRIPTION
-See if shape of obj is hitting the global point x and y on the stage.
+Tests if shape of obj is hitting the global point x and y on the stage.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const circle = new Circle().loc(100,100).drag();
@@ -55970,7 +55972,9 @@ hitTestReg
 zim DisplayObject method
 
 DESCRIPTION
-See if the shape shape of an object is hitting the registration point of object (other).
+Tests if the shape shape of an object is hitting the registration point of object (other).
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const circle = new Circle(50, red).center().drag();
@@ -56019,6 +56023,8 @@ See if a shape of an object is hitting points on a rectangle of another object.
 The rectangle is based on the position, registration and bounds of object (other).
 num is how many points on the edge of the rectangle we test - default is 0.
 The four corners are always tested as well as the very middle of the rectangle.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const circle = new Circle(50, red).center().drag();
@@ -56115,7 +56121,9 @@ zim DisplayObject method
 DESCRIPTION
 Uses an equation to see if the bounds of a rectangular object is hitting a point x, y.
 This is faster than hitTests on shapes - so will have the speed of hitTestBounds, hitTestCircles and hitTestGrid.
-A margin parameter is provided to tweak the hitTest
+A margin parameter is provided to tweak the hitTest.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const rect = new Rectangle(50, 50, red).center().drag();
@@ -56158,8 +56166,10 @@ zim DisplayObject method
 DESCRIPTION
 See if the shape of an object is hitting points on a circle of another object.
 The circle is based on the position, registration and bounds of object (other).
-num is how many points around the circle we test - default is 8
+num is how many points around the circle we test - default is 8.
 Also checks center of circle hitting.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 var circle = new Circle(50, red).center().drag();
@@ -56241,9 +56251,11 @@ DO NOT use with a rotated rectangle object - for that use hitTestRect() or hitTe
 This is faster than hitTests on shapes - so will have the speed of hitTestBounds, hitTestCircles and hitTestGrid.
 The circle is based on a the object radius if there is one
 and if no radius then the average of the width and height divided by two.
-A margin parameter is provided to tweak the hitTest
-The rect is based on the bounds of the second object projected globally as a rectangle
-If the second object bounds are rotated, the global bounds will be bigger to keep parallel to the axes
+A margin parameter is provided to tweak the hitTest.
+The rect is based on the bounds of the second object projected globally as a rectangle.
+If the second object bounds are rotated, the global bounds will be bigger to keep parallel to the axes.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const ball = new Circle(50, red).center().drag();
@@ -56306,7 +56318,9 @@ Uses an equation to see if a circlular object is hitting a point x, y.
 This is faster than hitTests on shapes - so will have the speed of hitTestBounds, hitTestCircles and hitTestGrid.
 The circle is based on a the object radius if there is one
 and if no radius then the average of the width and height divided by two.
-A margin parameter is provided to tweak the hitTest
+A margin parameter is provided to tweak the hitTest.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const ball = new Circle(50, red).center().drag();
@@ -56358,7 +56372,9 @@ Uses an equation to see if two circles are intersecting.
 This is faster than hitTests on shapes - so will have the speed of hitTestBounds and hitTestGrid.
 The circles are based on the bounds of the two objects - it does not matter on which object the method is placed.
 If the bounds are not square then half the average length of the sides is used as the radius.
-A margin parameter is provided to tweak the hitTest
+A margin parameter is provided to tweak the hitTest.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const ball = new Circle(50, red).center().drag();
@@ -56414,6 +56430,8 @@ DESCRIPTION
 See if obj.getBounds() is hitting other.getBounds().
 Margin can be adjusted to tweak the hitTest.
 Pass in a boundsShape shape if you want a demonstration of where the bounds are.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const circle = new Circle(50, red).center().drag();
@@ -56472,8 +56490,11 @@ zim DisplayObject method
 
 DESCRIPTION
 See if the shape of an object is hitting points on a path of a Squiggle or Blob.
-num is how many points between each point on the path we test - default is 2
+num is how many points between each point on the path we test - default is 2.
+
 SEE: https://zimjs.com/hittestpath.html
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const path = new Blob().center();
@@ -56556,6 +56577,8 @@ DESCRIPTION
 Converts an x and y point to an index in a grid.
 If you have a grid of rectangles, for instance, use this to find out which rectangle is beneath the cursor.
 This technique will work faster than any of the other hit tests.
+
+NOTE: https://zimjs.com/tips.html#HITTEST for tips on Hit Tests
 
 EXAMPLE
 const tile = new Tile(new Rectangle(100,100),5,4,10,10).center();
@@ -74075,7 +74098,7 @@ dispatches a "swipestop" event when swipeup has happened and value has stopped c
 	//-69.5
 
 /*--
-zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime)
+zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle)
 
 MotionController
 zim class - extends a createjs EventDispatcher
@@ -74269,7 +74292,7 @@ METHODS
 pause(state, time) - state defaults to true and pauses the motionController (sets speed to 0)
 	set state to false to unpause the motionController (sets speed to speed before pausing)
 	set the time (default 0) to the seconds to take while slowing the motionController to 0 speed (also see ZIM TIME constant)
-immediate(x, y) - set the damping immediately to this value to avoid damping to value - returns object for chaining
+immediate(x, y, rotation) - set the damping immediately to this value to avoid damping to value - returns object for chaining
 convert(x, y) - for manual mode, pass in x and y and damping and rotation will be calculated
 dispose() - remove listeners and Ticker, Swiper and GamePad, where applicable
 
@@ -74313,8 +74336,8 @@ dispatches a "mousedown" event if type is "mousedown" or "pressmove"
 dispatches a "pressing" event if type is "pressmove" - note, this dispatches even if not moving
 dispatches a "moving" event if target is moving and "startmoving" and "stopmoving" events
 --*///+69.7
-	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime) {
-		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime";
+	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle) {
+		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle";
 		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
 		z_d("69.7");
 
@@ -74431,6 +74454,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		if (container && container.backing) this.mousedownIncludes.push(container.backing);
 		// this.mousedownExcludes = mousedownExcludes;
 		if (zot(dampKeyup)) dampKeyup = .3;
+		if (zot(startAngle)) startAngle = 0;
 
 		if (boundary && boundary.type!="Blob") {	
 			target.x = zim.constrain(target.x, boundary.x, boundary.x+boundary.width);
@@ -74824,6 +74848,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			speedY = trig.speedY;
 
 			if (!rotate) return;
+
 			if (!zot(trig.angle)) that.rotation = trig.angle+target.zimMCStartAngle;
 			if (zot(that.rotation)) {
 				that.rotation = that.target.rotation;
@@ -74845,6 +74870,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			that.dampR.immediate(oldR); // required otherwise damping equation has mind of its own
 			that.target.rotation = oldR; // make sure to set this again as we may have changed oldR for proper rotational direction when damped
 			that.rotation = newR;
+
 		}
 		function normalizeAngle(a) {
 			return (a % 360 + 360) % 360;
@@ -74906,7 +74932,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 
 		function makeKeyInterval() {
 
-			that.keyInterval = interval(time, function() {		
+			that.keyInterval = interval(time, function() {	
 				if (down && down[0]==0&&down[1]==0&&down[2]==0&down[3]==0) {
 					that.keyInterval.clear();
 					that.keyInterval = null;
@@ -74982,7 +75008,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		var mainTicker = zim.Ticker.add(function() {
 			if (tileObj) return;
 			if (target.draggingCheck) return;
-			if (type == "manual") calculate();
+			if (type == "manual" && !dPad) calculate();
 			if (that.boundary && that.boundary.type!="Blob") {				
 				that.x = zim.constrain(that.x, that.boundary.x, that.boundary.x+that.boundary.width);
 				that.y = zim.constrain(that.y, that.boundary.y, that.boundary.y+that.boundary.height);				
@@ -91065,33 +91091,38 @@ Note: there are more features to the Web Speech API - see the HTML docs
 			
 			var SpeechRecognition = WW.SpeechRecognition || WW.webkitSpeechRecognition;
 			var SpeechGrammarList = WW.SpeechGrammarList || WW.webkitSpeechGrammarList;
+			
+			var recognition;
+			var SpeechRecognitionEvent = WW.SpeechRecognitionEvent || WW.webkitSpeechRecognitionEvent;    
 			// this is causing an error on firefox even though they use this in their examples 
 			// and we have all the speech about:config setting set to true
-			var SpeechRecognitionEvent = WW.SpeechRecognitionEvent || WW.webkitSpeechRecognitionEvent;    
-			var recognition = this.recognition = new SpeechRecognition();
-			recognition.continuous = false;
-			recognition.lang = this.language = "en-US";
-			recognition.interimResults = true;
-			recognition.maxAlternatives = 1;
+			// so test for existence
+			if (typeof SpeechRecognition != "undefined") {
+				recognition = this.recognition = new SpeechRecognition();
+				recognition.continuous = false;
+				recognition.lang = this.language = "en-US";
+				recognition.interimResults = true;
+				recognition.maxAlternatives = 1;
 
-			recognition.addEventListener("result", function(e) {
-				var ev = new createjs.Event("result");
-				ev.words = e.results[0][0].transcript;
-				ev.confidence = e.results[0][0].confidence;
-				that.dispatchEvent(ev);
-			});
-			recognition.addEventListener("speechend", function(e) {
-				recognition.stop();
-				that.dispatchEvent(e);
-			});
-			recognition.addEventListener("error", function(e) {
-				that.dispatchEvent(e);
-			});		
+				recognition.addEventListener("result", function(e) {
+					var ev = new createjs.Event("result");
+					ev.words = e.results[0][0].transcript;
+					ev.confidence = e.results[0][0].confidence;
+					that.dispatchEvent(ev);
+				});
+				recognition.addEventListener("speechend", function(e) {
+					recognition.stop();
+					that.dispatchEvent(e);
+				});
+				recognition.addEventListener("error", function(e) {
+					that.dispatchEvent(e);
+				});		
+			}
 			
 		}
 
 		this.listen = function(interim, language) {
-			if (M=="ios") {zogy("not supported on iOS Web"); return this;}
+			if (M=="ios" || !recognition) {zogy("Speech recognition not supported - search how to activate"); return this;}
 			if (zot(interim)) interim = true;	
 			recognition.interimResults = this.interim = interim;		
 			if (zot(language)) recognition.lang = this.language;			
@@ -91113,7 +91144,10 @@ Note: there are more features to the Web Speech API - see the HTML docs
 			var sig = "text, voice, volume, lang, rate, pitch";
 			var duo; if (duo = zob(this.talk, arguments, sig)) return duo;
 
-			if (typeof speechSynthesis == "undefined") return;
+			if (typeof speechSynthesis == "undefined") {
+				zogy("Speech synthesis not supported - search how to activate");
+				return;
+			}
 			// https://wicg.github.io/speech-api
 			if (zot(text)) return;
 			var utter = new SpeechSynthesisUtterance();
@@ -91140,13 +91174,13 @@ Note: there are more features to the Web Speech API - see the HTML docs
 		}
 
 		this.stopTalking = function() {
-			if (speechSynthesis) speechSynthesis.cancel();
+			if (typeof speechSynthesis != "undefined") speechSynthesis.cancel();
 		}
 		this.pauseTalking = function() {
-			if (speechSynthesis) speechSynthesis.pause();
+			if (typeof speechSynthesis != "undefined") speechSynthesis.pause();
 		}
 		this.resumeTalking = function() {
-			if (speechSynthesis) speechSynthesis.resume();
+			if (typeof speechSynthesis != "undefined") speechSynthesis.resume();
 		}
 
 		this.getVoices = function() {   
