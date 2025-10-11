@@ -57012,6 +57012,7 @@ props - the object literal holding properties and values to animate
 		then this will be the last of the series to run
 		Note: color cannot be animated in a series - rather animate in a call function to accomplish a series of color changes
 		Note: a sequence cannot be seriesed and a series cannot be sequenced
+		Note: series with dot properties (like rotation.x for threejs) could have problems with from and set
 time - |ZIM VEE| (default 1) the time for the tween in seconds (also see ZIM TIME constant)
 	see also the rate parameter and property to dynamically change the time the animation takes (its speed)
 ease - |ZIM VEE| (default "quadInOut") the equation type for easing ("bounceOut", "elasticIn", "backInOut", "linear", etc)
@@ -57113,7 +57114,6 @@ protect - (default false) protects animation from being interrupted before finis
 override - (default true) subesequent tweens of any type on object cancel all earlier tweens on object
 	set to false to allow multiple tweens of same object
 from - |ZIM VEE| (default false) set to true to animate from obj properties to the current properties set on target
-	note that from is not supported with dot properties such as "rotation.x" with threejs (a difficult bug)
 set - |ZIM VEE| (default null) an object of properties to set on the target to start (but after the wait time)
 id - (default null) set to String to use with pauseAnimate(state, id) and stopAnimate(id) - thanks Sean Berwick for typo catch
 	series animate gets only one overall id - so no id per animation object
@@ -57387,7 +57387,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 
 		// handle setting value with dot property format
 		// (target, "rotation.x", 200) for instance
-		function setValue(what, prop, val) {			
+		function setValue(what, prop, val) {	
 			if (prop.substr(0,1) == ".") {
 				var dots = prop.split(".");
 				var lastdot = what;
@@ -57426,8 +57426,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// PREPARE ZIK RANDOM VALUES PASSED IN AS ARRAY OR RAND OBJECT {min, max, integer, negative}
 		var extraTypes = ["extra", "zoom", "speed", "layer", "fade"];
 		var extraLookup = {zoom:target.type=="Pen"?"size":"scale", speed:"percentSpeed", layer:"layer", fade:"alpha"};
-
-		
+	
 		if (target instanceof Array) {
 			if (sequenceReverse) target.reverse();
 			
@@ -57728,7 +57727,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				}
 
 				if (o.from) {
-					var firstFrom = froms.at(o.target);
+					var firstFrom = froms.at(o.target);					
 					if (firstFrom) {
 						if (o.set) {
 							// all properties from obj go to set
@@ -58184,11 +58183,12 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				target.zimLastObj[i] = rewind?target.zimTweenOriginals[i]:obj[i];
 			}
 		}
-
+		
 		function relativeSetAdjust() {
 			var newStart;
 			for (i in set) {
 				if (typeof set[i] == "string" && i != "transform") {
+					
 					if (i.substring && i.substring(0,1)==".") {
 						if (set[i].substr(0,1)=="+"||set[i].substr(0,1)=="-") continue; 
 					} else {
@@ -58376,14 +58376,13 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			delete obj.path;
 			obj.pathRatio = 1; // this is what we are animating to
 		}
-
-		// !!!!! fix for dot values
-
+		
 		// PREPARE START VALUES - now that pathRatio is set
 		// moved to prepareRelative
 		// if (from) obj = getFroms(target, obj, set, true);
 		var startObj = {} // for later getStart()
 		function getFroms(target, obj, set, update) {
+			
 			fromCheck = true;
 			// animating based on pathRatio - but API is percentComplete
 			// with from set, this causes problems - so add pathRatio equal to percentComplete to set
@@ -58396,9 +58395,17 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (set && !zot(set[i])) {
 					newObj[i] = set[i];
 				} else {
-					newObj[i] = target[i];
+					if (i.match(/\./)) { // handle dot props like threejs - patched ZIM 018
+						var bunch = i.split(/\./g);
+						newObj[i] = target[bunch[1]][bunch[2]];
+					} else {
+						newObj[i] = target[i];
+					}
 				}
-				if (update) target[i] = obj[i];
+				if (update) {
+					if (i.match(/\./)) target[bunch[1]][bunch[2]] = obj[i];
+					else target[i] = obj[i];
+				}				
 			}
 			return newObj;
 		}
@@ -59113,9 +59120,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			if (!startTest)	{
 				obj2 = getStart();				
 				startTest = true;				
-			} 
-			
-			if (target.set && !from) target.set(set);	
+			} 			
+			checkSets();
+			// if (target.set && !from) target.set(set);	
 			tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
 				.call(doStartCall)				
 				.to(obj, t, finalEase)				
@@ -59170,7 +59177,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			}
 		}
 		function tween2(lastTween) {
-			if (target.set && !from) {target.set(set);}
+			
+			checkSets();
+			// if (target.set && !from) {target.set(set);}
 			tween = target.zimTweens[id] =  target.zimTween = createjs.Tween.get(target, cjsProps)
 				.call(doStartCall)
 				.to(obj, t, finalEase)				
@@ -59263,6 +59272,26 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				prepareRelative2();	
 				tween2();
 			}			
+		}
+
+		function checkSets() {
+			if (!from) {
+				if (set) {
+					if (target.set) {
+						target.set(set);
+					} else {
+						if (target)
+						for (i in set) {
+							if (i.match(/\./)) { // handle dot props like threejs - patched ZIM 018
+								var bunch = i.split(/\./g);
+								target[bunch[0]][bunch[1]] = set[i];
+							} else {
+								target[i] = set[i];
+							}	
+						}
+					}					
+				}
+			}
 		}
 
 		function transferIds(lastTween, tween) {
@@ -86873,7 +86902,7 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 				note: this means the Bitmap will be interactive everywhere - not just in opaque areas
 				note: loading images this way will not count as progress (bytes loaded ratio) in the progress event but do count for fileloaded and complete events
 		asset can be a ZIM multi-asset object {assets:[], path:"dir/", loadTimeout:1, maxNum:num, noCORSonImage:true}
-			where the array can hold multiple files that will have the provided properties applied 
+			where the array can hold multiple files that will have the provided properties applied 			
 			this is handy for loading assets from multiple directories (added in ZIM Cat 02 - thanks Netanela for the prompting)
 			eg.
 			[
@@ -86918,6 +86947,8 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 				    ]
 				}}
 			See also previewAudioSprite() method in the META section of docs.
+			DO NOT put an audioSprite in a multi-assets object if there is another path defined - we hope to fix for ZIM 019
+				Instead, make the path for the audioSprite be the main path and put the other path in the multi-assets object
 	path - pass in an optional path String that gets prepended to the asset
 		when accessing the asset with the asset() method you do NOT include the path
 		assets with an absolute URL (http[s]://etc.) will ignore path
@@ -88028,6 +88059,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		// 018 TRYING TO FIX CREATEJS ERROR IF SOUND LOADED AGAIN - BUT BREAKS LAZY LOAD
 		// var emptyAssets = false;
 
+
 		for (i=0; i<assets.length; i++) {			
 			a = assets[i];	
 			// if (zim.assets[a]) {
@@ -88059,7 +88091,13 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 						fonts.push(aj);
 					} else if (zim.assetIDs[aj]) {
 						assetMulti.push({id:a.path+aj, src:a.path+aj, path:null, loadTimeout:a.loadTimeout, maxNum:a.maxNum, noCORSonImage:a.noCORSonImage});
-					} else {				
+					} else if (aj.audioSprite) {	
+						// ZIM 018 attempted patch for audioSprite not working in multi-assets object
+						// tried passing path but it substitutes it somewhere with the default path - boo
+						// so tried what was used with assetIDs above and it still does it.
+						// assetMulti.push({id:a.path+aj.src, src:a.path+aj.src, path:null, audioSprite:aj.audioSprite, data:aj.data, loadTimeout:a.loadTimeout, maxNum:a.maxNum, noCORSonImage:a.noCORSonImage});
+						assetMulti.push({id:aj.src, src:aj.src, path:aj.path, audioSprite:aj.audioSprite, data:aj.data, loadTimeout:a.loadTimeout, maxNum:a.maxNum, noCORSonImage:a.noCORSonImage});
+					} else {
 						assetMulti.push({id:aj, src:aj, path:a.path, loadTimeout:a.loadTimeout, maxNum:a.maxNum, noCORSonImage:a.noCORSonImage});
 					}
 				}
@@ -88093,7 +88131,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 						replacement.push({id:r[0], startTime:Math.round(r[1]*1000), duration:Math.round((r[2]-r[1])*1000)});
 					}
 					delete(obj.audioSprite); // the ZIM data
-					obj.data = {audioSprite:replacement}; // the CreateJS data
+					obj.data = {audioSprite:replacement}; // the CreateJS data					
 					manifest.push(obj);
 				} else if (a.data && a.data.audioSprite) { // CreateJS AudioSprite
 					obj = zim.copy(a);
@@ -88117,13 +88155,13 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 							found = url.match(/(.*?)([^/])\/[^/]/);								
 							url = found[1]+found[2];
 							a.src = url+a.path+a.src;
-						} else {
-							var pname = WW.location.pathname;
+						} else {							
+							var pname = WW.location.pathname;							
 							url = WW.location.href;
 							var fileOnly = url.split(pname)[0] + pname;
 							found = fileOnly.match(/(.*)\//);
 							a.path = a.path.replace(/^\.\//,"");
-							var goBack = a.path.match(/\.\.\//g);
+							var goBack = a.path.match(/\.\.\//g);s
 							var pref = found[1];
 							if (goBack) {
 								for (z_i=0; z_i<goBack.length; z_i++) {
@@ -88162,7 +88200,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 							queue.loadAssetsCount--;
 							if (queue.loadAssetsCount == 0) endAssetLoad();
 						}
-					} else {		
+					} else {	
 						zim.assetIDs[a.id] = a.src;
 						var mn = a.maxNum;
 						if (zot(mn)) mn = maxNum;
@@ -88197,7 +88235,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			if (soundCheck && firstSoundCheck) {
 				// dynamically make audio tag with sound to overcome some Apple devices not playing sounds
 				var audioTag = document.createElement("audio");
-				audioTag.setAttribute("src", ((!zot(path) && !a.match(/^http:\/\/|https:\/\//i))?path:"")+a);
+				audioTag.setAttribute("src", ((!zot(path) && !a.match(/^http:\/\/|https:\/\/|file:\/\//i))?path:"")+a);
 				document.body.appendChild(audioTag);
 				firstSoundCheck = false;
 			}
@@ -95951,6 +95989,10 @@ https://zimjs.com/015/textureactive_raw.html
 ZIM in VR
 https://zimjs.com/015/vr.html - use triggers (drag), sticks (motion) and b and y buttons (teleport)  
 
+ZIM Central
+Use ZIM in Frame scaling:FULL and ZIM Central() to match ZIM scaling with three.js fullscreen scaling
+https://zimjs.com/three/central.html
+
 Z-Dog is a quick alternative for three.js - here are a couple examples
 https://codepen.io/zimjs/pen/joXxGJ
 https://codepen.io/zimjs/pen/rgEEXy
@@ -95996,6 +96038,32 @@ const controls = new THREE.OrbitControls(three.camera, three.renderer.domElement
 const dial = new Dial({min:0, max:360, step:0, continuous:true}).pos(70,0,LEFT,CENTER).change(()=>{
 	mesh.rotation.y = dial.value*RAD;
 });
+END EXAMPLE
+
+EXAMPLE
+// use ZIM Central() to make a threejs-like full scale but centered experience
+new Frame({ready, color:yellow}); // use FULL mode (default)
+function ready() {
+    const three = new Three({
+        width:W, 
+        height:H, 
+        cameraPosition:new THREE.Vector3(-200,200,300),
+        colorManagement:true,
+        interactive:false,
+        full:true, // add full screen three.js
+        lay:OVER // or UNDER - see https://zimjs.com/three/central.html
+    });
+    const geometry = new THREE.BoxGeometry(100,100,100); 
+    const material = new THREE.MeshNormalMaterial();
+    const mesh = new THREE.Mesh(geometry, material);           
+    three.scene.add(mesh); 
+
+    const central = new Central().center();
+
+    new Slider({currentValue:5})
+        .pos(0,200,CENTER,CENTER,central)
+        .wire(mesh.rotation, "y");
+}
 END EXAMPLE
 
 PARAMETERS
