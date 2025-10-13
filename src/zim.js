@@ -56990,7 +56990,6 @@ props - the object literal holding properties and values to animate
 	DOT PROPERTIES: you can animate properties on properties using quotes:
 		Here is animate used as a function to animate a threejs mesh
 			animate(mesh, {"rotation.y":360*RAD}, 5000);
-			note that the from parameter is not currently supported with dot properties (difficult bug)
 	CSS PROPERTIES: animate can animate CSS properties
 		ZIM's CreateJS 1.3.2 has the CreateJS CSS Pluging installed
 		Set the css parameter to true and see the CSS parameter for more details
@@ -57253,10 +57252,11 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (target && (target.props || target.obj)) {
 			var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		}
-		if (target.type=="AC"&&WW.zdf) {WW.zdf.ac("animate", arguments); return target;}
+		
+		if (target && target.type && target.type=="AC" && WW.zdf) {WW.zdf.ac("animate", arguments); return target;}
 		if (!zim.animateCheck) {z_d("45"); zim.animateCheck=true;}
 
-		if (!target) return; // 10.9.0 ?
+		if (!target) target = {}; // ZIM 018 replacing: return; from 10.9.0 
 		var AN = zim.ANIMATE;
 		if (WW.ANIMATE != null) AN = WW.ANIMATE;
 		if (!AN) {
@@ -58395,15 +58395,16 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 				if (set && !zot(set[i])) {
 					newObj[i] = set[i];
 				} else {
-					if (i.match(/\./)) { // handle dot props like threejs - patched ZIM 018
-						var bunch = i.split(/\./g);
-						newObj[i] = target[bunch[1]][bunch[2]];
+					if (i.match(/\./)) { // handle dot props like threejs - patched ZIM 018						
+						var bunch = i.split(/\./g);						
+						if (bunch[0]=="") bunch.shift(); // sometimes has dot on front and sometimes not
+						newObj[i] = target[bunch[0]][bunch[1]];
 					} else {
 						newObj[i] = target[i];
 					}
 				}
 				if (update) {
-					if (i.match(/\./)) target[bunch[1]][bunch[2]] = obj[i];
+					if (i.match(/\./)) target[bunch[0]][bunch[1]] = obj[i];
 					else target[i] = obj[i];
 				}				
 			}
