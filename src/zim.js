@@ -14784,9 +14784,7 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
     if (preCall && typeof preCall=="function") preCall(program, gl, canvas);  // ZIM
     gl.useProgram(program);
     var vertexData = [];
-    if (postCall && typeof postCall=="function") {
-        postCall(program, gl, canvas, vertexData);   
-    }
+    if (postCall && typeof postCall=="function") postCall(program, gl, canvas, vertexData);  // ZIM
     
     if (strip) {
         if (vertexData.length == 0) vertexData = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0]; // two triangles strips
@@ -14835,8 +14833,7 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
             var mou = tether.globalToLocal(tether.stage.frame.mouseX, tether.stage.frame.mouseY);
             setUniform("4f", "iMouse", mou.x, height-mou.y, downCheck?1:0, clickCheck?1:0);
             clickCheck = false;
-        }          
-        
+        } 
         if (strip) gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         else gl.drawArrays(gl.TRIANGLES, 0, vertexData.length);
         
@@ -37024,7 +37021,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				selector.mouseEnabled = false;
 			});
 			this.selector = selector;
-		} else {
+		} else {			
 			selector = this.selector = new zim.Rectangle(targetW, targetH, zim.faint, zim.faint, borderWidth, corner, dashed, {ignoreScale:!resizeScale})
 				.centerReg(that);
 			selector.loc(tile.width/2, target.y+paddingV, that, behind?0:1);
@@ -66673,6 +66670,8 @@ note: the item is not the event object target - as that is the tile
 
 		that.spacingH = spacingHList[0];
 		that.spacingV = spacingVList[0];
+		if (zot(that.spacingH)) that.spacingH = spacingH;
+		if (zot(that.spacingV)) that.spacingV = spacingV;
 
 		// ~~~~~~~~~~~~~~~~~~~  GET ARRAY OF ITEMS  ~~~~~~~~~~~~~~~
 		// this list could be edited later and passed back into remake()
@@ -98173,7 +98172,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-
+if (zns) {
 	// these are global regardless
 	var globalsConstants = [
 		["FIT", zim.FIT],
@@ -98230,7 +98229,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 	for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 	}
-
+} else zimplify();
 
 WW.zim = zim;
 export default zim;
