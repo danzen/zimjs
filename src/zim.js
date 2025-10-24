@@ -1743,7 +1743,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							r = call(obj.item(i), i, total, start, end, obj, io);
 						}					
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -1780,7 +1780,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							r = call(obj.item(i), i, total, start, end, obj, io);
 						}
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -1814,7 +1814,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						
 						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -1835,7 +1835,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						
 						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -2148,8 +2148,8 @@ pauseTimeLeft - if paused, get how much time is left once unpaused
 			obj.paused = state;
 		};
 		obj.next = function() {
-			obj.count++;
-			(call)(obj);
+			obj.count++;				
+			(call)(obj);	
 			checkTotal();
 		};
 		obj.clear = function() {
@@ -30553,7 +30553,7 @@ var layer = new Layer().center();
 timeout(100, function(){zog(layer.transformControls);}); // will probably do the trick
 The transformControls property holds the following:
 
-TRANSFORM CONTROL OBJECT PROPERTIES
+TRANSFORM CONTROLS OBJECT PROPERTIES
 visible - read only whether the controls are visible
 ghost - read only as to whether the ghost outline is showing - set with showGhost and hideGhost
 ghostEnabled - read only as to whether the ghost outline will be turned on and off - set with addGhost and removeGhost
@@ -30562,7 +30562,7 @@ stretchXControls - reference to the Container that holds the left and right boxe
 stretchYControls - reference to the Container that holds the top and bottom boxes for stretching
 rotateControls - reference to the Container that holds the outer circles for rotating
 
-TRANSFORM CONTROL OBJECT METHODS
+TRANSFORM CONTROLS OBJECT METHODS
 hide() - hides the controls - returns object for chaining
 show() - shows the controls - returns object for chaining
 recordData(toJSON) - returns an object with type, x, y, scaleX, scaleY, rotation, skewX, skewY, visible PROPERTIES
@@ -60594,7 +60594,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 	zim.loop = function(obj, call, reverse, interval, step, start, end, immediate, complete, completeParams) {
 		var sig = "obj, call, reverse, interval, step, start, end, immediate, complete, completeParams";
 		var duo; if (duo = zob(zim.loop, arguments, sig)) return duo;
-		
+
 		if (!zim.zimLoopCheck) z_d("45.3");
 		zim.zimLoopCheck = true;
 		if (zot(obj) || zot(call)) return undefined;
@@ -60653,7 +60653,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							r = call(obj.item(i), i, total, start, end, obj, io);
 						}					
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -60690,7 +60690,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 							r = call(obj.item(i), i, total, start, end, obj, io);
 						}
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -60724,7 +60724,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						
 						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -60745,7 +60745,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						
 						r = call(props[i], obj[props[i]], i, total, start, end, obj, io);
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -60765,7 +60765,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (typeof r != 'undefined' && r != "next") return r;
 					}
 				} else {
-					zim.interval(interval, function(io) {
+					zim.interval(interval, function(io) {						
 						i = io.count;
 						if (!immediate) i--;
 						if (step) i *= step;
@@ -60773,7 +60773,7 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						
 						r = call(obj.getChildAt(i), i, total, start, end, obj, io);
 						
-						if (r == 'next') io.next();
+						if (r == 'next' && i < total-1) io.next();
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -60792,9 +60792,8 @@ RETURNS any value returned from the loop - or true if no value is returned from 
 						if (!immediate) i--;
 						if (step != 1) i = -start + i*step;
 						
-						r = call(obj.getChildAt(i), i, total, start, end, obj, io);
-						
-						if (r == 'next') io.next();
+						r = call(obj.getChildAt(i), i, total, start, end, obj, io);					
+						if (r == 'next' && i < total-1) io.next();	
 						else if (typeof r != 'undefined') {
 							io.clear();
 							return r;
@@ -90708,12 +90707,12 @@ SVG will give a "ready" and a "complete" event when loaded.
 These events are triggered 20 ms after making the object if the object is already preloaded.
 
 NOTE: SVG is a container with a bitmap inside (see bitmap property)
-or if the bitmap option is not selected there are other shapes inside.
+or if the bitmap option is not selected there are various shapes inside.
 This means that other objects can be added to the SVG object.
 This is like the ZIM Shapes (Rectangle, Circle, etc.) which are containers and can have objects added to them.
-If doing this, note that the container has its mouseChildren may be turned off
+If doing this, note that the container has its mouseChildren turned off
 so when dragging, for instance, the whole SVG moves rather than the bitmap inside the SVG.
-To interact with objects inside, set pic.mouseChildren = true.
+To interact with objects inside, set mySVG.mouseChildren = true.
 Generally, for clarity, avoid adding objects to Shapes, Pics SVGs unless you are used to the mouseChildren setting.
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
@@ -98172,7 +98171,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
   WW[pair[0]] = zim[pair[0]] = pair[1];
 }
 
-if (zns) {
+
 	// these are global regardless
 	var globalsConstants = [
 		["FIT", zim.FIT],
@@ -98229,7 +98228,7 @@ if (zns) {
 	for (z_i = 0; z_i < zim.colors.length; z_i++) {
 		WW[zim.colors[z_i]] = zim.colorsHex[z_i];
 	}
-} else zimplify();
+
 
 WW.zim = zim;
 export default zim;
