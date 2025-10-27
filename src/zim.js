@@ -9317,6 +9317,7 @@ Used internally by ZIM to globally dispose common connections
 	        if (c.getContext) c.getContext("2d").clearRect(0,0,1,1);
 			delete obj.z_bc;
 		}
+		if (obj.cacheCanvas) obj.uncache();
 		if (zim.KEYFOCUS == obj) zim.KEYFOCUS = null;
 		if (WW.KEYFOCUS == obj) WW.KEYFOCUS = null;		
 		if (obj.veeObj) obj.veeObj = null;
@@ -52042,7 +52043,7 @@ END EXAMPLE
 
 PARAMETERS supports DUO - parameters or single object with properties below
 boundary - (default null) a ZIM Boundary object for the drag boundary
- 	or a ZIM DisplayObject including stage
+	or a ZIM DisplayObject including stage
 		If the boundary is a display object then ZIM will keep the shape of the dragged object inside the bounds.
 		If the boundary object is a Blob then the dragged object will stay within the Blob (experimental).
 		If the boundary object is a Circle then the registration point of the dragged object will stay within the circle
@@ -52088,7 +52089,7 @@ rect - (depreciated) same as boundary - kept for backwards compatibility when us
 currentTarget - (default false) same as the all parameter - kept for backwards compatibility when using config object
 offStage - (default false) set to true to be able to drag object off stage (thanks Shammi!)
 immediateBoundary - (default false) set to true to add bounds immediately when drag() is set on a Container.
- 	this is normally set to false for a .05 second delay to allow objects to be added to Container before setting bounds.
+	this is normally set to false for a .05 second delay to allow objects to be added to Container before setting bounds.
 singleTouch - (default false) set to true to let only one touch operate the drag 
 	also see Frame() singleTouch setting - but setting on drag will only affect that object's drag
 dropTargets - an object or an array of objects that can receive a drop
@@ -52672,7 +52673,7 @@ RETURNS obj for chaining
 				// if (dampY) dampY.immediate(0);
 
 			} else {
-                obj.downCheck = false; // added ZIM NFT 01
+				obj.downCheck = false; // added ZIM NFT 01
 				var pointerCount = 0;
 				for (var o in obj.pointers) {
 					pointerCount++;
@@ -56881,7 +56882,12 @@ PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
    Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
-
+** supports OCT - parameter defaults can be set with STYLE control (like CSS) 
+	NOTE: can target parameters in general like 
+		STYLE = {loop:true};
+	to target animate specifically use 
+		STYLE = {Animate:{loop:true}};
+	NOT STYLE = {animate:{loop:true}} as lowercase animate conflicts with setting a animate convenience style
 props - the object literal holding properties and values to animate
 	Basic examples: {x:200} or {rotation:360, alpha:0} or {scale:4} or {x:300, y:300, scale:"2"} (relative scale)
 	There are custom options below including Convenience, ZIM VEE, Relative, and Series properties.
@@ -57253,6 +57259,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		if (target && target.type && target.type=="AC" && WW.zdf) {WW.zdf.ac("animate", arguments); return target;}
 		if (!zim.animateCheck) {z_d("45"); zim.animateCheck=true;}
 
+
 		if (!target) target = {}; // ZIM 018 replacing: return; from 10.9.0 
 		var AN = zim.ANIMATE;
 		if (WW.ANIMATE != null) AN = WW.ANIMATE;
@@ -57512,7 +57519,7 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 		// ANIMATION SERIES HANDLING
 		// if an array is passed in to animate() as the obj
 		// then animate treats this as an animation series
-		// [{target:circle, obj:{alpha:0}, time:1}, {target:rect, obj:{alpha:0}, time:1},]
+		// [{target:circle, obj:{alpha:0}, time:1}, {target:rect, obj:{alpha:0}, time:1}]
 
 		if (obj instanceof Array) {
 			currentCount = 1;
@@ -61710,9 +61717,9 @@ zim constant and static Class
 Also GLOBALSTYLE zim constant
 
 DESCRIPTION
-STYLE can be used to set any parameter on a DisplayObject and many of the Controls.
-For instance: Circle, Blob, Button, Pane, Bitmap, Sprite, Tile, Pen, Emitter, Scroller, etc.
-These are applied at the time the objects are made.
+STYLE can be used to set any parameter on a DisplayObject, many of the Controls, and some methods.
+For instance: Circle, Blob, Button, Pane, Bitmap, Sprite, Tile, Pen, Emitter, Scroller, drag, animate, etc.
+These are applied at the time the objects are made or method called.
 They are cascading with each level overriding the previous level:
 
 1. GENERAL: any style can be specified in general
@@ -61748,6 +61755,9 @@ STYLE = {big:{width:500}} // will be automatically converted to STYLE = {group:{
 
 NOTE: As of ZIM 016, group styles for an object will be used even if style for the object is set to false
 this will ignore all styles except those made by a group
+
+NOTE: As of ZIM 019, animate() and drag() can be styled.  
+If the object type is used to target these, use Animate and Drag to avoid conflicting with convenience styles of animate and drag 
 
 EXAMPLE
 STYLE = {
