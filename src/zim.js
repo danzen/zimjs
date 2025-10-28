@@ -29252,8 +29252,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							hitArea.y = -content.y;
 						}
 						content.x = hscrollBar.proportion.convert(hscrollBar.x);
-						if (!damp) desiredX = that.scrollX;
-						testContent();
+						if (!damp) {
+							desiredX = that.scrollX;
+							testContent();
+						}
 					});
 				}
 			}
@@ -29284,12 +29286,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							hitArea.x = -content.x;
 							hitArea.y = -content.y;
 						}
-						if (damp) desiredY = vscrollBar.proportion.convert(vscrollBar.y);
-						else {
+						if (damp) {
+							desiredY = vscrollBar.proportion.convert(vscrollBar.y);
+							testContent();
+						} else {
 							content.y = vscrollBar.proportion.convert(vscrollBar.y);
 							desiredY = that.scrollY;
 						}
-						testContent();
+						
 					});
 				}
 			}
@@ -29313,7 +29317,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			clearTimeout(that.dTimeout);
 			that.dTimeout = setTimeout(function(){setdragBoundary();}, 300);
 			setdragBoundary();
-			testContent();
+			if (!damp) testContent();
 		};
 
 		this.doResize = function(w, h) {
@@ -29683,7 +29687,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}
 
 		function testContent() {
-			if (!that.optimize) return;
+			if (!that.optimize) return;			
 			stage = that.stage;
 			content.loop(function(item) {
 				// ADJUSTED ZIM 016 - look into how we can optimize a wrapper and keep scrollbars the right size
@@ -29699,8 +29703,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			});
 		}
 
-		function movescrollBars() {
-			testContent();			
+		function movescrollBars(noTest) {			
+			if (!noTest) testContent();	
 			that.dispatchEvent("scrolling");
 			if (hitArea) {
 				// move hitarea to display box
@@ -29921,7 +29925,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					}		
 				}		
 			}	
-			if (optimize) {
+			if (optimize && !damp) {
 				testContent();
 			}		
 		}
@@ -29931,13 +29935,14 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			WW.addEventListener("DOMMouseScroll", that.scrollWindow);
 		}
 		var dampCheck = false;
-		var dampY;		
+		var dampY;	
+		if (damp) {scrollBarDown = true; desiredY = .01;} // Patched ZIM 018
 		function makeDamp(obj) {	
 			if (damp && !dampCheck && obj.stage) {
 				dampCheck = true;
 				dampY = new zim.Damp(that.scrollY, damp);
 				that.dampTicker = zim.Ticker.add(function() {	
-					if (swipeCheck) return;
+					if (swipeCheck) return;					
 					if ( // need to kickstart damping but still stop updating when damping ends
 						that.scrollY!=null && desiredY!=null 
 						&& that.scrollY != desiredY // let the damping start
@@ -29946,10 +29951,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						scrollBarDown = false;
 						return;
 					}
-					// if (!zot(desiredY)) that.scrollY = dampY.convert(desiredY);	
 					if (!zot(desiredY)) content.y = dampY.convert(desiredY);	
-					if (!scrollBarDown) movescrollBars();
-									
+					if (!scrollBarDown) movescrollBars(true);
+					testContent();		
 				}, obj.stage);
 			}
 		}
@@ -29968,6 +29972,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					clearTimeout(that.dTimeout);
 					zim.noDrag(content);
 				} else {
+					swipeCheck = false;
 					setDrag();
 				}
 				if (that.blinker) {
