@@ -29971,9 +29971,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (!value) {
 					clearTimeout(that.dTimeout);
 					zim.noDrag(content);
+					stageUp();
 				} else {
 					swipeCheck = false;
-					setDrag();
+					setDrag();					
 				}
 				if (that.blinker) {
 					if (!value) {
