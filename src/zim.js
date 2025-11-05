@@ -9319,7 +9319,10 @@ Used internally by ZIM to globally dispose common connections
 		}
 		if (obj.cacheCanvas) obj.uncache();
 		if (zim.KEYFOCUS == obj) zim.KEYFOCUS = null;
-		if (WW.KEYFOCUS == obj) WW.KEYFOCUS = null;		
+		if (WW.KEYFOCUS == obj) WW.KEYFOCUS = null;	
+		if (obj.stage && obj.stage.frame) obj.stage.frame.cursorList.remove(obj);
+		else if (zdf) zdf.cursorList.remove(obj);
+		if (obj.zimMask) obj.setMask(null);
 		if (obj.veeObj) obj.veeObj = null;
 		if (obj.draggable) obj.noDrag();
 		if (obj.zimTweens) obj.stopAnimate();
@@ -9332,7 +9335,9 @@ Used internally by ZIM to globally dispose common connections
 		if (obj.zimClickUpEvent) obj.zimClickUpEvent = null;
 		if (obj.physics) obj.removePhysics();
 		if (obj.name && zim.zimObjectIDs[obj.name] == obj) delete zim.zimObjectIDs[obj.name];
-	}		
+	}	
+	
+
 	//-50.435
 
 /*--
@@ -29287,11 +29292,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							hitArea.y = -content.y;
 						}
 						if (damp) {
-							desiredY = vscrollBar.proportion.convert(vscrollBar.y);
-							testContent();
+							desiredY = vscrollBar.proportion.convert(vscrollBar.y);											
 						} else {
 							content.y = vscrollBar.proportion.convert(vscrollBar.y);
 							desiredY = that.scrollY;
+							testContent();							
 						}
 						
 					});
@@ -29658,7 +29663,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return that;
 		};
 
-		function setdragBoundary(on) {
+		function setdragBoundary(on) {		
 			if (continuous) return;
 			if (zot(stage)) stage = that.stage || WW.zdf.stage;
 			if (zot(on)) on = true;
@@ -29723,7 +29728,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			if (zot(delay)) delay = 100;
 			makeDamp(that);
 			if (!swipe) return;
-			setTimeout(function(){	
+			setTimeout(function(){
 				if (!that.enabled) return;	
 				if (content) {
 					zim.drag({
@@ -29970,9 +29975,27 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			set: function(value) {
 				if (!value) {
 					clearTimeout(that.dTimeout);
+					if (vEvent) {
+						vscrollBar.off("pressmove", vEvent);
+						vscrollBar.dragPaused = true;
+					}
+					if (hEvent) {
+						hscrollBar.off("pressmove", hEvent);	
+						hscrollBar.dragPaused = true;
+					}
 					zim.noDrag(content);
-					stageUp();
+					setTimeout(function(){				
+						stageUp();	
+					},50);					
 				} else {
+					if (vEvent) {
+						vEvent = vscrollBar.on("pressmove", vEvent);	
+						vscrollBar.dragPaused = false;
+					}
+					if (hEvent) {
+						hEvent = hscrollBar.on("pressmove", hEvent);	
+						hscrollBar.dragPaused = false;
+					}
 					swipeCheck = false;
 					setDrag();					
 				}
@@ -83194,6 +83217,28 @@ pen.animate({
 END EXAMPLE
 
 EXAMPLE 
+// Drawing inside an area
+// https://zimjs.com/zapp/Z_NSS5X
+
+const holder = new Rectangle({width:400, height:200, corner:50}).center();
+// so when adding pen to holder, we can interact with it 
+holder.mouseChildren = true;
+
+const pen = new Pen({
+	size:12,
+	color:red,
+	cropScale:2
+}).addTo(holder); // add to holder so mousedown of MotionController is only on holder
+pen.paper.setMask(holder.shape); // shape inside to keep mask right
+
+const motionController = new MotionController({
+	target:pen,
+	type:"pressmove",
+	container:holder
+});
+END EXAMPLE
+
+EXAMPLE 
 // A Pen used on two different Pages with ZIM Pages
 // See https://zimjs.com/zapp/Z_VKB33
 
@@ -93206,7 +93251,6 @@ and a "tabfocus" event to the ZIM Default Frame when focused
 
 zim.setBlurDetect = function() {
 	z_d("83.36");
-	
 	zim.blurCheck = true;
 	zim.pauseAnimateOnBlur = true;
 	zim.pauseOnBlur = [];
