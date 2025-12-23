@@ -72,6 +72,7 @@ declare global {
 	var END: string
 	var TOP: string
 	var BOTTOM: string
+	var BOT: string
 	var HORIZONTAL: string
 	var VERTICAL: string
 	var BOTH: string
@@ -179,13 +180,14 @@ declare namespace zim {
 		effect(effect: createjs.Filter, x?: number, y?: number, width?: number, height?: number): this
 		updateEffects(): this
 		noEffect(effects?: string, cache?: boolean): this
-		wire(config_or_target: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string): this
-		wire(config: { target: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string }): this
-		noWire(config_or_target: DisplayObject, prop?: string, input?: string): this
-		noWire(config: { target: DisplayObject, prop?: string, input?: string }): this
-		wired(config_or_source: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string): this
-		wired(config: { source: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string }): this
-		noWired(): this
+		wire(config_or_target: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string, mID?: string): this
+		wire(config: { target: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string, mID?: string }): this
+		noWire(config_or_target: DisplayObject, prop?: string, input?: string, mID?: string): this
+		noWire(config: { target: DisplayObject, prop?: string, input?: string, mID?: string }): this
+		wired(config_or_source: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string, mID?: string): this
+		wired(config: { source: DisplayObject, prop: string, twoWay?: boolean, setSource?: boolean, filter?: Function, call?: Function, input?: string, mID?: string }): this
+		noWired(config_or_source: DisplayObject, prop?: string, input?: string, mID?: string): this
+		noWired(config: { source: DisplayObject, prop?: string, input?: string, mID?: string }): this
 		bind(config_or_id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind): this
 		bind(config: { id: string, props?: [any] | {} | string, extra?: string | number, filter?: Function, bindObj?: Bind }): this
 		noBind(config_or_props?: [any] | {} | string, removeConnectionData?: boolean, call?: Function, bindObj?: Bind): this
@@ -260,7 +262,7 @@ declare namespace zim {
 		sca(scale: number, scaleY?: number): this
 		scaleTo(boundObj?: DisplayObject, percentX?: number, percentY?: number, type?: string, boundsOnly?: boolean): this
 		fit(left?: number, top?: number, width?: number, height?: number, inside?: boolean): {}
-		outline(color?: color, size?: number): this
+		outline(color?: color, size?: number, boundsOnly?: boolean, reg?: boolean, origin?: boolean, whiteSize?: number): this
 		addTo(config_or_container?: Container | Stage, index?: number, localToLocal?: boolean): this
 		addTo(config: { container?: Container | Stage, index?: number, localToLocal?: boolean }): this
 		removeFrom(container?: Container | Stage): this
@@ -377,6 +379,7 @@ declare namespace zim {
 		setData(data: string | { x: number, y: number, points: any[][], color: color, borderColor: color, borderWidth: number, move: boolean, toggle: boolean, controls: boolean }, fromJSON?: boolean): this
 		recordPoints(popup: boolean): any[][]
 		setPoints(data: any[][]): this
+        selectPoint(index: number, state?: boolean, multiple?: boolean): this
 		changeControl(config_or_index: number, type?: string, rect1X?: number, rect1Y?: number, rect2X?: number, rect2Y?: number, circleX?: number, circleY?: number, update?: boolean): this
 		changeControl(config: { index: number, type?: string, rect1X?: number, rect1Y?: number, rect2X?: number, rect2Y?: number, circleX?: number, circleY?: number, update?: boolean }): this
 		transformPoints(transformType: string, amount: number, x?: number, y?: number): this
@@ -402,6 +405,10 @@ declare namespace zim {
 		readonly sticks: Container
 		readonly lastSelected: Container
 		readonly lastSelectedIndex: number
+        readonly selectionManager: SelectionManager
+        readonly selectedBalls: SelectionSet
+        readonly selectedRect1s: SelectionSet
+        readonly selectedRect2s: SelectionSet
 		controlsVisible: boolean
 		types: string[]
 		lockControls: boolean
@@ -542,7 +549,7 @@ declare namespace zim {
 	export function getTIME(time?: number, timeType?: string, minWarning?: number, maxWarning?: number, noWarning?: boolean): string
 	export function checkTIME(time?: number, timeChar?: string, minWarning?: number, maxWarning?: number): void
 	export function timeout(time: number | zimVee, call: Function): { pause: Function, clear: Function, time: number, paused: boolean, done: boolean }
-	export function interval(time: number | zimVee, call: Function, total?: number, immediate?: boolean, pauseOnBlur?: boolean, timeUnit?: string, complete?: Function, completeParams?: any): { pause: Function, clear: Function, time: number, count: number, total: number, paused: boolean, pauseTimeLeft: number }
+	export function interval(time: number | zimVee, call: Function, total?: number, immediate?: boolean, pauseOnBlur?: boolean, timeUnit?: string, complete?: Function, completeParams?: any, timeout?: boolean, mID?: string, tether?: any): { pause: Function, clear: Function, time: number, count: number, total: number, paused: boolean, pauseTimeLeft: number }
 	export function copy<T>(obj: T, clone?: boolean): T
 	export function arraysEqual(a: [any], b: [any], strict?: boolean): boolean
 	export function arrayMinMax(arr: [any]): {}
@@ -693,6 +700,7 @@ declare namespace zim {
 	export function toAlpha(color: string, ratio?: number): void
 	export function toBW(hex: string): string
 	export function invertColor(hex: string): string
+	export function syntaxColor(text: string, theme?: string, darken?: number): string
 	export function zimEase(points: [any], polynomials?: [any], reverse?: boolean, lockEnds?: boolean): Function
 	export function spline(points: [any], tension?: number, close?: boolean, shape?: Shape, removeLast?: boolean): string
 	export function getPointAtPercent(x1?:number, y1?:number, x2?:number, y2?:number, percent?:number): Point
@@ -1981,6 +1989,7 @@ declare namespace zim {
 		recordPoints(popup: boolean): any[][]
 		getPoints(popup: boolean): any[][]
 		setPoints(data: any[][]): this
+        selectPoint(index: number, state?: boolean, multiple?: boolean): this
 		changeControl(config_or_index: number, type?: string, rect1X?: number, rect1Y?: number, rect2X?: number, rect2Y?: number, circleX?: number, circleY?: number, update?: boolean): this
 		changeControl(config: { index: number, type?: string, rect1X?: number, rect1Y?: number, rect2X?: number, rect2Y?: number, circleX?: number, circleY?: number, update?: boolean }): this
 		transformPoints(transformType: string, amount: number, x?: number, y?: number): this
@@ -1998,6 +2007,8 @@ declare namespace zim {
 		points: any[]
 		pointsAdjusted: any[]
 		pointObjects: any[]
+        addPointFactor: number
+		addMinDistance: number
 		readonly segmentPoints: any[]
 		readonly segmentRatios: any[]
 		getPointAngle(index: number): number
@@ -2013,9 +2024,16 @@ declare namespace zim {
 		lockControlType: boolean
 		allowToggle: boolean
 		move: boolean
+        onTop: boolean
+        selectedPoints: boolean
+        readonly selectionManager: SelectionManager
+        readonly selectedBalls: SelectionSet
+        readonly selectedRect1s: SelectionSet
+        readonly selectedRect2s: SelectionSet
+        interactive: boolean 
+        keyFocus: boolean 
+        veeObj: {}
 		ctrlclick: boolean
-		addPointFactor: number
-		addMinDistance: number
 	}
 	// ZIM Blob is only available in the module using the zim namespace
 
@@ -2199,6 +2217,7 @@ declare namespace zim {
 		color: color
 		rollColor: color
 		rollPersist: boolean
+        borderWidth: number
 		borderColor: color
 		borderRollColor: color
 		hitPadding: number
@@ -2292,7 +2311,7 @@ declare namespace zim {
 		nextPanel(index?: number, event?: boolean): this
 		collapsed: boolean
 		readonly titleBar: Rectangle
-		readonly label: Label
+		readonly titleBarLabel: Label
 		readonly text: string
 		readonly arrow: Shape
 		readonly content: {} | DisplayObject
@@ -2837,19 +2856,20 @@ declare namespace zim {
 		readonly orgItem: string | DisplayObject
 		readonly orgType: string
 		readonly removedItem: DisplayObject
-	}
-	export class Scrambler extends Container implements zimComponent {
-		constructor(config_or_tile?: Tile, keys?: [any], keyProperty?: string, scramble?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, swap?: boolean, swapLock?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { tile?: Tile, keys?: [any], keyProperty?: string, scramble?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, swap?: boolean, swapLock?: boolean, style?: boolean, group?: string, inherit?: {} })
+	}	
+    export class Shuffler extends Container implements zimComponent {
+		constructor(config_or_tile?: Tile, spacing?: number, offset?: number, vertical?: boolean, formatObj?: {}, damp?: number, keys?: [any], keyProperty?: string, shuffle?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, cache?: boolean, offsetOne?: number, offsetTwo?: number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { tile?: Tile, spacing?: number, offset?: number, vertical?: boolean, formatObj?: {}, damp?: number, keys?: [any], keyProperty?: string, shuffle?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, cache?: boolean, offsetOne?: number, offsetTwo?: number, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
 		// END ZIM Component Interface
-		scramble(time?: number, wait?: number, num?: number): this
+		shuffle(time?: number, wait?: number, num?: number): this
 		solve(time?: number, wait?: number, disable?: boolean): this
 		test(): this
 		update(): this
 		testItem(item: DisplayObject, index?: number): this
+		format(formatObj: {}): this
 		readonly tile: Tile
 		readonly complete: boolean
 		readonly starts: [number]
@@ -3033,17 +3053,19 @@ declare namespace zim {
 	export var POSREG: boolean
 	export var DRAGALL: boolean
 	export var Ticker: {
-		always: (stage?: Stage) => void,
+		always: (stage?: Stage, mID?: string, tether?: any) => void,
 		alwaysOff: (stage?: Stage) => void,
-		add: (f: Function, stage?: Stage) => void,
-		remove: (f: Function) => void,
-		removeAll: (stage?: Stage) => void,
+		add: (f: Function, stage?: Stage, mID?: string, tether?: any) => void,
+		addWire: (obj:DisplayObject, data?: [], mID?: string) => DisplayObject,
+		remove: (f: Function, mID?: string, tether?: any) => void,
+		removeWire: (obj?: DisplayObject, target?: DisplayObject, prop?: string, mID?: string, tether?: any) => void,
+		removeAll: (stage?: Stage, mID?: string, tether?: any) => void,
 		has: (f: Function, stage?: Stage) => boolean,
 		setFPS: (mobile?: Function, pc?: Stage) => void,
 		setTimingMode: (mode?: string) => void,
-		raw: (f: Function) => void,
-		removeRaw: (id: any) => void,
-		dispose: (stage?: Stage) => void,
+		raw: (f: Function, mID?: string, tether?: any) => void,
+		removeRaw: (id: any, mID?: string, tether?: any) => void,
+		dispose: (stage?: Stage, mID?: string, tether?: any) => void,
 		update: boolean,
 		list: Dictionary,
 		framerate: number,
@@ -3220,8 +3242,8 @@ declare namespace zim {
 		constructor()
 	}
 	export class Grid extends Container {
-		constructor(config_or_obj?: Stage | Container, color?: color, percent?: boolean, hideKey?: string, pixelKey?: string, allowToggle?: boolean, cache?: boolean, numbers?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { obj?: Stage | Container, color?: color, percent?: boolean, hideKey?: string, pixelKey?: string, allowToggle?: boolean, cache?: boolean, numbers?: boolean, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_obj?: Stage | Container, color?: color, percent?: boolean, hideKey?: string, pixelKey?: string, allowToggle?: boolean, cache?: boolean, numbers?: boolean, mouseOutside?: boolean, cross?: boolean, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { obj?: Stage | Container, color?: color, percent?: boolean, hideKey?: string, pixelKey?: string, allowToggle?: boolean, cache?: boolean, numbers?: boolean, mouseOutside?: boolean, cross?: boolean, style?: boolean, group?: string, inherit?: {} })
 		resize(): void
 		readonly type: string
 		pixels: boolean
@@ -3267,6 +3289,7 @@ declare namespace zim {
 		readonly type: string
 		sets: [SelectionSet]
 		multipleKey: string
+        enabled: boolean
 		readonly multiple: boolean
 		readonly ctrlKey: boolean
 		readonly shiftKey: boolean
@@ -3469,6 +3492,33 @@ declare namespace zim {
 		amountFactor: number
 		blur: number
 		blurFactor: number
+	}
+    export class Perspective extends Container {
+		constructor(config_or_obj?: DisplayObject|zimVee, points?: [{x:number,y:number}]|Point, interactive?: boolean, showControls?: boolean, allowToggle?: boolean, move?: boolean, borderColor?: color|zimVee, borderWidth?: number|zimVee, dashed?: number|[number]|zimVee, plane?: boolean, fade?: boolean, dynamic?: boolean, frame?: Frame, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { obj?: DisplayObject|zimVee, points?: [{x:number,y:number}]|Point, interactive?: boolean, showControls?: boolean, allowToggle?: boolean, move?: boolean, borderColor?: color|zimVee, borderWidth?: number|zimVee, dashed?: number|[number]|zimVee, plane?: boolean, fade?: boolean, dynamic?: boolean, frame?: Frame, style?: boolean, group?: string, inherit?: {} })
+        selectCorner(index?: number, state?: boolean): Circle
+        selectSide(index?: number, state?: boolean): Circle
+        updateCorner(controlObj?: Circle, refresh?: boolean): Circle
+        updateSide(controlObj?: Circle, refresh?: boolean): Circle 
+        update(): void
+        toggle(state?: boolean): this     
+        deselectPoints(): this        
+        obj:DisplayObject
+        readonly blob:Blob
+        readonly sides:Container
+        readonly shader:Shader
+        readonly uniforms:Uniforms
+        toggled:boolean
+	}
+     export class Glitch extends Container {
+		constructor(config_or_obj?: DisplayObject, glitchType?: string, alpha?: number, timeOn?: number, timeOff?: number, variance?: number, strength?: number, modifier?: number, noise?: DisplayObject, margin?: number, marginH?: number, marginV?: number, onFirst?: boolean, blendMode?: string, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { obj?: DisplayObject, glitchType?: string, alpha?: number, timeOn?: number, timeOff?: number, variance?: number, strength?: number, modifier?: number, noise?: DisplayObject, margin?: number, marginH?: number, marginV?: number, onFirst?: boolean, blendMode?: string, style?: boolean, group?: string, inherit?: {} })
+        obj: DisplayObject
+        glitchType: String
+        holder: Container
+        shader: Shader
+        uniforms: Uniforms
+        varianceID: any
 	}
 	export class Parallax {
 		constructor(config_or_layers?: { obj: DisplayObject, prop: string, propChange: number, input?: string, inMin?: number, inMax?: number, factor?: number, integer?: boolean }[], damp?: number, auto?: boolean, stage?: Stage, startPaused?: boolean, mouseMoveOutside?: boolean, style?: boolean, group?: string, inherit?: {})
@@ -3997,13 +4047,14 @@ declare namespace zim {
 	}
 
 	export class Shader extends Bitmap implements zimComponent {
-		constructor(config_or_width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, style?: boolean, group?: string, inherit?: {})
+		constructor(config_or_width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, channel0?: DisplayObject, channel1?: DisplayObject, channel2?: DisplayObject, channel3?: DisplayObject, dynamic0?: boolean, dynamic1?: boolean, dynamic2?: boolean, dynamic3?: boolean, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
 		// END ZIM Component Interface
 		update(): this
+        replaceChannel(obj: DisplayObject, i: number, dynamic?: boolean): void
 		dynamic: boolean
 		rate: number
 		readonly canvas: HTMLCanvasElement
@@ -4045,6 +4096,17 @@ declare namespace zim {
 
 	// ++++++++++++++++++++++++++++++++++++++
 	// ZIM META
+    export class Monitor {
+		static add(config_or_widget?: boolean, level?: number, time?: number, APP?: boolean, ZIM?: boolean, CJS?: boolean, events?: boolean, tickers?: boolean,  intervals?: boolean, on?: boolean, off?: boolean, offs?: boolean, redacted?: boolean, remember?: boolean, cache?: boolean): void
+		static add(config: { widget?: boolean, level?: number, time?: number, APP?: boolean, ZIM?: boolean, CJS?: boolean, events?: boolean, tickers?: boolean,  intervals?: boolean, on?: boolean, off?: boolean, offs?: boolean, redacted?: boolean, remember?: boolean, cache?: boolean }): void 
+        static redact(obj:any, prefix?: string): void
+		static redactOff(obj:any): void
+		static testRedact(obj:any): boolean
+		static remove(): void
+        readonly panel: Panel 
+        redacted: boolean
+        level: number 
+	}
 	export var DISTILL: boolean
 	export function distill(): void
 	export function parseAudioSprite(audioSpriteData: { resources: string[], spritemap: {} }, outputAudioSprite?: boolean): { src: string, data: {} }
