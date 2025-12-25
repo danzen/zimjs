@@ -2098,6 +2098,16 @@ declare namespace zim {
 		borderDashedCommand: any
 	}
 
+    export class BorderShape extends Shape {
+		constructor(config_or_width?: number, height?: number, borderColor?: color, borderWidth?: number, corner?: number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { width?: number, height?: number, borderColor?: color, borderWidth?: number, corner?: number, style?: boolean, group?: string, inherit?: {} })
+		borderColor: color
+		borderWidth: number
+		corner: number
+        widthNoScale: number
+        heightNoScale: number
+	}
+
 	export class Label extends Container implements zimComponent {
 		constructor(config_or_text?: string | zimVee, size?: number, font?: string, color?: color, rollColor?: color, shadowColor?: color, shadowBlur?: number, align?: string, valign?: string, lineWidth?: number, lineHeight?: number, bold?: boolean, italic?: boolean, variant?: boolean, backing?: DisplayObject, outlineColor?: color, outlineWidth?: number, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backgroundDashed?: boolean, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, rollPersist?: boolean, labelWidth?: number, labelHeight?: number, maxSize?: number, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { text?: string | zimVee, size?: number, font?: string, color?: color, rollColor?: color, shadowColor?: color, shadowBlur?: number, align?: string, valign?: string, lineWidth?: number, lineHeight?: number, bold?: boolean, italic?: boolean, variant?: boolean, backing?: DisplayObject, outlineColor?: color, outlineWidth?: number, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backgroundDashed?: boolean, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, rollPersist?: boolean, labelWidth?: number, labelHeight?: number, maxSize?: number, style?: boolean, group?: string, inherit?: {} })
