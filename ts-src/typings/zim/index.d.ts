@@ -2122,6 +2122,7 @@ declare namespace zim {
 		backgroundColor: color
 		colorRange: number
 		rollColor: color
+		lineHeight: number
 		labelWidth: number
 		labelHeight: number
 		text: string
