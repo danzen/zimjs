@@ -3380,7 +3380,7 @@ declare namespace zim {
 	export class Tile extends Container {
 		constructor(config_or_obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, exact?: boolean, scaleToH?: number | zimVee, scaleToV?: number | zimVee, scaleToType?: string | zimVee, backgroundColor?: color | zimVee, backing?: DisplayObject | zimVee, backdropColor?: color | zimVee, backdropPadding?: number, backdropPaddingH?: number, backdropPaddingV?: number, mat?: DisplayObject, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { obj: DisplayObject | zimVee, cols?: number, rows?: number, spacingH?: number, spacingV?: number, unique?: boolean, width?: number, height?: number, squeezeH?: boolean, squeezeV?: boolean, colSize?: number | zimVee, rowSize?: number | zimVee, align?: string | zimVee, valign?: string | zimVee, count?: number, mirrorH?: boolean, mirrorV?: boolean, snapToPixel?: boolean, clone?: boolean, events?: boolean, exact?: boolean, scaleToH?: number | zimVee, scaleToV?: number | zimVee, scaleToType?: string | zimVee, backgroundColor?: color | zimVee, backing?: DisplayObject | zimVee, backdropColor?: color | zimVee, backdropPadding?: number, backdropPaddingH?: number, backdropPaddingV?: number, mat?: DisplayObject, style?: boolean, group?: string, inherit?: {} })
-		remake(items?: any[]): this
+		remake(items?: any[], newSpacingH?: number, newSpacingV?: number, newCount?: number, newCols?: number, newRows?: number): this
 		resize(width?: number, height?: number): this
         setProps(obj: [], props: {}): this
 		itemUnderPoint(x: number, y: number, ignoreSpacing?: boolean): DisplayObject
@@ -3391,8 +3391,8 @@ declare namespace zim {
 		readonly current: any[]
 		readonly current2D: any[]
 		readonly current2DCols: any[]
-		cols: number
-		rows: number
+		readonly cols: number
+		readonly rows: number
 		spacingH: number
 		spacingV: number
 		squeezeH: boolean
