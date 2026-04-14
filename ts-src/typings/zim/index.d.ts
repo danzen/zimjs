@@ -2868,24 +2868,6 @@ declare namespace zim {
 		readonly orgType: string
 		readonly removedItem: DisplayObject
 	}	
-    export class Shuffler extends Container implements zimComponent {
-		constructor(config_or_tile?: Tile, spacing?: number, offset?: number, vertical?: boolean, formatObj?: {}, damp?: number, keys?: [any], keyProperty?: string, shuffle?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, cache?: boolean, offsetOne?: number, offsetTwo?: number, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { tile?: Tile, spacing?: number, offset?: number, vertical?: boolean, formatObj?: {}, damp?: number, keys?: [any], keyProperty?: string, shuffle?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, cache?: boolean, offsetOne?: number, offsetTwo?: number, style?: boolean, group?: string, inherit?: {} })
-		// ZIM Component Interface
-		// dispose():boolean // now added to Container, etc.
-		enabled: boolean
-		// END ZIM Component Interface
-		shuffle(time?: number, wait?: number, num?: number): this
-		solve(time?: number, wait?: number, disable?: boolean): this
-		test(): this
-		update(): this
-		testItem(item: DisplayObject, index?: number): this
-		format(formatObj: {}): this
-		readonly tile: Tile
-		readonly complete: boolean
-		readonly starts: [number]
-		readonly order: [number]
-	}
 	export class Connectors extends Container implements zimComponent {
 		constructor(config_or_width?: number, height?: number, points?: [] | zim.Blob | Squiggle, node?: DisplayObject, line?: Line, linear?: boolean, linearWrap?: boolean, linearOrder?: boolean, num?: number, snapH?: number, snapV?: number, dropType?: string, dropArray?: [number], continuous?: boolean, startIndex?: number, duplicateLines?: boolean, deleteNode?: boolean, dblclick?: boolean, fullMove?: boolean, min?: number, max?: number, boundary?: Boundary | DisplayObject, expand?: number, nodeRollColor?: string, nodeRollBorderColor?: string, nodeSelectedColor?: string, nodeSelectedBorderColor?: string, baseColor?: string, baseBorderColor?: string, baseRollover?: string, rootLock?: boolean, grandChildren?: boolean, dblclickTime?: number, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { width?: number, height?: number, points?: [] | zim.Blob | Squiggle, node?: DisplayObject, line?: Line, linear?: boolean, linearWrap?: boolean, linearOrder?: boolean, num?: number, snapH?: number, snapV?: number, dropType?: string, dropArray?: [number], continuous?: boolean, startIndex?: number, duplicateLines?: boolean, deleteNode?: boolean, dblclick?: boolean, fullMove?: boolean, min?: number, max?: number, boundary?: Boundary | DisplayObject, expand?: number, nodeRollColor?: string, nodeRollBorderColor?: string, nodeSelectedColor?: string, nodeSelectedBorderColor?: string, baseColor?: string, baseBorderColor?: string, baseRollover?: string, rootLock?: boolean, grandChildren?: boolean, dblclickTime?: number, style?: boolean, group?: string, inherit?: {} })
@@ -3565,6 +3547,43 @@ declare namespace zim {
 		readonly lastPage: number
 		readonly pages: [DisplayObject]
 		readonly moving: boolean
+	}
+    export class Scrambler extends Container implements zimComponent {
+		constructor(config_or_tile?: Tile, keys?: [any], keyProperty?: string, scramble?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, swap?: boolean, swapLock?: boolean, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { tile?: Tile, keys?: [any], keyProperty?: string, scramble?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, swap?: boolean, swapLock?: boolean, style?: boolean, group?: string, inherit?: {} })
+		// ZIM Component Interface
+		// dispose():boolean // now added to Container, etc.
+		enabled: boolean
+		// END ZIM Component Interface
+		scramble(time?: number, wait?: number, num?: number): this
+		solve(time?: number, wait?: number, disable?: boolean): this
+		test(): this
+		testItem(item: DisplayObject, index?: number): this
+		beforeUpdate(): this
+		afterUpdate(): this
+		update(): this
+		readonly tile: Tile
+		readonly complete: boolean
+		readonly starts: [number]
+	    order: [number]
+	}
+    export class Shuffler extends Container implements zimComponent {
+		constructor(config_or_tile?: Tile, spacing?: number, offset?: number, vertical?: boolean, formatObj?: {}, damp?: number, keys?: [any], keyProperty?: string, shuffle?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, cache?: boolean, offsetOne?: number, offsetTwo?: number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { tile?: Tile, spacing?: number, offset?: number, vertical?: boolean, formatObj?: {}, damp?: number, keys?: [any], keyProperty?: string, shuffle?: boolean, time?: number, wait?: number, num?: number, shadowColor?: string, shadowBlur?: number, cache?: boolean, offsetOne?: number, offsetTwo?: number, style?: boolean, group?: string, inherit?: {} })
+		// ZIM Component Interface
+		// dispose():boolean // now added to Container, etc.
+		enabled: boolean
+		// END ZIM Component Interface
+		shuffle(time?: number, wait?: number, num?: number): this
+		solve(time?: number, wait?: number, disable?: boolean): this
+		test(): this
+		update(): this
+		testItem(item: DisplayObject, index?: number): this
+		format(formatObj: {}): this
+		readonly tile: Tile
+		readonly complete: boolean
+		readonly starts: [number]
+		order: [number]
 	}
 	export class Scroller extends createjs.EventDispatcher {
 		constructor(config_or_backing: DisplayObject, speed?: number, direction?: number, horizontal?: boolean, gapFix?: number, stage?: Stage, container?: Stage | DisplayObject)
