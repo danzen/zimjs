@@ -1,6 +1,6 @@
 {
   "name": "zimjs",
-  "version": "19.1.6",
+  "version": "20.0.1",
   "type": "module",
   "main": "./src/zim.js",
   "types": "./ts-src/typings/zim",
@@ -42,7 +42,9 @@
     "XR",
     "AR",
     "Rive",
-    "ML5"
+    "ML5",
+    "charts",
+    "graphs"
   ],
   "author": "Dr Abstract - Dan Zen",
   "license": "ISC"
