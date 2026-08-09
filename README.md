@@ -85,6 +85,7 @@ There are additional helper modules matching the CDN helper modules:<br>
 <a href=https://www.npmjs.com/package/@zimjs/three>@zimjs/three</a> | 
 <a href=https://www.npmjs.com/package/@zimjs/socket>@zimjs/socket</a> | 
 <a href=https://www.npmjs.com/package/@zimjs/cam>@zimjs/cam</a> | 
+<a href=https://www.npmjs.com/package/@zimjs/chart>@zimjs/chart</a> | 
 <a href=https://www.npmjs.com/package/@zimjs/pizzazz>@zimjs/pizzazz</a>
 <br><br>
 These steps describe setting up ZIM with Vite and NPM for vanilla JavaScript or TypeScript.<br>
