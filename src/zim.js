@@ -13329,9 +13329,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (prop=="stroke-opacity") aa = val;
 			});
 			return [f,s,ss,a,aa];
-		}
+		}		
 
-		function processShape(type, tag) {
+		function processShape(type, tag) {			
 			var shape;
 			var g = processGeneral(tag); // want ES6
 			var f = g[0], s = g[1], ss = g[2], x = g[5], y = g[6];
@@ -13370,6 +13370,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (p.indexOf(",") != -1) {
 					zim.loop(p.split(" "), function (point) {
 						var pp = point.split(",");
+						if (!pp || pp.length<2) return;
 						points.push([Number(pp[0].trim()), Number(pp[1].trim()),0,0,0,0,0,0,"none"]);
 					});
 				} else {
@@ -13518,9 +13519,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			// kv comments: need to apply string cleansing, application bugs when there is a semi colon character used in tags.
 			// get rid of semi colon,
 			// any attributes on the tag overwrites styles or general
-			f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:generalFill;
-			s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:generalStroke;
-			ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:generalStrokeSize;
+			// was defaulting to generalFill, generalStroke, generalStrokeSize - made null in 020 patch
+			f = tag.getAttribute("fill")?tag.getAttribute("fill"):!zot(f)?f:null; 
+			s = tag.getAttribute("stroke")?tag.getAttribute("stroke"):!zot(s)?s:null; 
+			ss = tag.getAttribute("stroke-width")?tag.getAttribute("stroke-width"):!zot(ss)?ss:null;
 			a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
 			aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
 
@@ -25908,18 +25910,21 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 	
 /*--
-zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, group, inherit)
+zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, group, inherit)
 
 Emoji
-zim class - extends a zim.Label which extends a zim.Container
+zim class - extends a zim.Container
 
 DESCRIPTION
-Shows an emoji in a Label - an emoji is just text.
-This helps treat the emoji as an image and works in conjunction with ZIM EmojiPicker
+Shows an emoji.  Emojis are usually just text so it will be a Label in the Container.
+Support has been added in ZIM 020 for Noto Color Emojis - which are then added to the Container as SVG
+If color or borderColor is provided, the SVG will be an SVGContainer so independent parts can be colored, dragged or animated
 
 SEE: ZIM EmojiPicker() in COMPONENTS below ColorPicker().
 
+SEE: https://zimjs.com/emoji/ - Emoji Picker Tool
 SEE: https://zimjs.com/nft/bubbling/emoji.html 
+SEE: https://zimjs.com/020/noto.html 
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -25938,19 +25943,50 @@ new Emoji("\ud83c\udf47", 100) // grapes using UTF codes
 	.drag();
 END EXAMPLE
 
+EXAMPLE
+// Go to https://emojipedia.org/ and find an emoji page 
+// copy the emoji or use the copy link and paste into the string below
+// leave the noto_ at the start and paste the emoji icon right after the _
+// where icon is the actual emoji icon (or a unicode number, or a noto code)
+// this will create and SVG that is the same across platforms (Windows, Linux, Android, iOS)
+new Emoji("noto_icon") 
+	.center()
+	.drag();
+// Note - if using with Tile() then preload the emoji in Frame assets of zapp_assets as "noto_icon"
+// where icon is the actual emoji icon (or a unicode number, or a noto code)
+END EXAMPLE
+
+EXAMPLE
+// Go to https://zimjs.com/emoji/ and find press on an emoji
+// copy the emoji code and leave the noto_ at the start and paste the emoji code right after the _
+// setting color, will create an SVGContainer in the Emoji so individual parts can be colored
+new Emoji({code:"noto_\ud83e\udd51", color:series(red, blue, orange, purple, yellow)}) 
+	.center()
+	.expand(0) // blobs with interactive false do not get mouse, expand will give it a mouse for the drag
+	.drag({all:true}); // without all:true would drag individual parts of the SVG
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
 Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 code - |ZIM VEE| (default \ud83d\ude42") the Unicode Character or the Emoji from https://emojipedia.org/
-	or pass in UTF codes such as "\ud83d\ude42".
-	To convert from Unicode to UTF use https://zimjs.com/emoji/ (also see MORE link at bottom of page)
+		or pass in UTF codes such as "\ud83d\ude42".
+		To convert from Unicode to UTF use https://zimjs.com/emoji/ 
+		This will add a ZIM Label with the character to the Emoji Container
+	As of ZIM 020, this supports Noto (by Google) Color Emojis which stay consistent across platforms (Windows, Linux, Android, iOS)
+		To turn the emoji into Noto emojis, use "noto_code" where code is the emoji character or a code described above
+		This will add a ZIM SVG of the character to the Emoji Container
+		If color or borderColor paramters are used, the SVG will be in the form of an SVGContainer holding ZIM Blob and Squiggle objects 
+		then each part can be colored, dragged, wiggled, or animated
+		If using the Emoji in a Tile() or Wrapper() then preload the emoji in the Frame assets or zapp_assets using "noto_code"
+		This will preload the SVG from the Google GitHub repository - the location is set in ZIM (similar to using "gf_" for Google fonts)
+		NOTE: many of the parameters below will not work on the SVG as they were made for text based emojis (but color and borderColor will)
+		see https://symbl.cc/en/platforms/google/ to see all - not easily searched though
 size - |ZIM VEE| (default 36) the size of the font in pixels
 monochrome - (default false) set to true to make black outline - this is actually the bold version of the icon
 italic - (default false) set the font to italic 
-** SEE Label for the rest of the definitions
-backgroundColor, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, group, inherit
 backgroundColor - (default null) set to CSS color to add a rectangular color around the label
    The background color will change size to match the text of the label
    Note: the backgroundColor is different than a backing which can be any Display Object
@@ -25968,6 +26004,10 @@ paddingH - (default padding) places border out at top bottom
 paddingV - (default padding) places border out at left and right
 shiftH - (default 0) move the emoji inside the container horizontally
 shiftV - (default 0) move the emoji inside the container vertically
+color - |ZIM VEE| (default null) for when color is set, set to a color or an array of colors to apply to fill of children - in order of the children
+	usually a series() would be used here for colors in order, or an array for random colors
+	setting this will make an SVG with bitmap:false - so blobs and squiggles so parts of SVG can be colored
+borderColor - |ZIM VEE| (default null) for when borderColor is set to a color or an array of colors to apply to border of children - in order of the children
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -26001,8 +26041,8 @@ See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.58
 
-	zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, group, inherit) {
-		var sig = "code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, group, inherit";
+	zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, group, inherit) {
+		var sig = "code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, group, inherit";
 		var duo; if (duo = zob(zim.Emoji, arguments, sig, this)) return duo;
 		z_d("54.58");
 		
@@ -26021,17 +26061,33 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(paddingV)) paddingV = DS.paddingV!=null?DS.paddingV:padding;
 		if (zot(shiftH)) shiftH = DS.shiftH!=null?DS.shiftH:0;
 		if (zot(shiftV)) shiftV = DS.shiftV!=null?DS.shiftV:0;
+		if (zot(color)) color = DS.color!=null?DS.color:null;
+		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
 		
 		// PICK
 		var oa = remember(code, size);
 		this.veeObj = {code:oa[0], size:oa[1]};
 		function remember() {return arguments;} // for cloning PICK
 		code = zim.Pick.choose(code);
-		size = zim.Pick.choose(size);
+		size = zim.Pick.choose(size);				
 		
-		if (code.substring(0,2) == "U+") code = zim.unicodeToUTF(code);
+		if (code.substring && code.substring(0,2) == "U+") code = zim.unicodeToUTF(code);
+		this.zimContainer_constructor(); 
+		// this.zimLabel_constructor(code, size, null, null, null, null, null, null, null, null, italic, null, null, null, backing, null, null, backgroundColor, null, null, corner, null, padding, paddingH, paddingV, shiftH, shiftV);
+
+		var that = this;
+
+		// SVG TEST
+		var match;
+		if (code.match) match = code.match(/^noto_(.*)/);
+		if (match) {
+			var svg = that.svg = new zim.SVG({svg:code, interactive:!(color||borderColor), bitmap:!(color||borderColor), color:color, borderColor:borderColor});
+			svg.addTo(this);			
+		} else {
+			var label = this.label = new zim.Label(code, size, null, null, null, null, null, null, null, null, italic, null, null, null, backing, null, null, backgroundColor, null, null, corner, null, padding, paddingH, paddingV, shiftH, shiftV);
+			label.addTo(this);
+		}
 		
-		this.zimLabel_constructor(code, size, null, null, null, null, null, null, null, null, italic, null, null, null, backing, null, null, backgroundColor, null, null, corner, null, padding, paddingH, paddingV, shiftH, shiftV);
 		this.type = "Emoji";
 
 		// MONITOR		
@@ -26039,12 +26095,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		this.code = code;
 		this.size = size;
-		var that = this;
+		
 		
 		var b = this.getBounds();
 		var h = 5;
 		var w = 3
-		this.bounds = this.setBounds(b.x+w,b.y-h+1,b.width-w*2,b.height+h);
+		if (b) this.bounds = this.setBounds(b.x+w,b.y-h+1,b.width-w*2,b.height+h);
 		
 		if (monochrome) {
 			this.saturation = -100;
@@ -26078,11 +26134,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function (exact) {
-			return that.cloneProps(new zim.Emoji((exact||!zim.isPick(oa[0]))?code:oa[0], (exact||!zim.isPick(oa[1]))?that.size:oa[1], monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, style, that.group, inherit));
+			return that.cloneProps(new zim.Emoji((exact||!zim.isPick(oa[0]))?code:oa[0], (exact||!zim.isPick(oa[1]))?that.size:oa[1], monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, that.group, inherit));
 		};
 
 	};
-	zim.extend(zim.Emoji, zim.Label, ["clone","cache"], "zimLabel", false);
+	zim.extend(zim.Emoji, zim.Container, ["clone","cache"], "zimContainer", false);
 	//-54.58
 
 /*--
@@ -41567,7 +41623,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 	//-66.1
 	
 /*--
-zim.DPad = function(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit)
+zim.DPad = function(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, useBubble, style, group, inherit)
 
 DPad
 zim class - extends a zim.Container which extends a createjs.Container
@@ -41577,8 +41633,10 @@ A DPad (Directional Pad) can be used to control x and y values
 This is primarily handy on mobile where a substitute for keypresses is needed
 The DPad can be set up for all directions, horizontal or vertical
 The DPad can be passed in to a ZIM MotionController to control an object
+There are default arrows but in ZIM 020 we added useBubble for a joystick like effect
 
 See: https://zimjs.com/ten/dpad.html
+See: https://zimjs.com/020/dpad.html
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -41615,6 +41673,7 @@ innerScale - (default .5) the scale relative to the indicator
 activeRadius - (default width*2) radius at which the DPad works
 clamp - (default true) set to false to not limit the value between -1 and 1
 logo - (default false) set to true to show the letter D in the DPad - or add your own
+useBubble - (default false) set to true to use a joystick like effect (removes arrows)
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -41636,6 +41695,7 @@ type - holds the class name as a String
 dirX, dirY - the x and y values for the DPad - between -1 and 1 if clamp is set
 	these can be multiplied by a factor to adjust speed - or use speed parameter of associated MotionController
 blendMode - how the object blends with what is underneath - such as "difference", "multiply", etc. same as CreateJS compositeOperation
+bubble - reference to the ZIM Circle if useBubble is set to true
 enabled - default is true - set to false to disable
 
 ALSO: see ZIM Container for properties such as:
@@ -41652,8 +41712,8 @@ dispatches a "change" event with dirX and dirY provided as well on the event obj
 ALSO: see the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+66.2
-	zim.DPad = function(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit) {
-		var sig = "axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, group, inherit";
+	zim.DPad = function(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, useBubble, style, group, inherit) {
+		var sig = "axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, useBubble, style, group, inherit";
 		var duo; if (duo = zob(zim.DPad, arguments, sig, this)) return duo;
 		z_d("66.2");
 
@@ -41682,11 +41742,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(activeRadius)) activeRadius = DS.activeRadius!=null?DS.activeRadius:width; // note, twice diameter
 		if (zot(clamp)) clamp = DS.clamp!=null?DS.clamp:true;
 		if (zot(logo)) logo = DS.logo!=null?DS.logo:false;
+		if (zot(useBubble)) useBubble = DS.useBubble!=null?DS.useBubble:false;
 
 		var that = this;
 
 		this.axis = axis;
-		this.outer = new zim.Circle(width/2, backgroundColor, borderColor, borderWidth).addTo(this);
+		var outer = this.outer = new zim.Circle(width/2, backgroundColor, borderColor, borderWidth).addTo(this);
 		var inner = this.inner = new zim.Circle(width*innerScale/2, "rgba(0,0,0,.2)").center(this);
 		if (logo) this.logo = new zim.Label({text:"D", bold:true}).center(inner).mov(1,2).alp(.3);
 		var arrows = new zim.Container().addTo(this);
@@ -41699,6 +41760,41 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			arrows.rotation = 90;
 		} else if (axis == "both") {
 			numArrows = 4;
+		}
+		if (useBubble) {
+			numArrows = 0;
+			var bubble = that.bubble = new zim.Circle((outer.radius-inner.radius)/2-4, indicatorColor.toAlpha(.2), indicatorColor, 2).center(that);
+			that.bubbleDampX = new zim.Damp();
+			that.bubbleDampY = new zim.Damp();
+			var r = outer.radius - bubble.radius - 4;
+			that.down = false;
+			that.bubbleDown = that.on("mousedown", function() {
+				that.down = true;
+			});
+			that.bubbleUp = that.on("pressup", function() {
+				that.down = false;
+			});
+
+			// TODO - handle axis
+
+			that.bubbleTicker = zim.Ticker.add(function() {
+				if (that.down) {
+					var point = that.globalToLocal(that.stage.frame.mouseX, that.stage.frame.mouseY);
+					bubble.loc(that.bubbleDampX.convert(point.x), that.bubbleDampY.convert(point.y));					
+					if (dist(0,0,bubble.x,bubble.y) > r) {						
+						var a = angle(bubble.x,bubble.y)*RAD
+						var x = r*Math.cos(a);
+						var y = r*Math.sin(a);
+						that.bubbleDampX.immediate(x);
+						that.bubbleDampY.immediate(y);
+						bubble.loc(x,y)
+					}					
+				} else {
+					bubble.loc(that.bubbleDampX.convert(0), that.bubbleDampY.convert(0));
+				}
+				if (axis==HORIZONTAL) bubble.y = 0;
+				else if (axis==VERTICAL) bubble.x = 0;
+			});
 		}
 		zim.loop(numArrows, function (i, total) {
 			new zim.Triangle(arrowSize, arrowSize, arrowSize, indicatorColor).addTo(arrows).reg(null, zot(indicatorRadius)?(width-borderWidth)*.475:indicatorRadius).rot(i*360/total);
@@ -41766,7 +41862,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function() {
-			return that.cloneProps(new zim.DPad(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, style, this.group, inherit));
+			return that.cloneProps(new zim.DPad(axis, width, backgroundColor, borderWidth, borderColor, indicatorColor, indicatorPressColor, indicatorScale, indicatorRadius, innerCircle, innerScale, activeRadius, clamp, logo, useBubble, style, this.group, inherit));
 		};
 
 		this.dispose = function(a,b,disposing) {
@@ -56293,7 +56389,9 @@ NOTE: gesture() only works on the currentTarget - not a container's children (li
 	ZIM Frame should have touch set to true (which is the default for mobile)
 
 NOTE: as of ZIM 020 - trackpad support has been added - pinch to zoom, swipe both fingers horizontally for rotate
-
+	ignores pinch point and operates from registration point no matter what the regControl is set at 
+	regControl is still used for touch screen
+	
 ALSO: see the noGesture() method to remove some or all gestures
 
 ALSO: see the gestureBoundary() method to set or reset the boundary rectangle dynamically
@@ -56334,6 +56432,7 @@ rect - (depreciated) same as boundary - kept for backwards compatibility
 trackPad - (default true) set to false to not handle trackpad on laptop 
 	trackpad supports pinch for zoom 
 	trackpad supports swipe horizontally with both fingers (the same way) for rotate
+	Ignores regControl and operates from registration point
 
 EVENTS
 Adds move, scale and rotate events to obj (when associated gesture parameters are set to true)
@@ -56710,17 +56809,15 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 	// Handles laptop trackpad two-finger gestures via wheel and gesturechange events.
 	// Completely separate from the touch block above - own state, own canvas listeners.
 	// Does not interfere with touchscreen gesture() behaviour.
+	// Always transforms around the object's own (unaltered) registration point -
+	// regControl is intentionally ignored here.
 	// -----------------------------------------------------------------------
 	if (trackpad && !obj.zimTouch.tpAttached) {
 
 		// Separate matrix state - never shares with the touch block vars above
-		var tpMatrixStart;
 		var tpStartScaleX;
 		var tpStartScaleY;
 		var tpStartRotation;
-		var tpStartRegX;
-		var tpStartRegY;
-		var tpLastPoint;
 		var tpActive = false;
 		var tpEndTimeout = null;
 
@@ -56729,10 +56826,6 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 		var tpAccumScale = 1;   // multiplicative accumulator, applied to tpStartScaleX/Y
 		var tpAccumRot   = 0;   // degrees accumulator, applied to tpStartRotation
 
-		// Pivot in global stage coords - set once per session at first wheel event
-		var tpPivotGX = 0;
-		var tpPivotGY = 0;
-
 		// Safari GestureEvent state
 		var tpGestureBaseScale = 1;    // e.scale at gesturestart (always 1 per spec, but captured for safety)
 		var tpGestureBaseRot   = 0;    // e.rotation at gesturestart (always 0 per spec)
@@ -56740,29 +56833,19 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 		var tpGestureLastRot   = 0;    // e.rotation at previous gesturechange, for delta
 		var tpGestureActive    = false;
 
-		// Begin a trackpad gesture session: snapshot current object state
-		function tpBeginSession(pivotGX, pivotGY) {
+		// Begin a trackpad gesture session: snapshot current object state.
+		// No registration point manipulation - obj keeps whatever regX/regY it already has.
+		function tpBeginSession() {
 			tpActive = true;
-			tpPivotGX = pivotGX;
-			tpPivotGY = pivotGY;
 			tpAccumScale = 1;
 			tpAccumRot   = 0;
-			tpStartScaleX  = obj.scaleX;
-			tpStartScaleY  = obj.scaleY;
+			tpStartScaleX   = obj.scaleX;
+			tpStartScaleY   = obj.scaleY;
 			tpStartRotation = obj.rotation;
-			tpStartRegX = obj.regX;
-			tpStartRegY = obj.regY;
-			tpLastPoint = null;
-			if (!regControl) {
-				obj.reg(0,0);
-				tpMatrixStart = obj.getMatrix();
-				obj.regX = tpStartRegX;
-				obj.regY = tpStartRegY;
-			}
 		}
 
-		// Apply accumulated scale + rotation to the object using the same
-		// matrix technique as the touch block's pressmove pair path
+		// Apply accumulated scale + rotation to the object.
+		// Always transforms around obj's current registration point - regControl is ignored.
 		function tpApply() {
 			if (!tpActive) return;
 
@@ -56781,35 +56864,12 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 
 			var newRotation = tpStartRotation + tpAccumRot;
 
-			if (regControl) {
-				if (obj.zimTouch.scale) {
-					obj.scaleX = newScaleX;
-					obj.scaleY = newScaleY;
-				}
-				if (obj.zimTouch.rotate) {
-					obj.rotation = newRotation;
-				}
-			} else {
-				obj.reg(0,0);
-
-				// Pivot point in global coords -> local to obj
-				var point = zot(tpLastPoint)
-					? obj.globalToLocal(tpPivotGX, tpPivotGY)
-					: obj.globalToLocal(tpLastPoint.x, tpLastPoint.y);
-
-				var matrix = tpMatrixStart.clone()
-					.translate(point.x, point.y)
-					.rotate(newRotation - tpStartRotation)
-					.scale(newScaleX / tpStartScaleX, newScaleY / tpStartScaleY)
-					.translate(-point.x, -point.y);
-
-				matrix.decompose(obj);
-
-				// Correct minor drift - same technique as touch block
-				tpLastPoint = obj.localToGlobal(point.x, point.y);
-
-				obj.regX = tpStartRegX;
-				obj.regY = tpStartRegY;
+			if (obj.zimTouch.scale) {
+				obj.scaleX = newScaleX;
+				obj.scaleY = newScaleY;
+			}
+			if (obj.zimTouch.rotate) {
+				obj.rotation = newRotation;
 			}
 
 			if (obj.zimTouch.scale) obj.dispatchEvent("scale");
@@ -56819,6 +56879,7 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 			if (obj.ZIMoutlineShape) obj.outline();
 			if (obj.getStage && obj.stage) obj.stage.update();
 		}
+
 
 		// End session: apply snapRotate and clean up
 		function tpEndSession() {
@@ -56881,7 +56942,7 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 				if (!obj.zimTouch.scale) return;
 				e.preventDefault();
 
-				if (!tpActive) tpBeginSession(stagePos.x, stagePos.y);
+				if (!tpActive) tpBeginSession();
 				else if (tpEndTimeout) { clearTimeout(tpEndTimeout); tpEndTimeout = null; }
 
 				// deltaY: negative = fingers spreading (zoom in), positive = fingers closing (zoom out)
@@ -56912,7 +56973,7 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 					// rotates the way two physical fingers would twist a dial - counter-clockwise.
 					e.preventDefault();
 
-					if (!tpActive) tpBeginSession(stagePos.x, stagePos.y);
+					if (!tpActive) tpBeginSession();
 					else if (tpEndTimeout) { clearTimeout(tpEndTimeout); tpEndTimeout = null; }
 
 					tpAccumRot -= dx * 0.3; // degrees per CSS pixel - negative so direction matches natural two-finger twist
@@ -56953,7 +57014,7 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 			tpGestureLastScale = e.scale;
 			tpGestureLastRot   = e.rotation;
 			var stagePos = tpEventToStage(e);
-			if (!tpActive) tpBeginSession(stagePos.x, stagePos.y);
+			if (!tpActive) tpBeginSession();
 			if (tpEndTimeout) { clearTimeout(tpEndTimeout); tpEndTimeout = null; }
 		};
 
@@ -76663,6 +76724,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		var frame = stage.frame;
 
 		if (!zot(orient)) rotate = orient; // renamed parameter to orient
+		if (zot(firstPerson)) firstPerson = false;
 
 		if (zot(target)) {target = new zim.Container(1,1, null, null, false);} // make a surrogate if only wanting controller data
 		var accelerator = target.type == "Accelerator";
@@ -76672,9 +76734,10 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 			type = "manual";
 			if (zot(axis)) axis = dPad.axis;
 			if (axis == "all") axis = "both";
-
+			first = {rotation:0, speedX:that.speed, speedY:that.speed};
 			dPad.on("change", function() {
 				var d = {dirX:dPad.dirX, dirY:dPad.dirY};
+				if (firstPerson) {doFirstPerson(d); return;}
 				if (tileObj) {					
 					down = [0,0,0,0];
 					var dC = false;
@@ -76695,6 +76758,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 					that.convert(target.x+dPad.dirX*speed, target.y+dPad.dirY*speed);
 				}				
 			}, null, null, null, null, mID);
+
 			if (tileObj) {
 				dPad.on("pressup", function() {
 					down = [0,0,0,0];
@@ -76723,8 +76787,7 @@ dispatches a "moving" event if target is moving and "startmoving" and "stopmovin
 		if (zot(diagonal)) diagonal = true;
 		if (axis == "horizontal" || axis == "vertical") diagonal = false;
 		if (zot(damp) || damp===true) damp = (type=="keydown" || type=="gamebutton") ? 1: (type=="pressmove"?.5:.1);
-		if (damp === false) damp = 1;
-		if (zot(firstPerson)) firstPerson = false;
+		if (damp === false) damp = 1;		
 		if (zot(turnSpeed)) turnSpeed = speed * .4;
 		if (zot(moveThreshold)) moveThreshold = 4;
 		if (zot(stickThreshold)) stickThreshold = tileObj?.3:.2;
@@ -91241,7 +91304,7 @@ assets - (default null) - 1. a string asset or 2. an array of assets, 3. ZIM ass
 	2. ["logo.png", "bounce.mp3", "Reuben.otf"]
 	3. {id:"string", src:"logo.png", path:"assets/", loadTimeout:2, noCORSonImage:true}
 	4. [{assets:["one.png", "two.png"], path:"images/"}, {assets:["big.mp3", "oof.mp3"], path:"sounds/"}]
-	** see the loadAssets() method for details - including more file types, etc.
+	** see the loadAssets() method for details - including more file types, Google fonts, Noto Emojis, etc.
 	NOTE: "complete", "progress" and "fileLoaded" events are not dispatched
 		use loadAssets() for these if desired
 		the "ready" event will be dispatched when the canvas is ready and initial assets are loaded
@@ -91344,8 +91407,15 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 	assets - a file (url String, asset object or multi-asset object) or files in an Array
 		each asset String is how you then access the asset with the asset() method of Frame
 		asset types (from CreateJS PreloadJS): Image, Font, JSON, Sound, SVG, Text, XML		
-		NOTE: as of ZIM ZIM 02, fonts can be loaded with just the font file name (including Google Fonts) rather than a ZIM font object - see FONTS in the Docs. 
+		NOTE: as of ZIM ZIM 02, fonts can be loaded with just the font file name (including Google Fonts) 
+			rather than a ZIM font object - see FONTS in the Docs. 
+			so for google fonts, use "gf_Font+Family" and then when assigning the font to the Label, use "Font Family" without the gf (+ is optional)
 		NOTE: as of ZIM Cat 04, SVG will be automatically converted to a Bitmap with and svg property of the original SVG.
+		NOTE: as of ZIM 020, Noto Color Emojis can be loaded with "noto_emoji" 
+			These look consistent across platforms (Windows, Linux, Android, iOS)
+			Paste any emoji character or code after noto_ to preload the SVG for the emoji 
+			If color or borderColor is specified in the Emoji (or SVG) then individual parts 
+			can be colored, dragged, wiggled, or animated (see Emoji and SVG)
 		asset can also be a ZIM asset object:
 			{id:"string", src:"filename", path:"dir/", loadTimeout:1, maxNum:num, noCORSonImage:true}
 			then can use the id to access the asset in the asset() method of Frame
@@ -91378,7 +91448,8 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 			]
 			** then asset("one.png") will be the asset in the images folder 
 			** and asset("portraits/one.png") will be the asset in the portraits folder
-		asset can also be a font object - but as of ZIM ZIM 02, fonts can be loaded with just the file name, including Google Fonts
+		asset can also be a font object (DEPRECATED)
+			As of ZIM ZIM 02, fonts can be loaded with just the file name, including Google Fonts ("gf_fontfamily") 
 			DO NOT use uppercase letters on mobile apps
 			{font:name, src:url, type:string, weight:string, style:string} // with last three properties being optional
 			eg.
@@ -91386,6 +91457,7 @@ loadAssets(assets, path, progress, xhr, time, loadTimeout, outputAudioSprite, cr
 			{font: "regu", src:"regul-bold.woff", weight:"bold"}
 			{src:"https://fonts.googleapis.com/css?family=Roboto"}
 			For google fonts https://fonts.google.com/ you add extra information to the url so the font (family), type, weight and style are ignored
+			It is easier to just load google fonts as "gf_fontfamily" as an asset
 			If absolute src is used, path parameter is ignored - otherwise path is added to start of src
 			After loading, can just use:
 				var label = new Label("hello", 30, "wildwood") // or whatever the font property is
@@ -92432,6 +92504,56 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		that.dispatchEvent("update");
 	};
 
+	// Made by AI - Gemini - used to load Noto Emojis from GitHub
+	function getNotoFilename(inputStr) {
+		// Clean up whitespace
+		var input = inputStr.trim();
+		if (!input) return 'emoji_u.svg';
+
+		// Regex check: If it contains letters/numbers and starts with U+, contains hex prefixes, 
+		// or is separated by underscores/hyphens/spaces, treat it as a code string.
+		var isCodeRegex = /^[0-9a-fA-F_\-\sU\+]+$/;
+		var points = [];
+
+		if (isCodeRegex.test(input) && input.replace(/[_\-\sU\+]/g, '').length > 0) {
+			// --- PROCESS AS ALPHANUMERIC CODE ---
+			// Split by common delimiters: spaces, underscores, hyphens, or "U+"
+			var rawSegments = input.split(/[_\-\s]+/);
+			
+			for (var s = 0; s < rawSegments.length; s++) {
+				var segment = rawSegments[s].replace(/^U\+/i, '').toLowerCase();
+				if (segment && segment !== 'fe0f') {
+					points.push(segment);
+				}
+			}
+		} else {
+			// --- PROCESS AS RAW EMOJI PICTURE (Legacy ES5 Surrogate Math) ---
+			var i = 0;
+			while (i < input.length) {
+				var code = input.charCodeAt(i);
+				
+				// Handle High/Low Surrogate pairs for 32-bit emojis
+				if (code >= 0xD800 && code <= 0xDBFF && i + 1 < input.length) {
+					var nextCode = input.charCodeAt(i + 1);
+					if (nextCode >= 0xDC00 && nextCode <= 0xDFFF) {
+						code = ((code - 0xD800) * 0x400) + (nextCode - 0xDC00) + 0x10000;
+						i++;
+					}
+				}
+				
+				var hex = code.toString(16).toLowerCase();
+				if (hex !== 'fe0f') {
+					points.push(hex);
+				}
+				i++;
+			}
+		}
+		
+		// Join all collected hex values with underscores per Google's standard layout
+		return 'emoji_u' + points.join('_') + '.svg';
+	}
+	this.getNotoFilename = getNotoFilename;
+
 	function setVisible() {
 		if (scaling == "fill") {
 			var beside = (zum(that.canvas.style.width) - zim.windowWidth()) / 2;
@@ -92551,6 +92673,14 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			// 			// continue;
 			// 	// }
 			// }
+
+	
+
+			var match;
+			if (a.match) match = a.match(/^noto_(.*)/);
+			if (match) {		
+				a = {id:a, src:"https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/" + getNotoFilename(match[1])}
+			}
             if (a.replace) a = a.replace(/gf_/i, "https://fonts.googleapis.com/css?family=");		
 			// split multi into individual ZIM asset objects and make the first of these
 			if (a.assets) {	
@@ -92559,6 +92689,11 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				if (!Array.isArray(a.assets)) a.assets = [a.assets];
 				for (j=0; j<a.assets.length; j++) {
 					var aj = a.assets[j];
+					match = null;
+					if (aj.match) match = aj.match(/^noto_(.*)/);
+					if (match) {		
+						aj = {id:aj, src:"https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/" + getNotoFilename(match[1])}
+					}
 					if (aj.split) {
 						var temp = aj.split("?");
 						ext = temp[0].match(re);
@@ -95196,7 +95331,7 @@ zim.Dat = function(file) {
 zim.extend(zim.Dat, createjs.EventDispatcher, null, "cjsEventDispatcher", false);//-83.08
 
 /*--
-SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, style, group, inherit)
+SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, style, group, inherit)
 
 SVG
 zim class - extends a zim.Container which extends a createjs.Container
@@ -95314,10 +95449,16 @@ PARAMETERS
 Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 svg - |ZIM VEE| the String file name of the SVG including file extension for instance, "pic.svg"
-	or an SVG tag either directly as a string or as a reference to an HTML tag - ie. zid("svgID")
-	There is a global PATH constant that can be set to add a path to the start of the file name
-	for instance setting PATH = "assets/" would then look for "assets/pic.svg".
-	If a path is provided to Frame() parameter or the loadAssets() then these will automatically set the global PATH constant.
+		or an SVG tag either directly as a string or as a reference to an HTML tag - ie. zid("svgID")
+		There is a global PATH constant that can be set to add a path to the start of the file name
+		for instance setting PATH = "assets/" would then look for "assets/pic.svg".
+		If a path is provided to Frame() parameter or the loadAssets() then these will automatically set the global PATH constant.
+	NOTE: as of ZIM 020, Noto Color Emojis can be loaded with "noto_emoji" 
+		These look consistent across platforms (Windows, Linux, Android, iOS)
+		Paste any emoji character or code after noto_ 
+		Can also preload the SVG using the noto_ if SVG is to be used in Tile() for instance
+		If color or borderColor is specified then an SVG Container will be nade with individual parts 
+		that can be colored, dragged, wiggled, or animated
 width - (default null) optionally predict the width of the SVG
  	The width will be ignored and the actual width will be used if the SVG is preloaded 
 	and if lazy-loaded, the width will be replaced with the actual width after the SVG is loaded.
@@ -95333,7 +95474,10 @@ bitmap - (default true) this will show the SVG as a Bitmap (still nicely scalabl
 splitTypes - (default false) - set to true to split different types of paths into separate objects
 geometric - (default true) - set to false to load Rectangle and Circle objects as Blob objects
 showControls - (default true) set to false to start with controls not showing
-interactive - (default true) set to false to turn off controls, move, toggle, select, edit - leaving just the shapes
+interactive - (default true) for bitmap:false, set to false to turn off controls, move, toggle, select, edit - leaving just the shapes
+color - |ZIM VEE| (default null) for bitmap:false, set to a color or an array of colors to apply to fill of children - in order of the children
+	usually a series() would be used here for colors in order, or an array for random colors
+borderColor - |ZIM VEE| (default null) set to a color or an array of colors to apply to border of children - in order of the children
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -95381,8 +95525,8 @@ dispatches a "complete" and a "ready" event (use either one) when the SVG is loa
 See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+83.09
-	zim.SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, style, group, inherit) {
-		var sig = "svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, style, group, inherit";
+	zim.SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, style, group, inherit) {
+		var sig = "svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, style, group, inherit";
 		var duo; if (duo = zob(zim.SVG, arguments, sig, this)) return duo;
 		z_d("83.09");	
 
@@ -95396,6 +95540,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(geometric)) geometric = DS.geometric!=null?DS.geometric:true;
 		if (zot(showControls)) showControls = DS.showControls!=null?DS.showControls:null;
 		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:true;
+		if (zot(color)) color = DS.color!=null?DS.color:null;
+		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
+
+		var setColors = [];
+		var setBorderColors = [];
 
 		this.zimContainer_constructor(width, height);            	    	
 		var that = this;
@@ -95474,6 +95623,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						if (that.stage) that.stage.update();	
 					}
                     setTimeout(function () {
+						doColors();
                         that.dispatchEvent("ready");
                         that.dispatchEvent("complete");  
                     },20);
@@ -95482,6 +95632,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
                         that.bitmap = bitmap;
                         that.bitmap.addTo(that);
                         applyCommands();
+						doColors();
                         that.dispatchEvent("ready");
                         that.dispatchEvent("complete");
                         if (that.stage) that.stage.update();
@@ -95494,11 +95645,12 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
                     svgContainer.loop(function (obj) {						
                         if (obj) obj.addTo(that);
                     }, true);  
+					doColors();
                     if (second) {						
 						applyCommands();    
 						if (that.stage) that.stage.update();	
 					} 
-                    setTimeout(function () {
+                    setTimeout(function () {						
                         that.dispatchEvent("ready");
                         that.dispatchEvent("complete");               
                     },20);
@@ -95510,6 +95662,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							if (obj) obj.addTo(that);                        
 						}, true);
 						applyCommands();
+						doColors();
 						that.dispatchEvent("ready");
 						that.dispatchEvent("complete");
 						if (that.stage) that.stage.update();						
@@ -95517,6 +95670,25 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
                 }
             }
         } 	
+		
+		function doColors() {
+			if (color) {	
+				if (color.index) color.index = 0; // not sure where it was setting to 1 when being cloned?		
+				that.loop(function(obj) {
+					var c = zik(color);
+					if (c!=null) obj.color = c;
+					setColors.push(c);
+				});
+			}
+			if (borderColor) {		
+				if (borderColor.index) borderColor.index = 0;			
+				that.loop(function(obj) {
+					var c = zik(borderColor);
+					if (c!=null) obj.borderColor = c;
+					setBorderColors.push(c);
+				});
+			}
+		}
         
         function applyCommands() {
             if (zot(width) && zot(height)) that.setBounds(null); // resets size
@@ -95538,8 +95710,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		}    
         
         if (style!==false) zim.styleTransforms(this, DS);
-        that.clone = function (exact) {
-            return this.cloneProps(new zim.SVG(exact?svgO:originalSVG, width, height, bitmap, splitTypes, geometric, showControls, interactive, style, this.group, inherit));
+        that.clone = function (exact) {	
+            return this.cloneProps(new zim.SVG(exact?svgO:originalSVG, width, height, bitmap, splitTypes, geometric, showControls, interactive, exact&&setColors.length>0?zim.series(setColors):color, exact&&setBoarderColors.length>0?zim.series(setBorderColors):borderColor, style, this.group, inherit));
         }      
     }
     zim.extend(zim.SVG, zim.Container, ["clone"], "zimContainer", false);//-83.09
@@ -104349,6 +104521,7 @@ zim class - extends zim.Graph which extends a zim.Container which extends a crea
 
 DESCRIPTION
 Creates a live/animated line graph that updates data over time using a WebWorker.
+Data is read in from a text file source specified in the src parameter.
 Displays multiple data series as lines with optional gradient fills and smooth curves.
 Automatically manages maxData limit, supports real-time data streaming and animation.
 
@@ -104378,6 +104551,7 @@ const graph = new LiveGraph({
 		{item: "CPU", icon: null},
 		{item: "Memory", icon: null},
 	],
+	src: "url_to_live_data.txt", // with [12, 24] for instance changing over time
 	timeStep: .5,
 	smooth: true,
 	thickness: 2,
@@ -104410,6 +104584,8 @@ title - (default null) title label or text displayed at top
 info - (default null) info object with labelH, labelV, dataH, dataV arrays
 data - (default null) array of data objects with dataH and dataV properties
 src - (default null) external data source URL for updates
+	format [data] for one entry - this gets read over timeStep
+	format [data, data, data] for three entries, etc. match number of items with data items
 timeStep - (default .5) time interval in seconds between data updates
 thickness - (default 2) line thickness in pixels
 smooth - (default true) whether to use smooth curves instead of straight lines

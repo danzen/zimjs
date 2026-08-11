@@ -2227,12 +2227,14 @@ declare namespace zim {
 		readonly numWords: number
 	}
 	export class Emoji extends Container implements zimComponent {
-		constructor(config_or_code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, color?: color, borderColor?: color, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, color?: color, borderColor?: color, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
 		// END ZIM Component Interface
+        label: Label
+        svg: SVG
 	}
 	export class Button extends Container implements zimComponent {
 		constructor(config_or_width?: number | string, height?: number | string, label?: string | Label, backgroundColor?: color, rollBackgroundColor?: color, downBackgroundColor?: color, color?: color, rollColor?: color, downColor?: color, borderColor?: color, borderWidth?: number, rollBorderColor?: color, downBorderColor?: color, backing?: DisplayObject, rollBacking?: DisplayObject, downBacking?: DisplayObject, icon?: DisplayObject, rollIcon?: DisplayObject, downIcon?: DisplayObject, corner?: number | any[], dashed?: boolean | number[], shadowColor?: color, shadowBlur?: number, gradient?: number, gloss?: number, align?: string, valign?: string, indent?: number, indentH?: number, indentV?: number, hitPadding?: number, autoPadding?: number, autoPaddingH?: number, autoPaddingV?: number, rollPersist?: boolean, toggle?: string | boolean, toggleBackgroundColor?: color, rollToggleBackgroundColor?: color, downToggleBackgroundColor?: color, toggleColor?: color, rollToggleColor?: color, downToggleColor?: color, toggleBacking?: DisplayObject, rollToggleBacking?: DisplayObject, downToggleBacking?: DisplayObject, toggleIcon?: DisplayObject, rollToggleIcon?: DisplayObject, downToggleIcon?: DisplayObject, toggleEvent?: string, wait?: string, waitTime?: boolean, waitBackgroundColor?: color, rollWaitBackgroundColor?: color, downWaitBackgroundColor?: color, waitColor?: color, rollWaitColor?: color, downWaitColor?: color, waitBacking?: DisplayObject, rollWaitBacking?: DisplayObject, downWaitBacking?: DisplayObject, waitIcon?: DisplayObject, rollWaitIcon?: DisplayObject, downWaitIcon?: DisplayObject, waitModal?: boolean, waitEnabled?: boolean, style?: boolean, group?: string, inherit?: {})
@@ -2743,14 +2745,15 @@ declare namespace zim {
 		pad: Pad
 	}
 	export class DPad extends Container implements zimComponent {
-		constructor(config_or_axis?: string, width?: number, backgroundColor?: color, indicatorColor?: color, indicatorPressColor?: color, indicatorScale?: number, indicatorRadius?: number, innerCircle?: boolean, innerScale?: number, activeRadius?: number, clamp?: boolean, logo?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { axis?: string, width?: number, backgroundColor?: color, indicatorColor?: color, indicatorPressColor?: color, indicatorScale?: number, indicatorRadius?: number, innerCircle?: boolean, innerScale?: number, activeRadius?: number, clamp?: boolean, logo?: boolean, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_axis?: string, width?: number, backgroundColor?: color, indicatorColor?: color, indicatorPressColor?: color, indicatorScale?: number, indicatorRadius?: number, innerCircle?: boolean, innerScale?: number, activeRadius?: number, clamp?: boolean, logo?: boolean, useBubble?:boolean, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { axis?: string, width?: number, backgroundColor?: color, indicatorColor?: color, indicatorPressColor?: color, indicatorScale?: number, indicatorRadius?: number, innerCircle?: boolean, innerScale?: number, activeRadius?: number, clamp?: boolean, logo?: boolean, useBubble?:boolean, style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
 		// END ZIM Component Interface
 		readonly dirX: number
 		readonly dirY: number
+        readonly bubble: Circle
 	}
 	export class Radial extends Container implements zimComponent {
 		constructor(config_or_labels?: string[] | number[] | Label[], size?: number, font?: string, startAngle?: number, totalAngle?: number, angles?: number[], flip?: boolean, shiftRadial?: number, icons?: DisplayObject[], rollIcons?: DisplayObject[], rotateIcons?: boolean, iconsShiftRadial?: number, height?: number, coreRadius?: number, coreColor?: number, backgroundColor?: color, rollBackgroundColor?: color, selectedBackgroundColor?: color, selectedRollBackgroundColor?: color, backdropColor?: color, color?: color, rollColor?: color, selectedColor?: color, selectedRollColor?: color, borderColor?: color, borderWidth?: number, gradient?: number, gap?: number, gapAsAngle?: boolean, spacing?: number, spacingInner?: number, spacingOuter?: number, currentEnabled?: boolean, currentSelected?: boolean, index?: number, selectedIndex?: number, style?: boolean, group?: string, inherit?: {})
