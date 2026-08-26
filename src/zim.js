@@ -5220,6 +5220,75 @@ zim.sortObject = function(obj,property,reverse) {
 };//-12.1
 
 /*--
+zim.orderContainer = function(container, order)
+
+orderContainer
+zim function
+
+DESCRIPTION
+Arranges original indexed children of a Container to new positions based on provided array.
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+const holder = new Container().loc(20,20);
+
+new Rectangle(120, 120, red).loc(0, 0, holder);
+new Rectangle(120, 120, blue).loc(40, 40, holder);
+new Rectangle(120, 120, green).loc(80, 80, holder);
+new Rectangle(120, 120, yellow).loc(120, 120, holder);
+
+S.on("stagemousedown", () => {
+	reorderByIndexes(holder, [3, 1, 0, 2]);
+	// puts old index 3 as the lowest (0)
+	// leaves old index 1 at 1
+	// sets old index 0 to the third highest (2)
+	// and puts old index 2 at the higest(3)
+	S.update();
+});
+END EXAMPLE
+
+PARAMETERS
+container - an Container
+order - an array showing the old index numbers in a new order
+	beware, this can be confusing - this is NOT saying the first child will have this new index, etc.
+	but rather which old index is moved to the first level, second level, etc.
+
+RETURNS the container
+--*///+12.2
+
+zim.orderContainer = function(container, order) {
+	z_d("12.2");
+
+    var kids = container.children.slice();
+    var used = {};
+    var ordered = [];
+    var valid = true;
+
+    if (!kids || kids.length !== order.length) return container;
+
+    loop(order, function(index) {
+        if (index < 0 || index >= kids.length || used[index]) {
+            valid = false;
+            return true;
+        }
+        used[index] = true;
+        ordered.push(kids[index]);
+    });
+
+    if (!valid || ordered.length !== kids.length) return container;
+
+    loop(ordered, function(child) {
+        child.top();
+    });
+
+    return container;
+
+
+
+};//-12.2
+
+/*--
 zim.arraysEqual = function(a, b, strict)
 
 arraysEqual
@@ -13331,11 +13400,13 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			return [f,s,ss,a,aa];
 		}		
 
-		function processShape(type, tag) {			
+		function processShape(type, tag) {	
+	
 			var shape;
 			var g = processGeneral(tag); // want ES6
 			var f = g[0], s = g[1], ss = g[2], x = g[5], y = g[6];
 			// var a = g[3], aa = g[4];
+
 			if (type == "circle") {
 				var r = Number(tag.getAttribute("r").trim());
 				var d = r*.5523;
@@ -13443,7 +13514,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		// beatgammit on StackOverflow
 		function ellipse(x, y, xDis, yDis) {
-			zog(x, y, xDis, yDis)
 			var kappa = 0.5522848, // 4 * ((âˆš(2) - 1) / 3)
 				ox = xDis * kappa,  // control point offset horizontal
 				oy = yDis * kappa,  // control point offset vertical
@@ -13504,6 +13574,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		}
 
+
+
 		function processGeneral(tag) {
 			// any styles on the tag overwrites general styles or attributes
 			var f,s,ss,a,aa;
@@ -13526,12 +13598,18 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			a = tag.getAttribute("fill-opacity")?tag.getAttribute("fill-opacity"):!zot(a)?a:generalAlpha;
 			aa = tag.getAttribute("stroke-opacity")?tag.getAttribute("stroke-opacity"):!zot(aa)?aa:generalStrokeAlpha;
 
+			f = parseGradients(f, tag);
+			s = parseGradients(s, tag);
 			var x = tag.getAttribute("x")?tag.getAttribute("x"):0;
 			x = tag.getAttribute("cx")?tag.getAttribute("cx"):x;
 			var y = tag.getAttribute("y")?tag.getAttribute("y"):0;
 			y = tag.getAttribute("cy")?tag.getAttribute("cy"):y;
-			if (!zot(a) && !zot(f)) f = zim.convertColor(f, "rgba", Number(a));
-			if (!zot(aa) && !zot(s)) s = zim.convertColor(s, "rgba", Number(aa));
+			if (f && !f.type=="RadialColor" && !f.type=="GradientColor") {
+				if (!zot(a) && !zot(f)) f = zim.convertColor(f, "rgba", Number(a));
+			}
+			if (s && !s.type=="RadialColor" && !s.type=="GradientColor") {
+				if (!zot(aa) && !zot(s)) s = zim.convertColor(s, "rgba", Number(aa));	
+			}
 			return [f,s,Number(ss),Number(a),Number(aa),Number(x),Number(y)];
 		}
 
@@ -14013,7 +14091,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (points.length >= 2)
 					// M 100 350 l 150 -300
 					if (lastCommand == "z" || lastCommand == "Z") {type = "blob";}										
-					//if (zot(shape)) {															
+					//if (zot(shape)) {										
 						if (type == "squiggle") shape = new zim.Squiggle(s, ss, points, null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, null, null, null, interactive);
 						else shape = new zim.Blob(f, s, ss, points, null, null, null, null, showControls, null, null, null, null, null, null, null, null, null, null, null, null, null, interactive);
 						shape.loc(0,0,that);																					
@@ -14056,6 +14134,294 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		that.processPath = function(path) {
 			return processPath(path,false);
 		};
+
+
+		// AI converting svg gradients to createjs format
+
+		function svgGradientToArray(gradientNode, tag) {
+			// Returns:
+			// linear: [0, [colors, ratios, x0, y0, x1, y1]]
+			// radial: [1, [colors, ratios, x0, y0, r0, x1, y1, r1]]
+			//
+			// Assumes:
+			// - gradient coordinates are based on SVG top-left space
+			// - ZIM shape uses same width/height but centered origin
+			// - tag is the SVG element using the gradient
+
+			if (!gradientNode || !gradientNode.tagName || !tag) return null;
+
+			var type = gradientNode.tagName.toLowerCase();
+			var box = tag.getBBox ? tag.getBBox() : {x:0, y:0, width:0, height:0};
+			var width = box.width || 0;
+			var height = box.height || 0;
+
+			function num(v, fallback) {
+				var n;
+				if (fallback == null) fallback = 0;
+				if (v == null || v === "") return fallback;
+				n = parseFloat(v);
+				return isNaN(n) ? fallback : n;
+			}
+
+			function trim(s) {
+				return String(s).replace(/^\s+|\s+$/g, "");
+			}
+
+			function getAttr(node, name, fallback) {
+				var v;
+				if (fallback == null) fallback = null;
+				if (!node) return fallback;
+				v = node.getAttribute(name);
+				return v != null ? v : fallback;
+			}
+
+			function parseStyle(styleText) {
+				var data = {};
+				var parts;
+				var i;
+				var bit;
+				var key;
+				var value;
+
+				if (!styleText) return data;
+				parts = styleText.split(";");
+
+				for (i = 0; i < parts.length; i++) {
+					bit = parts[i].split(":");
+					if (bit.length < 2) continue;
+					key = trim(bit[0]);
+					value = trim(bit.slice(1).join(":"));
+					data[key] = value;
+				}
+
+				return data;
+			}
+
+			function parseOffset(v) {
+				var s;
+				if (v == null || v === "") return 0;
+				s = trim(v);
+				if (s.charAt(s.length - 1) === "%") return Math.max(0, Math.min(1, num(s) / 100));
+				return Math.max(0, Math.min(1, num(s)));
+			}
+
+			function applyOpacityToColor(color, opacity) {
+				var hex, short, full, r, g, b;
+
+				if (opacity >= 1) return color;
+				hex = trim(color);
+
+				if (/^#([0-9a-f]{3})$/i.test(hex)) {
+					short = hex.slice(1);
+					r = parseInt(short.charAt(0) + short.charAt(0), 16);
+					g = parseInt(short.charAt(1) + short.charAt(1), 16);
+					b = parseInt(short.charAt(2) + short.charAt(2), 16);
+					return "rgba(" + r + "," + g + "," + b + "," + opacity + ")";
+				}
+
+				if (/^#([0-9a-f]{6})$/i.test(hex)) {
+					full = hex.slice(1);
+					r = parseInt(full.slice(0, 2), 16);
+					g = parseInt(full.slice(2, 4), 16);
+					b = parseInt(full.slice(4, 6), 16);
+					return "rgba(" + r + "," + g + "," + b + "," + opacity + ")";
+				}
+
+				return color;
+			}
+
+			function parseStop(stopNode) {
+				var style = parseStyle(getAttr(stopNode, "style", ""));
+				var color = getAttr(stopNode, "stop-color", null) || style["stop-color"] || "#000000";
+				var stopOpacity = getAttr(stopNode, "stop-opacity", null);
+				var opacity;
+				var offset;
+
+				if (stopOpacity == null && style["stop-opacity"] != null) stopOpacity = style["stop-opacity"];
+				if (stopOpacity == null) stopOpacity = 1;
+
+				opacity = Math.max(0, Math.min(1, num(stopOpacity, 1)));
+				offset = parseOffset(getAttr(stopNode, "offset", 0));
+
+				return {
+					color: applyOpacityToColor(color, opacity),
+					offset: offset
+				};
+			}
+
+			function resolveHref(node) {
+				return getAttr(node, "href", null) || getAttr(node, "xlink:href", null) || null;
+			}
+
+			function resolveLinkedGradient(node) {
+				var href;
+				if (!node || !node.ownerDocument) return null;
+				href = resolveHref(node);
+				if (!href || href.charAt(0) !== "#") return null;
+				return node.ownerDocument.getElementById(href.slice(1));
+			}
+
+			function inheritedAttr(node, name, fallback, seen) {
+				var value;
+				var linked;
+
+				if (fallback == null) fallback = null;
+				if (!seen) seen = [];
+				if (!node || seen.indexOf(node) !== -1) return fallback;
+				seen.push(node);
+
+				value = getAttr(node, name, null);
+				if (value != null) return value;
+
+				linked = resolveLinkedGradient(node);
+				if (linked) return inheritedAttr(linked, name, fallback, seen);
+
+				return fallback;
+			}
+
+			function collectStops(node, seen) {
+				var linked;
+				var inheritedStops;
+				var ownStops = [];
+				var children;
+				var i;
+				var child;
+
+				if (!seen) seen = [];
+				if (!node || seen.indexOf(node) !== -1) return [];
+				seen.push(node);
+
+				linked = resolveLinkedGradient(node);
+				inheritedStops = linked ? collectStops(linked, seen) : [];
+
+				children = node.children || [];
+				for (i = 0; i < children.length; i++) {
+					child = children[i];
+					if (child.tagName && child.tagName.toLowerCase() === "stop") {
+						ownStops.push(parseStop(child));
+					}
+				}
+
+				return ownStops.length ? ownStops : inheritedStops;
+			}
+
+			function coordX(v, units) {
+				var s = trim(v);
+				if (s.charAt(s.length - 1) === "%") return width * num(s) / 100 - width / 2;
+				if (units === "objectBoundingBox") return width * num(s) - width / 2;
+				return num(s) - box.x - width / 2;
+			}
+
+			function coordY(v, units) {
+				var s = trim(v);
+				if (s.charAt(s.length - 1) === "%") return height * num(s) / 100 - height / 2;
+				if (units === "objectBoundingBox") return height * num(s) - height / 2;
+				return num(s) - box.y - height / 2;
+			}
+
+			function radius(v, units) {
+				var s = trim(v);
+				var base = Math.min(width, height);
+				if (s.charAt(s.length - 1) === "%") return base * num(s) / 100;
+				if (units === "objectBoundingBox") return base * num(s);
+				return num(s);
+			}
+
+			function applyMatrix(x, y, matrixString) {
+				var m;
+				var vals;
+
+				if (!matrixString) return {x:x, y:y};
+
+				m = trim(matrixString).match(/^matrix\(([^)]+)\)$/i);
+				if (!m) return {x:x, y:y};
+
+				vals = m[1].split(/[\s,]+/);
+				if (vals.length < 6) return {x:x, y:y};
+
+				return {
+					x: num(vals[0], 1) * x + num(vals[2], 0) * y + num(vals[4], 0),
+					y: num(vals[1], 0) * x + num(vals[3], 1) * y + num(vals[5], 0)
+				};
+			}
+
+			var stops = collectStops(gradientNode);
+			var colors = [];
+			var ratios = [];
+			var units = inheritedAttr(gradientNode, "gradientUnits", "objectBoundingBox");
+			var transform = inheritedAttr(gradientNode, "gradientTransform", null);
+			var i;
+			var p0;
+			var p1;
+			var x0;
+			var y0;
+			var x1;
+			var y1;
+			var r0;
+			var r1;
+
+			for (i = 0; i < stops.length; i++) {
+				colors.push(stops[i].color);
+				ratios.push(stops[i].offset);
+			}
+
+			if (type === "lineargradient") {
+				x0 = coordX(inheritedAttr(gradientNode, "x1", units === "objectBoundingBox" ? "0%" : "0"), units);
+				y0 = coordY(inheritedAttr(gradientNode, "y1", units === "objectBoundingBox" ? "0%" : "0"), units);
+				x1 = coordX(inheritedAttr(gradientNode, "x2", units === "objectBoundingBox" ? "100%" : "100"), units);
+				y1 = coordY(inheritedAttr(gradientNode, "y2", units === "objectBoundingBox" ? "0%" : "0"), units);
+
+				p0 = applyMatrix(x0, y0, transform);
+				p1 = applyMatrix(x1, y1, transform);
+
+				return [0, [colors, ratios, p0.x, p0.y, p1.x, p1.y]];
+			}
+
+			x0 = coordX(inheritedAttr(gradientNode, "fx", inheritedAttr(gradientNode, "cx", units === "objectBoundingBox" ? "50%" : "0")), units);
+			y0 = coordY(inheritedAttr(gradientNode, "fy", inheritedAttr(gradientNode, "cy", units === "objectBoundingBox" ? "50%" : "0")), units);
+			x1 = coordX(inheritedAttr(gradientNode, "cx", units === "objectBoundingBox" ? "50%" : "0"), units);
+			y1 = coordY(inheritedAttr(gradientNode, "cy", units === "objectBoundingBox" ? "50%" : "0"), units);
+			r0 = 0;
+			r1 = radius(inheritedAttr(gradientNode, "r", units === "objectBoundingBox" ? "50%" : "0"), units);
+
+			p0 = applyMatrix(x0, y0, transform);
+			p1 = applyMatrix(x1, y1, transform);
+
+			return [1, [colors, ratios, p0.x, p0.y, r0, p1.x, p1.y, r1]];
+		}
+
+		function parseGradients(f, tag) {
+			var match;
+			var id;
+			var gradientTag;
+			var data;
+			var p;
+
+			if (f == null) return f;
+			f = String(f).replace(/^\s+|\s+$/g, "");
+
+			if (!/^url\(/i.test(f)) return f;
+
+			match = f.match(/^url\(\s*#([^)]+)\s*\)$/i);
+			if (!match) return f;
+
+			id = match[1];
+			if (!svg || !svg.querySelector) return f;
+
+			gradientTag = svg.querySelector("#" + id);
+			if (!gradientTag) return f;
+
+			data = svgGradientToArray(gradientTag, tag);
+			if (!data) return f;
+
+			p = data[1];
+
+			if (data[0] === 1) {
+				return new RadialColor(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
+			}
+
+			return new GradientColor(p[0], p[1], p[2], p[3], p[4], p[5]);
+		}
 
 		
 
@@ -14339,7 +14705,7 @@ zim.extend(zim.Tag, zim.Container, ["clone", "dispose"], "zimContainer", false);
 // SUBSECTION SHADERS
 
 /*--
-zim.Shader = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, group, inherit)
+zim.Shader = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, group, inherit)
 
 Shader
 zim class - extends a zim.Bitmap which extends a createjs.Bitmap
@@ -14349,6 +14715,9 @@ Makes a Bitmap from shader code.  The Bitmap will update automatically if set to
 Shaders run on the GPU and are very fast for cool visual effects and are also the basis for 3D.
 For 3D, we recommend using three.js with ZIM and the the Three helper module - overlayed or with TextureActive.
 BUT - shaders are also commonly used for amazing 2D effects.
+
+As of ZIM 020 - there are now 16 channels supported in one Shader instance 
+see just past the numbered channels and dynamics to the channels and dynamics parameters that accept arrays
 
 Also see ShaderOverlay() that overlays the raw WebGL Canvas on ZIM as a Tag() rather than converting to a Bitmap.
 
@@ -14791,6 +15160,13 @@ channel0, channel1, channel2, channel3 - (default null) pass in a ZIM DisplayObj
 	see the dynamic parameters below to set if this is a dynamic channel, default is true
 dynamic0, dynamic1, dynamic2, dynamic3 - (default true / false for Pic) if a channel is used, set its matching dynamic parameter to false
 	if the channel does not change - for example a Container where nothing is moving.
+channels - (default null) an Array of up to 16 ZIM DisplayObjects (Container, Pic, Vid, Shader, etc.)
+	used for iChannel0 through iChannel15 in the shader. 
+	Alternatively, channel0, channel1, channel2, etc. can be passed individually.
+	Objects are cached and GPU textures are bound and updated automatically.
+dynamics - (default null) an Array of Booleans matching the channels Array.
+	Set an index to false if that channel does not change (e.g. a static Container or Pic).
+	Defaults to true (or false for Pic). Alternatively, dynamic0, dynamic1, etc. can be passed individually.
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -14838,13 +15214,13 @@ EVENTS
 See the CreateJS Easel Docs for Bitmap events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+50.96
-zim.Shader = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, group, inherit) {
-    var sig = "width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, group, inherit";    
+zim.Shader = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, group, inherit) {
+    var sig = "width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, group, inherit";    
     var duo; if (duo = zob(zim.Shader, arguments, sig, this)) return duo;        
-    z_d("50.96");
+    z_d("50.970");
     this.group = group;
     var DS = style===false?group!=null?zim.getStyle(null,null,inherit,this.group):{}:zim.getStyle("Shader", this.group, inherit);
-    var s = makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, this);
+    var s = makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, this);
     
     this.zimBitmap_constructor(s.canvas);
     this.type = "Shader";   
@@ -14852,7 +15228,7 @@ zim.Shader = function(width, height, fragment, uniforms, vertex, dynamic, preCal
 	// MONITOR		
 	var mID = this.mID = "z~"+(DS.monitor===false?"-":this.type);
 
-    this.uniforms = s.uniforms; // now a Uniforms object - use uniforms.obj to see original
+    this.uniforms = s.uniforms;
     this.canvas = s.canvas;
     this.gl = s.gl;
     this.setUniform = s.setUniform;
@@ -14880,47 +15256,27 @@ zim.Shader = function(width, height, fragment, uniforms, vertex, dynamic, preCal
         }
     });	
 
-	// var gl = canvas.getContext('webgl2');
-	// that.updateChannel = function(index, obj) {
-
-	// 	if (zot(index)) index = 0;
-	// 	if (!that.channels[i]) return that;
-	// 	var channel = that.channels[i];
-		
-	// 	channel.dynamic = that["dynamic" + i];
-	// 	if (channel.type && channel.type=="Pic") channel.dynamic = false;	
-	// 	if (channel.cache) {
-	// 		if (!channel.cacheCanvas) channel.cache();
-	// 		channel.texture = createTexture(channel.cacheCanvas);
-	// 	} else {
-	// 		channel.texture = createTexture(channel);
-	// 	}
-	// 	gl.uniform1i(gl.getUniformLocation(program, 'iChannel' + i), i);
-	// }	
-
     if (style!==false) zim.styleTransforms(this, DS); 
     
     this.clone = function() {		
-        return that.cloneProps(new zim.Shader(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, this.group, inherit));
+        return that.cloneProps(new zim.Shader(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, this.group, inherit));
     };
 
     this.dispose = function(temp, b, disposing) {
         if (this.ticker) zim.Ticker.remove(this.ticker, mID, that);
-        // if (this.uniforms) this.uniforms.dispose();
         this.canvas = null;
         this.gl = null;    
         this.program = null;     
         this.ticker = null;
 		if (!disposing) this.zimBitmap_dispose(true);
 		return true;
-    }
-
-}	
+    };
+};
 zim.extend(zim.Shader, zim.Bitmap, ["clone", "dispose"], "zimBitmap", false);
 //-50.96
 
 /*--
-zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, group, inherit)
+zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, group, inherit)
 
 ShaderOverlay
 zim class - extends a zim.Tag
@@ -14965,13 +15321,13 @@ function ready() {
 END EXAMPLE
 
 --*///+50.962
-zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, group, inherit) {
-    var sig = "width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, group, inherit";    
+zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, group, inherit) {
+    var sig = "width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, group, inherit";    
     var duo; if (duo = zob(zim.ShaderOverlay, arguments, sig, this)) return duo;        
-    z_d("50.962");
+    z_d("50.970");
     this.group = group;
     var DS = style===false?group!=null?zim.getStyle(null,null,inherit,this.group):{}:zim.getStyle("ShaderOverlay", this.group, inherit);
-    var s = makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, this);
+    var s = makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, this);
     
     this.zimTag_constructor(width, height);
     this.type = "ShaderOverlay";   
@@ -14979,7 +15335,7 @@ zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic,
 	// MONITOR		
 	var mID = this.mID = "z~"+(DS.monitor===false?"-":this.type);
 
-    this.uniforms = s.uniforms; // now a Uniforms object - use uniforms.obj to see original
+    this.uniforms = s.uniforms;
     this.canvas = s.canvas;
     this.gl = s.gl;
     this.setUniform = s.setUniform;
@@ -15004,7 +15360,7 @@ zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic,
             if (value) {
                 zim.Ticker.add(this.ticker, null, mID, that);
             } else {
-                if (this.ticker) zim.Ticker.remove(this.ticker, mID, that, that);
+                if (this.ticker) zim.Ticker.remove(this.ticker, mID, that);
             }
             _dynamic = value?true:false;
         }
@@ -15013,7 +15369,7 @@ zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic,
     if (style!==false) zim.styleTransforms(this, DS); 
     
     this.clone = function() {		
-        return that.cloneProps(new zim.Shader(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, style, this.group, inherit));
+        return that.cloneProps(new zim.ShaderOverlay(width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, style, this.group, inherit));
     };
 
     this.dispose = function(temp, b, disposing) {
@@ -15025,14 +15381,13 @@ zim.ShaderOverlay = function(width, height, fragment, uniforms, vertex, dynamic,
         this.ticker = null;
 		if (!disposing) this.zimTag_dispose(true);
 		return true;
-    }
-
-}	
+    };
+};
 zim.extend(zim.ShaderOverlay, zim.Tag, ["clone", "dispose"], "zimTag", false);
 //-50.962
 
 /*--
-makeShader = function(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, tether) 
+makeShader = function(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, tether) 
 
 makeShader
 function - used internally only
@@ -15050,13 +15405,13 @@ primarily to match default uniforms at ShaderToy https://www.shadertoy.com/
 Introduced in ZIM 016
 
 --*///+50.964
-function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, tether) {
-    z_d("50.964");   
+function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preCall, postCall, rate, version, canvas, vertexPosition, strip, log, channel0, channel1, channel2, channel3, dynamic0, dynamic1, dynamic2, dynamic3, channels, dynamics, tether) {
+    z_d("50.970");   
 
 	var mID = "z~Shader";
 
     if (zot(width)) width = DS.width!=null?DS.width:500;
-    if (zot(height)) height = DS.radius!=null?DS.height:500;
+    if (zot(height)) height = DS.height!=null?DS.height:500;
     if (zot(rate)) rate = DS.rate!=null?DS.rate:1;
     if (zot(version)) version = DS.version!=null?DS.version:"#version 300 es";
     var defaultV;
@@ -15075,46 +15430,108 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
     if (zot(vertexPosition)) vertexPosition = DS.vertexPosition!=null?DS.vertexPosition:"vertexPosition";
     if (zot(strip)) strip = DS.strip!=null?DS.strip:true;
     if (zot(log)) log = DS.log!=null?DS.log:null;
-    if (zot(channel0)) channel0 = DS.channel0!=null?DS.channel0:null;
-    if (zot(channel1)) channel1 = DS.channel1!=null?DS.channel1:null;
-    if (zot(channel2)) channel2 = DS.channel2!=null?DS.channel2:null;
-    if (zot(channel3)) channel3 = DS.channel3!=null?DS.channel3:null;
-	if (zot(dynamic0)) dynamic0 = DS.dynamic0!=null?DS.dynamic0:true;
-    if (zot(dynamic1)) dynamic1 = DS.dynamic1!=null?DS.dynamic1:true;
-    if (zot(dynamic2)) dynamic2 = DS.dynamic2!=null?DS.dynamic2:true;
-    if (zot(dynamic3)) dynamic3 = DS.dynamic3!=null?DS.dynamic3:true;
-
 
     if (zot(canvas)) {
         canvas = document.createElement("canvas");
         canvas.setAttribute("width", width);
         canvas.setAttribute("height", height);
-        canvas.setAttribute("id", "shaderCanvas");
+        canvas.setAttribute("id", "shaderCanvas_" + zim.makeID());
     }
 
-	function createTexture(source) {
+	function getSource(channel) {
+		if (!channel) return null;
+		if (channel.tagName === "VIDEO" || channel.tagName === "IMG" || channel.tagName === "CANVAS") return channel;
+		if (channel.source && (channel.source.tagName === "VIDEO" || channel.source.tagName === "IMG")) return channel.source;
+		if (channel.video && channel.video.tagName === "VIDEO") return channel.video;
+		if (channel.tag && (channel.tag.tagName === "VIDEO" || channel.tag.tagName === "IMG" || channel.tag.tagName === "CANVAS")) return channel.tag;
+		if (channel.bitmap && channel.bitmap.image) return channel.bitmap.image;
+		if (channel.image) return channel.image;
+		if (channel.cacheCanvas) return channel.cacheCanvas;
+		return channel;
+	}
+
+	function isVideo(source, channel) {
+		if (source && source.tagName === "VIDEO") return true;
+		if (channel && channel.type === "Vid") return true;
+		return false;
+	}
+
+	var gl = canvas.getContext('webgl2');
+    gl.enable(gl.CULL_FACE);
+    gl.cullFace(gl.BACK);
+    gl.frontFace(gl.CCW); 
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+	function createTexture(source, unit) {
+		if (zot(unit)) unit = 0;
+		gl.activeTexture(gl["TEXTURE" + unit]);
 		var tex = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, tex);
 		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+		if (source && (source.readyState == null || source.readyState >= 2)) {
+			try {
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+			} catch(e) {
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+			}
+		} else {
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,0,0,0]));
+		}
 		return tex;
 	}
 
-	var channels = [channel0, channel1, channel2, channel3];
-	var dynamics = [dynamic0, dynamic1, dynamic2, dynamic3];
+	// Build 16-Channel list from array or individual parameters
+	var channelList = new Array(16).fill(null);
+	var dynamicList = new Array(16).fill(true);
+
+	if (channels && Array.isArray(channels)) {
+		for (var k = 0; k < Math.min(channels.length, 16); k++) channelList[k] = channels[k];
+	} else if (DS.channels && Array.isArray(DS.channels)) {
+		for (var k = 0; k < Math.min(DS.channels.length, 16); k++) channelList[k] = DS.channels[k];
+	} else {
+		channelList[0] = channel0 != null ? channel0 : DS.channel0;
+		channelList[1] = channel1 != null ? channel1 : DS.channel1;
+		channelList[2] = channel2 != null ? channel2 : DS.channel2;
+		channelList[3] = channel3 != null ? channel3 : DS.channel3;
+		for (var k = 4; k < 16; k++) {
+			if (DS["channel" + k] != null) channelList[k] = DS["channel" + k];
+		}
+	}
+
+	if (dynamics && Array.isArray(dynamics)) {
+		for (var k = 0; k < Math.min(dynamics.length, 16); k++) dynamicList[k] = dynamics[k];
+	} else if (DS.dynamics && Array.isArray(DS.dynamics)) {
+		for (var k = 0; k < Math.min(DS.dynamics.length, 16); k++) dynamicList[k] = DS.dynamics[k];
+	} else {
+		dynamicList[0] = dynamic0 != null ? dynamic0 : (DS.dynamic0 != null ? DS.dynamic0 : true);
+		dynamicList[1] = dynamic1 != null ? dynamic1 : (DS.dynamic1 != null ? DS.dynamic1 : true);
+		dynamicList[2] = dynamic2 != null ? dynamic2 : (DS.dynamic2 != null ? DS.dynamic2 : true);
+		dynamicList[3] = dynamic3 != null ? dynamic3 : (DS.dynamic3 != null ? DS.dynamic3 : true);
+		for (var k = 4; k < 16; k++) {
+			if (DS["dynamic" + k] != null) dynamicList[k] = DS["dynamic" + k];
+		}
+	}
+
 	var channelOutput = "";
-	zim.loop(channels, function(channel, i) {
-		if (channel) channelOutput+="uniform sampler2D iChannel"+i+";\n";
-	});	
+	for (var i = 0; i < 16; i++) {
+		if (channelList[i] || fragment.indexOf("iChannel" + i) !== -1) {
+			var reg = new RegExp("uniform\\s+sampler2D\\s+iChannel" + i + "\\s*;", "g");
+			if (!reg.test(fragment)) {
+				channelOutput += "uniform sampler2D iChannel" + i + ";\n";
+			}
+		}
+	}
 
     fragment = version + "\nprecision mediump float;\n\n// ZIM Default Uniforms\nuniform vec3 iResolution;\nuniform float iTime;\nuniform float iTimeDelta;\nuniform float iFrameRate;\nuniform float iFrame;\nuniform vec4 iMouse;\nuniform vec4 iDate;\nuniform float iChange;\n" + channelOutput + fragment;
     vertex = version + "\nprecision mediump float;\n\n// ZIM Default Uniforms\nprecision mediump float;\nuniform vec3 iResolution;\nuniform float iTime;\nuniform float iTimeDelta;\nuniform float iFrameRate;\nuniform float iFrame;\nuniform vec4 iMouse;\nuniform vec4 iDate;\nuniform float iChange;\n\n" + vertex;
 
-    // Replace ShaderToy mainImage
     var matches = fragment.match(/(void |.*)mainImage\(\s*(out\s*vec4\s*([^,]*)),\s*in\s*(vec[234]\s*[^)\s]*)\s*\)/i);
-    fragment = fragment.replace(/(void |.*)mainImage\(\s*(out\s*vec4\s*[^,]*),\s*in\s*(vec[234]\s*[^)\s]*)\s*\)/i,  "$2;\nvoid main()");
+    fragment = fragment.replace(/(void |.*)mainImage\(\s*(out\s*vec4\s*([^,]*)),\s*in\s*(vec[234]\s*[^)\s]*)\s*\)/i,  "$2;\nvoid main()");
     if (matches && matches[4]) {
         var append = "main() {\n\t"+matches[4]+" = gl_FragCoord.xy; // ZIM shadertoy adjust";
         fragment = fragment.replace(/main\(\)\s*{/i, append);
@@ -15126,10 +15543,6 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
         zogd("FRAGMENT SHADER:\n\n" + fragment);
     }
 
-    if (zot(canvas)) {
-        canvas = document.createElement("canvas");
-        canvas.setAttribute(id, "shaderCanvas_" + zim.makeID());
-    }
     if (!zot(uniforms)) {
         if (uniforms.type != "Uniforms") {
             uniforms = new zim.Uniforms(uniforms);
@@ -15140,24 +15553,16 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
     tether.rate = zik(rate);
     tether.change = 0;
 
-    // base code from https://medium.com/@banksysan_10088/webgl-checkerboard-42e15490603c
-    var gl = canvas.getContext('webgl2');
-    gl.enable(gl.CULL_FACE);
-    gl.cullFace(gl.BACK);
-    gl.frontFace(gl.CCW); 
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
     var program = createProgram(gl, vertex, fragment);
-    if (preCall && typeof preCall=="function") preCall(program, gl, canvas);  // ZIM
+    if (preCall && typeof preCall=="function") preCall(program, gl, canvas);
     gl.useProgram(program);
     var vertexData = [];
-    if (postCall && typeof postCall=="function") postCall(program, gl, canvas, vertexData);  // ZIM
+    if (postCall && typeof postCall=="function") postCall(program, gl, canvas, vertexData);
     
     if (strip) {
-        if (vertexData.length == 0) vertexData = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0]; // two triangles strips
+        if (vertexData.length == 0) vertexData = [1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, -1.0];
     } else {
-        if (vertexData.length == 0) vertexData = [-1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]; // two triangles
+        if (vertexData.length == 0) vertexData = [-1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0];
     }
     var vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
@@ -15166,36 +15571,53 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
     gl.vertexAttribPointer(vertexAttributeLocation, 2, gl.FLOAT, false, 2 * Float32Array.BYTES_PER_ELEMENT, 0);
     gl.enableVertexAttribArray(vertexAttributeLocation);
 
-    // ZIM
+	function initChannel(channel, i) {
+		if (!channel) return;
+		channel.dynamic = dynamicList[i];
+		var source = getSource(channel);
+		var isV = isVideo(source, channel);
+		var isPic = (channel.type && channel.type=="Pic") || (source && source.tagName=="IMG");
+		if (isPic) channel.dynamic = false;
 
-	zim.loop(channels, function(channel, i) {
-		if (channel) {
-			channel.dynamic = dynamics[i];
-			if (channel.type && channel.type=="Pic") channel.dynamic = false;	
-			if (channel.cache) {
-				if (!channel.cacheCanvas) channel.cache();
-				channel.texture = createTexture(channel.cacheCanvas);
-			} else {
-				channel.texture = createTexture(channel);
-			}
+		if (!isV && !isPic && channel.cache && !channel.cacheCanvas) {
+			channel.cache();
+			source = channel.cacheCanvas;
+		}
+
+		if (isV && source && source.requestVideoFrameCallback) {
+			channel._hasNewFrame = true;
+			var rVFC = function() {
+				channel._hasNewFrame = true;
+				if (source && source.requestVideoFrameCallback && !tether.disposed) {
+					source.requestVideoFrameCallback(rVFC);
+				}
+			};
+			source.requestVideoFrameCallback(rVFC);
+		}
+
+		channel.texture = createTexture(source, i);
+		gl.activeTexture(gl["TEXTURE" + i]);
+		gl.bindTexture(gl.TEXTURE_2D, channel.texture);
+		gl.uniform1i(gl.getUniformLocation(program, 'iChannel' + i), i);
+	}
+
+	for (var i = 0; i < 16; i++) {
+		if (channelList[i]) {
+			initChannel(channelList[i], i);
+		} else if (fragment.indexOf("iChannel" + i) !== -1) {
+			var blankTex = createTexture(null, i);
+			gl.activeTexture(gl["TEXTURE" + i]);
+			gl.bindTexture(gl.TEXTURE_2D, blankTex);
 			gl.uniform1i(gl.getUniformLocation(program, 'iChannel' + i), i);
 		}
-	});	
+	}
 
-	function replaceChannel(obj, i, dynamic) {
-		if (zot(dynamic)) dynamic = true;
-		channels[i] = obj;
-		var channel = obj;
-		channel.dynamic = dynamic;
-		if (channel.type && channel.type=="Pic") channel.dynamic = false;
-		dynamics[i] = channel.dynamic;
-		if (channel.cache) {
-			if (!channel.cacheCanvas) channel.cache();
-			channel.texture = createTexture(channel.cacheCanvas);
-		} else {
-			channel.texture = createTexture(channel);
-		}
-		gl.uniform1i(gl.getUniformLocation(program, 'iChannel' + i), i);
+	function replaceChannel(obj, i, dyn) {
+		if (zot(i)) i = 0;
+		if (zot(dyn)) dyn = true;
+		channelList[i] = obj;
+		dynamicList[i] = dyn;
+		initChannel(obj, i);
 	}
 
     function setUniform(type, name, v1, v2, v3, v4) {
@@ -15203,42 +15625,59 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
         if (zot(name)) {zogf("uniform - must have name"); return;}
         gl["uniform"+type](gl.getUniformLocation(program, name), v1, v2, v3, v4);
     }
+
     var frameNum = 0;       
     function update(e) {   
-
-        // process uniforms 
         if (!zot(uniforms)) {
-            uniforms.update(); // takes from properties and updates obj
+            uniforms.update();
             zim.loop(uniforms.obj, function(name,val) {
                 var n = 1;
                 if (Array.isArray(val)) n = val.length;
                 else val = [val]; 
-                // if (name=="time") zog(val[0])
                 setUniform(n+"f", name, val[0], val[1], val[2], val[3]);
             });
         }       
 
-		// process channels
-		for (var i=0; i<4; i++) {
-			var channel = channels[i];
-			if (channel) {
+		// Process up to 16 texture units
+		for (var i = 0; i < 16; i++) {
+			var channel = channelList[i];
+			if (channel && channel.texture) {
 				gl.activeTexture(gl["TEXTURE"+i]);
 				gl.bindTexture(gl.TEXTURE_2D, channel.texture);				
 				if (channel.dynamic) {
-					if (channel.cacheCanvas) channel.updateCache();
-					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, channel.cacheCanvas?channel.cacheCanvas:channel);		
+					var source = getSource(channel);
+					var isV = isVideo(source, channel);
+					var shouldUpload = false;
+
+					if (isV) {
+						if (source && source.readyState >= 2 && !source.paused && !source.ended) {
+							if (source.requestVideoFrameCallback) {
+								shouldUpload = channel._hasNewFrame;
+								channel._hasNewFrame = false;
+							} else {
+								shouldUpload = true;
+							}
+						}
+					} else if (channel.cacheCanvas) {
+						channel.updateCache();
+						source = channel.cacheCanvas;
+						shouldUpload = true;
+					}
+
+					if (shouldUpload && source) {
+						try {
+							gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+						} catch(err) {}
+					}
 				}
 			}
 		}
-			
 
-        // DEFAULT UNIFORMS 
         var date = new Date();  
         setUniform("3f", "iResolution", width, height);        
         var time = zim.decimals(date.getHours()*60*60+date.getMinutes()*60+date.getSeconds()+date.getMilliseconds()/1000, 4);
         setUniform("4f", "iDate", date.getFullYear(), date.getMonth(), time);    
         setUniform("1f", "iTime", e?zim.decimals(e.runTime/1000, 4):0);
-        setUniform("1f", "iChange", tether.rate);
         setUniform("1f", "iChange", tether.change+=tether.rate/60);                       
         setUniform("1f", "iTimeDelta", e?zim.decimals(e.delta/1000, 4):0);
         setUniform("1f", "iFrame", e?frameNum++:0);                       
@@ -15250,8 +15689,8 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
         } 
         if (strip) gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         else gl.drawArrays(gl.TRIANGLES, 0, vertexData.length);
-        
     }
+
     var downCheck = false;
     var clickCheck = false;
 	setTimeout(function() {
@@ -15259,6 +15698,7 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
 		tether.on("pressup", function() {downCheck = false;}, null, null, null, null, mID);
 		tether.tap({call:function() {clickCheck = true;}, cursor:false});
 	}, 50);    
+
     update();
     var ticker = zim.Ticker.add(update, null, mID, tether);
     if (!dynamic) {
@@ -15266,81 +15706,66 @@ function makeShader(DS, width, height, fragment, uniforms, vertex, dynamic, preC
         setTimeout(update, 50);
         if (tether.stage) tether.stage.update();
     }           
-    return {dynamic:dynamic, fragment:fragment, vertex:vertex, program:program, uniforms:uniforms, gl:gl, canvas:canvas, update:update, setUniform:setUniform, ticker:ticker, replaceChannel:replaceChannel};      
 
-    // private
+    return {
+		dynamic: dynamic, 
+		fragment: fragment, 
+		vertex: vertex, 
+		program: program, 
+		uniforms: uniforms, 
+		gl: gl, 
+		canvas: canvas, 
+		update: update, 
+		setUniform: setUniform, 
+		ticker: ticker, 
+		replaceChannel: replaceChannel
+	};      
+
     function createProgram(webGlContext, vertexShaderText, fragmentShaderText, verify) {
         if (zot(verify)) verify = true;
-        if (!webGlContext) {
-            console.error("This browser doesn't support WebGL");
-        }
+        if (!webGlContext) console.error("This browser doesn't support WebGL");
 
         webGlContext.clearColor(0.0, 0.0, 0.0, 0.0);
-        webGlContext.clear(
-            webGlContext.COLOR_BUFFER_BIT | webGlContext.DEPTH_BUFFER_BIT
-        );
+        webGlContext.clear(webGlContext.COLOR_BUFFER_BIT | webGlContext.DEPTH_BUFFER_BIT);
 
         var vertexShader = webGlContext.createShader(webGlContext.VERTEX_SHADER);
-        var fragmentShader = webGlContext.createShader(
-            webGlContext.FRAGMENT_SHADER
-        );
+        var fragmentShader = webGlContext.createShader(webGlContext.FRAGMENT_SHADER);
 
         webGlContext.shaderSource(vertexShader, vertexShaderText);
         webGlContext.shaderSource(fragmentShader, fragmentShaderText);
 
         webGlContext.compileShader(vertexShader);
+        if (!webGlContext.getShaderParameter(vertexShader, webGlContext.COMPILE_STATUS)) {
+            var vLog = webGlContext.getShaderInfoLog(vertexShader);
+            throw new Error("Vertex Shader Compile Error: " + vLog);
+        }
+
         webGlContext.compileShader(fragmentShader);
-
-        var compileStatus = {
-            vertexStatus:
-                webGlContext.getShaderParameter(
-                    vertexShader,
-                    webGlContext.COMPILE_STATUS
-                ) || webGlContext.getShaderInfoLog(vertexShader),
-            fragmentStatus:
-                webGlContext.getShaderParameter(
-                    fragmentShader,
-                    webGlContext.COMPILE_STATUS
-                ) || webGlContext.getShaderInfoLog(fragmentShader),
-        };
-
-        if (
-            compileStatus.vertexStatus !== true ||
-            compileStatus.fragmentStatus !== true
-        ) {
-            throw new Error("Failed to compile. " + JSON.stringify(compileStatus, null, 2));
+        if (!webGlContext.getShaderParameter(fragmentShader, webGlContext.COMPILE_STATUS)) {
+            var fLog = webGlContext.getShaderInfoLog(fragmentShader);
+            throw new Error("Fragment Shader Compile Error: " + fLog);
         }
 
         var program = webGlContext.createProgram();
-
         webGlContext.attachShader(program, vertexShader);
         webGlContext.attachShader(program, fragmentShader);
         webGlContext.linkProgram(program);
 
-        var linkingStatus =
-            webGlContext.getProgramParameter(program, webGlContext.LINK_STATUS) ||
-            webGlContext.getProgramInfoLog(program);
-
-        if (linkingStatus !== true) {
-            throw new Error("Linking filed:\n" + linkingStatus);
+        if (!webGlContext.getProgramParameter(program, webGlContext.LINK_STATUS)) {
+            var pLog = webGlContext.getProgramInfoLog(program);
+            throw new Error("Shader Program Link Error: " + pLog);
         }
 
         if (verify) {
             webGlContext.validateProgram(program);
-            var validationStatus =
-                webGlContext.getProgramParameter(
-                    program,
-                    webGlContext.VALIDATE_STATUS
-                ) || webGlContext.getProgramInfoLog(program);
-
-            if (validationStatus !== true) {
-                throw new Error("Validation failed.\n" + validationStatus);
+            if (!webGlContext.getProgramParameter(program, webGlContext.VALIDATE_STATUS)) {
+                var valLog = webGlContext.getProgramInfoLog(program);
+                throw new Error("Shader Program Validate Error: " + valLog);
             }
         }
-
         return program;
     }
-} // end makeShader
+}
 //-50.964
 
 /*--
@@ -18084,6 +18509,7 @@ Note the points property has been split into points and pointObjects (and there 
 					// points is an array of [[setX, setY, ballX, ballY, handleX, handleY, handle2X, handle2Y, type], etc.]
 
 					setInfo = points[i];
+					if (!setInfo) setInfo = [0,0,0,0,0,0,0,0,null];
 					type = setInfo[8] ? setInfo[8] : controlType;
 					set.loc({x:setInfo[0], y:setInfo[1]});
 					ball = new zim.Circle(ballS, that.circleColor, that.circleBorderColor, 2, null, null, null, null, null, false)
@@ -25910,7 +26336,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 	
 /*--
-zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, group, inherit)
+zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, order, style, group, inherit)
 
 Emoji
 zim class - extends a zim.Container
@@ -25922,9 +26348,10 @@ If color or borderColor is provided, the SVG will be an SVGContainer so independ
 
 SEE: ZIM EmojiPicker() in COMPONENTS below ColorPicker().
 
-SEE: https://zimjs.com/emoji/ - Emoji Picker Tool
+SEE: https://zimjs.com/emoji/ - Emoji Picker Tool with added SVG Editor
 SEE: https://zimjs.com/nft/bubbling/emoji.html 
 SEE: https://zimjs.com/020/noto.html 
+
 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
@@ -25977,13 +26404,15 @@ code - |ZIM VEE| (default \ud83d\ude42") the Unicode Character or the Emoji from
 		This will add a ZIM Label with the character to the Emoji Container
 	As of ZIM 020, this supports Noto (by Google) Color Emojis which stay consistent across platforms (Windows, Linux, Android, iOS)
 		To turn the emoji into Noto emojis, use "noto_code" where code is the emoji character or a code described above
-		This will add a ZIM SVG of the character to the Emoji Container
-		If color or borderColor paramters are used, the SVG will be in the form of an SVGContainer holding ZIM Blob and Squiggle objects 
+		This will lazy load a ZIM SVG of the character to the Emoji Container
+		If color or borderColor parameters are used, the SVG will be in the form of an SVGContainer holding ZIM Blob and Squiggle objects 
 		then each part can be colored, dragged, wiggled, or animated
 		If using the Emoji in a Tile() or Wrapper() then preload the emoji in the Frame assets or zapp_assets using "noto_code"
 		This will preload the SVG from the Google GitHub repository - the location is set in ZIM (similar to using "gf_" for Google fonts)
 		NOTE: many of the parameters below will not work on the SVG as they were made for text based emojis (but color and borderColor will)
 		see https://symbl.cc/en/platforms/google/ to see all - not easily searched though
+		see https://zimjs.com/020/dpad.html for examples of changing parts of the SVG emoji (hide, position, color)
+		see https://zimjs.com/emoji and choose Noto Edit Tool to edit and save an SVG emoji
 size - |ZIM VEE| (default 36) the size of the font in pixels
 monochrome - (default false) set to true to make black outline - this is actually the bold version of the icon
 italic - (default false) set the font to italic 
@@ -26008,6 +26437,8 @@ color - |ZIM VEE| (default null) for when color is set, set to a color or an arr
 	usually a series() would be used here for colors in order, or an array for random colors
 	setting this will make an SVG with bitmap:false - so blobs and squiggles so parts of SVG can be colored
 borderColor - |ZIM VEE| (default null) for when borderColor is set to a color or an array of colors to apply to border of children - in order of the children
+order - and array showing a new order of the old index numbers 
+	eg [3,1,2,0] means the old index 3 is now at level 0, old index 1 stays the same, old index 2 is now third, and old index 0 is at the top
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -26027,6 +26458,8 @@ PROPERTIES
 type - the name of the class as a String
 veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE values to be referenced
 	for instance, obj.prop = Pick.choose(obj.veeObj.prop); will reset the the prop to the result of the original ZIM VEE value
+label - reference to the ZIM Label if emoji is a string
+svg - reference to the SVG if the emoji is SVG or SVGContainer (color set) - if emoji is an SVGContainer then it has children 
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -26041,8 +26474,8 @@ See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.58
 
-	zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, group, inherit) {
-		var sig = "code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, group, inherit";
+	zim.Emoji = function(code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, order, style, group, inherit) {
+		var sig = "code, size, monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, order, style, group, inherit";
 		var duo; if (duo = zob(zim.Emoji, arguments, sig, this)) return duo;
 		z_d("54.58");
 		
@@ -26063,6 +26496,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(shiftV)) shiftV = DS.shiftV!=null?DS.shiftV:0;
 		if (zot(color)) color = DS.color!=null?DS.color:null;
 		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
+		if (zot(order)) order = DS.order!=null?DS.order:null;
 		
 		// PICK
 		var oa = remember(code, size);
@@ -26081,7 +26515,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var match;
 		if (code.match) match = code.match(/^noto_(.*)/);
 		if (match) {
-			var svg = that.svg = new zim.SVG({svg:code, interactive:!(color||borderColor), bitmap:!(color||borderColor), color:color, borderColor:borderColor});
+			var svg = that.svg = new zim.SVG({svg:code, interactive:!(color||borderColor), bitmap:!(color||borderColor), color:color, borderColor:borderColor, order:order});
 			svg.addTo(this);			
 		} else {
 			var label = this.label = new zim.Label(code, size, null, null, null, null, null, null, null, null, italic, null, null, null, backing, null, null, backgroundColor, null, null, corner, null, padding, paddingH, paddingV, shiftH, shiftV);
@@ -26134,7 +26568,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		
 		if (style!==false) zim.styleTransforms(this, DS);
 		this.clone = function (exact) {
-			return that.cloneProps(new zim.Emoji((exact||!zim.isPick(oa[0]))?code:oa[0], (exact||!zim.isPick(oa[1]))?that.size:oa[1], monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, style, that.group, inherit));
+			return that.cloneProps(new zim.Emoji((exact||!zim.isPick(oa[0]))?code:oa[0], (exact||!zim.isPick(oa[1]))?that.size:oa[1], monochrome, italic, backgroundColor, backgroundBorderColor, backgroundBorderWidth, corner, backing, padding, paddingH, paddingV, shiftH, shiftV, color, borderColor, order, style, that.group, inherit));
 		};
 
 	};
@@ -26952,9 +27386,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			that.pressed = onCheck = pressCheck = false;		
 
 			if (reallyOn) buttonOn(); // will recall the roll ZIM01
-			else if (that.rollPersist) removeRoll();
-			
-			if (e.nativeEvent && (e.nativeEvent.type == "touchend" || e.nativeEvent == "touchcancel")) { // touch screen
+			else if (that.rollPersist) removeRoll();				
+			if (WW.M || (e.nativeEvent && (e.nativeEvent.type == "touchend" || e.nativeEvent.type == "touchcancel"))) { // Mobile or touch screen
 				buttonOff();
 			}
 		}, null, null, null, null, mID);
@@ -51251,7 +51684,7 @@ RETURNS obj for chaining
 	zim.addTo = function(obj, container, index, still) {
 		var sig = "obj, container, index, still";
 		var duo; if (duo = zob(zim.addTo, arguments, sig)) return duo;
-		// if (obj.type=="AC"&&zdf) {zdf.ac("addTo", arguments); return obj;}
+		// if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&zdf) {zdf.ac("addTo", arguments); return obj;}
 		z_d("47.5");
 		if (zot(obj)) {zogy("zim methods - addTo(): please provide object"); return;}
 		if (zot(container)) {
@@ -51425,7 +51858,7 @@ RETURNS obj for chaining
 	zim.centerReg = function(obj, container, index, add) {
 		var sig = "obj, container, index, add";
 		var duo; if (duo = zob(zim.centerReg, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("centerReg", arguments); return obj.addTo(container, index);}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("centerReg", arguments); return obj.addTo(container, index);}
 		z_d("48");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zogy("zim methods - centerReg(): please provide object with bounds set"); return obj;}
 		if (zot(add)) add = true;
@@ -51481,7 +51914,7 @@ RETURNS obj for chaining
 	zim.center = function(obj, container, index, add) {
 		var sig = "obj, container, index, add";
 		var duo; if (duo = zob(zim.center, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("center", arguments); return obj.addTo(container, index);}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("center", arguments); return obj.addTo(container, index);}
 		if (!zim.centerCheck) {z_d("48.1"); zim.centerCheck=true;}
 		if (zot(obj) || !obj.getBounds) {zogy("zim.center(): please provide object with bounds"); return obj;}
 		if (zot(container)) {
@@ -51751,7 +52184,7 @@ RETURNS obj for chaining
 	zim.pos = function(obj, x, y, horizontal, vertical, container, index, add, reg, regX, regY) {
 		var sig = "obj, x, y, horizontal, vertical, container, index, add, reg, regX, regY";
 		var duo; if (duo = zob(zim.pos, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("pos", arguments); return obj.addTo(container, index);}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("pos", arguments); return obj.addTo(container, index);}
 		z_d("41.5");
 		
 		// handle DIR effect 
@@ -51998,7 +52431,7 @@ RETURNS obj for chaining
 	zim.loc = function(obj, target, y, container, index, add, localToLocal, x) {
 		var sig = "obj, target, y, container, index, add, localToLocal, x";
 		var duo; if (duo = zob(zim.loc, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("loc", arguments); return obj.addTo(container, index);}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("loc", arguments); return obj.addTo(container, index);}
 		z_d("41.55");
 		if (zot(obj)) return;
 		if (typeof target == "number") {
@@ -52070,7 +52503,7 @@ RETURNS obj for chaining
 	zim.mov = function(obj, x, y) {
 		var sig = "obj, x, y";
 		var duo; if (duo = zob(zim.mov, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("mov", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("mov", arguments); return obj;}
 		z_d("41.6");
 		if (zot(obj)) return;
 		if (!zot(x)) obj.x += x;
@@ -52102,7 +52535,7 @@ scaleY - (default null) pass this in to scale x and y independently
 RETURNS obj for chaining
 --*///+41.97
 	zim.sca = function(obj, scale, scaleY) {
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("sca", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("sca", arguments); return obj;}
 		z_d("41.97");
 		if (zot(obj) || zot(obj.scaleX)) return obj;
 		if (zot(scale)) scale = obj.scaleX;
@@ -52337,7 +52770,7 @@ RETURNS obj for chaining
 	zim.rot = function(obj, rotation, x, y) {
 		z_d("41.8");
 		if (zot(obj)) return;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("rot", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("rot", arguments); return obj;}
 		if (!zot(rotation)) {
 			if (obj.parent && (!zot(x) || !zot(y))) {
 				if (zot(x)) x = obj.x;
@@ -52395,7 +52828,7 @@ RETURNS obj for chaining
 	zim.siz = function(obj, width, height, only) {
 		z_d("41.85");
 		if (zot(obj)) return;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("siz", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("siz", arguments); return obj;}
 		if (zot(only)) only = false;
 		if (!zot(width) && !zot(height)) {
 			obj.widthOnly = width; obj.heightOnly = height;
@@ -52430,7 +52863,7 @@ RETURNS obj for chaining
 	zim.ske = function(obj, skewX, skewY) {
 		z_d("41.9");
 		if (zot(obj)) return;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("ske", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("ske", arguments); return obj;}
 		if (!zot(skewX)) obj.skewX = skewX;
 		if (!zot(skewY)) obj.skewY = skewY;
 		return obj;
@@ -52478,7 +52911,7 @@ RETURNS obj for chaining
 	zim.reg = function(obj, regX, regY, still) {
 		z_d("41.95");
 		if (zot(obj)) return;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("reg", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("reg", arguments); return obj;}
 		var lastRegX = obj.regX;
 		var lastRegY = obj.regY;
 		var originalX = regX;
@@ -53515,7 +53948,7 @@ RETURNS obj for chaining
 	zim.drag = function(obj, boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight, dropOriginal, style, group) {
 		var sig = "obj, boundary, axis, overCursor, dragCursor, all, swipe, localBoundary, onTop, surround, slide, slideFactor, slideSnap, slideSnapDamp, reg, removeTweens, startBounds, rect, currentTarget, offStage, immediateBoundary, singleTouch, dropTargets, dropCopy, dropSnap, dropBack, dropEnd, dropFull, dropHitTest, dropScale, dropWidth, dropHeight, dropOriginal, style, group";
 		var duo; if (duo = zob(zim.drag, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("drag", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("drag", arguments); return obj;}
 		z_d("31");
 
 		var DS = style===false?group!=null?zim.getStyle(null,null,inherit,this.group):{}:zim.getStyle("Drag", group);
@@ -55198,7 +55631,7 @@ RETURNS obj for chaining
 zim.transform = function(obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY) {
 	var sig = "obj, move, stretchX, stretchY, scale, rotate, allowToggle, visible, onTop, showStretch, showRotate, showScale, showReg, showBorder, borderColor, borderWidth, dashed, customCursors, handleSize, regSize, snapDistance, snapRotation, cache, events, ghostColor, ghostWidth, ghostDashed, ghostHidden, frame, container, minScaleX, maxScaleX, minScaleY, maxScaleY, sliceX, sliceY";
 	var duo; if (duo = zob(zim.transform, arguments, sig)) return duo;
-	if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("transform", arguments); return obj;}
+	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("transform", arguments); return obj;}
 	z_d("33.5");
 
 	// MONITOR
@@ -56443,7 +56876,7 @@ RETURNS obj for chaining
 zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBoundary, slide, slideFactor, regControl, onTop, surround, circularBounds, rect, trackpad) {
 	var sig = "obj, move, scale, rotate, boundary, minScale, maxScale, snapRotate, localBoundary, slide, slideFactor, regControl, onTop, surround, circularBounds, rect, trackpad";
 	var duo; if (duo = zob(zim.gesture, arguments, sig)) return duo;
-	if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("gesture", arguments); return obj;}
+	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("gesture", arguments); return obj;}
 	z_d("34.5");
 
 	// MONITOR
@@ -56987,8 +57420,15 @@ zim.gesture = function(obj, move, scale, rotate, boundary, minScale, maxScale, s
 					// Applied incrementally so it tracks the finger naturally.
 					e.preventDefault();
 
+					// var newX = obj.x - dx / (zim.scaX || 1);
+					// var newY = obj.y - dy / (zim.scaY || 1);
+
+					// Chromebook adjust
+					var isChromeOS = /CrOS/i.test(navigator.userAgent);
 					var newX = obj.x - dx / (zim.scaX || 1);
-					var newY = obj.y - dy / (zim.scaY || 1);
+					var newY = isChromeOS
+						? obj.y + dy / (zim.scaY || 1)
+						: obj.y - dy / (zim.scaY || 1);
 
 					var panResult = obj.zimTouch.checkBounds(newX, newY);
 					obj.x = panResult.x;
@@ -62757,7 +63197,7 @@ RETURNS obj for chaining
 	zim.scaleTo = function(obj, boundObj, percentX, percentY, type, boundsOnly, simple) {
 		var sig = "obj, boundObj, percentX, percentY, type, boundsOnly, simple";
 		var duo; if (duo = zob(zim.scaleTo, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("scaleTo", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("scaleTo", arguments); return obj;}
 		z_d("43");
 		if (zot(boundObj)) boundObj = WW.zdf&&WW.zdf.stage?WW.zdf.stage:null;
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zog ("zim methods - scaleTo(): please provide an object (with setBounds) to scale"); return obj;}
@@ -62849,7 +63289,7 @@ RETURNS an Object literal with the new and old details (bX is rectangle x, etc.)
 	zim.fit = function(obj, left, top, width, height, type) {
 		var sig = "obj, left, top, width, height, type";
 		var duo; if (duo = zob(zim.fit, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("fit", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("fit", arguments); return obj;}
 		z_d("46");
 		if (zot(obj) || !obj.getBounds) return;
 		if (!obj.getBounds()) {
@@ -63192,7 +63632,7 @@ RETURNS obj for chaining
 	zim.expand = function(obj, padding, paddingV, paddingRight, paddingBottom) {
 		var sig = "obj, padding, paddingV, paddingRight, paddingBottom";
 		var duo; if (duo = zob(zim.expand, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("expand", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("expand", arguments); return obj;}
 		z_d("50");
 		if (zot(obj) || !obj.getBounds || !obj.getBounds()) {zogy("zim methods - expand(): please provide object with bounds set"); return obj;}
 		if (zot(padding)) padding = 20;
@@ -63458,7 +63898,7 @@ RETURNS the obj for chaining;
 	zim.outline = function(obj, color, size, boundsOnly, reg, origin, whiteSize) {
 		var sig = "obj, color, size, boundsOnly, reg, origin, whiteSize";
 		var duo; if (duo = zob(zim.outline, arguments, sig)) return duo;
-		if (obj.type=="AC"&&WW.zdf) {WW.zdf.ac("outline", arguments); return obj;}
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("outline", arguments); return obj;}
 		z_d("47");
 		if (obj.type && obj.type == "zimOultineShape") {
 			if (zon) zogy ("zim.outline() - warning, you are trying to outline an outline - do not outline in a loop");
@@ -70544,7 +70984,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 
 /*--
-zim.Bullets(list, bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, style, group, inherit)
+zim.Bullets(list, bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, rtl, style, group, inherit)
 
 Bullets
 zim class - extends a zim.Tile which extends a zim.Container
@@ -70609,6 +71049,7 @@ spacingH - (default spacing) horizontal spacing between bullet and text
 spacingV - (default spacing) vertical spacing 
 colSpacing - (default spacingH) spacing between columns
 bulletAlign - (default LEFT) alignment of bullets
+rtl - (default false (unless zim.DIR=true)) set to true to put bullets on the right
 style - (default true) set to false to ignore styles set with the STYLE
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -70643,8 +71084,8 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 
 --*///+67.8
 
-	zim.Bullets = function(list, bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, style, group, inherit) {
-		var sig = "list, bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, style, group, inherit";
+	zim.Bullets = function(list, bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, rtl, style, group, inherit) {
+		var sig = "list, bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, rtl, style, group, inherit";
 		var duo; if (duo = zob(zim.Bullets, arguments, sig, this)) return duo;
 		z_d("67.8");
 
@@ -70670,26 +71111,44 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		if (zot(spacingH)) spacingH = DS.spacingH!=null?DS.spacingH:spacing;
 		if (zot(spacingV)) spacingV = DS.spacingV!=null?DS.spacingV:spacing;
 		if (zot(colSpacing)) colSpacing = DS.colSpacing!=null?DS.colSpacing:spacingH;
-		if (zot(bulletAlign)) bulletAlign = DS.bulletAlign!=null?DS.bulletAlign:LEFT;
+		if (zot(rtl)) rtl = DS.rtl!=null?DS.rtl:WW.DIR=="rtl"||zim.DIR=="rtl";
+		if (zot(bulletAlign)) bulletAlign = DS.bulletAlign!=null?DS.bulletAlign:rtl?RIGHT:LEFT;
 		var tileList = [];
 		var num = 1;
 		this.list = list;
 		var icons = [];
-		zim.loop(list, function(words, i) {
-			if (words.type=="Bullets") { // nested Bullets
-				tileList.push(new zim.Container(1,1));
-				tileList.push(words);
-				return;
-			}
+		zim.loop(list, function(words, i) {			
 			const bt = zik(bulletType);
 			icons.push(bt);
+			if (rtl) {		
+				if (words.type=="Bullets") { // nested Bullets
+					tileList.push(words);
+					tileList.push(new zim.Container(1,1));
+				} else {	
+					makeLabel(words);
+					makeIcon(bt);				
+				}
+			} else {
+				if (words.type=="Bullets") { // nested Bullets
+					tileList.push(new zim.Container(1,1));
+					tileList.push(words);
+					return;
+				}				
+				makeIcon(bt);
+				makeLabel(words);
+			}			
+		});
+
+		function makeIcon(bt) {
 			if (bt.type && bt.clone) tileList.push(bt.clone());
 			else if (bt == "circle") tileList.push(new zim.Circle(5, color));
 			else if (bt == "square") tileList.push(new zim.Rectangle(10, 10, color));
 			else if (bt == "dash") tileList.push(new zim.Label({text:"-", size:size, font:font, color:color, italic:italic, bold:bold, variant:variant, shiftH:shiftH, shiftV:shiftV-2}));
 			else if (bt == "number" || bt == "numbers") tileList.push(new zim.Label({text:(num++)+".", size:size, font:font, color:color, italic:italic, bold:bold, variant:variant, shiftH:shiftH, shiftV:shiftV}));
+		}
+		function makeLabel(words) {
 			tileList.push(new zim.Label({text:words, size:size, font:font, color:color, italic:italic, bold:bold, variant:variant, shiftH:shiftH, shiftV:shiftV}));
-		})
+		}
 		if (cols > 1 ) {
 			// need to shift pairs 
 			// [b1, w1, b2, w2, b3, w3, b4, w4, b5, w5]
@@ -70707,6 +71166,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 				})				
 			}, null, null, 2); // steps of 2
 		}
+
 		this.zimTile_constructor(tileList, cols*2, Math.ceil(list.length/cols), series(spacingH,colSpacing), spacingV, true, null, null, null, null, null, null, series(bulletAlign, LEFT), CENTER);
 		this.type = "Bullets";
 
@@ -70718,7 +71178,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 					exactItems.push(icon.clone?icon.clone(true):icon);
 				}
 			}
-			return that.cloneProps(new zim.Bullets(list, exact?zim.series(exactItems):bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, this.style, this.group));
+			return that.cloneProps(new zim.Bullets(list, exact?zim.series(exactItems):bulletType, size, color, cols, font, italic, bold, variant, shiftH, shiftV, spacing, spacingH, spacingV, colSpacing, bulletAlign, rtl, this.style, this.group));
 		};
 	};
 	zim.extend(zim.Bullets, zim.Tile, ["clone"], "zimTile", false);
@@ -80758,7 +81218,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 	//-69.9747	
 
 /*--
-zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, style, group, inherit)
+zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, style, group, inherit)
 
 Perspective
 zim class extends ZIM Container which extends CreateJS Container
@@ -80896,6 +81356,22 @@ plane - (default false) set to true to repeat the object making a plane to infin
 fade - (default true) if a plane is set, this will fade the distance
 dynamic - (default true unless obj is Pic, then false) set to false if a Container, etc. does not change or animate
 frame - (default zimDefaultFrame) set the zim Frame the perspective is in if in a different frame than the default frame
+resolution - (default 1) the resolution multiplier for the internal WebGL shader canvas (e.g. 0.5 for half-resolution to boost GPU performance on laptops and mobile).
+maskShape - (default "rect") the cutout mask shape: "rect" (standard 4-corner quad), "circle" (1:1 true circle with aspect-ratio correction), or "ellipse" (stretches to the quad bounds)
+	or a ZIM DisplayObject (such as a Blob, Circle, or Container) to use as a dynamic GPU alpha mask texture (passed into iChannel1 with multi-tap blur spread).
+feather - (default 0) edge softness from 0 to 1 applied to the quad edges, circle/ellipse borders, or texture mask in the GPU shader.
+onTop - (default true) set to false to not bring the object to the top of its container when pressed
+overlay - (default false) set to true to use a DOM ShaderOverlay (Tag) rather than an in-canvas Shader (Bitmap) 
+	this bypasses 2D canvas blitting for maximum GPU performance and automatically 
+	hides controls for presentation mode. 
+	By default, this overlays above the stage canvas z-index = 100
+	can be adjusted with perspective.shader.tag.style.zIndex
+	if placed under the canvas, ensure the Frame color is set to clear (also see overlay property)
+clipping - (default true) when overlay is true, clamps the shader canvas to the stage bounds to optimize GPU fill rate by trimming off-stage pixels - set to false if animating or moving across stage boundaries to avoid edge clipping
+passthrough - (default false) set to true to display the asset unwarped (at original 1:1 aspect ratio), centered at the 4-point centroid and cropped by the perspective boundary.
+passthroughScale - (default 1) scale multiplier for the asset when passthrough is true, scaling from the center of the asset.
+passthroughShiftX - (default 0) horizontal pixel offset for the asset beneath the crop window when passthrough is true.
+passthroughShiftY - (default 0) vertical pixel offset for the asset beneath the crop window when passthrough is true.
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -80938,6 +81414,17 @@ uniforms - refernce to the ZIM Uniforms for the Shader
 	use perspective.uniforms.plane to get or set the plane setting of the perspective
 	use perspective.uniforms.fade to get or set the fade setting of plane
 toggled - get control state - true if showing and false if not - see toggle() method to set toggled
+maskShape - get or set the cutout shape "rect", "circle",  "ellipse", or the DisplayObject provided
+feather - get or set the edge softness / feathering amount (0 to 1).
+resolution - the resolution multiplier of the shader canvas.
+mask - reference to the mask DisplayObject container if a mask was provided.
+onTop - get or set whether the perspective comes to the top of its container when pressed
+overlay - get or set whether to render as a DOM ShaderOverlay - see overlay parameter
+clipping - get or set whether the overlay canvas bounding box is clamped to the stage boundaries
+passthrough - get or set whether the asset is displayed unwarped and cropped by the quad boundary.
+passthroughScale - get or set the scale of the asset when passthrough is true.
+passthroughShiftX - get or set the horizontal pixel offset of the asset beneath the crop window when passthrough is true.
+passthroughShiftY - get or set the vertical pixel offset of the asset beneath the crop window when passthrough is true.
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -80948,463 +81435,872 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 --*///+69.9748
-	zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, style, group, inherit) {
-		var sig = "obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, style, group, inherit";
-		var duo; if (duo = zob(zim.Perspective, arguments, sig, this)) return duo;
-		z_d("69.9748");
-		this.group = group;
-		var DS = style === false ? {} : zim.getStyle("Perspective", group, inherit);
+zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, style, group, inherit) {
+	var sig = "obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, style, group, inherit";
+	var duo; if (duo = zob(zim.Perspective, arguments, sig, this)) return duo;
+	z_d("69.9770");
+	this.group = group;
+	var DS = style === false ? {} : zim.getStyle("Perspective", group, inherit);
 
-		if (zot(obj)) obj=DS.obj!=null?DS.obj:new zim.Tile(new zim.Rectangle(50, 50, [purple,pink,white]), 5, 5, 10, 10);
-		if (zot(points)) points=DS.points!=null?DS.points:null;
-		if (zot(interactive)) interactive=DS.interactive!=null?DS.interactive:true;
-		if (zot(showControls)) showControls=DS.showControls!=null?DS.showControls:true;
-		if (zot(allowToggle)) allowToggle=DS.allowToggle!=null?DS.allowToggle:true;
-		if (zot(move)) move=DS.move!=null?DS.move:true;
-		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:red;
-		if (zot(borderWidth)) borderWidth = DS.borderWidth!=null?DS.borderWidth:2;
-		if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
-		else if (borderColor!=null && borderWidth==null) borderWidth = 2;
-		if (zot(dashed)) dashed=DS.dashed!=null?DS.dashed:false;
-		if (zot(plane)) plane=DS.plane!=null?DS.plane:false;
-		if (zot(fade)) fade=DS.fade!=null?DS.fade:true;
-		if (zot(dynamic)) dynamic=DS.dynamic!=null?DS.dynamic:true;
-		if (zot(frame)) frame=DS.frame!=null?DS.frame:zdf;
-		
-		// PICK
-		var oa = remember(obj, borderColor, borderWidth, dashed);
-		this.veeObj = {obj:oa[0], borderColor:oa[1], borderWidth:oa[2], dashed:oa[3]};
-		function remember() {return arguments;} // for cloning PICK
-		obj = zim.Pick.choose(obj);
-		borderColor = zim.Pick.choose(borderColor);
-		borderWidth = zim.Pick.choose(borderWidth);
-		dashed = zim.Pick.choose(dashed);
-		
-		var size = frame.width;
-		var mobile = zim.mobile();
-		
-		// 2D Homography, Matthew Arcus, mla, 2022 - reduced by Dr Abstract 2026
-		// https://www.shadertoy.com/view/7dXfDH
-		var frag = "uniform vec2 a;uniform vec2 b;uniform vec2 c;uniform vec2 d;uniform bool plane;uniform bool fade;\n";
-		frag += "#define map(screenpos) ((2.0*(screenpos)-iResolution.xy)/iResolution.y)\n";
-		frag += "mat3 rproject(vec3 p0, vec3 p1, vec3 p2, vec3 p3) {mat3 m = inverse(mat3(p0,p1,p2));vec3 t = 1.0/(m*p3);return mat3(t[0],0,0, 0,t[1],0, 0,0,t[2])*m;}mat3 rproject(vec2 p0, vec2 p1, vec2 p2, vec2 p3) {return rproject(vec3(p0,1),vec3(p1,1),vec3(p2,1),vec3(p3,1));}\n";
-		frag += "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n";
-		frag += "vec2 p = map(fragCoord.xy);float px = fwidth(p.x);vec2 p0 = d;vec2 p1 = a;vec2 p2 = b;vec2 p3 = c;mat3 m = rproject(p0,p1,p2,p3);mat3 n = rproject(vec2(0,0),vec2(0,1),vec2(1,1),vec2(1,0));mat3 t = inverse(n)*m;vec3 uv = t*vec3(p,1);float z = uv.z;uv /= z;mat3x2 tt = transpose(mat2x3(t));vec2 nx0 = tt*vec3(0,1,0);vec2 ny0 = tt*vec3(1,0,0);vec2 nx1 = tt*vec3(0,1,-1);vec2 ny1 = tt*vec3(1,0,-1);vec3 color = pow(texture(iChannel0,uv.xy).xyz,vec3(2.2));vec4 final;if (!(uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) && !plane) {final = vec4(0.0,0.0,0.0,0.0);} else {color = pow(color, vec3(0.4545));	if (fade && plane) {color *= min(2.5*z*z,1.0);}	if (plane) final = vec4(color,min(2.5*z*z,texture(iChannel0,uv.xy).a)); else final = vec4(color,texture(iChannel0,uv.xy).a);} fragColor = final;}";
+	if (zot(obj)) obj = DS.obj != null ? DS.obj : new zim.Tile(new zim.Rectangle(50, 50, [purple, pink, white]), 5, 5, 10, 10);
+	if (zot(points)) points = DS.points != null ? DS.points : null;
+	if (zot(interactive)) interactive = DS.interactive != null ? DS.interactive : true;
+	if (zot(showControls)) showControls = DS.showControls != null ? DS.showControls : true;
+	if (zot(allowToggle)) allowToggle = DS.allowToggle != null ? DS.allowToggle : true;
+	if (zot(move)) move = DS.move != null ? DS.move : true;
+	if (zot(borderColor)) borderColor = DS.borderColor != null ? DS.borderColor : red;
+	if (zot(borderWidth)) borderWidth = DS.borderWidth != null ? DS.borderWidth : 2;
+	if (borderColor < 0 || borderWidth < 0) borderColor = borderWidth = null;
+	else if (borderColor != null && borderWidth == null) borderWidth = 2;
+	if (zot(dashed)) dashed = DS.dashed != null ? DS.dashed : false;
+	if (zot(plane)) plane = DS.plane != null ? DS.plane : false;
+	if (zot(fade)) fade = DS.fade != null ? DS.fade : true;
+	if (zot(dynamic)) dynamic = DS.dynamic != null ? DS.dynamic : true;
+	if (zot(frame)) frame = DS.frame != null ? DS.frame : zdf;
+	if (zot(resolution)) resolution = DS.resolution != null ? DS.resolution : 1;
+	if (zot(maskShape)) maskShape = DS.maskShape != null ? DS.maskShape : "rect";
+	if (zot(feather)) feather = DS.feather != null ? DS.feather : 0;
+	if (zot(onTop)) onTop = DS.onTop != null ? DS.onTop : true;
+	if (zot(overlay)) overlay = DS.overlay != null ? DS.overlay : false;
+	if (zot(clipping)) clipping = DS.clipping != null ? DS.clipping : true;
+	if (zot(passthrough)) passthrough = DS.passthrough != null ? DS.passthrough : false;
+	if (zot(passthroughScale)) passthroughScale = DS.passthroughScale != null ? DS.passthroughScale : 1;
+	if (zot(passthroughShiftX)) passthroughShiftX = DS.passthroughShiftX != null ? DS.passthroughShiftX : 0;
+	if (zot(passthroughShiftY)) passthroughShiftY = DS.passthroughShiftY != null ? DS.passthroughShiftY : 0;
 
-		this.zimContainer_constructor(size, size, null, null, false);
-		this.type = "Perspective";
-		
-		// MONITOR		
-		var mID = this.mID = "z~"+(DS.monitor===false?"-":this.type);
+	var size = Math.max(frame.width, frame.height);
 
-		var that = this;
+	// PICK
+	var oa = remember(obj, borderColor, borderWidth, dashed);
+	this.veeObj = {obj: oa[0], borderColor: oa[1], borderWidth: oa[2], dashed: oa[3]};
+	function remember() {return arguments;}
+	obj = zim.Pick.choose(obj);
+	borderColor = zim.Pick.choose(borderColor);
+	borderWidth = zim.Pick.choose(borderWidth);
+	dashed = zim.Pick.choose(dashed);
+	
+	var mobile = zim.mobile();
 
-		// seems to maximize on each side if we move half the size and half the -size
-		var controls = that.sides = new zim.Container(size, size).center(that).mov(size/2,-size/2);
-		obj.center(this);
+	var frag = "uniform vec2 a; uniform vec2 b; uniform vec2 c; uniform vec2 d;\n";
+	frag += "uniform float plane;\nuniform float fade;\n";
+	frag += "uniform float shape;\nuniform float feather;\nuniform float aspect;\nuniform float useMaskTex;\n";
+	frag += "uniform float passthrough;\nuniform float passthroughScale;\nuniform vec2 passthroughCenter;\nuniform vec2 passthroughShift;\nuniform vec2 assetNormSize;\n";
+	frag += "#define map(screenpos) ((2.0*(screenpos)-iResolution.xy)/iResolution.y)\n";
+	frag += "mat3 rproject(vec3 p0, vec3 p1, vec3 p2, vec3 p3) {\n";
+	frag += "   mat3 m = inverse(mat3(p0,p1,p2));\n";
+	frag += "   vec3 t = vec3(1.0)/(m*p3);\n";
+	frag += "   return mat3(t.x,0.0,0.0, 0.0,t.y,0.0, 0.0,0.0,t.z)*m;\n";
+	frag += "}\n";
+	frag += "mat3 rproject(vec2 p0, vec2 p1, vec2 p2, vec2 p3) {\n";
+	frag += "   return rproject(vec3(p0,1.0), vec3(p1,1.0), vec3(p2,1.0), vec3(p3,1.0));\n";
+	frag += "}\n";
+	frag += "void mainImage(out vec4 fragColor, in vec2 fragCoord) {\n";
+	frag += "   vec2 p = map(fragCoord.xy);\n";
+	frag += "   mat3 m = rproject(d, a, b, c);\n";
+	frag += "   mat3 n = rproject(vec2(0.0,0.0), vec2(0.0,1.0), vec2(1.0,1.0), vec2(1.0,0.0));\n";
+	frag += "   mat3 t = inverse(n)*m;\n";
+	frag += "   vec3 uv = t*vec3(p, 1.0);\n";
+	frag += "   float z = uv.z;\n";
+	frag += "   // 1. Horizon & In-Bounds Checks\n";
+	frag += "   if (plane > 0.5) {\n";
+	frag += "       if (z <= 0.0) { fragColor = vec4(0.0); return; }\n";
+	frag += "   }\n";
+	frag += "   uv /= z;\n";
+	frag += "   bool inBounds = (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0);\n";
+	frag += "   if (!inBounds && plane < 0.5) {\n";
+	frag += "       fragColor = vec4(0.0);\n";
+	frag += "       return;\n";
+	frag += "   }\n";
+	frag += "   // 2. Tile UV (Repeats across plane with fract)\n";
+	frag += "   vec2 tileUV = (plane > 0.5) ? fract(uv.xy) : uv.xy;\n";
+	frag += "   vec2 texUV;\n";
+	frag += "   if (passthrough > 0.5) {\n";
+	frag += "       vec2 pScale = max(vec2(0.0001), assetNormSize * passthroughScale);\n";
+	frag += "       texUV = (p - passthroughCenter - passthroughShift) / pScale + vec2(0.5);\n";
+	frag += "       if (texUV.x < 0.0 || texUV.x > 1.0 || texUV.y < 0.0 || texUV.y > 1.0) {\n";
+	frag += "           fragColor = vec4(0.0);\n";
+	frag += "           return;\n";
+	frag += "       }\n";
+	frag += "   } else {\n";
+	frag += "       texUV = tileUV;\n";
+	frag += "   }\n";
+	frag += "   vec4 texColor = texture(iChannel0, texUV);\n";
+	frag += "   vec3 color = pow(texColor.rgb, vec3(2.2));\n";
+	frag += "   color = pow(color, vec3(0.4545));\n";
+	frag += "   float alpha = texColor.a;\n";
+	frag += "   // 3. Circle / Ellipse Feather (applied to tileUV)\n";
+	frag += "   if (shape > 0.5) {\n";
+	frag += "       vec2 centerCoord = (tileUV - vec2(0.5)) * 2.0;\n";
+	frag += "       if (shape < 1.5) {\n";
+	frag += "           if (aspect >= 1.0) centerCoord.x *= aspect;\n";
+	frag += "           else centerCoord.y /= aspect;\n";
+	frag += "       }\n";
+	frag += "       float dist = length(centerCoord);\n";
+	frag += "       float f = max(feather, 0.001);\n";
+	frag += "       float circleAlpha = 1.0 - smoothstep(1.0 - f, 1.0, dist);\n";
+	frag += "       color *= circleAlpha;\n";
+	frag += "       alpha *= circleAlpha;\n";
+	frag += "       if (alpha <= 0.0) { fragColor = vec4(0.0); return; }\n";
+	frag += "   }\n";
+	frag += "   // 4. Texture Mask (Blob) Feather (applied to tileUV)\n";
+	frag += "   if (useMaskTex > 0.5) {\n";
+	frag += "       float maskAlpha = texture(iChannel1, tileUV).a;\n";
+	frag += "       if (feather > 0.001) {\n";
+	frag += "           float spread = feather * 0.03;\n";
+	frag += "           float total = maskAlpha * 2.0;\n";
+	frag += "           total += texture(iChannel1, tileUV + vec2(spread, 0.0)).a;\n";
+	frag += "           total += texture(iChannel1, tileUV - vec2(spread, 0.0)).a;\n";
+	frag += "           total += texture(iChannel1, tileUV + vec2(0.0, spread)).a;\n";
+	frag += "           total += texture(iChannel1, tileUV - vec2(0.0, spread)).a;\n";
+	frag += "           total += texture(iChannel1, tileUV + vec2(spread, spread) * 0.707).a;\n";
+	frag += "           total += texture(iChannel1, tileUV - vec2(spread, spread) * 0.707).a;\n";
+	frag += "           total += texture(iChannel1, tileUV + vec2(-spread, spread) * 0.707).a;\n";
+	frag += "           total += texture(iChannel1, tileUV + vec2(spread, -spread) * 0.707).a;\n";
+	frag += "           maskAlpha = total / 10.0;\n";
+	frag += "       }\n";
+	frag += "       color *= maskAlpha;\n";
+	frag += "       alpha *= maskAlpha;\n";
+	frag += "       if (alpha <= 0.0) { fragColor = vec4(0.0); return; }\n";
+	frag += "   }\n";
+	frag += "   // 5. Standard Quad Edge Feather (applied to tileUV)\n";
+	frag += "   if (feather > 0.001 && shape < 0.5 && useMaskTex < 0.5) {\n";
+	frag += "       float f = max(feather, 0.001);\n";
+	frag += "       float edgeX = smoothstep(0.0, f, tileUV.x) * (1.0 - smoothstep(1.0 - f, 1.0, tileUV.x));\n";
+	frag += "       float edgeY = smoothstep(0.0, f, tileUV.y) * (1.0 - smoothstep(1.0 - f, 1.0, tileUV.y));\n";
+	frag += "       float edgeAlpha = edgeX * edgeY;\n";
+	frag += "       color *= edgeAlpha;\n";
+	frag += "       alpha *= edgeAlpha;\n";
+	frag += "       if (alpha <= 0.0) { fragColor = vec4(0.0); return; }\n";
+	frag += "   }\n";
+	frag += "   // 6. Horizon Distance Fade\n";
+	frag += "   if (fade > 0.5 && plane > 0.5) {\n";
+	frag += "       float distFade = min(2.5 * z * z, 1.0);\n";
+	frag += "       color *= distFade;\n";
+	frag += "       alpha *= distFade;\n";
+	frag += "   }\n";
+	frag += "   fragColor = vec4(color, alpha);\n";
+	frag += "}\n";
 
-		// make it so we can pass in points too as alternative
-		// to start with a perspective
-		// also have a recordPoints 
+	this.zimContainer_constructor(size, size, null, null, false);
+	this.type = "Perspective";
+	
+	var mID = this.mID = "z~" + (DS.monitor === false ? "-" : this.type);
+	var that = this;
+	var pps = [];
+	var sides = [];
+	var _onTop = onTop;
+	var _overlay = overlay;
+	var _clipping = clipping;
+	var _maskShape = maskShape;
+	var _passthrough = Boolean(passthrough);
+	var _passthroughScale = Number(passthroughScale) || 1;
+	var _passthroughShiftX = Number(passthroughShiftX) || 0;
+	var _passthroughShiftY = Number(passthroughShiftY) || 0;
+	var _passthroughCenter = null;
 
-		var p;
-		if (!points) {
-			var b = obj.getBounds();
-			var tl = obj.localToLocal(b.x, b.y, this);
-			var tr = obj.localToLocal(b.x + b.width, b.y, this);
-			var br = obj.localToLocal(b.x + b.width, b.y + b.height, this);
-			var bl = obj.localToLocal(b.x, b.y + b.height, this);
-			p = [tl, tr, br, bl];
-		} else {
-			p = points;
-			zim.loop(points, function(pp, i) {				
-				p[i] = {x:pp.x+size/2, y:pp.y+size/2};
-			})
-		}
+	var controls = that.sides = new zim.Container(size, size).center(that).mov(size/2, -size/2);
+	obj.center(this);
 
-		var blob = that.blob = new zim.Blob({
-			points: [
-				[p[0].x, p[0].y, 0, 0, 0, 0, 0, 0, "none"], 
-				[p[1].x, p[1].y, 0, 0, 0, 0, 0, 0, "none"], 
-				[p[2].x, p[2].y, 0, 0, 0, 0, 0, 0, "none"], 
-				[p[3].x, p[3].y, 0, 0, 0, 0, 0, 0, "none"]],
-			color: !interactive&&!move?clear:faint,
-			borderColor: interactive?borderColor:clear,
-			borderWidth: borderWidth,
-			showControls:!interactive?false:showControls,
-			allowToggle:!interactive?false:allowToggle,
-			dashed:dashed,
-			move: false,
-			// interactive:interactive, // can;t manipulate points if interactive is false
-			lockControlType: true,
-			editPoints: false
-		}).addTo(this); //.vis(false);
-
-		blob.on("controlsshow", function() {
-			blob.borderColor = borderColor;
-			controls.vis(true);
-			zim.loop(sides, function(side) {
-				side.inside.vis(true);
-			});
-			blob.selectionManager.enabled = true;
-		}, null, null, null, null, mID);
-		blob.on("controlshide", function() {
-			blob.borderColor = clear;
-			controls.vis(false);
-			zim.loop(sides, function(side) {
-				side.inside.vis(false);
-			});
-		}, null, null, null, null, mID);
-		if (move) blob.shape.cur()
-		
-
-		// dragging - fix for within containers
-		blob.shape.on("mousedown", function() {
-			zim.loop(sides, function(side) {
-				side.color = black;
-			});		
-			blob.selectionManager.enabled = true;
-			if (!move) return;
-			that.diffX = that.x - frame.mouseX;
-			that.diffY = that.y - frame.mouseY;
-		}, null, null, null, null, mID);
-		blob.shape.on("pressmove", function() {	
-			if (!move) return;
-			that.x = frame.mouseX + that.diffX;
-			that.y = frame.mouseY + that.diffY;			
-		}, null, null, null, null, mID);
-
-		that.selectCorner = function(index, state) {
-			if (zot(index)) index = 0;
-			if (index > 3) index = 3;
-			var corner = that.blob.pointControls[index];
-			if (zot(state)) state = true 
-			if (state) {
-				that.blob.selectPoint(index, true, true);
-			} else {
-				that.blob.selectPoint(index, false, true);
-			}
-			return corner;
-		}
-
-		that.updateCorner = function(corner, refresh) {
-			if (zot(refresh)) refresh = true;
-			updatePoint(corner);
-			if (refresh) {
-				blob.update();
-				update();
-			}			
-			return corner;
-		}		
-
-		that.deselectPoints = function() {
-			zim.loop(4, function(i) {
-				that.selectCorner(i, false);
-				that.selectSide(i, false);
-			});
-			return that;		
-		}
-
-		that.toggled = showControls && interactive;
-		that.toggle = function(state) {
-			if (!interactive) return that;
-			if (zot(state)) that.toggled = !that.toggled;
-			else that.toggled = state;
-			blob.toggle(that.toggled);
-			controls.vis(that.toggled);
-			if (that.toggled) blob.borderColor = borderColor;
-			else blob.borderColor = clear;
-			return that;
-		}
-
-
-		var sp = [];
-		sp[0] = this.localToLocal(p[0].x, p[0].y, controls);
-		sp[1] = this.localToLocal(p[1].x, p[1].y, controls);
-		sp[2] = this.localToLocal(p[2].x, p[2].y, controls);
-		sp[3] = this.localToLocal(p[3].x, p[3].y, controls);
-		var uniforms = that.uniforms = new zim.Uniforms({
-			a: [sp[0].x / size, 1-sp[0].y / size], // top left
-			b: [sp[1].x / size, 1-sp[1].y / size], // top right
-			c: [sp[2].x / size, 1-sp[2].y / size], // bottom right
-			d: [sp[3].x / size, 1-sp[3].y / size],  // bottom left
-			plane: plane,
-			fade: fade
+	var p;
+	if (!points) {
+		var b = obj.getBounds();
+		var tl = obj.localToLocal(b.x, b.y, this);
+		var tr = obj.localToLocal(b.x + b.width, b.y, this);
+		var br = obj.localToLocal(b.x + b.width, b.y + b.height, this);
+		var bl = obj.localToLocal(b.x, b.y + b.height, this);
+		p = [tl, tr, br, bl];
+	} else {
+		p = points;
+		zim.loop(points, function(pp, i) {				
+			p[i] = {x: pp.x + size/2, y: pp.y + size/2};
 		});
-		that.shader = new zim.Shader({
-			width: 2*size,
-			height:2*size,
-			fragment: frag,
-			uniforms: uniforms,
-			channel0: obj,
-			dynamic: dynamic
-		})
-			.addTo(this, 0)
-			.mov(-size)
-			// seems to maximize on each side if we move half the size and half the -size
-			.mov(size/2,-size/2);
+	}
 
-		obj.removeFrom();
-		var pc = blob.pointCircles;
-		var pct = blob.pointControls;
-		
-		that.update = function() {
+	var blob = that.blob = new zim.Blob({
+		points: [
+			[p[0].x, p[0].y, 0, 0, 0, 0, 0, 0, "none"], 
+			[p[1].x, p[1].y, 0, 0, 0, 0, 0, 0, "none"], 
+			[p[2].x, p[2].y, 0, 0, 0, 0, 0, 0, "none"], 
+			[p[3].x, p[3].y, 0, 0, 0, 0, 0, 0, "none"]
+		],
+		color: !interactive && !move ? clear : faint,
+		borderColor: interactive ? borderColor : clear,
+		borderWidth: borderWidth,
+		showControls: !interactive ? false : showControls,
+		allowToggle: !interactive ? false : allowToggle,
+		dashed: dashed,
+		move: false,
+		lockControlType: true,
+		editPoints: false
+	}).addTo(this);
+
+	blob.on("controlsshow", function() {
+		blob.borderColor = borderColor;
+		controls.vis(true);
+		zim.loop(sides, function(side) {
+			side.inside.vis(true);
+		});
+		blob.selectionManager.enabled = true;
+	}, null, null, null, null, mID);
+	blob.on("controlshide", function() {
+		blob.borderColor = clear;
+		controls.vis(false);
+		zim.loop(sides, function(side) {
+			side.inside.vis(false);
+		});
+	}, null, null, null, null, mID);
+	if (move) blob.shape.cur();
+
+	function syncOverlayZ() {
+		if (that.shader && that.shader.tag) {
+			var idx = that.parent ? that.parent.getChildIndex(that) : 0;
+			that.shader.tag.style.zIndex = -100 + idx;
+			if (that.shader.tag.parentNode) {
+				that.shader.tag.parentNode.appendChild(that.shader.tag);
+			}
+		}
+	}
+
+	function bringToFront() {
+		if (_onTop) {
+			that.top();
+			syncOverlayZ();
+		}
+	}
+
+	blob.shape.on("mousedown", function() {
+		activate();
+		bringToFront();
+		zim.loop(sides, function(side) {
+			side.color = black;
+		});		
+		blob.selectionManager.enabled = true;
+		if (!move) return;
+		that.diffX = that.x - frame.mouseX;
+		that.diffY = that.y - frame.mouseY;
+	}, null, null, null, null, mID);
+
+	blob.shape.on("pressmove", function() {	
+		if (!move) return;
+		that.x = frame.mouseX + that.diffX;
+		that.y = frame.mouseY + that.diffY;			
+	}, null, null, null, null, mID);
+
+	that.selectCorner = function(index, state) {
+		if (zot(index)) index = 0;
+		if (index > 3) index = 3;
+		var corner = that.blob.pointControls[index];
+		if (zot(state)) state = true;
+		if (state) {
+			that.blob.selectPoint(index, true, true);
+		} else {
+			that.blob.selectPoint(index, false, true);
+		}
+		return corner;
+	};
+
+	that.updateCorner = function(corner, refresh) {
+		if (zot(refresh)) refresh = true;
+		updatePoint(corner);
+		if (refresh) {
 			blob.update();
 			update();
-		}
+		}			
+		return corner;
+	};
 
-		// ~~~~~~~~~~~~~~~~~~~~~~
-		// MAKE SIDES 
+	that.deselectPoints = function() {
+		zim.loop(4, function(i) {
+			that.selectCorner(i, false);
+			that.selectSide(i, false);
+		});
+		return that;		
+	};
+	that.deselect = that.deselectPoints;
 
-		that.selectSide = function(index, state) {
-			if (zot(index)) index = 0;
-			if (index > 3) index = 3;
-			var side = sides[index];
-			if (zot(state)) state = true 
-			if (state) {
-				blob.selectionManager.enabled = false;
-				side.color = white;
-				side.aX = side.inside.x-side.pctA.x;
-				side.aY = side.inside.y-side.pctA.y;
-				side.bX = side.inside.x-side.pctB.x;
-				side.bY = side.inside.y-side.pctB.y;
-			} else {
-				side.color = black;
-				var notSelected = zim.loop(sides, function(s) {
-					if (s.color == white) return false;
-				});
-				if (notSelected) blob.selectionManager.enabled = true;
-			}
-			return side;
+	that.toggled = showControls && interactive;
+	that.toggle = function(state) {
+		if (!interactive) return that;
+		if (zot(state)) that.toggled = !that.toggled;
+		else that.toggled = state;
+		if (that.toggled) activate();
+		blob.toggle(that.toggled);
+		controls.vis(that.toggled);
+		zim.loop(sides, function(side) {
+			if (side.inside) side.inside.vis(that.toggled);
+		});
+		if (that.toggled) blob.borderColor = borderColor;
+		else blob.borderColor = clear;
+		return that;
+	};
+
+	var sp = [];
+	sp[0] = this.localToLocal(p[0].x, p[0].y, controls);
+	sp[1] = this.localToLocal(p[1].x, p[1].y, controls);
+	sp[2] = this.localToLocal(p[2].x, p[2].y, controls);
+	sp[3] = this.localToLocal(p[3].x, p[3].y, controls);
+	
+	var objW = obj.width || (obj.getBounds ? (obj.getBounds() ? obj.getBounds().width : size) : size);
+	var objH = obj.height || (obj.getBounds ? (obj.getBounds() ? obj.getBounds().height : size) : size);
+	var aspect = objW / objH;
+
+	var shapeVal = 0;
+	var useMaskTexVal = 0;
+	if (typeof _maskShape === "string") {
+		if (_maskShape === "circle") shapeVal = 1;
+		else if (_maskShape === "ellipse") shapeVal = 2;
+	} else if (_maskShape) {
+		useMaskTexVal = 1;
+	}
+
+	var initCx = (sp[0].x + sp[1].x + sp[2].x + sp[3].x) / (4 * size);
+	var initCy = 1 - (sp[0].y + sp[1].y + sp[2].y + sp[3].y) / (4 * size);
+
+	var uniforms = that.uniforms = new zim.Uniforms({
+		a: [sp[0].x / size, 1 - sp[0].y / size],
+		b: [sp[1].x / size, 1 - sp[1].y / size],
+		c: [sp[2].x / size, 1 - sp[2].y / size],
+		d: [sp[3].x / size, 1 - sp[3].y / size],
+		plane: plane ? 1 : 0,
+		fade: fade ? 1 : 0,
+		shape: shapeVal,
+		feather: Number(feather) || 0,
+		aspect: aspect || 1.0,
+		useMaskTex: useMaskTexVal,
+		passthrough: _passthrough ? 1 : 0,
+		passthroughScale: _passthroughScale,
+		passthroughCenter: [initCx, initCy],
+		passthroughShift: [_passthroughShiftX / size, -_passthroughShiftY / size],
+		assetNormSize: [objW / size, objH / size]
+	});
+
+	// Align Mask into an exact matching 1:1 buffer container
+	var maskSource = null;
+	var maskContainer = null;
+	function setupMaskSource(mObj) {
+		if (!mObj || typeof mObj === "string") {
+			maskSource = null;
+			return;
 		}
+		if (!maskContainer) {
+			maskContainer = new zim.Container(objW, objH);
+		} else {
+			maskContainer.removeAllChildren();
+		}
+		mObj.loc(objW / 2, objH / 2, maskContainer);
+		maskContainer.cache(0, 0, objW, objH);
+		maskSource = maskContainer;
 		
-		that.updateSide = function(side, refresh) {
-			if (zot(side.aX)) return;
-			if (zot(refresh)) refresh = true;
-			side.inside.loc(side,null,blob);
-			side.pctA.x = side.inside.x - side.aX;
-			side.pctA.y = side.inside.y - side.aY;
-			side.pctB.x = side.inside.x - side.bX;
-			side.pctB.y = side.inside.y - side.bY;
-			if (refresh) {
+		if (mObj.on) {
+			var updateMaskTex = function() {
+				if (maskContainer.cacheCanvas) maskContainer.updateCache();
+				if (that.shader) that.shader.replaceChannel(maskContainer, 1, false);
+			};
+			mObj.on("update", updateMaskTex, null, null, null, null, mID);
+			mObj.on("pressmove", updateMaskTex, null, null, null, null, mID);
+			mObj.on("change", updateMaskTex, null, null, null, null, mID);
+		}
+	}
+	if (_maskShape && typeof _maskShape !== "string") setupMaskSource(_maskShape);
+
+	var pc = blob.pointCircles;
+	var pct = blob.pointControls;
+
+	function calculatePassthroughCenter() {
+		pps[0] = pc[0].localToLocal(0, 0, controls);
+		pps[1] = pc[1].localToLocal(0, 0, controls);
+		pps[2] = pc[2].localToLocal(0, 0, controls);
+		pps[3] = pc[3].localToLocal(0, 0, controls);
+		var cx = (pps[0].x + pps[1].x + pps[2].x + pps[3].x) / (4 * size);
+		var cy = 1 - (pps[0].y + pps[1].y + pps[2].y + pps[3].y) / (4 * size);
+		_passthroughCenter = [cx, cy];
+		uniforms.passthroughCenter_A = cx;
+		uniforms.passthroughCenter_B = cy;
+	}
+
+	function buildShader(isOverlay) {
+		if (that.shader) {
+			that.shader.removeFrom();
+			that.shader.dispose();
+			that.shader = null;
+		}
+
+		if (isOverlay) {
+			var p0 = pc[0].localToGlobal(0, 0);
+			var p1 = pc[1].localToGlobal(0, 0);
+			var p2 = pc[2].localToGlobal(0, 0);
+			var p3 = pc[3].localToGlobal(0, 0);
+
+			var minX = Math.min(p0.x, p1.x, p2.x, p3.x);
+			var minY = Math.min(p0.y, p1.y, p2.y, p3.y);
+			var maxX = Math.max(p0.x, p1.x, p2.x, p3.x);
+			var maxY = Math.max(p0.y, p1.y, p2.y, p3.y);
+
+			var stageW = frame.width;
+			var stageH = frame.height;
+			var cMinX, cMinY, cMaxX, cMaxY;
+
+			if (_clipping) {
+				cMinX = Math.max(0, Math.floor(minX));
+				cMinY = Math.max(0, Math.floor(minY));
+				cMaxX = Math.min(stageW, Math.ceil(maxX));
+				cMaxY = Math.min(stageH, Math.ceil(maxY));
+			} else {
+				cMinX = Math.floor(minX);
+				cMinY = Math.floor(minY);
+				cMaxX = Math.ceil(maxX);
+				cMaxY = Math.ceil(maxY);
+			}
+
+			var cW = Math.max(2, cMaxX - cMinX);
+			var cH = Math.max(2, cMaxY - cMinY);
+
+			function toP(pt) {
+				var lx = pt.x - cMinX;
+				var ly = pt.y - cMinY;
+				var gx = (2.0 * lx - cW) / cH;
+				var gy = (2.0 * (cH - ly) - cH) / cH;
+				return [gx, gy];
+			}
+
+			var g0 = toP(p0);
+			var g1 = toP(p1);
+			var g2 = toP(p2);
+			var g3 = toP(p3);
+
+			uniforms.a_A = g0[0]; uniforms.a_B = g0[1];
+			uniforms.b_A = g1[0]; uniforms.b_B = g1[1];
+			uniforms.c_A = g2[0]; uniforms.c_B = g2[1];
+			uniforms.d_A = g3[0]; uniforms.d_B = g3[1];
+
+			var shW = Math.round(cW * resolution);
+			var shH = Math.round(cH * resolution);
+
+			var locInParent = that.globalToLocal(cMinX, cMinY);
+
+			that.shader = new zim.ShaderOverlay({
+				width: shW,
+				height: shH,
+				fragment: frag,
+				uniforms: uniforms,
+				channel0: obj,
+				channel1: maskSource,
+				dynamic: dynamic,
+				dynamic1: false
+			})
+				.sca(1 / resolution)
+				.addTo(that, 0)
+				.loc(locInParent.x, locInParent.y);
+
+			syncOverlayZ();
+		} else {
+			var shaderW = Math.round(2 * size * resolution);
+			var shaderH = Math.round(2 * size * resolution);
+
+			that.shader = new zim.Shader({
+				width: shaderW,
+				height: shaderH,
+				fragment: frag,
+				uniforms: uniforms,
+				channel0: obj,
+				channel1: maskSource,
+				dynamic: dynamic,
+				dynamic1: false
+			})
+				.sca(1 / resolution)
+				.addTo(that, 0)
+				.mov(-size)
+				.mov(size/2, -size/2);
+
+			if (sides && sides.length > 0) update();
+		}
+	}
+
+	buildShader(_overlay);
+
+	obj.removeFrom();
+
+	Object.defineProperty(this, "maskShape", {
+		get: function() {
+			return _maskShape;
+		},
+		set: function(value) {
+			_maskShape = value;
+			if (typeof value === "string") {
+				if (value === "circle") uniforms.shape = 1;
+				else if (value === "ellipse") uniforms.shape = 2;
+				else uniforms.shape = 0;
+				uniforms.useMaskTex = 0;
+			} else if (value) {
+				uniforms.shape = 0;
+				uniforms.useMaskTex = 1;
+				setupMaskSource(value);
+				if (that.shader) that.shader.replaceChannel(maskContainer, 1, false);
+			}
+		}
+	});
+
+	Object.defineProperty(this, "feather", {
+		get: function() {
+			return uniforms.feather;
+		},
+		set: function(value) {
+			uniforms.feather = Number(value) || 0;
+		}
+	});
+
+	Object.defineProperty(this, "passthrough", {
+		get: function() {
+			return _passthrough;
+		},
+		set: function(value) {
+			_passthrough = Boolean(value);
+			uniforms.passthrough = _passthrough ? 1 : 0;
+			if (_passthrough) calculatePassthroughCenter();
+		}
+	});
+
+	Object.defineProperty(this, "passthroughScale", {
+		get: function() {
+			return _passthroughScale;
+		},
+		set: function(value) {
+			_passthroughScale = Number(value) || 1;
+			uniforms.passthroughScale = _passthroughScale;
+		}
+	});
+
+	Object.defineProperty(this, "passthroughShiftX", {
+		get: function() {
+			return _passthroughShiftX;
+		},
+		set: function(value) {
+			_passthroughShiftX = Number(value) || 0;
+			uniforms.passthroughShift_A = _passthroughShiftX / size;
+		}
+	});
+
+	Object.defineProperty(this, "passthroughShiftY", {
+		get: function() {
+			return _passthroughShiftY;
+		},
+		set: function(value) {
+			_passthroughShiftY = Number(value) || 0;
+			uniforms.passthroughShift_B = -_passthroughShiftY / size;
+		}
+	});
+
+	Object.defineProperty(this, "overlay", {
+		get: function() {
+			return _overlay;
+		},
+		set: function(value) {
+			value = Boolean(value);
+			if (value === _overlay && that.shader) return;
+			_overlay = value;
+			if (_overlay) {
+				blob.vis(false);
+				controls.vis(false);
+				buildShader(true);
+			} else {
+				buildShader(false);
+				if (interactive && that.toggled) {
+					blob.vis(true);
+					controls.vis(true);
+					blob.borderColor = borderColor;
+				}
+			}
+		}
+	});
+
+	Object.defineProperty(this, "clipping", {
+		get: function() {
+			return _clipping;
+		},
+		set: function(value) {
+			_clipping = Boolean(value);
+			if (_overlay) buildShader(true);
+		}
+	});
+
+	Object.defineProperty(this, "onTop", {
+		get: function() {
+			return _onTop;
+		},
+		set: function(value) {
+			_onTop = Boolean(value);
+		}
+	});
+
+	if (_overlay) {
+		blob.vis(false);
+		controls.vis(false);
+	}
+	
+	that.update = function() {
+		blob.update();
+		update();
+	};
+
+	that.selectSide = function(index, state) {
+		if (zot(index)) index = 0;
+		if (index > 3) index = 3;
+		var side = sides[index];
+		if (zot(state)) state = true;
+		if (state) {
+			blob.selectionManager.enabled = false;
+			side.color = white;
+			side.aX = side.inside.x - side.pctA.x;
+			side.aY = side.inside.y - side.pctA.y;
+			side.bX = side.inside.x - side.pctB.x;
+			side.bY = side.inside.y - side.pctB.y;
+		} else {
+			side.color = black;
+			var notSelected = zim.loop(sides, function(s) {
+				if (s.color == white) return false;
+			});
+			if (notSelected) blob.selectionManager.enabled = true;
+		}
+		return side;
+	};
+	
+	that.updateSide = function(side, refresh) {
+		if (zot(side.aX)) return;
+		if (zot(refresh)) refresh = true;
+		side.inside.loc(side, null, blob);
+		side.pctA.x = side.inside.x - side.aX;
+		side.pctA.y = side.inside.y - side.aY;
+		side.pctB.x = side.inside.x - side.bX;
+		side.pctB.y = side.inside.y - side.bY;
+		if (refresh) {
+			blob.update();
+			update();
+		}			
+		return side;
+	};
+
+	var sidePoints = [
+		[pct[0], pct[1], pc[0], pc[1]], 
+		[pct[1], pct[2], pc[1], pc[2]], 
+		[pct[2], pct[3], pc[2], pc[3]],
+		[pct[3], pct[0], pc[3], pc[0]]
+	];
+	
+	zim.loop(4, function(i) {
+		var side = new zim.Circle(7 * (mobile ? 1.5 : 1), black, red, 2).addTo(controls).drag();	
+		side.update = true;		
+		side.pcA = sidePoints[i][2];
+		side.pcB = sidePoints[i][3];
+		var pctA = side.pctA = sidePoints[i][0];
+		var pctB = side.pctB = sidePoints[i][1];		
+		pctA.sideA = side;
+		pctB.sideB = side;
+
+		side.inside = new zim.Circle(8 * (mobile ? 1.5 : 1), black);
+		sides.push(side);
+
+		setTimeout(function() {
+			side.aX = side.inside.x - side.pctA.x;
+			side.aY = side.inside.y - side.pctA.y;
+			side.bX = side.inside.x - side.pctB.x;
+			side.bY = side.inside.y - side.pctB.y;
+		}, 60);			
+
+		side.on("mousedown", function() {
+			activate();
+			bringToFront();
+			that.selectSide(i);
+		}, null, null, null, null, mID);
+		side.on("pressmove", function() {
+			that.updateSide(side);				
+		}, null, null, null, null, mID);			
+		if (!interactive || _overlay) {
+			side.vis(false);
+			side.inside.vis(false);
+		}
+	});
+
+	if (!showControls && !_overlay) {
+		blob.borderColor = clear;
+		controls.vis(false);
+		zim.loop(sides, function(side) {
+			side.inside.vis(false);
+		});
+	}
+
+	blob.selectionManager.multipleKey = null;
+	blob.on("update", function() {
+		if (blob.selectionManager.currentSet && blob.selectionManager.currentSet.selections) {
+			var s = blob.selectionManager.currentSet.selections;
+			if (s.length > 0) {
+				zim.loop(s, function(index) {
+					updatePoint(pct[index]);
+				});
+				blob.update();
+			}
+		}
+	}, null, null, null, null, mID);	
+
+	that.keyDE = frame.on("keydown", function(e) {
+		if (_overlay) return;
+		if (e.keyCode >= 37 && e.keyCode <= 40) {
+			var x = 0;
+			var y = 0;	
+			if (e.keyCode == 37) x -= blob.selectionManager.shiftKey ? 10 : 1;
+			else if (e.keyCode == 39) x += blob.selectionManager.shiftKey ? 10 : 1;
+			else if (e.keyCode == 38) y -= blob.selectionManager.shiftKey ? 10 : 1;
+			else if (e.keyCode == 40) y += blob.selectionManager.shiftKey ? 10 : 1;	
+			var changed = false;
+
+			zim.loop(sides, function(side) {
+				if (side.color == white) {
+					side.update = false;
+					changed = true;
+					side.x += x;
+					side.y += y;
+					that.updateSide(side, false);
+				}
+			});
+			if (changed) {
+				blob.selectionManager.enabled = false;
 				blob.update();
 				update();
-			}			
-			return side;
-		}		
-
-		var sidePoints = [
-			[pct[0], pct[1], pc[0], pc[1]], 
-			[pct[1], pct[2], pc[1], pc[2]], 
-			[pct[2], pct[3], pc[2], pc[3]],
-			[pct[3], pct[0], pc[3], pc[0]]
-		];
-		
-		var sides = [];
-		zim.loop(4, function(i) {
-			var side = new zim.Circle(7*(mobile?1.5:1),black,red,2).addTo(controls).drag();	
-			side.update = true;		
-			// pc - pointCircles (second and third index)
-			side.pcA = sidePoints[i][2];
-			side.pcB = sidePoints[i][3];
-			// pct - pointControls (the rest in this function)
-			var pctA = side.pctA = sidePoints[i][0];
-			var pctB = side.pctB = sidePoints[i][1];		
-			pctA.sideA = side;
-			pctB.sideB = side;
-
-			side.inside = new zim.Circle(8*(mobile?1.5:1),black);
-			sides.push(side);
-
-			setTimeout(function() {
-				side.aX = side.inside.x-side.pctA.x;
-				side.aY = side.inside.y-side.pctA.y;
-				side.bX = side.inside.x-side.pctB.x;
-				side.bY = side.inside.y-side.pctB.y;
-			},60);			
-
-			// MID MOVES
-			side.on("mousedown", function() {
-				that.selectSide(i);
-			}, null, null, null, null, mID);
-			side.on("pressmove", function() {
-				that.updateSide(side);				
-			}, null, null, null, null, mID);			
-			if (!interactive){
-				side.vis(false);
-				side.inside.vis(false);
 			}
-		});
+		}
+	}, null, null, null, null, mID);
 
-		if (!showControls) {
-			blob.borderColor = clear;
-			controls.vis(false);
-			zim.loop(sides, function(side) {
-				side.inside.vis(false);
+	that.keyUE = frame.on("keyup", function(e) {
+		if (_overlay) return;
+		if (e.keyCode >= 37 && e.keyCode <= 40) {				
+			zim.loop(sides, function(side) {					
+				side.update = true;
 			});
 		}
+	}, null, null, null, null, mID);
+
+	zim.loop(pct, function(point, i) {			
+		point.on("mousedown", function() {
+			activate();
+			bringToFront();
+			if (point.sideA.color == white) point.sideA.update = false;
+			if (point.sideB.color == white) point.sideB.update = false;
+		}, null, null, null, null, mID);
+		point.on("pressmove", function() {				
+			updatePoint(point);
+		}, null, null, null, null, mID);
 		
-
-		blob.selectionManager.multipleKey = null;
-		blob.on("update", function() {
-			// HANDLE KEY ARROWS
-			if (blob.selectionManager.currentSet && blob.selectionManager.currentSet.selections) {
-				var s = blob.selectionManager.currentSet.selections;
-				if (s.length > 0) {
-					zim.loop(s, function(index) {
-						updatePoint(pct[index]);
-					});
-					blob.update();
+		point.on("pressup", function() {
+			zim.loop(sides, function(side, i) {
+				if (side.color == white) {
+					zim.timeout(.1, function() {
+						side.aX = side.inside.x - side.pctA.x;
+						side.aY = side.inside.y - side.pctA.y;
+						side.bX = side.inside.x - side.pctB.x;
+						side.bY = side.inside.y - side.pctB.y;
+					});						
 				}
-			}
-		}, null, null, null, null, mID);	
+			});	
+			point.sideA.update = true;
+			point.sideB.update = true;			
+		}, null, null, null, null, mID);				
+	});
 
-		that.keyDE = frame.on("keydown", function(e) {
-			if (e.keyCode >= 37 && e.keyCode <= 40) {
-				var x = 0;
-				var y = 0;	
-				if (e.keyCode == 37) x -= blob.selectionManager.shiftKey?10:1;
-				else if (e.keyCode == 39) x += blob.selectionManager.shiftKey?10:1;
-				else if (e.keyCode == 38) y -= blob.selectionManager.shiftKey?10:1;
-				else if (e.keyCode == 40) y += blob.selectionManager.shiftKey?10:1;	
-				var changed = false; // batch updates if multiple sides
+	function updatePoint(point) {		
+		var sideA = point.sideA;
+		var sideB = point.sideB;
+		if (sideA.color == white || sideB.color == white) {
+			var p;
+			if (sideA.color == white) {
+				p = sideA.pcA.localToLocal(0, 0, controls);
+				sideA.pctB.x = sideA.inside.x - (p.x - sideA.x);
+				sideA.pctB.y = sideA.inside.y - (p.y - sideA.y);
+			} 
+			if (sideB.color == white) {
+				p = sideB.pcB.localToLocal(0, 0, controls);
+				sideB.pctA.x = sideB.inside.x - (p.x - sideB.x);
+				sideB.pctA.y = sideB.inside.y - (p.y - sideB.y);
+			}					
+		}
+	}
 
-				zim.loop(sides, function(side) {
-					if (side.color==white) {
-						side.update = false;
-						changed = true;
-						side.x += x;
-						side.y += y;
-						that.updateSide(side, false);
-					}
-				})
-				if (changed) {
-					blob.selectionManager.enabled = false;
-					blob.update();
-					update();
-				}
-			}
-		}, null, null, null, null, mID);
+	function update() {
+		if (_overlay) return;
+		pps[0] = pc[0].localToLocal(0, 0, controls);
+		pps[1] = pc[1].localToLocal(0, 0, controls);
+		pps[2] = pc[2].localToLocal(0, 0, controls);
+		pps[3] = pc[3].localToLocal(0, 0, controls);			
+		uniforms.a_A = pps[0].x / size;
+		uniforms.a_B = 1 - pps[0].y / size;
+		uniforms.b_A = pps[1].x / size;
+		uniforms.b_B = 1 - pps[1].y / size;
+		uniforms.c_A = pps[2].x / size;
+		uniforms.c_B = 1 - pps[2].y / size;
+		uniforms.d_A = pps[3].x / size;
+		uniforms.d_B = 1 - pps[3].y / size;
 
-		that.keyUE = frame.on("keyup", function(e) {
-			if (e.keyCode >= 37 && e.keyCode <= 40) {				
-				zim.loop(sides, function(side) {					
-					side.update = true;
-				})
-			}
-		}, null, null, null, null, mID);
-
-		zim.loop(pct, function(point, i) {			
-			point.on("mousedown", function() {
-				if (point.sideA.color==white) point.sideA.update = false;
-				if (point.sideB.color==white) point.sideB.update = false;
-			}, null, null, null, null, mID)
-			point.on("pressmove", function() {				
-				updatePoint(point);
-			}, null, null, null, null, mID);
-			
-			point.on("pressup", function() {
-				zim.loop(sides, function(side, i) {
-					if (side.color == white) {
-						zim.timeout(.1, function() {
-							side.aX = side.inside.x-side.pctA.x;
-							side.aY = side.inside.y-side.pctA.y;
-							side.bX = side.inside.x-side.pctB.x;
-							side.bY = side.inside.y-side.pctB.y;
-						});						
-					}
-				});	
-				point.sideA.update = true;
-				point.sideB.update = true;			
-			}, null, null, null, null, mID);				
-		});
-
-		function updatePoint(point) {		
-			var sideA = point.sideA;
-			var sideB = point.sideB;
-			if (sideA.color==white || sideB.color==white) {
-				// MIRRORS 
-				var p;
-				if (sideA.color==white) {
-					p = sideA.pcA.localToLocal(0,0,controls); // note pointCircle (pcA) not pointControl (pctA)
-					sideA.pctB.x = sideA.inside.x - (p.x-sideA.x); // note pointControl (pctB) not pointCircle (pcB)
-					sideA.pctB.y = sideA.inside.y - (p.y-sideA.y);
-				} 
-				if (sideB.color==white) {
-					p = sideB.pcB.localToLocal(0,0,controls);
-					sideB.pctA.x = sideB.inside.x - (p.x-sideB.x); // change the opposite point to the dragged point
-					sideB.pctA.y = sideB.inside.y - (p.y-sideB.y);
-				}					
-			}
+		if (!_passthroughCenter) {
+			calculatePassthroughCenter();
 		}
 
-			
-		var pps = [];
-		function update() {
-			pps[0] = pc[0].localToLocal(0, 0, controls);
-			pps[1] = pc[1].localToLocal(0, 0, controls);
-			pps[2] = pc[2].localToLocal(0, 0, controls);
-			pps[3] = pc[3].localToLocal(0, 0, controls);			
-			uniforms.a_A = pps[0].x / size;
-			uniforms.a_B = 1-pps[0].y / size;
-			uniforms.b_A = pps[1].x / size;
-			uniforms.b_B = 1-pps[1].y / size;
-			uniforms.c_A = pps[2].x / size;
-			uniforms.c_B = 1-pps[2].y / size;
-			uniforms.d_A = pps[3].x / size;
-			uniforms.d_B = 1-pps[3].y / size;
-
-			var ps = [
-				[pps[0], pps[1]], 
-				[pps[1], pps[2]], 
-				[pps[2], pps[3]],
-				[pps[3], pps[0]]
-			];
-			zim.loop(sides, function(side,i) {
-				// KEEP SIDES CENTERED				
-				if (side.update) {
-					var pA = ps[i][0];
-					var pB = ps[i][1];
-					side.x = pB.x+(pA.x-pB.x)/2;
-					side.y = pB.y+(pA.y-pB.y)/2;
-					side.inside.loc(side,null,blob);
-				}
-			});		
-			
-		}
-		update();
-		controls.top();
-
-		if (interactive) {
-			blob.on("update", update, null, null, null, null, mID);
-			blob.on("pressmove", update, null, null, null, null, mID);
-		}
-
-		Object.defineProperty(this, "obj", {
-			get : function() {
-				return obj;
-			},
-			set : function(value) {
-				obj = value;
-				that.shader.replaceChannel(value, 0);
+		var ps = [
+			[pps[0], pps[1]], 
+			[pps[1], pps[2]], 
+			[pps[2], pps[3]],
+			[pps[3], pps[0]]
+		];
+		zim.loop(sides, function(side, i) {
+			if (side.update) {
+				var pA = ps[i][0];
+				var pB = ps[i][1];
+				side.x = pB.x + (pA.x - pB.x) / 2;
+				side.y = pB.y + (pA.y - pB.y) / 2;
+				side.inside.loc(side, null, blob);
 			}
 		});		
-		
-		this.dispose = function(a,b,disposing) {
-			frame.off("keydown", that.keyDE, null, mID);
-			frame.off("keyup", that.keyUE, null, mID);
-			if (!disposing) {this.zimContainer_dispose();}
-			return true;
-		};
-		
-		if (style!==false) zim.styleTransforms(this, DS); // global function - would have put on DisplayObject if had access to it
-		
-		this.clone = function(exact) {	
-			return that.cloneProps(new zim.Perspective((exact||!zim.isPick(oa[0]))?obj:oa[0], points, interactive, showControls, allowToggle, move, (exact||!zim.isPick(oa[1]))?amount:oa[1], (exact||!zim.isPick(oa[2]))?amountY:oa[2], (exact||!zim.isPick(oa[3]))?blur:oa[3], plane, fade, dynamic, frame, style, this.group, inherit));
-		};		
+	}
+	update();
+	controls.top();
 
+	if (interactive) {
+		blob.on("update", update, null, null, null, null, mID);
+		blob.on("pressmove", update, null, null, null, null, mID);
+	}
+
+	Object.defineProperty(this, "obj", {
+		get: function() {
+			return obj;
+		},
+		set: function(value) {
+			obj = value;
+			that.shader.replaceChannel(value, 0);
+		}
+	});		
+
+	function activate() {
+		if (zim.Perspective.active && zim.Perspective.active !== that) {
+			zim.Perspective.active.deselectPoints();
+			zim.Perspective.active.toggle(false);
+		}
+		zim.Perspective.active = that;
+	}
+	
+	this.dispose = function(a, b, disposing) {
+		frame.off("keydown", that.keyDE, null, mID);
+		frame.off("keyup", that.keyUE, null, mID);
+		if (maskContainer && maskContainer.dispose) maskContainer.dispose();
+		if (that.shader && that.shader.dispose) that.shader.dispose();
+		if (!disposing) {this.zimContainer_dispose();}
+		return true;
 	};
-	zim.extend(zim.Perspective, zim.Container, ["clone", "dispose"], "zimContainer", false);
+	
+	if (style !== false) zim.styleTransforms(this, DS);
+	
+	this.clone = function(exact) {	
+		return that.cloneProps(new zim.Perspective((exact || !zim.isPick(oa[0])) ? obj : oa[0], points, interactive, showControls, allowToggle, move, (exact || !zim.isPick(oa[1])) ? borderColor : oa[1], (exact || !zim.isPick(oa[2])) ? borderWidth : oa[2], (exact || !zim.isPick(oa[3])) ? dashed : oa[3], plane, fade, dynamic, frame, resolution, _maskShape, feather, _onTop, _overlay, _clipping, _passthrough, _passthroughScale, _passthroughShiftX, _passthroughShiftY, style, this.group, inherit));
+	};		
+};
+zim.extend(zim.Perspective, zim.Container, ["clone", "dispose"], "zimContainer", false);
+zim.Perspective.active = null;
 	//-69.9748
 
 
@@ -85576,8 +86472,8 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 				cache = zim.mobile();
 			}
 		}
-		if (cache) stage.snapToPixelEnabled = true;
 		if (stage) {
+			if (cache) stage.snapToPixelEnabled = true;
 			var myIndex = that.parent.getChildIndex(that);
 			that.parent.addChildAt(particles, myIndex); // add particles beneath emitter in emitter's container
 			// particles.x = that.x;
@@ -85991,7 +86887,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 		if (p.trace?p.getChildAt(0).endSpurt:p.endSpurt) {
 			sendEvent("spurtfizzed", p);
 			that.spurting = false;
-			if (cache) stage.snapToPixelEnabled = false;
+			if (cache && stage) stage.snapToPixelEnabled = false;
 		}
 		if (that.pool) {
 			if (p.pooled == "end") {
@@ -86053,14 +86949,14 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 		// that.removeFrom();
 		if (that.parent) that.parent.removeChild(that);
 		that.particles.removeFrom();
-		if (cache) stage.snapToPixelEnabled = false;
+		if (cache && stage) stage.snapToPixelEnabled = false;
 	};
 
 	this.spurting = false;
 	this.spurt = function(num, time, restart) {
 		var sig = "num, time, restart";
 		var duo; if (duo = zob(that.spurt, arguments, sig)) return duo;
-		if (cache) stage.snapToPixelEnabled = true;
+		if (cache && stage) stage.snapToPixelEnabled = true;
 		if (!zot(time)) {
 			zim.timeout(zim.Pick.choose(time), function() {
 				lastSpurt(that.currentParticle);
@@ -86109,7 +87005,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 			}
 			that.zimInterval.pause();
 			that.emitterPaused = true;
-			if (cache) stage.snapToPixelEnabled = false;
+			if (cache && stage) stage.snapToPixelEnabled = false;
 		} else { // unpausing
 			if (!that.emitterPaused) return that;
 			if (restart) {
@@ -86130,7 +87026,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 			}
 			if (that.zimInterval) that.zimInterval.pause(false, immediate);
 			that.emitterPaused = false;
-			if (cache) stage.snapToPixelEnabled = true;
+			if (cache && stage) stage.snapToPixelEnabled = true;
 		}
 
 		if (that.zimInterval) that.zimInterval.pauseOnBlurPaused = state; // ZIM 019 Patch - in case being paused when tab not active
@@ -86162,7 +87058,7 @@ zim.Emitter = function(obj, width, height, interval, num, life, fade, shrink, wa
 
 	
 	this.dispose = function() {
-		if (cache) stage.snapToPixelEnabled = true;
+		if (cache && stage) stage.snapToPixelEnabled = true;
 		if (that.zimInterval) that.zimInterval.clear();
 		if (emitterTicker) zim.Ticker.remove(emitterTicker, mID, that);
 		zim.loop(poolList, function(particle) {
@@ -93113,7 +94009,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	};
 
 	// called by asset if auto loading (ac is Asset Container)
-	this.ac = function(method, args, obj) {			
+	this.ac = function(method, args, obj) {		
 		if (obj) {
 			if (!obj.commands) obj.commands = [];
 			obj.commands.push([method,args,obj]);
@@ -95331,7 +96227,7 @@ zim.Dat = function(file) {
 zim.extend(zim.Dat, createjs.EventDispatcher, null, "cjsEventDispatcher", false);//-83.08
 
 /*--
-SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, style, group, inherit)
+SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, order, style, group, inherit)
 
 SVG
 zim class - extends a zim.Container which extends a createjs.Container
@@ -95478,6 +96374,8 @@ interactive - (default true) for bitmap:false, set to false to turn off controls
 color - |ZIM VEE| (default null) for bitmap:false, set to a color or an array of colors to apply to fill of children - in order of the children
 	usually a series() would be used here for colors in order, or an array for random colors
 borderColor - |ZIM VEE| (default null) set to a color or an array of colors to apply to border of children - in order of the children
+order - and array showing a new order of the old index numbers 
+	eg [3,1,2,0] means the old index 3 is now at level 0, old index 1 stays the same, old index 2 is now third, and old index 0 is at the top
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -95525,8 +96423,8 @@ dispatches a "complete" and a "ready" event (use either one) when the SVG is loa
 See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+83.09
-	zim.SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, style, group, inherit) {
-		var sig = "svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, style, group, inherit";
+	zim.SVG = function(svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, order, style, group, inherit) {
+		var sig = "svg, width, height, bitmap, splitTypes, geometric, showControls, interactive, color, borderColor, order, style, group, inherit";
 		var duo; if (duo = zob(zim.SVG, arguments, sig, this)) return duo;
 		z_d("83.09");	
 
@@ -95542,6 +96440,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:true;
 		if (zot(color)) color = DS.color!=null?DS.color:null;
 		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
+		if (zot(order)) order = DS.order!=null?DS.order:null;
 
 		var setColors = [];
 		var setBorderColors = [];
@@ -95623,6 +96522,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						if (that.stage) that.stage.update();	
 					}
                     setTimeout(function () {
+						doOrder();
 						doColors();
                         that.dispatchEvent("ready");
                         that.dispatchEvent("complete");  
@@ -95632,6 +96532,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
                         that.bitmap = bitmap;
                         that.bitmap.addTo(that);
                         applyCommands();
+						doOrder();
 						doColors();
                         that.dispatchEvent("ready");
                         that.dispatchEvent("complete");
@@ -95645,6 +96546,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
                     svgContainer.loop(function (obj) {						
                         if (obj) obj.addTo(that);
                     }, true);  
+					doOrder();
 					doColors();
                     if (second) {						
 						applyCommands();    
@@ -95662,6 +96564,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 							if (obj) obj.addTo(that);                        
 						}, true);
 						applyCommands();
+						doOrder();
 						doColors();
 						that.dispatchEvent("ready");
 						that.dispatchEvent("complete");
@@ -95676,7 +96579,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (color.index) color.index = 0; // not sure where it was setting to 1 when being cloned?		
 				that.loop(function(obj) {
 					var c = zik(color);
-					if (c!=null) obj.color = c;
+					if (c!=null && c!="") obj.color = c;
 					setColors.push(c);
 				});
 			}
@@ -95689,17 +96592,23 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				});
 			}
 		}
+
+		function doOrder() {
+			if (order) zim.orderContainer(that, order);
+		}
         
         function applyCommands() {
             if (zot(width) && zot(height)) that.setBounds(null); // resets size
             that.type = "SVG";
-            if (that.commands) {
-                for (var i=0; i<that.commands.length; i++) {
-                    if (that.commands[i][2]) that[that.commands[i][0]].apply(that, that.commands[i][1]);
-                    else zim[that.commands[i][0]].apply(that, that.commands[i][1]);
-                }
-            }
-            that.commands = null;
+			var os = that; // adjusted 020 for Lazy Load Noto SVG Emoji
+			if (that.parent && that.parent.type == "Emoji") os = that.parent;				
+			if (os.commands) {
+				for (var i=0; i<os.commands.length; i++) {
+					if (os.commands[i][2]) os[os.commands[i][0]].apply(os, os.commands[i][1]);
+					else zim[os.commands[i][0]].apply(os, os.commands[i][1]);
+				}
+			}
+			os.commands = null;			
         }
 		
 		that.keyOut = function(color, tolerance, replacement) {			
@@ -95913,11 +96822,14 @@ Note: there are more features to the Web Speech API - see the HTML docs
 			if (zot(rate)) rate = 1;
 
 			utter.text = text;
-			utter.voice = M=="ios"?null:voice;
-			utter.lang = lang;
-			utter.volume = volume;
-			utter.rate = rate;
-			utter.pitch = pitch;
+			// utter.voice = M=="ios"?null:voice;
+			// if (voice instanceof SpeechSynthesisVoice && M != "ios") utter.voice = voice;
+			if (voice instanceof SpeechSynthesisVoice) utter.voice = voice;
+			if (lang != null) utter.lang = lang;
+			if (volume != null) utter.volume = volume;
+			if (rate != null) utter.rate = rate;
+			if (pitch != null) utter.pitch = pitch;
+
 			speechSynthesis.speak(utter);
 
 			return utter;
@@ -95955,7 +96867,283 @@ Note: there are more features to the Web Speech API - see the HTML docs
 		}
 
 	}
-	zim.extend(zim.Speech, createjs.EventDispatcher, null, "cjsEventDispatcher", false);//-83.095
+	zim.extend(zim.Speech, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
+//-83.095
+
+/*--
+Hardware = function(callback, baudRate, delimiter)
+
+Hardware
+zim class - extends a createjs.EventDispatcher
+
+DESCRIPTION
+Reads from and writes to a device such as an Ardiuno 
+Wraps the JS Web Serial API
+https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API
+Coded primarily by Gemini AI
+
+See: https://zimjs.com/hardware/
+
+NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
+EXAMPLE
+// USING ZIM as INPUT to ARDUINO
+
+// would need an arduino connected 
+// with the following .ino file loaded onto it 
+
+// ------------------------
+// ---- Arduinin Code -----
+
+const int LED_PIN = 13; // Built-in LED on your Uno R3 board
+void setup() {
+	Serial.begin(9600);       // Initialize background channel at matching speed
+	pinMode(LED_PIN, OUTPUT); // Configure Pin 13 as an output light source
+}
+void loop() {
+	// Check if ZIM has sent a data character over the USB cable
+	if (Serial.available() > 0) {
+		char incomingChar = Serial.read(); // Read the character data fragment
+		if (incomingChar == '1') {
+			digitalWrite(LED_PIN, HIGH); // Turn physical light ON
+		} 
+		else if (incomingChar == '0') {
+			digitalWrite(LED_PIN, LOW);  // Turn physical light OFF
+		}
+	}
+}
+
+// -------------------
+// ---- ZIM Code -----
+
+const device = new Hardware();
+
+const toggle = new Toggle({
+	label: "LED POWER",
+	toggleBackgroundColor: green,
+	color: white
+})
+	.center()
+	.change(() => {
+		if (toggle.toggled) {
+			device.write("1"); // note a \n will be automatically added if missing
+		} else {
+			device.write("0");
+		}
+	});
+
+// must interact to connect
+const pane = new Pane("CONNECT", yellow).show(() => {
+		device.connect()
+});
+
+device.on("disconnected", () => {
+	pane.show(() => { // remember to add the callback again
+		device.connect();
+	});
+});
+END EXAMPLE
+
+EXAMPLE
+// USING ZIM AS OUTPUT FROM ARDUINO 
+See: https://zimjs.com/hardware/
+
+// would need an arduino connected 
+// with a potentiometer (pot) dial 
+// (probably on a breadboard) 
+// with outside pins goint to ground and 5V 
+// and middle pin goint to analogue A0
+// with the following .ino file loaded onto it 
+
+// ------------------------
+// ---- Arduinin Code -----
+
+const int potPin = A0;
+void setup() {
+	Serial.begin(9600);
+}
+void loop() {
+	int potValue = analogRead(potPin);
+	Serial.println(potValue);
+	delay(20); 
+}
+
+// -------------------
+// ---- ZIM Code -----
+
+const device = new Hardware(data => {
+	zog(data); // gives values from 0-1023
+});
+
+// must interact to connect
+const pane = new Pane("CONNECT", yellow).show(()=>{
+	device.connect();
+});
+
+device.on("disconnected", () => {
+	pane.show(()=>{ // remember to add the callback again
+		device.connect();
+	});
+});
+END EXAMPLE 
+
+PARAMETERS 
+callback - the function to call when data is received and will receive the data in its single parameter
+baudRate - (default 9600) Port speed matching the microcontroller
+delimiter - (default \n) Character used to split data lines 
+
+METHODS
+connect() - must interact before connecting - will receive a connected event
+write(data) - write to the device - also see the data event for reading from the device
+disconnect() - disconnect from the device
+
+PROPERTIES
+type - holds the class name as a String
+port - readonly the port the hardware is connected on
+reader - readonly the textDecoder.readable.getReader()
+writer - readonly the textEncoder.writable.getWriter()
+textDecoder - readonly the JavaScript TextEncoderStream()
+textEncoder - readonly the JavaScript TextEncoderStream()
+isListening - whether actively reading on port
+baudRate - readonly baud rate - see parameter
+delimiter - end character for outgoing data
+
+EVENTS
+dispatches "connected" when connected
+dispatches "disconnected" when disconnected
+--*///+83.097
+	zim.Hardware = function(callback, baudRate, delimiter) {
+		z_d("83.097");
+		this.cjsEventDispatcher_constructor();
+		this.type = "Hardware";
+		var that = this;
+
+		// MONITOR
+		this.mID = "z~"+this.type;
+
+		// Core Properties
+		that.baudRate = baudRate || 9600;
+		that.delimiter = delimiter || "\n";
+
+		that.port = null
+		that.reader = null
+		that.writer = null
+		that.textDecoder = null
+		that.isListening = false
+
+		// GLOBAL HARDWARE DISCONNECT MONITOR
+		if (navigator.serial) {
+			navigator.serial.addEventListener("disconnect", function (event) {
+				if (event.target === that.port) {
+					zogy("ZIM Harware - hardware physically disconnected!")
+					that.isListening = false;
+
+					// Clean break: release locks and clear active streams
+					if (that.reader) {
+						try { that.reader.releaseLock() } catch (e) { }
+						that.reader = null
+					}
+					if (that.writer) {
+						try { that.writer.releaseLock() } catch (e) { }
+						that.writer = null
+					}
+					that.port = null;   
+					that.dispatchEvent("disconnected");
+				}
+			});
+		}
+
+		// CONNECT METHOD
+		that.connect = function () {
+			if (!navigator.serial) {
+				console.error("Web Serial API is not supported in this browser. Please use Chrome or Edge.")
+				return;
+			}
+
+			navigator.serial.requestPort()
+				.then(function (selectedPort) {
+					that.port = selectedPort;
+					return that.port.open({ baudRate: that.baudRate });s
+				})
+				.then(function () {
+					zogy("ZIM Hardware - connected successfully!")
+					that.isListening = true
+
+					// Set up Output Stream (Browser to Microcontroller)
+					var textEncoder = new TextEncoderStream()
+					textEncoder.readable.pipeTo(that.port.writable)
+					that.writer = textEncoder.writable.getWriter()
+
+					// Set up Input Stream (Microcontroller to Browser)
+					that.textDecoder = new TextDecoderStream()
+					that.port.readable.pipeTo(that.textDecoder.writable)
+					that.reader = that.textDecoder.readable.getReader()
+
+					// Start recursive background reader
+					that._readLoop("");
+					that.dispatchEvent("connected");
+				})
+				.catch(function (error) {
+					console.error("Hardware connection failed:", error)
+				})
+		}
+
+		that.write = function (data) {
+			if (that.writer && that.isListening) {
+				var message = String(data);
+				if (message.charAt(str.length - 1) != that.delimeter) {
+					message += that.delimiter;
+				}
+				that.writer.write(message)
+					.catch(function (error) {
+						console.error("Failed to transmit data to hardware:", error);
+					})
+			} else {
+				console.warn("Cannot write data: Hardware is not connected.");
+			}
+		}
+
+		// DISCONNECT METHOD (Manual Shutdown)
+		that.disconnect = function () {
+			that.isListening = false
+			if (that.reader && that.writer) {
+				that.reader.cancel()
+					.then(function () { return that.writer.close() })
+					.then(function () { if (that.port) return that.port.close() })
+					.then(function () { zogy("ZIM Hardware: cleanly disconnected.") })
+					.catch(function (err) { console.error("Error during disconnect process:", err) })
+			}
+		}
+
+		// INTERNAL RECURSIVE LOOP METHOD
+		that._readLoop = function (buffer) {
+			if (!that.isListening) return;
+
+			that.reader.read()
+				.then(function (result) {
+					if (result.done) {
+						that.isListening = false;
+						return;
+					}
+					buffer += result.value;
+					var delimiterPattern = that.delimiter === "\n" ? /\r?\n/ : new RegExp(that.delimiter)
+					var lines = buffer.split(delimiterPattern)
+					buffer = lines.pop()
+					for (var i = 0; i < lines.length; i++) {
+						var cleanLine = lines[i].trim()
+						if (cleanLine.length > 0 && typeof callback === "function") (callback)(cleanLine);
+					}
+					that._readLoop(buffer);
+				})
+				.catch(function (error) {
+					// If it crashes due to a sudden cable pull, let the event listener handle the cleanup
+					that.isListening = false
+				});
+		}
+	}
+	zim.extend(zim.Hardware, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
+//-83.097
+
 
 /*--
 Fonts - loaded into Frame()
@@ -97930,7 +99118,7 @@ RETURNS - null
 --*///+83.27
 	zim.svgToBitmap = function(svg, callback, width, height, params) {
 		z_d("83.27");
-		
+
 		if (!zot(svg.draggable)) {
 			// CreateJS seems to wrap up an SVG with loadAssets as an SVG object
 			var parser = new DOMParser();
@@ -104364,41 +105552,42 @@ END EXAMPLE
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
-width - (400) width in pixels
-height - (width) height in pixels (defaults to width)
-info - (null) ***** array of label objects with name and backgroundColor properties
-data - (null) ***** array of numbers representing pie slice values
-units - (null) ***** unit label appended to data values
-title - (null) title label or text displayed at top
-footer - (null) footer label or text displayed at bottom in italics
-backgroundColor - (white) background color
-color - (dark) text color
-size - (14) title/footer label font size
-dataSize - (size) font size for data labels
-font - (null) font family name
-spacing - (5) spacing between elements in pixels
-iconOrient - (true) ***** whether icon graphics are oriented to angle
-iconFlip - (true) ***** whether icons are flipped
-iconWidth - (null) ***** width of icon graphics if used
-iconScale - (null) ***** scale factor for icon graphics
-dec - (0) decimal places for displayed data values
-padding - (10) padding around chart edges
-showData - (true) whether to display data values
-showInfo - (true) whether to display info labels
-exchange - (false) ***** whether to exchange display positions of data and info
-shiftForWedge - (true) whether labels shift when wedge is raised
+width - (default 400) width in pixels
+height - (default width) height in pixels (defaults to width)
+info - (default null) array of label objects with name and backgroundColor properties
+data - (default null) array of numbers representing pie slice values
+units - (default null) unit label appended to data values
+title - (default null) title label or text displayed at top
+footer - (default null) footer label or text displayed at bottom in italics
+backgroundColor - (default white) background color
+color - (default dark) text color
+size - (default 14) title/footer label font size
+dataSize - (default size) font size for data labels
+font - (default null) font family name
+spacing - (default 5) spacing between elements in pixels
+iconOrient - (default true) whether icon graphics are oriented to angle
+iconFlip - (default true) whether icons are flipped
+iconWidth - (default null) width of icon graphics if used
+iconScale - (default null) scale factor for icon graphics
+dec - (default 0) decimal places for displayed data values
+padding - (default 10) padding around chart edges
+showData - (default true) whether to display data values
+showInfo - (default true) whether to display info labels
+exchange - (default false) whether to exchange display positions of data and info
+shiftForWedge - (default true) whether labels shift when wedge is raised
 
 METHODS
 clone() - returns a clone of the PieChart
 getIndex(x, y) - returns the pie wedge index at the given local coordinates
 raiseWedge(index, factor) - raises a wedge by the specified factor
 lowerWedge(index) - lowers the raised wedge(s) back to flat
-setChart(obj) - ***** redraws chart with new data or configuration
+setChart(obj) - redraws chart with new data or configuration
 
 PROPERTIES
 index - the currently selected wedge index from mouse click
 rollIndex - the wedge index currently under the mouse
 angles - array of angle values for each wedge
+angleWedges - array of start and stop angles, the two labelOnArc objects, and the icon holder container
 info - info labels array
 data - data values array
 title - title label
@@ -105063,7 +106252,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 		["FILL", zim.FILL],
 		["FULL", zim.FULL],
 		["LEFT", zim.LEFT],
-		["RIGHT", zim.RIGHT],
+		["RIGHT", zim.RIGHT],s
 		["CENTER", zim.CENTER],
 		["MIDDLE", zim.MIDDLE],
 		["JUSTIFY", zim.JUSTIFY],
@@ -105170,6 +106359,7 @@ export let extend = zim.extend;
 export let copy = zim.copy;
 export let merge = zim.merge;
 export let sortObject = zim.sortObject;
+export let orderContainer = zim.orderContainer;
 export let arraysEqual = zim.arraysEqual;
 export let arrayMinMax = zim.arrayMinMax;
 export let isEmpty = zim.isEmpty;
@@ -105431,6 +106621,7 @@ export let Vid = zim.Vid;
 export let Dat = zim.Dat;
 export let SVG = zim.SVG;
 export let Speech = zim.Speech;
+export let Hardware = zim.Hardware;
 export let PermissionAsk = zim.PermissionAsk;
 export let Monitor = zim.Monitor;
 export let distill = zim.distill;

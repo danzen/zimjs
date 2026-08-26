@@ -2227,8 +2227,8 @@ declare namespace zim {
 		readonly numWords: number
 	}
 	export class Emoji extends Container implements zimComponent {
-		constructor(config_or_code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, color?: color, borderColor?: color, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, color?: color, borderColor?: color, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, color?: color, borderColor?: color, order?: number[], style?: boolean, group?: string, inherit?: {})
+		constructor(config: { code: string, size?: number, monochrome?: boolean, italic?: boolean, backgroundColor?: color, backgroundBorderColor?: color, backgroundBorderWidth?: number, corner?: number | any[], backing?: DisplayObject, padding?: number, paddingH?: number, paddingV?: number, shiftH?: number, shiftV?: number, color?: color, borderColor?: color, order?: number[], style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
@@ -3448,8 +3448,8 @@ declare namespace zim {
 		readonly group: string
 	}
     export class Bullets extends Tile {
-		constructor(config_or_list?: string|number[], bulletType?: string, size?: number, color?: color, cols?: number, font?: string, italic?: boolean, bold?: boolean, variant?: boolean, shiftH?: number, shiftV?: number, spacing?: number, spacingH?: number, spacingV?: number, colSpacing?: number, bulletAlign?: string, group?: string, style?: boolean, inherit?: {})
-		constructor(config: { list?: string|number[], bulletType?: string, size?: number, color?: color, cols?: number, font?: string, italic?: boolean, bold?: boolean, variant?: boolean, shiftH?: number, shiftV?: number, spacing?: number, spacingH?: number, spacingV?: number, colSpacing?: number, bulletAlign?: string, group?: string, style?: boolean, inherit?: {} })
+		constructor(config_or_list?: string|number[], bulletType?: string, size?: number, color?: color, cols?: number, font?: string, italic?: boolean, bold?: boolean, variant?: boolean, shiftH?: number, shiftV?: number, spacing?: number, spacingH?: number, spacingV?: number, colSpacing?: number, bulletAlign?: string, rtl?: boolean, group?: string, style?: boolean, inherit?: {})
+		constructor(config: { list?: string|number[], bulletType?: string, size?: number, color?: color, cols?: number, font?: string, italic?: boolean, bold?: boolean, variant?: boolean, shiftH?: number, shiftV?: number, spacing?: number, spacingH?: number, spacingV?: number, colSpacing?: number, bulletAlign?: string, rtl?: boolean, group?: string, style?: boolean, inherit?: {} })
 		readonly type: string
 		readonly list: string|number[]
 		readonly bulletType: string
@@ -3523,8 +3523,8 @@ declare namespace zim {
 		blurFactor: number
 	}
     export class Perspective extends Container {
-		constructor(config_or_obj?: DisplayObject|zimVee, points?: {x:number,y:number}[]|Point, interactive?: boolean, showControls?: boolean, allowToggle?: boolean, move?: boolean, borderColor?: color|zimVee, borderWidth?: number|zimVee, dashed?: number|number[]|zimVee, plane?: boolean, fade?: boolean, dynamic?: boolean, frame?: Frame, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { obj?: DisplayObject|zimVee, points?: {x:number,y:number}[]|Point, interactive?: boolean, showControls?: boolean, allowToggle?: boolean, move?: boolean, borderColor?: color|zimVee, borderWidth?: number|zimVee, dashed?: number|number[]|zimVee, plane?: boolean, fade?: boolean, dynamic?: boolean, frame?: Frame, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_obj?: DisplayObject|zimVee, points?: {x:number,y:number}[]|Point, interactive?: boolean, showControls?: boolean, allowToggle?: boolean, move?: boolean, borderColor?: color|zimVee, borderWidth?: number|zimVee, dashed?: number|number[]|zimVee, plane?: boolean, fade?: boolean, dynamic?: boolean, frame?: Frame, resolution?:number, maskShape?:string|DisplayObject, feather?:number, onTop?:boolean, overlay?:boolean, clipping?:boolean, passthrough?:boolean, passthroughScale?:number, passthroughShiftX?:number, passthroughShiftY?:number, style?: boolean, group?: string, inherit?: {})
+		constructor(config: { obj?: DisplayObject|zimVee, points?: {x:number,y:number}[]|Point, interactive?: boolean, showControls?: boolean, allowToggle?: boolean, move?: boolean, borderColor?: color|zimVee, borderWidth?: number|zimVee, dashed?: number|number[]|zimVee, plane?: boolean, fade?: boolean, dynamic?: boolean, frame?: Frame, resolution?:number, maskShape?:string|DisplayObject, feather?:number, onTop?:boolean, overlay?:boolean, clipping?:boolean, passthrough?:boolean, passthroughScale?:number, passthroughShiftX?:number, passthroughShiftY?:number, style?: boolean, group?: string, inherit?: {} })
         selectCorner(index?: number, state?: boolean): Circle
         selectSide(index?: number, state?: boolean): Circle
         updateCorner(controlObj?: Circle, refresh?: boolean): Circle
@@ -3533,6 +3533,16 @@ declare namespace zim {
         toggle(state?: boolean): this     
         deselectPoints(): this        
         obj:DisplayObject
+        onTop: boolean 
+        overlay: boolean 
+        clipping: boolean
+        maskShape: string|DisplayObject
+        feather: boolean
+        readonly resolution: number  
+        passthrough: boolean
+        passthroughScale: number
+        passthroughShiftX: number
+        passthroughShiftY: number
         readonly blob:Blob
         readonly sides:Container
         readonly shader:Shader
@@ -4071,8 +4081,8 @@ declare namespace zim {
 		readonly bitmap: Bitmap
 	}
 	export class SVG extends Container {
-		constructor(config_or_svg?: string, width?: number, height?: number, bitmap?: boolean, splitTypes?: boolean, geometric?: boolean, showControls?: boolean, interactive?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { svg?: string, width?: number, height?: number, bitmap?: boolean, splitTypes?: boolean, geometric?: boolean, showControls?: boolean, interactive?: boolean, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_svg?: string, width?: number, height?: number, bitmap?: boolean, splitTypes?: boolean, geometric?: boolean, showControls?: boolean, interactive?: boolean, color?: color, borderColor?: color, order?: number[], style?: boolean, group?: string, inherit?: {})
+		constructor(config: { svg?: string, width?: number, height?: number, bitmap?: boolean, splitTypes?: boolean, geometric?: boolean, showControls?: boolean, interactive?: boolean, color?: color, borderColor?: color, order?: number[], style?: boolean, group?: string, inherit?: {} })
 		readonly sensorType: string
 		readonly label: Label
 		readonly yes: Button
@@ -4095,6 +4105,20 @@ declare namespace zim {
 		readonly voiceLanguages: string[]
 		readonly recognition: any
 	}
+    export class Hardware extends createjs.EventDispatcher {
+		constructor(callback?:Function, baudRate?:number, delimiter?:string)
+        connect(): void
+        write(data: string|number): void
+        disconnect(): void
+		readonly port: number
+        readonly reader: ReadableStreamDefaultReader<Uint8Array>
+        readonly writer: WritableStreamDefaultWriter<string>
+        readonly textEncoder: TextEncoderStream
+        readonly textDecoder: TextDecoderStream
+        isListening: boolean
+        readonly baudRate: number
+        delimiter: string|number
+	}
 	export class SensorAsk extends Pane {
 		constructor(config_or_callback?: Function, sensorType?: string, color?: color, backgroundColor?: color, style?: boolean, group?: string, inherit?: {})
 		constructor(config: { callback?: Function, sensorType?: string, color?: color, backgroundColor?: color, style?: boolean, group?: string, inherit?: {} })
@@ -4113,8 +4137,8 @@ declare namespace zim {
 	}
 
 	export class Shader extends Bitmap implements zimComponent {
-		constructor(config_or_width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, channel0?: DisplayObject, channel1?: DisplayObject, channel2?: DisplayObject, channel3?: DisplayObject, dynamic0?: boolean, dynamic1?: boolean, dynamic2?: boolean, dynamic3?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, channel0?: DisplayObject, channel1?: DisplayObject, channel2?: DisplayObject, channel3?: DisplayObject, dynamic0?: boolean, dynamic1?: boolean, dynamic2?: boolean, dynamic3?: boolean, channels?:DisplayObject[], dynamics?:boolean[], style?: boolean, group?: string, inherit?: {})
+		constructor(config: { width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, channel0?: DisplayObject, channel1?: DisplayObject, channel2?: DisplayObject, channel3?: DisplayObject, dynamic0?: boolean, dynamic1?: boolean, dynamic2?: boolean, dynamic3?: boolean, channels?:DisplayObject[], dynamics?:boolean[], style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
@@ -4132,8 +4156,8 @@ declare namespace zim {
 	}
 
 	export class ShaderOverlay extends Tag implements zimComponent {
-		constructor(config_or_width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, style?: boolean, group?: string, inherit?: {})
-		constructor(config: { width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, style?: boolean, group?: string, inherit?: {} })
+		constructor(config_or_width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, channel0?: DisplayObject, channel1?: DisplayObject, channel2?: DisplayObject, channel3?: DisplayObject, dynamic0?: boolean, dynamic1?: boolean, dynamic2?: boolean, dynamic3?: boolean, channels?:DisplayObject[], dynamics?:boolean[], style?: boolean, group?: string, inherit?: {})
+		constructor(config: { width?: number, height?: number, fragment?: string, uniforms?: Uniforms, vertex?: string, dynamic?: boolean, preCall?: Function, postCall?: Function, rate?: number | zimVee, version?: string, canvas?: HTMLCanvasElement, vertexPosition?: string, strip?: boolean, log?: boolean, channel0?: DisplayObject, channel1?: DisplayObject, channel2?: DisplayObject, channel3?: DisplayObject, dynamic0?: boolean, dynamic1?: boolean, dynamic2?: boolean, dynamic3?: boolean, channels?:DisplayObject[], dynamics?:boolean[], style?: boolean, group?: string, inherit?: {} })
 		// ZIM Component Interface
 		// dispose():boolean // now added to Container, etc.
 		enabled: boolean
