@@ -200,6 +200,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -790,6 +795,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -960,6 +970,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1138,6 +1153,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1332,6 +1352,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1558,6 +1583,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1724,6 +1754,11 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
+        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
+		noTilt(): this
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this

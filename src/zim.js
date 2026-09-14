@@ -2747,41 +2747,99 @@ color1 - |ZIM VEE| (default null) the first color as an HTML string or hex color
 color2 - |ZIM VEE| (default black) the second color as an HTML string or hex color (case insensitive)
 ratio - (default .5) the ratio where 0 is the first color and 1 the second color
 
-RETURNS a hex color string
+RETURNS a hex color string or rgba if alpha is not 1
 --*///+27.6
-	zim.colorRange = function(color1, color2, ratio) {
+	zim.colorRange = function(c1, c2, ratio) {
 		if (!zim.colorRangeCheck) {z_d("27.6"); zim.colorRangeCheck=true;}
-		// thanks Chris Dolphin - StackOverflow
-		// modified by Dan Zen to use hex input and output
-		// possibly converting and converting back - but not quite...
-		if (zot(ratio)) ratio = .5;
+		if (zot(c1)) c1 = "white";
+		if (zot(c2)) c2 = "black";
+		c1 = zik(c1);
+	 	c2 = zik(c2);
+		if (ratio == null) ratio = 0.5;
 		ratio = Math.max(0, Math.min(1, ratio));
-		if (zot(color1)) color1 = "white";
-		if (zot(color2)) color2 = "black";
-		color1 = zik(color1);
-		color2 = zik(color2);
-		var color1O = color1;
-		var color2O = color2;
-		var c1 = zim.convertColor(color1, "rgb");
-		var c2 = zim.convertColor(color2, "rgb");		
-		color1 = c1.substring(4, c1.length - 1).split(',');
-		color2 = c2.substring(4, c2.length - 1).split(',');
-		var difference;
-		var newColor = "#";
-		var c;
-		if (ratio==0) {
-			newColor = color1O;
-		} else if (ratio==1) {
-			newColor = color2O;
-		} else {
-			for (var i=0; i<color1.length; i++) {
-				difference = color2[i] - color1[i];
-				c = Math.floor(parseInt(color1[i], 10) + difference * ratio).toString(16);
-				if (c.length < 2) c = "0"+c;
-				newColor += c;
+
+		function parseColor(c) {
+			if (!c) return [0, 0, 0, 1];
+			if (typeof c !== "string") c = String(c);
+			c = c.trim();
+
+			// 1. Match rgba(r, g, b, a) or rgb(r, g, b)
+			var rgbaMatch = c.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i);
+			if (rgbaMatch) {
+				return [
+					parseFloat(rgbaMatch[1]),
+					parseFloat(rgbaMatch[2]),
+					parseFloat(rgbaMatch[3]),
+					rgbaMatch[4] != null ? parseFloat(rgbaMatch[4]) : 1
+				];
 			}
+
+			// 2. Special ZIM / CSS keywords with built-in alpha
+			if (c === "clear" || c === "transparent") return [0, 0, 0, 0];
+			if (c === "faint") return [0, 0, 0, 0.05];
+
+			// 3. Hex formats (#rgb, #rgba, #rrggbb, #rrggbbaa)
+			if (c.charAt(0) === "#") {
+				var hex = c.slice(1);
+				if (hex.length === 3) {
+					return [
+						parseInt(hex[0] + hex[0], 16),
+						parseInt(hex[1] + hex[1], 16),
+						parseInt(hex[2] + hex[2], 16),
+						1
+					];
+				} else if (hex.length === 4) {
+					return [
+						parseInt(hex[0] + hex[0], 16),
+						parseInt(hex[1] + hex[1], 16),
+						parseInt(hex[2] + hex[2], 16),
+						parseInt(hex[3] + hex[3], 16) / 255
+					];
+				} else if (hex.length === 6) {
+					return [
+						parseInt(hex.substr(0, 2), 16),
+						parseInt(hex.substr(2, 2), 16),
+						parseInt(hex.substr(4, 2), 16),
+						1
+					];
+				} else if (hex.length === 8) {
+					return [
+						parseInt(hex.substr(0, 2), 16),
+						parseInt(hex.substr(2, 2), 16),
+						parseInt(hex.substr(4, 2), 16),
+						parseInt(hex.substr(6, 2), 16) / 255
+					];
+				}
+			}
+
+			// 4. Fallback for named CSS colors via temporary canvas context or lookup
+			// If zim.color / zim.toColor is available, resolve it first
+			if (zim.toColor && c in zim) c = zim[c];
+			
+			// Simple 3-byte fallback if hex number without hash
+			var num = parseInt(c, 16);
+			if (!isNaN(num) && c.length === 6) {
+				return [(num >> 16) & 255, (num >> 8) & 255, num & 255, 1];
+			}
+
+			return [0, 0, 0, 1];
 		}
-		return newColor;
+
+		var col1 = parseColor(c1);
+		var col2 = parseColor(c2);
+
+		var r = Math.round(col1[0] + (col2[0] - col1[0]) * ratio);
+		var g = Math.round(col1[1] + (col2[1] - col1[1]) * ratio);
+		var b = Math.round(col1[2] + (col2[2] - col1[2]) * ratio);
+		var a = col1[3] + (col2[3] - col1[3]) * ratio;
+		a = Math.round(a * 1000) / 1000;
+
+		if (a >= 0.999) {
+			// Return standard 6-character hex for opaque colors
+			return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+		}
+		// Return rgba only when alpha is fractional
+		return "rgba(" + r + "," + g + "," + b + "," + a + ")";
 	};//-27.6
 
 /*--
@@ -18277,6 +18335,7 @@ lastSelected - access to the last selected (or created) control container
 lastindex - the index number of the last selected controls
 controlsVisible - get or set the visibility of the controls - or use showControls() and hideControls()
 toggled - read-only Boolean property as to whether picker is showing
+controlType - get or set control types for new points
 types - get or set the general array for the types ["mirror", "straight", "free", "none"]
 	changing this or removing a type will adjust the order when the user double clicks the points to change their type
 	this is not an array of types for each point - see the points property to access the types of each point
@@ -18291,11 +18350,13 @@ selectionManager - access to the SelectionManager
 selectedBalls - access to the SelectionSet of control circles
 selectedRect1s - access to the SelectionSet of control rectangles
 selectedRect2s - access to the SelectionSet of control rectangles
+editPoints - get or set whether points can be added and removed
+holdPoints - get or set whether points can be held to be removed (default is editPoints)
 interactive - get or set whether the shape is interactive - toggle, move, change or add controls, etc.
 keyFocus - get or set the keyboard focus on the DisplayObject - see also zim.KEYFOCUS
-   will be set to true if this DisplayObject is the first made or DisplayObject is the last to be used with keyboard
+	will be set to true if this DisplayObject is the first made or DisplayObject is the last to be used with keyboard
 veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE values to be referenced
-   for instance, obj.prop = Pick.choose(obj.veeObj.prop); will reset the the prop to the result of the original ZIM VEE value
+	for instance, obj.prop = Pick.choose(obj.veeObj.prop); will reset the the prop to the result of the original ZIM VEE value
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -18318,7 +18379,7 @@ See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 
 MORE
-https://zimjs.com/squiggle
+https://zimjs.com/zapp/E_4QEJ4
 https://www.youtube.com/watch?v=BA1bGBU4itI&list=PLCIzupgRt1pYtMlYPtNTKCtztFBeOtyc0
 Note the points property has been split into points and pointObjects (and there have been a few property changes) since the time of the video
 --*///+53.2
@@ -18391,7 +18452,7 @@ Note the points property has been split into points and pointObjects (and there 
 		this.num = num;
 		this.onTop = onTop;
 		this.move = move;
-		this.editPoints = editPoints;
+		this.editPoints = this.holdPoints = editPoints;
 		this.allowToggle = allowToggle;
 		this.lockControlType = lockControlType;
 		this.selectPoints = selectPoints;
@@ -18458,6 +18519,52 @@ Note the points property has been split into points and pointObjects (and there 
 			} else {
 				that.selectionManager = new zim.SelectionManager(null, "ctrl");
 			}
+
+			that.selectionManager.on("keydown", function (e) {
+				if (!that.selectPoints) return;
+				if (!that.keyFocus) return;
+				if (e.keyCode >= 37 && e.keyCode <= 40) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected.length > 0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							var pointObj = currentSelected[i];
+							if (e.keyCode == 37) pointObj.x -= that.selectionManager.shiftKey?10:1;
+							else if (e.keyCode == 39) pointObj.x += that.selectionManager.shiftKey?10:1;
+							else if (e.keyCode == 38) pointObj.y -= that.selectionManager.shiftKey?10:1;
+							else if (e.keyCode == 40) pointObj.y += that.selectionManager.shiftKey?10:1;
+							mapMove(pointObj);
+						}
+						that.drawShape();
+						that.dispatchEvent("update");
+						if (that.stage) that.stage.update();
+					}
+				}
+			}, null, null, null, null, mID);
+
+			that.selectionManager.on("keyup", function (e) {
+				if (!that.selectPoints) return;
+				if (!that.keyFocus) return;
+				if (e.keyCode >= 37 && e.keyCode <= 40) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected.length > 0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							replaceControls(currentSelected[i]);
+						}
+					}
+				}
+			}, null, null, null, null, mID);
+
+			that.selectionManager.on("undo", function () {
+				if (!that.selectPoints) return;
+				if (!that.keyFocus) return;
+				if (that.lastPoints) {
+					var tempPoints = zim.copy(that.lastPoints);
+					that.lastPoints = zim.copy(that.points);
+					that.points = tempPoints;
+					if (that.stage) that.stage.update();
+				}
+			}, null, null, null, null, mID);
+			// }
 
 			var mobile = zim.mobile();
 
@@ -19356,33 +19463,41 @@ Note the points property has been split into points and pointObjects (and there 
 			}, null, null, null, null, mID);
 
 			// remove point
-			that.controls.on("click", function (e) {
+			that.controlsClickEvent = that.controls.on("click", function (e) {
 				that.lastSelected = e.target.parent;
 				that.lastindex = that.controls.getChildIndex(e.target.parent);
 				if (!that.editPoints) return;
 				if (that.selectionManager.shiftKey) { // remove
-					// if (that.selectionManager.currentSet == that.selectedBalls && that.selectedBalls.selections.length > 0) return;
+					if (that.controls.noHold) that.controls.noHold();
 					removeControl(e);
 				}
 			}, null, null, null, null, mID);
 
-			function removeControl(e) {
-				if (e.target.type == "Circle") {
-					var index = that.lastindex = that.controls.getChildIndex(e.target.parent);
-					if (that.controls.numChildren <= 2) return;
-					var points = that.points;
-					if (that.selectPoints) that.lastPoints = zim.copy(points);
-					points.splice(index, 1); // remove the point at the index
-					that.points = points;
-					that.stage.update();
-					that.lastSelected = that.lastindex = null;
-				}
-			}
-			if (that.editPoints) that.controls.hold(removeControl);
+			that.controls.hold(removeControl);
 
 			if (!_controls) that.hideControls();
 			that.dispatchEvent("update");
 		} // end of init()
+
+		function removeControl(e) {
+			if (!that.editPoints || !that.holdPoints || !e || !e.target) return;
+			if (e.target.type == "Circle" && e.target.parent && e.target.parent.parent == that.controls) {
+				var index = that.lastindex = that.controls.getChildIndex(e.target.parent);
+				if (index < 0 || that.controls.numChildren <= 2) return;
+				if (that.controls.noHold) that.controls.noHold();
+				var points = that.points;
+				if (that.selectPoints) that.lastPoints = zim.copy(points);
+				points.splice(index, 1); // remove the point at the index
+				that.points = points;
+				var ev = new createjs.Event("change");
+				ev.controlType = "pointDelete";
+				ev.index = index;
+				that.dispatchEvent(ev);
+				that.dispatchEvent("pointdelete");
+				if (that.stage) that.stage.update();
+				that.lastSelected = that.lastindex = null;
+			}
+		}
 
 		// if (that.selectPoints) {
 		function getCurrentSelected() {
@@ -19424,54 +19539,10 @@ Note the points property has been split into points and pointObjects (and there 
 			ball.y = 0;
 		}
 
-		that.selectionManager.on("keydown", function (e) {
-			if (!that.selectPoints) return;
-			if (!that.keyFocus) return;
-			if (e.keyCode >= 37 && e.keyCode <= 40) {
-				var currentSelected = getCurrentSelected();
-				if (currentSelected.length > 0) {
-					for(var i=0; i<currentSelected.length; i++) {
-						var pointObj = currentSelected[i];
-						if (e.keyCode == 37) pointObj.x -= that.selectionManager.shiftKey?10:1;
-						else if (e.keyCode == 39) pointObj.x += that.selectionManager.shiftKey?10:1;
-						else if (e.keyCode == 38) pointObj.y -= that.selectionManager.shiftKey?10:1;
-						else if (e.keyCode == 40) pointObj.y += that.selectionManager.shiftKey?10:1;
-						mapMove(pointObj);
-					}
-					that.drawShape();
-					that.dispatchEvent("update");
-					if (that.stage) that.stage.update();
-				}
-			}
-		}, null, null, null, null, mID);
-
-		that.selectionManager.on("keyup", function (e) {
-			if (!that.selectPoints) return;
-			if (!that.keyFocus) return;
-			if (e.keyCode >= 37 && e.keyCode <= 40) {
-				var currentSelected = getCurrentSelected();
-				if (currentSelected.length > 0) {
-					for(var i=0; i<currentSelected.length; i++) {
-						replaceControls(currentSelected[i]);
-					}
-				}
-			}
-		}, null, null, null, null, mID);
-
-		that.selectionManager.on("undo", function () {
-			if (!that.selectPoints) return;
-			if (!that.keyFocus) return;
-			if (that.lastPoints) {
-				var tempPoints = zim.copy(that.lastPoints);
-				that.lastPoints = zim.copy(that.points);
-				that.points = tempPoints;
-				if (that.stage) that.stage.update();
-			}
-		}, null, null, null, null, mID);
-		// }
+		
 
 
-		mapMove = function (target) {
+		function mapMove(target) {
 			if (that.lockControls) return;
 			var ball;
 			if (target.rect1) { // pressmove on ball
@@ -19641,7 +19712,8 @@ Note the points property has been split into points and pointObjects (and there 
 						zim.decimals(p[3].x),
 						zim.decimals(p[3].y)
 					];
-					if (p[4] && p[4]!=="mirror") point.push(p[4]);
+					// if (p[4] && p[4]!=="mirror") point.push(p[4]);
+					if (p[4]) point.push(p[4]);
 					points.push(point);
 				}
 				return points;
@@ -19754,6 +19826,16 @@ Note the points property has been split into points and pointObjects (and there 
 			},
 			set: function() {
 				if (zon) {zogy("Squiggle() - pointCircles is read only - but its contents can be manipulated - use blob.update() after changes");}
+			}
+		});
+
+		Object.defineProperty(that, 'controlType', {
+			get: function() {
+				return controlType;
+			},
+			set: function(value) {
+				controlType = value;
+				originalControlType = value;
 			}
 		});
 
@@ -19996,17 +20078,28 @@ Note the points property has been split into points and pointObjects (and there 
 			var index = insertPointData(points, controls, ratios, percent, controlType);
 			that.points = points;
 			that.num = points.length;
+			var ev = new createjs.Event("change");
+			ev.controlType = "pointAdd";
+			ev.index = index;
+			that.dispatchEvent(ev);
+			that.dispatchEvent("pointadd");
+			if (that.stage) that.stage.update();
 			return index;
 		};
 
 		this.removePoint = function(index) {	
-			if (zot(index) || index < 0) return;		
+			if (zot(index) || index < 0 || that.points.length <= 2 || index >= that.points.length) return that;		
 			var currentPoints = zim.copy(that.points);
 			currentPoints.splice(index, 1);
 			that.points = currentPoints;
+			var ev = new createjs.Event("change");
+			ev.controlType = "pointDelete";
+			ev.index = index;
+			that.dispatchEvent(ev);
+			that.dispatchEvent("pointdelete");
 			if (that.stage) that.stage.update();
 			return that;
-		}
+		};
 
 		this.addPoints = function(num, controlType, startPoint, spread, dataOnly, points, even) {
 			var sig = "num, controlType, startPoint, spread, dataOnly, points, even";
@@ -20464,10 +20557,12 @@ segmentRatios - a read-only array of cumulative ratio lengths of segments
 	used internally to animate to the path and attribute proportional time to each segment
 controls - access to the container that holds the sets of controls
 	each control is given a read-only num property
+	use blob.controls.noHold() to remove holding down a point to delete it
 sticks - access to the Shape that has the control sticks
 lastSelected - access to the last selected (or created) control container
 lastindex - the index number of the last selected controls
 controlsVisible - get or set the visibility of the controls - or use showControls() and hideControls()
+controlType - get or set control types for new points
 types - get or set the general array for the types ["mirror", "straight", "free", "none"]
 	changing this or removing a type will adjust the order when the user double clicks the points to change their type
 	this is not an array of types for each point - see the points property to access the types of each point
@@ -20482,11 +20577,13 @@ selectionManager - access to the SelectionManager
 selectedBalls - access to the SelectionSet of control circles
 selectedRect1s - access to the SelectionSet of control rectangles
 selectedRect2s - access to the SelectionSet of control rectangles
+editPoints - get or set whether points can be added and removed
+holdPoints - get or set whether points can be held to be removed (default is editPoints)
 interactive - get or set whether the shape is interactive - toggle, move, change or add controls, etc.
 keyFocus - get or set the keyboard focus on the DisplayObject - see also zim.KEYFOCUS
-   will be set to true if this DisplayObject is the first made or DisplayObject is the last to be used with keyboard
+	will be set to true if this DisplayObject is the first made or DisplayObject is the last to be used with keyboard
 veeObj - an object with ZIM VEE original parameters:value allowing the ZIM VEE values to be referenced
-   for instance, obj.prop = Pick.choose(obj.veeObj.prop); will reset the the prop to the result of the original ZIM VEE value
+	for instance, obj.prop = Pick.choose(obj.veeObj.prop); will reset the the prop to the result of the original ZIM VEE value
 
 ALSO: see ZIM Container for properties such as:
 width, height, widthOnly, heightOnly, draggable, level, depth, group 
@@ -20572,7 +20669,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var that = this;
 		this.interactive = interactive;
 		this.num = num;
-		this.editPoints = editPoints;
+		this.editPoints = this.holdPoints = editPoints;
 		this.selectPoints = selectPoints;
 		this.lockControls = lockControls;
 		this.onTop = onTop;
@@ -20601,9 +20698,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		var min = 2; // distance within which to count as click to add point
 
 		var mapMove;
-		var sets;
+		var sets;		
 
 		points = checkForShape(points);
+
 		function checkForShape(shape) {
 			if (shape=="circle" || shape == "rectangle" || shape =="triangle") {
 				if (shape == "circle") shape = new zim.Circle(radius);
@@ -20734,6 +20832,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				points.pop();
 			}
 		}
+		
 
 		if (originalControlType && typeof points != "number") {
 			// override controlType
@@ -20743,7 +20842,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					point[4]=point[5]=point[6]=point[7]=0;
 				}
 			});
-		}
+		}		
 
 		init();
 		function init() {
@@ -20762,6 +20861,51 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			} else {
 				that.selectionManager = new zim.SelectionManager(null, "ctrl");
 			}
+
+			that.selectionManager.on("keydown", function (e) {
+				if (!that.selectPoints) return;
+				if (!that.keyFocus) return;
+				if (e.keyCode >= 37 && e.keyCode <= 40) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected.length > 0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							var pointObj = currentSelected[i];
+							if (e.keyCode == 37) pointObj.x -= that.selectionManager.shiftKey?10:1;
+							else if (e.keyCode == 39) pointObj.x += that.selectionManager.shiftKey?10:1;
+							else if (e.keyCode == 38) pointObj.y -= that.selectionManager.shiftKey?10:1;
+							else if (e.keyCode == 40) pointObj.y += that.selectionManager.shiftKey?10:1;
+							mapMove(pointObj);
+						}
+						that.drawShape();
+						that.dispatchEvent("update");
+						if (that.stage) that.stage.update();
+					}
+				}
+			}, null, null, null, null, mID);
+
+			that.selectionManager.on("keyup", function (e) {
+				if (!that.selectPoints) return;
+				if (!that.keyFocus) return;
+				if (e.keyCode >= 37 && e.keyCode <= 40) {
+					var currentSelected = getCurrentSelected();
+					if (currentSelected.length > 0) {
+						for(var i=0; i<currentSelected.length; i++) {
+							replaceControls(currentSelected[i]);
+						}
+					}
+				}
+			}, null, null, null, null, mID);
+
+			that.selectionManager.on("undo", function () {
+				if (!that.selectPoints) return;
+				if (!that.keyFocus) return;
+				if (that.lastPoints) {
+					var tempPoints = zim.copy(that.lastPoints);
+					that.lastPoints = zim.copy(that.points);
+					that.points = tempPoints;
+					if (that.stage) that.stage.update();
+				}
+			}, null, null, null, null, mID);
 
 			num = typeof points == "number" ? points : points.length;
 			if (num <= 0) return;
@@ -20788,6 +20932,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			_pointCircles = [];
 
 			var i, point, temp, set, rect1, rect2, ball, type, setInfo;
+
 			
 			for (i=0; i<num; i++) {
 				set = new zim.Container({style:false}).addTo(sets);
@@ -20837,7 +20982,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 					// balls are relative to blob but handles are relative to ball
 					// points is an array of [[setX, setY, ballX, ballY, handleX, handleY, handle2X, handle2Y, type], etc.]
-
 					setInfo = points[i];
 					type = setInfo[8] ? setInfo[8] : controlType;
 					set.loc({x:setInfo[0], y:setInfo[1]});
@@ -20886,7 +21030,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				point = [set, ball, rect1, rect2, setInfo?setInfo[8]:controlType];
 				_points.push(point);
 				_pointCircles.push(ball);
-				_pointControls.push(set);
+				_pointControls.push(set);				
 			}
 
 			var tappedTwice = false;
@@ -21668,6 +21812,11 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						points.splice(pointBefore+1, 0, [point.x, point.y, 0,0, 0,0, 0,0]);
 						that.points = points;
 						that.changeControl({index:pointBefore+1, type:"mirror", update:true});
+						var ev = new createjs.Event("change");
+						ev.controlType = "pointAdd";
+						ev.index = pointBefore+1;
+						that.dispatchEvent(ev);
+						that.dispatchEvent("pointadd");
 					} else { // only on edge
 						// test close enough to edge otherwise return
 						var p = that.pointsAdjusted;
@@ -21706,27 +21855,37 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.lastindex = that.controls.getChildIndex(e.target.parent);
 				if (!that.editPoints) return;
 				if (that.selectionManager.shiftKey) { // remove
+					if (that.controls.noHold) that.controls.noHold();
 					removeControl(e);
 				}
 			}, null, null, null, null, mID);
 
-			function removeControl(e) {
-				if (e.target.type == "Circle") {
-					var index = that.lastindex = that.controls.getChildIndex(e.target.parent);
-					if (that.controls.numChildren <= 2) return;
-					var points = that.points;
-					if (that.selectPoints) that.lastPoints = zim.copy(points);
-					points.splice(index, 1); // remove the point at the index
-					that.points = points;
-					that.stage.update();
-					that.lastSelected = that.lastindex = null;
-				}
-			}
-			if (that.editPoints) that.controls.hold(removeControl);
+			that.controls.hold(removeControl);
 
 			if (!_controls) that.hideControls();
 			that.dispatchEvent("update");
 		} // end of init()
+
+		function removeControl(e) {
+			if (!that.editPoints || !that.holdPoints || !e || !e.target) return;
+			if (e.target.type == "Circle" && e.target.parent && e.target.parent.parent == that.controls) {
+				var index = that.lastindex = that.controls.getChildIndex(e.target.parent);
+				if (index < 0 || that.controls.numChildren <= 2) return;
+				if (that.controls.noHold) that.controls.noHold();
+				var points = that.points;
+				if (that.selectPoints) that.lastPoints = zim.copy(points);
+				points.splice(index, 1); // remove the point at the index
+				that.points = points;
+				var ev = new createjs.Event("change");
+				ev.controlType = "pointDelete";
+				ev.index = index;
+				that.dispatchEvent(ev);
+				that.dispatchEvent("pointdelete");
+				if (that.stage) that.stage.update();
+				that.lastSelected = that.lastindex = null;
+			}
+		}
+
 
 		function getCurrentSelected() {
 			var answer = [];
@@ -21767,53 +21926,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			ball.y = 0;
 		}
 
-		that.selectionManager.on("keydown", function (e) {
-			if (!that.selectPoints) return;
-			if (!that.keyFocus) return;
-			if (e.keyCode >= 37 && e.keyCode <= 40) {
-				var currentSelected = getCurrentSelected();
-				if (currentSelected.length > 0) {
-					for(var i=0; i<currentSelected.length; i++) {
-						var pointObj = currentSelected[i];
-						if (e.keyCode == 37) pointObj.x -= that.selectionManager.shiftKey?10:1;
-						else if (e.keyCode == 39) pointObj.x += that.selectionManager.shiftKey?10:1;
-						else if (e.keyCode == 38) pointObj.y -= that.selectionManager.shiftKey?10:1;
-						else if (e.keyCode == 40) pointObj.y += that.selectionManager.shiftKey?10:1;
-						mapMove(pointObj);
-					}
-					that.drawShape();
-					that.dispatchEvent("update");
-					if (that.stage) that.stage.update();
-				}
-			}
-		}, null, null, null, null, mID);
-
-		that.selectionManager.on("keyup", function (e) {
-			if (!that.selectPoints) return;
-			if (!that.keyFocus) return;
-			if (e.keyCode >= 37 && e.keyCode <= 40) {
-				var currentSelected = getCurrentSelected();
-				if (currentSelected.length > 0) {
-					for(var i=0; i<currentSelected.length; i++) {
-						replaceControls(currentSelected[i]);
-					}
-				}
-			}
-		}, null, null, null, null, mID);
-
-		that.selectionManager.on("undo", function () {
-			if (!that.selectPoints) return;
-			if (!that.keyFocus) return;
-			if (that.lastPoints) {
-				var tempPoints = zim.copy(that.lastPoints);
-				that.lastPoints = zim.copy(that.points);
-				that.points = tempPoints;
-				if (that.stage) that.stage.update();
-			}
-		}, null, null, null, null, mID);
-
-
-		mapMove = function (target) {
+		function mapMove (target) {
 			if (that.lockControls) return;
 			var ball;
 			if (target.rect1) { // pressmove on ball
@@ -21948,6 +22061,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		});
 		that.lockControls = _lockControls;
 
+		Object.defineProperty(that, 'controlType', {
+			get: function() {
+				return controlType;
+			},
+			set: function(value) {
+				controlType = value;
+				originalControlType = value;
+			}
+		});
+
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         // NOTE: extends ZIM CustomShape for more properties and a few functions.
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -21963,7 +22086,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		});
 		if (that.selectPoints && !zim.KEYFOCUS) setFocus();
 		function setFocus() {that.keyFocus = true; var d=document.activeElement; if (d) d.blur();}
-
+	
 
 		Object.defineProperty(that, 'points', {
 			get: function() {
@@ -21981,9 +22104,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 						zim.decimals(p[3].x),
 						zim.decimals(p[3].y)
 					];
-					if (p[4] && p[4]!=="straight") point.push(p[4]);
+					if (p[4]) point.push(p[4]);
+					// if (p[4] && p[4]!=="straight") point.push(p[4]);
 					points.push(point);
-				}
+				}				
 				return points;
 			},
 			set: function(value) {
@@ -22137,6 +22261,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				if (zon) {zogy("Blob() - segmentRatios is read only");}
 			}
 		});
+		
 
 		that.approximateBounds = function(num, showPoints) {
 			if (zot(num)) num = 80;
@@ -22339,17 +22464,28 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			var index = insertPointData(points, controls, ratios, percent, controlType);
 			that.points = points;
 			that.num = points.length;
+			var ev = new createjs.Event("change");
+			ev.controlType = "pointAdd";
+			ev.index = index;
+			that.dispatchEvent(ev);
+			that.dispatchEvent("pointadd");
+			if (that.stage) that.stage.update();
 			return index;
 		};
 
 		this.removePoint = function(index) {	
-			if (zot(index) || index < 0) return;		
+			if (zot(index) || index < 0 || that.points.length <= 2 || index >= that.points.length) return that;		
 			var currentPoints = zim.copy(that.points);
 			currentPoints.splice(index, 1);
 			that.points = currentPoints;
+			var ev = new createjs.Event("change");
+			ev.controlType = "pointDelete";
+			ev.index = index;
+			that.dispatchEvent(ev);
+			that.dispatchEvent("pointdelete");
 			if (that.stage) that.stage.update();
 			return that;
-		}
+		};
 
 		this.addPoints = function(num, controlType, startPoint, spread, dataOnly, points, even) {
 			var sig = "num, controlType, startPoint, spread, dataOnly, points, even";
@@ -29425,7 +29561,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 			that.toggled = false;					
 			var ch,i;
             var tar = that.content||that.contentContainer||that;	
-			if (tar.type != "Container") tar = that.contentContainer||that;	
+			if (tar.type != "Container" && tar.type != "Tile") tar = that.contentContainer||that;	
 			for (i=0; i<tar.numChildren; i++) { // record depths first
 				ch = tar.getChildAt(i);
 				if (ch.type == "TextArea" || ch.type == "Loader" || ch.type == "Tag") {
@@ -29513,7 +29649,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.on("added", show2, null, null, null, null, mID);
 		function show2() {
             var tar = that.content||that.contentContainer||that;
-			if (tar.type != "Container") tar = that.contentContainer||that;
+			if (tar.type != "Container" && tar.type != "Tile") tar = that.contentContainer||that;
 			for (var i=0; i<htmlList.length; i++) {
 				tar.addChildAt(htmlList.values[i].obj, htmlList.values[i].depth);
 			}
@@ -29727,7 +29863,6 @@ panelHeight - get and set the height of the panel without scaling it as height d
 titleBar - access to the titleBar container - which also has a backing property
 titleBarlabel - access to the label of the current panel
 text - access to the text of the current panel
-titleBarLabel - gives access to the titleBar label
 closeIcon - access to the close button
 collapseIcon - access to the ZIM Shape if there is a collapse triangle
 collapsed - get or set whether the panel is collapsed - must start with collapse parameter set to true
@@ -29907,7 +30042,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				that.drag({rect:boundary, currentTarget:true, onTop:onTop});
                 var ch,i;
                 var tar = that.content||that.contentContainer||that;
-				if (tar.type != "Container") tar = that.contentContainer||that;
+				if (tar.type != "Container" && tar.type != "Tile") tar = that.contentContainer||that;
                 for (i=0; i<tar.numChildren; i++) { // record depths first
                     ch = tar.getChildAt(i);
                     if (ch.type == "TextArea" || ch.type == "Loader" || ch.type == "Tag") {
@@ -30009,7 +30144,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		function hide2() {           
 			var ch,i;
             var tar = that.content||that.contentContainer||that;
-			if (tar.type != "Container") tar = that.contentContainer||that;
+			if (tar.type != "Container" && tar.type != "Tile") tar = that.contentContainer||that;
 			for (i=0; i<tar.numChildren; i++) { // record depths first
 				ch = tar.getChildAt(i);
 				if (ch.type == "TextArea" || ch.type == "Loader" || ch.type == "Tag") {
@@ -30904,7 +31039,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		function hide2() {           
 			var ch,i;
             var tar = that.content||that.contentContainer||that;
-			if (tar.type != "Container") tar = that.contentContainer||that;
+			if (tar.type != "Container" && tar.type != "Tile") tar = that.contentContainer||that;
 			for (i=0; i<tar.numChildren; i++) { // record depths first
 				ch = tar.getChildAt(i);
 				if (ch.type == "TextArea" || ch.type == "Loader" || ch.type == "Tag") {
@@ -37115,49 +37250,49 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		setLabel(stepperType=="number"?numVal:list[index], stepperType=="number"?numVal:index);
 
 		function doStep(n) {
-			var nextIndex;
-			if (stepperType == "number") {
-				numVal = Number(numVal);
-				var lastNumVal = numVal;
-				numVal += Number(actualStep * n * numDir);
-				numVal = zim.decimals(numVal, decimals);
-				if (!continuous) {
-					if (numVal > that.max) {
-						numVal = step==1?that.max:lastNumVal;
-						if (display) box.cur("default");
-					} else {
-						if (display) box.cur("pointer");
-					}
-					if (numVal < that.min) {
-						numVal = step==1?that.min:lastNumVal;
-					}
+		var lastValue = that.value; // <-- CAPTURE CURRENT VALUE BEFORE STEPPING
+		var nextIndex;
+		if (stepperType == "number") {
+			numVal = Number(numVal);
+			var lastNumVal = numVal;
+			numVal += Number(actualStep * n * numDir);
+			numVal = zim.decimals(numVal, decimals);
+			if (!continuous) {
+				if (numVal > that.max) {
+					numVal = step==1?that.max:lastNumVal;
+					if (display) box.cur("default");
 				} else {
-					if (numVal > that.max) {
-						numVal = that.min;
-					} else if (numVal < that.min) {
-						numVal = that.max;
-					}
+					if (display) box.cur("pointer");
+				}
+				if (numVal < that.min) {
+					numVal = step==1?that.min:lastNumVal;
 				}
 			} else {
-				nextIndex = index + n;
-				if (!continuous) {
-					if (nextIndex > list.length-1) {
-						if (display) box.cur("default");
-						return;
-					} else {
-						if (display) box.cur("pointer");
-					}
-					if (nextIndex < 0) return;
-				} else {
-					if (nextIndex > list.length-1) nextIndex = 0;
-					if (nextIndex < 0) nextIndex = list.length-1;
+				if (numVal > that.max) {
+					numVal = that.min;
+				} else if (numVal < that.min) {
+					numVal = that.max;
 				}
-				index = nextIndex;
 			}
-			setLabel(stepperType=="number"?numVal:list[index], stepperType=="number"?numVal:index);
-			if (that.value != lastValue) that.dispatchEvent("change");
-			lastValue = that.value;
+		} else {
+			nextIndex = index + n;
+			if (!continuous) {
+				if (nextIndex > list.length-1) {
+					if (display) box.cur("default");
+					return;
+				} else {
+					if (display) box.cur("pointer");
+				}
+				if (nextIndex < 0) return;
+			} else {
+				if (nextIndex > list.length-1) nextIndex = 0;
+				if (nextIndex < 0) nextIndex = list.length-1;
+			}
+			index = nextIndex;
 		}
+		setLabel(stepperType=="number"?numVal:list[index], stepperType=="number"?numVal:index);
+		if (that.value != lastValue) that.dispatchEvent("change");
+	}
 
 
 		Object.defineProperty(this, 'index', {
@@ -37395,6 +37530,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 
 		function setLabel(text, n, update) {
 			index = n;
+			lastValue = that.value; // <-- KEEPS OUTER lastValue IN SYNC ON PROGRAMMATIC SET
 			if (zot(update)) update = true;
 			if (display) {
 				if (stepperType == "number") {
@@ -37404,8 +37540,6 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				}
 				label.text = text;
 				label.center(that);
-				// label.x = box.x+box.getBounds().width/2;
-				// label.y = box.y+(box.getBounds().height-label.getBounds().height)/2;
 			}
 			if (arrows) setArrows();
 			if (update && next && ((!zim.OPTIMIZE&&(zns||!WW.OPTIMIZE)) && next.stage)) {
@@ -57641,7 +57775,7 @@ zim.noGesture = function(obj, move, scale, rotate) {
 };//-34.6
 
 /*--
-obj.gestureBoundary = function(boundary, new)
+obj.gestureBoundary = function(boundary, update)
 
 gestureBoundary
 zim DisplayObject method
@@ -57682,7 +57816,260 @@ RETURNS obj for chaining
 		return obj;
 	};//-34.7
 	
-//
+
+/*--
+obj.tilt = function(boundary, damp, factor, mode, type, call)
+
+tilt
+zim DisplayObject method
+
+DESCRIPTION
+Moves or positions an object based on device sensors (deviceorientation or devicemotion).
+Automatically manages user sensor permission via ZIM PermissionAsk if permission has not yet been requested.
+
+NOTE
+If permission has already been granted, tilt activates immediately.
+If multiple objects call tilt() before permission is granted, they are queued and activated together once the user accepts.
+ALSO see noTilt() to remove tilt behaviors.
+ALSO see tiltBoundary() to dynamically change or clear the boundary rectangle.
+
+EXAMPLE
+// Basic rolling ball constrained to stage bounds
+const ball = new Circle(30, red)
+	.center()
+	.tilt(true);
+END EXAMPLE
+
+EXAMPLE
+// Custom damping, sensitivity factor, and boundary
+new Rectangle(80, 80, blue)
+	.center()
+	.tilt({
+			boundary: new Boundary(50, 50, W - 100, H - 100),
+			damp: 0.08,
+			factor: 0.75,
+			call: (success, obj) => {
+			if (!success) new Pane("Device orientation not available", yellow).show();
+		}
+	});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+boundary - (default null) a ZIM Boundary object, an Array of [x, y, width, height], or true for the Stage dimensions
+damp - (default 0.05) smoothing factor via ZIM Damp, or null / false for immediate direct tracking
+factor - (default 0.5) sensitivity factor multiplier, or an Object with {x, y} for independent axis sensitivity
+mode - (default "move") "move" for continuous velocity / rolling behavior, or "position" for tilt offset relative to starting coordinates
+type - (default "deviceorientation") the sensor event type ("deviceorientation" or "devicemotion")
+call - (default null) callback function called when permission resolves, receiving (success:Boolean, obj:DisplayObject)
+
+RETURNS obj for chaining
+--*///+34.75
+zim.tilt = function(obj, boundary, damp, factor, mode, type, call) {
+	var sig = "obj, boundary, damp, factor, mode, type, call";
+	var duo; if (duo = zob(zim.tilt, arguments, sig)) return duo;
+	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("tilt", arguments); return obj;}
+	z_d("34.75");
+
+	// MONITOR
+	var mID = "z~tilt";
+	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+
+	if (zot(obj)) return;
+
+	// Clean up any existing tilt on this object first
+	if (obj._tiltTicker) zim.noTilt(obj);
+
+	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+	var s = obj.stage || (f ? f.stage : null);
+
+	// Set initial boundary
+	zim.tiltBoundary(obj, boundary);
+
+	if (zot(damp)) damp = 0.05;
+	if (zot(factor)) factor = 0.5;
+	var factorX = typeof factor === "object" ? factor.x : factor;
+	var factorY = typeof factor === "object" ? factor.y : factor;
+	if (zot(mode)) mode = "move"; // "move" | "position" | "rotation"
+	if (zot(type)) type = "deviceorientation";
+
+	// Damp angles for "move" mode (starts at 0) or positions for "position" mode
+	var dampX = damp ? new zim.Damp(mode == "position" ? obj.x : 0, damp) : null;
+	var dampY = damp ? new zim.Damp(mode == "position" ? obj.y : 0, damp) : null;
+	var currentRot = {x: 0, y: 0, z: 0};
+
+	function updateTilt() {
+		if (mode == "move") {
+			// Damping the rotation angle gives smooth acceleration & deceleration
+			var rotY = dampX ? dampX.convert(currentRot.y) : currentRot.y;
+			var rotX = dampY ? dampY.convert(currentRot.x) : currentRot.x;
+			obj.x += rotY * factorX;
+			obj.y += rotX * factorY;
+		} else if (mode == "position") {
+			var targetX = (obj._tiltStartX != null ? obj._tiltStartX : obj.x) + currentRot.y * factorX * 10;
+			var targetY = (obj._tiltStartY != null ? obj._tiltStartY : obj.y) + currentRot.x * factorY * 10;
+			obj.x = dampX ? dampX.convert(targetX) : targetX;
+			obj.y = dampY ? dampY.convert(targetY) : targetY;
+		}
+
+		// Dynamically applies boundary constraint
+		if (obj._tiltBoundary) {
+			obj.x = zim.constrain(obj.x, obj._tiltBoundary.x, obj._tiltBoundary.x + obj._tiltBoundary.width);
+			obj.y = zim.constrain(obj.y, obj._tiltBoundary.y, obj._tiltBoundary.y + obj._tiltBoundary.height);
+		}
+
+		if (s) s.update();
+	}
+
+	function activate() {
+		obj._tiltStartX = obj.x;
+		obj._tiltStartY = obj.y;
+		if (mode == "position" && dampX && dampY) {
+			dampX.immediate(obj.x);
+			dampY.immediate(obj.y);
+		}
+
+		obj._tiltType = type;
+		obj._tiltListener = function(e) {
+			if (e.rotation) {
+				currentRot.x = e.rotation.x || 0;
+				currentRot.y = e.rotation.y || 0;
+				currentRot.z = e.rotation.z || 0;
+			} else {
+				currentRot.x = e.beta || 0;
+				currentRot.y = e.gamma || 0;
+				currentRot.z = e.alpha || 0;
+			}
+		};
+		f.on(type, obj._tiltListener);
+
+		obj._tiltTicker = zim.Ticker.add(updateTilt);
+		if (call) call(true, obj);
+	}
+
+	// Permission check & queueing
+	if (f._permissionGranted) {
+		activate();
+	} else if (f._permissionPending) {
+		f._permissionQueue.push(activate);
+	} else {
+		f._permissionPending = true;
+		f._permissionQueue = [activate];
+
+		new zim.PermissionAsk(function(yes) {
+			f._permissionPending = false;
+			if (yes) {
+				f._permissionGranted = true;
+				zim.loop(f._permissionQueue, function(fn) { fn(); });
+				f._permissionQueue = [];
+			} else {
+				if (call) call(false, obj);
+			}
+		}, type);
+	}
+
+	return obj;
+};//-34.75
+
+
+/*--
+obj.noTilt = function()
+
+noTilt
+zim DisplayObject method
+
+DESCRIPTION
+Removes tilt listeners, removes internal ticker updates, and clears tilt boundary properties from the object.
+
+EXAMPLE
+const player = new Circle(25, green).center().tilt(true);
+
+// Stop tilt control when game ends or is paused
+player.noTilt();
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+34.76
+zim.noTilt = function(obj) {
+	var sig = "obj";
+	var duo; if (duo = zob(zim.noTilt, arguments, sig)) return duo;
+	z_d("34.76");
+
+	if (zot(obj) || !obj.on || !obj.zimTouch) return;
+
+	// MONITOR
+	var mID = "z~noTilt";
+	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+	
+	if (zot(obj)) return;
+	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+
+	if (obj._tiltListener && f) {
+		f.off(obj._tiltType || "deviceorientation", obj._tiltListener);
+		obj._tiltListener = null;
+	}
+	if (obj._tiltTicker) {
+		zim.Ticker.remove(obj._tiltTicker);
+		obj._tiltTicker = null;
+	}
+	obj._tiltBoundary = null;
+
+	return obj;
+
+};//-34.76
+
+/*--
+obj.tiltBoundary = function(boundary, y, width, height)
+
+tiltBoundary
+zim DisplayObject method
+
+DESCRIPTION
+Dynamically sets, updates, or removes the boundary rectangle for an object with tilt().
+
+EXAMPLE
+const marble = new Circle(20, purple).center().tilt(true);
+
+// Update boundary dynamically later (e.g., on resize or game level change)
+marble.tiltBoundary(new Boundary(50, 50, W - 100, H - 100));
+
+// Or clear the boundary
+// marble.tiltBoundary(null);
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+boundary - (default null) a ZIM Boundary object, an Array of [x, y, width, height], true for Frame bounds, null / false to remove boundary, or the x position if passing (x, y, width, height) positionally
+y - (default null) y coordinate if boundary parameter is used as x
+width - (default null) width if boundary parameter is used as x
+height - (default null) height if boundary parameter is used as x
+
+RETURNS obj for chaining
+--*///+34.77
+	zim.tiltBoundary = function(obj, boundary, y, width, height) {		
+		var sig = "obj, boundary, y, width, height";
+		var duo; if (duo = zob(zim.tiltBoundary, arguments, sig)) return duo;
+		z_d("34.77");
+		if (zot(obj) || !obj.on) return;
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+
+		if (zot(boundary) || boundary === false || boundary === null) {
+			obj._tiltBoundary = null;
+		} else if (boundary === true && f) {
+			obj._tiltBoundary = new zim.Boundary(0, 0, f.width, f.height);
+		} else if (Array.isArray(boundary)) {
+			obj._tiltBoundary = new zim.Boundary(boundary[0], boundary[1], boundary[2], boundary[3]);
+		} else if (typeof boundary === "number" && !zot(y)) {
+			obj._tiltBoundary = new zim.Boundary(boundary, y, width, height);
+		} else if (boundary && boundary.type == "Boundary") {
+			obj._tiltBoundary = boundary;
+		} else {
+			obj._tiltBoundary = null;
+		}
+
+		return obj;
+	};//-34.77
+
 /*--
 obj.effect = function(effect, x, y, width, height)
 
@@ -75313,6 +75700,7 @@ multiple - true if the multipleSelect key is being pressed otherwise false
 ctrlKey - true if the ctrlKey key is being pressed otherwise false
 shiftKey - true if the shiftKey key is being pressed otherwise false
 metaKey - true if the metaKey key is being pressed otherwise false
+undoKey - true set to false to not handle undo
 enabled - set to false to disable and true to enable - will remember selections when enabled
 
 EVENTS
@@ -75326,6 +75714,7 @@ dispatches an "undo" event if a CTRL or META plus the U key is pressed
 		// MONITOR	
 		this.mID = "z~"+this.type;
 
+		
 		if (zot(sets)) sets = [];
 		if (zot(multipleSets)) multipleSets = true;
 		if (!Array.isArray(sets)) sets = [sets];
@@ -75333,6 +75722,7 @@ dispatches an "undo" event if a CTRL or META plus the U key is pressed
 		this.multipleKey = multipleKey;
 		this.multipleSets = multipleSets;
 		this.multiple = false;
+		this.undoKey = true;
 		var that = this;
 		var _enabled = true;
 		for (var i=0; i<sets.length; i++) {
@@ -75361,7 +75751,7 @@ dispatches an "undo" event if a CTRL or META plus the U key is pressed
 			that.metaKey = e.metaKey;
 			if (!_enabled) return;
 			that.dispatchEvent(e);
-			if (e.keyCode==90 && (that.ctrlKey || that.metaKey)) {
+			if (that.undoKey && e.keyCode==90 && (that.ctrlKey || that.metaKey)) {
 				that.dispatchEvent("undo");
 			}
 		};
@@ -81218,7 +81608,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 	//-69.9747	
 
 /*--
-zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, style, group, inherit)
+zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, passthroughRotation, style, group, inherit)
 
 Perspective
 zim class extends ZIM Container which extends CreateJS Container
@@ -81357,8 +81747,9 @@ fade - (default true) if a plane is set, this will fade the distance
 dynamic - (default true unless obj is Pic, then false) set to false if a Container, etc. does not change or animate
 frame - (default zimDefaultFrame) set the zim Frame the perspective is in if in a different frame than the default frame
 resolution - (default 1) the resolution multiplier for the internal WebGL shader canvas (e.g. 0.5 for half-resolution to boost GPU performance on laptops and mobile).
-maskShape - (default "rect") the cutout mask shape: "rect" (standard 4-corner quad), "circle" (1:1 true circle with aspect-ratio correction), or "ellipse" (stretches to the quad bounds)
+maskShape - (default eye) the cutout mask shape: "rect" (standard 4-corner quad), "circle" (1:1 true circle with aspect-ratio correction), or "ellipse" (stretches to the quad bounds)
 	or a ZIM DisplayObject (such as a Blob, Circle, or Container) to use as a dynamic GPU alpha mask texture (passed into iChannel1 with multi-tap blur spread).
+	or true to get a Blob in eye shape points radius min of width and height / 2
 feather - (default 0) edge softness from 0 to 1 applied to the quad edges, circle/ellipse borders, or texture mask in the GPU shader.
 onTop - (default true) set to false to not bring the object to the top of its container when pressed
 overlay - (default false) set to true to use a DOM ShaderOverlay (Tag) rather than an in-canvas Shader (Bitmap) 
@@ -81372,6 +81763,7 @@ passthrough - (default false) set to true to display the asset unwarped (at orig
 passthroughScale - (default 1) scale multiplier for the asset when passthrough is true, scaling from the center of the asset.
 passthroughShiftX - (default 0) horizontal pixel offset for the asset beneath the crop window when passthrough is true.
 passthroughShiftY - (default 0) vertical pixel offset for the asset beneath the crop window when passthrough is true.
+passthroughRotation - (default 0) rotation for the asset beneath the crop window when passthrough is true.
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 inherit - (default null) used internally but can receive an {} of styles directly
@@ -81417,7 +81809,6 @@ toggled - get control state - true if showing and false if not - see toggle() me
 maskShape - get or set the cutout shape "rect", "circle",  "ellipse", or the DisplayObject provided
 feather - get or set the edge softness / feathering amount (0 to 1).
 resolution - the resolution multiplier of the shader canvas.
-mask - reference to the mask DisplayObject container if a mask was provided.
 onTop - get or set whether the perspective comes to the top of its container when pressed
 overlay - get or set whether to render as a DOM ShaderOverlay - see overlay parameter
 clipping - get or set whether the overlay canvas bounding box is clamped to the stage boundaries
@@ -81435,8 +81826,8 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 --*///+69.9748
-zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, style, group, inherit) {
-	var sig = "obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, style, group, inherit";
+zim.Perspective = function(obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, passthroughRotation, style, group, inherit) {
+	var sig = "obj, points, interactive, showControls, allowToggle, move, borderColor, borderWidth, dashed, plane, fade, dynamic, frame, resolution, maskShape, feather, onTop, overlay, clipping, passthrough, passthroughScale, passthroughShiftX, passthroughShiftY, passthroughRotation, style, group, inherit";
 	var duo; if (duo = zob(zim.Perspective, arguments, sig, this)) return duo;
 	z_d("69.9770");
 	this.group = group;
@@ -81459,6 +81850,28 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	if (zot(frame)) frame = DS.frame != null ? DS.frame : zdf;
 	if (zot(resolution)) resolution = DS.resolution != null ? DS.resolution : 1;
 	if (zot(maskShape)) maskShape = DS.maskShape != null ? DS.maskShape : "rect";
+	if (maskShape === true) {
+		maskShape = new zim.Blob({
+			points:[
+				[0,90,0,0,-80,0,80,0,"straight"],
+				[150,0,0,0,0,0,0,0,"none"],
+				[0,-90,0,0,80,0,-80,0,"straight"],
+				[-150,0,0,0,0,0,0,0,"none"]
+			],			
+			interactive: false
+		})
+		if (obj && obj.width) {
+			var targetW = obj.width;
+			var targetH = obj.height || 1;
+			var factor = Math.min(targetW / maskShape.width, targetH / maskShape.height);
+			maskShape.transformPoints("scale", factor);
+		}
+	} else if (maskShape && maskShape.type=="Blob" && maskShape.scale != 1) {
+		var factor = maskShape.scale;
+		maskShape.scale = 1;
+		maskShape.transformPoints("scale", factor);
+	}
+	if (maskShape && maskShape.type=="Blob") maskShape.hideControls();
 	if (zot(feather)) feather = DS.feather != null ? DS.feather : 0;
 	if (zot(onTop)) onTop = DS.onTop != null ? DS.onTop : true;
 	if (zot(overlay)) overlay = DS.overlay != null ? DS.overlay : false;
@@ -81467,6 +81880,7 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	if (zot(passthroughScale)) passthroughScale = DS.passthroughScale != null ? DS.passthroughScale : 1;
 	if (zot(passthroughShiftX)) passthroughShiftX = DS.passthroughShiftX != null ? DS.passthroughShiftX : 0;
 	if (zot(passthroughShiftY)) passthroughShiftY = DS.passthroughShiftY != null ? DS.passthroughShiftY : 0;
+	if (zot(passthroughRotation)) passthroughRotation = DS.passthroughRotation != null ? DS.passthroughRotation : 0;
 
 	var size = Math.max(frame.width, frame.height);
 
@@ -81484,7 +81898,7 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	var frag = "uniform vec2 a; uniform vec2 b; uniform vec2 c; uniform vec2 d;\n";
 	frag += "uniform float plane;\nuniform float fade;\n";
 	frag += "uniform float shape;\nuniform float feather;\nuniform float aspect;\nuniform float useMaskTex;\n";
-	frag += "uniform float passthrough;\nuniform float passthroughScale;\nuniform vec2 passthroughCenter;\nuniform vec2 passthroughShift;\nuniform vec2 assetNormSize;\n";
+	frag += "uniform float passthrough;\nuniform float passthroughScale;\nuniform float passthroughRotation;\nuniform vec2 passthroughCenter;\nuniform vec2 passthroughShift;\nuniform vec2 assetNormSize;\n";
 	frag += "#define map(screenpos) ((2.0*(screenpos)-iResolution.xy)/iResolution.y)\n";
 	frag += "mat3 rproject(vec3 p0, vec3 p1, vec3 p2, vec3 p3) {\n";
 	frag += "   mat3 m = inverse(mat3(p0,p1,p2));\n";
@@ -81516,7 +81930,12 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	frag += "   vec2 texUV;\n";
 	frag += "   if (passthrough > 0.5) {\n";
 	frag += "       vec2 pScale = max(vec2(0.0001), assetNormSize * passthroughScale);\n";
-	frag += "       texUV = (p - passthroughCenter - passthroughShift) / pScale + vec2(0.5);\n";
+	frag += "       vec2 pDiff = p - passthroughCenter - passthroughShift;\n";
+	frag += "       float rad = radians(-passthroughRotation);\n";
+	frag += "       float cosA = cos(rad);\n";
+	frag += "       float sinA = sin(rad);\n";
+	frag += "       pDiff = mat2(cosA, -sinA, sinA, cosA) * pDiff;\n";
+	frag += "       texUV = pDiff / pScale + vec2(0.5);\n";
 	frag += "       if (texUV.x < 0.0 || texUV.x > 1.0 || texUV.y < 0.0 || texUV.y > 1.0) {\n";
 	frag += "           fragColor = vec4(0.0);\n";
 	frag += "           return;\n";
@@ -81525,9 +81944,13 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	frag += "       texUV = tileUV;\n";
 	frag += "   }\n";
 	frag += "   vec4 texColor = texture(iChannel0, texUV);\n";
+	frag += "   float alpha = texColor.a;\n";
+	frag += "   if (alpha <= 0.0) {\n";
+	frag += "       fragColor = vec4(0.0);\n";
+	frag += "       return;\n";
+	frag += "   }\n";
 	frag += "   vec3 color = pow(texColor.rgb, vec3(2.2));\n";
 	frag += "   color = pow(color, vec3(0.4545));\n";
-	frag += "   float alpha = texColor.a;\n";
 	frag += "   // 3. Circle / Ellipse Feather (applied to tileUV)\n";
 	frag += "   if (shape > 0.5) {\n";
 	frag += "       vec2 centerCoord = (tileUV - vec2(0.5)) * 2.0;\n";
@@ -81578,7 +82001,7 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	frag += "       color *= distFade;\n";
 	frag += "       alpha *= distFade;\n";
 	frag += "   }\n";
-	frag += "   fragColor = vec4(color, alpha);\n";
+	frag += "   fragColor = vec4(color * alpha, alpha);\n";
 	frag += "}\n";
 
 	this.zimContainer_constructor(size, size, null, null, false);
@@ -81594,6 +82017,7 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	var _maskShape = maskShape;
 	var _passthrough = Boolean(passthrough);
 	var _passthroughScale = Number(passthroughScale) || 1;
+	var _passthroughRotation = Number(passthroughRotation) || 0;
 	var _passthroughShiftX = Number(passthroughShiftX) || 0;
 	var _passthroughShiftY = Number(passthroughShiftY) || 0;
 	var _passthroughCenter = null;
@@ -81744,6 +82168,10 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	var objH = obj.height || (obj.getBounds ? (obj.getBounds() ? obj.getBounds().height : size) : size);
 	var aspect = objW / objH;
 
+	// FIX: Shift registration to the internal buffer center and set bounds to the actual object size
+	that.reg(size/2, size/2);
+	that.setBounds(size/2 - objW/2, size/2 - objH/2, objW, objH);
+
 	var shapeVal = 0;
 	var useMaskTexVal = 0;
 	if (typeof _maskShape === "string") {
@@ -81769,6 +82197,7 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 		useMaskTex: useMaskTexVal,
 		passthrough: _passthrough ? 1 : 0,
 		passthroughScale: _passthroughScale,
+		passthroughRotation: _passthroughRotation,
 		passthroughCenter: [initCx, initCy],
 		passthroughShift: [_passthroughShiftX / size, -_passthroughShiftY / size],
 		assetNormSize: [objW / size, objH / size]
@@ -81936,6 +82365,9 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 				uniforms.useMaskTex = 1;
 				setupMaskSource(value);
 				if (that.shader) that.shader.replaceChannel(maskContainer, 1, false);
+			} else {
+				uniforms.shape = 0;
+				uniforms.useMaskTex = 0;
 			}
 		}
 	});
@@ -81967,6 +82399,16 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 		set: function(value) {
 			_passthroughScale = Number(value) || 1;
 			uniforms.passthroughScale = _passthroughScale;
+		}
+	});
+
+	Object.defineProperty(this, "passthroughRotation", {
+		get: function() {
+			return _passthroughRotation;
+		},
+		set: function(value) {
+			_passthroughRotation = Number(value) || 0;
+			uniforms.passthroughRotation = _passthroughRotation;
 		}
 	});
 
@@ -82296,7 +82738,7 @@ zim.Perspective = function(obj, points, interactive, showControls, allowToggle, 
 	if (style !== false) zim.styleTransforms(this, DS);
 	
 	this.clone = function(exact) {	
-		return that.cloneProps(new zim.Perspective((exact || !zim.isPick(oa[0])) ? obj : oa[0], points, interactive, showControls, allowToggle, move, (exact || !zim.isPick(oa[1])) ? borderColor : oa[1], (exact || !zim.isPick(oa[2])) ? borderWidth : oa[2], (exact || !zim.isPick(oa[3])) ? dashed : oa[3], plane, fade, dynamic, frame, resolution, _maskShape, feather, _onTop, _overlay, _clipping, _passthrough, _passthroughScale, _passthroughShiftX, _passthroughShiftY, style, this.group, inherit));
+		return that.cloneProps(new zim.Perspective((exact || !zim.isPick(oa[0])) ? obj : oa[0], points, interactive, showControls, allowToggle, move, (exact || !zim.isPick(oa[1])) ? borderColor : oa[1], (exact || !zim.isPick(oa[2])) ? borderWidth : oa[2], (exact || !zim.isPick(oa[3])) ? dashed : oa[3], plane, fade, dynamic, frame, resolution, _maskShape, feather, _onTop, _overlay, _clipping, _passthrough, _passthroughScale, _passthroughShiftX, _passthroughShiftY, _passthroughRotation, style, this.group, inherit));
 	};		
 };
 zim.extend(zim.Perspective, zim.Container, ["clone", "dispose"], "zimContainer", false);
@@ -93556,6 +93998,13 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		var imagesNoCORS = [];
 		var mainCount = 0;
 		var firstSoundCheck = true;
+
+		var videoRegex = /\.(mp4|mkv|webm|avi|mov|wmv|flv|m4v|3gp|ts)(?=[?#]|$)/i;
+		function isVideoUrl(url) {
+			if (url && url.src) url = url.src;
+			if (typeof url !== 'string') return false;			
+			return videoRegex.test(url);
+		}
 		
 		// 018 TRYING TO FIX CREATEJS ERROR IF SOUND LOADED AGAIN - BUT BREAKS LAZY LOAD
 		// var emptyAssets = false;
@@ -93570,7 +94019,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			// 	// }
 			// }
 
-	
+			
 
 			var match;
 			if (a.match) match = a.match(/^noto_(.*)/);
@@ -93586,6 +94035,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				for (j=0; j<a.assets.length; j++) {
 					var aj = a.assets[j];
 					match = null;
+					if (isVideoUrl(aj)) continue;
 					if (aj.match) match = aj.match(/^noto_(.*)/);
 					if (match) {		
 						aj = {id:aj, src:"https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/" + getNotoFilename(match[1])}
@@ -93619,7 +94069,8 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				}
 				a = assetMulti[0];
 				if (a==undefined) continue;
-			}
+			}			
+			if (isVideoUrl(a))continue;
 
 			// catch {src} without id and just replace it with src unless google font
 			if (a.constructor == {}.constructor) {
@@ -94005,6 +94456,11 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				if (!queueOnly) that.dispatchEvent(completeEventObject);
 			}, time*(timeType=="s"?1000:1));
 		}
+
+		if (queue.loadAssetsCount == 0) {
+			endAssetLoad();
+		}
+
 		return queue;
 	};
 
@@ -96366,11 +96822,12 @@ bitmap - (default true) this will show the SVG as a Bitmap (still nicely scalabl
 	or set to false to use an SVGContainer() which converts the SVG to Blob, Squiggle and ZIM Shapes with transforms.
 	This allows for editable paths - but perhaps not all aspects of SVGs are supported such as CSS styles on SVGs.
 	Alternatively, a single SVG path can be passed to a ZIM Blob() or Squiggle() and SVG() can be avoided.
+	Note: when color, borderColor, or order is set then bitmap is set to false
 ** these parameters are NOT for the bitmap option but rather for the SVGContainer
 splitTypes - (default false) - set to true to split different types of paths into separate objects
 geometric - (default true) - set to false to load Rectangle and Circle objects as Blob objects
 showControls - (default true) set to false to start with controls not showing
-interactive - (default true) for bitmap:false, set to false to turn off controls, move, toggle, select, edit - leaving just the shapes
+interactive - (default true or false if bitmap or colored below) set to false to turn off controls, move, toggle, select, edit - leaving just the shapes
 color - |ZIM VEE| (default null) for bitmap:false, set to a color or an array of colors to apply to fill of children - in order of the children
 	usually a series() would be used here for colors in order, or an array for random colors
 borderColor - |ZIM VEE| (default null) set to a color or an array of colors to apply to border of children - in order of the children
@@ -96437,10 +96894,16 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (zot(splitTypes)) splitTypes = DS.splitTypes!=null?DS.splitTypes:false;
 		if (zot(geometric)) geometric = DS.geometric!=null?DS.geometric:true;
 		if (zot(showControls)) showControls = DS.showControls!=null?DS.showControls:null;
-		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:true;
 		if (zot(color)) color = DS.color!=null?DS.color:null;
 		if (zot(borderColor)) borderColor = DS.borderColor!=null?DS.borderColor:null;
 		if (zot(order)) order = DS.order!=null?DS.order:null;
+		
+		var colored = false;
+		if (color || borderColor || order) {
+			bitmap = false;
+			colored = true;
+		}			
+		if (zot(interactive)) interactive = DS.interactive!=null?DS.interactive:!colored; // don't set to interactive if colored
 
 		var setColors = [];
 		var setBorderColors = [];
@@ -96871,277 +97334,606 @@ Note: there are more features to the Web Speech API - see the HTML docs
 //-83.095
 
 /*--
-Hardware = function(callback, baudRate, delimiter)
+Hardware = function(preset, callback, baudRate, delimiter, mode, autoParse)
 
 Hardware
 zim class - extends a createjs.EventDispatcher
+Supports DUO - pass parameters positionally or as a single configuration object {preset: "microblocks", callback: ...}
 
 DESCRIPTION
-Reads from and writes to a device such as an Ardiuno 
-Wraps the JS Web Serial API
-https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API
-Coded primarily by Gemini AI
+Connects interactive ZIM canvas applications directly to physical microcontrollers, sensors, dials, and actuators.
+Communicates via standard USB cables using the JS Web Serial API or wirelessly via the JS Web Bluetooth (BLE UART) API.
+Works with MicroBlocks, BBC micro:bit, Raspberry Pi Pico / RP2040, Arduino, Adafruit Circuit Playground / Feather (CircuitPython / MicroPython), ESP32, and LEGO SPIKE Prime.
+Automatically parses incoming data into JavaScript numbers, key-value pairs, or JSON objects.
 
 See: https://zimjs.com/hardware/
 
-NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+NOTE: Browser security requires that hardware.connect() be called inside a user gesture (such as a Button tap or Pane close). Supported in Chromium-based browsers (Chrome, Edge, Opera) on desktop, Android, and Chromebooks.
 
 EXAMPLE
-// USING ZIM as INPUT to ARDUINO
+// -------------------------------------------------------
+// ---- EXAMPLE 1: ARDUINO (Bidirectional LED & Dial) ----
+// -------------------------------------------------------
+// On Arduino Uno/Nano: connect a potentiometer to A0 and built-in LED on Pin 13
+// Upload the following Arduino C++ code:
 
-// would need an arduino connected 
-// with the following .ino file loaded onto it 
-
-// ------------------------
-// ---- Arduinin Code -----
-
-const int LED_PIN = 13; // Built-in LED on your Uno R3 board
+const int potPin = A0;
+const int ledPin = 13;
 void setup() {
-	Serial.begin(9600);       // Initialize background channel at matching speed
-	pinMode(LED_PIN, OUTPUT); // Configure Pin 13 as an output light source
+	Serial.begin(9600);
+	pinMode(ledPin, OUTPUT);
 }
 void loop() {
-	// Check if ZIM has sent a data character over the USB cable
+	// Read Potentiometer and send to ZIM
+	int potValue = analogRead(potPin);
+	Serial.println(potValue); // sends number + \n
+
+	// Receive LED command from ZIM
 	if (Serial.available() > 0) {
-		char incomingChar = Serial.read(); // Read the character data fragment
-		if (incomingChar == '1') {
-			digitalWrite(LED_PIN, HIGH); // Turn physical light ON
-		} 
-		else if (incomingChar == '0') {
-			digitalWrite(LED_PIN, LOW);  // Turn physical light OFF
-		}
+		char c = Serial.read();
+		if (c == '1') digitalWrite(ledPin, HIGH);
+		else if (c == '0') digitalWrite(ledPin, LOW);
 	}
+	delay(30);
 }
 
-// -------------------
-// ---- ZIM Code -----
-
-const device = new Hardware();
-
-const toggle = new Toggle({
-	label: "LED POWER",
-	toggleBackgroundColor: green,
-	color: white
-})
-	.center()
-	.change(() => {
-		if (toggle.toggled) {
-			device.write("1"); // note a \n will be automatically added if missing
-		} else {
-			device.write("0");
-		}
-	});
-
-// must interact to connect
-const pane = new Pane("CONNECT", yellow).show(() => {
-		device.connect()
+// ZIM Front-End Code:
+// Preset "arduino" sets baud rate to 9600 automatically
+const device = new Hardware("arduino", data => {
+	dial.currentValue = data; // data automatically parsed as Number (0-1023)
+	S.update();
 });
 
-device.on("disconnected", () => {
-	pane.show(() => { // remember to add the callback again
-		device.connect();
+const dial = new Dial({min: 0, max: 1023}).center();
+
+const toggle = new Toggle({label: "ARDUINO LED", toggleBackgroundColor: green})
+	.pos(0, 100, CENTER, BOTTOM)
+	.change(() => {
+		device.write(toggle.toggled ? "1" : "0");
 	});
+
+// Connect on user interaction
+new Button({label: "CONNECT", width:AUTO})
+	.pos(30, 30, RIGHT, TOP)
+	.tap(e => {
+		device.connect();
+		e.target.removeFrom();
+		S.update();
+	});
+END EXAMPLE
+
+EXAMPLE
+// ----------------------------------------------------
+// ---- EXAMPLE 2: MICROBLOCKS (Live Block Scripting) -
+// ----------------------------------------------------
+// MicroBlocks (https://microblocks.fun) runs live on micro:bit, ESP32, RP2040, etc.
+// In MicroBlocks, use the Serial library blocks:
+//   [when started]
+//     [forever]
+//       [serial write line (join "pot:" (analog pin 1))]
+//       [wait 50 ms]
+//   [when serial received]
+//     [if ((last serial line) == "beep")]
+//       [play tone 440 for 200 ms]
+
+// ZIM Front-End Code:
+// Default preset is "microblocks" (115200 baud)
+const hw = new Hardware("microblocks", data => {
+	// Key-value pairs like "pot:512" automatically parse into hw.data.pot or hw.get("pot")
+	circle.sca(map(hw.get("pot"), 0, 1023, 0.5, 3));
+	S.update();
+});
+
+const circle = new Circle(60, orange).center();
+
+circle.tap(() => {
+	hw.write("beep"); // Triggers tone on the microcontroller
+});
+
+new Button({label: "CONNECT", width:AUTO}).pos(30, 30, RIGHT, TOP).tap(e => {
+	hw.connect();
+	e.target.removeFrom();
+	S.update();
 });
 END EXAMPLE
 
 EXAMPLE
-// USING ZIM AS OUTPUT FROM ARDUINO 
-See: https://zimjs.com/hardware/
+// ----------------------------------------------------
+// ---- EXAMPLE 3: BBC MICRO:BIT (MakeCode Serial) ----
+// ----------------------------------------------------
+// In MakeCode (https://makecode.microbit.org):
+//   basic.forever(function () {
+//       serial.writeLine("x:" + input.acceleration(Dimension.X))
+//       basic.pause(50)
+//   })
+//   serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
+//       let msg = serial.readString()
+//       if (msg.includes("icon")) basic.showIcon(IconNames.Heart)
+//   })
 
-// would need an arduino connected 
-// with a potentiometer (pot) dial 
-// (probably on a breadboard) 
-// with outside pins goint to ground and 5V 
-// and middle pin goint to analogue A0
-// with the following .ino file loaded onto it 
-
-// ------------------------
-// ---- Arduinin Code -----
-
-const int potPin = A0;
-void setup() {
-	Serial.begin(9600);
-}
-void loop() {
-	int potValue = analogRead(potPin);
-	Serial.println(potValue);
-	delay(20); 
-}
-
-// -------------------
-// ---- ZIM Code -----
-
-const device = new Hardware(data => {
-	zog(data); // gives values from 0-1023
+// ZIM Front-End Code:
+const mb = new Hardware("microbit");
+const pd = new ProportionDamp(-1023, 1023, 0, W);
+mb.on("data", e => {
+	if (e.key === "x") {
+		character.x = pd.convert(e.val);
+		S.update();
+	}
 });
 
-// must interact to connect
-const pane = new Pane("CONNECT", yellow).show(()=>{
-	device.connect();
+const character = new Rectangle(60, 60, purple).centerReg();
+
+character.tap(() => {
+	mb.write("icon");
 });
 
-device.on("disconnected", () => {
-	pane.show(()=>{ // remember to add the callback again
-		device.connect();
-	});
+new Button({label: "CONNECT MICRO:BIT", width:AUTO}).center().tap(e => {
+	mb.connect();
+	e.target.removeFrom();
+	S.update();
 });
-END EXAMPLE 
+END EXAMPLE
 
-PARAMETERS 
-callback - the function to call when data is received and will receive the data in its single parameter
-baudRate - (default 9600) Port speed matching the microcontroller
-delimiter - (default \n) Character used to split data lines 
+EXAMPLE
+// ----------------------------------------------------
+// ---- EXAMPLE 4: CIRCUITPYTHON / MICROPYTHON (PICO) -
+// ----------------------------------------------------
+// On Raspberry Pi Pico / Adafruit boards running CircuitPython or MicroPython (code.py):
+
+import time
+import json
+import board
+import analogio
+
+pot = analogio.AnalogIn(board.A0)
+while True:
+# Send JSON packet
+data = {"pot": pot.value, "time": time.monotonic()}
+print(json.dumps(data))
+time.sleep(0.05)
+
+
+// ZIM Front-End Code:
+const pico = new Hardware("pico", data => {
+	// JSON is automatically parsed into a native object:
+	slider.currentValue = data.pot;
+	S.update();
+});
+
+const slider = new Slider({min: 0, max: 65535}).center();
+
+new Button({label: "CONNECT PICO", width:AUTO}).center().tap(e => {
+	pico.connect();
+	e.target.removeFrom();
+	S.update();
+});
+END EXAMPLE
+
+EXAMPLE
+// ----------------------------------------------------
+// ---- EXAMPLE 5: WIRELESS BLUETOOTH (BLE UART) ------
+// ----------------------------------------------------
+// Connects wirelessly to BBC micro:bit, ESP32, or Adafruit Bluefruit boards advertising Nordic UART Service
+const wireless = new Hardware("ble", data => {
+	label.text = "Received: " + data;
+	S.update();
+});
+
+const label = new Label("Waiting for BLE...").center();
+
+new Button({label: "CONNECT BLUETOOTH", width:AUTO}).pos(0, 100, CENTER, BOTTOM).tap(e => {
+	wireless.connect();
+	e.target.removeFrom();
+	S.update();
+});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+preset - (default "arduino") target hardware profile ("arduino", "microblocks", "microbit", "pico", "circuitpython", "micropython", "lego", "spike", "ble", "bluetooth")
+         Note: if a function is passed as the first parameter, it is treated as the callback. If a number is passed, it is treated as baudRate.
+callback - (default null) function called when data arrives: callback(data, raw, event)
+baudRate - (default 9600 for "arduino", 115200 for modern platforms) serial transmission speed
+delimiter - (default "\n") character or regex string used to split incoming messages and appended to outgoing writes
+mode - (default "serial") transport layer: "serial" (Web Serial via USB) or "bluetooth" (Web Bluetooth BLE UART)
+autoParse - (default true) automatically parses incoming lines into Numbers, Key-Value objects, or JSON objects
 
 METHODS
-connect() - must interact before connecting - will receive a connected event
-write(data) - write to the device - also see the data event for reading from the device
-disconnect() - disconnect from the device
+connect() - triggers browser connection dialog to choose device. 
+	Must be called inside user interaction 
+	For example, use a ZIM Pane().show(()={// put connect here}) 
+	Dispatches "connected" event. Returns this for chaining.
+write(data) - sends string or number to hardware. Automatically appends delimiter if missing. Returns this for chaining.
+disconnect() - cleanly shuts down streams and closes connection. Dispatches "disconnected" event. Returns this for chaining.
+get(name) - returns latest value received for a given key name (e.g. hw.get("pot") or hw.get("x")).
 
 PROPERTIES
-type - holds the class name as a String
-port - readonly the port the hardware is connected on
-reader - readonly the textDecoder.readable.getReader()
-writer - readonly the textEncoder.writable.getWriter()
-textDecoder - readonly the JavaScript TextEncoderStream()
-textEncoder - readonly the JavaScript TextEncoderStream()
-isListening - whether actively reading on port
-baudRate - readonly baud rate - see parameter
-delimiter - end character for outgoing data
+type - holds the class name as a String ("Hardware")
+preset - the hardware profile name in use
+callback - the function assigned to receive incoming data
+baudRate - the baud rate in use
+delimiter - the delimiter string
+mode - "serial" or "bluetooth"
+autoParse - boolean indicating if auto-parsing is active
+connected - boolean indicating if currently connected to hardware
+isListening - boolean indicating if reading loop is active
+data - object holding latest key-value state received
+raw - String of the most recent raw unparsed line
+value - most recent parsed value (Number, Object, or String)
+port - readonly Web Serial port instance (serial mode)
+reader - readonly stream reader instance (serial mode)
+writer - readonly stream writer instance (serial mode)
+bleDevice - readonly Web Bluetooth device instance (bluetooth mode)
 
 EVENTS
-dispatches "connected" when connected
-dispatches "disconnected" when disconnected
+dispatches "connected" when hardware connection opens successfully
+dispatches "disconnected" when hardware is manually disconnected or cable is pulled
+dispatches "data" when a line/packet of data is received. Event object contains:
+    e.data (or e.value) - parsed data (Number, Object, String)
+    e.raw - original raw line String
+    e.key - key String if received as key:value or key=value
+    e.val - value if received as key:value or key=value
+dispatches "error" if connection or transmission fails
 --*///+83.097
-	zim.Hardware = function(callback, baudRate, delimiter) {
-		z_d("83.097");
-		this.cjsEventDispatcher_constructor();
-		this.type = "Hardware";
-		var that = this;
+zim.Hardware = function(preset, callback, baudRate, delimiter, mode, autoParse) {
+	var sig = "preset, callback, baudRate, delimiter, mode, autoParse";
+	var duo; if (duo = zot(arguments, sig, this)) return duo;
 
-		// MONITOR
-		this.mID = "z~"+this.type;
+	this.cjsEventDispatcher_constructor();
+	this.type = "Hardware";
+	var that = this;
 
-		// Core Properties
-		that.baudRate = baudRate || 9600;
-		that.delimiter = delimiter || "\n";
+	// MONITOR
+	this.mID = "z~" + this.type;
 
-		that.port = null
-		that.reader = null
-		that.writer = null
-		that.textDecoder = null
-		that.isListening = false
+	// Backward Compatibility & Flexible Parameter Detection
+	if (typeof preset === "function") {
+		callback = preset;
+		preset = "arduino";
+	} else if (typeof preset === "number") {
+		baudRate = preset;
+		preset = "custom";
+	}
+	if (typeof callback === "number") {
+		baudRate = callback;
+		callback = null;
+	}
 
-		// GLOBAL HARDWARE DISCONNECT MONITOR
-		if (navigator.serial) {
-			navigator.serial.addEventListener("disconnect", function (event) {
-				if (event.target === that.port) {
-					zogy("ZIM Harware - hardware physically disconnected!")
-					that.isListening = false;
+	// Platform Presets (Default baud rates & transport modes)
+	var presets = {
+		"microblocks":   { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"microbit":       { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"pico":           { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"circuitpython":  { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"micropython":    { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"lego":           { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"spike":          { baudRate: 115200, delimiter: "\n", mode: "serial" },
+		"arduino":        { baudRate: 9600,   delimiter: "\n", mode: "serial" },
+		"ble":            { baudRate: null,   delimiter: "\n", mode: "bluetooth" },
+		"bluetooth":      { baudRate: null,   delimiter: "\n", mode: "bluetooth" }
+	};
 
-					// Clean break: release locks and clear active streams
-					if (that.reader) {
-						try { that.reader.releaseLock() } catch (e) { }
-						that.reader = null
-					}
-					if (that.writer) {
-						try { that.writer.releaseLock() } catch (e) { }
-						that.writer = null
-					}
-					that.port = null;   
-					that.dispatchEvent("disconnected");
-				}
+	var pKey = preset ? String(preset).toLowerCase() : "arduino";
+	var profile = presets[pKey] || presets["arduino"];
+
+	// Core Properties
+	that.preset = preset || "arduino";
+	that.callback = callback;
+	that.baudRate = baudRate || profile.baudRate || 115200;
+	that.delimiter = delimiter != null ? delimiter : profile.delimiter;
+	that.mode = (mode || profile.mode || "serial").toLowerCase();
+	that.autoParse = autoParse != null ? autoParse : true;
+
+	// Connection State
+	that.port = null;
+	that.reader = null;
+	that.writer = null;
+	that.textDecoder = null;
+	that.isListening = false;
+	that.connected = false;
+
+	// Bluetooth Properties
+	that.bleDevice = null;
+	that.bleServer = null;
+	that.bleRxCharacteristic = null; // write
+	that.bleTxCharacteristic = null; // notify/read
+
+	// Data Cache
+	that.data = {};
+	that.raw = "";
+	that.value = null;
+	that._buffer = "";
+
+	// Universal Nordic UART Service UUIDs (micro:bit, Adafruit Bluefruit, ESP32, Arduino BLE)
+	var UART_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+	var UART_RX_UUID      = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
+	var UART_TX_UUID      = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
+
+	// GLOBAL HARDWARE DISCONNECT MONITOR (Web Serial)
+	if (navigator.serial) {
+		navigator.serial.addEventListener("disconnect", function(event) {
+			if (event.target === that.port) {
+				zogy("ZIM Hardware: serial device physically disconnected");
+				that._handleDisconnect();
+			}
+		});
+	}
+
+	// CONNECT METHOD (Web Serial or Web Bluetooth)
+	that.connect = function() {
+		if (that.mode === "bluetooth" || that.mode === "ble") {
+			that._connectBluetooth();
+		} else {
+			that._connectSerial();
+		}
+		return that;
+	};
+
+	// SERIAL CONNECTION
+	that._connectSerial = function() {
+		if (!navigator.serial) {
+			console.error("ZIM Hardware: Web Serial API is not supported in this browser. Please use Chrome, Edge, or Opera.");
+			that.dispatchEvent({ type: "error", error: "Web Serial not supported" });
+			return;
+		}
+
+		navigator.serial.requestPort()
+			.then(function(selectedPort) {
+				that.port = selectedPort;
+				return that.port.open({ baudRate: that.baudRate });
+			})
+			.then(function() {
+				zogy("ZIM Hardware: serial connected (" + that.preset + " @ " + that.baudRate + " baud)");
+				that.isListening = true;
+				that.connected = true;
+				that._buffer = "";
+
+				// Output Stream (Browser to Microcontroller)
+				var textEncoder = new TextEncoderStream();
+				textEncoder.readable.pipeTo(that.port.writable);
+				that.writer = textEncoder.writable.getWriter();
+
+				// Input Stream (Microcontroller to Browser)
+				that.textDecoder = new TextDecoderStream();
+				that.port.readable.pipeTo(that.textDecoder.writable);
+				that.reader = that.textDecoder.readable.getReader();
+
+				// Start background reader
+				that._readLoop();
+				that.dispatchEvent("connected");
+			})
+			.catch(function(error) {
+				console.error("ZIM Hardware: serial connection failed:", error);
+				that.dispatchEvent({ type: "error", error: error });
 			});
+	};
+
+	// BLUETOOTH (BLE UART) CONNECTION
+	that._connectBluetooth = function() {
+		if (!navigator.bluetooth) {
+			console.error("ZIM Hardware: Web Bluetooth API is not supported in this browser. Please use Chrome or Edge.");
+			that.dispatchEvent({ type: "error", error: "Web Bluetooth not supported" });
+			return;
 		}
 
-		// CONNECT METHOD
-		that.connect = function () {
-			if (!navigator.serial) {
-				console.error("Web Serial API is not supported in this browser. Please use Chrome or Edge.")
-				return;
+		navigator.bluetooth.requestDevice({
+			filters: [
+				{ services: [UART_SERVICE_UUID] },
+				{ namePrefix: "BBC micro:bit" },
+				{ namePrefix: "micro:bit" },
+				{ namePrefix: "MicroBlocks" },
+				{ namePrefix: "CircuitPlayground" }
+			],
+			optionalServices: [UART_SERVICE_UUID, 0xffe0]
+		})
+			.then(function(device) {
+				that.bleDevice = device;
+				that.bleDevice.addEventListener("gattserverdisconnected", function() {
+					zogy("ZIM Hardware: Bluetooth device disconnected");
+					that._handleDisconnect();
+				});
+				return device.gatt.connect();
+			})
+			.then(function(server) {
+				that.bleServer = server;
+				return server.getPrimaryService(UART_SERVICE_UUID);
+			})
+			.then(function(service) {
+				return Promise.all([
+					service.getCharacteristic(UART_RX_UUID),
+					service.getCharacteristic(UART_TX_UUID)
+				]);
+			})
+			.then(function(characteristics) {
+				that.bleRxCharacteristic = characteristics[0];
+				that.bleTxCharacteristic = characteristics[1];
+				return that.bleTxCharacteristic.startNotifications();
+			})
+			.then(function() {
+				that.bleTxCharacteristic.addEventListener("characteristicvaluechanged", function(event) {
+					var decoder = new TextDecoder();
+					var chunk = decoder.decode(event.target.value);
+					that._processChunk(chunk);
+				});
+
+				zogy("ZIM Hardware: Bluetooth connected successfully");
+				that.isListening = true;
+				that.connected = true;
+				that._buffer = "";
+				that.dispatchEvent("connected");
+			})
+			.catch(function(error) {
+				console.error("ZIM Hardware: Bluetooth connection failed:", error);
+				that.dispatchEvent({ type: "error", error: error });
+			});
+	};
+
+	// TRANSMIT DATA METHOD (Hardware.write)
+	that.write = function(data) {
+		var message = String(data);
+		if (typeof that.delimiter === "string" && !message.endsWith(that.delimiter)) {
+			message += that.delimiter;
+		}
+
+		if (that.mode === "bluetooth" && that.bleRxCharacteristic) {
+			var encoder = new TextEncoder();
+			that.bleRxCharacteristic.writeValue(encoder.encode(message))
+				.catch(function(error) {
+					console.error("ZIM Hardware: failed to transmit BLE data:", error);
+				});
+		} else if (that.writer && that.isListening) {
+			that.writer.write(message)
+				.catch(function(error) {
+					console.error("ZIM Hardware: failed to transmit serial data:", error);
+				});
+		} else {
+			console.warn("ZIM Hardware: cannot write data, device is not connected.");
+		}
+		return that;
+	};
+
+	// DISCONNECT METHOD (Manual Shutdown)
+	that.disconnect = function() {
+		that.isListening = false;
+		that.connected = false;
+
+		if (that.mode === "bluetooth" && that.bleDevice) {
+			if (that.bleDevice.gatt && that.bleDevice.gatt.connected) {
+				that.bleDevice.gatt.disconnect();
 			}
-
-			navigator.serial.requestPort()
-				.then(function (selectedPort) {
-					that.port = selectedPort;
-					return that.port.open({ baudRate: that.baudRate });s
-				})
-				.then(function () {
-					zogy("ZIM Hardware - connected successfully!")
-					that.isListening = true
-
-					// Set up Output Stream (Browser to Microcontroller)
-					var textEncoder = new TextEncoderStream()
-					textEncoder.readable.pipeTo(that.port.writable)
-					that.writer = textEncoder.writable.getWriter()
-
-					// Set up Input Stream (Microcontroller to Browser)
-					that.textDecoder = new TextDecoderStream()
-					that.port.readable.pipeTo(that.textDecoder.writable)
-					that.reader = that.textDecoder.readable.getReader()
-
-					// Start recursive background reader
-					that._readLoop("");
-					that.dispatchEvent("connected");
-				})
-				.catch(function (error) {
-					console.error("Hardware connection failed:", error)
-				})
+			that._handleDisconnect();
+			return that;
 		}
 
-		that.write = function (data) {
-			if (that.writer && that.isListening) {
-				var message = String(data);
-				if (message.charAt(str.length - 1) != that.delimeter) {
-					message += that.delimiter;
-				}
-				that.writer.write(message)
-					.catch(function (error) {
-						console.error("Failed to transmit data to hardware:", error);
-					})
-			} else {
-				console.warn("Cannot write data: Hardware is not connected.");
-			}
-		}
-
-		// DISCONNECT METHOD (Manual Shutdown)
-		that.disconnect = function () {
-			that.isListening = false
-			if (that.reader && that.writer) {
-				that.reader.cancel()
-					.then(function () { return that.writer.close() })
-					.then(function () { if (that.port) return that.port.close() })
-					.then(function () { zogy("ZIM Hardware: cleanly disconnected.") })
-					.catch(function (err) { console.error("Error during disconnect process:", err) })
-			}
-		}
-
-		// INTERNAL RECURSIVE LOOP METHOD
-		that._readLoop = function (buffer) {
-			if (!that.isListening) return;
-
-			that.reader.read()
-				.then(function (result) {
-					if (result.done) {
-						that.isListening = false;
-						return;
-					}
-					buffer += result.value;
-					var delimiterPattern = that.delimiter === "\n" ? /\r?\n/ : new RegExp(that.delimiter)
-					var lines = buffer.split(delimiterPattern)
-					buffer = lines.pop()
-					for (var i = 0; i < lines.length; i++) {
-						var cleanLine = lines[i].trim()
-						if (cleanLine.length > 0 && typeof callback === "function") (callback)(cleanLine);
-					}
-					that._readLoop(buffer);
+		if (that.reader && that.writer) {
+			that.reader.cancel()
+				.then(function() { return that.writer.close(); })
+				.then(function() { if (that.port) return that.port.close(); })
+				.then(function() {
+					that._handleDisconnect();
+					zogy("ZIM Hardware: cleanly disconnected");
 				})
-				.catch(function (error) {
-					// If it crashes due to a sudden cable pull, let the event listener handle the cleanup
-					that.isListening = false
+				.catch(function(err) {
+					console.error("ZIM Hardware: error during disconnect:", err);
+					that._handleDisconnect();
 				});
 		}
-	}
-	zim.extend(zim.Hardware, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
+		return that;
+	};
+
+	// DISCONNECT CLEANUP HELPER
+	that._handleDisconnect = function() {
+		that.isListening = false;
+		that.connected = false;
+
+		if (that.reader) {
+			try { that.reader.releaseLock(); } catch (e) {}
+			that.reader = null;
+		}
+		if (that.writer) {
+			try { that.writer.releaseLock(); } catch (e) {}
+			that.writer = null;
+		}
+		that.port = null;
+		that.bleDevice = null;
+		that.bleServer = null;
+		that.bleRxCharacteristic = null;
+		that.bleTxCharacteristic = null;
+		that._buffer = "";
+
+		that.dispatchEvent("disconnected");
+	};
+
+	// SERIAL RECURSIVE STREAM READER
+	that._readLoop = function() {
+		if (!that.isListening || !that.reader) return;
+
+		that.reader.read()
+			.then(function(result) {
+				if (result.done) {
+					that.isListening = false;
+					return;
+				}
+				that._processChunk(result.value);
+				that._readLoop();
+			})
+			.catch(function(error) {
+				that.isListening = false;
+			});
+	};
+
+	// PARSING & DISPATCH PIPELINE
+	that._processChunk = function(chunk) {
+		that._buffer += chunk;
+		var delimiterPattern = that.delimiter === "\n" ? /\r?\n/ : (that.delimiter instanceof RegExp ? that.delimiter : new RegExp(that.delimiter));
+		var lines = that._buffer.split(delimiterPattern);
+		that._buffer = lines.pop(); // Retain incomplete tail segment
+
+		for (var i = 0; i < lines.length; i++) {
+			var cleanLine = lines[i].trim();
+			if (cleanLine.length === 0) continue;
+
+			that.raw = cleanLine;
+			var parsed = cleanLine;
+			var key = null;
+			var val = null;
+
+			if (that.autoParse) {
+				// 1. JSON Payload Parsing
+				if ((cleanLine.charAt(0) === "{" && cleanLine.charAt(cleanLine.length - 1) === "}") ||
+				    (cleanLine.charAt(0) === "[" && cleanLine.charAt(cleanLine.length - 1) === "]")) {
+					try {
+						parsed = JSON.parse(cleanLine);
+						if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+							for (var k in parsed) {
+								that.data[k] = parsed[k];
+							}
+						}
+					} catch (e) {
+						parsed = cleanLine;
+					}
+				}
+				// 2. Pure Numeric String Parsing
+				else if (!isNaN(cleanLine)) {
+					parsed = Number(cleanLine);
+				}
+				// 3. Key-Value Formatting (e.g. "pot:512", "x=10", "btn: 1")
+				else {
+					var match = cleanLine.match(/^([a-zA-Z0-9_.-]+)\s*[:=]\s*(.*)$/);
+					if (match) {
+						key = match[1];
+						var rawVal = match[2].trim();
+						val = (!isNaN(rawVal) && rawVal !== "") ? Number(rawVal) : rawVal;
+						that.data[key] = val;
+						parsed = val;
+					}
+				}
+			}
+
+			that.value = parsed;
+
+			var eventObj = {
+				type: "data",
+				data: parsed,
+				value: parsed,
+				raw: cleanLine,
+				key: key,
+				val: val,
+				target: that
+			};
+
+			that.dispatchEvent(eventObj);
+			if (typeof that.callback === "function") (that.callback)(parsed, cleanLine, eventObj);
+		}
+	};
+
+	// VALUE QUERY HELPER (e.g. hardware.get("pot"))
+	that.get = function(name) {
+		return that.data[name];
+	};
+};
+
+zim.extend(zim.Hardware, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
 //-83.097
 
 
@@ -97287,11 +98079,15 @@ DESCRIPTION
 The Frame has a "deviceorientation" event to capture tilt or device rotation (like a compass)
 and a "devicemotion" event to capture shaking the device with the accelerometer.
 
+SEE: the tilt() method (just after gesture()) for a one line version
+
 SEE: Shake - for the "devicemotion" event for accelerometer motion
 
 SEE: the PermissionAsk() class which will handle asking for permissions on devices.
 
 EXAMPLE
+// SEE ALSO THE TILT METHOD FOR A ONE LINE VERSION
+
 // TILT OR COMPASS - https://zimjs.com/zapp/Z_Q5UYS
 // for capturing tilt on device (rotation about an axis)
 // be on a mobile device or a device with sensors
@@ -99493,6 +100289,19 @@ function zimify(obj, a, b, c, d, list) {
 		gestureRect:function(boundary, update) {
 			return zim.gestureBoundary(this, boundary, update);
 		},
+
+		tilt:function(boundary, damp, factor, mode, type, call) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.tilt(arguments[0]);}
+			else {return zim.tilt(this, boundary, damp, factor, mode, type, call);}
+		},
+		noTilt:function() {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noTilt(arguments[0]);}
+			else {return zim.noTilt(this);}
+		},
+		tiltBoundary:function(boundary, update) {
+			return zim.tiltBoundary(this, boundary, update);
+		},
+
 		addPhysics:function(dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.addPhysics(arguments[0]);}
 			else {return zim.addPhysics(this, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics);}
@@ -106252,7 +107061,7 @@ for (z_i = 0; z_i < globalFunctions.length; z_i++) {
 		["FILL", zim.FILL],
 		["FULL", zim.FULL],
 		["LEFT", zim.LEFT],
-		["RIGHT", zim.RIGHT],s
+		["RIGHT", zim.RIGHT],
 		["CENTER", zim.CENTER],
 		["MIDDLE", zim.MIDDLE],
 		["JUSTIFY", zim.JUSTIFY],
@@ -106527,6 +107336,9 @@ export let transform = zim.transform;
 export let gesture = zim.gesture;
 export let noGesture = zim.noGesture;
 export let gestureBoundary = zim.gestureBoundary;
+export let tilt = zim.tilt;
+export let noTilt = zim.noTilt;
+export let tiltBoundary = zim.tiltBoundary;
 export let effect = zim.effect;
 export let updateEffects = zim.updateEffects;
 export let noEffect = zim.noEffect;
