@@ -57837,7 +57837,7 @@ EXAMPLE
 // Basic rolling ball constrained to stage bounds
 const ball = new Circle(30, red)
 	.center()
-	.tilt(true);
+	.tilt(S);
 END EXAMPLE
 
 EXAMPLE
@@ -58052,11 +58052,42 @@ RETURNS obj for chaining
 		z_d("34.77");
 		if (zot(obj) || !obj.on) return;
 		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var s = obj.stage || (f ? f.stage : null);
+
+		// Helper to calculate bounded limits keeping obj inside container bounds
+		function getContainedBoundary(bx, by, bw, bh) {
+			var b = obj.getBounds ? obj.getBounds() : null;
+			if (b) {
+				return new zim.Boundary(
+					bx - b.x * obj.scaleX, 
+					by - b.y * obj.scaleY, 
+					Math.max(0, bw - b.width * obj.scaleX), 
+					Math.max(0, bh - b.height * obj.scaleY)
+				);
+			}
+			return new zim.Boundary(bx, by, bw, bh);
+		}
 
 		if (zot(boundary) || boundary === false || boundary === null) {
 			obj._tiltBoundary = null;
-		} else if (boundary === true && f) {
-			obj._tiltBoundary = new zim.Boundary(0, 0, f.width, f.height);
+		} else if (boundary === true) {
+			// True -> Stage dimensions
+			var sw = f ? f.width : (s ? s.width : 0);
+			var sh = f ? f.height : (s ? s.height : 0);
+			obj._tiltBoundary = getContainedBoundary(0, 0, sw, sh);
+		} else if (boundary && (boundary.type == "Stage" || boundary == s || (s && boundary == s.canvas))) {
+			// Stage passed as boundary
+			var sw = boundary.width || (f ? f.width : 0);
+			var sh = boundary.height || (f ? f.height : 0);
+			obj._tiltBoundary = getContainedBoundary(0, 0, sw, sh);
+		} else if (boundary && boundary.type != "Boundary" && !Array.isArray(boundary) && (boundary.getBounds || boundary.width != null)) {
+			// DisplayObject (Container, Rectangle, etc.) passed as boundary
+			var b = boundary.getBounds ? boundary.getBounds() : null;
+			var bw = boundary.width != null ? boundary.width : (b ? b.width : 0);
+			var bh = boundary.height != null ? boundary.height : (b ? b.height : 0);
+			var bx = boundary.x || 0;
+			var by = boundary.y || 0;
+			obj._tiltBoundary = getContainedBoundary(bx, by, bw, bh);
 		} else if (Array.isArray(boundary)) {
 			obj._tiltBoundary = new zim.Boundary(boundary[0], boundary[1], boundary[2], boundary[3]);
 		} else if (typeof boundary === "number" && !zot(y)) {
