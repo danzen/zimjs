@@ -200,11 +200,17 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -795,12 +801,18 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
-		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
+        addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
 		impulse(x?: number, y?: number, targetX?: number, targetY?: number): this
@@ -970,11 +982,17 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1153,11 +1171,17 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1352,11 +1376,17 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1583,11 +1613,17 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this
@@ -1754,11 +1790,17 @@ declare namespace zim {
 		noGesture(config_or_move?: boolean, scale?: boolean, rotate?: boolean): this
 		noGesture(config: { move?: boolean, scale?: boolean, rotate?: boolean }): this
 		gestureBoundary(boundary: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number }, update?: boolean): this
-        tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function): this
-		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, call?: Function }): this
-		noTilt(): this
-		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this
-		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this
+		tilt(config_or_boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function): this;
+		tilt(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], damp?: number | boolean, factor?: number | { x?: number, y?: number }, mode?: string, type?: string, ready?: Function }): this;
+		noTilt(): this;
+		tiltBoundary(boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number): this;
+		tiltBoundary(config: { boundary?: Boundary | createjs.Rectangle | { x: number, y: number, width: number, height: number } | boolean | number[], y?: number, width?: number, height?: number }): this;
+		turn(config_or_damp?: number | boolean | { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function): this;
+		turn(config: { damp?: number | boolean, factor?: number, mode?: string, min?: number, max?: number, type?: string, ready?: Function }): this;
+		noTurn(): this;
+		shake(config_or_call?: Function | { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function): this;
+		shake(config: { call?: Function, stopCall?: Function, threshold?: number, wait?: number, factor?: number, type?: string, ready?: Function }): this;
+		noShake(): this;
 		addPhysics(config_or_dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean): this
 		addPhysics(config: { dynamic?: boolean, contract?: number, shape?: string, friction?: number, linear?: number, angular?: number, density?: number, bounciness?: number, maskBits?: number, categoryBits?: number, physics?: Physics, restitution?: number, sensor?: boolean }): this
 		removePhysics(): this

@@ -57818,290 +57818,6 @@ RETURNS obj for chaining
 	
 
 /*--
-obj.tilt = function(boundary, damp, factor, mode, type, call)
-
-tilt
-zim DisplayObject method
-
-DESCRIPTION
-Moves or positions an object based on device sensors (deviceorientation or devicemotion).
-Automatically manages user sensor permission via ZIM PermissionAsk if permission has not yet been requested.
-
-NOTE
-If permission has already been granted, tilt activates immediately.
-If multiple objects call tilt() before permission is granted, they are queued and activated together once the user accepts.
-ALSO see noTilt() to remove tilt behaviors.
-ALSO see tiltBoundary() to dynamically change or clear the boundary rectangle.
-
-EXAMPLE
-// Basic rolling ball constrained to stage bounds
-const ball = new Circle(30, red)
-	.center()
-	.tilt(S);
-END EXAMPLE
-
-EXAMPLE
-// Custom damping, sensitivity factor, and boundary
-new Rectangle(80, 80, blue)
-	.center()
-	.tilt({
-			boundary: new Boundary(50, 50, W - 100, H - 100),
-			damp: 0.08,
-			factor: 0.75,
-			call: (success, obj) => {
-			if (!success) new Pane("Device orientation not available", yellow).show();
-		}
-	});
-END EXAMPLE
-
-PARAMETERS
-** supports DUO - parameters or single object with properties below
-boundary - (default null) a ZIM Boundary object, an Array of [x, y, width, height], or true for the Stage dimensions
-damp - (default 0.05) smoothing factor via ZIM Damp, or null / false for immediate direct tracking
-factor - (default 0.5) sensitivity factor multiplier, or an Object with {x, y} for independent axis sensitivity
-mode - (default "move") "move" for continuous velocity / rolling behavior, or "position" for tilt offset relative to starting coordinates
-type - (default "deviceorientation") the sensor event type ("deviceorientation" or "devicemotion")
-call - (default null) callback function called when permission resolves, receiving (success:Boolean, obj:DisplayObject)
-
-RETURNS obj for chaining
---*///+34.75
-zim.tilt = function(obj, boundary, damp, factor, mode, type, call) {
-	var sig = "obj, boundary, damp, factor, mode, type, call";
-	var duo; if (duo = zob(zim.tilt, arguments, sig)) return duo;
-	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("tilt", arguments); return obj;}
-	z_d("34.75");
-
-	// MONITOR
-	var mID = "z~tilt";
-	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
-
-	if (zot(obj)) return;
-
-	// Clean up any existing tilt on this object first
-	if (obj._tiltTicker) zim.noTilt(obj);
-
-	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
-	var s = obj.stage || (f ? f.stage : null);
-
-	// Set initial boundary
-	zim.tiltBoundary(obj, boundary);
-
-	if (zot(damp)) damp = 0.05;
-	if (zot(factor)) factor = 0.5;
-	var factorX = typeof factor === "object" ? factor.x : factor;
-	var factorY = typeof factor === "object" ? factor.y : factor;
-	if (zot(mode)) mode = "move"; // "move" | "position" | "rotation"
-	if (zot(type)) type = "deviceorientation";
-
-	// Damp angles for "move" mode (starts at 0) or positions for "position" mode
-	var dampX = damp ? new zim.Damp(mode == "position" ? obj.x : 0, damp) : null;
-	var dampY = damp ? new zim.Damp(mode == "position" ? obj.y : 0, damp) : null;
-	var currentRot = {x: 0, y: 0, z: 0};
-
-	function updateTilt() {
-		if (mode == "move") {
-			// Damping the rotation angle gives smooth acceleration & deceleration
-			var rotY = dampX ? dampX.convert(currentRot.y) : currentRot.y;
-			var rotX = dampY ? dampY.convert(currentRot.x) : currentRot.x;
-			obj.x += rotY * factorX;
-			obj.y += rotX * factorY;
-		} else if (mode == "position") {
-			var targetX = (obj._tiltStartX != null ? obj._tiltStartX : obj.x) + currentRot.y * factorX * 10;
-			var targetY = (obj._tiltStartY != null ? obj._tiltStartY : obj.y) + currentRot.x * factorY * 10;
-			obj.x = dampX ? dampX.convert(targetX) : targetX;
-			obj.y = dampY ? dampY.convert(targetY) : targetY;
-		}
-
-		// Dynamically applies boundary constraint
-		if (obj._tiltBoundary) {
-			obj.x = zim.constrain(obj.x, obj._tiltBoundary.x, obj._tiltBoundary.x + obj._tiltBoundary.width);
-			obj.y = zim.constrain(obj.y, obj._tiltBoundary.y, obj._tiltBoundary.y + obj._tiltBoundary.height);
-		}
-
-		if (s) s.update();
-	}
-
-	function activate() {
-		obj._tiltStartX = obj.x;
-		obj._tiltStartY = obj.y;
-		if (mode == "position" && dampX && dampY) {
-			dampX.immediate(obj.x);
-			dampY.immediate(obj.y);
-		}
-
-		obj._tiltType = type;
-		obj._tiltListener = function(e) {
-			if (e.rotation) {
-				currentRot.x = e.rotation.x || 0;
-				currentRot.y = e.rotation.y || 0;
-				currentRot.z = e.rotation.z || 0;
-			} else {
-				currentRot.x = e.beta || 0;
-				currentRot.y = e.gamma || 0;
-				currentRot.z = e.alpha || 0;
-			}
-		};
-		f.on(type, obj._tiltListener);
-
-		obj._tiltTicker = zim.Ticker.add(updateTilt);
-		if (call) call(true, obj);
-	}
-
-	// Permission check & queueing
-	if (f._permissionGranted) {
-		activate();
-	} else if (f._permissionPending) {
-		f._permissionQueue.push(activate);
-	} else {
-		f._permissionPending = true;
-		f._permissionQueue = [activate];
-
-		new zim.PermissionAsk(function(yes) {
-			f._permissionPending = false;
-			if (yes) {
-				f._permissionGranted = true;
-				zim.loop(f._permissionQueue, function(fn) { fn(); });
-				f._permissionQueue = [];
-			} else {
-				if (call) call(false, obj);
-			}
-		}, type);
-	}
-
-	return obj;
-};//-34.75
-
-
-/*--
-obj.noTilt = function()
-
-noTilt
-zim DisplayObject method
-
-DESCRIPTION
-Removes tilt listeners, removes internal ticker updates, and clears tilt boundary properties from the object.
-
-EXAMPLE
-const player = new Circle(25, green).center().tilt(true);
-
-// Stop tilt control when game ends or is paused
-player.noTilt();
-END EXAMPLE
-
-RETURNS obj for chaining
---*///+34.76
-zim.noTilt = function(obj) {
-	var sig = "obj";
-	var duo; if (duo = zob(zim.noTilt, arguments, sig)) return duo;
-	z_d("34.76");
-
-	if (zot(obj) || !obj.on || !obj.zimTouch) return;
-
-	// MONITOR
-	var mID = "z~noTilt";
-	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
-	
-	if (zot(obj)) return;
-	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
-
-	if (obj._tiltListener && f) {
-		f.off(obj._tiltType || "deviceorientation", obj._tiltListener);
-		obj._tiltListener = null;
-	}
-	if (obj._tiltTicker) {
-		zim.Ticker.remove(obj._tiltTicker);
-		obj._tiltTicker = null;
-	}
-	obj._tiltBoundary = null;
-
-	return obj;
-
-};//-34.76
-
-/*--
-obj.tiltBoundary = function(boundary, y, width, height)
-
-tiltBoundary
-zim DisplayObject method
-
-DESCRIPTION
-Dynamically sets, updates, or removes the boundary rectangle for an object with tilt().
-
-EXAMPLE
-const marble = new Circle(20, purple).center().tilt(true);
-
-// Update boundary dynamically later (e.g., on resize or game level change)
-marble.tiltBoundary(new Boundary(50, 50, W - 100, H - 100));
-
-// Or clear the boundary
-// marble.tiltBoundary(null);
-END EXAMPLE
-
-PARAMETERS
-** supports DUO - parameters or single object with properties below
-boundary - (default null) a ZIM Boundary object, an Array of [x, y, width, height], true for Frame bounds, null / false to remove boundary, or the x position if passing (x, y, width, height) positionally
-y - (default null) y coordinate if boundary parameter is used as x
-width - (default null) width if boundary parameter is used as x
-height - (default null) height if boundary parameter is used as x
-
-RETURNS obj for chaining
---*///+34.77
-	zim.tiltBoundary = function(obj, boundary, y, width, height) {		
-		var sig = "obj, boundary, y, width, height";
-		var duo; if (duo = zob(zim.tiltBoundary, arguments, sig)) return duo;
-		z_d("34.77");
-		if (zot(obj) || !obj.on) return;
-		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
-		var s = obj.stage || (f ? f.stage : null);
-
-		// Helper to calculate bounded limits keeping obj inside container bounds
-		function getContainedBoundary(bx, by, bw, bh) {
-			var b = obj.getBounds ? obj.getBounds() : null;
-			if (b) {
-				return new zim.Boundary(
-					bx - b.x * obj.scaleX, 
-					by - b.y * obj.scaleY, 
-					Math.max(0, bw - b.width * obj.scaleX), 
-					Math.max(0, bh - b.height * obj.scaleY)
-				);
-			}
-			return new zim.Boundary(bx, by, bw, bh);
-		}
-
-		if (zot(boundary) || boundary === false || boundary === null) {
-			obj._tiltBoundary = null;
-		} else if (boundary === true) {
-			// True -> Stage dimensions
-			var sw = f ? f.width : (s ? s.width : 0);
-			var sh = f ? f.height : (s ? s.height : 0);
-			obj._tiltBoundary = getContainedBoundary(0, 0, sw, sh);
-		} else if (boundary && (boundary.type == "Stage" || boundary == s || (s && boundary == s.canvas))) {
-			// Stage passed as boundary
-			var sw = boundary.width || (f ? f.width : 0);
-			var sh = boundary.height || (f ? f.height : 0);
-			obj._tiltBoundary = getContainedBoundary(0, 0, sw, sh);
-		} else if (boundary && boundary.type != "Boundary" && !Array.isArray(boundary) && (boundary.getBounds || boundary.width != null)) {
-			// DisplayObject (Container, Rectangle, etc.) passed as boundary
-			var b = boundary.getBounds ? boundary.getBounds() : null;
-			var bw = boundary.width != null ? boundary.width : (b ? b.width : 0);
-			var bh = boundary.height != null ? boundary.height : (b ? b.height : 0);
-			var bx = boundary.x || 0;
-			var by = boundary.y || 0;
-			obj._tiltBoundary = getContainedBoundary(bx, by, bw, bh);
-		} else if (Array.isArray(boundary)) {
-			obj._tiltBoundary = new zim.Boundary(boundary[0], boundary[1], boundary[2], boundary[3]);
-		} else if (typeof boundary === "number" && !zot(y)) {
-			obj._tiltBoundary = new zim.Boundary(boundary, y, width, height);
-		} else if (boundary && boundary.type == "Boundary") {
-			obj._tiltBoundary = boundary;
-		} else {
-			obj._tiltBoundary = null;
-		}
-
-		return obj;
-	};//-34.77
-
-/*--
 obj.effect = function(effect, x, y, width, height)
 
 effect
@@ -58554,6 +58270,808 @@ RETURNS obj for chaining
 		obj.physics = null;
 		return obj;
 	};//-34.85
+
+
+// SUBSECTION SENSORS
+
+/*--
+obj.tilt = function(boundary, damp, factor, mode, type, ready)
+
+tilt
+zim DisplayObject method
+
+DESCRIPTION
+Moves or positions an object based on device sensors (deviceorientation or devicemotion).
+Automatically manages user sensor permission via ZIM PermissionAsk if permission has not yet been requested.
+
+NOTE: If permission has already been granted, tilt activates immediately.
+If multiple objects call tilt(), turn(), or shake() before permission is granted, they are queued and activated together once the user accepts.
+
+ALSO: see noTilt() to remove tilt behaviors.
+
+ALSO: see tiltBoundary() to dynamically change or clear the boundary rectangle.
+
+EXAMPLE
+// Basic rolling ball constrained to stage bounds
+const ball = new Circle(30, red)
+	.center()
+	.tilt(S);
+END EXAMPLE
+
+EXAMPLE
+// Custom damping, sensitivity factor, and boundary with ready callback
+new Rectangle(80, 80, blue)
+	.center()
+	.tilt({
+		boundary: new Boundary(50, 50, W - 100, H - 100),
+		damp: 0.08,
+		factor: 0.75,
+		ready: (success, obj) => {
+			if (!success) new Pane("Device orientation not available", yellow).show();
+		}
+	});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+boundary - (default null) a ZIM Boundary object, an Array of [x, y, width, height], or true for the Stage dimensions
+damp - (default 0.05) smoothing factor via ZIM Damp, or null / false for immediate direct tracking
+factor - (default 0.5) sensitivity factor multiplier, or an Object with {x, y} for independent axis sensitivity
+mode - (default "move") "move" for continuous velocity / rolling behavior, or "position" for tilt offset relative to starting coordinates
+type - (default "deviceorientation") the sensor event type ("deviceorientation" or "devicemotion")
+ready - (default null) callback function called when permission resolves, receiving (success:Boolean, obj:DisplayObject)
+
+RETURNS obj for chaining
+--*///+34.9
+zim.tilt = function(obj, boundary, damp, factor, mode, type, ready) {
+	var sig = "obj, boundary, damp, factor, mode, type, ready";
+	var duo; if (duo = zob(zim.tilt, arguments, sig)) return duo;
+	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("tilt", arguments); return obj;}
+	z_d("34.9");
+
+	// MONITOR
+	var mID = "z~tilt";
+	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+
+	if (zot(obj)) return;
+
+	// Clean up any existing tilt on this object first
+	if (obj._tiltTicker) zim.noTilt(obj);
+
+	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+	var s = obj.stage || (f ? f.stage : null);
+
+	// Set initial boundary
+	zim.tiltBoundary(obj, boundary);
+
+	if (zot(damp)) damp = 0.05;
+	if (zot(factor)) factor = 0.5;
+	var factorX = typeof factor === "object" ? factor.x : factor;
+	var factorY = typeof factor === "object" ? factor.y : factor;
+	if (zot(mode)) mode = "move";
+	if (zot(type)) type = "deviceorientation";
+
+	var dampX = damp ? new zim.Damp(mode == "position" ? obj.x : 0, damp) : null;
+	var dampY = damp ? new zim.Damp(mode == "position" ? obj.y : 0, damp) : null;
+	var currentRot = {x: 0, y: 0, z: 0};
+
+	function updateTilt() {
+		var orient = 0;
+		if (typeof WW != "undefined") {
+			if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+				orient = WW.screen.orientation.angle;
+			} else if (typeof WW.orientation != "undefined") {
+				orient = WW.orientation;
+			}
+		}
+
+		var beta = currentRot.x;
+		var gamma = currentRot.y;
+		var tiltX, tiltY;
+
+		if (orient == 90) {
+			tiltX = beta;
+			tiltY = -gamma;
+		} else if (orient == -90 || orient == 270) {
+			tiltX = -beta;
+			tiltY = gamma;
+		} else if (orient == 180) {
+			tiltX = -gamma;
+			tiltY = -beta;
+		} else {
+			tiltX = gamma;
+			tiltY = beta;
+		}
+
+		if (mode == "move") {
+			var rotX = dampX ? dampX.convert(tiltX) : tiltX;
+			var rotY = dampY ? dampY.convert(tiltY) : tiltY;
+			obj.x += rotX * factorX;
+			obj.y += rotY * factorY;
+		} else if (mode == "position") {
+			var targetX = (obj._tiltStartX != null ? obj._tiltStartX : obj.x) + tiltX * factorX * 10;
+			var targetY = (obj._tiltStartY != null ? obj._tiltStartY : obj.y) + tiltY * factorY * 10;
+			obj.x = dampX ? dampX.convert(targetX) : targetX;
+			obj.y = dampY ? dampY.convert(targetY) : targetY;
+		}
+
+		if (obj._tiltBoundary) {
+			obj.x = zim.constrain(obj.x, obj._tiltBoundary.x, obj._tiltBoundary.x + obj._tiltBoundary.width);
+			obj.y = zim.constrain(obj.y, obj._tiltBoundary.y, obj._tiltBoundary.y + obj._tiltBoundary.height);
+		}
+
+		if (s) s.update();
+	}
+
+	function activate() {
+		obj._tiltStartX = obj.x;
+		obj._tiltStartY = obj.y;
+		if (mode == "position" && dampX && dampY) {
+			dampX.immediate(obj.x);
+			dampY.immediate(obj.y);
+		}
+
+		obj._tiltType = type;
+		obj._tiltListener = function(e) {
+			if (e.rotation) {
+				currentRot.x = e.rotation.x || 0;
+				currentRot.y = e.rotation.y || 0;
+				currentRot.z = e.rotation.z || 0;
+			} else {
+				currentRot.x = e.beta || 0;
+				currentRot.y = e.gamma || 0;
+				currentRot.z = e.alpha || 0;
+			}
+		};
+		f.on(type, obj._tiltListener);
+
+		obj._tiltTicker = zim.Ticker.add(updateTilt);
+		if (ready) ready(true, obj);
+	}
+
+	// Simple function queue
+	if (f._permissionGranted) {
+		activate();
+	} else if (f._permissionPending) {
+		f._permissionQueue.push(activate);
+	} else {
+		f._permissionPending = true;
+		f._permissionQueue = [activate];
+
+		new zim.PermissionAsk(function(yes) {
+			f._permissionPending = false;
+			if (yes) {
+				f._permissionGranted = true;
+				zim.loop(f._permissionQueue, function(fn) { fn(); });
+				f._permissionQueue = [];
+			} else {
+				if (ready) ready(false, obj);
+			}
+		}, type);
+	}
+
+	return obj;
+};//-34.9
+
+
+/*--
+obj.noTilt = function()
+
+noTilt
+zim DisplayObject method
+
+DESCRIPTION
+Removes tilt listeners, ticker updates, and clears tilt boundary properties from the object.
+
+EXAMPLE
+const player = new Circle(25, green).center().tilt(true);
+
+// Stop tilt control when game ends or is paused
+player.noTilt();
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+34.91
+zim.noTilt = function(obj) {
+	var sig = "obj";
+	var duo; if (duo = zob(zim.noTilt, arguments, sig)) return duo;
+	z_d("34.91");
+
+	if (zot(obj) || !obj.on || !obj.zimTouch) return;
+
+	// MONITOR
+	var mID = "z~noTilt";
+	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+	
+	if (zot(obj)) return;
+	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+
+	if (obj._tiltListener && f) {
+		f.off(obj._tiltType || "deviceorientation", obj._tiltListener);
+		obj._tiltListener = null;
+	}
+	if (obj._tiltTicker) {
+		zim.Ticker.remove(obj._tiltTicker);
+		obj._tiltTicker = null;
+	}
+	obj._tiltBoundary = null;
+
+	return obj;
+
+};//-34.91
+
+
+/*--
+obj.tiltBoundary = function(boundary, y, width, height)
+
+tiltBoundary
+zim DisplayObject method
+
+DESCRIPTION
+Dynamically sets, updates, or removes the boundary rectangle for an object with tilt().
+Accurately accounts for registration points (like centerReg), scaling, and rotation using zim.boundsToGlobal().
+
+EXAMPLE
+const rect = new Rectangle(120, 80, purple).centerReg().tilt(S);
+
+// Update boundary dynamically later
+rect.tiltBoundary(new Boundary(50, 50, W - 100, H - 100));
+
+// Or clear the boundary
+// rect.tiltBoundary(null);
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+boundary - (default null) a ZIM Boundary object, an Array of [x, y, width, height], true for Frame bounds, null / false to remove boundary, or the x position if passing (x, y, width, height) positionally
+y - (default null) y coordinate if boundary parameter is used as x
+width - (default null) width if boundary parameter is used as x
+height - (default null) height if boundary parameter is used as x
+
+RETURNS obj for chaining
+--*///+34.92
+	zim.tiltBoundary = function(obj, boundary, y, width, height) {		
+		var sig = "obj, boundary, y, width, height";
+		var duo; if (duo = zob(zim.tiltBoundary, arguments, sig)) return duo;
+		z_d("34.92");
+		if (zot(obj) || !obj.on) return;
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var s = obj.stage || (f ? f.stage : null);
+
+		function getContainedBoundary(bx, by, bw, bh) {
+			var gb = zim.boundsToGlobal ? zim.boundsToGlobal(obj) : (obj.getTransformedBounds ? obj.getTransformedBounds() : null);
+			if (!gb) return new zim.Boundary(bx, by, bw, bh);
+
+			var leftOffset = gb.x - obj.x;
+			var rightOffset = (gb.x + gb.width) - obj.x;
+			var topOffset = gb.y - obj.y;
+			var bottomOffset = (gb.y + gb.height) - obj.y;
+
+			var minXAllowed = bx - leftOffset;
+			var maxXAllowed = bx + bw - rightOffset;
+			var minYAllowed = by - topOffset;
+			var maxYAllowed = by + bh - bottomOffset;
+
+			if (maxXAllowed < minXAllowed) maxXAllowed = minXAllowed;
+			if (maxYAllowed < minYAllowed) maxYAllowed = minYAllowed;
+
+			return new zim.Boundary(
+				minXAllowed,
+				minYAllowed,
+				maxXAllowed - minXAllowed,
+				maxYAllowed - minYAllowed
+			);
+		}
+
+		if (zot(boundary) || boundary === false || boundary === null) {
+			obj._tiltBoundary = null;
+		} else if (boundary === true) {
+			var sw = f ? f.width : (s ? s.width : 0);
+			var sh = f ? f.height : (s ? s.height : 0);
+			obj._tiltBoundary = getContainedBoundary(0, 0, sw, sh);
+		} else if (boundary && (boundary.type == "Stage" || boundary == s || (s && boundary == s.canvas))) {
+			var sw = boundary.width || (f ? f.width : 0);
+			var sh = boundary.height || (f ? f.height : 0);
+			obj._tiltBoundary = getContainedBoundary(0, 0, sw, sh);
+		} else if (boundary && boundary.type != "Boundary" && !Array.isArray(boundary) && (boundary.getBounds || boundary.width != null)) {
+			var b = boundary.getBounds ? boundary.getBounds() : null;
+			var bw = boundary.width != null ? boundary.width : (b ? b.width : 0);
+			var bh = boundary.height != null ? boundary.height : (b ? b.height : 0);
+			var bx = boundary.x || 0;
+			var by = boundary.y || 0;
+			obj._tiltBoundary = getContainedBoundary(bx, by, bw, bh);
+		} else if (Array.isArray(boundary)) {
+			obj._tiltBoundary = getContainedBoundary(boundary[0], boundary[1], boundary[2], boundary[3]);
+		} else if (typeof boundary === "number" && !zot(y)) {
+			obj._tiltBoundary = getContainedBoundary(boundary, y, width, height);
+		} else if (boundary && boundary.type == "Boundary") {
+			obj._tiltBoundary = getContainedBoundary(boundary.x, boundary.y, boundary.width, boundary.height);
+		} else {
+			obj._tiltBoundary = null;
+		}
+
+		return obj;
+	};//-34.92
+
+
+/*--
+obj.turn = function(damp, factor, mode, min, max, type, ready)
+
+turn
+zim DisplayObject method
+
+DESCRIPTION
+Rotates an object based on device yaw / roll orientation (turning the device like a steering wheel, dial, or compass).
+Automatically detects whether the device is held upright (full 360-degree steering wheel) or flat (compass) with seamless transitions between both.
+By default, inverts rotation so the object stays oriented relative to the world as the device turns.
+Automatically manages user sensor permission via ZIM PermissionAsk if permission has not yet been requested.
+
+NOTE: If permission has already been granted, turn activates immediately.
+If multiple objects call tilt(), turn(), or shake() before permission is granted, they are queued and activated together once the user accepts.
+Rotation is applied relative to the object's initial rotation when turn() is called (for example, an arrow rotated -90 to point up will maintain that -90 offset).
+
+ALSO: see noTurn() to remove turning behaviors.
+
+EXAMPLE
+// Point an arrow with device heading (stays pointing up in world space)
+const arrow = new Arrow({type:"thick"}).sca(4).rot(-90).centerReg().turn();
+END EXAMPLE
+
+EXAMPLE
+// Continuous steering wheel mode with damping and rotation limits
+const wheel = new Circle(80, red).center().turn({
+	damp: 0.1,
+	factor: 1.5,
+	mode: "relative",
+	min: -90,
+	max: 90,
+	ready: (success, obj) => {
+		if (!success) zog("Sensors denied");
+	}
+});
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+damp - (default 0.05) smoothing factor via ZIM Damp, or null / false for direct tracking
+factor - (default 1) sensitivity factor multiplier (use negative to invert rotation direction)
+mode - (default "relative") "relative" (offset from starting device orientation), "absolute" (compass heading), or "continuous" (continuous spin based on turn angle)
+min - (default null) minimum rotation angle limit in degrees, or null for unrestricted
+max - (default null) maximum rotation angle limit in degrees, or null for unrestricted
+type - (default "deviceorientation") the sensor event type ("deviceorientation")
+ready - (default null) callback function called when permission resolves, receiving (success:Boolean, obj:DisplayObject)
+
+RETURNS obj for chaining
+--*///+34.93
+	zim.turn = function(obj, damp, factor, mode, min, max, type, ready) {
+		var sig = "obj, damp, factor, mode, min, max, type, ready";
+		var duo; if (duo = zob(zim.turn, arguments, sig)) return duo;
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("turn", arguments); return obj;}
+		z_d("34.93");
+
+		// MONITOR
+		var mID = "z~turn";
+		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+
+		if (zot(obj)) return;
+
+		// Clean up any existing turn on this object first
+		if (obj._turnTicker) zim.noTurn(obj);
+
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var s = obj.stage || (f ? f.stage : null);
+
+		if (zot(damp)) damp = 0.05;
+		if (zot(factor)) factor = 1;
+		if (zot(mode)) mode = "relative";
+		if (zot(type)) type = "deviceorientation";
+
+		var dampRot = damp ? new zim.Damp(obj.rotation, damp) : null;
+		var startDeviceAngle = null;
+		var currentDeviceAngle = null;
+		var lastMode = null;
+
+		function angleDiff(a, b) {
+			var diff = (a - b) % 360;
+			if (diff < -180) diff += 360;
+			if (diff > 180) diff -= 360;
+			return diff;
+		}
+
+		function unwrap(target, current) {
+			var diff = (target - current) % 360;
+			if (diff < -180) diff += 360;
+			if (diff > 180) diff -= 360;
+			return current + diff;
+		}
+
+		function updateTurn() {
+			if (startDeviceAngle === null || currentDeviceAngle === null) return;
+
+			var orient = 0;
+			if (typeof WW != "undefined") {
+				if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+					orient = WW.screen.orientation.angle;
+				} else if (typeof WW.orientation != "undefined") {
+					orient = WW.orientation;
+				}
+			}
+
+			var startRot = obj._turnStartRot != null ? obj._turnStartRot : 0;
+			var targetRot = obj.rotation;
+
+			if (mode == "relative") {
+				var diff = angleDiff(currentDeviceAngle, startDeviceAngle);
+				targetRot = startRot - diff * factor;
+			} else if (mode == "absolute") {
+				var absHeading = (currentDeviceAngle - orient + 360) % 360;
+				targetRot = startRot - absHeading * factor;
+			} else if (mode == "continuous") {
+				var cDiff = angleDiff(currentDeviceAngle, startDeviceAngle);
+				targetRot = obj.rotation - (cDiff * factor * 0.05);
+			}
+
+			if (min != null || max != null) {
+				targetRot = zim.constrain(targetRot, min != null ? min : -Infinity, max != null ? max : Infinity);
+			}
+
+			if (dampRot) {
+				var unwrapped = unwrap(targetRot, obj.rotation);
+				obj.rotation = dampRot.convert(unwrapped);
+			} else {
+				obj.rotation = targetRot;
+			}
+
+			if (s) s.update();
+		}
+
+		function activate() {
+			obj._turnStartRot = obj.rotation;
+			startDeviceAngle = null;
+			currentDeviceAngle = null;
+			lastMode = null;
+			if (dampRot) dampRot.immediate(obj.rotation);
+
+			obj._turnType = type;
+			obj._turnListener = function(e) {
+				var beta = e.rotation ? e.rotation.x : (e.beta || 0);
+				var gamma = e.rotation ? e.rotation.y : (e.gamma || 0);
+				var alpha = e.rotation && e.rotation.z != null ? e.rotation.z : (e.alpha != null ? (360 - e.alpha) : 0);
+
+				var isUpright = Math.abs(beta) > 20 || Math.abs(gamma) > 20;
+				var curMode = isUpright ? "upright" : "flat";
+				var ang;
+
+				if (isUpright) {
+					var radB = beta * (Math.PI / 180);
+					var radG = gamma * (Math.PI / 180);
+					ang = Math.atan2(Math.sin(radG), Math.cos(radG) * Math.sin(radB)) * (180 / Math.PI);
+				} else {
+					ang = alpha;
+				}
+
+				if (startDeviceAngle === null) {
+					startDeviceAngle = ang;
+					lastMode = curMode;
+					if (dampRot) dampRot.immediate(obj.rotation);
+				} else if (lastMode !== null && curMode !== lastMode) {
+					// Seamless transition between upright and flat
+					var prevDiff = angleDiff(currentDeviceAngle, startDeviceAngle);
+					startDeviceAngle = ang - prevDiff;
+					lastMode = curMode;
+				}
+
+				currentDeviceAngle = ang;
+			};
+			f.on(type, obj._turnListener);
+
+			obj._turnTicker = zim.Ticker.add(updateTurn);
+			if (ready) ready(true, obj);
+		}
+
+		// Simple function queue
+		if (f._permissionGranted) {
+			activate();
+		} else if (f._permissionPending) {
+			f._permissionQueue.push(activate);
+		} else {
+			f._permissionPending = true;
+			f._permissionQueue = [activate];
+
+			new zim.PermissionAsk(function(yes) {
+				f._permissionPending = false;
+				if (yes) {
+					f._permissionGranted = true;
+					zim.loop(f._permissionQueue, function(fn) { fn(); });
+					f._permissionQueue = [];
+				} else {
+					if (ready) ready(false, obj);
+				}
+			}, type);
+		}
+
+		return obj;
+	};//-34.93
+
+/*--
+obj.noTurn = function()
+
+noTurn
+zim DisplayObject method
+
+DESCRIPTION
+Removes turn listeners and ticker updates from the object.
+
+EXAMPLE
+const compass = new Triangle().center().turn();
+
+// Stop turn tracking
+compass.noTurn();
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+34.94
+	zim.noTurn = function(obj) {
+		var sig = "obj";
+		var duo; if (duo = zob(zim.noTurn, arguments, sig)) return duo;
+		z_d("34.94");
+
+		if (zot(obj) || !obj.on || !obj.zimTouch) return;
+
+		// MONITOR
+		var mID = "z~noTurn";
+		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+
+		if (obj._turnListener && f) {
+			f.off(obj._turnType || "deviceorientation", obj._turnListener);
+			obj._turnListener = null;
+		}
+		if (obj._turnTicker) {
+			zim.Ticker.remove(obj._turnTicker);
+			obj._turnTicker = null;
+		}
+
+		return obj;
+	};//-34.94
+
+
+/*--
+obj.shake = function(call, stopCall, threshold, wait, factor, type, ready)
+
+shake
+zim DisplayObject method
+
+DESCRIPTION
+Triggers a callback and dispatches a "shake" event whenever the device is shaken beyond a threshold acceleration force.
+Also triggers a stopCall and dispatches a "shakestop" event when the device stops shaking.
+Automatically manages user sensor permission via ZIM PermissionAsk if permission has not yet been requested.
+
+NOTE: If permission has already been granted, shake activates immediately.
+If multiple objects call tilt(), turn(), or shake() before permission is granted, they are queued and activated together once the user accepts.
+
+ALSO: see noShake() to remove shake listeners.
+
+EXAMPLE
+const color = series(red,green,blue);
+const bottle = new Rectangle(80, 160, purple).centerReg().shake({
+	call: (total) => {
+		bottle.color = color();
+		S.update();
+	},
+	stopCall: (obj) => {
+		emitter.spurt(20);
+		obj.color = purple;
+	}
+});
+const emitter = new Emitter({startPaused:true}).loc(bottle);
+END EXAMPLE
+
+EXAMPLE
+// Custom sensitivity threshold with ready callback
+const circle = new Circle().center().shake(
+	(total, x, y) => { circle.impulse(x * 10, y * 10); },
+	() => { zog("Stopped shaking!"); },
+	12, // threshold
+	0.4, // wait
+	1, // factor
+	"devicemotion",
+	(success) => { if (!success) zog("Sensors unavailable"); }
+);
+END EXAMPLE
+
+PARAMETERS
+** supports DUO - parameters or single object with properties below
+call - (default null) callback function when shaken, receiving (total:Number, x:Number, y:Number, z:Number, obj:DisplayObject, event:Object)
+stopCall - (default null) callback function called when shaking stops after wait seconds of stillness, receiving (obj:DisplayObject)
+threshold - (default 10) minimum 3D acceleration magnitude delta required to trigger a shake
+wait - (default 0.5) stillness duration in seconds before triggering stopCall, and cooldown between repeat shake pulses
+factor - (default 1) sensitivity factor multiplier
+type - (default "devicemotion") the sensor event type ("devicemotion")
+ready - (default null) callback function called when permission resolves, receiving (success:Boolean, obj:DisplayObject)
+
+EVENTS
+Dispatches a "shake" event on obj with event properties: total, x, y, z, and event.
+Dispatches a "shakestop" event on obj when shaking stops.
+
+RETURNS obj for chaining
+--*///+34.95
+zim.shake = function(obj, call, stopCall, threshold, wait, factor, type, ready) {
+	var sig = "obj, call, stopCall, threshold, wait, factor, type, ready";
+	var duo; if (duo = zob(zim.shake, arguments, sig)) return duo;
+	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("shake", arguments); return obj;}
+	z_d("34.95");
+
+	// MONITOR
+	var mID = "z~shake";
+	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+
+	if (zot(obj)) return;
+
+	// Clean up any existing shake on this object first
+	if (obj._shakeListener) zim.noShake(obj);
+
+	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+	var s = obj.stage || (f ? f.stage : null);
+
+	if (zot(threshold)) threshold = 10;
+	if (zot(wait)) wait = 0.5;
+	if (zot(factor)) factor = 1;
+	if (zot(type)) type = "devicemotion";
+
+	var lastX = 0, lastY = 0, lastZ = 0;
+	var lastTime = 0;
+
+	function handleMotion(e) {
+		var acc = e.acceleration && (e.acceleration.x != null || e.acceleration.y != null) ? 
+			e.acceleration : (e.accelerationIncludingGravity || e);
+
+		var ax = acc.x || 0;
+		var ay = acc.y || 0;
+		var az = acc.z || 0;
+
+		var deltaX = ax - lastX;
+		var deltaY = ay - lastY;
+		var deltaZ = az - lastZ;
+
+		lastX = ax;
+		lastY = ay;
+		lastZ = az;
+
+		var mag = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ) * factor;
+
+		if (mag >= threshold) {
+			var now = Date.now();
+
+			// Reset stop timer on active motion
+			if (obj._shakeStopTimeout) obj._shakeStopTimeout.clear();
+
+			obj._shakeStopTimeout = zim.timeout(wait, function() {
+				obj._shakeStopTimeout = null;
+				if (stopCall) stopCall(obj);
+				obj.dispatchEvent({
+					type: "shakestop",
+					event: e
+				});
+				if (s) s.update();
+			});
+
+			if (now - lastTime >= wait * 1000) {
+				lastTime = now;
+
+				var orient = 0;
+				if (typeof WW != "undefined") {
+					if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+						orient = WW.screen.orientation.angle;
+					} else if (typeof WW.orientation != "undefined") {
+						orient = WW.orientation;
+					}
+				}
+
+				var shakeX, shakeY, shakeZ = deltaZ * factor;
+				if (orient == 90) {
+					shakeX = deltaY * factor;
+					shakeY = -deltaX * factor;
+				} else if (orient == -90 || orient == 270) {
+					shakeX = -deltaY * factor;
+					shakeY = deltaX * factor;
+				} else if (orient == 180) {
+					shakeX = -deltaX * factor;
+					shakeY = -deltaY * factor;
+				} else { // 0 portrait
+					shakeX = deltaX * factor;
+					shakeY = deltaY * factor;
+				}
+
+				if (call) call(mag, shakeX, shakeY, shakeZ, obj, e);
+				obj.dispatchEvent({
+					type: "shake",
+					total: mag,
+					x: shakeX,
+					y: shakeY,
+					z: shakeZ,
+					event: e
+				});
+
+			}
+		}
+	}
+
+	function activate() {
+		obj._shakeType = type;
+		obj._shakeListener = handleMotion;
+		f.on(type, obj._shakeListener);
+		if (ready) ready(true, obj);
+	}
+
+	// Simple function queue
+	if (f._permissionGranted) {
+		activate();
+	} else if (f._permissionPending) {
+		f._permissionQueue.push(activate);
+	} else {
+		f._permissionPending = true;
+		f._permissionQueue = [activate];
+
+		new zim.PermissionAsk(function(yes) {
+			f._permissionPending = false;
+			if (yes) {
+				f._permissionGranted = true;
+				zim.loop(f._permissionQueue, function(fn) { fn(); });
+				f._permissionQueue = [];
+			} else {
+				if (ready) ready(false, obj);
+			}
+		}, type);
+	}
+
+	return obj;
+};//-34.95
+
+
+/*--
+obj.noShake = function()
+
+noShake
+zim DisplayObject method
+
+DESCRIPTION
+Removes shake listeners and pending stop timers from the object.
+
+EXAMPLE
+const box = new Rectangle(80, 80, red).center().shake(onShake);
+
+// Stop shake listening
+box.noShake();
+END EXAMPLE
+
+RETURNS obj for chaining
+--*///+34.96
+zim.noShake = function(obj) {
+	var sig = "obj";
+	var duo; if (duo = zob(zim.noShake, arguments, sig)) return duo;
+	z_d("34.96");
+
+	if (zot(obj) || !obj.on || !obj.zimTouch) return;
+
+	// MONITOR
+	var mID = "z~noShake";
+	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+
+	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+
+	if (obj._shakeListener && f) {
+		f.off(obj._shakeType || "devicemotion", obj._shakeListener);
+		obj._shakeListener = null;
+	}
+	if (obj._shakeStopTimeout) {
+		obj._shakeStopTimeout.clear();
+		obj._shakeStopTimeout = null;
+	}
+
+	return obj;
+};//-34.96
 
 // SUBSECTION HIT TESTS
 
@@ -93079,6 +93597,10 @@ loadFailObj - the object that shows if images are broken - will be given a type 
 startTime - datestamp of when frame was made - used internally
 retina - read-only Boolean as to whether stage (as opposed to the canvas) was scaled for pixelDensity during Frame creation
 reloaded - read-only Boolean as to whether page has been reloaded - uses window.performance.getEntriesByType
+sensorText - (default null) a String to customize the label inside the PermissionAsk popup for device sensors
+sensorAsk - reference to the PermissionAsk Pane instance created for device sensors
+camText - (default null) a String to customize the label inside the PermissionAsk popup for camera/mic
+camAsk - reference to the PermissionAsk Pane instance created for camera/mic
 
 ALSO see F, S, W, H, M global variables which reference the default frame, its stage and width and height, and if on mobile
 
@@ -93332,6 +93854,15 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	var appReady = false; // check variable (watch - "ready" is reserved)
 	var tagID;
 	var tag;
+
+	// ZIM 020 Sensors Patch
+	this.sensorText = null;  // custom text for sensor PermissionAsk dialog
+	this.sensorAsk = null;   // reference to PermissionAsk instance for sensors
+	this.camText = null;     // custom text for camera/mic PermissionAsk dialog
+	this.camAsk = null;      // reference to PermissionAsk instance for camera/mic
+	this._permissionGranted = false;
+	this._permissionPending = false;
+	this._permissionQueue = [];
 
 	// 0. part of TEN PATCH
 	// need to keep check for resize and assets for dispatching ready
@@ -98227,32 +98758,27 @@ Pre ZIM 018, this was done with a sensors parameter on the Frame.
 The sensors parameter has now been removed and the events are handled with PermissionAsk.
 
 NOTE: this started as SensorAsk but the class has been adjusted to handle other permissions and the name has been changed in ZIM 016
-
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+NOTE: sensor prompt text can be customized prior to calling with F.sensorText = "Custom message";
 
 EXAMPLE
 // DEVICE ORIENTATION - gives angle of device in all 3 dimensions
 // See https://zimjs.com/zapp/Z_Q5UYS
-// Note: this is NOT an orientation event to see if phone is portrait or landscape (see Frame orientation event)
 new PermissionAsk(yes=>{
-	if (yes) { // the user answered yes to PermissionAsk
-		// all code goes in here
+	if (yes) {
 		new Label("Tilt the device to move circle").alp(.3).pos(0,30,CENTER);
 		const circle = new Circle().center();
 		const amount = .5;
-		const compass = new Line(60, 4, light, "arrow").rot(90).centerReg(circle); // point up
+		const compass = new Line(60, 4, light, "arrow").rot(90).centerReg(circle);
 		F.on("deviceorientation", e=>{
-		    // for tilt 
 			circle.mov(e.rotation.y*amount, e.rotation.x*amount);
 			circle.x = constrain(circle.x, 0, W);
 			circle.y = constrain(circle.y, 0, H);
-			// for compass use e.rotation.z 
-			// which has 0 angle at device start rotation (not necessarily North)
-			compass.rot(90-e.rotation.z); // rotate opposite device rotation
+			compass.rot(90-e.rotation.z);
 			S.update();
 		});
-	} else { // the user answered no to PermissionAsk 		
-		new Pane("SENSOR not available",yellow).show();	
+	} else { 		
+		new Pane("SENSOR not available", yellow).show();	
 	}
 });
 END EXAMPLE
@@ -98262,13 +98788,11 @@ EXAMPLE
 // See https://zimjs.com/zapp/Z_XF8JM
 new PermissionAsk(init, "devicemotion");
 function init(yes) {	
-	if (yes) { // the user answered yes to PermissionAsk	
-		// all code goes in here		
+	if (yes) {		
 		new Label("Shake the device").center();
 		S.update();
 		let id;
 		F.on("devicemotion", e=>{	
-			// for shake	
 		    if (
 		        Math.abs(e.acceleration.x) > 5 ||
 		        Math.abs(e.acceleration.y) > 5 ||
@@ -98285,33 +98809,9 @@ function init(yes) {
 		        });
 		    } 
 		});
-	} else { // the user answered no to PermissionAsk		
-		new Pane("SENSOR not available",yellow).show();
+	} else {		
+		new Pane("SENSOR not available", yellow).show();
 	}	
-}
-END EXAMPLE
-
-EXAMPLE 
-// CAM
-// on iOS, the app must be interacted with before using mic or cam
-// goes right to permissions on computer and android
-// pops up a PermissionAsk Pane on iOS then if yes, goes to permissions on iOS
-new PermissionAsk(init, "cam");
-function init(val) {
-	new Label(val).center(); // media stream if yes to permissions otherwise false
-	S.update();
-}
-END EXAMPLE
-
-EXAMPLE 
-// MIC
-// on iOS, the app must be interacted with before using mic or cam
-// this goes right to permissions on computer and android
-// but pops up a PermissionAsk Pane on iOS then if yes, goes to permissions on iOS
-new PermissionAsk(init, "mic"); // or "cam" or "miccam"
-function init(val) {
-	new Label(val).center(); // media stream if yes to permissions otherwise false
-	S.update();
 }
 END EXAMPLE
 
@@ -98344,30 +98844,12 @@ dispose() - dispose the PermissionAsk
 ALSO: see all the methods of a zim Pane()
 including hide()
 
-ALSO: ZIM 4TH adds all the methods listed under Container (see above), such as:
-drag(), hitTestRect(), animate(), sca(), reg(), mov(), center(), centerReg(),
-addTo(), removeFrom(), loop(), outline(), place(), pos(), alp(), rot(), setMask(), etc.
-ALSO: see the CreateJS Easel Docs for Container methods, such as:
-on(), off(), getBounds(), setBounds(), cache(), uncache(), updateCache(), dispatchEvent(),
-addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChildren(), etc.
-
 PROPERTIES
 type - name of class as a string
 permissionType - the type of permission requested
 label - reference to the zim Label 
 yes - reference to the zim Button with YES 
 no - reference to the zim Button with NO 
-
-ALSO: see ZIM Pane for properties such as:
-backdropColor, etc.
-
-ALSO: see ZIM Container for properties such as:
-width, height, widthOnly, heightOnly, draggable, level, depth, group 
-blendMode, hue, saturation, brightness, contrast, etc.
-
-ALSO: see the CreateJS Easel Docs for Container properties, such as:
-x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
-alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 --*///+83.01
 	zim.PermissionAsk = function(callback, permissionType, color, backgroundColor, style, group, inherit) {
@@ -98391,6 +98873,15 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		this.mID = "z~"+(DS.monitor===false?"-":this.type);
 
 		var that = this;
+		var frame = WW.zdf;
+
+		if (frame) {
+			if (permissionType == "mic" || permissionType == "cam" || permissionType == "miccam") {
+				frame.camAsk = that;
+			} else {
+				frame.sensorAsk = that;
+			}
+		}
 		
 		Style.addGroup("PermissionAsk", {     
 			color:color,
@@ -98406,7 +98897,15 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		var okay = false;
 		that.yes = new zim.Button({label:"YES", width:100, group:"PermissionAsk"}).sca(.65).pos(0,30,CENTER,TOP,this);
         var words = {deviceorientation:"sensors", devicemotion:"sensors", mic:"mic", cam:"cam", miccam:"mic/cam"};      
-		that.label = new zim.Label("Use " + (words[pt]?words[pt]:"feature") + "?", 30, null, color, null, null, null, "center").sca(.9).centerReg(this);
+		
+		var defaultMsg = "Use " + (words[pt]?words[pt]:"feature") + "?";
+		var promptMsg = defaultMsg;
+		if (frame) {
+			if ((pt == "mic" || pt == "cam" || pt == "miccam") && frame.camText) promptMsg = frame.camText;
+			else if (frame.sensorText) promptMsg = frame.sensorText;
+		}
+
+		that.label = new zim.Label(promptMsg, 30, null, color, null, null, null, "center").sca(.9).centerReg(this);
 		that.no = new zim.Button({label:"NO", width:100, group:"PermissionAsk"}).sca(.65).pos(0,30,CENTER,BOTTOM,this);
 		
 		new zim.Circle(110, zim.clear, color, 1).center(this).alp(.8);
@@ -98414,7 +98913,6 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		new zim.Circle(130, zim.clear, color, 1).center(this).alp(.2);        
 		if (style!==false) zim.styleTransforms(this, DS);
 
-		var frame = WW.zdf;
         if (pt == "mic" || pt == "cam" || pt == "miccam") {
             if (M=="ios") {				
 				setPane();
@@ -98438,14 +98936,12 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		} else {
 			var called = false;
 			WW.addEventListener(permissionType, testMe);
-			// instead of testing for mobile - some laptops like chromebook have sensors so test for a reading
 			function testMe(e) {
 				if (okay) return;
 				if (permissionType=="deviceorientation") {
 					if (e.alpha==null || (e.alpha==0&&e.beta==0&&e.gamma==0)) callback(false, 1);
 					else setEvents();
 				} else {
-					// if (!e.acceleration || e.acceleration.x==null || (e.acceleration.x==0&&e.acceleration.y==0&&e.acceleration.z==0)) callback(false);
 					if (!e.acceleration || e.acceleration.x==null) callback(false, 2);
 					else setEvents();
 				}	
@@ -98460,12 +98956,7 @@ alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, e
 		var lastZ = 0;
 		var flip = 0;
 		function deviceorientationEvent(e) {
-			// for some reason, reporting alpha as increasing going counter counterclockwise
-			// so this code makes it increase going clockwise
 			var z = 360-e.alpha;
-			// compass is subtracting 180 if device screen is pointing down
-			// in a VR helmet this would be looking slightly up from the horizon...
-			// so removing this flip with the following code
 			if (Math.abs(z-lastZ) > 180 - 45 && Math.abs(z-lastZ) < 180 + 45) flip = flip == 0 ? 180 : 0;
 			lastZ = z;
 			e.rotation = {x:e.beta, y:e.gamma, z:(z + flip) % 360};
@@ -100320,25 +100811,40 @@ function zimify(obj, a, b, c, d, list) {
 		gestureRect:function(boundary, update) {
 			return zim.gestureBoundary(this, boundary, update);
 		},
-
-		tilt:function(boundary, damp, factor, mode, type, call) {
-			if (isDUO(arguments)) {arguments[0].obj = this; return zim.tilt(arguments[0]);}
-			else {return zim.tilt(this, boundary, damp, factor, mode, type, call);}
-		},
-		noTilt:function() {
-			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noTilt(arguments[0]);}
-			else {return zim.noTilt(this);}
-		},
-		tiltBoundary:function(boundary, update) {
-			return zim.tiltBoundary(this, boundary, update);
-		},
-
 		addPhysics:function(dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics) {
 			if (isDUO(arguments)) {arguments[0].obj = this; return zim.addPhysics(arguments[0]);}
 			else {return zim.addPhysics(this, dynamic, contract, shape, friction, linear, angular, density, restitution, maskBits, categoryBits, physics);}
 		},
 		removePhysics:function() {
 			return zim.removePhysics(this);
+		},
+		tilt:function(boundary, damp, factor, mode, type, ready) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.tilt(arguments[0]);}
+			else {return zim.tilt(this, boundary, damp, factor, mode, type, ready);}
+		},
+		noTilt:function() {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noTilt(arguments[0]);}
+			else {return zim.noTilt(this);}
+		},
+		tiltBoundary:function(boundary, y, width, height) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.tiltBoundary(arguments[0]);}
+			else {return zim.tiltBoundary(this, boundary, y, width, height);}
+		},
+		turn:function(damp, factor, mode, min, max, type, ready) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.turn(arguments[0]);}
+			else {return zim.turn(this, damp, factor, mode, min, max, type, ready);}
+		},
+		noTurn:function() {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noTurn(arguments[0]);}
+			else {return zim.noTurn(this);}
+		},
+		shake:function(call, stopCall, threshold, wait, factor, type, ready) {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.shake(arguments[0]);}
+			else {return zim.shake(this, call, stopCall, threshold, wait, factor, type, ready);}
+		},
+		noShake:function() {
+			if (isDUO(arguments)) {arguments[0].obj = this; return zim.noShake(arguments[0]);}
+			else {return zim.noShake(this);}
 		},
 		hitTestPoint:function(x, y, boundsCheck) {
 			return zim.hitTestPoint(this, x, y, boundsCheck);
@@ -107367,14 +107873,18 @@ export let transform = zim.transform;
 export let gesture = zim.gesture;
 export let noGesture = zim.noGesture;
 export let gestureBoundary = zim.gestureBoundary;
-export let tilt = zim.tilt;
-export let noTilt = zim.noTilt;
-export let tiltBoundary = zim.tiltBoundary;
 export let effect = zim.effect;
 export let updateEffects = zim.updateEffects;
 export let noEffect = zim.noEffect;
 export let addPhysics = zim.addPhysics;
 export let removePhysics = zim.removePhysics;
+export let tilt = zim.tilt;
+export let noTilt = zim.noTilt;
+export let tiltBoundary = zim.tiltBoundary;
+export let turn = zim.turn;
+export let noTurn = zim.noTurn;
+export let shake = zim.shake;
+export let noShake = zim.noShake;
 export let hitTestPoint = zim.hitTestPoint;
 export let hitTestReg = zim.hitTestReg;
 export let hitTestRect = zim.hitTestRect;
