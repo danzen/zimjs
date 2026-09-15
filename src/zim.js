@@ -58287,6 +58287,9 @@ Automatically manages user sensor permission via ZIM PermissionAsk if permission
 NOTE: If permission has already been granted, tilt activates immediately.
 If multiple objects call tilt(), turn(), or shake() before permission is granted, they are queued and activated together once the user accepts.
 
+NOTE: To change the text of the Dialog set: F.sensorText = "OKAY?"; // BEFORE calling the tilt() 
+To change buttons of the Dialog set: F.sensorAsk.yes.text = "OUI"; F.sensorAsk.no.text = "NON"; // AFTER calling the tilt() 
+
 ALSO: see noTilt() to remove tilt behaviors.
 
 ALSO: see tiltBoundary() to dynamically change or clear the boundary rectangle.
@@ -58323,135 +58326,135 @@ ready - (default null) callback function called when permission resolves, receiv
 
 RETURNS obj for chaining
 --*///+34.9
-zim.tilt = function(obj, boundary, damp, factor, mode, type, ready) {
-	var sig = "obj, boundary, damp, factor, mode, type, ready";
-	var duo; if (duo = zob(zim.tilt, arguments, sig)) return duo;
-	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("tilt", arguments); return obj;}
-	z_d("34.9");
+	zim.tilt = function(obj, boundary, damp, factor, mode, type, ready) {
+		var sig = "obj, boundary, damp, factor, mode, type, ready";
+		var duo; if (duo = zob(zim.tilt, arguments, sig)) return duo;
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("tilt", arguments); return obj;}
+		z_d("34.9");
 
-	// MONITOR
-	var mID = "z~tilt";
-	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+		// MONITOR
+		var mID = "z~tilt";
+		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
 
-	if (zot(obj)) return;
+		if (zot(obj)) return;
 
-	// Clean up any existing tilt on this object first
-	if (obj._tiltTicker) zim.noTilt(obj);
+		// Clean up any existing tilt on this object first
+		if (obj._tiltTicker) zim.noTilt(obj);
 
-	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
-	var s = obj.stage || (f ? f.stage : null);
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var s = obj.stage || (f ? f.stage : null);
 
-	// Set initial boundary
-	zim.tiltBoundary(obj, boundary);
+		// Set initial boundary
+		zim.tiltBoundary(obj, boundary);
 
-	if (zot(damp)) damp = 0.05;
-	if (zot(factor)) factor = 0.5;
-	var factorX = typeof factor === "object" ? factor.x : factor;
-	var factorY = typeof factor === "object" ? factor.y : factor;
-	if (zot(mode)) mode = "move";
-	if (zot(type)) type = "deviceorientation";
+		if (zot(damp)) damp = 0.05;
+		if (zot(factor)) factor = 0.5;
+		var factorX = typeof factor === "object" ? factor.x : factor;
+		var factorY = typeof factor === "object" ? factor.y : factor;
+		if (zot(mode)) mode = "move";
+		if (zot(type)) type = "deviceorientation";
 
-	var dampX = damp ? new zim.Damp(mode == "position" ? obj.x : 0, damp) : null;
-	var dampY = damp ? new zim.Damp(mode == "position" ? obj.y : 0, damp) : null;
-	var currentRot = {x: 0, y: 0, z: 0};
+		var dampX = damp ? new zim.Damp(mode == "position" ? obj.x : 0, damp) : null;
+		var dampY = damp ? new zim.Damp(mode == "position" ? obj.y : 0, damp) : null;
+		var currentRot = {x: 0, y: 0, z: 0};
 
-	function updateTilt() {
-		var orient = 0;
-		if (typeof WW != "undefined") {
-			if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
-				orient = WW.screen.orientation.angle;
-			} else if (typeof WW.orientation != "undefined") {
-				orient = WW.orientation;
+		function updateTilt() {
+			var orient = 0;
+			if (typeof WW != "undefined") {
+				if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+					orient = WW.screen.orientation.angle;
+				} else if (typeof WW.orientation != "undefined") {
+					orient = WW.orientation;
+				}
 			}
+
+			var beta = currentRot.x;
+			var gamma = currentRot.y;
+			var tiltX, tiltY;
+
+			if (orient == 90) {
+				tiltX = beta;
+				tiltY = -gamma;
+			} else if (orient == -90 || orient == 270) {
+				tiltX = -beta;
+				tiltY = gamma;
+			} else if (orient == 180) {
+				tiltX = -gamma;
+				tiltY = -beta;
+			} else {
+				tiltX = gamma;
+				tiltY = beta;
+			}
+
+			if (mode == "move") {
+				var rotX = dampX ? dampX.convert(tiltX) : tiltX;
+				var rotY = dampY ? dampY.convert(tiltY) : tiltY;
+				obj.x += rotX * factorX;
+				obj.y += rotY * factorY;
+			} else if (mode == "position") {
+				var targetX = (obj._tiltStartX != null ? obj._tiltStartX : obj.x) + tiltX * factorX * 10;
+				var targetY = (obj._tiltStartY != null ? obj._tiltStartY : obj.y) + tiltY * factorY * 10;
+				obj.x = dampX ? dampX.convert(targetX) : targetX;
+				obj.y = dampY ? dampY.convert(targetY) : targetY;
+			}
+
+			if (obj._tiltBoundary) {
+				obj.x = zim.constrain(obj.x, obj._tiltBoundary.x, obj._tiltBoundary.x + obj._tiltBoundary.width);
+				obj.y = zim.constrain(obj.y, obj._tiltBoundary.y, obj._tiltBoundary.y + obj._tiltBoundary.height);
+			}
+
+			if (s) s.update();
 		}
 
-		var beta = currentRot.x;
-		var gamma = currentRot.y;
-		var tiltX, tiltY;
+		function activate() {
+			obj._tiltStartX = obj.x;
+			obj._tiltStartY = obj.y;
+			if (mode == "position" && dampX && dampY) {
+				dampX.immediate(obj.x);
+				dampY.immediate(obj.y);
+			}
 
-		if (orient == 90) {
-			tiltX = beta;
-			tiltY = -gamma;
-		} else if (orient == -90 || orient == 270) {
-			tiltX = -beta;
-			tiltY = gamma;
-		} else if (orient == 180) {
-			tiltX = -gamma;
-			tiltY = -beta;
+			obj._tiltType = type;
+			obj._tiltListener = function(e) {
+				if (e.rotation) {
+					currentRot.x = e.rotation.x || 0;
+					currentRot.y = e.rotation.y || 0;
+					currentRot.z = e.rotation.z || 0;
+				} else {
+					currentRot.x = e.beta || 0;
+					currentRot.y = e.gamma || 0;
+					currentRot.z = e.alpha || 0;
+				}
+			};
+			f.on(type, obj._tiltListener);
+
+			obj._tiltTicker = zim.Ticker.add(updateTilt);
+			if (ready) ready(true, obj);
+		}
+
+		// Shared Permission check & queueing
+		if (f._permissionGranted) {
+			activate();
+		} else if (f._permissionPending) {
+			f._permissionQueue.push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 		} else {
-			tiltX = gamma;
-			tiltY = beta;
-		}
+			f._permissionPending = true;
+			f._permissionQueue = [{ activate: activate, reject: function() { if (ready) ready(false, obj); } }];
 
-		if (mode == "move") {
-			var rotX = dampX ? dampX.convert(tiltX) : tiltX;
-			var rotY = dampY ? dampY.convert(tiltY) : tiltY;
-			obj.x += rotX * factorX;
-			obj.y += rotY * factorY;
-		} else if (mode == "position") {
-			var targetX = (obj._tiltStartX != null ? obj._tiltStartX : obj.x) + tiltX * factorX * 10;
-			var targetY = (obj._tiltStartY != null ? obj._tiltStartY : obj.y) + tiltY * factorY * 10;
-			obj.x = dampX ? dampX.convert(targetX) : targetX;
-			obj.y = dampY ? dampY.convert(targetY) : targetY;
-		}
-
-		if (obj._tiltBoundary) {
-			obj.x = zim.constrain(obj.x, obj._tiltBoundary.x, obj._tiltBoundary.x + obj._tiltBoundary.width);
-			obj.y = zim.constrain(obj.y, obj._tiltBoundary.y, obj._tiltBoundary.y + obj._tiltBoundary.height);
-		}
-
-		if (s) s.update();
-	}
-
-	function activate() {
-		obj._tiltStartX = obj.x;
-		obj._tiltStartY = obj.y;
-		if (mode == "position" && dampX && dampY) {
-			dampX.immediate(obj.x);
-			dampY.immediate(obj.y);
-		}
-
-		obj._tiltType = type;
-		obj._tiltListener = function(e) {
-			if (e.rotation) {
-				currentRot.x = e.rotation.x || 0;
-				currentRot.y = e.rotation.y || 0;
-				currentRot.z = e.rotation.z || 0;
-			} else {
-				currentRot.x = e.beta || 0;
-				currentRot.y = e.gamma || 0;
-				currentRot.z = e.alpha || 0;
-			}
-		};
-		f.on(type, obj._tiltListener);
-
-		obj._tiltTicker = zim.Ticker.add(updateTilt);
-		if (ready) ready(true, obj);
-	}
-
-	// Simple function queue
-	if (f._permissionGranted) {
-		activate();
-	} else if (f._permissionPending) {
-		f._permissionQueue.push(activate);
-	} else {
-		f._permissionPending = true;
-		f._permissionQueue = [activate];
-
-		new zim.PermissionAsk(function(yes) {
-			f._permissionPending = false;
-			if (yes) {
-				f._permissionGranted = true;
-				zim.loop(f._permissionQueue, function(fn) { fn(); });
+			new zim.PermissionAsk(function(yes) {
+				f._permissionPending = false;
+				if (yes) {
+					f._permissionGranted = true;
+					zim.loop(f._permissionQueue, function(item) { item.activate(); });
+				} else {
+					zim.loop(f._permissionQueue, function(item) { item.reject(); });
+				}
 				f._permissionQueue = [];
-			} else {
-				if (ready) ready(false, obj);
-			}
-		}, type);
-	}
+			}, type);
+		}
 
-	return obj;
-};//-34.9
+		return obj;
+	};//-34.9
 
 
 /*--
@@ -58472,33 +58475,31 @@ END EXAMPLE
 
 RETURNS obj for chaining
 --*///+34.91
-zim.noTilt = function(obj) {
-	var sig = "obj";
-	var duo; if (duo = zob(zim.noTilt, arguments, sig)) return duo;
-	z_d("34.91");
+	zim.noTilt = function(obj) {
+		var sig = "obj";
+		var duo; if (duo = zob(zim.noTilt, arguments, sig)) return duo;
+		z_d("34.91");
 
-	if (zot(obj) || !obj.on || !obj.zimTouch) return;
+		if (zot(obj) || !obj.on || !obj.zimTouch) return;
 
-	// MONITOR
-	var mID = "z~noTilt";
-	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
-	
-	if (zot(obj)) return;
-	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		// MONITOR
+		var mID = "z~noTilt";
+		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+		
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 
-	if (obj._tiltListener && f) {
-		f.off(obj._tiltType || "deviceorientation", obj._tiltListener);
-		obj._tiltListener = null;
-	}
-	if (obj._tiltTicker) {
-		zim.Ticker.remove(obj._tiltTicker);
-		obj._tiltTicker = null;
-	}
-	obj._tiltBoundary = null;
+		if (obj._tiltListener && f) {
+			f.off(obj._tiltType || "deviceorientation", obj._tiltListener);
+			obj._tiltListener = null;
+		}
+		if (obj._tiltTicker) {
+			zim.Ticker.remove(obj._tiltTicker);
+			obj._tiltTicker = null;
+		}
+		obj._tiltBoundary = null;
 
-	return obj;
-
-};//-34.91
+		return obj;
+	};//-34.91
 
 
 /*--
@@ -58609,6 +58610,9 @@ Automatically manages user sensor permission via ZIM PermissionAsk if permission
 NOTE: If permission has already been granted, turn activates immediately.
 If multiple objects call tilt(), turn(), or shake() before permission is granted, they are queued and activated together once the user accepts.
 Rotation is applied relative to the object's initial rotation when turn() is called (for example, an arrow rotated -90 to point up will maintain that -90 offset).
+
+NOTE: To change the text of the Dialog set: F.sensorText = "OKAY?"; // BEFORE calling the turn() 
+To change buttons of the Dialog set: F.sensorAsk.yes.text = "OUI"; F.sensorAsk.no.text = "NON"; // AFTER calling the turn() 
 
 ALSO: see noTurn() to remove turning behaviors.
 
@@ -58755,7 +58759,6 @@ RETURNS obj for chaining
 					lastMode = curMode;
 					if (dampRot) dampRot.immediate(obj.rotation);
 				} else if (lastMode !== null && curMode !== lastMode) {
-					// Seamless transition between upright and flat
 					var prevDiff = angleDiff(currentDeviceAngle, startDeviceAngle);
 					startDeviceAngle = ang - prevDiff;
 					lastMode = curMode;
@@ -58769,24 +58772,24 @@ RETURNS obj for chaining
 			if (ready) ready(true, obj);
 		}
 
-		// Simple function queue
+		// Shared Permission check & queueing
 		if (f._permissionGranted) {
 			activate();
 		} else if (f._permissionPending) {
-			f._permissionQueue.push(activate);
+			f._permissionQueue.push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 		} else {
 			f._permissionPending = true;
-			f._permissionQueue = [activate];
+			f._permissionQueue = [{ activate: activate, reject: function() { if (ready) ready(false, obj); } }];
 
 			new zim.PermissionAsk(function(yes) {
 				f._permissionPending = false;
 				if (yes) {
 					f._permissionGranted = true;
-					zim.loop(f._permissionQueue, function(fn) { fn(); });
-					f._permissionQueue = [];
+					zim.loop(f._permissionQueue, function(item) { item.activate(); });
 				} else {
-					if (ready) ready(false, obj);
+					zim.loop(f._permissionQueue, function(item) { item.reject(); });
 				}
+				f._permissionQueue = [];
 			}, type);
 		}
 
@@ -58851,6 +58854,9 @@ Automatically manages user sensor permission via ZIM PermissionAsk if permission
 NOTE: If permission has already been granted, shake activates immediately.
 If multiple objects call tilt(), turn(), or shake() before permission is granted, they are queued and activated together once the user accepts.
 
+NOTE: To change the text of the Dialog set: F.sensorText = "OKAY?"; // BEFORE calling the shake() 
+To change buttons of the Dialog set: F.sensorAsk.yes.text = "OUI"; F.sensorAsk.no.text = "NON"; // AFTER calling the shake() 
+
 ALSO: see noShake() to remove shake listeners.
 
 EXAMPLE
@@ -58897,137 +58903,137 @@ Dispatches a "shakestop" event on obj when shaking stops.
 
 RETURNS obj for chaining
 --*///+34.95
-zim.shake = function(obj, call, stopCall, threshold, wait, factor, type, ready) {
-	var sig = "obj, call, stopCall, threshold, wait, factor, type, ready";
-	var duo; if (duo = zob(zim.shake, arguments, sig)) return duo;
-	if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("shake", arguments); return obj;}
-	z_d("34.95");
+	zim.shake = function(obj, call, stopCall, threshold, wait, factor, type, ready) {
+		var sig = "obj, call, stopCall, threshold, wait, factor, type, ready";
+		var duo; if (duo = zob(zim.shake, arguments, sig)) return duo;
+		if ((obj.type=="AC"||(obj.type=="Emoji"&&obj.svg&&obj.svg.type=="AC"))&&WW.zdf) {WW.zdf.ac("shake", arguments); return obj;}
+		z_d("34.95");
 
-	// MONITOR
-	var mID = "z~shake";
-	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+		// MONITOR
+		var mID = "z~shake";
+		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
 
-	if (zot(obj)) return;
+		if (zot(obj)) return;
 
-	// Clean up any existing shake on this object first
-	if (obj._shakeListener) zim.noShake(obj);
+		// Clean up any existing shake on this object first
+		if (obj._shakeListener) zim.noShake(obj);
 
-	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
-	var s = obj.stage || (f ? f.stage : null);
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var s = obj.stage || (f ? f.stage : null);
 
-	if (zot(threshold)) threshold = 10;
-	if (zot(wait)) wait = 0.5;
-	if (zot(factor)) factor = 1;
-	if (zot(type)) type = "devicemotion";
+		if (zot(threshold)) threshold = 10;
+		if (zot(wait)) wait = 0.5;
+		if (zot(factor)) factor = 1;
+		if (zot(type)) type = "devicemotion";
 
-	var lastX = 0, lastY = 0, lastZ = 0;
-	var lastTime = 0;
+		var lastX = 0, lastY = 0, lastZ = 0;
+		var lastTime = 0;
 
-	function handleMotion(e) {
-		var acc = e.acceleration && (e.acceleration.x != null || e.acceleration.y != null) ? 
-			e.acceleration : (e.accelerationIncludingGravity || e);
+		function handleMotion(e) {
+			var acc = e.acceleration && (e.acceleration.x != null || e.acceleration.y != null) ? 
+				e.acceleration : (e.accelerationIncludingGravity || e);
 
-		var ax = acc.x || 0;
-		var ay = acc.y || 0;
-		var az = acc.z || 0;
+			var ax = acc.x || 0;
+			var ay = acc.y || 0;
+			var az = acc.z || 0;
 
-		var deltaX = ax - lastX;
-		var deltaY = ay - lastY;
-		var deltaZ = az - lastZ;
+			var deltaX = ax - lastX;
+			var deltaY = ay - lastY;
+			var deltaZ = az - lastZ;
 
-		lastX = ax;
-		lastY = ay;
-		lastZ = az;
+			lastX = ax;
+			lastY = ay;
+			lastZ = az;
 
-		var mag = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ) * factor;
+			var mag = Math.sqrt(deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ) * factor;
 
-		if (mag >= threshold) {
-			var now = Date.now();
+			if (mag >= threshold) {
+				var now = Date.now();
 
-			// Reset stop timer on active motion
-			if (obj._shakeStopTimeout) obj._shakeStopTimeout.clear();
+				if (obj._shakeStopTimeout) obj._shakeStopTimeout.clear();
 
-			obj._shakeStopTimeout = zim.timeout(wait, function() {
-				obj._shakeStopTimeout = null;
-				if (stopCall) stopCall(obj);
-				obj.dispatchEvent({
-					type: "shakestop",
-					event: e
+				obj._shakeStopTimeout = zim.timeout(wait, function() {
+					obj._shakeStopTimeout = null;
+					if (stopCall) stopCall(obj);
+					obj.dispatchEvent({
+						type: "shakestop",
+						event: e
+					});
+					if (s) s.update();
 				});
-				if (s) s.update();
-			});
 
-			if (now - lastTime >= wait * 1000) {
-				lastTime = now;
+				if (now - lastTime >= wait * 1000) {
+					lastTime = now;
 
-				var orient = 0;
-				if (typeof WW != "undefined") {
-					if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
-						orient = WW.screen.orientation.angle;
-					} else if (typeof WW.orientation != "undefined") {
-						orient = WW.orientation;
+					var orient = 0;
+					if (typeof WW != "undefined") {
+						if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+							orient = WW.screen.orientation.angle;
+						} else if (typeof WW.orientation != "undefined") {
+							orient = WW.orientation;
+						}
 					}
+
+					var shakeX, shakeY, shakeZ = deltaZ * factor;
+					if (orient == 90) {
+						shakeX = deltaY * factor;
+						shakeY = -deltaX * factor;
+					} else if (orient == -90 || orient == 270) {
+						shakeX = -deltaY * factor;
+						shakeY = deltaX * factor;
+					} else if (orient == 180) {
+						shakeX = -deltaX * factor;
+						shakeY = -deltaY * factor;
+					} else {
+						shakeX = deltaX * factor;
+						shakeY = deltaY * factor;
+					}
+
+					if (call) call(mag, shakeX, shakeY, shakeZ, obj, e);
+					obj.dispatchEvent({
+						type: "shake",
+						total: mag,
+						x: shakeX,
+						y: shakeY,
+						z: shakeZ,
+						event: e
+					});
+
+					if (s) s.update();
 				}
-
-				var shakeX, shakeY, shakeZ = deltaZ * factor;
-				if (orient == 90) {
-					shakeX = deltaY * factor;
-					shakeY = -deltaX * factor;
-				} else if (orient == -90 || orient == 270) {
-					shakeX = -deltaY * factor;
-					shakeY = deltaX * factor;
-				} else if (orient == 180) {
-					shakeX = -deltaX * factor;
-					shakeY = -deltaY * factor;
-				} else { // 0 portrait
-					shakeX = deltaX * factor;
-					shakeY = deltaY * factor;
-				}
-
-				if (call) call(mag, shakeX, shakeY, shakeZ, obj, e);
-				obj.dispatchEvent({
-					type: "shake",
-					total: mag,
-					x: shakeX,
-					y: shakeY,
-					z: shakeZ,
-					event: e
-				});
-
 			}
 		}
-	}
 
-	function activate() {
-		obj._shakeType = type;
-		obj._shakeListener = handleMotion;
-		f.on(type, obj._shakeListener);
-		if (ready) ready(true, obj);
-	}
+		function activate() {
+			obj._shakeType = type;
+			obj._shakeListener = handleMotion;
+			f.on(type, obj._shakeListener);
+			if (ready) ready(true, obj);
+		}
 
-	// Simple function queue
-	if (f._permissionGranted) {
-		activate();
-	} else if (f._permissionPending) {
-		f._permissionQueue.push(activate);
-	} else {
-		f._permissionPending = true;
-		f._permissionQueue = [activate];
+		// Shared Permission check & queueing
+		if (f._permissionGranted) {
+			activate();
+		} else if (f._permissionPending) {
+			f._permissionQueue.push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
+		} else {
+			f._permissionPending = true;
+			f._permissionQueue = [{ activate: activate, reject: function() { if (ready) ready(false, obj); } }];
 
-		new zim.PermissionAsk(function(yes) {
-			f._permissionPending = false;
-			if (yes) {
-				f._permissionGranted = true;
-				zim.loop(f._permissionQueue, function(fn) { fn(); });
+			new zim.PermissionAsk(function(yes) {
+				f._permissionPending = false;
+				if (yes) {
+					f._permissionGranted = true;
+					zim.loop(f._permissionQueue, function(item) { item.activate(); });
+				} else {
+					zim.loop(f._permissionQueue, function(item) { item.reject(); });
+				}
 				f._permissionQueue = [];
-			} else {
-				if (ready) ready(false, obj);
-			}
-		}, type);
-	}
+			}, type);
+		}
 
-	return obj;
-};//-34.95
+		return obj;
+	};//-34.95
 
 
 /*--
@@ -59048,30 +59054,30 @@ END EXAMPLE
 
 RETURNS obj for chaining
 --*///+34.96
-zim.noShake = function(obj) {
-	var sig = "obj";
-	var duo; if (duo = zob(zim.noShake, arguments, sig)) return duo;
-	z_d("34.96");
+	zim.noShake = function(obj) {
+		var sig = "obj";
+		var duo; if (duo = zob(zim.noShake, arguments, sig)) return duo;
+		z_d("34.96");
 
-	if (zot(obj) || !obj.on || !obj.zimTouch) return;
+		if (zot(obj) || !obj.on || !obj.zimTouch) return;
 
-	// MONITOR
-	var mID = "z~noShake";
-	if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
+		// MONITOR
+		var mID = "z~noShake";
+		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
 
-	var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 
-	if (obj._shakeListener && f) {
-		f.off(obj._shakeType || "devicemotion", obj._shakeListener);
-		obj._shakeListener = null;
-	}
-	if (obj._shakeStopTimeout) {
-		obj._shakeStopTimeout.clear();
-		obj._shakeStopTimeout = null;
-	}
+		if (obj._shakeListener && f) {
+			f.off(obj._shakeType || "devicemotion", obj._shakeListener);
+			obj._shakeListener = null;
+		}
+		if (obj._shakeStopTimeout) {
+			obj._shakeStopTimeout.clear();
+			obj._shakeStopTimeout = null;
+		}
 
-	return obj;
-};//-34.96
+		return obj;
+	};//-34.96
 
 // SUBSECTION HIT TESTS
 
@@ -98758,7 +98764,9 @@ Pre ZIM 018, this was done with a sensors parameter on the Frame.
 The sensors parameter has now been removed and the events are handled with PermissionAsk.
 
 NOTE: this started as SensorAsk but the class has been adjusted to handle other permissions and the name has been changed in ZIM 016
+
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
+
 NOTE: sensor prompt text can be customized prior to calling with F.sensorText = "Custom message";
 
 EXAMPLE
@@ -98930,27 +98938,49 @@ no - reference to the zim Button with NO
             return;
         }
 
-        // sensors only		
+        // Sensors probe: iOS uses PermissionAsk popup; Android/Desktop probes hardware directly
 		if (typeof DeviceOrientationEvent != "undefined" && DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission == "function") {
 			setPane();
 		} else {
-			var called = false;
-			WW.addEventListener(permissionType, testMe);
+			var tested = false;
+			var timer = setTimeout(function() {
+				if (tested) return;
+				tested = true;
+				WW.removeEventListener(permissionType, testMe);
+				callback(false, 3); // 3 - timeout / no sensor hardware (e.g. desktop)
+			}, 1000);
+
 			function testMe(e) {
-				if (okay) return;
-				if (permissionType=="deviceorientation") {
-					if (e.alpha==null || (e.alpha==0&&e.beta==0&&e.gamma==0)) callback(false, 1);
-					else setEvents();
+				if (tested || okay) return;
+				if (permissionType == "deviceorientation") {
+					if (e.alpha != null || e.beta != null || e.gamma != null) {
+						tested = true;
+						clearTimeout(timer);
+						WW.removeEventListener(permissionType, testMe);
+						setEvents();
+					} else {
+						tested = true;
+						clearTimeout(timer);
+						WW.removeEventListener(permissionType, testMe);
+						callback(false, 1);
+					}
 				} else {
-					if (!e.acceleration || e.acceleration.x==null) callback(false, 2);
-					else setEvents();
-				}	
-				called = true;
-				WW.removeEventListener(permissionType, testMe);				               
-            }
-			setTimeout(function(){
-				if (!called) callback(false, 3);
-			}, 5000);
+					var hasAcc = e.acceleration && (e.acceleration.x != null || e.acceleration.y != null || e.acceleration.z != null);
+					var hasGrav = e.accelerationIncludingGravity && (e.accelerationIncludingGravity.x != null || e.accelerationIncludingGravity.y != null || e.accelerationIncludingGravity.z != null);
+					if (hasAcc || hasGrav) {
+						tested = true;
+						clearTimeout(timer);
+						WW.removeEventListener(permissionType, testMe);
+						setEvents();
+					} else {
+						tested = true;
+						clearTimeout(timer);
+						WW.removeEventListener(permissionType, testMe);
+						callback(false, 2);
+					}
+				}
+			}
+			WW.addEventListener(permissionType, testMe);
 		}
 
 		var lastZ = 0;
@@ -98966,6 +98996,7 @@ no - reference to the zim Button with NO
 			frame.dispatchEvent(e);
 		}
 		function setEvents() {
+			if (frame) frame._permissionGranted = true;
 			if (permissionType=="deviceorientation") {		
 				frame.zimDeviceorientationEvent = deviceorientationEvent;
 				WW.addEventListener("deviceorientation", frame.zimDeviceorientationEvent);
