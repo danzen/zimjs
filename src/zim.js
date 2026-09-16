@@ -58294,6 +58294,8 @@ ALSO: see noTilt() to remove tilt behaviors.
 
 ALSO: see tiltBoundary() to dynamically change or clear the boundary rectangle.
 
+SEE: https://zimjs.com/020/tilt.html
+
 EXAMPLE
 // Basic rolling ball constrained to stage bounds
 const ball = new Circle(30, red)
@@ -58616,6 +58618,8 @@ To change buttons of the Dialog set: F.sensorAsk.yes.text = "OUI"; F.sensorAsk.n
 
 ALSO: see noTurn() to remove turning behaviors.
 
+SEE: https://zimjs.com/020/turn.html
+
 EXAMPLE
 // Point an arrow with device heading (stays pointing up in world space)
 const arrow = new Arrow({type:"thick"}).sca(4).rot(-90).centerReg().turn();
@@ -58673,7 +58677,8 @@ RETURNS obj for chaining
 		var dampRot = damp ? new zim.Damp(obj.rotation, damp) : null;
 		var startDeviceAngle = null;
 		var currentDeviceAngle = null;
-		var lastMode = null;
+		var lastSteerAng = null;
+		var lastFlatAng = null;
 
 		function angleDiff(a, b) {
 			var diff = (a - b) % 360;
@@ -58690,28 +58695,18 @@ RETURNS obj for chaining
 		}
 
 		function updateTurn() {
-			if (startDeviceAngle === null || currentDeviceAngle === null) return;
-
-			var orient = 0;
-			if (typeof WW != "undefined") {
-				if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
-					orient = WW.screen.orientation.angle;
-				} else if (typeof WW.orientation != "undefined") {
-					orient = WW.orientation;
-				}
-			}
+			if (currentDeviceAngle === null) return;
 
 			var startRot = obj._turnStartRot != null ? obj._turnStartRot : 0;
 			var targetRot = obj.rotation;
 
 			if (mode == "relative") {
-				var diff = angleDiff(currentDeviceAngle, startDeviceAngle);
+				var diff = currentDeviceAngle - (startDeviceAngle || 0);
 				targetRot = startRot - diff * factor;
 			} else if (mode == "absolute") {
-				var absHeading = (currentDeviceAngle - orient + 360) % 360;
-				targetRot = startRot - absHeading * factor;
+				targetRot = startRot - currentDeviceAngle * factor;
 			} else if (mode == "continuous") {
-				var cDiff = angleDiff(currentDeviceAngle, startDeviceAngle);
+				var cDiff = angleDiff(currentDeviceAngle, startDeviceAngle || 0);
 				targetRot = obj.rotation - (cDiff * factor * 0.05);
 			}
 
@@ -58733,38 +58728,67 @@ RETURNS obj for chaining
 			obj._turnStartRot = obj.rotation;
 			startDeviceAngle = null;
 			currentDeviceAngle = null;
-			lastMode = null;
+			lastSteerAng = null;
+			lastFlatAng = null;
 			if (dampRot) dampRot.immediate(obj.rotation);
 
 			obj._turnType = type;
 			obj._turnListener = function(e) {
+				var orient = 0;
+				if (typeof WW != "undefined") {
+					if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+						orient = WW.screen.orientation.angle;
+					} else if (typeof WW.orientation != "undefined") {
+						orient = WW.orientation;
+					}
+				}
+
 				var beta = e.rotation ? e.rotation.x : (e.beta || 0);
 				var gamma = e.rotation ? e.rotation.y : (e.gamma || 0);
-				var alpha = e.rotation && e.rotation.z != null ? e.rotation.z : (e.alpha != null ? (360 - e.alpha) : 0);
+				var alpha = e.rotation && e.rotation.z != null ? e.rotation.z : (e.alpha != null ? (360 - e.alpha) % 360 : 0);
 
-				var isUpright = Math.abs(beta) > 20 || Math.abs(gamma) > 20;
-				var curMode = isUpright ? "upright" : "flat";
-				var ang;
-
-				if (isUpright) {
-					var radB = beta * (Math.PI / 180);
-					var radG = gamma * (Math.PI / 180);
-					ang = Math.atan2(Math.sin(radG), Math.cos(radG) * Math.sin(radB)) * (180 / Math.PI);
+				var tiltX, tiltY;
+				if (orient == 90) {
+					tiltX = beta;
+					tiltY = -gamma;
+				} else if (orient == -90 || orient == 270) {
+					tiltX = -beta;
+					tiltY = gamma;
+				} else if (orient == 180) {
+					tiltX = -gamma;
+					tiltY = -beta;
 				} else {
-					ang = alpha;
+					tiltX = gamma;
+					tiltY = beta;
 				}
 
-				if (startDeviceAngle === null) {
-					startDeviceAngle = ang;
-					lastMode = curMode;
-					if (dampRot) dampRot.immediate(obj.rotation);
-				} else if (lastMode !== null && curMode !== lastMode) {
-					var prevDiff = angleDiff(currentDeviceAngle, startDeviceAngle);
-					startDeviceAngle = ang - prevDiff;
-					lastMode = curMode;
-				}
+				var mag = Math.sqrt(tiltX * tiltX + tiltY * tiltY);
+				var steerAng = Math.atan2(tiltX, tiltY) * (180 / Math.PI);
+				var flatAng = (alpha - orient + 360) % 360;
 
-				currentDeviceAngle = ang;
+				if (mode == "absolute") {
+					currentDeviceAngle = flatAng;
+					if (startDeviceAngle === null) startDeviceAngle = flatAng;
+				} else {
+					if (currentDeviceAngle === null) {
+						startDeviceAngle = 0;
+						currentDeviceAngle = 0;
+						lastSteerAng = steerAng;
+						lastFlatAng = flatAng;
+						if (dampRot) dampRot.immediate(obj.rotation);
+					} else {
+						var dSteer = angleDiff(steerAng, lastSteerAng);
+						var dFlat = angleDiff(flatAng, lastFlatAng);
+
+						// Smoothly blend between flat table (mag <= 20) and upright wheel (mag >= 50)
+						var w = zim.constrain((mag - 20) / 30, 0, 1);
+						var delta = (1 - w) * dFlat + w * dSteer;
+
+						currentDeviceAngle += delta;
+						lastSteerAng = steerAng;
+						lastFlatAng = flatAng;
+					}
+				}
 			};
 			f.on(type, obj._turnListener);
 
@@ -58858,6 +58882,8 @@ NOTE: To change the text of the Dialog set: F.sensorText = "OKAY?"; // BEFORE ca
 To change buttons of the Dialog set: F.sensorAsk.yes.text = "OUI"; F.sensorAsk.no.text = "NON"; // AFTER calling the shake() 
 
 ALSO: see noShake() to remove shake listeners.
+
+SEE: https://zimjs.com/020/shake.html
 
 EXAMPLE
 const color = series(red,green,blue);
@@ -98638,118 +98664,6 @@ END EXAMPLE
 //-83.867
 
 /*--
-Tilt - device orientation event
-
-Tilt
-"deviceorientation" Frame event
-
-DESCRIPTION
-The Frame has a "deviceorientation" event to capture tilt or device rotation (like a compass)
-and a "devicemotion" event to capture shaking the device with the accelerometer.
-
-SEE: the tilt() method (just after gesture()) for a one line version
-
-SEE: Shake - for the "devicemotion" event for accelerometer motion
-
-SEE: the PermissionAsk() class which will handle asking for permissions on devices.
-
-EXAMPLE
-// SEE ALSO THE TILT METHOD FOR A ONE LINE VERSION
-
-// TILT OR COMPASS - https://zimjs.com/zapp/Z_Q5UYS
-// for capturing tilt on device (rotation about an axis)
-// be on a mobile device or a device with sensors
-new PermissionAsk(yes=>{
-	if (yes) { // the user answered yes to PermissionAsk
-		// all code goes in here
-		new Label("Tilt the device to move circle").alp(.3).pos(0,30,CENTER);
-		const circle = new Circle().center();
-		const amount = .5;
-		const compass = new Line(60, 4, light, "arrow").rot(90).centerReg(circle); // point up
-		F.on("deviceorientation", e=>{
-		    // for tilt 
-			circle.mov(e.rotation.y*amount, e.rotation.x*amount);
-			circle.x = constrain(circle.x, 0, W);
-			circle.y = constrain(circle.y, 0, H);
-			// for compass use e.rotation.z 
-			// which has 0 angle at device start rotation (not necessarily North)
-			compass.rot(90-e.rotation.z); // rotate opposite device rotation
-			S.update();
-		});
-	} else { // the user answered no to PermissionAsk 		
-		new Pane("SENSOR not available",yellow).show();	
-	}
-});
-END EXAMPLE
-
-EVENTS 
-"deviceorientation" - for tilt 
-	fired as device orientation changes:
-		eventObject.rotation.x (beta in HTML specs) holds rotation about the x axis between -180 and 180 (tipped forward or backward)
-		eventObject.rotation.y (gamma in HTML specs) holds rotation about the y axis between -90 and 90 (tipped left or right)
-		eventObject.rotation.z (alpha in HTML specs) holds rotation about the z axis 0-360 clockwise (relative to orientation when app loads)
-			note rotation.z is 360-alpha compared to the HTML 5 specs
-			note also that beta, gamma and alpha from the HTML 5 specs are also provided
---*///+83.86
-// Device motion and orientation events are available as Frame events
-//-83.86
-
-/*--
-Shake - device motion event
-
-Shake
-"devicemotion" Frame event
-
-DESCRIPTION
-The Frame has a "devicemotion" event to capture shaking the device with the accelerometer.
-
-SEE: Tilt - for the "deviceorientation" event for tilt or compass
-
-SEE: the PermissionAsk() class which will handle asking for permissions on devices.
-
-EXAMPLE
-// SHAKE - https://zimjs.com/zapp/Z_XF8JM
-// for capturing shaking motion on device (acceleration about an axis)
-// be on a mobile device or a device with sensors
-new PermissionAsk(init, "devicemotion");
-function init(yes) {	
-	if (yes) { // the user answered yes to PermissionAsk	
-		// all code goes in here		
-		new Label("Shake the device").center();
-		S.update();
-		let id;
-		F.on("devicemotion", e=>{
-			// for shake	
-		    if (
-		        Math.abs(e.acceleration.x) > 5 ||
-		        Math.abs(e.acceleration.y) > 5 ||
-		        Math.abs(e.acceleration.z) > 5
-		    ) {
-		        if (F.color != green) {
-		            F.color = green;
-		            S.update();
-		        }
-		        if (id) id.clear();
-		        id = timeout(.2, ()=>{
-		            F.color = light;
-		            S.update();
-		        });
-		    } 
-		});
-	} else { // the user answered no to PermissionAsk		
-		new Pane("SENSOR not available",yellow).show();
-	}	
-}
-END EXAMPLE
-
-EVENTS 
-"devicemotion" - for shake
-	fired on moving mobile device - like a shake - eventObject.acceleration holds x, y and z properties of motion   
---*///+83.87
-// Device motion and orientation events are available as Frame events
-//-83.87
-
-/*--
 zim.PermissionAsk = function(callback, permissionType, color, backgroundColor, style, group, inherit)
 
 PermissionAsk
@@ -98768,6 +98682,9 @@ NOTE: this started as SensorAsk but the class has been adjusted to handle other 
 NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set to true before running zim)
 
 NOTE: sensor prompt text can be customized prior to calling with F.sensorText = "Custom message";
+
+NOTE: as of ZIM 020 tilt(), turn(), and shake() can be applied as methods to DisplayObjects
+and will call PermissionAsk automatically so would suggest using those methods
 
 EXAMPLE
 // DEVICE ORIENTATION - gives angle of device in all 3 dimensions
@@ -98938,8 +98855,18 @@ no - reference to the zim Button with NO
             return;
         }
 
-        // Sensors probe: iOS uses PermissionAsk popup; Android/Desktop probes hardware directly
-		if (typeof DeviceOrientationEvent != "undefined" && DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission == "function") {
+        // Fast check: if sensors not supported in environment (e.g. non-secure HTTP or missing API)
+        var hasOrientAPI = typeof DeviceOrientationEvent != "undefined" && DeviceOrientationEvent;
+        var hasMotionAPI = typeof DeviceMotionEvent != "undefined" && DeviceMotionEvent;
+        if (WW.isSecureContext === false || (pt == "deviceorientation" && !hasOrientAPI) || (pt == "devicemotion" && !hasMotionAPI)) {
+            callback(false, pt == "deviceorientation" ? 1 : 2);
+            return;
+        }
+
+        var isIOS = (M == "ios" || (typeof navigator != "undefined" && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1))));
+
+        // Sensors probe: Only iOS devices with requestPermission require the PermissionAsk popup
+		if (isIOS && typeof DeviceOrientationEvent != "undefined" && DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission == "function") {
 			setPane();
 		} else {
 			var tested = false;
@@ -98948,7 +98875,7 @@ no - reference to the zim Button with NO
 				tested = true;
 				WW.removeEventListener(permissionType, testMe);
 				callback(false, 3); // 3 - timeout / no sensor hardware (e.g. desktop)
-			}, 1000);
+			}, 500);
 
 			function testMe(e) {
 				if (tested || okay) return;
@@ -98983,13 +98910,9 @@ no - reference to the zim Button with NO
 			WW.addEventListener(permissionType, testMe);
 		}
 
-		var lastZ = 0;
-		var flip = 0;
 		function deviceorientationEvent(e) {
-			var z = 360-e.alpha;
-			if (Math.abs(z-lastZ) > 180 - 45 && Math.abs(z-lastZ) < 180 + 45) flip = flip == 0 ? 180 : 0;
-			lastZ = z;
-			e.rotation = {x:e.beta, y:e.gamma, z:(z + flip) % 360};
+			var z = e.alpha != null ? (360 - e.alpha) % 360 : 0;
+			e.rotation = {x:e.beta || 0, y:e.gamma || 0, z:z};
 			frame.dispatchEvent(e);			
 		}
 		function devicemotionEvent(e) {
