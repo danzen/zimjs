@@ -26511,7 +26511,7 @@ EXAMPLE
 // copy the emoji or use the copy link and paste into the string below
 // leave the noto_ at the start and paste the emoji icon right after the _
 // where icon is the actual emoji icon (or a unicode number, or a noto code)
-// this will create and SVG that is the same across platforms (Windows, Linux, Android, iOS)
+// this will create an SVG that is the same across platforms (Windows, Linux, Android, iOS)
 new Emoji("noto_icon") 
 	.center()
 	.drag();
@@ -44485,7 +44485,7 @@ const emojiPicker = new EmojiPicker()
 	.change(() => {
 		// we will make a bigger emoji by passing the code of the currentEmoji 
 		// to the new Emoji - you can clone and then scale but that can look blotchy  
-		const emoji = new Emoji(emojiPicker.currentEmoji.code, 200)
+		const emoji = new Emoji(emojiPicker.selectedEmoji.code, 200)
 			.centerReg()
 			.drag();
 		S.update();
@@ -44535,9 +44535,11 @@ addChild(), removeChild(), addChildAt(), getChildAt(), contains(), removeAllChil
 
 PROPERTIES
 type - holds the class name as a String
-selectedEmoji - get the selected emoji - this is a zim Emoji object
+selectedEmoji - the selected ZIM Emoji object
 	clone the object to let the user use it
 	or make a new Emoji() from the selectedEmoji.code and pass in a different size, etc.
+selectedText - the text of the selected Emoji
+currentEmoji - (depricated) actually the Label of the selectedEmoji - left for backwards compatibility 
 emojiData - get the list of emojis - warning, if zog to console they will look like emojis
 wrapper - the ZIM Wrapper used for the picker 
 
@@ -44615,7 +44617,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.add(this.backdrop);
 		this.add(this.wrapper);
 		this.wrapper.tap(function(e) {
-			that.currentEmoji = e.target;
+			that.selectedText = e.target.text;
+			that.selectedEmoji = e.target.parent;
+			that.currentEmoji = e.target; // accidentally is the label property - leaving for backwards compatibility
 			that.dispatchEvent("change");
 		});
 		if (style!==false) zim.styleTransforms(this, DS);
@@ -58358,35 +58362,11 @@ RETURNS obj for chaining
 
 		var dampX = damp ? new zim.Damp(mode == "position" ? obj.x : 0, damp) : null;
 		var dampY = damp ? new zim.Damp(mode == "position" ? obj.y : 0, damp) : null;
-		var currentRot = {x: 0, y: 0, z: 0};
+		var currentVector = {x: 0, y: 0};
 
 		function updateTilt() {
-			var orient = 0;
-			if (typeof WW != "undefined") {
-				if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
-					orient = WW.screen.orientation.angle;
-				} else if (typeof WW.orientation != "undefined") {
-					orient = WW.orientation;
-				}
-			}
-
-			var beta = currentRot.x;
-			var gamma = currentRot.y;
-			var tiltX, tiltY;
-
-			if (orient == 90) {
-				tiltX = beta;
-				tiltY = -gamma;
-			} else if (orient == -90 || orient == 270) {
-				tiltX = -beta;
-				tiltY = gamma;
-			} else if (orient == 180) {
-				tiltX = -gamma;
-				tiltY = -beta;
-			} else {
-				tiltX = gamma;
-				tiltY = beta;
-			}
+			var tiltX = currentVector.x;
+			var tiltY = currentVector.y;
 
 			if (mode == "move") {
 				var rotX = dampX ? dampX.convert(tiltX) : tiltX;
@@ -58418,14 +58398,50 @@ RETURNS obj for chaining
 
 			obj._tiltType = type;
 			obj._tiltListener = function(e) {
-				if (e.rotation) {
-					currentRot.x = e.rotation.x || 0;
-					currentRot.y = e.rotation.y || 0;
-					currentRot.z = e.rotation.z || 0;
+				var orient = 0;
+				if (typeof WW != "undefined") {
+					if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
+						orient = WW.screen.orientation.angle;
+					} else if (typeof WW.orientation != "undefined") {
+						orient = WW.orientation;
+					}
+				}
+
+				if (type == "devicemotion" || e.accelerationIncludingGravity || e.accelerationData) {
+					var acc = e.accelerationData || e.accelerationIncludingGravity || e.acceleration || e;
+					var ax = acc.x || 0;
+					var ay = acc.y || 0;
+
+					if (orient == 90) {
+						currentVector.x = ay * 5;
+						currentVector.y = ax * 5;
+					} else if (orient == -90 || orient == 270) {
+						currentVector.x = -ay * 5;
+						currentVector.y = -ax * 5;
+					} else if (orient == 180) {
+						currentVector.x = ax * 5;
+						currentVector.y = -ay * 5;
+					} else {
+						currentVector.x = -ax * 5;
+						currentVector.y = ay * 5;
+					}
 				} else {
-					currentRot.x = e.beta || 0;
-					currentRot.y = e.gamma || 0;
-					currentRot.z = e.alpha || 0;
+					var beta = e.rotation ? e.rotation.x : (e.beta || 0);
+					var gamma = e.rotation ? e.rotation.y : (e.gamma || 0);
+
+					if (orient == 90) {
+						currentVector.x = beta;
+						currentVector.y = -gamma;
+					} else if (orient == -90 || orient == 270) {
+						currentVector.x = -beta;
+						currentVector.y = gamma;
+					} else if (orient == 180) {
+						currentVector.x = -gamma;
+						currentVector.y = -beta;
+					} else {
+						currentVector.x = gamma;
+						currentVector.y = beta;
+					}
 				}
 			};
 			f.on(type, obj._tiltListener);
@@ -58434,24 +58450,29 @@ RETURNS obj for chaining
 			if (ready) ready(true, obj);
 		}
 
-		// Shared Permission check & queueing
-		if (f._permissionGranted) {
+		// Per-type Permission check & queueing
+		if (!f._permissionGranted) f._permissionGranted = {};
+		if (!f._permissionPending) f._permissionPending = {};
+		if (!f._permissionQueue) f._permissionQueue = {};
+		if (!f._permissionQueue[type]) f._permissionQueue[type] = [];
+
+		if (f._permissionGranted[type]) {
 			activate();
-		} else if (f._permissionPending) {
-			f._permissionQueue.push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
+		} else if (f._permissionPending[type]) {
+			f._permissionQueue[type].push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 		} else {
-			f._permissionPending = true;
-			f._permissionQueue = [{ activate: activate, reject: function() { if (ready) ready(false, obj); } }];
+			f._permissionPending[type] = true;
+			f._permissionQueue[type].push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 
 			new zim.PermissionAsk(function(yes) {
-				f._permissionPending = false;
+				f._permissionPending[type] = false;
 				if (yes) {
-					f._permissionGranted = true;
-					zim.loop(f._permissionQueue, function(item) { item.activate(); });
+					f._permissionGranted[type] = true;
+					zim.loop(f._permissionQueue[type], function(item) { item.activate(); });
 				} else {
-					zim.loop(f._permissionQueue, function(item) { item.reject(); });
+					zim.loop(f._permissionQueue[type], function(item) { item.reject(); });
 				}
-				f._permissionQueue = [];
+				f._permissionQueue[type] = [];
 			}, type);
 		}
 
@@ -58482,7 +58503,7 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.noTilt, arguments, sig)) return duo;
 		z_d("34.91");
 
-		if (zot(obj) || !obj.on || !obj.zimTouch) return;
+		if (zot(obj) || !obj.on) return;
 
 		// MONITOR
 		var mID = "z~noTilt";
@@ -58764,7 +58785,7 @@ RETURNS obj for chaining
 
 				var mag = Math.sqrt(tiltX * tiltX + tiltY * tiltY);
 				var steerAng = Math.atan2(tiltX, tiltY) * (180 / Math.PI);
-				var flatAng = (alpha - orient + 360) % 360;
+				var flatAng = (alpha + orient + 360) % 360;
 
 				if (mode == "absolute") {
 					currentDeviceAngle = flatAng;
@@ -58780,9 +58801,12 @@ RETURNS obj for chaining
 						var dSteer = angleDiff(steerAng, lastSteerAng);
 						var dFlat = angleDiff(flatAng, lastFlatAng);
 
-						// Smoothly blend between flat table (mag <= 20) and upright wheel (mag >= 50)
-						var w = zim.constrain((mag - 20) / 30, 0, 1);
-						var delta = (1 - w) * dFlat + w * dSteer;
+						var delta;
+						if (mag > 35 && Math.abs(dSteer) > Math.abs(dFlat) && Math.abs(beta) < 70) {
+							delta = dSteer;
+						} else {
+							delta = dFlat;
+						}
 
 						currentDeviceAngle += delta;
 						lastSteerAng = steerAng;
@@ -58796,24 +58820,29 @@ RETURNS obj for chaining
 			if (ready) ready(true, obj);
 		}
 
-		// Shared Permission check & queueing
-		if (f._permissionGranted) {
+		// Per-type Permission check & queueing
+		if (!f._permissionGranted) f._permissionGranted = {};
+		if (!f._permissionPending) f._permissionPending = {};
+		if (!f._permissionQueue) f._permissionQueue = {};
+		if (!f._permissionQueue[type]) f._permissionQueue[type] = [];
+
+		if (f._permissionGranted[type]) {
 			activate();
-		} else if (f._permissionPending) {
-			f._permissionQueue.push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
+		} else if (f._permissionPending[type]) {
+			f._permissionQueue[type].push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 		} else {
-			f._permissionPending = true;
-			f._permissionQueue = [{ activate: activate, reject: function() { if (ready) ready(false, obj); } }];
+			f._permissionPending[type] = true;
+			f._permissionQueue[type].push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 
 			new zim.PermissionAsk(function(yes) {
-				f._permissionPending = false;
+				f._permissionPending[type] = false;
 				if (yes) {
-					f._permissionGranted = true;
-					zim.loop(f._permissionQueue, function(item) { item.activate(); });
+					f._permissionGranted[type] = true;
+					zim.loop(f._permissionQueue[type], function(item) { item.activate(); });
 				} else {
-					zim.loop(f._permissionQueue, function(item) { item.reject(); });
+					zim.loop(f._permissionQueue[type], function(item) { item.reject(); });
 				}
-				f._permissionQueue = [];
+				f._permissionQueue[type] = [];
 			}, type);
 		}
 
@@ -58843,7 +58872,7 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.noTurn, arguments, sig)) return duo;
 		z_d("34.94");
 
-		if (zot(obj) || !obj.on || !obj.zimTouch) return;
+		if (zot(obj) || !obj.on) return;
 
 		// MONITOR
 		var mID = "z~noTurn";
@@ -58953,15 +58982,26 @@ RETURNS obj for chaining
 		if (zot(type)) type = "devicemotion";
 
 		var lastX = 0, lastY = 0, lastZ = 0;
+		var seeded = false;
 		var lastTime = 0;
 
 		function handleMotion(e) {
-			var acc = e.acceleration && (e.acceleration.x != null || e.acceleration.y != null) ? 
-				e.acceleration : (e.accelerationIncludingGravity || e);
+			var acc = e.accelerationData || e.accelerationIncludingGravity || e.acceleration || e;
+			if (e.acceleration && (e.acceleration.x || e.acceleration.y || e.acceleration.z)) {
+				acc = e.acceleration;
+			}
 
 			var ax = acc.x || 0;
 			var ay = acc.y || 0;
 			var az = acc.z || 0;
+
+			if (!seeded) {
+				seeded = true;
+				lastX = ax;
+				lastY = ay;
+				lastZ = az;
+				return;
+			}
 
 			var deltaX = ax - lastX;
 			var deltaY = ay - lastY;
@@ -59031,30 +59071,36 @@ RETURNS obj for chaining
 		}
 
 		function activate() {
+			seeded = false;
 			obj._shakeType = type;
 			obj._shakeListener = handleMotion;
 			f.on(type, obj._shakeListener);
 			if (ready) ready(true, obj);
 		}
 
-		// Shared Permission check & queueing
-		if (f._permissionGranted) {
+		// Per-type Permission check & queueing
+		if (!f._permissionGranted) f._permissionGranted = {};
+		if (!f._permissionPending) f._permissionPending = {};
+		if (!f._permissionQueue) f._permissionQueue = {};
+		if (!f._permissionQueue[type]) f._permissionQueue[type] = [];
+
+		if (f._permissionGranted[type]) {
 			activate();
-		} else if (f._permissionPending) {
-			f._permissionQueue.push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
+		} else if (f._permissionPending[type]) {
+			f._permissionQueue[type].push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 		} else {
-			f._permissionPending = true;
-			f._permissionQueue = [{ activate: activate, reject: function() { if (ready) ready(false, obj); } }];
+			f._permissionPending[type] = true;
+			f._permissionQueue[type].push({ activate: activate, reject: function() { if (ready) ready(false, obj); } });
 
 			new zim.PermissionAsk(function(yes) {
-				f._permissionPending = false;
+				f._permissionPending[type] = false;
 				if (yes) {
-					f._permissionGranted = true;
-					zim.loop(f._permissionQueue, function(item) { item.activate(); });
+					f._permissionGranted[type] = true;
+					zim.loop(f._permissionQueue[type], function(item) { item.activate(); });
 				} else {
-					zim.loop(f._permissionQueue, function(item) { item.reject(); });
+					zim.loop(f._permissionQueue[type], function(item) { item.reject(); });
 				}
-				f._permissionQueue = [];
+				f._permissionQueue[type] = [];
 			}, type);
 		}
 
@@ -59085,7 +59131,7 @@ RETURNS obj for chaining
 		var duo; if (duo = zob(zim.noShake, arguments, sig)) return duo;
 		z_d("34.96");
 
-		if (zot(obj) || !obj.on || !obj.zimTouch) return;
+		if (zot(obj) || !obj.on) return;
 
 		// MONITOR
 		var mID = "z~noShake";
@@ -94613,12 +94659,12 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 			// 	// }
 			// }
 
-			
+			var svgRoot = "https://raw.githubusercontent.com/googlefonts/noto-emoji/v2.042/svg/";
 
 			var match;
 			if (a.match) match = a.match(/^noto_(.*)/);
 			if (match) {		
-				a = {id:a, src:"https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/" + getNotoFilename(match[1])}
+				a = {id:a, src:svgRoot + getNotoFilename(match[1])}
 			}
             if (a.replace) a = a.replace(/gf_/i, "https://fonts.googleapis.com/css?family=");		
 			// split multi into individual ZIM asset objects and make the first of these
@@ -94632,8 +94678,8 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 					if (isVideoUrl(aj)) continue;
 					if (aj.match) match = aj.match(/^noto_(.*)/);
 					if (match) {		
-						aj = {id:aj, src:"https://raw.githubusercontent.com/googlefonts/noto-emoji/main/svg/" + getNotoFilename(match[1])}
-					}
+						aj = {id:aj, src:svgRoot + getNotoFilename(match[1])}
+					}					
 					if (aj.split) {
 						var temp = aj.split("?");
 						ext = temp[0].match(re);
@@ -97682,6 +97728,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
     }
     zim.extend(zim.SVG, zim.Container, ["clone"], "zimContainer", false);//-83.09
 
+
+
 /*--
 Speech = function()
 
@@ -98875,7 +98923,7 @@ no - reference to the zim Button with NO
 				tested = true;
 				WW.removeEventListener(permissionType, testMe);
 				callback(false, 3); // 3 - timeout / no sensor hardware (e.g. desktop)
-			}, 500);
+			}, 1500);
 
 			function testMe(e) {
 				if (tested || okay) return;
@@ -98886,6 +98934,7 @@ no - reference to the zim Button with NO
 						WW.removeEventListener(permissionType, testMe);
 						setEvents();
 					} else {
+						// Fast fail on desktop dummy event with nulls
 						tested = true;
 						clearTimeout(timer);
 						WW.removeEventListener(permissionType, testMe);
@@ -98900,6 +98949,7 @@ no - reference to the zim Button with NO
 						WW.removeEventListener(permissionType, testMe);
 						setEvents();
 					} else {
+						// Fast fail on desktop dummy motion with nulls
 						tested = true;
 						clearTimeout(timer);
 						WW.removeEventListener(permissionType, testMe);
@@ -98916,10 +98966,19 @@ no - reference to the zim Button with NO
 			frame.dispatchEvent(e);			
 		}
 		function devicemotionEvent(e) {
+			var acc = (e.accelerationIncludingGravity || e.acceleration || e);
+			e.accelerationData = {
+				x: acc.x || 0,
+				y: acc.y || 0,
+				z: acc.z || 0
+			};
 			frame.dispatchEvent(e);
 		}
 		function setEvents() {
-			if (frame) frame._permissionGranted = true;
+			if (frame) {
+				if (!frame._permissionGranted) frame._permissionGranted = {};
+				frame._permissionGranted[permissionType] = true;
+			}
 			if (permissionType=="deviceorientation") {		
 				frame.zimDeviceorientationEvent = deviceorientationEvent;
 				WW.addEventListener("deviceorientation", frame.zimDeviceorientationEvent);

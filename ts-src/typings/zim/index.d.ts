@@ -2906,6 +2906,8 @@ declare namespace zim {
 		enabled: boolean
 		// END ZIM Component Interface
 		readonly selectedEmoji: Emoji
+		readonly selectedText: string
+		readonly currentEmoji: Label
 		readonly emojiData: string[]
 	}
 	export class TextEditor extends Container implements zimComponent {
@@ -4279,6 +4281,7 @@ declare namespace zim {
 	export function parseAudioSprite(audioSpriteData: { resources: string[], spritemap: {} }, outputAudioSprite?: boolean): { src: string, data: {} }
 	export function previewAudioSprite(audioSpriteData: {}, numLetters?: number, frame?: Frame): Tabs
 	export function svgToBitmap(svg: string | SVGElement, callBack: Function): void
+	export function makeContent(content:string|number|DisplayObject|{}, maxWidth?:number, color?:color, scrollBar?:boolean): string|number|DisplayObject
 	export function fastFrame(cjs: any, stage: createjs.Stage | createjs.StageGL): Function
 	export function addWires({ }): {}
 	export function setBlurDetect(): void
