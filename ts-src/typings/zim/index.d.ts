@@ -695,8 +695,11 @@ declare namespace zim {
 	export function setProps(obj: any, props: {}): void
 	export function swapHTML(idA: string, idB: string): boolean
 	// scrollX and scrollY are available only in zim namespace due to global conflict
+    export function browserScrollX(num: number, time?: number): number
+    export function browserScrollY(num: number, time?: number): number
 	export function windowWidth(): number
 	export function windowHeight(): number
+    export function browserZoom(): number
 	export function getQueryString(string?: string): {}
 	export function urlEncode(string: string): string
 	export function urlDecode(string: string): string
