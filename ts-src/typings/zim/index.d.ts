@@ -4414,5 +4414,6 @@ declare namespace zim {
 
 }
 
-export = zim
+export as namespace zim;
+export default zim;
 

@@ -1,9 +1,9 @@
 {
   "name": "zimjs",
-  "version": "20.1.1",
+  "version": "20.1.2",
   "type": "module",
   "main": "./src/zim.js",
-  "types": "./ts-src/typings/zim",
+  "types": "./ts-src/typings/zim/index.d.ts",
   "scripts": {},
   "devDependencies": {
     "typescript": "^4.5.2"
