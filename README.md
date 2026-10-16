@@ -94,7 +94,7 @@ There are also templates for VUE, Svelte, React and Angular further down.
 A. SETUP<br>
 - Open a folder in an IDE such as VS Code (The project folder will be made inside this folder)
 - Open a terminal - see Terminal in the menu - or CTRL SHIFT `
-- Check to see if you have node - type: <pre>node - v
+- Check to see if you have node - type: <pre>node -v
 - If not then install from https://nodejs.org
 - Run Vite - type: <pre>npm create vite</pre> 
 - If this needs to install, press y for yes
