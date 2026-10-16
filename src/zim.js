@@ -95922,7 +95922,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 		WW.removeEventListener("pointermove", leftEvent, true); 
 		WW.removeEventListener("pointerup", leftEvent);	
 						
-		if (!allowDefault) document.body.style.overflow = "athatuto";
+		if (!allowDefault) document.body.style.overflow = "auto";
 		recursiveDispose(stage);
 		function recursiveDispose(obj) {
 			if (!obj) return;
