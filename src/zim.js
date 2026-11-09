@@ -5774,19 +5774,20 @@ negative - (default false) allow the negative range of min and max when num is n
 RETURNS num if between min and max otherwise returns min if less or max if greater (inclusive)
 RETURNS num between -max and -min if num is negative and negative parameter is set to true
 --*///+13.2
-	zim.constrain = function(num, min, max, negative) {
-		z_d("13.2");
-		if (zot(num)) return;
-		if (zot(min)) min = 0;
-		if (zot(max)) max = Number.MAX_VALUE;
-		if (max < min) {var max2 = min; max = min; min = max2;} // ES6 Fix to come
-		if (zot(negative)) negative = false;
-		if (negative && num < 0) {
-			return Math.max(-max, Math.min(num, -min));
-		} else {
-			return Math.max(min, Math.min(num, max));
-		}
-	};//-13.2
+zim.constrain = function(num, min, max, negative) {
+	z_d("13.2");
+	if (zot(num)) return;
+	if (zot(min)) min = 0;
+	if (zot(max)) max = Number.MAX_VALUE;
+	if (max < min) {var max2 = max; max = min; min = max2;} // fixed in ZIM 020 had max2 = min previously - bug
+
+	if (zot(negative)) negative = false;
+	if (negative && num < 0) {
+		return Math.max(-max, Math.min(num, -min));
+	} else {
+		return Math.max(min, Math.min(num, max));
+	}
+};//-13.2
 
 /*--
 zim.dist = function(a, b, c, d)
@@ -7151,40 +7152,40 @@ contract(number|x, y, width, height) - number of pixels to make the Boundary sma
 	note: to expand pass in a negative number
 	returns object for chaining
 --*///+13.46
-	zim.Boundary = function(x, y, width, height) {
-		z_d("13.46");
-		if (!zot(x.x)) { // a rectangle or getBounds() is provided
-			height = x.height;
-			width = x.width;
-			y = x.y;
-			x = x.x;
-		}
-		if (zot(x) || zot(y) || zot(width) || zot(height)) return;
-		this.x = x;
-		this.y = y;
-		this.width = width;
-		this.height = height;
+zim.Boundary = function(x, y, width, height) {
+	z_d("13.46");
+	if (!zot(x.x)) { // a rectangle or getBounds() is provided
+		height = x.height;
+		width = x.width;
+		y = x.y;
+		x = x.x;
+	}
+	if (zot(x) || zot(y) || zot(width) || zot(height)) return;
+	this.x = x;
+	this.y = y;
+	this.width = width;
+	this.height = height;
 
-		this.contract = function(a,b,c,d) {
-			if (zot(a)) return this;
-			if (zot(b)) b = a;
-			if (zot(c)) {
-				c = a*2;
-			} else {
-				c = c+a;
-			}
-			if (zot(d)) {
-				d = b*2;
-			} else {
-				d = d+b;
-			}
-			this.x += a;
-			this.y += b;
-			this.width -= c;
-			this.height -= d;
-			return this;
-		};
-	};//-13.46
+	this.contract = function(a,b,c,d) {
+		if (zot(a)) return this;
+		if (zot(b)) b = a;
+		if (zot(c)) {
+			c = a*2;
+		} else {
+			c = c+a;
+		}
+		if (zot(d)) {
+			d = b*2;
+		} else {
+			d = d+b;
+		}
+		this.x += a;
+		this.y += b;
+		this.width -= c;
+		this.height -= d;
+		return this;
+	};
+};//-13.46
 
 /*--
 zim.GradientColor = function(colors, ratios|angle, x0, y0, x1, y1)
@@ -7470,20 +7471,20 @@ PROPERTIES
 damp - can dynamically change the damping (usually just pass it in as a parameter to start)
 lastValue - setting this would go immediately to this value (would not normally use)
 --*///+14
-	zim.Damp = function(startValue, damp) {
-		z_d("14");
-		var sig = "startValue, damp";
-		var duo; if (duo = zob(zim.Damp, arguments, sig, this)) return duo;
-		this.lastValue = (zot(startValue)) ? 0 : startValue;
-		this.damp = (zot(damp)) ? .1 : damp;
-	};
-	zim.Damp.prototype.convert = function(desiredValue) {
-		return this.lastValue = this.lastValue + (desiredValue - this.lastValue) * this.damp;
-	};
-	zim.Damp.prototype.immediate = function(desiredValue) {
-		this.lastValue = desiredValue;
-		return this;
-	};//-14
+zim.Damp = function(startValue, damp) {
+	z_d("14");
+	var sig = "startValue, damp";
+	var duo; if (duo = zob(zim.Damp, arguments, sig, this)) return duo;
+	this.lastValue = (zot(startValue)) ? 0 : startValue;
+	this.damp = (zot(damp)) ? .1 : damp;
+};
+zim.Damp.prototype.convert = function(desiredValue) {
+	return this.lastValue = this.lastValue + (desiredValue - this.lastValue) * this.damp;
+};
+zim.Damp.prototype.immediate = function(desiredValue) {
+	this.lastValue = desiredValue;
+	return this;
+};//-14
 
 /*--
 zim.Proportion = function(baseMin, baseMax, targetMin, targetMax, factor, targetRound, clamp, clampMin, clampMax)
@@ -26606,6 +26607,7 @@ x, y, rotation, scaleX, scaleY, regX, regY, skewX, skewY,
 alpha, cursor, shadow, name, mouseChildren, mouseEnabled, parent, numChildren, etc.
 
 EVENTS
+dispatches a complete event if using a lazy loaded noto_ emoji
 See the CreateJS Easel Docs for Container events such as:
 added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmove, pressup, removed, rollout, rollover
 --*///+54.58
@@ -26652,7 +26654,10 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		if (code.match) match = code.match(/^noto_(.*)/);
 		if (match) {
 			var svg = that.svg = new zim.SVG({svg:code, interactive:!(color||borderColor), bitmap:!(color||borderColor), color:color, borderColor:borderColor, order:order});
-			svg.addTo(this);			
+			svg.addTo(this);
+			svg.on("complete", function() {
+				that.dispatchEvent("complete");
+			});			
 		} else {
 			var label = this.label = new zim.Label(code, size, null, null, null, null, null, null, null, null, italic, null, null, null, backing, null, null, backgroundColor, null, null, corner, null, padding, paddingH, paddingV, shiftH, shiftV);
 			label.addTo(this);
@@ -26779,6 +26784,15 @@ new Button({
 END EXAMPLE
 
 EXAMPLE 
+// or use [SHORTCUT] parameter order:
+new Button("Restart").center();
+new Button("End", 100).loc(100,100);
+new Button("LONG TITLE", AUTO).pos(100,100,RIGHT,TOP);
+new Button("Change", red).pos(100,100,RIGHT,BOTTOM);
+new Button("WARNING SIGN", yellow, black, 300, 100).pos(100,100,LEFT,BOTTOM);
+END EXAMPLE
+
+EXAMPLE 
 // using the on() method and a mousedown - or click - event rather than tap() 
 // note - do not chain the on() method
 const button = new Button().center();
@@ -26793,6 +26807,12 @@ PARAMETERS
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
 ** supports VEE - parameters marked with ZIM VEE mean a zim Pick() object or Pick Literal can be passed
 Pick Literal formats: [1,3,2] - random; {min:10, max:20} - range; series(1,2,3) - order, function(){return result;} - function
+[SHORTCUT] (see REGULAR params for definitions)
+	label - as of ZIM 020 can alternatively use a label (String or Label) first
+		if the label comes first then the only other parameters available are either:
+	A. width, height, backgroundColor, color
+	B. backgroundColor, color, width, height
+[REGULAR]
 width - (default 200) the width of the button or AUTO to fit width to label (see also autoPadding)
 height - (default 60) the height of the button or AUTO to fit height to label (see also autoPadding)
 label - (default "CLICK" or "" if icon or backing) ZIM Label or plain text with default settings (white)
@@ -26988,8 +27008,50 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.group = group;
 		var DS = style===false?group!=null?zim.getStyle(null,null,inherit,this.group):{}:zim.getStyle("Button", group, inherit);
 
-		if (zot(width)) width=DS.width!=null?DS.width:200;
-		if (zot(height)) height=DS.height!=null?DS.height:60;
+		var poly = typeof arguments[0] === "string" || (arguments[0] && arguments[0].type == "Label");
+		if (poly && (arguments[0] == "auto" || (typeof AUTO !== "undefined" && arguments[0] == AUTO)) && (!zot(arguments[2]) || typeof arguments[1] === "number")) {
+			poly = false; // preserve legacy (width="auto", height, label)
+		}
+		if (poly) {
+			var pLabel = arguments[0];
+			var pWidth = null;
+			var pHeight = null; 
+			var pBg = null;
+			var pColor = null;
+			var isNum = function(v) {return typeof v === "number" || v == "auto" || (typeof AUTO !== "undefined" && v == AUTO);};
+			
+			if (isNum(arguments[1])) {
+				// Shorthand: (label, width, height, [backgroundColor], [color])
+				pWidth = arguments[1];
+				if (!zot(arguments[2])) pHeight = arguments[2];
+				if (!zot(arguments[3])) pBg = arguments[3];
+				if (!zot(arguments[4])) pColor = arguments[4];
+			} else {
+				// Shorthand: (label, backgroundColor, [color/width], [width/height], [height])
+				if (!zot(arguments[1])) pBg = arguments[1];
+				if (isNum(arguments[2])) {
+					// (label, backgroundColor, width, [height], [color])
+					pWidth = arguments[2];
+					if (!zot(arguments[3])) pHeight = arguments[3];
+					if (!zot(arguments[4])) pColor = arguments[4];
+				} else {
+					// (label, backgroundColor, color, [width], [height])
+					if (!zot(arguments[2])) pColor = arguments[2];
+					if (!zot(arguments[3])) pWidth = arguments[3];
+					if (!zot(arguments[4])) pHeight = arguments[4];
+				}
+			}
+			label = pLabel;
+			width = pWidth;
+			height = pHeight;
+			backgroundColor = pBg;
+			color = pColor;
+			// Clear downstream state colors that received shifted positional arguments
+			rollBackgroundColor = downBackgroundColor = rollColor = downColor = null;
+		}
+
+		if (zot(width)) width = DS.width!=null ? DS.width : (poly ? "auto" : 200);
+		if (zot(height)) height = DS.height!=null ? DS.height : 60;
 		
 		if (zot(WW.M)) WW.M = zim.mobile();		
 		
@@ -34457,6 +34519,9 @@ As if ZIM 017, drop parameters and properties have been added.
 These allow List items to be dragged and dropped within the same list or to other lists or to other objects.
 Objects not in lists can also be dragged into a list - see the drag() method's drop parameters.
 See https://zimjs.com/017/dropping.html
+See https://zimjs.com/017/dropping2.html
+See https://zimjs.com/zapp/Z_NJSC4
+See https://zimjs.com/017/canvas.html
 
 NOTE: List can have a ZIM Organizer added with the organizer parameter
 The organizer lets the user add, remove and move items up, down, to the top or the bottom
@@ -36288,7 +36353,7 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 		this.clone = function() {
 			return that.cloneProps(new zim.List(width, originalHeight, zim.copy(that.originalList, true), viewNum, vertical, currentSelected, align, valign, labelAlign, labelValign, labelIndent, labelIndentH, labelIndentV, indent, spacing, backgroundColor, rollBackgroundColor, downBackgroundColor, selectedBackgroundColor, selectedRollBackgroundColor, backdropColor, color, rollColor, downColor, selectedColor, selectedRollColor, originalBorderColor, originalBorderWidth, padding, zim.copy(corner), swipe, scrollBarActive, scrollBarDrag, scrollBarColor, scrollBarAlpha, scrollBarFade, scrollBarH, scrollBarV, scrollBarOverlay, slide, slideFactor, slideSnap, slideSnapDamp, shadowColor, shadowBlur, paddingH, paddingV, scrollWheel, damp, titleBar, titleBarColor, titleBarBackgroundColor, titleBarHeight, draggable, boundary, onTop, close, closeColor, collapse, collapseColor, collapsed, excludeCustomTap, organizer, checkBox, pulldown, clone, cancelCurrentDrag, index, noScale, pulldownToggle, optimize, keyEnabled, resizeHandle, resizeBoundary, resizeVisible, continuous, closeOthers, drop, dropTargets, dropSelf, dropCopy, dropColor, dropThickness, dropScrollSpeed, dropReticleAlpha, dropHitTest, dropFull, dropSnap, dropEnd, dropScale, dropWidth, dropHeight, selectedIndex, style, this.group, inherit));
 		};
-		this.dispose = function(a,b,disposing) {
+		this.dispose = function(a,b,disposing) { 
 			// if (!disposing) {
 				if (that.stageToggleEvent) stage.off("stagemousedown", that.stageToggleEvent, null, mID);
 				if (that.organizer) that.organizer.dispose();
@@ -42223,6 +42288,32 @@ const physics = new Physics(0);
 const ball = new Circle().center().addPhysics();
 const dPad = new DPad().pos(40,40,LEFT,BOTTOM);
 ball.control(dPad, 80);
+END EXAMPLE
+
+EXAMPLE 
+// MotionController for Editor or Zapp with dPad and first person
+zapp_assets = "ai_cartop06.png";
+zapp_path = "https://zimjs.org/assets/";
+
+// car pic starts pointing up which is good for first person motion controller
+const car = new Pic("ai_cartop06.png")
+	.sca(.5)
+	.centerReg();
+
+// here is the DPad with its new useBubble setting
+const dPad = new DPad({
+	backgroundColor:blue,
+	indicatorColor:dark, 
+	useBubble:true
+}).pos(100,100,LEFT,BOTTOM);
+
+const mc = new MotionController({
+	target:car, 		
+	type:dPad,
+	firstPerson:true,
+	orient:true,
+	boundary:S
+});
 END EXAMPLE
 
 PARAMETERS
@@ -54039,6 +54130,8 @@ dropCopy - (default false) make a copy of the object as it is being dragged
 dropSnap - (default true) snap to the target object
 dropBack - (default true) go back to last position if not dropped on a target
 	or back to start if not dropped on a target and the dropOriginal is true
+	Note - if dropping into lists, will also set dropOriginal true to be able to drop back out of list
+	Note - also have to set dropEnd to false if wanting to take later take object off a target and have it drop back.
 dropEnd - (default true) once dropped on a target a noMouse() is set on the object
 dropFull - (default true) do not drop on a full target
 	note - if the object is removed from the target then a drop can occur again on that target 
@@ -54050,8 +54143,9 @@ dropWidth - set a width for the dropped object - overrides scale
 	height will keep aspect ratio unless dropHeight is provided
 dropHeight - set a height for the dropped object - overrides scale
 	width will keep aspect ratio unless dropWidth is provided 
-dropOriginal - if dropBack is true, will go to original location and scale if obj is not dropped on a target
-	if dropped on a full target and dropFull is true then will go back to last position 
+dropOriginal - (default false) if set to false then once in a system always snaps back to within system 
+	if set to true, if dropped not on target then goes back to original x,y,scale 
+	otherwise if full then still snaps back inside system
 style - (default true) set to false to ignore styles set with the STYLE - will receive original parameter defaults
 group - (default null) set to String (or comma delimited String) so STYLE can set default styles to the group(s) (like a CSS class)
 
@@ -58345,10 +58439,11 @@ RETURNS obj for chaining
 		if (zot(obj)) return;
 
 		// Clean up any existing tilt on this object first
-		if (obj._tiltTicker) zim.noTilt(obj);
+		if (obj._tiltTicker || obj._tiltListener) zim.noTilt(obj);
 
 		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 		var s = obj.stage || (f ? f.stage : null);
+		obj._tiltFrame = f;
 
 		// Set initial boundary
 		zim.tiltBoundary(obj, boundary);
@@ -58397,7 +58492,7 @@ RETURNS obj for chaining
 			}
 
 			obj._tiltType = type;
-			obj._tiltListener = function(e) {
+			obj._tiltListener = f.on(type, function(e) {
 				var orient = 0;
 				if (typeof WW != "undefined") {
 					if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
@@ -58443,8 +58538,7 @@ RETURNS obj for chaining
 						currentVector.y = beta;
 					}
 				}
-			};
-			f.on(type, obj._tiltListener);
+			});
 
 			obj._tiltTicker = zim.Ticker.add(updateTilt);
 			if (ready) ready(true, obj);
@@ -58509,7 +58603,7 @@ RETURNS obj for chaining
 		var mID = "z~noTilt";
 		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
 		
-		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var f = obj._tiltFrame || obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 
 		if (obj._tiltListener && f) {
 			f.off(obj._tiltType || "deviceorientation", obj._tiltListener);
@@ -58520,6 +58614,7 @@ RETURNS obj for chaining
 			obj._tiltTicker = null;
 		}
 		obj._tiltBoundary = null;
+		obj._tiltFrame = null;
 
 		return obj;
 	};//-34.91
@@ -58685,10 +58780,11 @@ RETURNS obj for chaining
 		if (zot(obj)) return;
 
 		// Clean up any existing turn on this object first
-		if (obj._turnTicker) zim.noTurn(obj);
+		if (obj._turnTicker || obj._turnListener) zim.noTurn(obj);
 
 		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 		var s = obj.stage || (f ? f.stage : null);
+		obj._turnFrame = f;
 
 		if (zot(damp)) damp = 0.05;
 		if (zot(factor)) factor = 1;
@@ -58704,14 +58800,14 @@ RETURNS obj for chaining
 		function angleDiff(a, b) {
 			var diff = (a - b) % 360;
 			if (diff < -180) diff += 360;
-			if (diff > 180) diff -= 360;
+			if (diff > 180) diff += 360;
 			return diff;
 		}
 
 		function unwrap(target, current) {
 			var diff = (target - current) % 360;
 			if (diff < -180) diff += 360;
-			if (diff > 180) diff -= 360;
+			if (diff > 180) diff += 360;
 			return current + diff;
 		}
 
@@ -58754,7 +58850,7 @@ RETURNS obj for chaining
 			if (dampRot) dampRot.immediate(obj.rotation);
 
 			obj._turnType = type;
-			obj._turnListener = function(e) {
+			obj._turnListener = f.on(type, function(e) {
 				var orient = 0;
 				if (typeof WW != "undefined") {
 					if (WW.screen && WW.screen.orientation && WW.screen.orientation.angle != null) {
@@ -58813,8 +58909,7 @@ RETURNS obj for chaining
 						lastFlatAng = flatAng;
 					}
 				}
-			};
-			f.on(type, obj._turnListener);
+			});
 
 			obj._turnTicker = zim.Ticker.add(updateTurn);
 			if (ready) ready(true, obj);
@@ -58849,6 +58944,7 @@ RETURNS obj for chaining
 		return obj;
 	};//-34.93
 
+
 /*--
 obj.noTurn = function()
 
@@ -58878,7 +58974,7 @@ RETURNS obj for chaining
 		var mID = "z~noTurn";
 		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
 
-		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var f = obj._turnFrame || obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 
 		if (obj._turnListener && f) {
 			f.off(obj._turnType || "deviceorientation", obj._turnListener);
@@ -58888,6 +58984,7 @@ RETURNS obj for chaining
 			zim.Ticker.remove(obj._turnTicker);
 			obj._turnTicker = null;
 		}
+		obj._turnFrame = null;
 
 		return obj;
 	};//-34.94
@@ -58975,6 +59072,7 @@ RETURNS obj for chaining
 
 		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 		var s = obj.stage || (f ? f.stage : null);
+		obj._shakeFrame = f;
 
 		if (zot(threshold)) threshold = 10;
 		if (zot(wait)) wait = 0.5;
@@ -59073,8 +59171,7 @@ RETURNS obj for chaining
 		function activate() {
 			seeded = false;
 			obj._shakeType = type;
-			obj._shakeListener = handleMotion;
-			f.on(type, obj._shakeListener);
+			obj._shakeListener = f.on(type, handleMotion);
 			if (ready) ready(true, obj);
 		}
 
@@ -59137,7 +59234,7 @@ RETURNS obj for chaining
 		var mID = "z~noShake";
 		if (obj && obj.mID && ((obj.mID[2] && obj.mID[2]=="-") || obj.mID[0]=="-")) mID = "z~-";
 
-		var f = obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
+		var f = obj._shakeFrame || obj.frame || (typeof zdf != "undefined" ? zdf : WW.zdf);
 
 		if (obj._shakeListener && f) {
 			f.off(obj._shakeType || "devicemotion", obj._shakeListener);
@@ -59147,9 +59244,11 @@ RETURNS obj for chaining
 			obj._shakeStopTimeout.clear();
 			obj._shakeStopTimeout = null;
 		}
+		obj._shakeFrame = null;
 
 		return obj;
 	};//-34.96
+
 
 // SUBSECTION HIT TESTS
 
@@ -60517,8 +60616,9 @@ RETURNS the target for chaining (or null if no target is provided and run on zim
 			var duo; if (duo = zob(zim.animate, arguments, sig)) return duo;
 		}	
 		
-				
-		if (target && target.type && target.type=="AC" && WW.zdf) {WW.zdf.ac("animate", arguments); return target;}
+		if (target && target.type && (target.type=="AC"||(target.type=="Emoji"&&target.svg&&target.svg.type=="AC")) && WW.zdf) {WW.zdf.ac("animate", arguments); return target;}	
+		
+		// if (target && target.type && target.type=="AC" && WW.zdf) {WW.zdf.ac("animate", arguments); return target;}
 		if (!zim.animateCheck) {z_d("45"); zim.animateCheck=true;}
 
 		// STYLE added in ZIM 019 - just preset all except target
@@ -78014,6 +78114,54 @@ F.on("complete", ()=>{
 });
 END EXAMPLE
 
+EXAMPLE
+// MotionController for Editor with mousemove 
+// also see example with first person below
+
+zapp_assets = "ai_cartop06.png";
+zapp_path = "https://zimjs.org/assets/";
+
+// car is pictured facing up
+// must start with car pointing to right (for non-first person)
+const car = new Pic("ai_cartop06.png")
+	.sca(.5)
+	.centerReg() // center the registration (or use reg(CENTER).loc(100,100), etc.)
+	.rot(90);
+
+const mc = new MotionController({
+	target:car, 		
+	type:"mousemove",
+	orient:true,
+	boundary:S
+});
+END EXAMPLE
+
+EXAMPLE 
+// MotionController for Editor or Zapp with dPad and first person
+zapp_assets = "ai_cartop06.png";
+zapp_path = "https://zimjs.org/assets/";
+
+// car pic starts pointing up which is good for first person motion controller
+const car = new Pic("ai_cartop06.png")
+	.sca(.5)
+	.centerReg();
+
+// here is the DPad with its new useBubble setting
+const dPad = new DPad({
+	backgroundColor:blue,
+	indicatorColor:dark, 
+	useBubble:true
+}).pos(100,100,LEFT,BOTTOM);
+
+const mc = new MotionController({
+	target:car, 		
+	type:dPad,
+	firstPerson:true,
+	orient:true,
+	boundary:S
+});
+END EXAMPLE
+
 PARAMETERS supports DUO - parameters or single object with properties below
 target (default null) - the object you want to control
 	example a circle to move across the stage
@@ -78061,7 +78209,7 @@ orient - (default false) set to true to face the direction of motion.  Start dir
 	before adding to the motionController to make it point to the right
 	Note that a target that is rotated will not pay attention to the flip parameter - see flip for solution.
 constant - (default false) set to true to remove keyup or gamebutton up and always move in direction last key or button press
-firstPerson - (default false) set to true for keydown, gamebutton and gamecontroller to go to first person mode
+firstPerson - (default false) set to true for keydown, dPad, gamebutton and gamecontroller to go to first person mode
 	in firstPerson, the direction starts facing up and by default up arrow is speed forward and left and right change rotation
 	speed will be damped by damp parameter - also, map parameter changes if in firstPerson mode - see map parameter
 turnSpeed - (default speed*.4) - the speed for turning in firstPerson mode - will be damped but damp parameter
@@ -78166,993 +78314,1029 @@ dispatches a "mousedown" event if type is "mousedown" or "pressmove"
 dispatches a "pressing" event if type is "pressmove" - note, this dispatches even if not moving
 dispatches a "moving" event if target is moving and "startmoving" and "stopmoving" events
 --*///+69.7
-	zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle) {
-		var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle";
-		var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
-		z_d("69.7");
+zim.MotionController = function(target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle) {
+	var sig = "target, type, speed, axis, boundary, map, diagonal, damp, flip, orient, constant, firstPerson, turnSpeed, moveThreshold, stickThreshold, container, localBoundary, mouseMoveOutside, mousedownIncludes, minPercentSpeed, maxPercentSpeed, dampKeyup, rotate, mouseOutside, tileObj, penDown, offTime, startAngle";
+	var duo; if (duo = zob(zim.MotionController, arguments, sig, this)) return duo;
 
-		this.cjsEventDispatcher_constructor();
-		this.type = "MotionController";
+	z_d("69.7");
 
-		// MONITOR	
-		var mID = this.mID = "z~"+this.type;
+	this.cjsEventDispatcher_constructor();
+	this.type = "MotionController";
 
-		var that = this;
+	// MONITOR	
+	var mID = this.mID = "z~"+this.type;
 
-		var stage;
-		var message = "zim MotionController(): Please pass in a reference to the stage or a container on the stage";
-		if (zot(container)) {
-			if (WW.zdf) {
-				stage = container = WW.zdf.stage;
-			} else {
-				zogy(message);
-				return;
-			}
-		} else if (zot(container.stage)) {
-			if (WW.zdf) {
-				stage = WW.zdf.stage;
-			} else {
-				zogy(message);
-				return;
-			}
+	var that = this;
+
+	var stage;
+	var message = "zim MotionController(): Please pass in a reference to the stage or a container on the stage";
+	if (zot(container)) {
+		if (WW.zdf) {
+			stage = container = WW.zdf.stage;
 		} else {
-			stage = container.stage;
+			zogy(message);
+			return;
 		}
-		var frame = stage.frame;
+	} else if (zot(container.stage)) {
+		if (WW.zdf) {
+			stage = WW.zdf.stage;
+		} else {
+			zogy(message);
+			return;
+		}
+	} else {
+		stage = container.stage;
+	}
+	var frame = stage.frame;
 
-		if (!zot(orient)) rotate = orient; // renamed parameter to orient
-		if (zot(firstPerson)) firstPerson = false;
+	if (!zot(orient)) rotate = orient; // renamed parameter to orient
+	if (zot(firstPerson)) firstPerson = false;
+	if (zot(startAngle)) startAngle = 0;
 
-		if (zot(target)) {target = new zim.Container(1,1, null, null, false);} // make a surrogate if only wanting controller data
-		var accelerator = target.type == "Accelerator";
-		if (zot(speed)) speed = type=="pressmove"?20:7;
-		if (!zot(type) && type.type == "DPad") {
-			var dPad = type;
-			type = "manual";
-			if (zot(axis)) axis = dPad.axis;
-			if (axis == "all") axis = "both";
-			first = {rotation:0, speedX:that.speed, speedY:that.speed};
-			dPad.on("change", function() {
-				var d = {dirX:dPad.dirX, dirY:dPad.dirY};
-				if (firstPerson) {doFirstPerson(d); return;}
-				if (tileObj) {					
-					down = [0,0,0,0];
-					var dC = false;
-					if (Math.abs(d.dirX) > Math.abs(d.dirY)) {
-						if (d.dirX<0) {down[0] = 1; dC=true;}
-						else if (d.dirX>0) {down[1] = 1; dC=true;}
-					} else {
-						if (d.dirY<0) {down[2] = 1; dC=true;}
-						else if (d.dirY>0) {down[3] = 1; dC=true;}
-					}
-					if (dC) {		
-						wasDown = true;				
-						if (!that.keyInterval) makeKeyInterval();	
-					} else {
-						wasDown = false;
-					}
+	if (zot(target)) {target = new zim.Container(1,1, null, null, false);} // make a surrogate if only wanting controller data
+	if (isNaN(target.x)) target.x = 0;
+	if (isNaN(target.y)) target.y = 0;
+
+	var accelerator = target.type == "Accelerator";
+	if (zot(speed)) speed = type=="pressmove"?20:7;
+	if (!zot(type) && type.type == "DPad") {
+		var dPad = type;
+		type = "manual";
+		if (zot(axis)) axis = dPad.axis;
+		if (axis == "all") axis = "both";
+		first = {rotation:startAngle, speedX:that.speed, speedY:that.speed};
+		dPad.on("change", function() {
+			var d = {dirX:dPad.dirX, dirY:dPad.dirY};
+			if (firstPerson) {doFirstPerson(d); return;}
+			if (tileObj) {					
+				down = [0,0,0,0];
+				var dC = false;
+				if (Math.abs(d.dirX) > Math.abs(d.dirY)) {
+					if (d.dirX<0) {down[0] = 1; dC=true;}
+					else if (d.dirX>0) {down[1] = 1; dC=true;}
 				} else {
-					that.convert(target.x+dPad.dirX*speed, target.y+dPad.dirY*speed);
-				}				
+					if (d.dirY<0) {down[2] = 1; dC=true;}
+					else if (d.dirY>0) {down[3] = 1; dC=true;}
+				}
+				if (dC) {		
+					wasDown = true;				
+					if (!that.keyInterval) makeKeyInterval();	
+				} else {
+					wasDown = false;
+				}
+			} else {
+				that.convert(target.x+dPad.dirX*speed, target.y+dPad.dirY*speed);
+			}				
+		}, null, null, null, null, mID);
+
+		if (tileObj) {
+			dPad.on("pressup", function() {
+				down = [0,0,0,0];
 			}, null, null, null, null, mID);
+		}
+	}
 
-			if (tileObj) {
-				dPad.on("pressup", function() {
-					down = [0,0,0,0];
-				}, null, null, null, null, mID);
-			}
-		}
-		if (zot(type) || (type != "mousemove" && type != "pressmove" && type != "pressdrag" && type != "keydown" && type != "gamebutton" && type != "gamestick" && type != "swipe" && type != "follow" && type != "manual")) type = "mousedown";
-		if (zot(axis)) axis = accelerator?"horizontal":"both"; // horizontal, vertical, both
-		if (type == "keydown" && zot(map)) map = [[65,37], [68,39], [87,38], [83,40]]; // left right up down
-		if (type == "gamebutton" && zot(map)) {
-			if (firstPerson) {
-				map = [14, 15, zim.GamePad.RT, zim.GamePad.LT]; // DPAD_LEFT, DPAD_RIGHT, RT, LT on gamepad
-			} else {
-				map = [14, 15, 12, 13]; // DPAD_LEFT, DPAD_RIGHT, DPAD_UP, DPAD_DOWN on gamepad
-			}
-		}
-		if (type == "gamestick" && zot(map)) {
-			if (firstPerson) {
-				map = [[0,2], [0,2], [1], [1]]; // TURN: LSX or RSX, LSX or RSX, SPEED: LSY, LSY - on gamepad
-			} else {
-				map = [0, 0, 1, 1]; // LSX, LSX, LSY, LSY - Left Stick on gamepad
-			}
-		}
+	// added for lazy loading - ZIM 020
+	if (target.on) {
+		target.on("complete", function() {
+			// zim.timeout(0, function() {
+				if (that.boundary && that.boundary.type != "Blob" && !isNaN(that.boundary.width) && !isNaN(that.boundary.height)) {
+					target.x = zim.constrain(target.x, that.boundary.x, that.boundary.x + that.boundary.width);
+					target.y = zim.constrain(target.y, that.boundary.y, that.boundary.y + that.boundary.height);
+				}
+				target.zimMCStartAngle = target.rotation;
+				that.rotation = (firstPerson ? startAngle : 0) + target.zimMCStartAngle;
+				if (firstPerson && first) first.rotation = startAngle;
+				that.immediate(target.x, target.y, that.rotation);
+			// });			
+		}, null, true); 
+	}
+	// end added for lazy loading
 
-		if (type == "gamestick" && zot(map)) map = [0, 0, 1, 1]; // LSX, LSX, LSY, LSY - Left Stick on gamepad
-		if (zot(diagonal)) diagonal = true;
-		if (axis == "horizontal" || axis == "vertical") diagonal = false;
-		if (zot(damp) || damp===true) damp = (type=="keydown" || type=="gamebutton") ? 1: (type=="pressmove"?.5:.1);
-		if (damp === false) damp = 1;		
-		if (zot(turnSpeed)) turnSpeed = speed * .4;
-		if (zot(moveThreshold)) moveThreshold = 4;
-		if (zot(stickThreshold)) stickThreshold = tileObj?.3:.2;
-		if (zot(mouseMoveOutside)) mouseMoveOutside = true;
-		stage.mouseMoveOutside = mouseMoveOutside;
-		if (zot(mousedownIncludes)) mousedownIncludes = [];
-		if (!Array.isArray(mousedownIncludes)) mousedownIncludes = [mousedownIncludes];
-		if (target.type == "Pen" && !target.move) {
-			mousedownIncludes.push(target, target.paper);
+	if (zot(type) || (type != "mousemove" && type != "pressmove" && type != "pressdrag" && type != "keydown" && type != "gamebutton" && type != "gamestick" && type != "swipe" && type != "follow" && type != "manual")) type = "mousedown";
+	if (zot(axis)) axis = accelerator?"horizontal":"both"; // horizontal, vertical, both
+	if (type == "keydown" && zot(map)) map = [[65,37], [68,39], [87,38], [83,40]]; // left right up down
+	if (type == "gamebutton" && zot(map)) {
+		if (firstPerson) {
+			map = [14, 15, zim.GamePad.RT, zim.GamePad.LT]; // DPAD_LEFT, DPAD_RIGHT, RT, LT on gamepad
 		} else {
-			mousedownIncludes.push(target);
+			map = [14, 15, 12, 13]; // DPAD_LEFT, DPAD_RIGHT, DPAD_UP, DPAD_DOWN on gamepad
 		}
-		if (boundary && boundary.getBounds) {
-			if (mousedownIncludes) {
-				if (mousedownIncludes.indexOf(boundary) == -1) mousedownIncludes.push(boundary);
-			} else mousedownIncludes = [boundary]; 
-		}
-		target.motionController = this;
-		// if (zot(mousedownExcludes)) mousedownExcludes = [];
-		// if (!Array.isArray(mousedownExcludes)) mousedownExcludes = [mousedownExcludes];
-		this.mousedownIncludes = mousedownIncludes;
-		if (container && container.backing) this.mousedownIncludes.push(container.backing);
-		// this.mousedownExcludes = mousedownExcludes;
-		if (zot(dampKeyup)) dampKeyup = .3;
-		if (zot(startAngle)) startAngle = 0;
-
-		if (boundary && boundary.type!="Blob") {	
-			target.x = zim.constrain(target.x, boundary.x, boundary.x+boundary.width);
-			target.y = zim.constrain(target.y, boundary.y, boundary.y+boundary.height);				
-		}		
-
-		that.dampKeyup = dampKeyup;
-		this.dirX = 0;
-		this.dirY = 0;
-		this.speed = speed;
-		this.turnSpeed = turnSpeed;
-		this.axis = axis;
-		this.target = target;
-		this.moveThreshold = moveThreshold;
-		this.stickThreshold = stickThreshold;
-		this.boundary = boundary;
-		target.zimMCStartAngle = target.rotation;
-
-		var speedX = that.speed; // speedX and speedY hold proportioned speed based on angle
-		var speedY = that.speed;
-		var flipRotation = 0; // records if we need to adjust rotation if flipped
-		that.rotation = target.zimMCStartAngle; // holds the pre-damped angle of the target
-
-		var proportion;
-		var bb;
-		if (accelerator) {
-			bb = container.getBounds();
-			var dist;
-			if (!bb || (axis == "vertical" && !bb.height) || (axis != "vertical" && !bb.width)) dist = 1000;
-			else dist=axis=="vertical"?bb.height:bb.width;
-			if (zot(minPercentSpeed)) minPercentSpeed = 0;
-			if (zot(maxPercentSpeed)) maxPercentSpeed = 100;
-			if (zot(this.target.percentSpeed)) this.target.percentSpeed = (maxPercentSpeed-minPercentSpeed)/2;
-			that.x = dist/2; // holds the pre-damped x and y position of the target
-			that.y = dist/2;
-			proportion = new zim.Proportion(0,dist,minPercentSpeed, maxPercentSpeed);
+	}
+	if (type == "gamestick" && zot(map)) {
+		if (firstPerson) {
+			map = [[0,2], [0,2], [1], [1]]; // TURN: LSX or RSX, LSX or RSX, SPEED: LSY, LSY - on gamepad
 		} else {
-			that.x = this.target.x; // holds the pre-damped x and y position of the target
-			that.y = this.target.y;
+			map = [0, 0, 1, 1]; // LSX, LSX, LSY, LSY - Left Stick on gamepad
+		}
+	}
+
+	if (type == "gamestick" && zot(map)) map = [0, 0, 1, 1]; // LSX, LSX, LSY, LSY - Left Stick on gamepad
+	if (zot(diagonal)) diagonal = true;
+	if (axis == "horizontal" || axis == "vertical") diagonal = false;
+	if (zot(damp) || damp===true) damp = (type=="keydown" || type=="gamebutton") ? 1: (type=="pressmove"?.5:.1);
+	if (damp === false) damp = 1;		
+	if (zot(turnSpeed)) turnSpeed = speed * .4;
+	if (zot(moveThreshold)) moveThreshold = 4;
+	if (zot(stickThreshold)) stickThreshold = tileObj?.3:.2;
+	if (zot(mouseMoveOutside)) mouseMoveOutside = true;
+	stage.mouseMoveOutside = mouseMoveOutside;
+	if (zot(mousedownIncludes)) mousedownIncludes = [];
+	if (!Array.isArray(mousedownIncludes)) mousedownIncludes = [mousedownIncludes];
+	if (target.type == "Pen" && !target.move) {
+		mousedownIncludes.push(target, target.paper);
+	} else {
+		mousedownIncludes.push(target);
+	}
+	if (boundary && boundary.getBounds) {
+		if (mousedownIncludes) {
+			if (mousedownIncludes.indexOf(boundary) == -1) mousedownIncludes.push(boundary);
+		} else mousedownIncludes = [boundary]; 
+	}
+	target.motionController = that;
+	// if (zot(mousedownExcludes)) mousedownExcludes = [];
+	// if (!Array.isArray(mousedownExcludes)) mousedownExcludes = [mousedownExcludes];
+	that.mousedownIncludes = mousedownIncludes;
+	if (container && container.backing) that.mousedownIncludes.push(container.backing);
+	// that.mousedownExcludes = mousedownExcludes;
+	if (zot(dampKeyup)) dampKeyup = .3;
+
+	if (boundary && boundary.type!="Blob" && !isNaN(boundary.width) && !isNaN(boundary.height)) {	
+		target.x = zim.constrain(target.x, boundary.x, boundary.x+boundary.width);
+		target.y = zim.constrain(target.y, boundary.y, boundary.y+boundary.height);				
+	}		
+
+	that.dampKeyup = dampKeyup;
+	that.dirX = 0;
+	that.dirY = 0;
+	that.speed = speed;
+	that.turnSpeed = turnSpeed;
+	that.axis = axis;
+	that.target = target;
+	that.moveThreshold = moveThreshold;
+	that.stickThreshold = stickThreshold;
+	that.boundary = boundary;
+	target.zimMCStartAngle = target.rotation;
+
+	var speedX = that.speed; // speedX and speedY hold proportioned speed based on angle
+	var speedY = that.speed;
+	var flipRotation = 0; // records if we need to adjust rotation if flipped
+	that.rotation = (firstPerson ? startAngle : 0) + target.zimMCStartAngle; // holds the pre-damped angle of the target
+
+	var proportion;
+	var bb;
+	if (accelerator) {
+		bb = container.getBounds();
+		var dist;
+		if (!bb || (axis == "vertical" && !bb.height) || (axis != "vertical" && !bb.width)) dist = 1000;
+		else dist=axis=="vertical"?bb.height:bb.width;
+		if (zot(minPercentSpeed)) minPercentSpeed = 0;
+		if (zot(maxPercentSpeed)) maxPercentSpeed = 100;
+		if (zot(that.target.percentSpeed)) that.target.percentSpeed = (maxPercentSpeed-minPercentSpeed)/2;
+		that.x = dist/2; // holds the pre-damped x and y position of the target
+		that.y = dist/2;
+		proportion = new zim.Proportion(0,dist,minPercentSpeed, maxPercentSpeed);
+	} else {
+		that.x = that.target.x; // holds the pre-damped x and y position of the target
+		that.y = that.target.y;
+	}
+
+	var originalScaleX = that.scaleX = target.scaleX;
+	var originalScaleY = that.scaleY = target.scaleY;
+
+	// INPUTS
+	// set up collecting the desired x and y based on various inputs:
+	// keydown, gamebutton
+	// mousedown, mousemove
+	// gamestick
+	// swipe
+	// otherwise the setting is manual and MotionController x and y can be provided through calculate(x,y) method
+	var mouseEvent;
+	var mouseEvent2;
+	var mouseEvent3;
+	var mouseEvent4;
+	var offTimeEvent;
+	var stageupEvent;
+	var pressing = false;
+	var moveCheck = false;
+	var under, i, a, gamepad, first;
+	var down = [0,0,0,0];
+	var wasDown = false;
+
+	if (type == "keydown" || type == "gamebutton") {
+
+		// which keys or buttons handle left, right, up, down are provided by the map parameter
+		// this can be either a number or an array of numbers
+		// so normalize this to always hold an array
+		for (i=0; i<4; i++) {
+			if (!Array.isArray(map[i])) map[i] = [map[i]];
+		}
+		
+		var ord = []; // order the keys are pressed - so when we release, we can set to last currently pressed key
+		var way = ["X","X","Y","Y"];
+		var dir = [-1,1,-1,1];
+		// var names = [LEFT,RIGHT,UP,DOWN];
+		// var rots = [-180,0,-90,90];
+		var d = {dirX:0, dirY:0}; // local directions for key and button - that.dirX and that.dirY are used in Ticker
+
+		if (type == "keydown") {
+			var keydownEvent = frame.on("keydown", doDown, null, null, null, null, mID);
+		} else {
+			gamepad = that.gamepad = new zim.GamePad();
+			var buttondownEvent = gamepad.on("buttondown", doDown, null, null, null, null, mID);
 		}
 
-		var originalScaleX = that.scaleX = target.scaleX;
-		var originalScaleY = that.scaleY = target.scaleY;
-
-		// INPUTS
-		// set up collecting the desired x and y based on various inputs:
-		// keydown, gamebutton
-		// mousedown, mousemove
-		// gamestick
-		// swipe
-		// otherwise the setting is manual and MotionController x and y can be provided through calculate(x,y) method
-		var mouseEvent;
-		var mouseEvent2;
-		var mouseEvent3;
-		var mouseEvent4;
-		var offTimeEvent;
-		var stageupEvent;
-		var pressing = false;
-		var moveCheck = false;
-		var under, i, a, gamepad, first;
-		var down = [0,0,0,0];
-		var wasDown = false;
-
-		if (type == "keydown" || type == "gamebutton") {
-
-			// which keys or buttons handle left, right, up, down are provided by the map parameter
-			// this can be either a number or an array of numbers
-			// so normalize this to always hold an array
-			for (i=0; i<4; i++) {
-				if (!Array.isArray(map[i])) map[i] = [map[i]];
-			}
-			
-			var ord = []; // order the keys are pressed - so when we release, we can set to last currently pressed key
-			var way = ["X","X","Y","Y"];
-			var dir = [-1,1,-1,1];
-			// var names = [LEFT,RIGHT,UP,DOWN];
-			// var rots = [-180,0,-90,90];
-			var d = {dirX:0, dirY:0}; // local directions for key and button - this.dirX and this.dirY are used in Ticker
-
+		if (zot(constant)) {
 			if (type == "keydown") {
-				var keydownEvent = frame.on("keydown", doDown, null, null, null, null, mID);
+				var keyupEvent = frame.on("keyup", doUp, null, null, null, null, mID);
 			} else {
-				gamepad = that.gamepad = new zim.GamePad();
-				var buttondownEvent = gamepad.on("buttondown", doDown, null, null, null, null, mID);
+				var buttonupEvent = gamepad.on("buttonup", doUp, null, null, null, null, mID);
 			}
+		}
 
-			if (zot(constant)) {
-				if (type == "keydown") {
-					var keyupEvent = frame.on("keyup", doUp, null, null, null, null, mID);
-				} else {
-					var buttonupEvent = gamepad.on("buttonup", doUp, null, null, null, null, mID);
-				}
+		// use a ticker to position the desired x and y properties
+		// we will then tween to these properties in the mainTicker later
+		first = {rotation:startAngle, speedX:that.speed, speedY:that.speed};
+		var keyTicker = zim.Ticker.add(function() {
+			if (firstPerson) {doFirstPerson(d); return;}
+			var sX = that.speed;
+			var sY = that.speed;
+			if (that.axis == "both" && d.dirX != 0 && d.dirY != 0) {
+				var trig = doTrig(d.dirX, d.dirY); // note - keys need to place desired x and y in a unit manner (or else target never goes anywhere)
+				sX = trig.speedX;
+				sY = trig.speedY;
 			}
-
-			// use a ticker to position the desired x and y properties
-			// we will then tween to these properties in the mainTicker later
-			first = {rotation:0, speedX:that.speed, speedY:that.speed};
-			var keyTicker = zim.Ticker.add(function() {
-				if (firstPerson) {doFirstPerson(d); return;}
-				var sX = that.speed;
-				var sY = that.speed;
-				if (that.axis == "both" && d.dirX != 0 && d.dirY != 0) {
-					var trig = doTrig(d.dirX, d.dirY); // note - keys need to place desired x and y in a unit manner (or else target never goes anywhere)
-					sX = trig.speedX;
-					sY = trig.speedY;
-				}
-				if (that.axis == "horizontal" || that.axis == "both") {
-					that.x += sX * d.dirX;
-				}
-				if (that.axis == "vertical" || that.axis == "both") {
-					that.y += sY * d.dirY;
-				}
-				calculate();
-			}, stage, mID, that);
-		} else if (type == "mousedown" || type == "mousemove") {			
-			mouseEvent = stage.on("stage" + type, function(e){		
-				if (that.offSpeed) {
-					that.stopAnimate("off");
-					that.paused = false;
-					that.speed = that.offSpeed;
-					that.offSpeed = null; 
-				}		
-				stage = e.target.stage;
-				var pp;
-				var con;
-				if (!mouseOutside && that.boundary && !that.boundary.type=="Blob") con = that.boundary;
-				else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
-				if (con) {
-					pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};					
-					if (
-						pp.x < con.x || pp.x > con.x+con.width ||
-						pp.y < con.y || pp.y > con.y+con.height
-					) return;
-				}
-				if (type == "mousedown") {	
-
-					// added ZIM 019 patch to not include objects outside container if provided unless in mousedownIncludes
-					if (that.mouseDownIncludes || container) under = stage.getObjectUnderPoint(e.stageX, e.stageY, 1);
-					if (container && under && under!=target && !container.contains(under)) {
-						if (mousedownIncludes && mousedownIncludes.indexOf(under) == -1) return;
-					}			
-					if (!Array.isArray(that.mousedownIncludes)) that.mousedownIncludes = [that.mousedownIncludes];
-					if (that.mousedownIncludes.indexOf(container)<0) {
-						for (i=0; i<container.numChildren; i++) {
-							var child = container.getChildAt(i);
-							if (that.mousedownIncludes.indexOf(child)==-1 && child.mouseEnabled && child.hitTestPoint && child.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY)) return;
-						}
-					}
-					that.dispatchEvent("mousedown");
-				}				
-				var p = container.globalToLocal(mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX, mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY);
-				that.x = p.x; that.y = p.y;				
-				calculate();
-			}, null, null, null, null, mID);
-
-			if (!zot(offTime)) offTimeEvent = stage.on("stagemouseup", doOffTime, null, null, null, null, mID);
-			stageupEvent = stage.on("stagemouseup", doStageUp, null, null, null, null, mID);
-		} else if (type == "pressmove" || type == "pressdrag" || type == "follow") {
+			if (that.axis == "horizontal" || that.axis == "both") {
+				that.x += sX * d.dirX;
+			}
+			if (that.axis == "vertical" || that.axis == "both") {
+				that.y += sY * d.dirY;
+			}
+			calculate();
+		}, stage, mID, that);
+	} else if (type == "mousedown" || type == "mousemove") {			
+		mouseEvent = stage.on("stage" + type, function(e){		
 			if (that.offSpeed) {
 				that.stopAnimate("off");
 				that.paused = false;
 				that.speed = that.offSpeed;
 				that.offSpeed = null; 
-			}	
-			if (target.type == "Pen") target.write = false;
-			mouseEvent = stage.on("stagemousedown", function(e) {
-				var pp;
-				var con;
-				if (!mouseOutside && that.boundary && !that.boundary.type=="Blob") con = that.boundary;
-				else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
-				if (con) {
-					pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};					
-					if (
-						pp.x < con.x || pp.x > con.x+con.width ||
-						pp.y < con.y || pp.y > con.y+con.height
-					) {
-						moveCheck = false;
-						return;
-					}
-				}
-				if (that.boundary && that.boundary.type=="Blob" && (type=="pressmove" || type=="pressdrag")) {
-					pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};
-					if (!that.boundary.shape.hitTestPoint(pp.x,pp.y)) return;
-				}	
-				if (type == "pressdrag" && !target.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY)) return;
-				moveCheck = false;
-				if (!Array.isArray(that.mousedownIncludes)) that.mousedownIncludes = [that.mousedownIncludes];
-				var inCheck = false;	
-				
+			}		
+			stage = e.target.stage;
+			var pp;
+			var con;
+			if (!mouseOutside && that.boundary && !that.boundary.type=="Blob" && !isNaN(boundary.width) && !isNaN(boundary.height)) con = that.boundary;
+			else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
+			if (con) {
+				pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};					
+				if (
+					pp.x < con.x || pp.x > con.x+con.width ||
+					pp.y < con.y || pp.y > con.y+con.height
+				) return;
+			}
+			if (type == "mousedown") {	
+
 				// added ZIM 019 patch to not include objects outside container if provided unless in mousedownIncludes
 				if (that.mouseDownIncludes || container) under = stage.getObjectUnderPoint(e.stageX, e.stageY, 1);
 				if (container && under && under!=target && !container.contains(under)) {
 					if (mousedownIncludes && mousedownIncludes.indexOf(under) == -1) return;
-				}
-
-				for (i=0; i<that.mousedownIncludes.length; i++) {
-					if (under && that.mousedownIncludes[i].hitTestPoint && that.mousedownIncludes[i].hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY) && that.mousedownIncludes[i].contains(under)) {
-						inCheck = true;
-					}
-				}
-				if (!inCheck) {
+				}			
+				if (!Array.isArray(that.mousedownIncludes)) that.mousedownIncludes = [that.mousedownIncludes];
+				if (that.mousedownIncludes.indexOf(container)<0) {
 					for (i=0; i<container.numChildren; i++) {
 						var child = container.getChildAt(i);
-						// returning on first container?
-						if (that.mousedownIncludes.indexOf(child)==-1 && child.mouseEnabled && child.hitTestPoint && child.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY)) return;						
+						if (that.mousedownIncludes.indexOf(child)==-1 && child.mouseEnabled && child.hitTestPoint && child.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY)) return;
 					}
 				}
-				var p = container.globalToLocal(mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX, mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY);
-
-				if (type!="follow" && type!="pressdrag") that.immediate(
-					((axis=="both"||axis=="horizontal")?p.x:null),
-					((axis=="both"||axis=="vertical")?p.y:null)
-				);
-
-				calculate();
 				that.dispatchEvent("mousedown");
-				pressing = true;				
+			}				
+			var p = container.globalToLocal(mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX, mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY);
+			that.x = p.x; that.y = p.y;				
+			calculate();
+		}, null, null, null, null, mID);
+
+		if (!zot(offTime)) offTimeEvent = stage.on("stagemouseup", doOffTime, null, null, null, null, mID);
+		stageupEvent = stage.on("stagemouseup", doStageUp, null, null, null, null, mID);
+	} else if (type == "pressmove" || type == "pressdrag" || type == "follow") {
+		if (that.offSpeed) {
+			that.stopAnimate("off");
+			that.paused = false;
+			that.speed = that.offSpeed;
+			that.offSpeed = null; 
+		}	
+		if (target.type == "Pen") target.write = false;
+		mouseEvent = stage.on("stagemousedown", function(e) {
+			var pp;
+			var con;
+			if (!mouseOutside && that.boundary && !that.boundary.type=="Blob" && !isNaN(boundary.width) && !isNaN(boundary.height)) con = that.boundary;
+			else if (!mouseOutside && container && container.boundsToGlobal) con = container.boundsToGlobal();
+			if (con) {
+				pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};					
+				if (
+					pp.x < con.x || pp.x > con.x+con.width ||
+					pp.y < con.y || pp.y > con.y+con.height
+				) {
+					moveCheck = false;
+					return;
+				}
+			}
+			if (that.boundary && that.boundary.type=="Blob" && (type=="pressmove" || type=="pressdrag") && !isNaN(boundary.width) && !isNaN(boundary.height)) {
+				pp = {x:e.stageX/zim.scaX, y:e.stageY/zim.scaY};
+				if (!that.boundary.shape.hitTestPoint(pp.x,pp.y)) return;
+			}	
+			if (type == "pressdrag" && !target.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY)) return;
+			moveCheck = false;
+			if (!Array.isArray(that.mousedownIncludes)) that.mousedownIncludes = [that.mousedownIncludes];
+			var inCheck = false;	
+			
+			// added ZIM 019 patch to not include objects outside container if provided unless in mousedownIncludes
+			if (that.mouseDownIncludes || container) under = stage.getObjectUnderPoint(e.stageX, e.stageY, 1);
+			if (container && under && under!=target && !container.contains(under)) {
+				if (mousedownIncludes && mousedownIncludes.indexOf(under) == -1) return;
+			}
+
+			for (i=0; i<that.mousedownIncludes.length; i++) {
+				if (under && that.mousedownIncludes[i].hitTestPoint && that.mousedownIncludes[i].hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY) && that.mousedownIncludes[i].contains(under)) {
+					inCheck = true;
+				}
+			}
+			if (!inCheck) {
+				for (i=0; i<container.numChildren; i++) {
+					var child = container.getChildAt(i);
+					// returning on first container?
+					if (that.mousedownIncludes.indexOf(child)==-1 && child.mouseEnabled && child.hitTestPoint && child.hitTestPoint(e.stageX/zim.scaX, e.stageY/zim.scaY)) return;						
+				}
+			}
+			var p = container.globalToLocal(mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX, mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY);
+
+			if (type!="follow" && type!="pressdrag") that.immediate(
+				((axis=="both"||axis=="horizontal")?p.x:null),
+				((axis=="both"||axis=="vertical")?p.y:null)
+			);
+
+			calculate();
+			that.dispatchEvent("mousedown");
+			pressing = true;				
+			that.moveX = mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX;
+			that.moveY = mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY;
+			mouseEvent2 = stage.on("stagemousemove", function(e) {
 				that.moveX = mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX;
 				that.moveY = mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY;
-				mouseEvent2 = stage.on("stagemousemove", function(e) {
-					that.moveX = mouseMoveOutside?e.rawX/zim.scaX:e.stageX/zim.scaX;
-					that.moveY = mouseMoveOutside?e.rawY/zim.scaY:e.stageY/zim.scaY;
-					if (type!="follow") moveMe();
-				}, null, null, null, null, mID);
-				if (mouseEvent4) zim.Ticker.remove(mouseEvent4, mID, that);
-				if (type=="follow") mouseEvent4 = zim.Ticker.add(moveMe, stage, mID, that);
-				if (target.type == "Pen") {
-					target.zpenY = Math.round(target.y);
-					target.zpenX = Math.round(target.x);
-					target.write = true;
-					target.paper.noMouse(); // no need to drag others while drawing
-					target.zimDragCheck = true;
-					if (penDown) {
-						target.x+=2
-						target.write = false;
-						timeout(0, function() {
-							target.write = true;
-							if (target.stage) target.stage.update();
-						});		
-					}			
-				}
+				if (type!="follow") moveMe();
 			}, null, null, null, null, mID);
-			mouseEvent3 = stage.on("stagemouseup", function() {
-				if (target.type == "Pen") {
-					if (!penDown && target.zpenX <= target.x+2 && target.zpenX >= target.x-2 && target.zpenY <= target.y+2  && target.zpenY >= target.y-2) target.x+=2
+			if (mouseEvent4) zim.Ticker.remove(mouseEvent4, mID, that);
+			if (type=="follow") mouseEvent4 = zim.Ticker.add(moveMe, stage, mID, that);
+			if (target.type == "Pen") {
+				target.zpenY = Math.round(target.y);
+				target.zpenX = Math.round(target.x);
+				target.write = true;
+				target.paper.noMouse(); // no need to drag others while drawing
+				target.zimDragCheck = true;
+				if (penDown) {
+					target.x+=2
 					target.write = false;
-					target.paper.mouse();
-					target.zimDragCheck = false;
-					if (moveCheck) target.stopCheck();
-				}
-				if (mouseEvent4) zim.Ticker.remove(mouseEvent4, mID, that);
-				stage.off("stagemousemove", mouseEvent2, null, mID);
-				pressing = false;
-			}, null, null, null, null, mID);			
-			if (!zot(offTime)) offTimeEvent = stage.on("stagemouseup", doOffTime, null, null, null, null, mID);
-			stageupEvent = stage.on("stagemouseup", doStageUp, null, null, null, null, mID);
-		} else if (type == "gamestick") {
-			gamepad = this.gamepad = new zim.GamePad();
-			for (i=0; i<4; i++) { // make map hold arrays
-				if (!Array.isArray(map[i])) map[i] = [map[i]];
+					timeout(0, function() {
+						target.write = true;
+						if (target.stage) target.stage.update();
+					});		
+				}			
 			}
-			first = {rotation:target.zimMCStartAngle, speedX:that.speed, speedY:that.speed};
-			var stickEvent = gamepad.on("data", function(e) {
-
-				d = {dirX:0, dirY:0};
-				// map = [[0,2], [0,2], [1,3], [1,3]]
-				for (i=0; i<map[0].length; i++) {
-					a = e.axes[map[0][i]];
-					if (Math.abs(a) > that.stickThreshold) {
-						d.dirX = a;
-						break;
-					}
-				}
-				for (i=0; i<map[2].length; i++) {
-					a = e.axes[map[2][i]];
-					if (Math.abs(a) > that.stickThreshold) {
-						d.dirY = a;
-						break;
-					}
-				}
-
-				if (tileObj) {					
-					down = [0,0,0,0];
-					var dC = false;
-					if (Math.abs(d.dirX) > Math.abs(d.dirY)) {
-						if (d.dirX<0) {down[0] = 1; dC=true;}
-						else if (d.dirX>0) {down[1] = 1; dC=true;}
-					} else {
-						if (d.dirY<0) {down[2] = 1; dC=true;}
-						else if (d.dirY>0) {down[3] = 1; dC=true;}
-					}
-					if (dC) {		
-						wasDown = true;				
-						if (!that.keyInterval) makeKeyInterval();	
-					} else {
-						wasDown = false;
-					}
-				}				
-				
-				if (firstPerson) {doFirstPerson(d); return;}
-
-				that.x += that.speed*d.dirX;
-				that.y += that.speed*d.dirY;
-				calculate();
-			}, null, null, null, null, mID);
-		} else if (type == "swipe") {
-			var swiperX = new zim.Swiper(stage, that, "x", .8);
-			var swiperY = new zim.Swiper(stage, that, "y", .8, false);
-			var swiperEvent = swiperX.on("swipemove", function() {
-				calculate();
-			}, null, null, null, null, mID);
+		}, null, null, null, null, mID);
+		mouseEvent3 = stage.on("stagemouseup", function() {
+			if (target.type == "Pen") {
+				if (!penDown && target.zpenX <= target.x+2 && target.zpenX >= target.x-2 && target.zpenY <= target.y+2  && target.zpenY >= target.y-2) target.x+=2
+				target.write = false;
+				target.paper.mouse();
+				target.zimDragCheck = false;
+				if (moveCheck) target.stopCheck();
+			}
+			if (mouseEvent4) zim.Ticker.remove(mouseEvent4, mID, that);
+			stage.off("stagemousemove", mouseEvent2, null, mID);
+			pressing = false;
+		}, null, null, null, null, mID);			
+		if (!zot(offTime)) offTimeEvent = stage.on("stagemouseup", doOffTime, null, null, null, null, mID);
+		stageupEvent = stage.on("stagemouseup", doStageUp, null, null, null, null, mID);
+	} else if (type == "gamestick") {
+		gamepad = that.gamepad = new zim.GamePad();
+		for (i=0; i<4; i++) { // make map hold arrays
+			if (!Array.isArray(map[i])) map[i] = [map[i]];
 		}
-		
-		var offCheck = false;
-		function doOffTime() {			
-			if (offCheck) return;
-			offCheck = true;
-			if (that.paused || !that.enabled) return;
-			that.offSpeed = that.speed;
-			zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, id:"off", time:offTime, call:function() {
-				that.immediate(that.target.x, that.target.y);
-				that.speed = that.offSpeed;
-				that.offSpeed = null;
-				that.paused = false;
-				offCheck = false;
-			}});
-		}
-		
-		function doDown(e) {
-			wasDown = true;
-			if (tileObj && !that.keyInterval) makeKeyInterval();
-			var key = type=="keydown"?e.keyCode:e.buttonCode;
-			var inOrd;
-			for (i=0; i<4; i++) {
-				if (map[i].indexOf(key) > -1) {
-					if (!diagonal && that.axis=="both") d.dirX = d.dirY = 0;
-					d["dir"+way[i]] = dir[i];
-					down[i] = 1;
-					inOrd = ord.indexOf(i);
-					if (inOrd == 0) return; // already last pressed
-					if (inOrd > 0) ord.splice(inOrd,1); // take key out if already down
-					ord.unshift(i); // add index to start of ord array
-					return;
+		first = {rotation:startAngle, speedX:that.speed, speedY:that.speed};
+		var stickEvent = gamepad.on("data", function(e) {
+
+			d = {dirX:0, dirY:0};
+			// map = [[0,2], [0,2], [1,3], [1,3]]
+			for (i=0; i<map[0].length; i++) {
+				a = e.axes[map[0][i]];
+				if (Math.abs(a) > that.stickThreshold) {
+					d.dirX = a;
+					break;
 				}
 			}
-		}
-		
-		function doUp(e) {
-			var key = type=="keydown"?e.keyCode:e.buttonCode;
-			if (tileObj) {
-				that.x = currentX;
-				that.y = currentY;				
-			}
-			var inOrd;
-			for (i=0; i<4; i++) {
-				if (map[i].indexOf(key) > -1) {
-					down[i] = 0;
-					inOrd = ord.indexOf(i);
-					if (inOrd >= 0) ord.splice(inOrd,1);
-					if (that.axis != "both" || diagonal) { // either just one direction or can have both dirX and dirY
-						d["dir"+way[i]] = -down[Math.floor(i/2)*2] +down[Math.floor(i/2)*2+1]; // the other might be down
-					} else { // only use last pressed key for dirX or dirY but not both
-						if (ord.length > 0) {
-							d["dir"+way[i]] = 0;
-							var iOrd = ord[0];
-							d["dir"+way[iOrd]] = dir[iOrd];
-						} else {
-							d.dirX = d.dirY = 0;
-						}
-					}
-					return;
+			for (i=0; i<map[2].length; i++) {
+				a = e.axes[map[2][i]];
+				if (Math.abs(a) > that.stickThreshold) {
+					d.dirY = a;
+					break;
 				}
 			}
-		}
 
-		function doStageUp() {
-			that.dispatchEvent("pressup");
-		}
-		
-		function moveMe() {
-			var p = container.globalToLocal(that.moveX, that.moveY);
-			that.x = p.x; that.y = p.y;
-			calculate();			
-			if (target.type == "Pen" && !moveCheck && target.drawing) moveCheck = true;
-		}		
-
-		function doFirstPerson(d) {
-			first.rotation += d.dirX * that.turnSpeed;
-			that.rotation = first.rotation;
-			first.speedX = Math.sin(first.rotation*Math.PI/180) * that.speed * -d.dirY;
-			first.speedY = - Math.cos(first.rotation*Math.PI/180) * that.speed * -d.dirY;
-			that.x += first.speedX;
-			that.y += first.speedY;
-			return;
-		}
-
-		// CALCULATE
-		// each input calls calculate to determine the angle of direction
-		// and the speed along each axis, speedX and speedY
-		function calculate() {
-
-			// trig() returns an object with speedX, speedY and rotation properties
-			var diffX = that.x-(accelerator?that.target.percentSpeed:that.target.x);
-			var diffY = that.y-(accelerator?that.target.percentSpeed:that.target.y);
-			var trig = doTrig(diffX, diffY);
-
-			speedX = trig.speedX;
-			speedY = trig.speedY;
-
-			if (!rotate) return;
-
-			if (!zot(trig.angle)) that.rotation = trig.angle+target.zimMCStartAngle;
-			if (zot(that.rotation)) {
-				that.rotation = that.target.rotation;
-				return; // when no motion purposely left null so stopped target keeps rotation
-			}
-
-			that.rotation += flipRotation; // if flipped we need to add 180 to rotation
-
-			// make sure angle damps to shortest direction - this is tricky
-			var newR = normalizeAngle(that.rotation);
-			var oldR = that.target.rotation = normalizeAngle(that.target.rotation);
-			if (Math.abs(newR-oldR) > 180) {
-				if (oldR > newR) {
-					oldR -= 360; // put current rotation behind new rotation so damps clockwise
+			if (tileObj) {					
+				down = [0,0,0,0];
+				var dC = false;
+				if (Math.abs(d.dirX) > Math.abs(d.dirY)) {
+					if (d.dirX<0) {down[0] = 1; dC=true;}
+					else if (d.dirX>0) {down[1] = 1; dC=true;}
 				} else {
-					newR -= 360; // put new rotation behind current rotation so damps counterclockwise
+					if (d.dirY<0) {down[2] = 1; dC=true;}
+					else if (d.dirY>0) {down[3] = 1; dC=true;}
 				}
-			}
-			that.dampR.immediate(oldR); // required otherwise damping equation has mind of its own
-			that.target.rotation = oldR; // make sure to set this again as we may have changed oldR for proper rotational direction when damped
-			that.rotation = newR;
-
-		}
-		function normalizeAngle(a) {
-			return (a % 360 + 360) % 360;
-		}
-		function doTrig(diffX, diffY) {
-			var sX = that.speed;
-			var sY = that.speed;
-			var sA; // keep angle null if no movement - so that last rotation during movement is kept when movement stops
-			var hyp = Math.sqrt(Math.pow(diffX, 2) + Math.pow(diffY, 2));
-			if (hyp > 0) {
-				sX = Math.abs(diffX) / hyp * that.speed;
-				sY = Math.abs(diffY) / hyp * that.speed;
-				sA = 90 - Math.atan2(diffX, diffY)*180/Math.PI;
-			}
-			return {speedX:sX, speedY:sY, angle:sA};
-		}
-
-
-		// TICKER FOR ALL
-		// damp movement and rotation to desired x and y
-
-		var lastX = this.x; // blobs
-		var lastY = this.y;
-		var lastXX = this.x; // damp 1 for moving
-		var lastYY = this.y;
-		var tempX = this.x = accelerator?dist/2:this.target.x;
-		var tempY = this.y = accelerator?dist/2:this.target.y;
-
-		this.dampX = new zim.Damp(tempX, damp);
-		this.dampY = new zim.Damp(tempY, damp);
-		this.dampR = new zim.Damp(this.target.rotation, damp);
-		var lastDirX=0;
-		var lastDirY=0;
-
-
-		if (tileObj) {		
-
-			var time = tileObj.time||(type=="gamestick"?.3:type=="manual"?.4:.2);
-			var animate = tileObj.animate;
-			var ease = tileObj.ease||"quadInOut";
-			var cols = tileObj.cols||5;
-			var rows = tileObj.rows||5;
-			var w = tileObj.w||50;
-			var h = tileObj.h||50;
-			var sH = tileObj.spacingH||3;
-			var sV = tileObj.spacingV||3;
-			var startCol = tileObj.startCol||0;
-			var startRow = tileObj.startRow||0;
-			that.moveGrid = tileObj.moves;
-			var startX = target.x - startCol*(w+sH);
-			var startY = target.y - startRow*(h+sV);
-
-			var currentCol = startCol;
-			var currentRow = startRow;
-			var currentX = target.x;
-			var currentY = target.y;
-
-		}
-
-		function makeKeyInterval() {
-
-			that.keyInterval = interval(time, function() {	
-				if (down && down[0]==0&&down[1]==0&&down[2]==0&down[3]==0) {
-					that.keyInterval.clear();
-					that.keyInterval = null;
+				if (dC) {		
+					wasDown = true;				
+					if (!that.keyInterval) makeKeyInterval();	
+				} else {
+					wasDown = false;
 				}
-				if (!wasDown) return;
-				wasDown = false;
-				
-				var x=0;
-				var y=0;
-				if (type=="gamestick" || type=="manual") {
+			}				
+			
+			if (firstPerson) {doFirstPerson(d); return;}
+
+			that.x += that.speed*d.dirX;
+			that.y += that.speed*d.dirY;
+			calculate();
+		}, null, null, null, null, mID);
+	} else if (type == "swipe") {
+		var swiperX = new zim.Swiper(stage, that, "x", .8);
+		var swiperY = new zim.Swiper(stage, that, "y", .8, false);
+		var swiperEvent = swiperX.on("swipemove", function() {
+			calculate();
+		}, null, null, null, null, mID);
+	}
+	
+	var offCheck = false;
+	function doOffTime() {			
+		if (offCheck) return;
+		offCheck = true;
+		if (that.paused || !that.enabled) return;
+		that.offSpeed = that.speed;
+		zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, id:"off", time:offTime, call:function() {
+			that.immediate(that.target.x, that.target.y);
+			that.speed = that.offSpeed;
+			that.offSpeed = null;
+			that.paused = false;
+			offCheck = false;
+		}});
+	}
+	
+	function doDown(e) {
+		wasDown = true;
+		if (tileObj && !that.keyInterval) makeKeyInterval();
+		var key = type=="keydown"?e.keyCode:e.buttonCode;
+		var inOrd;
+		for (i=0; i<4; i++) {
+			if (map[i].indexOf(key) > -1) {
+				if (!diagonal && that.axis=="both") d.dirX = d.dirY = 0;
+				d["dir"+way[i]] = dir[i];
+				down[i] = 1;
+				inOrd = ord.indexOf(i);
+				if (inOrd == 0) return; // already last pressed
+				if (inOrd > 0) ord.splice(inOrd,1); // take key out if already down
+				ord.unshift(i); // add index to start of ord array
+				return;
+			}
+		}
+	}
+	
+	function doUp(e) {
+		var key = type=="keydown"?e.keyCode:e.buttonCode;
+		if (tileObj) {
+			that.x = currentX;
+			that.y = currentY;				
+		}
+		var inOrd;
+		for (i=0; i<4; i++) {
+			if (map[i].indexOf(key) > -1) {
+				down[i] = 0;
+				inOrd = ord.indexOf(i);
+				if (inOrd >= 0) ord.splice(inOrd,1);
+				if (that.axis != "both" || diagonal) { // either just one direction or can have both dirX and dirY
+					d["dir"+way[i]] = -down[Math.floor(i/2)*2] +down[Math.floor(i/2)*2+1]; // the other might be down
+				} else { // only use last pressed key for dirX or dirY but not both
+					if (ord.length > 0) {
+						d["dir"+way[i]] = 0;
+						var iOrd = ord[0];
+						d["dir"+way[iOrd]] = dir[iOrd];
+					} else {
+						d.dirX = d.dirY = 0;
+					}
+				}
+				return;
+			}
+		}
+	}
+
+	function doStageUp() {
+		that.dispatchEvent("pressup");
+	}
+	
+	function moveMe() {
+		var p = container.globalToLocal(that.moveX, that.moveY);
+		that.x = p.x; that.y = p.y;
+		calculate();			
+		if (target.type == "Pen" && !moveCheck && target.drawing) moveCheck = true;
+	}		
+
+	function doFirstPerson(d) {
+		first.rotation += d.dirX * that.turnSpeed;
+		zog(first.rotation)
+		that.rotation = first.rotation + target.zimMCStartAngle;
+		first.speedX = Math.sin(first.rotation*Math.PI/180) * that.speed * -d.dirY;
+		first.speedY = - Math.cos(first.rotation*Math.PI/180) * that.speed * -d.dirY;
+		that.x += first.speedX;
+		that.y += first.speedY;
+		return;
+	}
+
+	// CALCULATE
+	// each input calls calculate to determine the angle of direction
+	// and the speed along each axis, speedX and speedY
+	function calculate() {
+
+		// trig() returns an object with speedX, speedY and rotation properties
+		var diffX = that.x-(accelerator?that.target.percentSpeed:that.target.x);
+		var diffY = that.y-(accelerator?that.target.percentSpeed:that.target.y);
+		var trig = doTrig(diffX, diffY);
+
+		speedX = trig.speedX;
+		speedY = trig.speedY;
+
+		if (!rotate) return;
+
+		if (!zot(trig.angle)) that.rotation = trig.angle+target.zimMCStartAngle;
+		if (zot(that.rotation)) {
+			that.rotation = that.target.rotation;
+			return; // when no motion purposely left null so stopped target keeps rotation
+		}
+
+		that.rotation += flipRotation; // if flipped we need to add 180 to rotation
+
+		// make sure angle damps to shortest direction - this is tricky
+		var newR = normalizeAngle(that.rotation);
+		var oldR = that.target.rotation = normalizeAngle(that.target.rotation);
+		if (Math.abs(newR-oldR) > 180) {
+			if (oldR > newR) {
+				oldR -= 360; // put current rotation behind new rotation so damps clockwise
+			} else {
+				newR -= 360; // put new rotation behind current rotation so damps counterclockwise
+			}
+		}
+		that.dampR.immediate(oldR); // required otherwise damping equation has mind of its own
+		that.target.rotation = oldR; // make sure to set this again as we may have changed oldR for proper rotational direction when damped
+		that.rotation = newR;
+
+	}
+	function normalizeAngle(a) {
+		return (a % 360 + 360) % 360;
+	}
+	function doTrig(diffX, diffY) {
+		var sX = that.speed;
+		var sY = that.speed;
+		var sA; // keep angle null if no movement - so that last rotation during movement is kept when movement stops
+		var hyp = Math.sqrt(Math.pow(diffX, 2) + Math.pow(diffY, 2));
+		if (hyp > 0) {
+			sX = Math.abs(diffX) / hyp * that.speed;
+			sY = Math.abs(diffY) / hyp * that.speed;
+			sA = 90 - Math.atan2(diffX, diffY)*180/Math.PI;
+		}
+		return {speedX:sX, speedY:sY, angle:sA};
+	}
+
+
+	// TICKER FOR ALL
+	// damp movement and rotation to desired x and y
+	
+	var lastX = that.x; // blobs
+	var lastY = that.y;
+	var lastXX = that.x; // damp 1 for moving
+	var lastYY = that.y;
+	var tempX = that.x = accelerator?dist/2:that.target.x;
+	var tempY = that.y = accelerator?dist/2:that.target.y;
+
+	that.dampX = new zim.Damp(tempX, damp);
+	that.dampY = new zim.Damp(tempY, damp);
+	that.dampR = new zim.Damp(that.target.rotation, damp);
+	var lastDirX=0;
+	var lastDirY=0;
+
+
+	if (tileObj) {		
+
+		var time = tileObj.time||(type=="gamestick"?.3:type=="manual"?.4:.2);
+		var animate = tileObj.animate;
+		var ease = tileObj.ease||"quadInOut";
+		var cols = tileObj.cols||5;
+		var rows = tileObj.rows||5;
+		var w = tileObj.w||50;
+		var h = tileObj.h||50;
+		var sH = tileObj.spacingH||3;
+		var sV = tileObj.spacingV||3;
+		var startCol = tileObj.startCol||0;
+		var startRow = tileObj.startRow||0;
+		that.moveGrid = tileObj.moves;
+		var startX = target.x - startCol*(w+sH);
+		var startY = target.y - startRow*(h+sV);
+
+		var currentCol = startCol;
+		var currentRow = startRow;
+		var currentX = target.x;
+		var currentY = target.y;
+
+	}
+
+	function makeKeyInterval() {
+
+		that.keyInterval = interval(time, function() {	
+			if (down && down[0]==0&&down[1]==0&&down[2]==0&down[3]==0) {
+				that.keyInterval.clear();
+				that.keyInterval = null;
+			}
+			if (!wasDown) return;
+			wasDown = false;
+			
+			var x=0;
+			var y=0;
+			if (type=="gamestick" || type=="manual") {
+				if (down[0]) x=-1;
+				else if (down[1]) x=1; 
+				else if (down[2]) y=-1; 
+				else if (down[3]) y=1; 
+			} else {
+				var diffX = currentX-that.x;
+				var diffY = currentY-that.y;
+				if (Math.abs(diffX) >= Math.abs(diffY)) {
+					y = 0;
+					if (that.x > currentX) x = 1;
+					else if (that.x < currentX) x = -1;
+				} else {
+					x = 0;
+					if (that.y > currentY) y = 1;
+					else if (that.y < currentY) y = -1;
+				}		
+				if (down && x==0 && y==0) { // might be just starting so no time for that.x and that.y to change
 					if (down[0]) x=-1;
 					else if (down[1]) x=1; 
 					else if (down[2]) y=-1; 
 					else if (down[3]) y=1; 
-				} else {
-					var diffX = currentX-that.x;
-					var diffY = currentY-that.y;
-					if (Math.abs(diffX) >= Math.abs(diffY)) {
-						y = 0;
-						if (that.x > currentX) x = 1;
-						else if (that.x < currentX) x = -1;
-					} else {
-						x = 0;
-						if (that.y > currentY) y = 1;
-						else if (that.y < currentY) y = -1;
-					}		
-					if (down && x==0 && y==0) { // might be just starting so no time for that.x and that.y to change
-						if (down[0]) x=-1;
-						else if (down[1]) x=1; 
-						else if (down[2]) y=-1; 
-						else if (down[3]) y=1; 
-					}
 				}
-				
-				var lastX = currentCol;
-				var lastY = currentRow;
-				currentCol += x;
-				currentRow += y;
-				var moveCheck = true;
-				if (that.moveGrid) {
-					var row = that.moveGrid[currentRow];
-					if (!row) moveCheck = false;
-					else {
-						var col = row[currentCol];
-						if (!col) moveCheck = false;
-					}
-				} else {
-					if (cols && currentCol < 0 || currentCol > cols-1) moveCheck = false;
-					if (rows && currentRow < 0 || currentRow > rows-1) moveCheck = false;
-				}
-				if (moveCheck) {
-					var newX = currentX = startX+(w+sH)*currentCol;
-					var newY = currentY = startY+(h+sV)*currentRow;
-					if (animate) target.animate({x:newX, y:newY}, time, ease);
-					else target.loc(newX,newY);					
-					// dispatch move
-					S.update();
-				} else {
-					currentCol = lastX;
-					currentRow = lastY;
-					// dispatch no move
-				}
-				setTimeout(function(){
-					that.x = currentX;
-					that.y = currentY;
-				},time*.5);				
-				
-			}, null, true);
-
-		}
-	
-
-		var mainTicker = zim.Ticker.add(function() {
-			if (tileObj) return;
-			if (target.draggingCheck) return;
-			if (type == "manual" && !dPad) calculate();
-			if (that.boundary && that.boundary.type!="Blob") {				
-				that.x = zim.constrain(that.x, that.boundary.x, that.boundary.x+that.boundary.width);
-				that.y = zim.constrain(that.y, that.boundary.y, that.boundary.y+that.boundary.height);				
-			}
-			// tempX and tempY head towards the desired x and y
-			// at the speed set by calculate and in the direction it needs to go calculated here
-			// we then damp the actual motion using the dampX or dampY zim.Damp object's convert method
-			if (that.axis == "horizontal" || that.axis == "both") {
-				that.dirX = zim.sign(that.x-tempX);
-				if (Math.abs(that.x-tempX) < speedX) {
-					tempX = that.x;
-				} else {
-					tempX += that.dirX*speedX;
-				}
-				if (d && d.dirX==0) {
-					var desired = that.boundary?that.boundary.width/2:stage.width/2;
-					var newTempX = that.x-(that.x-desired)*(accelerator?that.dampKeyup:0);
-					tempX = newTempX;
-					that.x = tempX;
-				}
-				if (accelerator && bb && bb.width) that.target.percentSpeed = proportion.convert((that.dampX.convert(tempX)));
-				else that.target.x = that.dampX.convert(tempX);
-
-			}	
-			
-			if (that.axis == "vertical" || that.axis == "both") {
-				that.dirY = zim.sign(that.y-tempY);
-				if (Math.abs(that.y-tempY) < speedY) {
-					tempY = that.y;
-				} else {
-					tempY += zim.sign(that.y-tempY)*speedY;
-				}
-				if (d && d.dirY==0) {
-					desired = that.boundary?that.boundary.height/2:stage.height/2;
-					var newTempY = that.y-(that.y-desired)*(accelerator?that.dampKeyup:0);
-					tempY = newTempY;
-					that.y = tempY;
-				}
-				if (accelerator && bb && bb.height) that.target.percentSpeed = proportion.convert(that.dampY.convert(tempY));
-				else that.target.y = that.dampY.convert(tempY);
 			}
 			
-			if (that.boundary && that.boundary.type=="Blob") {
-				if (that.boundary.shape.hitTestPoint(that.target.x,that.target.y)) {
-					lastX = that.target.x;
-					lastY = that.target.y;										
-				} else {
-					that.target.x = that.x = lastX;
-					that.target.y = that.y = lastY;
-					that.immediate(lastX, lastY);
+			var lastX = currentCol;
+			var lastY = currentRow;
+			currentCol += x;
+			currentRow += y;
+			var moveCheck = true;
+			if (that.moveGrid) {
+				var row = that.moveGrid[currentRow];
+				if (!row) moveCheck = false;
+				else {
+					var col = row[currentCol];
+					if (!col) moveCheck = false;
 				}
-			}		
-			
-			if (type == "pressmove" && pressing) that.dispatchEvent("pressing");
-
-			// set moving properties
-			if (damp==1) {
-				that.movingX = Math.round(lastXX-that.x) != 0;
-				that.movingY = Math.round(lastYY-that.y) != 0;
-				lastXX = that.x;
-				lastYY = that.y;
 			} else {
-				that.movingX = Math.abs(tempX-(accelerator?that.target.percentSpeed:that.target.x)) > that.moveThreshold;
-				that.movingY = Math.abs(tempY-(accelerator?that.target.percentSpeed:that.target.y)) > that.moveThreshold;
+				if (cols && currentCol < 0 || currentCol > cols-1) moveCheck = false;
+				if (rows && currentRow < 0 || currentRow > rows-1) moveCheck = false;
 			}
-			if (that.moving && !(that.movingX || that.movingY)) {
-				that.dispatchEvent("stopmoving");
-			} else if (!that.moving && (that.movingX || that.movingY)) {
-				that.dispatchEvent("startmoving");
+			if (moveCheck) {
+				var newX = currentX = startX+(w+sH)*currentCol;
+				var newY = currentY = startY+(h+sV)*currentRow;
+				if (animate) target.animate({x:newX, y:newY}, time, ease);
+				else target.loc(newX,newY);					
+				// dispatch move
+				S.update();
+			} else {
+				currentCol = lastX;
+				currentRow = lastY;
+				// dispatch no move
 			}
-			that.moving = that.movingX || that.movingY;
-			if (that.moving) that.dispatchEvent("moving");
+			setTimeout(function(){
+				that.x = currentX;
+				that.y = currentY;
+			},time*.5);				
+			
+		}, null, true);
 
-			// check for last direction change and dispatch event and flip if necessary
-			if (that.dirX != lastDirX || that.dirY != lastDirY) {
-				var e = new createjs.Event("change");
-				var options;
-				if (that.dirX != lastDirX) {
-					options = ["left", null, "right"];
-					e.dir = options[that.dirX+1];
-					lastDirX = that.dirX;
-					if (!target.zimMCStartAngle && (flip == "horizontal" || flip == "both")) {
-						that.scaleX = target.scaleX = that.dirX?Math.abs(target.scaleX)*that.dirX:target.scaleX;
-						if (originalScaleX != 0 && Math.round(that.scaleX/originalScaleX) == -1) {
-							flipRotation = 180;
-						} else {
-							flipRotation = 0;
-						}
-					}
-				} else {
-					options = ["up", null, "down"];
-					e.dir = options[that.dirY+1];
-					lastDirY = that.dirY;
-					if (!target.zimMCStartAngle && (flip == "vertical" || flip == "both")) {
-						that.scaleY = target.scaleY = that.dirY?-Math.abs(target.scaleY)*that.dirY:target.scaleY;
-						if (originalScaleY != 0 && Math.round(that.scaleY/originalScaleY) == -1) {
-							flipRotation = 180;
-						} else {
-							flipRotation = 0;
-						}
+	}
+
+
+	var lazy = (!target.width && !target.height);
+
+	var mainTicker = zim.Ticker.add(function() {
+		// Added for lazy load ZIM 020 plus above plus NaN tests plush earlier complete event on lazy loaded objects
+		if (lazy) {
+			if (!target.width && !target.height) return; 
+			lazy = false;
+			target.zimMCStartAngle = target.rotation;
+			that.rotation = (firstPerson ? startAngle : 0) + target.zimMCStartAngle;
+			if (firstPerson && first) first.rotation = startAngle;
+			that.immediate(target.x, target.y, that.rotation);
+		}
+		// end lazy 
+		
+		if (tileObj) return;
+		if (target.draggingCheck) return;
+		if (type == "manual" && !dPad) calculate();
+		if (that.boundary && that.boundary.type!="Blob" && !isNaN(boundary.width) && !isNaN(boundary.height)) {				
+			that.x = zim.constrain(that.x, that.boundary.x, that.boundary.x+that.boundary.width);
+			that.y = zim.constrain(that.y, that.boundary.y, that.boundary.y+that.boundary.height);				
+		}
+		// tempX and tempY head towards the desired x and y
+		// at the speed set by calculate and in the direction it needs to go calculated here
+		// we then damp the actual motion using the dampX or dampY zim.Damp object's convert method
+		if (that.axis == "horizontal" || that.axis == "both") {
+			that.dirX = zim.sign(that.x-tempX);
+			if (Math.abs(that.x-tempX) < speedX) {
+				tempX = that.x;
+			} else {
+				tempX += that.dirX*speedX;
+			}
+			if (d && d.dirX==0) {
+				var desired = that.boundary?that.boundary.width/2:stage.width/2;
+				var newTempX = that.x-(that.x-desired)*(accelerator?that.dampKeyup:0);
+				tempX = newTempX;
+				that.x = tempX;
+			}
+			if (accelerator && bb && bb.width) that.target.percentSpeed = proportion.convert((that.dampX.convert(tempX)));
+			else that.target.x = that.dampX.convert(tempX);
+
+		}	
+		
+		if (that.axis == "vertical" || that.axis == "both") {
+			that.dirY = zim.sign(that.y-tempY);
+			if (Math.abs(that.y-tempY) < speedY) {
+				tempY = that.y;
+			} else {
+				tempY += zim.sign(that.y-tempY)*speedY;
+			}
+			if (d && d.dirY==0) {
+				desired = that.boundary?that.boundary.height/2:stage.height/2;
+				var newTempY = that.y-(that.y-desired)*(accelerator?that.dampKeyup:0);
+				tempY = newTempY;
+				that.y = tempY;
+			}
+			if (accelerator && bb && bb.height) that.target.percentSpeed = proportion.convert(that.dampY.convert(tempY));
+			else that.target.y = that.dampY.convert(tempY);
+		}
+		
+		if (that.boundary && that.boundary.type=="Blob" && !isNaN(boundary.width) && !isNaN(boundary.height)) {
+			if (that.boundary.shape.hitTestPoint(that.target.x,that.target.y)) {
+				lastX = that.target.x;
+				lastY = that.target.y;										
+			} else {
+				that.target.x = that.x = lastX;
+				that.target.y = that.y = lastY;
+				that.immediate(lastX, lastY);
+			}
+		}		
+		
+		if (type == "pressmove" && pressing) that.dispatchEvent("pressing");
+
+		// set moving properties
+		if (damp==1) {
+			that.movingX = Math.round(lastXX-that.x) != 0;
+			that.movingY = Math.round(lastYY-that.y) != 0;
+			lastXX = that.x;
+			lastYY = that.y;
+		} else {
+			that.movingX = Math.abs(tempX-(accelerator?that.target.percentSpeed:that.target.x)) > that.moveThreshold;
+			that.movingY = Math.abs(tempY-(accelerator?that.target.percentSpeed:that.target.y)) > that.moveThreshold;
+		}
+		if (that.moving && !(that.movingX || that.movingY)) {
+			that.dispatchEvent("stopmoving");
+		} else if (!that.moving && (that.movingX || that.movingY)) {
+			that.dispatchEvent("startmoving");
+		}
+		that.moving = that.movingX || that.movingY;
+		if (that.moving) that.dispatchEvent("moving");
+
+		// check for last direction change and dispatch event and flip if necessary
+		if (that.dirX != lastDirX || that.dirY != lastDirY) {
+			var e = new createjs.Event("change");
+			var options;
+			if (that.dirX != lastDirX) {
+				options = ["left", null, "right"];
+				e.dir = options[that.dirX+1];
+				lastDirX = that.dirX;
+				if (!target.zimMCStartAngle && (flip == "horizontal" || flip == "both")) {
+					that.scaleX = target.scaleX = that.dirX?Math.abs(target.scaleX)*that.dirX:target.scaleX;
+					if (originalScaleX != 0 && Math.round(that.scaleX/originalScaleX) == -1) {
+						flipRotation = 180;
+					} else {
+						flipRotation = 0;
 					}
 				}
-				that.dispatchEvent(e);
+			} else {
+				options = ["up", null, "down"];
+				e.dir = options[that.dirY+1];
+				lastDirY = that.dirY;
+				if (!target.zimMCStartAngle && (flip == "vertical" || flip == "both")) {
+					that.scaleY = target.scaleY = that.dirY?-Math.abs(target.scaleY)*that.dirY:target.scaleY;
+					if (originalScaleY != 0 && Math.round(that.scaleY/originalScaleY) == -1) {
+						flipRotation = 180;
+					} else {
+						flipRotation = 0;
+					}
+				}
 			}
+			that.dispatchEvent(e);
+		}
 
-			// damp the rotation - but not if the angle is null which happens when no movement
-			// this keeps the last angle during movement rather than setting it to 0 which is not right
-			if (rotate && !zot(that.rotation)) {
-				that.target.rotation = that.dampR.convert(that.rotation);
-			}
+		// damp the rotation - but not if the angle is null which happens when no movement
+		// this keeps the last angle during movement rather than setting it to 0 which is not right
+		if (rotate && !zot(that.rotation)) {
+			that.target.rotation = that.dampR.convert(that.rotation);
+		}
 
-		}, stage, mID, that);
+	}, stage, mID, that);
 
 
-		this.immediate = function(x,y,r) {
-			if (!zot(x) && that.dampX) {
-				that.dampX.immediate(x);
-				if (accelerator) that.x = that.target.percentSpeed = tempX = x;
-				else that.x = that.target.x = tempX = x;
-				if (swiperX) swiperX.immediate(x);
-			}
-			if (!zot(y) && that.dampY) {
-				that.dampY.immediate(y);
-				if (accelerator) that.y = that.target.percentSpeed = tempY = y;
-				else that.y = that.target.y = tempY = y;
-				if (swiperY) swiperY.immediate(y);
-			}
-			if (!zot(r) && that.dampR) {
-				that.dampR.immediate(r);
-				that.rotation = that.target.rotation = r;
-			}
-			lastX = that.x;
-			lastY = that.y;
-			return that;
-		};
+	this.immediate = function(x,y,r) {
+		if (!zot(x) && that.dampX) {
+			that.dampX.immediate(x);
+			if (accelerator) that.x = that.target.percentSpeed = tempX = x;
+			else that.x = that.target.x = tempX = x;
+			if (swiperX) swiperX.immediate(x);
+		}
+		if (!zot(y) && that.dampY) {
+			that.dampY.immediate(y);
+			if (accelerator) that.y = that.target.percentSpeed = tempY = y;
+			else that.y = that.target.y = tempY = y;
+			if (swiperY) swiperY.immediate(y);
+		}
+		if (!zot(r) && that.dampR) {
+			that.dampR.immediate(r);
+			that.rotation = that.target.rotation = r;
+		}
+		lastX = that.x;
+		lastY = that.y;
+		return that;
+	};
 
-		this.convert = function(x,y) {
-			if (!zot(x)) that.x = x;
-			if (!zot(y)) that.y = y;
-			calculate();
-		};
+	this.convert = function(x,y) {
+		if (!zot(x)) that.x = x;
+		if (!zot(y)) that.y = y;
+		calculate();
+	};
 
-		// cannot animate speed with animate() - it conflicts with extra
-		Object.defineProperty(that, 'pausingSpeed', {
-			get: function() {
-				return that.speed;
-			},
-			set: function(amount) {
-				that.speed = amount;
-			}
-		});
+	// cannot animate speed with animate() - it conflicts with extra
+	Object.defineProperty(that, 'pausingSpeed', {
+		get: function() {
+			return that.speed;
+		},
+		set: function(amount) {
+			that.speed = amount;
+		}
+	});
 
-		this.paused = false;
-		var lastSpeed;
+	this.paused = false;
+	var lastSpeed;
 
-		this.pause = function(state, time, reset) {
-			if (zot(state)) state = true;
-			if (zot(time)) time = 0;
-			if (zot(reset)) reset = false;
-			if (state) {
-				lastSpeed = that.speed;
-				if (time > 0) {
-					zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, time:time, call:function() {
-						that.speed = 0;
-						that.paused = true;
-						that.enabled = false;
-						that.immediate(that.target.x, that.target.y);
-						that.dispatchEvent("pause");
-					}});
-					
-					if (reset) {
-						pressing = false;
-						if (mouseEvent2) stage.off("stagemousemove", mouseEvent2, null, mID);
-						if (mouseEvent4) zim.Ticker.remove(mouseEvent4, mID, that);
-						if (target.type == "Pen") {
-							target.write = false;
-							target.zimDragCheck = false;
-						}
-						if (mouseEvent3) stage.off("stagemouseup", mouseEvent3, null, mID);
-						if (moveCheck) target.stopCheck();							
-						if (type == "keydown") {
-							if (keyupEvent) frame.off("keyup", keyupEvent, null, mID);
-						} else {
-							if (buttonupEvent) gamepad.off("buttonup", buttonupEvent, null, mID);
-						}
-					} // end reset						
-					
-				} else {
+	this.pause = function(state, time, reset) {
+		if (zot(state)) state = true;
+		if (zot(time)) time = 0;
+		if (zot(reset)) reset = false;
+		if (state) {
+			lastSpeed = that.speed;
+			if (time > 0) {
+				zim.animate({target:that, obj:{pausingSpeed:0}, ticker:false, time:time, call:function() {
 					that.speed = 0;
 					that.paused = true;
 					that.enabled = false;
 					that.immediate(that.target.x, that.target.y);
-					setTimeout(function() {that.dispatchEvent("pause");}, 10);
-				}
+					that.dispatchEvent("pause");
+				}});
+				
+				if (reset) {
+					pressing = false;
+					if (mouseEvent2) stage.off("stagemousemove", mouseEvent2, null, mID);
+					if (mouseEvent4) zim.Ticker.remove(mouseEvent4, mID, that);
+					if (target.type == "Pen") {
+						target.write = false;
+						target.zimDragCheck = false;
+					}
+					if (mouseEvent3) stage.off("stagemouseup", mouseEvent3, null, mID);
+					if (moveCheck) target.stopCheck();							
+					if (type == "keydown") {
+						if (keyupEvent) frame.off("keyup", keyupEvent, null, mID);
+					} else {
+						if (buttonupEvent) gamepad.off("buttonup", buttonupEvent, null, mID);
+					}
+				} // end reset						
+				
 			} else {
-				that.enabled = true;
-				if (time > 0) {
-					zim.animate({target:that, obj:{pausingSpeed:lastSpeed}, ticker:false, time:time, call:function() {
-						if (lastSpeed) that.speed = lastSpeed;
-						that.paused = false;
-					}});
-				} else {					
+				that.speed = 0;
+				that.paused = true;
+				that.enabled = false;
+				that.immediate(that.target.x, that.target.y);
+				setTimeout(function() {that.dispatchEvent("pause");}, 10);
+			}
+		} else {
+			that.enabled = true;
+			if (time > 0) {
+				zim.animate({target:that, obj:{pausingSpeed:lastSpeed}, ticker:false, time:time, call:function() {
 					if (lastSpeed) that.speed = lastSpeed;
 					that.paused = false;
-				}
+				}});
+			} else {					
+				if (lastSpeed) that.speed = lastSpeed;
+				that.paused = false;
 			}
-			return that;
-		};
-
-
-		var _enabled = true;
-		Object.defineProperty(that, 'enabled', {
-			get: function() {
-				return _enabled;
-			},
-			set: function(value) {
-				if (_enabled == value) return;
-				if (value) {
-					enable();
-					that.paused = false;
-				} else {
-					disable();
-					that.paused = true;
-				}
-				_enabled = Boolean(value);
-			}
-		});
-		function enable() {
-			if (type == "keydown") {
-				keydownEvent = frame.on("keydown", keydownEvent, null, null, null, null, mID);
-				if (keyupEvent) keyupEvent = frame.on("keyup", keyupEvent, null, null, null, null, mID);
-				keyTicker = zim.Ticker.add(keyTicker, stage, mID, that);
-			} else if (type == "gamebutton") {
-				buttondownEvent = gamepad.on("buttondown", buttondownEvent, null, null, null, null, mID);
-				if (buttonupEvent) buttonupEvent = gamepad.on("buttonup", buttonupEvent, null, null, null, null, mID);
-				keyTicker = zim.Ticker.add(keyTicker, stage, mID, that);
-			} else if (type == "gamestick") {
-				stickEvent = gamepad.on("data", stickEvent, null, null, null, null, mID);
-			} else if (type == "swipe") {
-				swiperX.enabled = true;
-				swiperY.enabled = true;
-				if (swiperEvent) swiperEvent = swiperX.on("swipemove", swiperEvent, null, null, null, null, mID);
-			} else if (type == "mousedown" || type == "mousemove") {
-				mouseEvent = stage.on("stage" + type, mouseEvent, null, null, null, null, mID);
-				if (offTimeEvent) offTimeEvent = stage.on("stagemouseup", offTimeEvent, null, null, null, null, mID);
-				if (stageupEvent) stageupEvent = stage.on("stagemouseup", stageupEvent, null, null, null, null, mID);
-			} else if (type == "pressmove") {
-				mouseEvent = stage.on("stagemousedown", mouseEvent, null, null, null, null, mID);
-				if (mouseEvent2) mouseEvent2 = stage.on("stagemousemove", mouseEvent2, null, null, null, null, mID);
-				if (mouseEvent3) mouseEvent3 = stage.on("stagemouseup", mouseEvent3, null, null, null, null, mID);
-				if (offTimeEvent) offTimeEvent = stage.on("stagemouseup", offTimeEvent, null, null, null, null, mID);
-				if (stageupEvent) stageupEvent = stage.on("stagemouseup", stageupEvent, null, null, null, null, mID);
-			}
-			mainTicker = zim.Ticker.add(mainTicker, stage, mID, that);
 		}
-		function disable() {
-			if (type == "keydown") {
-				frame.off("keydown", keydownEvent, null, mID);
-				frame.off("keyup", keyupEvent, null, mID);
-				if (keyTicker) zim.Ticker.remove(keyTicker, mID, that);
-			} else if (type == "gamebutton") {
-				gamepad.off("buttondown", buttondownEvent, null, mID);
-				gamepad.off("buttonup", buttonupEvent, null, mID);
-				if (keyTicker) zim.Ticker.remove(keyTicker, mID, that);
-			} else if (type == "gamestick") {
-				gamepad.off("data", stickEvent, null, mID);
-			} else if (type == "swipe") {
-				swiperX.enabled = false;
-				swiperY.enabled = false;
-				swiperX.off("swipemove", swiperEvent, null, mID);
-			} else if (type == "mousedown" || type == "mousemove") {
-				stage.off("stage" + type, mouseEvent, null, mID);
-				stage.off("stagemouseup", offTimeEvent, null, mID);		
-				stage.off("stagemouseup", stageupEvent, null, mID);		
-			} else if (type == "pressmove") {
-				stage.off("stagemousedown", mouseEvent, null, mID);
-				stage.off("stagemousemove", mouseEvent2, null, mID);
-				stage.off("stagemouseup", mouseEvent3, null, mID);
-				stage.off("stagemouseup", offTimeEvent, null, mID);
-				stage.off("stagemouseup", stageupEvent, null, mID);
-			}
-			if (mainTicker) zim.Ticker.remove(mainTicker, mID, that);
-		}
-		this.dispose = function() {
-			disable();
-			if (gamepad) gamepad.dispose();
-			if (swiperX) swiperX.dispose();
-			if (swiperY) swiperX.dispose();
-		};
-
+		return that;
 	};
-	zim.extend(zim.MotionController, createjs.EventDispatcher, "enabled", "cjsEventDispatcher");
+
+
+	var _enabled = true;
+	Object.defineProperty(that, 'enabled', {
+		get: function() {
+			return _enabled;
+		},
+		set: function(value) {
+			if (_enabled == value) return;
+			if (value) {
+				enable();
+				that.paused = false;
+			} else {
+				disable();
+				that.paused = true;
+			}
+			_enabled = Boolean(value);
+		}
+	});
+	function enable() {
+		if (type == "keydown") {
+			keydownEvent = frame.on("keydown", keydownEvent, null, null, null, null, mID);
+			if (keyupEvent) keyupEvent = frame.on("keyup", keyupEvent, null, null, null, null, mID);
+			keyTicker = zim.Ticker.add(keyTicker, stage, mID, that);
+		} else if (type == "gamebutton") {
+			buttondownEvent = gamepad.on("buttondown", buttondownEvent, null, null, null, null, mID);
+			if (buttonupEvent) buttonupEvent = gamepad.on("buttonup", buttonupEvent, null, null, null, null, mID);
+			keyTicker = zim.Ticker.add(keyTicker, stage, mID, that);
+		} else if (type == "gamestick") {
+			stickEvent = gamepad.on("data", stickEvent, null, null, null, null, mID);
+		} else if (type == "swipe") {
+			swiperX.enabled = true;
+			swiperY.enabled = true;
+			if (swiperEvent) swiperEvent = swiperX.on("swipemove", swiperEvent, null, null, null, null, mID);
+		} else if (type == "mousedown" || type == "mousemove") {
+			mouseEvent = stage.on("stage" + type, mouseEvent, null, null, null, null, mID);
+			if (offTimeEvent) offTimeEvent = stage.on("stagemouseup", offTimeEvent, null, null, null, null, mID);
+			if (stageupEvent) stageupEvent = stage.on("stagemouseup", stageupEvent, null, null, null, null, mID);
+		} else if (type == "pressmove") {
+			mouseEvent = stage.on("stagemousedown", mouseEvent, null, null, null, null, mID);
+			if (mouseEvent2) mouseEvent2 = stage.on("stagemousemove", mouseEvent2, null, null, null, null, mID);
+			if (mouseEvent3) mouseEvent3 = stage.on("stagemouseup", mouseEvent3, null, null, null, null, mID);
+			if (offTimeEvent) offTimeEvent = stage.on("stagemouseup", offTimeEvent, null, null, null, null, mID);
+			if (stageupEvent) stageupEvent = stage.on("stagemouseup", stageupEvent, null, null, null, null, mID);
+		}
+		mainTicker = zim.Ticker.add(mainTicker, stage, mID, that);
+	}
+	function disable() {
+		if (type == "keydown") {
+			frame.off("keydown", keydownEvent, null, mID);
+			frame.off("keyup", keyupEvent, null, mID);
+			if (keyTicker) zim.Ticker.remove(keyTicker, mID, that);
+		} else if (type == "gamebutton") {
+			gamepad.off("buttondown", buttondownEvent, null, mID);
+			gamepad.off("buttonup", buttonupEvent, null, mID);
+			if (keyTicker) zim.Ticker.remove(keyTicker, mID, that);
+		} else if (type == "gamestick") {
+			gamepad.off("data", stickEvent, null, mID);
+		} else if (type == "swipe") {
+			swiperX.enabled = false;
+			swiperY.enabled = false;
+			swiperX.off("swipemove", swiperEvent, null, mID);
+		} else if (type == "mousedown" || type == "mousemove") {
+			stage.off("stage" + type, mouseEvent, null, mID);
+			stage.off("stagemouseup", offTimeEvent, null, mID);		
+			stage.off("stagemouseup", stageupEvent, null, mID);		
+		} else if (type == "pressmove") {
+			stage.off("stagemousedown", mouseEvent, null, mID);
+			stage.off("stagemousemove", mouseEvent2, null, mID);
+			stage.off("stagemouseup", mouseEvent3, null, mID);
+			stage.off("stagemouseup", offTimeEvent, null, mID);
+			stage.off("stagemouseup", stageupEvent, null, mID);
+		}
+		if (mainTicker) zim.Ticker.remove(mainTicker, mID, that);
+	}
+	this.dispose = function() {
+		disable();
+		if (gamepad) gamepad.dispose();
+		if (swiperX) swiperX.dispose();
+		if (swiperY) swiperX.dispose();
+	};
+
+};
+zim.extend(zim.MotionController, createjs.EventDispatcher, "enabled", "cjsEventDispatcher");
 	//-69.7
 
 /*--
@@ -86432,6 +86616,19 @@ const scroller = new Scroller(one,20);
 // ALSO see Accelerator() examples
 END EXAMPLE
 
+EXAMPLE
+// https://zimjs.com/editor/view/E_QVBKE
+
+// must preload the image - so if in Editor or Slate, use this at top.
+zapp_assets = "beach02.jpg";
+zapp_path = "https://zimjs.org/assets/";
+
+const pic = new Pic("beach02.jpg")
+    .scaleTo()
+    .addTo();
+const scroller = new Scroller(pic,2);
+END EXAMPLE
+
 PARAMETERS
 ** supports DUO - parameters or single object with properties below
 ** supports OCT - parameter defaults can be set with STYLE control (like CSS)
@@ -93564,6 +93761,10 @@ follow(obj, boundary, damp, dampY, leftOffset, rightOffset, upOffset, downOffset
 	borderLock - (default false) set to true to stop container at boundary
 	lag - (default false) set to true to position object back from direction of motion
 		this gives more view as moving but sort of goes in two directions when motion stops
+showDebug() - shows the console at the bottom of the app - good for mobile debugging (uses Eruda)
+	note that you can close the debug window by carefully pressing the round console icon. 
+	that icon be dragged around to reposition it.  Tap the icon again to open the console.
+	this works on Apple iOS, Android, Desktop, etc.
 setDefault() - sets the frame to be the default frame
 	by default ;=) the default frame is the first frame made
 	the default frame has the stage that addTo(), center(), etc. will use as the default container
@@ -93624,7 +93825,9 @@ isDefault - a Boolean to indicate whether the Frame is the default frame (see se
 	the default frame has the stage that addTo(), center(), etc. will use as the default container
 	a global varible called zdf is also available
 isLoading - a Boolean to indicate whether loadAssets() is currently loading assets (also, each queue has an isLoading property)
-isFullscreen - a Boolean to indicate if Frame is in HTML fullscreen mode - see fullscreen() method and events
+fullscreenAvailable - read only returns true if the current browser and device support the Fullscreen API on HTML/Canvas elements. 
+	Returns false on platforms that do not support element-level fullscreen (such as iOS Safari on iPhone).
+isFullscreen - read only returns true if the Frame is currently in fullscreen mode, false otherwise.
 width - read only reference to the stage width - to change run remakeCanvas()
 height - read only reference to the stage height - to change run remakeCanvas()
 scale - read only returns the scale of the canvas - will return 1 for full and tag scale modes
@@ -95702,16 +95905,33 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	}
 	WW.addEventListener("wheel", wheelEvent);	
 	
-	this.isFullscreen = document.fullscreenElement?true:false;
+	function getFullscreenElement() {
+		return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement || null;
+	}
+
+	this.fullscreenAvailable = Boolean(
+		document.fullscreenEnabled ||
+		document.webkitFullscreenEnabled ||
+		document.mozFullScreenEnabled ||
+		document.msFullscreenEnabled
+	);
+	this.isFullscreen = getFullscreenElement() ? true : false;
 	this.htmlobc = zet("html").css("backgroundColor");
+
 	this.fullscreen = function(mode) {
 		if (zot(mode)) mode = true;
+		var fsElem = getFullscreenElement();
 		if (mode) { // go fullscreen
-			if (document.fullscreenElement) return;
-			var elem = that.canvas.parent?that.canvas.parent:document.body;
+			if (fsElem) return;
+			var elem = (that.canvas && that.canvas.parentElement && that.canvas.parentElement !== document.body) ? that.canvas.parentElement : document.documentElement;
 			if (elem.requestFullscreen) {
-				elem.requestFullscreen();
-			} else if (elem.webkitRequestFullscreen) { /* Safari */
+				var p = elem.requestFullscreen();
+				if (p && p.catch) {
+					p.catch(function(err) {
+						zog("Fullscreen rejected:", err.name, err.message);
+					});
+				}
+			} else if (elem.webkitRequestFullscreen) { /* Safari / WebKit */
 				elem.webkitRequestFullscreen();
 			} else if (elem.mozRequestFullscreen) { /* Mozilla */
 				elem.mozRequestFullscreen();
@@ -95719,10 +95939,10 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				elem.msRequestFullscreen();
 			}
 		} else { // exit fullscreen
-			if (!document.fullscreenElement) return;
+			if (!fsElem) return;
 			if (document.exitFullscreen) {
 				document.exitFullscreen();
-			} else if (document.webkitExitFullscreen) { /* Safari */
+			} else if (document.webkitExitFullscreen) { /* Safari / WebKit */
 				document.webkitExitFullscreen();
 			} else if (document.mozExitFullscreen) { /* Mozilla */
 				document.mozExitFullscreen();
@@ -95730,18 +95950,24 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				document.msExitFullscreen();
 			}
 		}
-		this.isFullscreen = mode;
-	}
-	document.addEventListener("fullscreenchange", function() {
-		that.isFullscreen = document.fullscreenElement?true:false;
-		if (document.fullscreenElement) {
+	};
+
+	function fullscreenHandler() {
+		var fsElem = getFullscreenElement();
+		that.isFullscreen = fsElem ? true : false;
+		if (fsElem) {
 			zet("html").css("backgroundColor", that.color);
 			that.dispatchEvent("fullscreenenter");
 		} else {
-			zet("html").css("backgroundColor", that.htmlobc?that.htmlobc:"transparent");
-			that.dispatchEvent("fullscreenexit");				
-		}			
-	});
+			zet("html").css("backgroundColor", that.htmlobc ? that.htmlobc : "transparent");
+			that.dispatchEvent("fullscreenexit");
+		}
+	}
+
+	document.addEventListener("fullscreenchange", fullscreenHandler);
+	document.addEventListener("webkitfullscreenchange", fullscreenHandler);
+	document.addEventListener("mozfullscreenchange", fullscreenHandler);
+	document.addEventListener("MSFullscreenChange", fullscreenHandler);
 
 	this.remakeCanvas = function(width, height) {
 		if (scaling == "full") return;
@@ -96039,39 +96265,71 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 	}
 
 	this.makeCat = function(height) {
-	if (zot(height)) height = 246;
-	var data = [
-	[16.95,241.15, 0,"black",[1.5,2,1],"AgKAhIAVhB"],
-	[58.65,244.378,0,"#A7A7A7",[3,2,1],"AmYAAIMxAB"],
-	[105.64,107.14,"#EF7988",0,0,"AAEArQgNAAgjghQgiggAFgIQAFgJBEgCQBEgDAGAGQAHAIgfAkQgfAlgPAAIAAAAg"],
-	[104.84,111.34,0,"black",[1,1,1],"AABA2IAPAYQAJAPAJAGQAKAHAMAAQAbAAAXgWQAQgPAVghQAVghAAgcQAAgnglgYQgbgSgxgCIgrACAAJADIgIAzAhphVQgXAVgMAWQgKAQgIAiQgIAkAFAMQALAfAqAOQAmANAcgIQANgEANgQQALgNAGgT"],
-	[105.05,111.4,"#757B74",0,0,"AheBrQgvgRgQgeQgPgdAQgkQAZg8AEgFQAXgfA8gGQBVgKA+ATQBRAZgYBEQgVA/gnAZQgUAOgZAKQgJAJgVgbQgUgegCAAQgDAAgWAgQgWAUgZAAQgMAAgNgEg"],
-	[86.18,93,"black",0,0,"Aj7g0QiYg0i9AyQA0g3BcgRQBagQBfAaQBkAbBEBBQBNBHASBpQhgiYibg0gAFxiDQAzgdA6AMQA9AMA2A4QgHgBAAACQAAAAgBABQAAAAAAAAQgBAAgBAAQAAAAgBgBQh8gshOAzQhIAvhBCYQALjABzhCg"],
-	[78.5,63.23,"#705F6C","black",[1,1,1],"AHAg5IgNmIIBfGpQgOgQgSgMQgjgXgPASgAKeDZQg2g4g9gMQg6gMgzAdQhzBCgLDBQBBiZBIgvQBNgzB9AsQAEACAAgCQAAgCAHABgAqdBuIAAnsIDmHEQgegMgsgBQhXgChFA3gAoEDzQA0g3BdgRQBagQBeAaQBkAbBFBBQBMBIASBpQhfiYibg1QiYg0i+Ayg"],
-	[86.28,98.01,"black","black",[1,1,1],"AJSh/QgEADgHgDQgFgBgBAFQgNBXhNA9QhTBEhagZQgGgCgPAFQgUAHgEAAQCNAeBchOQBGg7AWhigApRhnQAFABAIAAQAGABAAAAQBFBsCVA7QCpBDCrgzQACAAAHAJQAEAFAFAJQjAAzitg/Qing9g/iHg"],
-	[96.95,97.3,"#0C0436",0,0,"AlZBJQgVgVAAgeQAAgcAVgVQAVgVAeAAQAdAAAVAVQAVAVAAAcQAAAegVAVQgVAVgdAAQgeAAgVgVgAD1AcQgVgVAAgdQAAgdAVgVQAVgVAeAAQAdAAAVAVQAVAVAAAdQAAAdgVAVQgVAVgdAAQgeAAgVgVg"],
-	[96.88,97.2,"#EA9424",0,0,"AlpBYQgbgbAAgnQAAglAbgbQAbgbAnAAQAmAAAbAbQAbAbAAAlQAAAngbAbQgbAbgmAAQgnAAgbgbgADnArQgbgbAAgmQAAgmAbgbQAbgbAmAAQAnAAAbAbQAbAbAAAmQAAAmgbAbQgbAbgnAAQgmAAgbgbg"],
-	[96.88,97.2,"#AFCE3A",0,0,"AlzBiQgggfAAgtQAAgrAggfQAfggAtAAQAsAAAgAgQAfAfAAArQAAAtgfAfQggAggsAAQgtAAgfgggADcA1QgfgfAAgsQAAgsAfgfQAgggAsAAQAtAAAfAgQAgAfAAAsQAAAsggAfQgfAggtAAQgsAAggggg"],
-	[78.5,64.1,0,"black",[1,1,1],"AHAhCIgNmIIBfGpQgOgQgSgMQgjgXgPASgAKeDQQg2g4g9gMQg6gMgzAdQhzBCgLDBQCqAvBlhgQBJhFAGhagAoADiQAlgiBTgOQBYgOBaARQDrAsA0DTQjAAziog/Qihg+hAiIgAqdBlIAAnsIDmHEQgegMgsgBQhXgChFA3g"],
-	[86.375,93.9,"#EACE35",0,0,"AltB+Qiig9g/iIQAkghBTgOQBZgPBaARQDrAtA0DRQhWAXhSAAQhkAAhcgjgADxB2QALjABzhBQAzgeA6AMQA9ANA2A4QgGBYhJBGQhEBAhiAAQgxAAg4gQg"],
-	[73.45,154.83,"black","black",[2,1,1],"AkjjDIByAMQB/ANBEAFQB/AICXgSIgKFzQj4hflLiNQgDgBAFiag"],
-	[79.42,123.62,"#A7A7A7","black",[2,1,1],"AEBpxIgBgBQAYiNAeiQQA8kgAfgMQAggNBLEqQAlCVAfCXIAXARQAbAXAZAcQBQBZAZBnQAZBngUB+QgKA/gPArQgeASgrAWQhYAuhFAXQg8AUh0AWIhoASIAAQzItygCQAvhKA1hoQBqjRAjiXQAri/AOjLIAFimQgegHhTgeQhEgZhgg/IhTg7QgekPgQkUQggonBEgWQBFgWCbEtQAkBGA3B9QAbA9AYA3QASAqAQAmIgjhQIABAAIJmgYIBUACIBQAK"]
-	];
-	var catIcon = new zim.Container(157.5,246);
-	zim.loop(data, function (d) {
-	var s = new zim.Shape().f(d[2]).s(d[3]).ss(d[4]?d[4][0]:null, d[4]?d[4][1]:null, d[4]?d[4][2]:null).p(d[5]);
-	s.setTransform(d[0],d[1]);
-	s.addTo(catIcon);
-	}, true);
-	var container = new zim.Container();
-	catIcon.sca(height/246).addTo(container).mov(0,-.4);
-	if (mobile) {
-		container.cache();
-		container.setBounds(0,0,157.5*catIcon.scale,246*catIcon.scale);
-	}
-	container.mouseChildren = false;
-	return container;
+		if (zot(height)) height = 246;
+		var data = [
+		[16.95,241.15, 0,"black",[1.5,2,1],"AgKAhIAVhB"],
+		[58.65,244.378,0,"#A7A7A7",[3,2,1],"AmYAAIMxAB"],
+		[105.64,107.14,"#EF7988",0,0,"AAEArQgNAAgjghQgiggAFgIQAFgJBEgCQBEgDAGAGQAHAIgfAkQgfAlgPAAIAAAAg"],
+		[104.84,111.34,0,"black",[1,1,1],"AABA2IAPAYQAJAPAJAGQAKAHAMAAQAbAAAXgWQAQgPAVghQAVghAAgcQAAgnglgYQgbgSgxgCIgrACAAJADIgIAzAhphVQgXAVgMAWQgKAQgIAiQgIAkAFAMQALAfAqAOQAmANAcgIQANgEANgQQALgNAGgT"],
+		[105.05,111.4,"#757B74",0,0,"AheBrQgvgRgQgeQgPgdAQgkQAZg8AEgFQAXgfA8gGQBVgKA+ATQBRAZgYBEQgVA/gnAZQgUAOgZAKQgJAJgVgbQgUgegCAAQgDAAgWAgQgWAUgZAAQgMAAgNgEg"],
+		[86.18,93,"black",0,0,"Aj7g0QiYg0i9AyQA0g3BcgRQBagQBfAaQBkAbBEBBQBNBHASBpQhgiYibg0gAFxiDQAzgdA6AMQA9AMA2A4QgHgBAAACQAAAAgBABQAAAAAAAAQgBAAgBAAQAAAAgBgBQh8gshOAzQhIAvhBCYQALjABzhCg"],
+		[78.5,63.23,"#705F6C","black",[1,1,1],"AHAg5IgNmIIBfGpQgOgQgSgMQgjgXgPASgAKeDZQg2g4g9gMQg6gMgzAdQhzBCgLDBQBBiZBIgvQBNgzB9AsQAEACAAgCQAAgCAHABgAqdBuIAAnsIDmHEQgegMgsgBQhXgChFA3gAoEDzQA0g3BdgRQBagQBeAaQBkAbBFBBQBMBIASBpQhfiYibg1QiYg0i+Ayg"],
+		[86.28,98.01,"black","black",[1,1,1],"AJSh/QgEADgHgDQgFgBgBAFQgNBXhNA9QhTBEhagZQgGgCgPAFQgUAHgEAAQCNAeBchOQBGg7AWhigApRhnQAFABAIAAQAGABAAAAQBFBsCVA7QCpBDCrgzQACAAAHAJQAEAFAFAJQjAAzitg/Qing9g/iHg"],
+		[96.95,97.3,"#0C0436",0,0,"AlZBJQgVgVAAgeQAAgcAVgVQAVgVAeAAQAdAAAVAVQAVAVAAAcQAAAegVAVQgVAVgdAAQgeAAgVgVgAD1AcQgVgVAAgdQAAgdAVgVQAVgVAeAAQAdAAAVAVQAVAVAAAdQAAAdgVAVQgVAVgdAAQgeAAgVgVg"],
+		[96.88,97.2,"#EA9424",0,0,"AlpBYQgbgbAAgnQAAglAbgbQAbgbAnAAQAmAAAbAbQAbAbAAAlQAAAngbAbQgbAbgmAAQgnAAgbgbgADnArQgbgbAAgmQAAgmAbgbQAbgbAmAAQAnAAAbAbQAbAbAAAmQAAAmgbAbQgbAbgnAAQgmAAgbgbg"],
+		[96.88,97.2,"#AFCE3A",0,0,"AlzBiQgggfAAgtQAAgrAggfQAfggAtAAQAsAAAgAgQAfAfAAArQAAAtgfAfQggAggsAAQgtAAgfgggADcA1QgfgfAAgsQAAgsAfgfQAgggAsAAQAtAAAfAgQAgAfAAAsQAAAsggAfQgfAggtAAQgsAAggggg"],
+		[78.5,64.1,0,"black",[1,1,1],"AHAhCIgNmIIBfGpQgOgQgSgMQgjgXgPASgAKeDQQg2g4g9gMQg6gMgzAdQhzBCgLDBQCqAvBlhgQBJhFAGhagAoADiQAlgiBTgOQBYgOBaARQDrAsA0DTQjAAziog/Qihg+hAiIgAqdBlIAAnsIDmHEQgegMgsgBQhXgChFA3g"],
+		[86.375,93.9,"#EACE35",0,0,"AltB+Qiig9g/iIQAkghBTgOQBZgPBaARQDrAtA0DRQhWAXhSAAQhkAAhcgjgADxB2QALjABzhBQAzgeA6AMQA9ANA2A4QgGBYhJBGQhEBAhiAAQgxAAg4gQg"],
+		[73.45,154.83,"black","black",[2,1,1],"AkjjDIByAMQB/ANBEAFQB/AICXgSIgKFzQj4hflLiNQgDgBAFiag"],
+		[79.42,123.62,"#A7A7A7","black",[2,1,1],"AEBpxIgBgBQAYiNAeiQQA8kgAfgMQAggNBLEqQAlCVAfCXIAXARQAbAXAZAcQBQBZAZBnQAZBngUB+QgKA/gPArQgeASgrAWQhYAuhFAXQg8AUh0AWIhoASIAAQzItygCQAvhKA1hoQBqjRAjiXQAri/AOjLIAFimQgegHhTgeQhEgZhgg/IhTg7QgekPgQkUQggonBEgWQBFgWCbEtQAkBGA3B9QAbA9AYA3QASAqAQAmIgjhQIABAAIJmgYIBUACIBQAK"]
+		];
+		var catIcon = new zim.Container(157.5,246);
+		zim.loop(data, function (d) {
+		var s = new zim.Shape().f(d[2]).s(d[3]).ss(d[4]?d[4][0]:null, d[4]?d[4][1]:null, d[4]?d[4][2]:null).p(d[5]);
+		s.setTransform(d[0],d[1]);
+		s.addTo(catIcon);
+		}, true);
+		var container = new zim.Container();
+		catIcon.sca(height/246).addTo(container).mov(0,-.4);
+		if (mobile) {
+			container.cache();
+			container.setBounds(0,0,157.5*catIcon.scale,246*catIcon.scale);
+		}
+		container.mouseChildren = false;
+		return container;
 	};
+
+	that.showDebug = function() {
+		if (WW.eruda) {
+			eruda.show();
+		} else {
+			const script = document.createElement("script");
+			script.src = "https://cdn.jsdelivr.net/npm/eruda";
+			script.onload = () => {
+				eruda.init();
+				eruda.show();
+				// Re-bind all zog variants to Eruda's console
+				bindZogs();				
+			};
+			document.head.appendChild(script);
+		}
+
+		function bindZogs() {
+			if (typeof zon != "undefined" && !zon) return;
+			WW.zog = console.log.bind(console);
+			var zogStyle = " border:thin solid black; color: black";
+			WW["zogg"] = console.log.bind(console, "%c Z ", "background: #acd241;"+zogStyle);
+			WW["zogp"] = console.log.bind(console, "%c Z ", "background: #e472c4;"+zogStyle);
+			WW["zogb"] = console.log.bind(console, "%c Z ", "background: #50c4b7;"+zogStyle);
+			WW["zogr"] = console.log.bind(console, "%c Z ", "background: #fb4758;"+zogStyle);
+			WW["zogy"] = console.log.bind(console, "%c Z ", "background: #ebcb35;"+zogStyle);
+			WW["zogo"] = console.log.bind(console, "%c Z ", "background: #f58e25;"+zogStyle);
+			WW["zogs"] = console.log.bind(console, "%c Z ", "background: #fa8072;"+zogStyle);
+			WW["zogl"] = console.log.bind(console, "%c Z ", "background: #eeeeee;"+zogStyle);
+			WW["zogd"] = console.log.bind(console, "%c Z ", "background: #444444; border:thin solid black; color: white");
+			WW["zogv"] = console.log.bind(console, "%c Z ", "background: #993399; border:thin solid black; color: white");
+		}
+	}
 };
 zim.extend(zim.Frame, createjs.EventDispatcher, null, "cjsEventDispatcher", false);
 
@@ -106658,7 +106916,7 @@ END EXAMPLE
 
 EXAMPLE 
 // must import zim_chart
-const graph = new zim.BarGraph({
+const graph = new BarGraph({
 	title:"Sales of Vegetables",
 	width: 700,
 	// comment these out to see with light background
@@ -106840,7 +107098,7 @@ See: https://zimjs.com/020/piechart.html
 
 EXAMPLE
 // must import zim_chart
-new zim.PieChart(400, 400, [{name:"A", backgroundColor:red}, {name:"B", backgroundColor:blue}], [50, 150])
+new PieChart(400, 400, [{name:"A", backgroundColor:red}, {name:"B", backgroundColor:blue}], [50, 150])
 	.center();
 END EXAMPLE
 
@@ -106849,7 +107107,7 @@ EXAMPLE
 // interactive Pie Chart with icons
 STYLE = {backdrop:{corner:10, shadow:true}, chartBacking:{corner:10, shadow:true}}
 
-var graph = new zim.PieChart({
+var graph = new PieChart({
 	backgroundColor:dark,
 	color:light,
 	padding:30,
@@ -107080,7 +107338,7 @@ NOTE: as of ZIM 5.5.0 the zim namespace is no longer required (unless zns is set
 EXAMPLE
 // must import zim_chart
 let info = {labelH:["Time"], labelV:["Value"], dataH:[0,1,2,3], dataV:[0,10,20,15]};
-let liveGraph = new zim.LiveGraph(600, 400, "Live Data", info, null, null, 1);
+let liveGraph = new LiveGraph(600, 400, "Live Data", info, null, null, 1);
 liveGraph.addTo(stage);
 END EXAMPLE
 
@@ -107334,7 +107592,7 @@ const words = [
 ];
 
 // words, width, height, scaleFix, font, color, backgroundColor, spacing, verticalMix, uppercase, minSize, maxSize, style, group, inherit
-var cloud = new zim.WordCloud({
+var cloud = new WordCloud({
 	width:700,
 	words: words,
 	// exclude:exclude,				
