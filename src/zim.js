@@ -32705,9 +32705,8 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 				end();
 			}
 			function end() {
+				stage = that.stage;				
 				if (that.parent) that.parent.removeChild(that);
-				stage = that.stage;
-				if (stage) stage.update();
 				if (that.zimAccessibility) {
 					var a = that.zimAccessibility;
 					a.resize(that);
@@ -32715,6 +32714,9 @@ added, click, dblclick, mousedown, mouseout, mouseover, pressdown (ZIM), pressmo
 					else that.zimTabTag.nextSibling.focus();
 					setTimeout(function() {a.talk("Waiter has finished.");}, 50);
 				}
+				if (that.ticker) createjs.Ticker.off("tick", that.ticker, null, mID);
+				createjs.Tween.removeTweens(that);
+				if (stage) stage.update();
 			}
 			that.toggled = false;
 			return that;
@@ -74611,7 +74613,7 @@ zim.TextureActives = function(actives, threejs, zimThree, renderer, scene, camer
 				that.actives.push(active);                    
 				active.cache();        
 				active.textureActives = that;    
-				active.canvas.content = active;    
+				active.canvas.contentTA = active;    
 				if (active.interactive) {
 					interactive = true;
 					active.canvas.isTextureActive = true;
@@ -75028,9 +75030,9 @@ zim.TextureActives = function(actives, threejs, zimThree, renderer, scene, camer
 					&& material.map
 					&& material.map.source 
 					&& material.map.source.data
-					&& material.map.source.data.content
+					&& material.map.source.data.contentTA
 				) {           
-					var content = material.map.source.data.content;  
+					var content = material.map.source.data.contentTA;  
 					mesh.userData.ta_content.push(content);
 					content.mesh = mesh;
 					mesh.textureActive = true; // flag that one of its materials has textureActive content
@@ -95295,7 +95297,7 @@ zim.Frame = function(scaling, width, height, color, outerColor, ready, assets, p
 				if (that.loadAssetsCount <= 0) that.isLoading = false;
 				queue.isLoading = false;
 				queue.dispatchEvent(completeEventObject);
-				if (!zot(progress) && progress.show) progress.hide();
+				if (!zot(progress) && progress.show) progress.dispose();
 				if (!queueOnly) that.dispatchEvent(completeEventObject);
 			}, time*(timeType=="s"?1000:1));
 		}
